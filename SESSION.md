@@ -30,13 +30,17 @@
 - План: `docs/superpowers/plans/2026-07-06-nobara-hairpin-prototype.md`
 - Standalone visual target: `docs/visual-targets/nobara-hairpin/index.html`
   - Один self-contained HTML/Canvas файл.
-  - Показывает пять фаз: Prep Freeze, Hammer Snap, Nail Ignition, Hairpin Bloom, Afterglow.
+  - Показывает пять фаз: Marked Nails, Trigger Ping, Cursed Compression, Hairpin Snap, Blood-Black Residue.
   - Тайминги совпадают с `HairpinTimeline`: `0/180/240/560/900/1800`.
+  - Supports fixed-frame QA with `?t=<milliseconds>`, for example `?t=720`.
 
 ## Research corpus added after visual feedback
 
-User provided four additional deep-research files and explicitly allowed copying them into project docs. Raw copies are stored in:
+User provided seven deep-research files and explicitly allowed copying them into project docs. Raw copies are stored in:
 
+- `docs/research/sources/2026-07-07-combat-ability-design.md`
+- `docs/research/sources/2026-07-07-fabric-technical-bible.md`
+- `docs/research/sources/2026-07-07-jujutsu-kaisen-minecraft-bible.md`
 - `docs/research/sources/2026-07-07-fabric-vfx-development.md`
 - `docs/research/sources/2026-07-07-hairpin-vfx-ux-bible.md`
 - `docs/research/sources/2026-07-07-fabric-combat-architecture.md`
@@ -45,6 +49,8 @@ User provided four additional deep-research files and explicitly allowed copying
 Synthesis:
 
 - `docs/research/2026-07-07-fabric-vfx-combat-research-synthesis.md`
+- `docs/research/2026-07-07-jujutsu-deep-research-synthesis.md`
+- `docs/research/prompts/2026-07-07-vfx-next-deep-research-prompts.md`
 
 Important conclusions from the new corpus:
 
@@ -55,6 +61,7 @@ Important conclusions from the new corpus:
 - Server owns gameplay and nail anchors; client owns transient VFX/audio/screen/camera playback from semantic events and deterministic seeds.
 - First real implementation should stay minimal: no broad ability framework and no heavy VFX dependency before Hairpin proves the pattern.
 - Treat raw research API snippets as checkpoints, not copy-paste truth. Verify Fabric 1.21.8 class/method names locally before code.
+- Latest visual target uses one nail-anchored timeline for bloom/burst/residue, darker blood-black palette, intentionally embedded nails, broken fracture arcs instead of clean circular rings, and a smoother compact UI.
 
 ## Что реализовано
 
@@ -101,7 +108,7 @@ Important conclusions from the new corpus:
 
 ## Коммиты этой worktree
 
-Implementation/research range from `main` commit `d962cc2` through `ad4a91f`, plus this session handoff update:
+Implementation/research range from `main` commit `d962cc2` through `83c83c9`, plus this session handoff update:
 
 - `2745684 docs(design): define Nobara Hairpin cinematic slice`
 - `23b272e docs(design): document Universal FX decision`
@@ -119,6 +126,10 @@ Implementation/research range from `main` commit `d962cc2` through `ad4a91f`, pl
 - `90f38b3 docs(vfx): smooth Hairpin afterglow transition`
 - `20f672c docs(research): synthesize Jujutsu design sources`
 - `ad4a91f docs(research): add Fabric VFX research corpus`
+- `1bc51c9 docs(research): add first design research sources`
+- `52115f0 docs(vfx): refine Hairpin visual target`
+- `47ef839 docs(design): align Hairpin spec with research`
+- `83c83c9 docs(research): add Hairpin VFX research prompts`
 
 ## Verification
 
@@ -155,6 +166,18 @@ git diff --check
 ```
 
 Result: no output.
+
+After updating the visual target:
+
+```text
+Playwright with installed Chrome opened:
+file:///D:/WorkFlow/Jujutsu%20Minecraft/.worktrees/brainstorming/docs/visual-targets/nobara-hairpin/index.html?t=0
+?t=320
+?t=720
+?t=1300
+```
+
+Result: no console/page errors; phase/time/readout/progress values matched the fixed milliseconds.
 
 ```bat
 git status --short --branch
