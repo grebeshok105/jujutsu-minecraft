@@ -17,10 +17,10 @@ public class HairpinBurstResidueParticle extends TextureSheetParticle {
 		this.lifetime = 14 + this.random.nextInt(9);
 		this.gravity = 0.015f;
 		this.hasPhysics = false;
-		this.quadSize = 0.23f + this.random.nextFloat() * 0.13f;
-		this.rCol = 0.28f;
-		this.gCol = 0.065f;
-		this.bCol = 0.1f;
+		this.quadSize = 0.28f + this.random.nextFloat() * 0.14f;
+		this.rCol = 0.34f;
+		this.gCol = 0.075f;
+		this.bCol = 0.12f;
 		this.alpha = 0.95f;
 		this.setSpriteFromAge(sprites);
 	}

@@ -14,10 +14,10 @@ public class HairpinCompressionMoteParticle extends TextureSheetParticle {
 	protected HairpinCompressionMoteParticle(ClientLevel level, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed, SpriteSet sprites) {
 		super(level, x, y, z, xSpeed, ySpeed, zSpeed);
 		this.sprites = sprites;
-		this.lifetime = 7 + this.random.nextInt(4);
+		this.lifetime = 14 + this.random.nextInt(5);
 		this.gravity = 0.0f;
 		this.hasPhysics = false;
-		this.quadSize = 0.105f + this.random.nextFloat() * 0.045f;
+		this.quadSize = 0.16f + this.random.nextFloat() * 0.06f;
 		this.rCol = 0.38f;
 		this.gCol = 0.07f;
 		this.bCol = 0.12f;

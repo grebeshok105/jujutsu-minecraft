@@ -15,10 +15,10 @@ public class HairpinSnapCrackParticle extends TextureSheetParticle {
 	protected HairpinSnapCrackParticle(ClientLevel level, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed, SpriteSet sprites) {
 		super(level, x, y, z, xSpeed * 0.35, ySpeed * 0.35, zSpeed * 0.35);
 		this.sprites = sprites;
-		this.lifetime = 3 + this.random.nextInt(2);
+		this.lifetime = 11 + this.random.nextInt(4);
 		this.gravity = 0.0f;
 		this.hasPhysics = false;
-		this.quadSize = 0.28f + this.random.nextFloat() * 0.09f;
+		this.quadSize = 0.38f + this.random.nextFloat() * 0.12f;
 		this.rCol = 0.58f;
 		this.gCol = 0.08f;
 		this.bCol = 0.16f;

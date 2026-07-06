@@ -14,10 +14,10 @@ public class HairpinMetalShardParticle extends TextureSheetParticle {
 	protected HairpinMetalShardParticle(ClientLevel level, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed, SpriteSet sprites) {
 		super(level, x, y, z, xSpeed, ySpeed, zSpeed);
 		this.sprites = sprites;
-		this.lifetime = 9 + this.random.nextInt(6);
+		this.lifetime = 18 + this.random.nextInt(6);
 		this.gravity = 0.04f;
 		this.hasPhysics = true;
-		this.quadSize = 0.13f + this.random.nextFloat() * 0.055f;
+		this.quadSize = 0.2f + this.random.nextFloat() * 0.08f;
 		this.rCol = 0.58f;
 		this.gCol = 0.61f;
 		this.bCol = 0.64f;

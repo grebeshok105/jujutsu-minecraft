@@ -17,10 +17,10 @@ public class HairpinMarkStainParticle extends TextureSheetParticle {
 		this.lifetime = 18 + this.random.nextInt(8);
 		this.gravity = 0.0f;
 		this.hasPhysics = false;
-		this.quadSize = 0.22f + this.random.nextFloat() * 0.08f;
-		this.rCol = 0.2f;
-		this.gCol = 0.045f;
-		this.bCol = 0.085f;
+		this.quadSize = 0.3f + this.random.nextFloat() * 0.1f;
+		this.rCol = 0.28f;
+		this.gCol = 0.06f;
+		this.bCol = 0.1f;
 		this.alpha = 0.95f;
 		this.setSpriteFromAge(sprites);
 	}

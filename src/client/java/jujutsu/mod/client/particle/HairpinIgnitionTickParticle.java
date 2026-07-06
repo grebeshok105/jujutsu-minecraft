@@ -15,14 +15,14 @@ public class HairpinIgnitionTickParticle extends TextureSheetParticle {
 	protected HairpinIgnitionTickParticle(ClientLevel level, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed, SpriteSet sprites) {
 		super(level, x, y, z, xSpeed * 0.25, ySpeed * 0.25, zSpeed * 0.25);
 		this.sprites = sprites;
-		this.lifetime = 3;
+		this.lifetime = 10 + this.random.nextInt(3);
 		this.gravity = 0.0f;
 		this.hasPhysics = false;
-		this.quadSize = 0.085f + this.random.nextFloat() * 0.035f;
+		this.quadSize = 0.16f + this.random.nextFloat() * 0.06f;
 		this.rCol = 0.62f;
 		this.gCol = 0.24f;
 		this.bCol = 0.36f;
-		this.alpha = 0.9f;
+		this.alpha = 0.96f;
 		this.setSpriteFromAge(sprites);
 	}
 
@@ -30,7 +30,7 @@ public class HairpinIgnitionTickParticle extends TextureSheetParticle {
 	public void tick() {
 		super.tick();
 		this.setSpriteFromAge(this.sprites);
-		this.alpha = 0.9f * (1.0f - ((float) this.age / (float) this.lifetime));
+		this.alpha = 0.96f * (1.0f - ((float) this.age / (float) this.lifetime));
 	}
 
 	@Override
