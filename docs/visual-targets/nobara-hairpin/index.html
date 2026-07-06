@@ -253,6 +253,14 @@ function easeOut(value) {
 	return 1 - Math.pow(1 - value, 3);
 }
 
+function easeInOut(value) {
+	return value < 0.5 ? 2 * value * value : 1 - Math.pow(-2 * value + 2, 2) / 2;
+}
+
+function nailPoint(center, x, y) {
+	return { x: center.x + x, y: center.y + y };
+}
+
 function draw() {
 	const ms = elapsed();
 	const phase = currentPhase(ms);
@@ -261,11 +269,11 @@ function draw() {
 	const height = canvas.clientHeight;
 	const center = { x: width * 0.58, y: height * 0.5 };
 	const nails = [
-		{ x: center.x - 150, y: center.y - 82 },
-		{ x: center.x + 118, y: center.y - 56 },
-		{ x: center.x - 78, y: center.y + 96 },
-		{ x: center.x + 88, y: center.y + 118 }
-	];
+		nailPoint(center, -132, -76),
+		nailPoint(center, 132, -76),
+		nailPoint(center, -132, 76),
+		nailPoint(center, 132, 76)
+	].map(nail => ({ ...nail, angle: Math.atan2(center.y - nail.y, center.x - nail.x) }));
 
 	ctx.clearRect(0, 0, width, height);
 	drawBackground(width, height, ms);
@@ -298,19 +306,25 @@ function drawBackground(width, height, ms) {
 function drawNails(nails, center, phase, progress) {
 	for (const nail of nails) {
 		const charged = phase.name !== "Prep Freeze" || progress > 0.35;
-		const angle = Math.atan2(center.y - nail.y, center.x - nail.x);
 		ctx.save();
 		ctx.translate(nail.x, nail.y);
-		ctx.rotate(angle);
-		ctx.fillStyle = "#c9b6b8";
-		ctx.fillRect(-22, -2, 44, 4);
-		ctx.fillStyle = "#2b2224";
-		ctx.fillRect(12, -3, 12, 6);
+		ctx.rotate(nail.angle);
+		ctx.fillStyle = "#b7a5a6";
+		ctx.fillRect(-24, -1.5, 48, 3);
+		ctx.fillStyle = "#2a2021";
+		ctx.fillRect(-27, -3, 10, 6);
+		ctx.fillStyle = "#d2c0bd";
+		ctx.beginPath();
+		ctx.moveTo(25, 0);
+		ctx.lineTo(18, -3);
+		ctx.lineTo(18, 3);
+		ctx.closePath();
+		ctx.fill();
 		if (charged) {
 			ctx.shadowColor = colors.crimson;
 			ctx.shadowBlur = 14;
 			ctx.fillStyle = colors.crimson;
-			ctx.fillRect(-18, -3, 30, 6);
+			ctx.fillRect(-16, -2.5, 30, 5);
 		}
 		ctx.restore();
 	}
@@ -339,24 +353,15 @@ function drawPhaseEffect(nails, center, phase, progress, ms) {
 		const ring = easeOut(progress) * 240;
 		const residue = 0.55 - progress * 0.3;
 		drawRing(center, ring, Math.max(0.18, 1 - progress * 0.72));
-		drawBloomResidue(center, ring, residue, ms);
-		for (let i = 0; i < 38; i++) {
-			const angle = i * 2.399 + ms * 0.003;
-			const distance = 24 + ring * (0.35 + (i % 5) * 0.07);
-			drawShard(center.x + Math.cos(angle) * distance, center.y + Math.sin(angle) * distance, angle, Math.max(0.16, 1 - progress * 0.9));
-		}
+		drawBloomResidue(center, ring, residue, ms, Math.max(0.35, progress));
+		drawBloomShards(center, progress, 1.0, ms);
 	}
 
 	if (phase.name === "Afterglow") {
 		const fade = 1 - easeOut(progress);
-		const carriedRing = 220 + progress * 42;
-		drawBloomResidue(center, carriedRing, 0.25 * fade, ms);
-		drawResidueFall(center, progress, ms);
-		for (let i = 0; i < 26; i++) {
-			const angle = i * 1.71;
-			const distance = 35 + i * 7 + progress * 80;
-			drawSpark(center.x + Math.cos(angle) * distance, center.y + Math.sin(angle) * distance + progress * 32, 3.5, 0.42 * fade);
-		}
+		const carriedRing = 238 + easeInOut(progress) * 38;
+		drawBloomResidue(center, carriedRing, 0.34 * fade, ms, 1 + progress * 0.35);
+		drawBloomShards(center, 1 + progress * 0.38, 0.48 * fade, ms);
 	}
 }
 
@@ -394,21 +399,21 @@ function drawRing(center, radius, alpha) {
 	ctx.stroke();
 }
 
-function drawBloomResidue(center, radius, alpha, ms) {
+function drawBloomResidue(center, radius, alpha, ms, spread) {
 	if (alpha <= 0) return;
 	ctx.save();
 	ctx.globalCompositeOperation = "lighter";
 	ctx.strokeStyle = `rgba(58,0,9,${alpha})`;
-	ctx.lineWidth = 18;
+	ctx.lineWidth = 14;
 	ctx.beginPath();
 	ctx.arc(center.x, center.y, radius * 0.82, 0, Math.PI * 2);
 	ctx.stroke();
 	ctx.strokeStyle = `rgba(169,8,36,${alpha * 0.42})`;
 	ctx.lineWidth = 2;
 	for (let i = 0; i < 18; i++) {
-		const angle = i * 0.82 + Math.sin(ms * 0.001 + i) * 0.08;
-		const inner = radius * (0.42 + (i % 4) * 0.06);
-		const outer = radius * (0.78 + (i % 5) * 0.035);
+		const angle = i * 0.82 + Math.sin(ms * 0.001 + i) * 0.04;
+		const inner = radius * (0.38 + (i % 4) * 0.055) * spread;
+		const outer = radius * (0.72 + (i % 5) * 0.032) * spread;
 		ctx.beginPath();
 		ctx.moveTo(center.x + Math.cos(angle) * inner, center.y + Math.sin(angle) * inner);
 		ctx.lineTo(center.x + Math.cos(angle) * outer, center.y + Math.sin(angle) * outer);
@@ -417,14 +422,16 @@ function drawBloomResidue(center, radius, alpha, ms) {
 	ctx.restore();
 }
 
-function drawResidueFall(center, progress, ms) {
-	const fade = 1 - easeOut(progress);
-	for (let i = 0; i < 32; i++) {
-		const angle = i * 2.17 + 0.24;
-		const drift = 48 + (i % 8) * 18 + progress * 72;
-		const x = center.x + Math.cos(angle) * drift + Math.sin(ms * 0.002 + i) * 6;
-		const y = center.y + Math.sin(angle) * drift + progress * (46 + (i % 5) * 8);
-		drawSoot(x, y, 5 + (i % 4), fade * (0.24 + (i % 3) * 0.04));
+function drawBloomShards(center, spread, alpha, ms) {
+	if (alpha <= 0) return;
+	for (let i = 0; i < 42; i++) {
+		const angle = i * 2.399 + 0.18 + Math.sin(ms * 0.001 + i) * 0.025;
+		const base = 52 + (i % 7) * 18;
+		const distance = base + spread * (80 + (i % 5) * 20);
+		const fall = Math.max(0, spread - 1) * (24 + (i % 6) * 8);
+		const x = center.x + Math.cos(angle) * distance;
+		const y = center.y + Math.sin(angle) * distance + fall;
+		drawShard(x, y, angle, alpha * (0.62 + (i % 4) * 0.08));
 	}
 }
 
@@ -447,13 +454,6 @@ function drawSpark(x, y, size, alpha) {
 	ctx.arc(x, y, size, 0, Math.PI * 2);
 	ctx.fill();
 	ctx.shadowBlur = 0;
-}
-
-function drawSoot(x, y, size, alpha) {
-	ctx.fillStyle = `rgba(18,0,6,${alpha})`;
-	ctx.beginPath();
-	ctx.arc(x, y, size, 0, Math.PI * 2);
-	ctx.fill();
 }
 
 function drawImpactFrame(width, height, phase, progress) {
