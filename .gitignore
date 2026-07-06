@@ -2,6 +2,7 @@
 
 .gradle/
 build/
+.worktrees/
 out/
 classes/
 
