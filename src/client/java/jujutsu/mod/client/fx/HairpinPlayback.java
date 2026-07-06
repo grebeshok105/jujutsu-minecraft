@@ -15,7 +15,7 @@ public final class HairpinPlayback {
 	private final HairpinFxPayload payload;
 	private final long startedAtMillis;
 	private final Random random;
-	private HairpinTimeline.Phase lastPhase = HairpinTimeline.Phase.PREP_FREEZE;
+	private HairpinTimeline.Phase lastPhase = HairpinTimeline.Phase.DONE;
 
 	public HairpinPlayback(HairpinFxPayload payload, long startedAtMillis) {
 		this.payload = payload;
