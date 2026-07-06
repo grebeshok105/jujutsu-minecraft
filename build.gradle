@@ -44,6 +44,15 @@ tasks.register('testHairpinTimeline', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testHairpinVisualProfile', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for the Hairpin visual profile'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.fx.HairpinVisualProfileTest'
+	jvmArgs '-ea'
+}
+
 processResources {
 	def version = project.version
 	inputs.property "version", version

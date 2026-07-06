@@ -4,9 +4,11 @@ import java.util.List;
 import java.util.Random;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.fx.HairpinTimeline;
+import jujutsu.mod.fx.HairpinVisualProfile;
 import jujutsu.mod.network.HairpinFxPayload;
 import jujutsu.mod.registry.JujutsuParticles;
 import jujutsu.mod.registry.JujutsuSounds;
@@ -93,53 +95,95 @@ public final class HairpinPlayback {
 	}
 
 	private void spawnPhaseParticles(ClientLevel level, HairpinTimeline.Phase phase, float progress) {
-		switch (phase) {
-			case PREP_FREEZE -> spawnNailSparks(level, 1, 0.018);
-			case HAMMER_SNAP -> spawnTargetBurst(level, 8, 0.16);
-			case NAIL_IGNITION -> {
-				spawnNailSparks(level, 2, 0.055);
-				spawnTracerSparks(level, progress);
-			}
-			case HAIRPIN_BLOOM -> spawnTargetBurst(level, 12, 0.24);
-			case AFTERGLOW -> spawnTargetBurst(level, 2, 0.07);
-			case DONE -> {
+		for (HairpinVisualProfile.ParticleBudget budget : HairpinVisualProfile.budgetsForPhase(phase)) {
+			switch (budget.family()) {
+				case MARK_STAIN -> spawnNailFamily(level, JujutsuParticles.HAIRPIN_MARK_STAIN, budget.countPerNail(), 0.012);
+				case WARN_EDGE -> spawnNailFamily(level, JujutsuParticles.HAIRPIN_WARN_EDGE, budget.countPerNail(), 0.028);
+				case COMPRESSION_MOTE -> spawnCompressionMotes(level, budget.countPerNail(), progress);
+				case SNAP_CRACK -> spawnSnapCracks(level, budget.countPerNail(), budget.countAtTarget());
+				case BURST_RESIDUE -> spawnDirectionalBurst(level, JujutsuParticles.HAIRPIN_BURST_RESIDUE, budget.countPerNail(), budget.countAtTarget(), phase == HairpinTimeline.Phase.AFTERGLOW ? 0.055 : 0.17);
+				case BURST_METAL_SHARD -> spawnDirectionalBurst(level, JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, budget.countPerNail(), budget.countAtTarget(), 0.24);
+				case IGNITION_TICK -> spawnNailFamily(level, JujutsuParticles.HAIRPIN_IGNITION_TICK, budget.countPerNail(), 0.038);
 			}
 		}
 	}
 
-	private void spawnNailSparks(ClientLevel level, int countPerNail, double speed) {
+	private void spawnNailFamily(ClientLevel level, SimpleParticleType type, int countPerNail, double speed) {
 		for (Vec3 nail : nails()) {
 			for (int index = 0; index < countPerNail; index++) {
-				spawnSpark(level, nail, randomVelocity(speed));
+				spawnParticle(level, type, jitter(nail, 0.035), randomVelocity(speed));
 			}
 		}
 	}
 
-	private void spawnTracerSparks(ClientLevel level, float progress) {
+	private void spawnCompressionMotes(ClientLevel level, int countPerNail, float progress) {
 		Vec3 target = target();
 		for (Vec3 nail : nails()) {
-			Vec3 point = nail.lerp(target, progress);
-			Vec3 towardTarget = target.subtract(nail).normalize().scale(0.09);
-			spawnSpark(level, point, towardTarget.add(randomVelocity(0.015)));
+			Vec3 towardTarget = safeDirection(target.subtract(nail));
+			for (int index = 0; index < countPerNail; index++) {
+				double lerp = 0.18 + progress * 0.54 + random.nextDouble() * 0.08;
+				Vec3 point = jitter(nail.lerp(target, Math.min(0.88, lerp)), 0.045);
+				spawnParticle(level, JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, point, towardTarget.scale(0.085).add(randomVelocity(0.012)));
+			}
 		}
 	}
 
-	private void spawnTargetBurst(ClientLevel level, int count, double speed) {
+	private void spawnSnapCracks(ClientLevel level, int countPerNail, int countAtTarget) {
 		Vec3 target = target();
-		for (int index = 0; index < count; index++) {
-			spawnSpark(level, target, randomVelocity(speed));
+		for (Vec3 nail : nails()) {
+			Vec3 vector = burstVector(nail);
+			for (int index = 0; index < countPerNail; index++) {
+				spawnParticle(level, JujutsuParticles.HAIRPIN_SNAP_CRACK, nail.lerp(target, 0.72), vector.scale(0.12).add(randomVelocity(0.018)));
+			}
+		}
+		for (int index = 0; index < countAtTarget; index++) {
+			spawnParticle(level, JujutsuParticles.HAIRPIN_SNAP_CRACK, jitter(target(), 0.055), randomVelocity(0.08));
 		}
 	}
 
-	private void spawnSpark(ClientLevel level, Vec3 position, Vec3 velocity) {
+	private void spawnDirectionalBurst(ClientLevel level, SimpleParticleType type, int countPerNail, int countAtTarget, double speed) {
+		Vec3 target = target();
+		for (Vec3 nail : nails()) {
+			Vec3 vector = burstVector(nail);
+			for (int index = 0; index < countPerNail; index++) {
+				Vec3 position = jitter(target.add(vector.scale(0.08 + random.nextDouble() * 0.12)), 0.045);
+				Vec3 velocity = vector.scale(speed * (0.65 + random.nextDouble() * 0.55)).add(randomVelocity(speed * 0.22));
+				spawnParticle(level, type, position, velocity);
+			}
+		}
+		for (int index = 0; index < countAtTarget; index++) {
+			spawnParticle(level, type, jitter(target, 0.06), randomVelocity(speed * 0.7));
+		}
+	}
+
+	private void spawnParticle(ClientLevel level, SimpleParticleType type, Vec3 position, Vec3 velocity) {
 		level.addParticle(
-				JujutsuParticles.HAIRPIN_SPARK,
+				type,
 				position.x,
 				position.y,
 				position.z,
 				velocity.x,
 				velocity.y,
 				velocity.z
+		);
+	}
+
+	private Vec3 burstVector(Vec3 nail) {
+		return safeDirection(target().subtract(nail));
+	}
+
+	private Vec3 safeDirection(Vec3 vector) {
+		if (vector.lengthSqr() < 1.0E-5) {
+			return randomVelocity(1.0);
+		}
+		return vector.normalize();
+	}
+
+	private Vec3 jitter(Vec3 position, double radius) {
+		return position.add(
+				(random.nextDouble() - 0.5) * radius,
+				(random.nextDouble() - 0.5) * radius,
+				(random.nextDouble() - 0.5) * radius
 		);
 	}
 
