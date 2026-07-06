@@ -7,6 +7,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.debug.HairpinDebugLog;
 import jujutsu.mod.fx.HairpinTimeline;
 import jujutsu.mod.fx.HairpinVisualProfile;
 import jujutsu.mod.network.HairpinFxPayload;
@@ -48,6 +49,15 @@ public final class HairpinPlayback {
 
 		HairpinTimeline.Phase phase = phase(currentTimeMillis);
 		if (phase != lastPhase) {
+			HairpinDebugLog.info(
+					"playback phase seed={} phase={} elapsedMs={} progress={} target={} scheduledParticlesPerTick={}",
+					payload.seed(),
+					phase,
+					elapsedMillis(currentTimeMillis),
+					progressInPhase(currentTimeMillis),
+					HairpinDebugLog.vec(target()),
+					scheduledParticlesPerTick(phase)
+			);
 			playPhaseSound(client.level, phase);
 			lastPhase = phase;
 		}
@@ -106,6 +116,14 @@ public final class HairpinPlayback {
 				case IGNITION_TICK -> spawnNailFamily(level, JujutsuParticles.HAIRPIN_IGNITION_TICK, budget.countPerNail(), 0.048);
 			}
 		}
+	}
+
+	private int scheduledParticlesPerTick(HairpinTimeline.Phase phase) {
+		int total = 0;
+		for (HairpinVisualProfile.ParticleBudget budget : HairpinVisualProfile.budgetsForPhase(phase)) {
+			total += budget.countPerNail() * nails().size() + budget.countAtTarget();
+		}
+		return total;
 	}
 
 	private void spawnNailFamily(ClientLevel level, SimpleParticleType type, int countPerNail, double speed) {

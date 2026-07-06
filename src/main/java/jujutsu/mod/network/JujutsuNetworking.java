@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.debug.HairpinDebugLog;
 
 public final class JujutsuNetworking {
 	private JujutsuNetworking() {}
@@ -29,7 +30,10 @@ public final class JujutsuNetworking {
 				continue;
 			}
 			if (sendHairpin(player, payload)) {
+				HairpinDebugLog.info("server sent hairpin payload to={} seed={} center={}", player.getGameProfile().getName(), payload.seed(), HairpinDebugLog.vec(center));
 				sent++;
+			} else {
+				HairpinDebugLog.info("server could not send hairpin payload to={} seed={} canSend=false", player.getGameProfile().getName(), payload.seed());
 			}
 		}
 		return sent;

@@ -7,6 +7,7 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.debug.HairpinDebugLog;
 import jujutsu.mod.fx.HairpinTimeline;
 
 public final class HairpinWorldRenderer {
@@ -17,6 +18,7 @@ public final class HairpinWorldRenderer {
 
 	public static void register() {
 		WorldRenderEvents.AFTER_ENTITIES.register(HairpinWorldRenderer::render);
+		HairpinDebugLog.info("world renderer registered event=AFTER_ENTITIES");
 	}
 
 	private static void render(WorldRenderContext context) {

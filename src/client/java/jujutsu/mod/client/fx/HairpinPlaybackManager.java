@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
+import jujutsu.mod.debug.HairpinDebugLog;
 import jujutsu.mod.network.HairpinFxPayload;
 
 public final class HairpinPlaybackManager {
@@ -17,6 +18,7 @@ public final class HairpinPlaybackManager {
 
 	public static void start(HairpinFxPayload payload) {
 		ACTIVE_PLAYBACKS.add(new HairpinPlayback(payload, System.currentTimeMillis()));
+		HairpinDebugLog.info("playback started seed={} activeCount={}", payload.seed(), ACTIVE_PLAYBACKS.size());
 	}
 
 	public static List<HairpinPlayback> activePlaybacks() {

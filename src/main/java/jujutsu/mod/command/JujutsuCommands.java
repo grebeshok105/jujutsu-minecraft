@@ -8,6 +8,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.debug.HairpinDebugLog;
 import jujutsu.mod.network.HairpinFxPayload;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuParticles;
@@ -44,16 +45,22 @@ public final class JujutsuCommands {
 		}
 		Vec3 up = right.cross(look).normalize();
 
-		source.getLevel().sendParticles(player, JujutsuParticles.HAIRPIN_MARK_STAIN, true, true, center.add(up.scale(0.75)).x, center.add(up.scale(0.75)).y, center.add(up.scale(0.75)).z, 18, 0.28, 0.18, 0.28, 0.02);
-		source.getLevel().sendParticles(player, JujutsuParticles.HAIRPIN_WARN_EDGE, true, true, center.add(right.scale(-0.9)).x, center.add(right.scale(-0.9)).y, center.add(right.scale(-0.9)).z, 24, 0.18, 0.18, 0.18, 0.06);
-		source.getLevel().sendParticles(player, JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, true, true, center.add(right.scale(0.9)).x, center.add(right.scale(0.9)).y, center.add(right.scale(0.9)).z, 34, 0.22, 0.22, 0.22, 0.05);
-		source.getLevel().sendParticles(player, JujutsuParticles.HAIRPIN_SNAP_CRACK, true, true, center.x, center.y, center.z, 24, 0.18, 0.18, 0.18, 0.05);
-		source.getLevel().sendParticles(player, JujutsuParticles.HAIRPIN_BURST_RESIDUE, true, true, center.add(up.scale(-0.65)).x, center.add(up.scale(-0.65)).y, center.add(up.scale(-0.65)).z, 42, 0.35, 0.25, 0.35, 0.08);
-		source.getLevel().sendParticles(player, JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, true, true, center.add(right.scale(-0.35)).add(up.scale(-0.25)).x, center.add(right.scale(-0.35)).add(up.scale(-0.25)).y, center.add(right.scale(-0.35)).add(up.scale(-0.25)).z, 24, 0.26, 0.18, 0.26, 0.12);
-		source.getLevel().sendParticles(player, JujutsuParticles.HAIRPIN_IGNITION_TICK, true, true, center.add(right.scale(0.35)).add(up.scale(-0.25)).x, center.add(right.scale(0.35)).add(up.scale(-0.25)).y, center.add(right.scale(0.35)).add(up.scale(-0.25)).z, 30, 0.18, 0.18, 0.18, 0.06);
+		HairpinDebugLog.info("command /jujutsu hairpin particles player={} center={} look={}", player.getGameProfile().getName(), HairpinDebugLog.vec(center), HairpinDebugLog.vec(look));
+		sendSmokeParticles(source, player, "mark_stain", JujutsuParticles.HAIRPIN_MARK_STAIN, center.add(up.scale(0.75)), 18, 0.28, 0.18, 0.28, 0.02);
+		sendSmokeParticles(source, player, "warn_edge", JujutsuParticles.HAIRPIN_WARN_EDGE, center.add(right.scale(-0.9)), 24, 0.18, 0.18, 0.18, 0.06);
+		sendSmokeParticles(source, player, "compression_mote", JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, center.add(right.scale(0.9)), 34, 0.22, 0.22, 0.22, 0.05);
+		sendSmokeParticles(source, player, "snap_crack", JujutsuParticles.HAIRPIN_SNAP_CRACK, center, 24, 0.18, 0.18, 0.18, 0.05);
+		sendSmokeParticles(source, player, "burst_residue", JujutsuParticles.HAIRPIN_BURST_RESIDUE, center.add(up.scale(-0.65)), 42, 0.35, 0.25, 0.35, 0.08);
+		sendSmokeParticles(source, player, "burst_metal_shard", JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, center.add(right.scale(-0.35)).add(up.scale(-0.25)), 24, 0.26, 0.18, 0.26, 0.12);
+		sendSmokeParticles(source, player, "ignition_tick", JujutsuParticles.HAIRPIN_IGNITION_TICK, center.add(right.scale(0.35)).add(up.scale(-0.25)), 30, 0.18, 0.18, 0.18, 0.06);
 
 		source.sendSuccess(() -> Component.literal("Spawned Hairpin particle smoke test."), false);
 		return 1;
+	}
+
+	private static void sendSmokeParticles(CommandSourceStack source, ServerPlayer player, String label, net.minecraft.core.particles.SimpleParticleType type, Vec3 position, int count, double xSpread, double ySpread, double zSpread, double speed) {
+		boolean sent = source.getLevel().sendParticles(player, type, true, true, position.x, position.y, position.z, count, xSpread, ySpread, zSpread, speed);
+		HairpinDebugLog.info("smoke particles label={} sent={} count={} pos={} spread={},{},{} speed={}", label, sent, count, HairpinDebugLog.vec(position), xSpread, ySpread, zSpread, speed);
 	}
 
 	private static int playHairpin(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
@@ -73,9 +80,10 @@ public final class JujutsuCommands {
 		Vec3 nail1 = target.add(right.scale(1.1)).add(up.scale(0.30));
 		Vec3 nail2 = target.add(right.scale(-0.45)).add(up.scale(-0.55));
 		Vec3 nail3 = target.add(right.scale(0.55)).add(up.scale(-0.70));
+		int seed = (int) (source.getLevel().getGameTime() ^ (long) player.getId() * 31L);
 
 		HairpinFxPayload payload = new HairpinFxPayload(
-				(int) (source.getLevel().getGameTime() ^ (long) player.getId() * 31L),
+				seed,
 				target.x,
 				target.y,
 				target.z,
@@ -94,7 +102,9 @@ public final class JujutsuCommands {
 				nail3.z
 		);
 
+		HairpinDebugLog.info("command /jujutsu hairpin player={} seed={} target={} look={} nails=[{}|{}|{}|{}]", player.getGameProfile().getName(), seed, HairpinDebugLog.vec(target), HairpinDebugLog.vec(look), HairpinDebugLog.vec(nail0), HairpinDebugLog.vec(nail1), HairpinDebugLog.vec(nail2), HairpinDebugLog.vec(nail3));
 		int sent = JujutsuNetworking.broadcastHairpin(source.getLevel(), target, BROADCAST_RADIUS, payload);
+		HairpinDebugLog.info("command /jujutsu hairpin broadcast sent={} radius={} seed={}", sent, BROADCAST_RADIUS, seed);
 		if (sent == 0) {
 			source.sendFailure(Component.literal("No nearby client can receive Hairpin."));
 			return 0;
