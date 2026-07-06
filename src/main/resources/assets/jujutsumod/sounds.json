@@ -1,0 +1,32 @@
+{
+	"hairpin.prep": {
+		"sounds": [
+			"minecraft:ambient/cave/cave1"
+		],
+		"subtitle": "subtitles.jujutsumod.hairpin.prep"
+	},
+	"hairpin.hammer_snap": {
+		"sounds": [
+			"minecraft:block/anvil/land"
+		],
+		"subtitle": "subtitles.jujutsumod.hairpin.hammer_snap"
+	},
+	"hairpin.nail_ignite": {
+		"sounds": [
+			"minecraft:block/pointed_dripstone/drip_lava"
+		],
+		"subtitle": "subtitles.jujutsumod.hairpin.nail_ignite"
+	},
+	"hairpin.bloom": {
+		"sounds": [
+			"minecraft:entity/firework_rocket/blast"
+		],
+		"subtitle": "subtitles.jujutsumod.hairpin.bloom"
+	},
+	"hairpin.afterglow": {
+		"sounds": [
+			"minecraft:block/fire/extinguish"
+		],
+		"subtitle": "subtitles.jujutsumod.hairpin.afterglow"
+	}
+}

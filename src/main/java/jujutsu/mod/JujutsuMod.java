@@ -5,6 +5,8 @@ import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.ResourceLocation;
 import jujutsu.mod.command.JujutsuCommands;
 import jujutsu.mod.network.JujutsuNetworking;
+import jujutsu.mod.registry.JujutsuParticles;
+import jujutsu.mod.registry.JujutsuSounds;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +17,8 @@ public class JujutsuMod implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		JujutsuParticles.register();
+		JujutsuSounds.register();
 		JujutsuNetworking.registerPayloads();
 		JujutsuCommands.register();
 		LOGGER.info("JujutsuMod initialized");

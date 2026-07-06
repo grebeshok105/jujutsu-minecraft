@@ -25,6 +25,14 @@ public final class HairpinPlaybackManager {
 
 	private static void tick(Minecraft client) {
 		long now = System.currentTimeMillis();
+		if (client.level == null || client.player == null) {
+			ACTIVE_PLAYBACKS.clear();
+			return;
+		}
+
+		for (HairpinPlayback playback : ACTIVE_PLAYBACKS) {
+			playback.tick(client, now);
+		}
 		ACTIVE_PLAYBACKS.removeIf(playback -> playback.isDone(now));
 	}
 }
