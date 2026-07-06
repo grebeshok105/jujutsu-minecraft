@@ -73,9 +73,15 @@ public final class HairpinPlayback {
 		Vec3 target = target();
 		switch (phase) {
 			case PREP_FREEZE -> play(level, target, JujutsuSounds.HAIRPIN_PREP, 0.45f, 0.8f);
-			case HAMMER_SNAP -> play(level, target, JujutsuSounds.HAIRPIN_HAMMER_SNAP, 0.85f, 1.25f);
+			case HAMMER_SNAP -> {
+				HairpinScreenOverlay.triggerFlash(90, 78);
+				play(level, target, JujutsuSounds.HAIRPIN_HAMMER_SNAP, 0.85f, 1.25f);
+			}
 			case NAIL_IGNITION -> play(level, target, JujutsuSounds.HAIRPIN_NAIL_IGNITE, 0.65f, 1.1f);
-			case HAIRPIN_BLOOM -> play(level, target, JujutsuSounds.HAIRPIN_BLOOM, 1.0f, 0.95f);
+			case HAIRPIN_BLOOM -> {
+				HairpinScreenOverlay.triggerFlash(150, 132);
+				play(level, target, JujutsuSounds.HAIRPIN_BLOOM, 1.0f, 0.95f);
+			}
 			case AFTERGLOW -> play(level, target, JujutsuSounds.HAIRPIN_AFTERGLOW, 0.35f, 1.35f);
 			case DONE -> {
 			}
