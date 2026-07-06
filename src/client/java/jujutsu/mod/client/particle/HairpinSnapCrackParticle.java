@@ -18,11 +18,11 @@ public class HairpinSnapCrackParticle extends TextureSheetParticle {
 		this.lifetime = 3 + this.random.nextInt(2);
 		this.gravity = 0.0f;
 		this.hasPhysics = false;
-		this.quadSize = 0.15f + this.random.nextFloat() * 0.06f;
+		this.quadSize = 0.28f + this.random.nextFloat() * 0.09f;
 		this.rCol = 0.58f;
 		this.gCol = 0.08f;
 		this.bCol = 0.16f;
-		this.alpha = 0.96f;
+		this.alpha = 0.98f;
 		this.setSpriteFromAge(sprites);
 	}
 
@@ -30,7 +30,7 @@ public class HairpinSnapCrackParticle extends TextureSheetParticle {
 	public void tick() {
 		super.tick();
 		this.setSpriteFromAge(this.sprites);
-		this.alpha = 0.96f * (1.0f - ((float) this.age / (float) this.lifetime));
+		this.alpha = 0.98f * (1.0f - ((float) this.age / (float) this.lifetime));
 	}
 
 	@Override

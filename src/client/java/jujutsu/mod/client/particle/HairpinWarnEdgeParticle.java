@@ -18,11 +18,11 @@ public class HairpinWarnEdgeParticle extends TextureSheetParticle {
 		this.lifetime = 5 + this.random.nextInt(2);
 		this.gravity = 0.0f;
 		this.hasPhysics = false;
-		this.quadSize = 0.09f + this.random.nextFloat() * 0.035f;
+		this.quadSize = 0.16f + this.random.nextFloat() * 0.055f;
 		this.rCol = 0.38f;
 		this.gCol = 0.105f;
 		this.bCol = 0.21f;
-		this.alpha = 0.62f;
+		this.alpha = 0.7f;
 		this.setSpriteFromAge(sprites);
 	}
 
@@ -31,7 +31,7 @@ public class HairpinWarnEdgeParticle extends TextureSheetParticle {
 		super.tick();
 		this.setSpriteFromAge(this.sprites);
 		float progress = (float) this.age / (float) this.lifetime;
-		this.alpha = 0.62f * (1.0f - progress);
+		this.alpha = 0.7f * (1.0f - progress);
 	}
 
 	@Override

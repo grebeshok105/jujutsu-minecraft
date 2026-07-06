@@ -55,7 +55,7 @@ public final class HairpinWorldRenderer {
 
 			Vec3 start = nail.lerp(target, startLerpFor(phase, progress)).subtract(cameraPosition);
 			Vec3 end = nail.lerp(target, endLerpFor(phase, progress)).subtract(cameraPosition);
-			Vec3 side = sideVector(direction, width);
+			Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), width);
 			int edgeAlpha = Math.min(170, Math.round(alpha * 255.0f));
 			int coreAlpha = Math.min(210, Math.round(alpha * 255.0f));
 
@@ -68,7 +68,8 @@ public final class HairpinWorldRenderer {
 			if (phase == HairpinTimeline.Phase.HAIRPIN_BLOOM || phase == HairpinTimeline.Phase.AFTERGLOW) {
 				Vec3 burstStart = target.add(direction.normalize().scale(0.08)).subtract(cameraPosition);
 				Vec3 burstEnd = target.add(direction.normalize().scale(0.55 + progress * 0.18)).subtract(cameraPosition);
-				addRibbon(consumer, burstStart, burstEnd, side.scale(phase == HairpinTimeline.Phase.AFTERGLOW ? 0.55 : 1.15), 18, 9, 12, coreAlpha);
+				Vec3 burstSide = sideVector(burstEnd.subtract(burstStart), burstStart.add(burstEnd).scale(0.5), width * (phase == HairpinTimeline.Phase.AFTERGLOW ? 0.9f : 1.65f));
+				addRibbon(consumer, burstStart, burstEnd, burstSide, 91, 16, 27, coreAlpha);
 			}
 		}
 	}
@@ -86,11 +87,11 @@ public final class HairpinWorldRenderer {
 
 	private static float widthFor(HairpinTimeline.Phase phase, float progress) {
 		return switch (phase) {
-			case PREP_FREEZE -> 0.018f;
-			case HAMMER_SNAP -> 0.028f;
-			case NAIL_IGNITION -> 0.032f + progress * 0.022f;
-			case HAIRPIN_BLOOM -> 0.072f;
-			case AFTERGLOW -> 0.04f * (1.0f - progress * 0.4f);
+			case PREP_FREEZE -> 0.032f;
+			case HAMMER_SNAP -> 0.05f;
+			case NAIL_IGNITION -> 0.052f + progress * 0.036f;
+			case HAIRPIN_BLOOM -> 0.13f;
+			case AFTERGLOW -> 0.08f * (1.0f - progress * 0.4f);
 			case DONE -> 0.0f;
 		};
 	}
@@ -114,10 +115,15 @@ public final class HairpinWorldRenderer {
 		};
 	}
 
-	private static Vec3 sideVector(Vec3 direction, float width) {
-		Vec3 side = direction.normalize().cross(UP);
+	private static Vec3 sideVector(Vec3 direction, Vec3 cameraRelativeMidpoint, float width) {
+		Vec3 line = direction.lengthSqr() < 1.0E-5 ? UP : direction.normalize();
+		Vec3 view = cameraRelativeMidpoint.lengthSqr() < 1.0E-5 ? EAST : cameraRelativeMidpoint.normalize();
+		Vec3 side = line.cross(view);
 		if (side.lengthSqr() < 1.0E-5) {
-			side = direction.normalize().cross(EAST);
+			side = line.cross(UP);
+		}
+		if (side.lengthSqr() < 1.0E-5) {
+			side = line.cross(EAST);
 		}
 		return side.normalize().scale(width);
 	}

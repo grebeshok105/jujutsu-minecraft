@@ -35,7 +35,7 @@ public final class HairpinScreenOverlay {
 
 		float remaining = 1.0f - (elapsed / (float) flashDurationMillis);
 		int alpha = Math.round(flashMaxAlpha * remaining * remaining);
-		int color = (alpha << 24) | 0x00F8F2EA;
+		int color = (alpha << 24) | 0x005B101B;
 		graphics.fill(0, 0, graphics.guiWidth(), graphics.guiHeight(), color);
 	}
 }

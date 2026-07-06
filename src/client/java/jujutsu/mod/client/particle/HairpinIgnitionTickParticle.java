@@ -18,7 +18,7 @@ public class HairpinIgnitionTickParticle extends TextureSheetParticle {
 		this.lifetime = 3;
 		this.gravity = 0.0f;
 		this.hasPhysics = false;
-		this.quadSize = 0.045f + this.random.nextFloat() * 0.02f;
+		this.quadSize = 0.085f + this.random.nextFloat() * 0.035f;
 		this.rCol = 0.62f;
 		this.gCol = 0.24f;
 		this.bCol = 0.36f;

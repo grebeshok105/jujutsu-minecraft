@@ -10,6 +10,7 @@ public final class HairpinVisualProfileTest {
 		assertWarningIsShortEdgeCue();
 		assertBloomCarriesBurstFamilies();
 		assertAfterglowKeepsResidueOnBurstVectors();
+		assertBloomHasEnoughDensityForInGameSmoke();
 		assertEveryProductionFamilyIsScheduled();
 		assertPaletteKeepsFuchsiaRestrained();
 		System.out.println("HairpinVisualProfileTest passed");
@@ -35,7 +36,16 @@ public final class HairpinVisualProfileTest {
 		assert contains(budgets, HairpinVisualProfile.ParticleFamily.BURST_RESIDUE);
 		assert !contains(budgets, HairpinVisualProfile.ParticleFamily.WARN_EDGE);
 		assert !contains(budgets, HairpinVisualProfile.ParticleFamily.SNAP_CRACK);
+		assert budgets.stream().noneMatch(budget -> budget.countAtTarget() > 0);
 		assert HairpinVisualProfile.residueUsesBurstVectors();
+	}
+
+	private static void assertBloomHasEnoughDensityForInGameSmoke() {
+		List<HairpinVisualProfile.ParticleBudget> budgets = HairpinVisualProfile.budgetsForPhase(HairpinTimeline.Phase.HAIRPIN_BLOOM);
+		int totalParticlesPerTick = budgets.stream()
+				.mapToInt(budget -> budget.countPerNail() * 4 + budget.countAtTarget())
+				.sum();
+		assert totalParticlesPerTick >= 48;
 	}
 
 	private static void assertEveryProductionFamilyIsScheduled() {

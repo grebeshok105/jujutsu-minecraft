@@ -76,12 +76,12 @@ public final class HairpinPlayback {
 		switch (phase) {
 			case PREP_FREEZE -> play(level, target, JujutsuSounds.HAIRPIN_PREP, 0.45f, 0.8f);
 			case HAMMER_SNAP -> {
-				HairpinScreenOverlay.triggerFlash(90, 78);
+				HairpinScreenOverlay.triggerFlash(70, 28);
 				play(level, target, JujutsuSounds.HAIRPIN_HAMMER_SNAP, 0.85f, 1.25f);
 			}
 			case NAIL_IGNITION -> play(level, target, JujutsuSounds.HAIRPIN_NAIL_IGNITE, 0.65f, 1.1f);
 			case HAIRPIN_BLOOM -> {
-				HairpinScreenOverlay.triggerFlash(150, 132);
+				HairpinScreenOverlay.triggerFlash(95, 42);
 				play(level, target, JujutsuSounds.HAIRPIN_BLOOM, 1.0f, 0.95f);
 			}
 			case AFTERGLOW -> play(level, target, JujutsuSounds.HAIRPIN_AFTERGLOW, 0.35f, 1.35f);
@@ -98,12 +98,12 @@ public final class HairpinPlayback {
 		for (HairpinVisualProfile.ParticleBudget budget : HairpinVisualProfile.budgetsForPhase(phase)) {
 			switch (budget.family()) {
 				case MARK_STAIN -> spawnNailFamily(level, JujutsuParticles.HAIRPIN_MARK_STAIN, budget.countPerNail(), 0.012);
-				case WARN_EDGE -> spawnNailFamily(level, JujutsuParticles.HAIRPIN_WARN_EDGE, budget.countPerNail(), 0.028);
+				case WARN_EDGE -> spawnNailFamily(level, JujutsuParticles.HAIRPIN_WARN_EDGE, budget.countPerNail(), 0.038);
 				case COMPRESSION_MOTE -> spawnCompressionMotes(level, budget.countPerNail(), progress);
 				case SNAP_CRACK -> spawnSnapCracks(level, budget.countPerNail(), budget.countAtTarget());
-				case BURST_RESIDUE -> spawnDirectionalBurst(level, JujutsuParticles.HAIRPIN_BURST_RESIDUE, budget.countPerNail(), budget.countAtTarget(), phase == HairpinTimeline.Phase.AFTERGLOW ? 0.055 : 0.17);
-				case BURST_METAL_SHARD -> spawnDirectionalBurst(level, JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, budget.countPerNail(), budget.countAtTarget(), 0.24);
-				case IGNITION_TICK -> spawnNailFamily(level, JujutsuParticles.HAIRPIN_IGNITION_TICK, budget.countPerNail(), 0.038);
+				case BURST_RESIDUE -> spawnDirectionalBurst(level, JujutsuParticles.HAIRPIN_BURST_RESIDUE, budget.countPerNail(), budget.countAtTarget(), phase == HairpinTimeline.Phase.AFTERGLOW ? 0.08 : 0.22);
+				case BURST_METAL_SHARD -> spawnDirectionalBurst(level, JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, budget.countPerNail(), budget.countAtTarget(), 0.28);
+				case IGNITION_TICK -> spawnNailFamily(level, JujutsuParticles.HAIRPIN_IGNITION_TICK, budget.countPerNail(), 0.048);
 			}
 		}
 	}
@@ -157,7 +157,7 @@ public final class HairpinPlayback {
 	}
 
 	private void spawnParticle(ClientLevel level, SimpleParticleType type, Vec3 position, Vec3 velocity) {
-		level.addParticle(
+		level.addAlwaysVisibleParticle(
 				type,
 				position.x,
 				position.y,

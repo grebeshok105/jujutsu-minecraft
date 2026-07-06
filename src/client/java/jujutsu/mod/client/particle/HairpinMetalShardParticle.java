@@ -17,10 +17,10 @@ public class HairpinMetalShardParticle extends TextureSheetParticle {
 		this.lifetime = 9 + this.random.nextInt(6);
 		this.gravity = 0.04f;
 		this.hasPhysics = true;
-		this.quadSize = 0.07f + this.random.nextFloat() * 0.035f;
-		this.rCol = 0.48f;
-		this.gCol = 0.51f;
-		this.bCol = 0.54f;
+		this.quadSize = 0.13f + this.random.nextFloat() * 0.055f;
+		this.rCol = 0.58f;
+		this.gCol = 0.61f;
+		this.bCol = 0.64f;
 		this.alpha = 0.95f;
 		this.setSpriteFromAge(sprites);
 	}

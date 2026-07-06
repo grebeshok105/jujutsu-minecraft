@@ -17,11 +17,11 @@ public class HairpinMarkStainParticle extends TextureSheetParticle {
 		this.lifetime = 18 + this.random.nextInt(8);
 		this.gravity = 0.0f;
 		this.hasPhysics = false;
-		this.quadSize = 0.13f + this.random.nextFloat() * 0.04f;
-		this.rCol = 0.14f;
-		this.gCol = 0.035f;
-		this.bCol = 0.07f;
-		this.alpha = 0.92f;
+		this.quadSize = 0.22f + this.random.nextFloat() * 0.08f;
+		this.rCol = 0.2f;
+		this.gCol = 0.045f;
+		this.bCol = 0.085f;
+		this.alpha = 0.95f;
 		this.setSpriteFromAge(sprites);
 	}
 
@@ -30,7 +30,7 @@ public class HairpinMarkStainParticle extends TextureSheetParticle {
 		super.tick();
 		this.setSpriteFromAge(this.sprites);
 		float progress = (float) this.age / (float) this.lifetime;
-		this.alpha = 0.92f * (1.0f - progress * progress);
+		this.alpha = 0.95f * (1.0f - progress * progress);
 	}
 
 	@Override
