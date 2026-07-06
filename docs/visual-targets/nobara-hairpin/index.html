@@ -7,15 +7,18 @@
 	<style>
 		:root {
 			color-scheme: dark;
-			--bg: #040102;
-			--panel: #0d0709;
-			--line: #2a1018;
-			--text: #efe6df;
-			--muted: #a98991;
-			--crimson: #a90824;
-			--deep-red: #3a0009;
-			--hot-pink: #c3193e;
-			--impact: #eadbd2;
+			--bg: #020101;
+			--panel: #0a0506;
+			--panel-hi: #13080b;
+			--line: #2a0b12;
+			--line-hot: #5d0715;
+			--text: #eee5dc;
+			--muted: #a48187;
+			--blood: #4b000d;
+			--blood-hot: #650214;
+			--fuchsia: #7f1230;
+			--metal: #b8aaa5;
+			--impact: #f1ded3;
 		}
 
 		* {
@@ -40,22 +43,22 @@
 		.stage {
 			position: relative;
 			overflow: hidden;
-			min-height: 420px;
+			min-height: 430px;
 			border-bottom: 1px solid var(--line);
-			box-shadow: inset 0 -42px 80px rgba(0, 0, 0, 0.46);
+			background: #020101;
 		}
 
 		canvas {
 			display: block;
 			width: 100%;
 			height: 100%;
-			min-height: 420px;
+			min-height: 430px;
 		}
 
 		.status {
 			position: absolute;
 			left: 24px;
-			bottom: 24px;
+			bottom: 22px;
 			display: grid;
 			gap: 6px;
 			pointer-events: none;
@@ -74,78 +77,67 @@
 
 		.controls {
 			display: grid;
-			grid-template-columns: auto 1fr auto;
-			gap: 18px;
+			grid-template-columns: auto minmax(180px, 1fr) auto;
+			gap: 16px;
 			align-items: center;
-			padding: 16px 20px;
-			background: linear-gradient(180deg, #12090d 0%, var(--panel) 100%);
-			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+			padding: 14px 18px;
+			background: linear-gradient(180deg, var(--panel-hi) 0%, var(--panel) 100%);
+			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 		}
 
 		button {
 			width: 38px;
 			height: 38px;
 			border: 1px solid var(--line);
-			background: #170b10;
+			background: #12080a;
 			color: var(--text);
 			border-radius: 6px;
-			font-size: 18px;
+			font-size: 16px;
 			cursor: pointer;
 			transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
 		}
 
 		button:hover {
-			border-color: var(--hot-pink);
-			background: #211017;
+			border-color: var(--line-hot);
+			background: #1a0a0e;
 		}
 
 		.timeline {
+			position: relative;
 			display: grid;
 			grid-template-columns: 180fr 60fr 320fr 340fr 900fr;
 			height: 16px;
 			border: 1px solid var(--line);
-			background: #070304;
+			background: #050202;
 			border-radius: 999px;
 			overflow: hidden;
 			box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.72);
 		}
 
+		.progress {
+			position: absolute;
+			inset: 0 auto 0 0;
+			width: 0%;
+			background: linear-gradient(90deg, #210006, var(--blood), var(--blood-hot));
+			opacity: 0.72;
+			pointer-events: none;
+		}
+
 		.segment {
 			position: relative;
-			border-right: 1px solid #26151d;
+			z-index: 1;
+			border-right: 1px solid #231016;
 		}
 
 		.segment:last-child {
 			border-right: 0;
 		}
 
-		.segment.active::after {
-			content: "";
-			position: absolute;
-			inset: 0;
-			background: linear-gradient(90deg, var(--deep-red), var(--crimson), var(--deep-red));
-			opacity: 0.5;
-			transition: opacity 180ms ease;
-		}
-
-		.legend {
-			display: flex;
-			gap: 14px;
-			flex-wrap: wrap;
+		.readout {
+			min-width: 126px;
 			color: var(--muted);
 			font-size: 12px;
-			align-items: center;
-		}
-
-		.legend span::before {
-			content: "";
-			display: inline-block;
-			width: 8px;
-			height: 8px;
-			margin-right: 6px;
-			background: radial-gradient(circle, var(--crimson), var(--deep-red));
-			border-radius: 50%;
-			box-shadow: 0 0 10px rgba(169, 8, 36, 0.5);
+			text-align: right;
 		}
 
 		@media (max-width: 700px) {
@@ -153,8 +145,9 @@
 				grid-template-columns: auto 1fr;
 			}
 
-			.legend {
+			.readout {
 				grid-column: 1 / -1;
+				text-align: left;
 			}
 		}
 	</style>
@@ -162,26 +155,23 @@
 <body>
 <main>
 	<section class="stage">
-		<canvas id="scene" aria-label="Nobara Hairpin timing target"></canvas>
+		<canvas id="scene" aria-label="Nobara Hairpin visual target"></canvas>
 		<div class="status">
-			<div class="phase" id="phase">Prep Freeze</div>
+			<div class="phase" id="phase">Marked Nails</div>
 			<div class="time" id="time">0 ms / 1800 ms</div>
 		</div>
 	</section>
 	<section class="controls">
-		<button id="toggle" title="Play or pause">||</button>
+		<button id="toggle" title="Play or pause">II</button>
 		<div class="timeline" id="timeline">
-			<div class="segment" data-phase="Prep Freeze"></div>
-			<div class="segment" data-phase="Hammer Snap"></div>
-			<div class="segment" data-phase="Nail Ignition"></div>
-			<div class="segment" data-phase="Hairpin Bloom"></div>
-			<div class="segment" data-phase="Afterglow"></div>
+			<div class="progress" id="progress"></div>
+			<div class="segment" data-phase="Marked Nails"></div>
+			<div class="segment" data-phase="Trigger Ping"></div>
+			<div class="segment" data-phase="Cursed Compression"></div>
+			<div class="segment" data-phase="Hairpin Snap"></div>
+			<div class="segment" data-phase="Blood-Black Residue"></div>
 		</div>
-		<div class="legend">
-			<span>crimson core</span>
-			<span>white impact</span>
-			<span>red-black residue</span>
-		</div>
+		<div class="readout" id="readout">anchors: 4</div>
 	</section>
 </main>
 <script>
@@ -189,40 +179,59 @@ const canvas = document.getElementById("scene");
 const ctx = canvas.getContext("2d");
 const phaseLabel = document.getElementById("phase");
 const timeLabel = document.getElementById("time");
+const readout = document.getElementById("readout");
+const progressEl = document.getElementById("progress");
 const toggle = document.getElementById("toggle");
-const segments = [...document.querySelectorAll(".segment")];
 
 const phases = [
-	{ name: "Prep Freeze", start: 0, end: 180 },
-	{ name: "Hammer Snap", start: 180, end: 240 },
-	{ name: "Nail Ignition", start: 240, end: 560 },
-	{ name: "Hairpin Bloom", start: 560, end: 900 },
-	{ name: "Afterglow", start: 900, end: 1800 }
+	{ name: "Marked Nails", start: 0, end: 180 },
+	{ name: "Trigger Ping", start: 180, end: 240 },
+	{ name: "Cursed Compression", start: 240, end: 560 },
+	{ name: "Hairpin Snap", start: 560, end: 900 },
+	{ name: "Blood-Black Residue", start: 900, end: 1800 }
 ];
+
 const total = 1800;
 const colors = {
-	crimson: "#a90824",
-	deepRed: "#3a0009",
-	black: "#040102",
-	impact: "#eadbd2",
-	hotPink: "#c3193e",
-	bloodBlack: "#120006",
-	soot: "#090204"
+	bg: "#020101",
+	soot: "#070202",
+	bloodBlack: "#120005",
+	deepBlood: "#2d0008",
+	blood: "#4b000d",
+	crimson: "#650214",
+	fuchsia: "#7f1230",
+	metal: "#b8aaa5",
+	metalDark: "#33292a",
+	impact: "#f1ded3"
 };
 
 let running = true;
 let start = performance.now();
 let pausedAt = 0;
+const params = new URLSearchParams(window.location.search);
+const requestedTime = Number(params.get("t"));
+if (params.has("t") && Number.isFinite(requestedTime)) {
+	running = false;
+	pausedAt = ((requestedTime % total) + total) % total;
+}
+toggle.textContent = running ? "II" : ">";
 
 toggle.addEventListener("click", () => {
 	running = !running;
 	if (running) {
 		start = performance.now() - pausedAt;
-		toggle.textContent = "||";
+		toggle.textContent = "II";
 	} else {
 		pausedAt = elapsed();
 		toggle.textContent = ">";
 	}
+});
+
+document.getElementById("timeline").addEventListener("click", event => {
+	const rect = event.currentTarget.getBoundingClientRect();
+	pausedAt = clamp((event.clientX - rect.left) / rect.width) * total;
+	running = false;
+	toggle.textContent = ">";
 });
 
 function elapsed() {
@@ -241,236 +250,350 @@ function resize() {
 window.addEventListener("resize", resize);
 resize();
 
+function clamp(value, min = 0, max = 1) {
+	return Math.max(min, Math.min(max, value));
+}
+
+function smoothstep(value) {
+	const v = clamp(value);
+	return v * v * (3 - 2 * v);
+}
+
+function easeOut(value) {
+	return 1 - Math.pow(1 - clamp(value), 3);
+}
+
+function pulse(ms, startMs, endMs) {
+	const v = clamp((ms - startMs) / (endMs - startMs));
+	return Math.sin(v * Math.PI);
+}
+
 function currentPhase(ms) {
 	return phases.find(phase => ms >= phase.start && ms < phase.end) || phases[phases.length - 1];
 }
 
-function phaseProgress(phase, ms) {
-	return Math.max(0, Math.min(1, (ms - phase.start) / (phase.end - phase.start)));
+function buildState(ms) {
+	return {
+		mark: clamp(ms / 180),
+		trigger: pulse(ms, 180, 240),
+		compress: smoothstep((ms - 240) / 320),
+		burst: pulse(ms, 560, 900),
+		burstOut: easeOut((ms - 560) / 340),
+		residue: 1 - smoothstep((ms - 900) / 900),
+		after: smoothstep((ms - 900) / 900)
+	};
 }
 
-function easeOut(value) {
-	return 1 - Math.pow(1 - value, 3);
-}
-
-function easeInOut(value) {
-	return value < 0.5 ? 2 * value * value : 1 - Math.pow(-2 * value + 2, 2) / 2;
-}
-
-function nailPoint(center, x, y) {
-	return { x: center.x + x, y: center.y + y };
+function makeNails(center, scale) {
+	const spots = [
+		{ x: -150, y: -86, side: -1 },
+		{ x: 132, y: -78, side: 1 },
+		{ x: -128, y: 92, side: -1 },
+		{ x: 150, y: 78, side: 1 }
+	];
+	return spots.map((spot, index) => {
+		const x = center.x + spot.x * scale;
+		const y = center.y + spot.y * scale;
+		const toCenter = Math.atan2(center.y - y, center.x - x);
+		return {
+			x,
+			y,
+			index,
+			angle: toCenter + spot.side * 0.09,
+			toCenter,
+			length: (50 + index * 4) * scale,
+			surface: 34 * scale
+		};
+	});
 }
 
 function draw() {
 	const ms = elapsed();
 	const phase = currentPhase(ms);
-	const p = phaseProgress(phase, ms);
+	const state = buildState(ms);
 	const width = canvas.clientWidth;
 	const height = canvas.clientHeight;
-	const center = { x: width * 0.58, y: height * 0.5 };
-	const nails = [
-		nailPoint(center, -132, -76),
-		nailPoint(center, 132, -76),
-		nailPoint(center, -132, 76),
-		nailPoint(center, 132, 76)
-	].map(nail => ({ ...nail, angle: Math.atan2(center.y - nail.y, center.x - nail.x) }));
+	const scale = clamp(Math.min(width / 920, height / 560), 0.68, 1.18);
+	const center = { x: width * 0.56, y: height * 0.49 };
+	const nails = makeNails(center, scale);
 
 	ctx.clearRect(0, 0, width, height);
-	drawBackground(width, height, ms);
-	drawNails(nails, center, phase, p);
-	drawPhaseEffect(nails, center, phase, p, ms);
-	drawImpactFrame(width, height, phase, p);
-	updateLabels(phase, ms);
+	drawBackground(width, height, center, state, ms);
+	drawTarget(center, scale, state);
+	drawAnchors(nails, center, scale, state, ms);
+	drawEnergy(nails, center, scale, state, ms);
+	drawImpactFrame(width, height, state);
+	updateLabels(phase, ms, state);
 	requestAnimationFrame(draw);
 }
 
-function drawBackground(width, height, ms) {
-	const gradient = ctx.createRadialGradient(width * 0.58, height * 0.5, 10, width * 0.58, height * 0.5, Math.max(width, height) * 0.7);
-	gradient.addColorStop(0, "#170006");
-	gradient.addColorStop(0.5, "#090204");
-	gradient.addColorStop(1, colors.black);
+function drawBackground(width, height, center, state, ms) {
+	const glow = 0.18 + state.compress * 0.18 + state.burst * 0.28;
+	const gradient = ctx.createRadialGradient(center.x, center.y, 8, center.x, center.y, Math.max(width, height) * 0.72);
+	gradient.addColorStop(0, `rgba(75,0,13,${glow})`);
+	gradient.addColorStop(0.34, colors.soot);
+	gradient.addColorStop(1, colors.bg);
 	ctx.fillStyle = gradient;
 	ctx.fillRect(0, 0, width, height);
 
-	ctx.strokeStyle = "rgba(104,0,18,0.12)";
+	ctx.strokeStyle = "rgba(95, 8, 22, 0.11)";
 	ctx.lineWidth = 1;
-	for (let i = 0; i < 18; i++) {
-		const y = (height * 0.18) + i * 28 + Math.sin(ms * 0.002 + i) * 4;
+	for (let i = 0; i < 16; i++) {
+		const y = height * 0.16 + i * 32 + Math.sin(ms * 0.0015 + i) * 2;
 		ctx.beginPath();
-		ctx.moveTo(0, y);
-		ctx.lineTo(width, y - 80);
+		ctx.moveTo(width * -0.08, y);
+		ctx.lineTo(width * 1.08, y - height * 0.12);
 		ctx.stroke();
 	}
+
+	ctx.fillStyle = "rgba(0, 0, 0, 0.24)";
+	ctx.fillRect(0, height * 0.72, width, height * 0.28);
 }
 
-function drawNails(nails, center, phase, progress) {
-	for (const nail of nails) {
-		const charged = phase.name !== "Prep Freeze" || progress > 0.35;
-		ctx.save();
-		ctx.translate(nail.x, nail.y);
-		ctx.rotate(nail.angle);
-		ctx.fillStyle = "#b7a5a6";
-		ctx.fillRect(-24, -1.5, 48, 3);
-		ctx.fillStyle = "#2a2021";
-		ctx.fillRect(-27, -3, 10, 6);
-		ctx.fillStyle = "#d2c0bd";
-		ctx.beginPath();
-		ctx.moveTo(25, 0);
-		ctx.lineTo(18, -3);
-		ctx.lineTo(18, 3);
-		ctx.closePath();
-		ctx.fill();
-		if (charged) {
-			ctx.shadowColor = colors.crimson;
-			ctx.shadowBlur = 14;
-			ctx.fillStyle = colors.crimson;
-			ctx.fillRect(-16, -2.5, 30, 5);
-		}
-		ctx.restore();
-	}
-}
-
-function drawPhaseEffect(nails, center, phase, progress, ms) {
-	if (phase.name === "Prep Freeze") {
-		const pull = easeOut(progress) * 18;
-		for (const nail of nails) drawSpark(nail.x + (center.x - nail.x) * 0.03, nail.y + (center.y - nail.y) * 0.03, 5 + pull * 0.08, 0.45);
-	}
-
-	if (phase.name === "Hammer Snap") {
-		drawSlash(center.x - 230, center.y - 120, center.x - 80, center.y - 20, 1 - progress);
-	}
-
-	if (phase.name === "Nail Ignition") {
-		for (const nail of nails) {
-			const x = nail.x + (center.x - nail.x) * progress;
-			const y = nail.y + (center.y - nail.y) * progress;
-			drawTracer(nail, { x, y }, 0.58);
-			drawSpark(x, y, 8, 0.9);
-		}
-	}
-
-	if (phase.name === "Hairpin Bloom") {
-		const ring = easeOut(progress) * 240;
-		const residue = 0.55 - progress * 0.3;
-		drawRing(center, ring, Math.max(0.18, 1 - progress * 0.72));
-		drawBloomResidue(center, ring, residue, ms, Math.max(0.35, progress));
-		drawBloomShards(center, progress, 1.0, ms);
-	}
-
-	if (phase.name === "Afterglow") {
-		const fade = 1 - easeOut(progress);
-		const carriedRing = 238 + easeInOut(progress) * 38;
-		drawBloomResidue(center, carriedRing, 0.34 * fade, ms, 1 + progress * 0.35);
-		drawBloomShards(center, 1 + progress * 0.38, 0.48 * fade, ms);
-	}
-}
-
-function drawTracer(from, to, alpha) {
-	ctx.strokeStyle = `rgba(169,8,36,${alpha})`;
-	ctx.lineWidth = 2;
-	ctx.shadowColor = colors.crimson;
-	ctx.shadowBlur = 8;
-	ctx.beginPath();
-	ctx.moveTo(from.x, from.y);
-	ctx.lineTo(to.x, to.y);
-	ctx.stroke();
-	ctx.shadowBlur = 0;
-}
-
-function drawSlash(x1, y1, x2, y2, alpha) {
-	ctx.strokeStyle = `rgba(234,219,210,${alpha})`;
-	ctx.lineWidth = 6;
-	ctx.beginPath();
-	ctx.moveTo(x1, y1);
-	ctx.lineTo(x2, y2);
-	ctx.stroke();
-}
-
-function drawRing(center, radius, alpha) {
-	ctx.strokeStyle = `rgba(234,219,210,${0.55 * alpha})`;
-	ctx.lineWidth = 3;
-	ctx.beginPath();
-	ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
-	ctx.stroke();
-	ctx.strokeStyle = `rgba(104,0,18,${0.58 * alpha})`;
-	ctx.lineWidth = 12;
-	ctx.beginPath();
-	ctx.arc(center.x, center.y, radius * 0.74, 0, Math.PI * 2);
-	ctx.stroke();
-}
-
-function drawBloomResidue(center, radius, alpha, ms, spread) {
-	if (alpha <= 0) return;
+function drawTarget(center, scale, state) {
+	const wake = state.compress * 0.7 + state.burst + state.residue * 0.18;
 	ctx.save();
-	ctx.globalCompositeOperation = "lighter";
-	ctx.strokeStyle = `rgba(58,0,9,${alpha})`;
-	ctx.lineWidth = 14;
-	ctx.beginPath();
-	ctx.arc(center.x, center.y, radius * 0.82, 0, Math.PI * 2);
-	ctx.stroke();
-	ctx.strokeStyle = `rgba(169,8,36,${alpha * 0.42})`;
-	ctx.lineWidth = 2;
-	for (let i = 0; i < 18; i++) {
-		const angle = i * 0.82 + Math.sin(ms * 0.001 + i) * 0.04;
-		const inner = radius * (0.38 + (i % 4) * 0.055) * spread;
-		const outer = radius * (0.72 + (i % 5) * 0.032) * spread;
+	ctx.translate(center.x, center.y);
+
+	ctx.strokeStyle = `rgba(241,222,211,${0.08 + wake * 0.12})`;
+	ctx.lineWidth = 1.5 * scale;
+	for (let i = 0; i < 7; i++) {
+		const angle = -0.82 + i * 0.28;
+		const inner = (26 + i * 2) * scale;
+		const outer = (88 + i * 9) * scale;
 		ctx.beginPath();
-		ctx.moveTo(center.x + Math.cos(angle) * inner, center.y + Math.sin(angle) * inner);
-		ctx.lineTo(center.x + Math.cos(angle) * outer, center.y + Math.sin(angle) * outer);
+		ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
+		ctx.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
+		ctx.stroke();
+	}
+
+	const core = ctx.createRadialGradient(0, 0, 0, 0, 0, 84 * scale);
+	core.addColorStop(0, `rgba(101,2,20,${0.14 + wake * 0.14})`);
+	core.addColorStop(0.46, `rgba(45,0,8,${0.24 + wake * 0.2})`);
+	core.addColorStop(1, "rgba(0,0,0,0)");
+	ctx.fillStyle = core;
+	ctx.beginPath();
+	ctx.arc(0, 0, 88 * scale, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.restore();
+}
+
+function drawAnchors(nails, center, scale, state, ms) {
+	for (const nail of nails) {
+		drawEmbeddedSurface(nail, scale, state);
+		drawNail(nail, scale, state, ms);
+	}
+}
+
+function drawEmbeddedSurface(nail, scale, state) {
+	ctx.save();
+	ctx.translate(nail.x, nail.y);
+	ctx.rotate(nail.angle + Math.PI / 2);
+	ctx.strokeStyle = `rgba(82, 12, 20, ${0.38 + state.compress * 0.24})`;
+	ctx.lineWidth = 2 * scale;
+	ctx.beginPath();
+	ctx.moveTo(-nail.surface, 0);
+	ctx.lineTo(nail.surface, 0);
+	ctx.stroke();
+
+	ctx.strokeStyle = `rgba(241,222,211,${0.1 + state.burst * 0.18})`;
+	ctx.lineWidth = 1 * scale;
+	for (let i = -2; i <= 2; i++) {
+		const offset = i * 8 * scale;
+		ctx.beginPath();
+		ctx.moveTo(offset, 0);
+		ctx.lineTo(offset + i * 5 * scale, 13 * scale);
 		ctx.stroke();
 	}
 	ctx.restore();
 }
 
-function drawBloomShards(center, spread, alpha, ms) {
-	if (alpha <= 0) return;
-	for (let i = 0; i < 42; i++) {
-		const angle = i * 2.399 + 0.18 + Math.sin(ms * 0.001 + i) * 0.025;
-		const base = 52 + (i % 7) * 18;
-		const distance = base + spread * (80 + (i % 5) * 20);
-		const fall = Math.max(0, spread - 1) * (24 + (i % 6) * 8);
-		const x = center.x + Math.cos(angle) * distance;
-		const y = center.y + Math.sin(angle) * distance + fall;
-		drawShard(x, y, angle, alpha * (0.62 + (i % 4) * 0.08));
+function drawNail(nail, scale, state, ms) {
+	const vibration = Math.sin(ms * 0.05 + nail.index * 1.7) * (state.compress * 1.4 + state.trigger * 2.2) * scale;
+	const charge = 0.2 + state.mark * 0.35 + state.compress * 0.45 + state.burst * 0.6;
+	ctx.save();
+	ctx.translate(nail.x + vibration, nail.y - vibration * 0.35);
+	ctx.rotate(nail.angle);
+
+	ctx.shadowColor = colors.crimson;
+		ctx.shadowBlur = 12 * charge;
+	ctx.fillStyle = colors.metalDark;
+	ctx.fillRect(-nail.length * 0.56, -3.2 * scale, 14 * scale, 6.4 * scale);
+	ctx.fillStyle = colors.metal;
+	ctx.fillRect(-nail.length * 0.46, -1.8 * scale, nail.length * 0.82, 3.6 * scale);
+	ctx.fillStyle = colors.impact;
+	ctx.beginPath();
+	ctx.moveTo(nail.length * 0.44, 0);
+	ctx.lineTo(nail.length * 0.28, -4.5 * scale);
+	ctx.lineTo(nail.length * 0.28, 4.5 * scale);
+	ctx.closePath();
+	ctx.fill();
+
+	ctx.fillStyle = `rgba(101,2,20,${charge})`;
+	ctx.fillRect(-nail.length * 0.24, -2.7 * scale, nail.length * 0.52, 5.4 * scale);
+	ctx.restore();
+}
+
+function drawEnergy(nails, center, scale, state, ms) {
+	drawCompressionThreads(nails, center, scale, state, ms);
+	drawSnapSpikes(nails, center, scale, state, ms);
+	drawResidue(nails, center, scale, state, ms);
+}
+
+function drawCompressionThreads(nails, center, scale, state, ms) {
+	const alpha = clamp(state.compress * 0.76 + state.trigger * 0.6 + state.burst * 0.42 + state.residue * 0.12);
+	if (alpha <= 0.01) return;
+	ctx.save();
+	ctx.globalCompositeOperation = "source-over";
+	for (const nail of nails) {
+		const wobble = Math.sin(ms * 0.004 + nail.index) * 10 * scale;
+		const pull = state.compress * 0.24 + state.burstOut * 0.42;
+		const cx = nail.x + (center.x - nail.x) * (0.48 + pull);
+		const cy = nail.y + (center.y - nail.y) * (0.48 + pull) + wobble;
+		ctx.strokeStyle = `rgba(45,0,8,${alpha * 0.92})`;
+		ctx.lineWidth = (5.5 + state.compress * 3.2) * scale;
+		ctx.beginPath();
+		ctx.moveTo(nail.x, nail.y);
+		ctx.quadraticCurveTo(cx, cy, center.x, center.y);
+		ctx.stroke();
+
+		ctx.strokeStyle = `rgba(101,2,20,${alpha * 0.7})`;
+		ctx.lineWidth = (1.8 + state.compress * 1.5) * scale;
+		ctx.shadowColor = colors.crimson;
+		ctx.shadowBlur = 8 * alpha;
+		ctx.beginPath();
+		ctx.moveTo(nail.x, nail.y);
+		ctx.quadraticCurveTo(cx, cy, center.x, center.y);
+		ctx.stroke();
+
+		ctx.strokeStyle = `rgba(241,222,211,${alpha * 0.1})`;
+		ctx.lineWidth = 1 * scale;
+		ctx.beginPath();
+		ctx.moveTo(nail.x, nail.y);
+		ctx.quadraticCurveTo(cx - wobble * 0.4, cy + wobble * 0.2, center.x, center.y);
+		ctx.stroke();
+	}
+	ctx.restore();
+}
+
+function drawSnapSpikes(nails, center, scale, state, ms) {
+	const alpha = clamp(state.burst * 1.15 + state.residue * 0.34);
+	if (alpha <= 0.01) return;
+	ctx.save();
+	ctx.globalCompositeOperation = "source-over";
+	for (const nail of nails) {
+		const dx = center.x - nail.x;
+		const dy = center.y - nail.y;
+		const angle = Math.atan2(dy, dx);
+		const length = (110 + state.burstOut * 122 + state.after * 30) * scale;
+		const width = (22 + state.burst * 22) * scale;
+		const origin = {
+			x: nail.x + Math.cos(angle) * 12 * scale,
+			y: nail.y + Math.sin(angle) * 12 * scale
+		};
+		drawSpike(origin, angle, length, width, alpha, nail.index);
+	}
+	drawCoreSnap(center, scale, state);
+	ctx.restore();
+}
+
+function drawSpike(origin, angle, length, width, alpha, index) {
+	ctx.save();
+	ctx.translate(origin.x, origin.y);
+	ctx.rotate(angle);
+	ctx.shadowColor = colors.crimson;
+	ctx.shadowBlur = 10 * alpha;
+
+	const grad = ctx.createLinearGradient(0, 0, length, 0);
+	grad.addColorStop(0, `rgba(18,0,5,${alpha})`);
+	grad.addColorStop(0.52, `rgba(75,0,13,${alpha * 0.95})`);
+	grad.addColorStop(0.82, `rgba(101,2,20,${alpha * 0.64})`);
+	grad.addColorStop(1, `rgba(241,222,211,${alpha * 0.07})`);
+	ctx.fillStyle = grad;
+	ctx.beginPath();
+	ctx.moveTo(-10, -width * 0.28);
+	ctx.lineTo(length * 0.74, -width);
+	ctx.lineTo(length, 0);
+	ctx.lineTo(length * 0.74, width * 0.72);
+	ctx.lineTo(-10, width * 0.22);
+	ctx.closePath();
+	ctx.fill();
+
+	ctx.strokeStyle = `rgba(241,222,211,${alpha * 0.2})`;
+	ctx.lineWidth = 1;
+	ctx.beginPath();
+	ctx.moveTo(length * 0.04, 0);
+	ctx.lineTo(length * (0.78 + (index % 2) * 0.06), 0);
+	ctx.stroke();
+	ctx.restore();
+}
+
+function drawCoreSnap(center, scale, state) {
+	const radius = (32 + state.burstOut * 44) * scale;
+	const alpha = state.burst * 0.32 + state.residue * 0.06;
+	ctx.save();
+	ctx.lineCap = "butt";
+	for (let i = 0; i < 9; i++) {
+		const start = i * 0.72 + state.after * 0.16;
+		const end = start + 0.18 + (i % 3) * 0.05;
+		ctx.strokeStyle = `rgba(75,0,13,${alpha * 1.25})`;
+		ctx.lineWidth = (7 + (i % 3) * 2) * scale;
+		ctx.beginPath();
+		ctx.arc(center.x, center.y, radius * (0.84 + (i % 2) * 0.28), start, end);
+		ctx.stroke();
+		ctx.strokeStyle = `rgba(241,222,211,${alpha * 0.28})`;
+		ctx.lineWidth = 1 * scale;
+		ctx.beginPath();
+		ctx.arc(center.x, center.y, radius * (0.72 + (i % 2) * 0.24), start + 0.04, end + 0.02);
+		ctx.stroke();
+	}
+	ctx.restore();
+}
+
+function drawResidue(nails, center, scale, state, ms) {
+	const alpha = clamp(state.burst * 0.42 + state.residue * 0.72);
+	if (alpha <= 0.01) return;
+	for (const nail of nails) {
+		for (let i = 0; i < 14; i++) {
+			const seed = (i + 1) * 12.989 + nail.index * 78.233;
+			const direction = nail.toCenter + Math.sin(seed) * 0.92;
+			const drift = (28 + (i % 5) * 18 + state.after * (42 + i * 2)) * scale;
+			const fall = state.after * state.after * (14 + (i % 4) * 8) * scale;
+			const x = nail.x + Math.cos(direction) * drift;
+			const y = nail.y + Math.sin(direction) * drift + fall;
+			const size = (8 + (i % 4) * 3) * scale;
+			drawResidueShard(x, y, direction, size, alpha * (0.28 + (i % 3) * 0.11));
+		}
 	}
 }
 
-function drawShard(x, y, angle, alpha) {
+function drawResidueShard(x, y, angle, size, alpha) {
 	ctx.save();
 	ctx.translate(x, y);
 	ctx.rotate(angle);
-	ctx.fillStyle = `rgba(169,8,36,${alpha})`;
-	ctx.fillRect(-10, -1, 20, 2);
-	ctx.fillStyle = `rgba(234,219,210,${alpha * 0.55})`;
-	ctx.fillRect(4, -1, 8, 2);
+	ctx.fillStyle = `rgba(75,0,13,${alpha})`;
+	ctx.fillRect(-size * 0.5, -1.5, size, 3);
+	ctx.fillStyle = `rgba(127,18,48,${alpha * 0.3})`;
+	ctx.fillRect(size * 0.08, -1, size * 0.38, 2);
 	ctx.restore();
 }
 
-function drawSpark(x, y, size, alpha) {
-	ctx.fillStyle = `rgba(169,8,36,${alpha})`;
-	ctx.shadowColor = colors.crimson;
-	ctx.shadowBlur = 10;
-	ctx.beginPath();
-	ctx.arc(x, y, size, 0, Math.PI * 2);
-	ctx.fill();
-	ctx.shadowBlur = 0;
-}
-
-function drawImpactFrame(width, height, phase, progress) {
-	let alpha = 0;
-	if (phase.name === "Hammer Snap") alpha = Math.max(0, 0.22 * (1 - progress));
-	if (phase.name === "Hairpin Bloom" && progress < 0.18) alpha = 0.32 * (1 - progress / 0.18);
-	if (alpha <= 0) return;
-	ctx.fillStyle = `rgba(234,219,210,${alpha})`;
+function drawImpactFrame(width, height, state) {
+	const alpha = state.trigger * 0.1 + state.burst * 0.18;
+	if (alpha <= 0.01) return;
+	const gradient = ctx.createRadialGradient(width * 0.56, height * 0.49, 10, width * 0.56, height * 0.49, Math.max(width, height) * 0.58);
+	gradient.addColorStop(0, `rgba(241,222,211,${alpha * 0.28})`);
+	gradient.addColorStop(0.5, `rgba(75,0,13,${alpha})`);
+	gradient.addColorStop(1, "rgba(0,0,0,0)");
+	ctx.fillStyle = gradient;
 	ctx.fillRect(0, 0, width, height);
 }
 
-function updateLabels(phase, ms) {
+function updateLabels(phase, ms, state) {
 	phaseLabel.textContent = phase.name;
 	timeLabel.textContent = `${Math.round(ms)} ms / ${total} ms`;
-	for (const segment of segments) {
-		segment.classList.toggle("active", segment.dataset.phase === phase.name);
-	}
+	progressEl.style.width = `${(ms / total) * 100}%`;
+	readout.textContent = state.burst > 0.2 ? "snap: live" : state.after > 0.1 ? "residue: fading" : state.compress > 0.2 ? "anchors: armed" : "anchors: 4";
 }
 
 draw();
