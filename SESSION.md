@@ -1,125 +1,158 @@
-# Сессия 2026-07-06 — Cutoff
+# Сессия 2026-07-07 — Hairpin Prototype Complete
 
 ## Проект
 
 - `D:/WorkFlow/Jujutsu Minecraft`
-- Fabric `1.21.8`, Java `21`, Mojang mappings
-- Mod id: `jujutsumod`
 - Рабочее дерево: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/brainstorming`
 - Ветка: `chore/jujutsu-brainstorming`
+- Fabric `1.21.8`, Fabric API `0.136.1+1.21.8`, Java `21`
+- Mod id: `jujutsumod`
 
-## О чём сессия
+## Что строили
 
-Обсуждение и старт реализации первого vertical slice мода по *Магической битве / Jujutsu Kaisen*.
-Первый персонаж — **Нобара**. Первый эффект — **Hairpin**.
-Упор: **кинематографичный визуал**, кастомные частицы/звуки, “stylish shonen impact”.
+Продолжили первый vertical slice мода по *Магической битве / Jujutsu Kaisen*:
+**Нобара — Hairpin cinematic VFX prototype**.
+
+Цель slice: доказать workflow `VFX bible -> standalone visual target -> minimal in-game Fabric prototype` без тяжёлых VFX-зависимостей.
 
 ## Главные решения
 
-- Стартовая позиция по канону: почти канон, но Minecraft-native реализация.
-- Первый slice: **Hairpin cinematic VFX**, не весь бой и не вся система.
-- Путь: `VFX bible → standalone visual target → минимальный in-game Fabric prototype`.
-- LibsFX / Universal FX (`D:/WorkFlow old/WorkFLow/TestimCodex/LibsFX`) — **не зависимость**.
-  - Она под MC `1.21.1` / Satin `2.0.0`, наш мод под `1.21.8`.
-  - Сборка LibsFX упала на скачивании Satin.
-  - Статус: только референс идей/кода.
-- Без Veil/Satin/Lodestone/ParticleAnimationLib как обязательных зависимостей.
-- GeckoLib и Player Animation Library — опционально позже, не для первого slice.
-- GitHub MCP сейчас сломан (`Bad credentials`), не использовать. Ресёрч через Tavily/прямые URL/local jars.
+- Первый персонаж: **Нобара**.
+- Первый showcase эффект: **Hairpin**.
+- Реализация остаётся Fabric-native, без LibsFX/Veil/Satin/Lodestone/ParticleAnimationLib как runtime dependencies.
+- World renderer для tracer/ring пока не внедрён: частицы + HUD flash дают compile-safe первый world-space read; отдельный renderer лучше делать следующим самостоятельным шагом после smoke test.
+- Звуки сейчас зарегистрированы как custom sound event ids, но `sounds.json` временно мапит их на vanilla sounds. Финальные OGG ассеты ещё нужны.
+- Particle texture `hairpin_spark.png` — маленький placeholder, не финальный арт.
 
-## Research
+## Артефакты дизайна
 
-Изучены два файла:
-- `C:/Users/KOMP1/Downloads/Research1.md`
-- `C:/Users/KOMP1/Downloads/deep-research-report (4).md`
-
-Общий вывод: для первого Hairpin строим свой маленький VFX-пайплайн на Fabric particles + тонкий renderer + HUD flash + custom sounds.
-
-## Что сделано в коде
-
-### Project setup
-- Создан `AGENTS.md` с правилами проекта и workflow.
-- Инициализирован git.
-- Коммиты:
-  - `f469ebc chore(project): add initial Fabric template and agent guide`
-  - `d962cc2 chore(git): ignore local worktrees`
-- Создан worktree `.worktrees/brainstorming`, ветка `chore/jujutsu-brainstorming`.
-- Базовый билд проверен: `BUILD SUCCESSFUL` с Java 21.
-
-### Дизайн/план
 - Спека: `docs/superpowers/specs/2026-07-06-nobara-hairpin-cinematic-design.md`
-  - 5 фаз Hairpin: Prep Freeze, Hammer Snap, Nail Ignition, Hairpin Bloom, Afterglow.
-  - Палитра, звуковые слои, ассеты, client/server boundary.
 - План: `docs/superpowers/plans/2026-07-06-nobara-hairpin-prototype.md`
-- Коммиты:
-  - `2745684 docs(design): define Nobara Hairpin cinematic slice`
-  - `23b272e docs(design): document Universal FX decision`
-  - `39aa731 docs(plan): add Nobara Hairpin prototype plan`
+- Standalone visual target: `docs/visual-targets/nobara-hairpin/index.html`
+  - Один self-contained HTML/Canvas файл.
+  - Показывает пять фаз: Prep Freeze, Hammer Snap, Nail Ignition, Hairpin Bloom, Afterglow.
+  - Тайминги совпадают с `HairpinTimeline`: `0/180/240/560/900/1800`.
 
-### Реализация
-- `HairpinTimeline` — теструемая модель таймингов фаз.
-  - `src/main/java/jujutsu/mod/fx/HairpinTimeline.java`
-  - `src/test/java/jujutsu/mod/fx/HairpinTimelineTest.java`
-  - Тест проходит: `HairpinTimelineTest passed`.
-  - Коммит: `eb789ed feat(fx): add Hairpin timeline model`
-- Серверный триггер и payload:
-  - `src/main/java/jujutsu/mod/network/HairpinFxPayload.java`
-  - `src/main/java/jujutsu/mod/network/JujutsuNetworking.java`
-  - `src/main/java/jujutsu/mod/command/JujutsuCommands.java`
-  - Команда: `/jujutsu hairpin`
-  - Отправляет один S2C payload только если клиент зарегистрировал приёмник.
-  - Компилируется: `compileJava` OK.
-  - Коммит: `21af244 feat(fx): add Hairpin trigger payload`
+## Что реализовано
 
-## Проверенные Fabric 1.21.8 API (локально через javap)
+### Timing model
 
-- `net.minecraft.network.protocol.common.custom.CustomPacketPayload`
-- `net.minecraft.network.codec.StreamCodec`
-- `net.minecraft.network.RegistryFriendlyByteBuf`
-- `net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.playS2C()`
-- `net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player, payload)`
-- `ServerPlayNetworking.canSend(player, type)` — используем перед отправкой.
-- `net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver`
-- `net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback.EVENT`
-- HUD/рендер: `WorldRenderEvents`, `HudRenderCallback`, `HudElementRegistry` найдены в `fabric-rendering-v1`.
+- `src/main/java/jujutsu/mod/fx/HairpinTimeline.java`
+- `src/test/java/jujutsu/mod/fx/HairpinTimelineTest.java`
+- Gradle task: `testHairpinTimeline`
 
-## Что не сделано
+### Server trigger and networking
 
-- Клиентский приёмник `HairpinFxPayload` пока не зарегистрирован.
-- Нет `HairpinPlayback` / `HairpinPlaybackManager` на клиенте.
-- Нет кастомных частиц, звуков, рендера, HUD flash.
-- In-game smoke-тест не проводился.
-- Standalone visual target не сделан.
+- `src/main/java/jujutsu/mod/network/HairpinFxPayload.java`
+- `src/main/java/jujutsu/mod/network/JujutsuNetworking.java`
+- `src/main/java/jujutsu/mod/command/JujutsuCommands.java`
+- Команда: `/jujutsu hairpin`
+- Сервер выбирает target и 4 nail positions.
+- Payload typed/custom, один S2C event на сцену.
+- Broadcast идёт nearby players в той же dimension в радиусе `64.0`, с `ServerPlayNetworking.canSend(...)` per client.
 
-## Ассеты, которые нужны от пользователя
+### Client playback
 
-Звуки (OGG Vorbis, желательно mono):
-- `hairpin_prep_muffle.ogg`
-- `hairpin_hammer_snap.ogg`
-- `hairpin_nail_ignite.ogg`
-- `hairpin_tracer_whip.ogg`
-- `hairpin_bloom_core.ogg`
-- `hairpin_shard_scatter.ogg`
-- `hairpin_afterglow_crackle.ogg`
-- `hairpin_screen_hit.ogg`
+- `src/client/java/jujutsu/mod/client/network/JujutsuClientNetworking.java`
+- `src/client/java/jujutsu/mod/client/fx/HairpinPlayback.java`
+- `src/client/java/jujutsu/mod/client/fx/HairpinPlaybackManager.java`
+- Receiver зарегистрирован через `ClientPlayNetworking.registerGlobalReceiver`.
+- Playback тикает через `ClientTickEvents.END_CLIENT_TICK`.
+- При смене фаз проигрываются local sounds и создаются частицы.
 
-Частицы (PNG):
-- `hairpin_spark.png`
-- `hairpin_tracer_streak.png`
-- `hairpin_shard_red.png`
-- `hairpin_shock_ring.png`
-- `hairpin_impact_flash_white.png`
-- `hairpin_soot_wisp_black.png`
-- `hairpin_residue_mist_redblack.png`
+### Particles and sounds
 
-## Открытые вопросы
+- `src/main/java/jujutsu/mod/registry/JujutsuParticles.java`
+- `src/main/java/jujutsu/mod/registry/JujutsuSounds.java`
+- `src/client/java/jujutsu/mod/client/particle/HairpinSparkParticle.java`
+- `src/client/java/jujutsu/mod/client/particle/JujutsuClientParticles.java`
+- `src/main/resources/assets/jujutsumod/particles/hairpin_spark.json`
+- `src/main/resources/assets/jujutsumod/textures/particle/hairpin_spark.png`
+- `src/main/resources/assets/jujutsumod/sounds.json`
 
-- Какой standalone visual target делаем: HTML/Three.js, Blender, или короткий референс-клип?
-- Делаем ли сразу HUD flash + маленький world renderer, или сначала только частицы?
+### HUD impact flash
 
-## Состояние
+- `src/client/java/jujutsu/mod/client/fx/HairpinScreenOverlay.java`
+- Uses Fabric `HudElementRegistry`, not deprecated `HudRenderCallback`.
+- Flash triggers during `HAMMER_SNAP` and `HAIRPIN_BLOOM`.
 
-- Компиляция: OK.
-- Тесты тайминга: OK.
-- В игре не проверено.
-- Worktree чистый, изменения закоммичены.
+## Коммиты этой worktree
+
+Implementation range from `main` commit `d962cc2` through `bcd4161`:
+
+- `2745684 docs(design): define Nobara Hairpin cinematic slice`
+- `23b272e docs(design): document Universal FX decision`
+- `39aa731 docs(plan): add Nobara Hairpin prototype plan`
+- `eb789ed feat(fx): add Hairpin timeline model`
+- `21af244 feat(fx): add Hairpin trigger payload`
+- `2ac1444 docs(session): add 2026-07-06 cutoff notes`
+- `cec55e2 feat(client): add Hairpin playback shell`
+- `612ba37 feat(fx): add Hairpin particle assets`
+- `02eda52 feat(client): add Hairpin screen effects`
+- `dc98710 fix(fx): play Hairpin prep sound on start`
+- `bcd4161 feat(fx): broadcast Hairpin and add visual target`
+
+## Verification
+
+Commands run with:
+
+```powershell
+$env:JAVA_HOME='D:\WorkFlow\Minecraft\jdk-21.0.11+10'
+```
+
+Fresh verification after final commit:
+
+```bat
+cmd.exe /c gradlew.bat testHairpinTimeline --no-daemon
+```
+
+Result: `HairpinTimelineTest passed`, `BUILD SUCCESSFUL`.
+
+```bat
+cmd.exe /c gradlew.bat build --no-daemon -x test
+```
+
+Result: `BUILD SUCCESSFUL`.
+
+```bat
+git diff --check d962cc2..HEAD
+```
+
+Result: no output.
+
+```bat
+git status --short --branch
+```
+
+Result: clean on `chore/jujutsu-brainstorming`.
+
+## Code review
+
+Subagent review on updated range `d962cc2..bcd4161`:
+
+- Critical: none.
+- Important: none.
+- Assessment: ready to merge.
+
+Reviewer caveat:
+
+- Do not claim in-game feel/visibility is proven until `runClient` smoke test is performed.
+
+## Not verified
+
+- `runClient` smoke test was not run.
+- In-game visual feel, resource reload warnings, and multiplayer observation were not manually verified.
+- Placeholder particle texture and vanilla-backed sound mappings are not final assets.
+
+## Next good steps
+
+1. Run `cmd.exe /c gradlew.bat runClient --no-daemon`.
+2. In a dev world, run `/jujutsu hairpin`.
+3. Check:
+   - command sends to the triggering client;
+   - particles appear around target/nail positions;
+   - HUD flash appears on snap/bloom;
+   - sound placeholders play without resource errors;
+   - nearby second client receives the event if multiplayer smoke test is available.
+4. Replace placeholder particle and vanilla sound mappings with final custom assets.
+5. Consider a separate `HairpinWorldRenderer` only after the particle/HUD slice feels good in-game.
