@@ -312,6 +312,33 @@ Decision:
 - GeckoLib may be evaluated later for item/character animation.
 - Veil may be evaluated later as optional advanced rendering support if Fabric particles are insufficient.
 
+## Universal FX / LibsFX Decision
+
+The old custom FX library was found at `D:/WorkFlow old/WorkFLow/TestimCodex/LibsFX`.
+
+It is named **Universal FX Library** (`universal_fx`, Maven `universal.fx:universal_fx:1.0.0`). It currently targets:
+
+- Minecraft `1.21.1`
+- Fabric API `0.116.12+1.21.1`
+- Loom `1.17.11`
+- Satin `2.0.0`
+
+The Jujutsu mod targets Minecraft `1.21.8`, so Universal FX must **not** be used as a required dependency for the first Hairpin slice.
+
+Decision:
+
+- Do not block Nobara/Hairpin on porting Universal FX.
+- Do not downgrade the Jujutsu mod to `1.21.1` for this library.
+- Use Universal FX only as a reference for ideas, API shape, catalogs, recipes, and renderer organization.
+- Port Universal FX later only if the first pure-Fabric Hairpin prototype proves that the missing pieces are worth the porting cost.
+
+Reasoning:
+
+- The library is not verified on Minecraft `1.21.8`.
+- A fresh build attempt failed before compilation because Satin `2.0.0` could not be resolved from Ladysnake Maven.
+- Even if the dependency download is fixed, the version gap still requires a real port and runtime smoke test.
+- The first milestone needs visual proof fast, not a long library rescue mission.
+
 ## Files Expected Later
 
 This design does not require all files to exist immediately. They are likely implementation targets once planning starts.
