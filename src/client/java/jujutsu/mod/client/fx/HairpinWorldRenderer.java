@@ -60,7 +60,10 @@ public final class HairpinWorldRenderer {
 			int coreAlpha = Math.min(210, Math.round(alpha * 255.0f));
 
 			addRibbon(consumer, start, end, side, 91, 16, 27, coreAlpha);
-			addRibbon(consumer, start.add(side.scale(0.55)), end.add(side.scale(0.55)), side.scale(0.28), 138, 47, 88, edgeAlpha / 2);
+			if (phase == HairpinTimeline.Phase.HAMMER_SNAP || phase == HairpinTimeline.Phase.NAIL_IGNITION) {
+				Vec3 edgeStart = start.lerp(end, 0.68);
+				addRibbon(consumer, edgeStart.add(side.scale(0.55)), end.add(side.scale(0.55)), side.scale(0.18), 91, 16, 27, edgeAlpha / 3);
+			}
 
 			if (phase == HairpinTimeline.Phase.HAIRPIN_BLOOM || phase == HairpinTimeline.Phase.AFTERGLOW) {
 				Vec3 burstStart = target.add(direction.normalize().scale(0.08)).subtract(cameraPosition);

@@ -23,7 +23,7 @@ public final class HairpinVisualProfile {
 		IGNITION_TICK
 	}
 
-	public record ParticleBudget(ParticleFamily family, int countPerNail, int countAtTarget, boolean fullBright) {}
+	public record ParticleBudget(ParticleFamily family, int countPerNail, int countAtTarget) {}
 
 	public static List<ParticleBudget> budgetsForPhase(HairpinTimeline.Phase phase) {
 		return BUDGETS.getOrDefault(phase, List.of());
@@ -48,24 +48,24 @@ public final class HairpinVisualProfile {
 	private static Map<HairpinTimeline.Phase, List<ParticleBudget>> createBudgets() {
 		EnumMap<HairpinTimeline.Phase, List<ParticleBudget>> budgets = new EnumMap<>(HairpinTimeline.Phase.class);
 		budgets.put(HairpinTimeline.Phase.PREP_FREEZE, List.of(
-				new ParticleBudget(ParticleFamily.MARK_STAIN, 1, 0, false)
+				new ParticleBudget(ParticleFamily.MARK_STAIN, 1, 0)
 		));
 		budgets.put(HairpinTimeline.Phase.HAMMER_SNAP, List.of(
-				new ParticleBudget(ParticleFamily.WARN_EDGE, 1, 0, true),
-				new ParticleBudget(ParticleFamily.IGNITION_TICK, 1, 0, true)
+				new ParticleBudget(ParticleFamily.WARN_EDGE, 1, 0),
+				new ParticleBudget(ParticleFamily.IGNITION_TICK, 1, 0)
 		));
 		budgets.put(HairpinTimeline.Phase.NAIL_IGNITION, List.of(
-				new ParticleBudget(ParticleFamily.WARN_EDGE, 1, 0, true),
-				new ParticleBudget(ParticleFamily.COMPRESSION_MOTE, 2, 0, false),
-				new ParticleBudget(ParticleFamily.IGNITION_TICK, 1, 0, true)
+				new ParticleBudget(ParticleFamily.WARN_EDGE, 1, 0),
+				new ParticleBudget(ParticleFamily.COMPRESSION_MOTE, 2, 0),
+				new ParticleBudget(ParticleFamily.IGNITION_TICK, 1, 0)
 		));
 		budgets.put(HairpinTimeline.Phase.HAIRPIN_BLOOM, List.of(
-				new ParticleBudget(ParticleFamily.SNAP_CRACK, 1, 1, true),
-				new ParticleBudget(ParticleFamily.BURST_RESIDUE, 3, 4, false),
-				new ParticleBudget(ParticleFamily.BURST_METAL_SHARD, 2, 2, false)
+				new ParticleBudget(ParticleFamily.SNAP_CRACK, 1, 1),
+				new ParticleBudget(ParticleFamily.BURST_RESIDUE, 3, 4),
+				new ParticleBudget(ParticleFamily.BURST_METAL_SHARD, 2, 2)
 		));
 		budgets.put(HairpinTimeline.Phase.AFTERGLOW, List.of(
-				new ParticleBudget(ParticleFamily.BURST_RESIDUE, 1, 1, false)
+				new ParticleBudget(ParticleFamily.BURST_RESIDUE, 1, 0)
 		));
 		budgets.put(HairpinTimeline.Phase.DONE, List.of());
 		return Map.copyOf(budgets);
