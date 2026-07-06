@@ -7,15 +7,15 @@
 	<style>
 		:root {
 			color-scheme: dark;
-			--bg: #080206;
-			--panel: #151014;
-			--line: #39242c;
-			--text: #f8f2ea;
-			--muted: #b995a0;
-			--crimson: #d7193f;
-			--deep-red: #650012;
-			--hot-pink: #ff4d7d;
-			--impact: #f8f2ea;
+			--bg: #040102;
+			--panel: #0d0709;
+			--line: #2a1018;
+			--text: #efe6df;
+			--muted: #a98991;
+			--crimson: #a90824;
+			--deep-red: #3a0009;
+			--hot-pink: #c3193e;
+			--impact: #eadbd2;
 		}
 
 		* {
@@ -42,6 +42,7 @@
 			overflow: hidden;
 			min-height: 420px;
 			border-bottom: 1px solid var(--line);
+			box-shadow: inset 0 -42px 80px rgba(0, 0, 0, 0.46);
 		}
 
 		canvas {
@@ -58,7 +59,7 @@
 			display: grid;
 			gap: 6px;
 			pointer-events: none;
-			text-shadow: 0 2px 16px #000;
+			text-shadow: 0 2px 18px #000;
 		}
 
 		.phase {
@@ -76,32 +77,37 @@
 			grid-template-columns: auto 1fr auto;
 			gap: 18px;
 			align-items: center;
-			padding: 14px 18px;
-			background: var(--panel);
+			padding: 16px 20px;
+			background: linear-gradient(180deg, #12090d 0%, var(--panel) 100%);
+			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 		}
 
 		button {
 			width: 38px;
 			height: 38px;
 			border: 1px solid var(--line);
-			background: #21161c;
+			background: #170b10;
 			color: var(--text);
 			border-radius: 6px;
 			font-size: 18px;
 			cursor: pointer;
+			transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
 		}
 
 		button:hover {
 			border-color: var(--hot-pink);
+			background: #211017;
 		}
 
 		.timeline {
 			display: grid;
 			grid-template-columns: 180fr 60fr 320fr 340fr 900fr;
-			height: 18px;
+			height: 16px;
 			border: 1px solid var(--line);
-			background: #0d080b;
+			background: #070304;
+			border-radius: 999px;
 			overflow: hidden;
+			box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.72);
 		}
 
 		.segment {
@@ -117,8 +123,9 @@
 			content: "";
 			position: absolute;
 			inset: 0;
-			background: var(--crimson);
-			opacity: 0.42;
+			background: linear-gradient(90deg, var(--deep-red), var(--crimson), var(--deep-red));
+			opacity: 0.5;
+			transition: opacity 180ms ease;
 		}
 
 		.legend {
@@ -127,6 +134,7 @@
 			flex-wrap: wrap;
 			color: var(--muted);
 			font-size: 12px;
+			align-items: center;
 		}
 
 		.legend span::before {
@@ -135,7 +143,9 @@
 			width: 8px;
 			height: 8px;
 			margin-right: 6px;
-			background: var(--crimson);
+			background: radial-gradient(circle, var(--crimson), var(--deep-red));
+			border-radius: 50%;
+			box-shadow: 0 0 10px rgba(169, 8, 36, 0.5);
 		}
 
 		@media (max-width: 700px) {
@@ -191,11 +201,13 @@ const phases = [
 ];
 const total = 1800;
 const colors = {
-	crimson: "#d7193f",
-	deepRed: "#650012",
-	black: "#080206",
-	impact: "#f8f2ea",
-	hotPink: "#ff4d7d"
+	crimson: "#a90824",
+	deepRed: "#3a0009",
+	black: "#040102",
+	impact: "#eadbd2",
+	hotPink: "#c3193e",
+	bloodBlack: "#120006",
+	soot: "#090204"
 };
 
 let running = true;
@@ -266,13 +278,13 @@ function draw() {
 
 function drawBackground(width, height, ms) {
 	const gradient = ctx.createRadialGradient(width * 0.58, height * 0.5, 10, width * 0.58, height * 0.5, Math.max(width, height) * 0.7);
-	gradient.addColorStop(0, "#1b0710");
-	gradient.addColorStop(0.45, "#10060a");
+	gradient.addColorStop(0, "#170006");
+	gradient.addColorStop(0.5, "#090204");
 	gradient.addColorStop(1, colors.black);
 	ctx.fillStyle = gradient;
 	ctx.fillRect(0, 0, width, height);
 
-	ctx.strokeStyle = "rgba(215,25,63,0.09)";
+	ctx.strokeStyle = "rgba(104,0,18,0.12)";
 	ctx.lineWidth = 1;
 	for (let i = 0; i < 18; i++) {
 		const y = (height * 0.18) + i * 28 + Math.sin(ms * 0.002 + i) * 4;
@@ -296,7 +308,7 @@ function drawNails(nails, center, phase, progress) {
 		ctx.fillRect(12, -3, 12, 6);
 		if (charged) {
 			ctx.shadowColor = colors.crimson;
-			ctx.shadowBlur = 18;
+			ctx.shadowBlur = 14;
 			ctx.fillStyle = colors.crimson;
 			ctx.fillRect(-18, -3, 30, 6);
 		}
@@ -325,28 +337,34 @@ function drawPhaseEffect(nails, center, phase, progress, ms) {
 
 	if (phase.name === "Hairpin Bloom") {
 		const ring = easeOut(progress) * 240;
-		drawRing(center, ring, 1 - progress);
+		const residue = 0.55 - progress * 0.3;
+		drawRing(center, ring, Math.max(0.18, 1 - progress * 0.72));
+		drawBloomResidue(center, ring, residue, ms);
 		for (let i = 0; i < 38; i++) {
 			const angle = i * 2.399 + ms * 0.003;
 			const distance = 24 + ring * (0.35 + (i % 5) * 0.07);
-			drawShard(center.x + Math.cos(angle) * distance, center.y + Math.sin(angle) * distance, angle, 1 - progress);
+			drawShard(center.x + Math.cos(angle) * distance, center.y + Math.sin(angle) * distance, angle, Math.max(0.16, 1 - progress * 0.9));
 		}
 	}
 
 	if (phase.name === "Afterglow") {
+		const fade = 1 - easeOut(progress);
+		const carriedRing = 220 + progress * 42;
+		drawBloomResidue(center, carriedRing, 0.25 * fade, ms);
+		drawResidueFall(center, progress, ms);
 		for (let i = 0; i < 26; i++) {
 			const angle = i * 1.71;
 			const distance = 35 + i * 7 + progress * 80;
-			drawSpark(center.x + Math.cos(angle) * distance, center.y + Math.sin(angle) * distance + progress * 32, 4, 0.5 * (1 - progress));
+			drawSpark(center.x + Math.cos(angle) * distance, center.y + Math.sin(angle) * distance + progress * 32, 3.5, 0.42 * fade);
 		}
 	}
 }
 
 function drawTracer(from, to, alpha) {
-	ctx.strokeStyle = `rgba(255,77,125,${alpha})`;
+	ctx.strokeStyle = `rgba(169,8,36,${alpha})`;
 	ctx.lineWidth = 2;
 	ctx.shadowColor = colors.crimson;
-	ctx.shadowBlur = 10;
+	ctx.shadowBlur = 8;
 	ctx.beginPath();
 	ctx.moveTo(from.x, from.y);
 	ctx.lineTo(to.x, to.y);
@@ -355,7 +373,7 @@ function drawTracer(from, to, alpha) {
 }
 
 function drawSlash(x1, y1, x2, y2, alpha) {
-	ctx.strokeStyle = `rgba(248,242,234,${alpha})`;
+	ctx.strokeStyle = `rgba(234,219,210,${alpha})`;
 	ctx.lineWidth = 6;
 	ctx.beginPath();
 	ctx.moveTo(x1, y1);
@@ -364,45 +382,86 @@ function drawSlash(x1, y1, x2, y2, alpha) {
 }
 
 function drawRing(center, radius, alpha) {
-	ctx.strokeStyle = `rgba(248,242,234,${0.75 * alpha})`;
+	ctx.strokeStyle = `rgba(234,219,210,${0.55 * alpha})`;
 	ctx.lineWidth = 3;
 	ctx.beginPath();
 	ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
 	ctx.stroke();
-	ctx.strokeStyle = `rgba(215,25,63,${0.5 * alpha})`;
+	ctx.strokeStyle = `rgba(104,0,18,${0.58 * alpha})`;
 	ctx.lineWidth = 12;
 	ctx.beginPath();
 	ctx.arc(center.x, center.y, radius * 0.74, 0, Math.PI * 2);
 	ctx.stroke();
 }
 
+function drawBloomResidue(center, radius, alpha, ms) {
+	if (alpha <= 0) return;
+	ctx.save();
+	ctx.globalCompositeOperation = "lighter";
+	ctx.strokeStyle = `rgba(58,0,9,${alpha})`;
+	ctx.lineWidth = 18;
+	ctx.beginPath();
+	ctx.arc(center.x, center.y, radius * 0.82, 0, Math.PI * 2);
+	ctx.stroke();
+	ctx.strokeStyle = `rgba(169,8,36,${alpha * 0.42})`;
+	ctx.lineWidth = 2;
+	for (let i = 0; i < 18; i++) {
+		const angle = i * 0.82 + Math.sin(ms * 0.001 + i) * 0.08;
+		const inner = radius * (0.42 + (i % 4) * 0.06);
+		const outer = radius * (0.78 + (i % 5) * 0.035);
+		ctx.beginPath();
+		ctx.moveTo(center.x + Math.cos(angle) * inner, center.y + Math.sin(angle) * inner);
+		ctx.lineTo(center.x + Math.cos(angle) * outer, center.y + Math.sin(angle) * outer);
+		ctx.stroke();
+	}
+	ctx.restore();
+}
+
+function drawResidueFall(center, progress, ms) {
+	const fade = 1 - easeOut(progress);
+	for (let i = 0; i < 32; i++) {
+		const angle = i * 2.17 + 0.24;
+		const drift = 48 + (i % 8) * 18 + progress * 72;
+		const x = center.x + Math.cos(angle) * drift + Math.sin(ms * 0.002 + i) * 6;
+		const y = center.y + Math.sin(angle) * drift + progress * (46 + (i % 5) * 8);
+		drawSoot(x, y, 5 + (i % 4), fade * (0.24 + (i % 3) * 0.04));
+	}
+}
+
 function drawShard(x, y, angle, alpha) {
 	ctx.save();
 	ctx.translate(x, y);
 	ctx.rotate(angle);
-	ctx.fillStyle = `rgba(215,25,63,${alpha})`;
+	ctx.fillStyle = `rgba(169,8,36,${alpha})`;
 	ctx.fillRect(-10, -1, 20, 2);
-	ctx.fillStyle = `rgba(248,242,234,${alpha * 0.75})`;
+	ctx.fillStyle = `rgba(234,219,210,${alpha * 0.55})`;
 	ctx.fillRect(4, -1, 8, 2);
 	ctx.restore();
 }
 
 function drawSpark(x, y, size, alpha) {
-	ctx.fillStyle = `rgba(215,25,63,${alpha})`;
-	ctx.shadowColor = colors.hotPink;
-	ctx.shadowBlur = 12;
+	ctx.fillStyle = `rgba(169,8,36,${alpha})`;
+	ctx.shadowColor = colors.crimson;
+	ctx.shadowBlur = 10;
 	ctx.beginPath();
 	ctx.arc(x, y, size, 0, Math.PI * 2);
 	ctx.fill();
 	ctx.shadowBlur = 0;
 }
 
+function drawSoot(x, y, size, alpha) {
+	ctx.fillStyle = `rgba(18,0,6,${alpha})`;
+	ctx.beginPath();
+	ctx.arc(x, y, size, 0, Math.PI * 2);
+	ctx.fill();
+}
+
 function drawImpactFrame(width, height, phase, progress) {
 	let alpha = 0;
 	if (phase.name === "Hammer Snap") alpha = Math.max(0, 0.22 * (1 - progress));
-	if (phase.name === "Hairpin Bloom" && progress < 0.18) alpha = 0.42 * (1 - progress / 0.18);
+	if (phase.name === "Hairpin Bloom" && progress < 0.18) alpha = 0.32 * (1 - progress / 0.18);
 	if (alpha <= 0) return;
-	ctx.fillStyle = `rgba(248,242,234,${alpha})`;
+	ctx.fillStyle = `rgba(234,219,210,${alpha})`;
 	ctx.fillRect(0, 0, width, height);
 }
 
