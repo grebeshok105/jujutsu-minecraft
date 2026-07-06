@@ -4,11 +4,22 @@
 
 User-provided research files reviewed on 2026-07-07:
 
-- `C:/Users/KOMP1/Downloads/deep-research-report (6).md`
-- `C:/Users/KOMP1/Downloads/deep-research-report (5).md`
-- `C:/Users/KOMP1/Downloads/Jujutsu Kaisen Minecraft Bible.md`
+- `docs/research/sources/2026-07-07-combat-ability-design.md`
+- `docs/research/sources/2026-07-07-fabric-technical-bible.md`
+- `docs/research/sources/2026-07-07-jujutsu-kaisen-minecraft-bible.md`
 
 These documents are now project orientation material. They define design direction, vocabulary, quality bars, and research leads. They do **not** replace checking Fabric/Minecraft 1.21.8 APIs before implementation.
+
+Later VFX-specific corpus:
+
+- `docs/research/sources/2026-07-07-fabric-vfx-development.md`
+- `docs/research/sources/2026-07-07-hairpin-vfx-ux-bible.md`
+- `docs/research/sources/2026-07-07-fabric-combat-architecture.md`
+- `docs/research/sources/2026-07-07-fabric-1218-vfx-production-bible.md`
+
+VFX/combat-focused synthesis:
+
+- `docs/research/2026-07-07-fabric-vfx-combat-research-synthesis.md`
 
 ## Standing Project Principles
 
@@ -40,6 +51,14 @@ Nobara/Hairpin should be treated as a nail-based, warning-first detonation techn
 - Hairpin must never look like a recolored TNT explosion.
 - Multiplayer readability matters: embedded nails should warn nearby players before the burst.
 - Server should store/choose nail positions and authorize detonation; client derives glow, vibration, particles, shock ring, smoke/residue, HUD/camera accents.
+
+Additional details from the copied first corpus:
+
+- Nobara's visual identity combines rusted metal, straw-doll lineage, black powder smoke, and fuchsia cursed energy.
+- Hairpin's embedded nails should vibrate/glow before detonation; this is the readable warning, not decorative clutter.
+- The detonation timing reference remains useful: nail placement `1 tick`, detonation phase `15 ticks`, explosion `1 tick`, fade `8 ticks`.
+- Standard TNT-style explosions are explicitly rejected.
+- Future shader language can include distortion, shock wave, bloom simulation, outlines, and radial blur, but these are R&D implementation layers after the visual grammar is approved.
 
 Research timing target from the user bible:
 
