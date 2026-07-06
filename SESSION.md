@@ -1,4 +1,4 @@
-# Сессия 2026-07-07 — Hairpin Prototype Complete
+# Сессия 2026-07-07 — Hairpin Prototype And Research Corpus
 
 ## Проект
 
@@ -32,6 +32,29 @@
   - Один self-contained HTML/Canvas файл.
   - Показывает пять фаз: Prep Freeze, Hammer Snap, Nail Ignition, Hairpin Bloom, Afterglow.
   - Тайминги совпадают с `HairpinTimeline`: `0/180/240/560/900/1800`.
+
+## Research corpus added after visual feedback
+
+User provided four additional deep-research files and explicitly allowed copying them into project docs. Raw copies are stored in:
+
+- `docs/research/sources/2026-07-07-fabric-vfx-development.md`
+- `docs/research/sources/2026-07-07-hairpin-vfx-ux-bible.md`
+- `docs/research/sources/2026-07-07-fabric-combat-architecture.md`
+- `docs/research/sources/2026-07-07-fabric-1218-vfx-production-bible.md`
+
+Synthesis:
+
+- `docs/research/2026-07-07-fabric-vfx-combat-research-synthesis.md`
+
+Important conclusions from the new corpus:
+
+- Hairpin must read as `mark -> warn -> compression -> snap -> burst -> residue`, driven by one nail-anchored timeline.
+- Bloom and afterglow should share one anchor, palette, curve, and residue motion.
+- Palette should shift darker: blood-black / black cherry first, dirty fuchsia edge second, cold metal third.
+- Crooked nails are acceptable only when they read as intentionally embedded. Random-looking tilt weakens the effect.
+- Server owns gameplay and nail anchors; client owns transient VFX/audio/screen/camera playback from semantic events and deterministic seeds.
+- First real implementation should stay minimal: no broad ability framework and no heavy VFX dependency before Hairpin proves the pattern.
+- Treat raw research API snippets as checkpoints, not copy-paste truth. Verify Fabric 1.21.8 class/method names locally before code.
 
 ## Что реализовано
 
@@ -78,7 +101,7 @@
 
 ## Коммиты этой worktree
 
-Implementation range from `main` commit `d962cc2` through `bcd4161`:
+Implementation/research range from `main` commit `d962cc2` through `ad4a91f`, plus this session handoff update:
 
 - `2745684 docs(design): define Nobara Hairpin cinematic slice`
 - `23b272e docs(design): document Universal FX decision`
@@ -91,6 +114,11 @@ Implementation range from `main` commit `d962cc2` through `bcd4161`:
 - `02eda52 feat(client): add Hairpin screen effects`
 - `dc98710 fix(fx): play Hairpin prep sound on start`
 - `bcd4161 feat(fx): broadcast Hairpin and add visual target`
+- `5780b3b docs(session): update Hairpin prototype handoff`
+- `69e7250 docs(vfx): darken Hairpin visual target`
+- `90f38b3 docs(vfx): smooth Hairpin afterglow transition`
+- `20f672c docs(research): synthesize Jujutsu design sources`
+- `ad4a91f docs(research): add Fabric VFX research corpus`
 
 ## Verification
 
@@ -120,11 +148,21 @@ git diff --check d962cc2..HEAD
 
 Result: no output.
 
+After adding the new research corpus:
+
+```bat
+git diff --check
+```
+
+Result: no output.
+
 ```bat
 git status --short --branch
 ```
 
 Result: clean on `chore/jujutsu-brainstorming`.
+
+This clean status was true before the final session handoff update. Re-check status after committing this `SESSION.md` update.
 
 ## Code review
 
