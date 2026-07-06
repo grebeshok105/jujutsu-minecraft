@@ -13,12 +13,12 @@ public class HairpinWarnEdgeParticle extends TextureSheetParticle {
 	private final SpriteSet sprites;
 
 	protected HairpinWarnEdgeParticle(ClientLevel level, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed, SpriteSet sprites) {
-		super(level, x, y, z, xSpeed * 0.18, ySpeed * 0.18, zSpeed * 0.18);
+		super(level, x, y, z, xSpeed * 0.045, ySpeed * 0.045, zSpeed * 0.045);
 		this.sprites = sprites;
 		this.lifetime = 16 + this.random.nextInt(5);
 		this.gravity = 0.0f;
 		this.hasPhysics = false;
-		this.quadSize = 0.22f + this.random.nextFloat() * 0.08f;
+		this.quadSize = 0.18f + this.random.nextFloat() * 0.055f;
 		this.rCol = 0.5f;
 		this.gCol = 0.13f;
 		this.bCol = 0.27f;

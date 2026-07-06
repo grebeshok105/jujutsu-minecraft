@@ -55,6 +55,7 @@ public final class HairpinWorldRenderer {
 				continue;
 			}
 
+			renderNailMarker(consumer, nail.subtract(cameraPosition), safeDirection(direction), phase, progress);
 			Vec3 start = nail.lerp(target, startLerpFor(phase, progress)).subtract(cameraPosition);
 			Vec3 end = nail.lerp(target, endLerpFor(phase, progress)).subtract(cameraPosition);
 			Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), width);
@@ -74,6 +75,30 @@ public final class HairpinWorldRenderer {
 				addRibbon(consumer, burstStart, burstEnd, burstSide, 91, 16, 27, coreAlpha);
 			}
 		}
+	}
+
+	private static void renderNailMarker(VertexConsumer consumer, Vec3 anchor, Vec3 direction, HairpinTimeline.Phase phase, float progress) {
+		float alpha = switch (phase) {
+			case PREP_FREEZE -> 0.95f;
+			case HAMMER_SNAP, NAIL_IGNITION -> 1.0f;
+			case HAIRPIN_BLOOM -> 0.9f * (1.0f - progress * 0.35f);
+			case AFTERGLOW -> 0.45f * (1.0f - progress);
+			case DONE -> 0.0f;
+		};
+		if (alpha <= 0.01f) {
+			return;
+		}
+
+		Vec3 shaft = direction.scale(0.42);
+		Vec3 head = anchor.subtract(direction.scale(0.08));
+		Vec3 tip = anchor.add(shaft);
+		Vec3 side = sideVector(shaft, anchor, 0.035f);
+		Vec3 cross = safeDirection(shaft).cross(side).normalize().scale(0.035f);
+		int steelAlpha = Math.round(alpha * 235.0f);
+		int darkAlpha = Math.round(alpha * 210.0f);
+		addRibbon(consumer, head, tip, side, 95, 102, 109, steelAlpha);
+		addRibbon(consumer, head, tip, cross, 152, 161, 170, steelAlpha / 2);
+		addRibbon(consumer, head.subtract(direction.scale(0.035)), head.add(direction.scale(0.035)), side.scale(1.7), 18, 9, 12, darkAlpha);
 	}
 
 	private static float alphaFor(HairpinTimeline.Phase phase, float progress) {
@@ -128,6 +153,10 @@ public final class HairpinWorldRenderer {
 			side = line.cross(EAST);
 		}
 		return side.normalize().scale(width);
+	}
+
+	private static Vec3 safeDirection(Vec3 vector) {
+		return vector.lengthSqr() < 1.0E-5 ? UP : vector.normalize();
 	}
 
 	private static void addRibbon(VertexConsumer consumer, Vec3 start, Vec3 end, Vec3 side, int red, int green, int blue, int alpha) {

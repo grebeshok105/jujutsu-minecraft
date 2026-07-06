@@ -42,7 +42,7 @@ public final class JujutsuCommands {
 								.then(Commands.literal("burst_residue")
 										.executes(ctx -> playSingleParticle(ctx.getSource(), "burst_residue", JujutsuParticles.HAIRPIN_BURST_RESIDUE, 56, 0.35, 0.25, 0.35, 0.07)))
 								.then(Commands.literal("metal_shard")
-										.executes(ctx -> playSingleParticle(ctx.getSource(), "metal_shard", JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, 42, 0.28, 0.18, 0.28, 0.11)))
+										.executes(ctx -> playSingleParticle(ctx.getSource(), "metal_shard", JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, 22, 0.36, 0.2, 0.36, 0.14)))
 								.then(Commands.literal("ignition_tick")
 										.executes(ctx -> playSingleParticle(ctx.getSource(), "ignition_tick", JujutsuParticles.HAIRPIN_IGNITION_TICK, 42, 0.18, 0.18, 0.18, 0.05))))
 						.then(Commands.literal("stage")
@@ -123,8 +123,8 @@ public final class JujutsuCommands {
 		sendSmokeParticles(source, player, "warn_edge", JujutsuParticles.HAIRPIN_WARN_EDGE, center.add(right.scale(-0.9)), 24, 0.18, 0.18, 0.18, 0.06);
 		sendSmokeParticles(source, player, "compression_mote", JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, center.add(right.scale(0.9)), 34, 0.22, 0.22, 0.22, 0.05);
 		sendSmokeParticles(source, player, "snap_crack", JujutsuParticles.HAIRPIN_SNAP_CRACK, center, 24, 0.18, 0.18, 0.18, 0.05);
-		sendSmokeParticles(source, player, "burst_residue", JujutsuParticles.HAIRPIN_BURST_RESIDUE, center.add(up.scale(-0.65)), 42, 0.35, 0.25, 0.35, 0.08);
-		sendSmokeParticles(source, player, "burst_metal_shard", JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, center.add(right.scale(-0.35)).add(up.scale(-0.25)), 24, 0.26, 0.18, 0.26, 0.12);
+		sendSmokeParticles(source, player, "burst_residue", JujutsuParticles.HAIRPIN_BURST_RESIDUE, center.add(up.scale(-0.65)), 26, 0.34, 0.2, 0.34, 0.065);
+		sendSmokeParticles(source, player, "burst_metal_shard", JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, center.add(right.scale(-0.35)).add(up.scale(-0.25)), 16, 0.32, 0.18, 0.32, 0.14);
 		sendSmokeParticles(source, player, "ignition_tick", JujutsuParticles.HAIRPIN_IGNITION_TICK, center.add(right.scale(0.35)).add(up.scale(-0.25)), 30, 0.18, 0.18, 0.18, 0.06);
 
 		source.sendSuccess(() -> Component.literal("Spawned Hairpin particle smoke test."), false);
