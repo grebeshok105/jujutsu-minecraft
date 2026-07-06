@@ -98,16 +98,19 @@ Target duration: **1.5–2.2 seconds**.
 
 The scene is divided into five phases.
 
-### 1. Prep Freeze
+2026-07-07 refinement after the expanded research corpus: these phases still map to the existing `HairpinTimeline` durations, but the visual read should now use the Hairpin-specific grammar `mark -> warn -> compression -> snap -> burst -> residue`. The standalone target labels are updated to this grammar so future particles/shaders inherit the right identity.
+
+### 1. Marked Nails
 
 The scene starts with a short anticipation beat.
 
 Visuals:
 
 - The target area feels like it momentarily locks in place.
-- Thin red-black cursed outlines appear around embedded nails.
+- Thin blood-black cursed outlines appear around embedded nails.
 - Particles are sparse and precise, not noisy.
 - The air around the nails subtly tightens inward.
+- The nails must look intentionally embedded into the surface or target, not randomly tilted.
 
 Audio:
 
@@ -121,14 +124,14 @@ Implementation note:
 - Fake the freeze through timing, particle stillness, and sound design.
 - Screen/camera effects can be client-side and optional/configurable later.
 
-### 2. Hammer Snap
+### 2. Trigger Ping
 
 Nobara's hammer action triggers the technique.
 
 Visuals:
 
 - A sharp snap from the caster direction or trigger point.
-- 1–2 frame white or near-white impact flash in the standalone target.
+- 1-2 frame near-white impact accent in the standalone target.
 - A small screen kick in the standalone target.
 - In-game prototype should approximate this with a short camera/screen accent only if safe and not nauseating.
 
@@ -138,15 +141,15 @@ Audio:
 - Short high-frequency transient.
 - The sound must be crisp, not boomy.
 
-### 3. Nail Ignition
+### 3. Cursed Compression
 
 Each nail becomes a charged node.
 
 Visuals:
 
 - Nails ignite with an alight crimson core.
-- Fast tracer lines connect nails to the target point or explosion center.
-- Tracers should be clean and directional.
+- Fast energy tension connects nails to the target point or cluster center.
+- The connection should feel like pressure being pulled through nail anchors, not like independent laser beams.
 - The player must understand which nails are participating.
 
 Audio:
@@ -159,7 +162,7 @@ Implementation note:
 - This phase defines the reusable pattern for multi-point VFX later.
 - Store participating nail positions as explicit world positions for the prototype.
 
-### 4. Hairpin Bloom
+### 4. Hairpin Snap
 
 The charged nails detonate.
 
@@ -167,9 +170,10 @@ Visuals:
 
 - Synchronized flashes.
 - Sharp shard-like particles.
-- Expanding shock ring.
+- Broken fracture arcs and spike blocks.
 - Brief high-contrast impact frame.
-- Particles should feel like cursed energy tearing outward, not generic fireworks.
+- Particles should feel like cursed energy tearing outward from nail anchors, not generic fireworks.
+- The burst should be spike/fracture-shaped and blood-black first, with dirty fuchsia only as an edge.
 
 Audio:
 
@@ -182,7 +186,7 @@ Implementation note:
 - This is the highest-priority moment of the slice.
 - If time is constrained, polish this phase before expanding gameplay logic.
 
-### 5. Afterglow
+### 5. Blood-Black Residue
 
 The scene resolves quickly.
 
@@ -190,6 +194,7 @@ Visuals:
 
 - Red-black sparks decay downward and outward.
 - Faint cursed-energy residue remains briefly in air or on the ground.
+- Residue must remain visually tied to the same nail anchors and motion vectors as the burst.
 - The effect should disappear cleanly; no lingering particle spam.
 
 Audio:
@@ -209,29 +214,33 @@ Primary direction: **stylish shonen impact**.
 
 Core colors:
 
-- Crimson energy: `#D7193F`
-- Deep curse red: `#650012`
-- Black shadow accents: `#080206`
-- White impact flash: `#F8F2EA`
-- Hot pink highlight: `#FF4D7D`
+- Blood-black base: `#120005`
+- Black cherry / deep curse red: `#2D0008`
+- Dark carmine energy: `#650214`
+- Dirty fuchsia edge: `#7F1230`
+- Cold metal: `#B8AAA5`
+- White impact accent: `#F1DED3`
 
 Usage:
 
-- Crimson is the main read.
-- Deep red/black create cursed contrast.
-- White appears only on impact frames or very hot highlights.
-- Hot pink is rare and used for high-energy edges.
+- Blood-black and black cherry are the main read.
+- Dark carmine carries active cursed energy.
+- Dirty fuchsia is rare and used only for high-energy edges.
+- White appears only on impact accents or very hot nail tips.
+- Cold metal keeps the effect grounded in the physical nail fantasy.
 
 ### Shape Language
 
 - Nails: thin, directional, metallic, precise.
-- Energy: angular streaks, sharp arcs, short-lived blooms.
-- Shockwaves: clean expanding rings, not smoky clouds.
-- Residue: small sparks and thin fading trails.
+- Energy: angular spike blocks, pressure threads, sharp broken arcs.
+- Shockwaves: fractured arcs, not complete generic circles.
+- Residue: small shards and thin fading trails that continue the burst vectors.
 
 Avoid:
 
 - Generic explosion smoke as the main read.
+- A circular TNT-like blast silhouette.
+- Bloom and afterglow that feel like separate effects.
 - Rainbow particles.
 - Slow magical swirls.
 - Overly soft wizard-like glows.
