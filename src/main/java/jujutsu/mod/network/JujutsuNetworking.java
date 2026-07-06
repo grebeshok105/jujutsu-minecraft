@@ -2,7 +2,9 @@ package jujutsu.mod.network;
 
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.phys.Vec3;
 
 public final class JujutsuNetworking {
 	private JujutsuNetworking() {}
@@ -17,5 +19,19 @@ public final class JujutsuNetworking {
 		}
 		ServerPlayNetworking.send(player, payload);
 		return true;
+	}
+
+	public static int broadcastHairpin(ServerLevel level, Vec3 center, double radius, HairpinFxPayload payload) {
+		double radiusSqr = radius * radius;
+		int sent = 0;
+		for (ServerPlayer player : level.players()) {
+			if (player.position().distanceToSqr(center) > radiusSqr) {
+				continue;
+			}
+			if (sendHairpin(player, payload)) {
+				sent++;
+			}
+		}
+		return sent;
 	}
 }

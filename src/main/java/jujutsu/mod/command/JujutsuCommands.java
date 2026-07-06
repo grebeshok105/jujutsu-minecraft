@@ -13,6 +13,7 @@ import jujutsu.mod.network.JujutsuNetworking;
 
 public final class JujutsuCommands {
 	private static final double TARGET_DISTANCE = 5.0;
+	private static final double BROADCAST_RADIUS = 64.0;
 
 	private JujutsuCommands() {}
 
@@ -65,11 +66,12 @@ public final class JujutsuCommands {
 				nail3.z
 		);
 
-		if (!JujutsuNetworking.sendHairpin(player, payload)) {
-			source.sendFailure(Component.literal("Hairpin client receiver is not available."));
+		int sent = JujutsuNetworking.broadcastHairpin(source.getLevel(), target, BROADCAST_RADIUS, payload);
+		if (sent == 0) {
+			source.sendFailure(Component.literal("No nearby client can receive Hairpin."));
 			return 0;
 		}
-		source.sendSuccess(() -> Component.literal("Triggered Hairpin cinematic prototype."), false);
+		source.sendSuccess(() -> Component.literal("Triggered Hairpin cinematic prototype for " + sent + " client(s)."), false);
 		return 1;
 	}
 }
