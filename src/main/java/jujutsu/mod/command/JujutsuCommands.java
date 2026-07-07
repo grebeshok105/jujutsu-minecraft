@@ -8,11 +8,13 @@ import net.minecraft.commands.Commands;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.debug.HairpinDebugLog;
 import jujutsu.mod.fx.HairpinTimeline;
 import jujutsu.mod.network.HairpinFxPayload;
 import jujutsu.mod.network.JujutsuNetworking;
+import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.registry.JujutsuParticles;
 
 public final class JujutsuCommands {
@@ -66,7 +68,18 @@ public final class JujutsuCommands {
 								.then(Commands.literal("true")
 										.executes(ctx -> setHairpinDebug(ctx.getSource(), true)))
 								.then(Commands.literal("false")
-										.executes(ctx -> setHairpinDebug(ctx.getSource(), false))))));
+										.executes(ctx -> setHairpinDebug(ctx.getSource(), false)))))
+				.then(Commands.literal("give")
+						.then(Commands.literal("nobara_tools")
+								.executes(ctx -> giveNobaraTools(ctx.getSource())))));
+	}
+
+	private static int giveNobaraTools(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		ServerPlayer player = source.getPlayerOrException();
+		player.getInventory().add(new ItemStack(JujutsuItems.STRAW_DOLL_HAMMER));
+		player.getInventory().add(new ItemStack(JujutsuItems.HAIRPIN_NAIL, 16));
+		source.sendSuccess(() -> Component.literal("Gave Nobara hammer and Hairpin nails."), false);
+		return 1;
 	}
 
 	private static int reportHairpinDebug(CommandSourceStack source) {

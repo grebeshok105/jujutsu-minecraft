@@ -14,6 +14,8 @@ public final class ProjectSanityTest {
 	private static final Path JUJUTSU_ASSETS = MAIN_RESOURCES.resolve("assets/jujutsumod");
 	private static final Pattern TEXTURE_ID = Pattern.compile("\"jujutsumod:([^\"]+)\"");
 	private static final Pattern SOUND_ID = Pattern.compile("\"(?:minecraft|jujutsumod):([^\"]+)\"");
+	private static final Pattern ITEM_MODEL_ID = Pattern.compile("\"model\"\\s*:\\s*\"jujutsumod:item/([^\"]+)\"");
+	private static final Pattern ITEM_TEXTURE_ID = Pattern.compile("\"layer0\"\\s*:\\s*\"jujutsumod:item/([^\"]+)\"");
 	private static final String FORBIDDEN_FABRIC_IMPL = "net.fabricmc.fabric." + "impl.";
 	private static final String CLIENT_IMPORT = "import net.minecraft." + "client.";
 
@@ -21,6 +23,7 @@ public final class ProjectSanityTest {
 
 	public static void main(String[] args) throws IOException {
 		assertParticleJsonTexturesExist();
+		assertItemDefinitionsResolveToTextures();
 		assertSoundReferencesAreLocalAndPresent();
 		assertNoForbiddenImports();
 		System.out.println("ProjectSanityTest passed");
@@ -39,6 +42,26 @@ public final class ProjectSanityTest {
 					assert Files.exists(texture) : "Missing particle texture " + texture + " referenced by " + particleJson;
 				}
 				assert foundTexture : "Particle JSON has no jujutsumod textures: " + particleJson;
+			}
+		}
+	}
+
+	private static void assertItemDefinitionsResolveToTextures() throws IOException {
+		Path itemsDir = JUJUTSU_ASSETS.resolve("items");
+		try (Stream<Path> files = Files.list(itemsDir)) {
+			for (Path itemDefinition : files.filter(path -> path.toString().endsWith(".json")).toList()) {
+				String json = Files.readString(itemDefinition);
+				Matcher modelMatcher = ITEM_MODEL_ID.matcher(json);
+				assert modelMatcher.find() : "Item definition has no jujutsumod model: " + itemDefinition;
+				String modelName = modelMatcher.group(1);
+				Path model = JUJUTSU_ASSETS.resolve("models/item").resolve(modelName + ".json");
+				assert Files.exists(model) : "Missing item model " + model + " referenced by " + itemDefinition;
+
+				String modelJson = Files.readString(model);
+				Matcher textureMatcher = ITEM_TEXTURE_ID.matcher(modelJson);
+				assert textureMatcher.find() : "Item model has no jujutsumod layer0 texture: " + model;
+				Path texture = JUJUTSU_ASSETS.resolve("textures/item").resolve(textureMatcher.group(1) + ".png");
+				assert Files.exists(texture) : "Missing item texture " + texture + " referenced by " + model;
 			}
 		}
 	}

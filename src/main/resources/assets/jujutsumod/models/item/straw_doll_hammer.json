@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "jujutsumod:item/straw_doll_hammer"
+  }
+}
