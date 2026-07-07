@@ -24,6 +24,7 @@ public final class ProjectSanityTest {
 	public static void main(String[] args) throws IOException {
 		assertParticleJsonTexturesExist();
 		assertItemDefinitionsResolveToTextures();
+		assertItemRegistryUsesKeyedProperties();
 		assertSoundReferencesAreLocalAndPresent();
 		assertNoForbiddenImports();
 		System.out.println("ProjectSanityTest passed");
@@ -64,6 +65,14 @@ public final class ProjectSanityTest {
 				assert Files.exists(texture) : "Missing item texture " + texture + " referenced by " + model;
 			}
 		}
+	}
+
+	private static void assertItemRegistryUsesKeyedProperties() throws IOException {
+		Path itemRegistry = MAIN_JAVA.resolve("jujutsu/mod/registry/JujutsuItems.java");
+		String source = Files.readString(itemRegistry);
+		assert source.contains("ResourceKey.create(BuiltInRegistries.ITEM.key()") : "JujutsuItems must create ResourceKey<Item> before Item construction";
+		assert source.contains("properties.setId(key)") : "JujutsuItems must call Item.Properties#setId before Item construction";
+		assert !source.contains("new Item(new Item.Properties())") : "JujutsuItems must not construct items with unkeyed default properties";
 	}
 
 	private static void assertSoundReferencesAreLocalAndPresent() throws IOException {

@@ -76,10 +76,19 @@ public final class JujutsuCommands {
 
 	private static int giveNobaraTools(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
 		ServerPlayer player = source.getPlayerOrException();
-		player.getInventory().add(new ItemStack(JujutsuItems.STRAW_DOLL_HAMMER));
-		player.getInventory().add(new ItemStack(JujutsuItems.HAIRPIN_NAIL, 16));
-		source.sendSuccess(() -> Component.literal("Gave Nobara hammer and Hairpin nails."), false);
+		boolean storedHammer = giveOrDrop(player, new ItemStack(JujutsuItems.STRAW_DOLL_HAMMER));
+		boolean storedNails = giveOrDrop(player, new ItemStack(JujutsuItems.HAIRPIN_NAIL, 16));
+		String location = storedHammer && storedNails ? "inventory" : "inventory/drop overflow";
+		source.sendSuccess(() -> Component.literal("Gave Nobara hammer and Hairpin nails (" + location + ")."), false);
 		return 1;
+	}
+
+	private static boolean giveOrDrop(ServerPlayer player, ItemStack stack) {
+		boolean stored = player.getInventory().add(stack);
+		if (!stored && !stack.isEmpty()) {
+			player.drop(stack, false);
+		}
+		return stored;
 	}
 
 	private static int reportHairpinDebug(CommandSourceStack source) {

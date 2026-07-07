@@ -100,5 +100,14 @@ public final class HairpinScreenOverlay {
 			int x1 = Math.min(width, x0 + 96 + index * 24);
 			graphics.fill(x0, y, x1, y + 2, index == 2 ? hotLineColor : lineColor);
 		}
+
+		int rollOffset = Math.round(24.0f * ease);
+		for (int index = 0; index < 4; index++) {
+			int y = centerY - 70 + index * 42;
+			int x0 = Math.max(0, centerX - 220 + index * 32);
+			int x1 = Math.min(width, centerX + 220 + index * 32);
+			int skew = (index % 2 == 0 ? rollOffset : -rollOffset);
+			graphics.fill(Math.max(0, x0 + skew), y, Math.min(width, x1 + skew + 52), y + 1, lineColor);
+		}
 	}
 }

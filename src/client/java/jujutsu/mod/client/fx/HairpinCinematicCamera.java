@@ -30,6 +30,10 @@ public final class HairpinCinematicCamera {
 		return sample(false);
 	}
 
+	public static float fovOffset() {
+		return Math.max(-4.0f, Math.min(8.0f, Math.abs(sample(true)) * 2.5f + Math.abs(sample(false)) * 1.5f));
+	}
+
 	private static void addImpulse(int durationMillis, float yawAmplitude, float pitchAmplitude, float frequency) {
 		IMPULSES.add(new Impulse(System.currentTimeMillis(), durationMillis, yawAmplitude, pitchAmplitude, frequency));
 	}

@@ -20,13 +20,16 @@ Hairpin should become the first cinematic character slice: a readable anime-styl
 - Use Minecraft JSON item models for inventory/held/world presentation in this pass.
 - Use deterministic generated pixel textures for the first jar; skin-specific art can replace them later.
 - Add camera/screen effects as client-only approximation before attempting invasive post-process injection.
+- Use two narrowly scoped client mixins because Fabric exposes no stable public event for direct camera yaw/pitch impulse or `GameRenderer#getFov` return adjustment in this project version.
+  - `HairpinCameraMixin` only offsets camera yaw/pitch after `Camera#setup`.
+  - `HairpinGameRendererMixin` only adds a small temporary FOV kick to `GameRenderer#getFov`.
 - Keep GLSL files as source assets unless Fabric 1.21.8 runtime wiring is proven by compilation.
 
 ## VFX Beats
 
 - Mark: nails and target are staged, dark red vignette starts.
 - Warning: short edge cue and camera tension.
-- Compression: nail lines pull inward, FOV/roll bias implies speed.
+- Compression: nail lines pull inward, FOV kick plus screen-space roll/skew lines imply speed.
 - Snap/Burst: impact flash, camera impulse, shockwave ring, fracture quads, compact residue.
 - Afterglow: residue fades along the burst vectors; no separate black cloud.
 

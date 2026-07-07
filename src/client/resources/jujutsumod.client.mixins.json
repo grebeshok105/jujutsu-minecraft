@@ -3,7 +3,8 @@
   "package": "jujutsu.mod.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "HairpinCameraMixin"
+    "HairpinCameraMixin",
+    "HairpinGameRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
