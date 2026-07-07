@@ -1,6 +1,7 @@
 package jujutsu.mod.client.network;
 
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.resources.sounds.SoundInstance;
@@ -9,11 +10,13 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.client.character.ClientCharacterSelectionManager;
 import jujutsu.mod.client.fx.HairpinCinematicCamera;
 import jujutsu.mod.client.fx.HairpinPlaybackManager;
 import jujutsu.mod.client.fx.HairpinScreenOverlay;
 import jujutsu.mod.client.fx.NobaraNailFlightManager;
 import jujutsu.mod.debug.HairpinDebugLog;
+import jujutsu.mod.network.CharacterSelectionSyncPayload;
 import jujutsu.mod.network.HairpinFxPayload;
 import jujutsu.mod.network.HairpinNailFlightPayload;
 import jujutsu.mod.network.PreparedNailsPayload;
@@ -42,6 +45,9 @@ public final class JujutsuClientNetworking {
 				context.client().execute(() -> NobaraNailFlightManager.showPrepared(payload)));
 		ClientPlayNetworking.registerGlobalReceiver(ProjectJjkNobaraImpulsePayload.TYPE, (payload, context) ->
 				context.client().execute(() -> handleProjectJjkImpulse(context.client(), payload)));
+		ClientPlayNetworking.registerGlobalReceiver(CharacterSelectionSyncPayload.TYPE, (payload, context) ->
+				context.client().execute(() -> ClientCharacterSelectionManager.apply(payload)));
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ClientCharacterSelectionManager.clear());
 	}
 
 	private static void handleProjectJjkImpulse(Minecraft client, ProjectJjkNobaraImpulsePayload payload) {
