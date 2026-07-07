@@ -41,6 +41,15 @@ public final class ProjectJjkNobaraRuntime {
 			return;
 		}
 
+		// Preparing nails costs cursed energy per nail; block the cast if the pool is dry.
+		float cost = ProjectJjkNobaraProfile.CE_COST_LAUNCH_PER_NAIL * nailCount;
+		if (!ProjectJjkRitualRuntime.canAfford(player, cost)) {
+			player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.jujutsumod.projectjjk.no_energy"), true);
+			level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 0.5f, 0.5f);
+			return;
+		}
+		ProjectJjkRitualRuntime.spend(player, cost);
+
 		if (!creative) {
 			consumeNails(player, usedStack, nailCount);
 		}
@@ -98,6 +107,10 @@ public final class ProjectJjkNobaraRuntime {
 		DamageSource source = owner == null ? level.damageSources().magic() : level.damageSources().playerAttack(owner);
 		if (hit instanceof EntityHitResult entityHit && entityHit.getEntity() instanceof LivingEntity directTarget) {
 			hurtTarget(level, owner, directTarget, source, ProjectJjkNobaraProfile.NAIL_DAMAGE, point, 0.9f);
+			// Direct hit embeds a cursed nail mark — the connective tissue for detonation + resonance.
+			if (!(owner != null && directTarget.getUUID().equals(owner.getUUID()))) {
+				ProjectJjkRitualRuntime.markTarget(level, directTarget, owner);
+			}
 		}
 
 		AABB area = new AABB(point, point).inflate(ProjectJjkNobaraProfile.IMPACT_RADIUS);

@@ -21,6 +21,12 @@ public final class JujutsuSounds {
 	public static final SoundEvent PROJECTJJK_BLACK_FLASH_IMPACT = create("projectjjk.black_flash_impact");
 	public static final SoundEvent PROJECTJJK_BLACK_FLASH_IMPACT_2 = create("projectjjk.black_flash_impact2");
 	public static final SoundEvent PROJECTJJK_GOO_FOLEY = create("projectjjk.goo_foley");
+	public static final SoundEvent PROJECTJJK_CHIME = create("projectjjk.chime");
+	public static final SoundEvent PROJECTJJK_MAGIC = create("projectjjk.magic");
+	public static final SoundEvent PROJECTJJK_SIZZLE = create("projectjjk.sizzle");
+	public static final SoundEvent PROJECTJJK_CLAP = create("projectjjk.clap");
+	public static final SoundEvent PROJECTJJK_LONG_WHOOSH = create("projectjjk.long_whoosh");
+	public static final SoundEvent PROJECTJJK_WHOOSH_VORTEX = create("projectjjk.whoosh_vortex");
 
 	private JujutsuSounds() {}
 
@@ -40,6 +46,12 @@ public final class JujutsuSounds {
 		register("projectjjk.black_flash_impact", PROJECTJJK_BLACK_FLASH_IMPACT);
 		register("projectjjk.black_flash_impact2", PROJECTJJK_BLACK_FLASH_IMPACT_2);
 		register("projectjjk.goo_foley", PROJECTJJK_GOO_FOLEY);
+		register("projectjjk.chime", PROJECTJJK_CHIME);
+		register("projectjjk.magic", PROJECTJJK_MAGIC);
+		register("projectjjk.sizzle", PROJECTJJK_SIZZLE);
+		register("projectjjk.clap", PROJECTJJK_CLAP);
+		register("projectjjk.long_whoosh", PROJECTJJK_LONG_WHOOSH);
+		register("projectjjk.whoosh_vortex", PROJECTJJK_WHOOSH_VORTEX);
 	}
 
 	private static SoundEvent create(String path) {

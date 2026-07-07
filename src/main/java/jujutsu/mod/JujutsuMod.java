@@ -3,6 +3,7 @@ package jujutsu.mod;
 import net.fabricmc.api.ModInitializer;
 
 import net.minecraft.resources.ResourceLocation;
+import jujutsu.mod.character.nobara.projectjjk.ProjectJjkRitualRuntime;
 import jujutsu.mod.command.JujutsuCommands;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuEntities;
@@ -24,6 +25,7 @@ public class JujutsuMod implements ModInitializer {
 		JujutsuParticles.register();
 		JujutsuSounds.register();
 		JujutsuNetworking.registerPayloads();
+		ProjectJjkRitualRuntime.register();
 		JujutsuCommands.register();
 		LOGGER.info("JujutsuMod initialized");
 	}

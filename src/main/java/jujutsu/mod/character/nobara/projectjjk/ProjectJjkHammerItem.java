@@ -17,7 +17,14 @@ public final class ProjectJjkHammerItem extends Item {
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
 		ItemStack stack = player.getItemInHand(hand);
 		if (level instanceof net.minecraft.server.level.ServerLevel && player instanceof ServerPlayer serverPlayer) {
-			ProjectJjkNobaraRuntime.launchHairpin(serverPlayer, stack, hand);
+			if (player.isShiftKeyDown()) {
+				// Straw-doll ritual: bind to a marked target, then transmit the resonant strike.
+				ProjectJjkRitualRuntime.performResonance(serverPlayer, stack, hand);
+			} else {
+				// Standard beat: forge the Hairpin and detonate any embedded marks in range.
+				ProjectJjkNobaraRuntime.launchHairpin(serverPlayer, stack, hand);
+				ProjectJjkRitualRuntime.detonateMarks(serverPlayer);
+			}
 		}
 		return InteractionResult.SUCCESS;
 	}

@@ -88,5 +88,35 @@
 			"jujutsumod:projectjjk/goo_foley"
 		],
 		"subtitle": "subtitles.jujutsumod.projectjjk.goo_foley"
+	},
+	"projectjjk.chime": {
+		"sounds": [
+			"jujutsumod:projectjjk/chime"
+		]
+	},
+	"projectjjk.magic": {
+		"sounds": [
+			"jujutsumod:projectjjk/magic"
+		]
+	},
+	"projectjjk.sizzle": {
+		"sounds": [
+			"jujutsumod:projectjjk/sizzle"
+		]
+	},
+	"projectjjk.clap": {
+		"sounds": [
+			"jujutsumod:projectjjk/clap"
+		]
+	},
+	"projectjjk.long_whoosh": {
+		"sounds": [
+			"jujutsumod:projectjjk/long_whoosh"
+		]
+	},
+	"projectjjk.whoosh_vortex": {
+		"sounds": [
+			"jujutsumod:projectjjk/whoosh_vortex"
+		]
 	}
 }

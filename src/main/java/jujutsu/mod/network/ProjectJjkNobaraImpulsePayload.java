@@ -17,6 +17,10 @@ public record ProjectJjkNobaraImpulsePayload(
 	public static final int HAMMER = 0;
 	public static final int IMPACT = 1;
 	public static final int IMPACT_SOUND = 2;
+	public static final int RESONANCE_CHANNEL = 3;
+	public static final int RESONANCE_STRIKE = 4;
+	public static final int LINK_BIND = 5;
+	public static final int DETONATE = 6;
 	public static final Type<ProjectJjkNobaraImpulsePayload> TYPE = new Type<>(JujutsuMod.id("projectjjk_nobara_impulse"));
 	public static final StreamCodec<RegistryFriendlyByteBuf, ProjectJjkNobaraImpulsePayload> STREAM_CODEC = CustomPacketPayload.codec(
 			ProjectJjkNobaraImpulsePayload::write,

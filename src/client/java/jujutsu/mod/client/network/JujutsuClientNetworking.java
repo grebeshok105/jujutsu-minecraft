@@ -13,8 +13,11 @@ import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.client.character.ClientCharacterSelectionManager;
 import jujutsu.mod.client.fx.HairpinCinematicCamera;
 import jujutsu.mod.client.fx.HairpinPlaybackManager;
+import jujutsu.mod.client.fx.CursedEnergyHud;
 import jujutsu.mod.client.fx.HairpinScreenOverlay;
 import jujutsu.mod.client.fx.NobaraNailFlightManager;
+import jujutsu.mod.client.fx.ResonanceEffects;
+import jujutsu.mod.network.ProjectJjkCursedEnergyPayload;
 import jujutsu.mod.debug.HairpinDebugLog;
 import jujutsu.mod.network.CharacterSelectionSyncPayload;
 import jujutsu.mod.network.HairpinFxPayload;
@@ -45,6 +48,8 @@ public final class JujutsuClientNetworking {
 				context.client().execute(() -> NobaraNailFlightManager.showPrepared(payload)));
 		ClientPlayNetworking.registerGlobalReceiver(ProjectJjkNobaraImpulsePayload.TYPE, (payload, context) ->
 				context.client().execute(() -> handleProjectJjkImpulse(context.client(), payload)));
+		ClientPlayNetworking.registerGlobalReceiver(ProjectJjkCursedEnergyPayload.TYPE, (payload, context) ->
+				context.client().execute(() -> CursedEnergyHud.update(payload.current(), payload.max(), payload.linkedMarks(), payload.linked())));
 		ClientPlayNetworking.registerGlobalReceiver(CharacterSelectionSyncPayload.TYPE, (payload, context) ->
 				context.client().execute(() -> ClientCharacterSelectionManager.apply(payload)));
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ClientCharacterSelectionManager.clear());
@@ -60,6 +65,20 @@ public final class JujutsuClientNetworking {
 		}
 		if (payload.kind() == ProjectJjkNobaraImpulsePayload.IMPACT) {
 			handleProjectJjkImpact(client, payload);
+			return;
+		}
+		if (payload.kind() == ProjectJjkNobaraImpulsePayload.RESONANCE_STRIKE
+				|| payload.kind() == ProjectJjkNobaraImpulsePayload.DETONATE) {
+			handleResonanceStrike(client, payload);
+			return;
+		}
+		if (payload.kind() == ProjectJjkNobaraImpulsePayload.LINK_BIND) {
+			ResonanceEffects.spawnLinkBurst(payload.origin());
+			playNoFalloff(client, JujutsuSounds.PROJECTJJK_CHIME, 0.7f, 1.15f, payload.origin());
+			return;
+		}
+		if (payload.kind() == ProjectJjkNobaraImpulsePayload.RESONANCE_CHANNEL) {
+			HairpinCinematicCamera.triggerProjectJjkImpact(Math.max(1, payload.nailCount()), 1.0f);
 			return;
 		}
 
@@ -86,6 +105,18 @@ public final class JujutsuClientNetworking {
 		float proximity = (float) Math.max(0.0, 1.0 - distance / 56.0);
 		if (proximity > 0.01f) {
 			HairpinCinematicCamera.triggerProjectJjkImpact(payload.nailCount(), proximity);
+			HairpinScreenOverlay.triggerProjectJjkImpact(proximity);
+		}
+	}
+
+	private static void handleResonanceStrike(Minecraft client, ProjectJjkNobaraImpulsePayload payload) {
+		Vec3 origin = payload.origin();
+		double distance = client.player.position().distanceTo(origin);
+		float proximity = (float) Math.max(0.0, 1.0 - distance / 64.0);
+		int marks = Math.max(1, payload.nailCount());
+		ResonanceEffects.spawnStrike(origin, marks);
+		if (proximity > 0.01f) {
+			HairpinCinematicCamera.triggerProjectJjkImpact(marks, proximity);
 			HairpinScreenOverlay.triggerProjectJjkImpact(proximity);
 		}
 	}
