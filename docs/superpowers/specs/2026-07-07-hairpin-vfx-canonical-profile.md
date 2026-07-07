@@ -26,8 +26,8 @@ The runtime timeline is tick-driven from the server payload `startGameTime`.
 
 Primary read is blood-black and dark iron.
 
-- Dirty fuchsia is an accent only, capped by `HairpinVisualProfile.dirtyFuchsiaMaxVisiblePercent()`.
-- The dominant mass should remain near black, oxblood, steel, and ember red.
+- Earlier dirty-fuchsia accents were rejected in game as too bright; runtime accents now use `HairpinVisualProfile.brightRedMaxVisiblePercent()` and `#3a050f`.
+- The dominant mass should remain near black, oxblood shadow, steel, and muted ember red.
 - Pure white flash is allowed only as a very brief impact readability cue.
 
 ## Particle Budget

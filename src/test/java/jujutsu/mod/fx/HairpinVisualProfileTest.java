@@ -12,7 +12,7 @@ public final class HairpinVisualProfileTest {
 		assertAfterglowKeepsResidueOnBurstVectors();
 		assertBloomDensityStaysReadable();
 		assertEveryProductionFamilyIsScheduled();
-		assertPaletteKeepsFuchsiaRestrained();
+		assertPaletteKeepsBrightRedRestrained();
 		System.out.println("HairpinVisualProfileTest passed");
 	}
 
@@ -60,9 +60,9 @@ public final class HairpinVisualProfileTest {
 		assert scheduled.equals(EnumSet.allOf(HairpinVisualProfile.ParticleFamily.class));
 	}
 
-	private static void assertPaletteKeepsFuchsiaRestrained() {
-		assert HairpinVisualProfile.dirtyFuchsiaMaxVisiblePercent() <= 8;
-		assert HairpinVisualProfile.accentColorRgb() == 0x8a2f58;
+	private static void assertPaletteKeepsBrightRedRestrained() {
+		assert HairpinVisualProfile.brightRedMaxVisiblePercent() <= 4;
+		assert HairpinVisualProfile.accentColorRgb() == 0x3a050f;
 	}
 
 	private static boolean contains(List<HairpinVisualProfile.ParticleBudget> budgets, HairpinVisualProfile.ParticleFamily family) {

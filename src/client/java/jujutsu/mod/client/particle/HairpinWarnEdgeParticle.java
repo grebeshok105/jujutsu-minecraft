@@ -10,7 +10,7 @@ import net.minecraft.core.particles.SimpleParticleType;
 import jujutsu.mod.fx.HairpinVisualProfile;
 
 public class HairpinWarnEdgeParticle extends TextureSheetParticle {
-	private static final int FULL_BRIGHT = 0x00F000F0;
+	private static final int DIM_BLOOD_LIGHT = 0x00A000A0;
 	private final SpriteSet sprites;
 
 	protected HairpinWarnEdgeParticle(ClientLevel level, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed, SpriteSet sprites) {
@@ -20,10 +20,10 @@ public class HairpinWarnEdgeParticle extends TextureSheetParticle {
 		this.gravity = 0.0f;
 		this.hasPhysics = false;
 		this.quadSize = 0.18f + this.random.nextFloat() * 0.055f;
-		this.rCol = 0.5f;
-		this.gCol = 0.13f;
-		this.bCol = 0.27f;
-		this.alpha = 0.84f;
+		this.rCol = 0.24f;
+		this.gCol = 0.02f;
+		this.bCol = 0.065f;
+		this.alpha = 0.76f;
 		this.setSpriteFromAge(sprites);
 	}
 
@@ -32,12 +32,12 @@ public class HairpinWarnEdgeParticle extends TextureSheetParticle {
 		super.tick();
 		this.setSpriteFromAge(this.sprites);
 		float progress = (float) this.age / (float) this.lifetime;
-		this.alpha = 0.84f * (1.0f - progress);
+		this.alpha = 0.76f * (1.0f - progress);
 	}
 
 	@Override
 	public int getLightColor(float partialTick) {
-		return FULL_BRIGHT;
+		return DIM_BLOOD_LIGHT;
 	}
 
 	@Override

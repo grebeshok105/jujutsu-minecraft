@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Map;
 
 public final class HairpinVisualProfile {
-	private static final int DIRTY_FUCHSIA = 0x8a2f58;
-	private static final int DIRTY_FUCHSIA_MAX_VISIBLE_PERCENT = 8;
+	private static final int BLOOD_BLACK_ACCENT = 0x3a050f;
+	private static final int BRIGHT_RED_MAX_VISIBLE_PERCENT = 4;
 	private static final int WARNING_DURATION_TICKS = 6;
 	private static final boolean RESIDUE_USES_BURST_VECTORS = true;
 	private static final Map<HairpinTimeline.Phase, List<ParticleBudget>> BUDGETS = createBudgets();
@@ -37,12 +37,12 @@ public final class HairpinVisualProfile {
 		return RESIDUE_USES_BURST_VECTORS;
 	}
 
-	public static int dirtyFuchsiaMaxVisiblePercent() {
-		return DIRTY_FUCHSIA_MAX_VISIBLE_PERCENT;
+	public static int brightRedMaxVisiblePercent() {
+		return BRIGHT_RED_MAX_VISIBLE_PERCENT;
 	}
 
 	public static int accentColorRgb() {
-		return DIRTY_FUCHSIA;
+		return BLOOD_BLACK_ACCENT;
 	}
 
 	private static Map<HairpinTimeline.Phase, List<ParticleBudget>> createBudgets() {

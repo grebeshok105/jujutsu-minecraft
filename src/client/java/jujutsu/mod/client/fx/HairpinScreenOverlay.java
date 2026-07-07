@@ -37,8 +37,8 @@ public final class HairpinScreenOverlay {
 			case PREP_FREEZE -> triggerCinematic(260, 46, 18);
 			case HAMMER_SNAP -> triggerCinematic(160, 64, 36);
 			case NAIL_IGNITION -> triggerCinematic(340, 72, 42);
-			case HAIRPIN_BLOOM -> triggerCinematic(520, 118, 100);
-			case AFTERGLOW -> triggerCinematic(820, 78, 18);
+			case HAIRPIN_BLOOM -> triggerCinematic(520, 116, 82);
+			case AFTERGLOW -> triggerCinematic(820, 72, 12);
 			case DONE -> {
 			}
 		}
@@ -64,7 +64,7 @@ public final class HairpinScreenOverlay {
 
 		float remaining = 1.0f - (elapsed / (float) flashDurationMillis);
 		int alpha = Math.round(flashMaxAlpha * remaining * remaining);
-		int color = (alpha << 24) | 0x005B101B;
+		int color = (alpha << 24) | 0x0026030A;
 		graphics.fill(0, 0, graphics.guiWidth(), graphics.guiHeight(), color);
 	}
 
@@ -81,8 +81,8 @@ public final class HairpinScreenOverlay {
 		int vignetteAlpha = Math.round(vignetteMaxAlpha * ease);
 		int lineAlpha = Math.round(speedLineAlpha * ease);
 		int vignette = (vignetteAlpha << 24) | 0x000E0609;
-		int lineColor = (lineAlpha << 24) | 0x005B101B;
-		int hotLineColor = (Math.min(155, lineAlpha + 24) << 24) | 0x008C1020;
+		int lineColor = (lineAlpha << 24) | 0x0026030A;
+		int hotLineColor = (Math.min(140, lineAlpha + 16) << 24) | 0x003A050F;
 
 		int edgeX = Math.max(12, Math.round(width * 0.12f));
 		int edgeY = Math.max(10, Math.round(height * 0.11f));

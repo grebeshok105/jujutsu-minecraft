@@ -9,7 +9,7 @@ import net.minecraft.client.particle.TextureSheetParticle;
 import net.minecraft.core.particles.SimpleParticleType;
 
 public class HairpinSnapCrackParticle extends TextureSheetParticle {
-	private static final int FULL_BRIGHT = 0x00F000F0;
+	private static final int DIM_BLOOD_LIGHT = 0x00B000B0;
 	private final SpriteSet sprites;
 
 	protected HairpinSnapCrackParticle(ClientLevel level, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed, SpriteSet sprites) {
@@ -19,10 +19,10 @@ public class HairpinSnapCrackParticle extends TextureSheetParticle {
 		this.gravity = 0.0f;
 		this.hasPhysics = false;
 		this.quadSize = 0.38f + this.random.nextFloat() * 0.12f;
-		this.rCol = 0.58f;
-		this.gCol = 0.08f;
-		this.bCol = 0.16f;
-		this.alpha = 0.98f;
+		this.rCol = 0.26f;
+		this.gCol = 0.018f;
+		this.bCol = 0.055f;
+		this.alpha = 0.86f;
 		this.setSpriteFromAge(sprites);
 	}
 
@@ -30,12 +30,12 @@ public class HairpinSnapCrackParticle extends TextureSheetParticle {
 	public void tick() {
 		super.tick();
 		this.setSpriteFromAge(this.sprites);
-		this.alpha = 0.98f * (1.0f - ((float) this.age / (float) this.lifetime));
+		this.alpha = 0.86f * (1.0f - ((float) this.age / (float) this.lifetime));
 	}
 
 	@Override
 	public int getLightColor(float partialTick) {
-		return FULL_BRIGHT;
+		return DIM_BLOOD_LIGHT;
 	}
 
 	@Override

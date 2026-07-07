@@ -13,6 +13,12 @@ import jujutsu.mod.fx.HairpinTimeline;
 public final class HairpinWorldRenderer {
 	private static final Vec3 UP = new Vec3(0.0, 1.0, 0.0);
 	private static final Vec3 EAST = new Vec3(1.0, 0.0, 0.0);
+	private static final int BLOOD_BLACK_R = 38;
+	private static final int BLOOD_BLACK_G = 3;
+	private static final int BLOOD_BLACK_B = 10;
+	private static final int OXBLOOD_R = 58;
+	private static final int OXBLOOD_G = 5;
+	private static final int OXBLOOD_B = 15;
 
 	private HairpinWorldRenderer() {}
 
@@ -63,17 +69,17 @@ public final class HairpinWorldRenderer {
 			int edgeAlpha = Math.min(170, Math.round(alpha * 255.0f));
 			int coreAlpha = Math.min(210, Math.round(alpha * 255.0f));
 
-			addRibbon(consumer, start, end, side, 91, 16, 27, coreAlpha);
+			addRibbon(consumer, start, end, side, BLOOD_BLACK_R, BLOOD_BLACK_G, BLOOD_BLACK_B, coreAlpha);
 			if (phase == HairpinTimeline.Phase.HAMMER_SNAP || phase == HairpinTimeline.Phase.NAIL_IGNITION) {
 				Vec3 edgeStart = start.lerp(end, 0.68);
-				addRibbon(consumer, edgeStart.add(side.scale(0.55)), end.add(side.scale(0.55)), side.scale(0.18), 91, 16, 27, edgeAlpha / 3);
+				addRibbon(consumer, edgeStart.add(side.scale(0.55)), end.add(side.scale(0.55)), side.scale(0.18), OXBLOOD_R, OXBLOOD_G, OXBLOOD_B, edgeAlpha / 4);
 			}
 
 			if (phase == HairpinTimeline.Phase.HAIRPIN_BLOOM || phase == HairpinTimeline.Phase.AFTERGLOW) {
 				Vec3 burstStart = target.add(direction.normalize().scale(0.08)).subtract(cameraPosition);
 				Vec3 burstEnd = target.add(direction.normalize().scale(0.72 + progress * 0.32)).subtract(cameraPosition);
 				Vec3 burstSide = sideVector(burstEnd.subtract(burstStart), burstStart.add(burstEnd).scale(0.5), width * (phase == HairpinTimeline.Phase.AFTERGLOW ? 0.85f : 1.9f));
-				addRibbon(consumer, burstStart, burstEnd, burstSide, 91, 16, 27, coreAlpha);
+				addRibbon(consumer, burstStart, burstEnd, burstSide, BLOOD_BLACK_R, BLOOD_BLACK_G, BLOOD_BLACK_B, coreAlpha);
 			}
 		}
 
@@ -99,7 +105,7 @@ public final class HairpinWorldRenderer {
 			Vec3 start = center.add(Math.cos(a0) * radius, Math.sin(a0 * 2.0) * 0.035, Math.sin(a0) * radius);
 			Vec3 end = center.add(Math.cos(a1) * radius, Math.sin(a1 * 2.0) * 0.035, Math.sin(a1) * radius);
 			Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), width);
-			addRibbon(consumer, start, end, side, 112, 10, 28, alpha);
+			addRibbon(consumer, start, end, side, OXBLOOD_R, OXBLOOD_G, OXBLOOD_B, alpha);
 		}
 	}
 
@@ -118,7 +124,7 @@ public final class HairpinWorldRenderer {
 			Vec3 end = center.add(direction.scale(length));
 			Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), 0.018f + index % 2 * 0.01f);
 			addRibbon(consumer, start, end, side, 22, 8, 12, alpha);
-			addRibbon(consumer, start.add(side.scale(1.8)), end.add(side.scale(0.55)), side.scale(0.3), 132, 14, 31, alpha / 3);
+			addRibbon(consumer, start.add(side.scale(1.8)), end.add(side.scale(0.55)), side.scale(0.3), OXBLOOD_R, OXBLOOD_G, OXBLOOD_B, alpha / 4);
 		}
 	}
 
@@ -144,7 +150,7 @@ public final class HairpinWorldRenderer {
 		addRibbon(consumer, head, tip, side, 34, 38, 44, steelAlpha);
 		addRibbon(consumer, head, tip, cross, 78, 84, 94, steelAlpha / 2);
 		addRibbon(consumer, head.subtract(direction.scale(0.042)), head.add(direction.scale(0.042)), side.scale(1.85), 16, 7, 10, darkAlpha);
-		addRibbon(consumer, head.add(direction.scale(0.1)), head.add(direction.scale(0.18)), side.scale(1.35), 105, 8, 24, Math.round(alpha * 175.0f));
+		addRibbon(consumer, head.add(direction.scale(0.1)), head.add(direction.scale(0.18)), side.scale(1.35), OXBLOOD_R, OXBLOOD_G, OXBLOOD_B, Math.round(alpha * 150.0f));
 		addRibbon(consumer, tip.subtract(direction.scale(0.075)), tip.add(direction.scale(0.035)), side.scale(0.55), 112, 118, 126, Math.round(alpha * 155.0f));
 	}
 

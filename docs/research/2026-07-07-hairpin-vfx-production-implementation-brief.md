@@ -34,25 +34,25 @@ Accent color must stay darker than the first prototype:
 - Blood-black base: `#12090c`
 - Void black core: `#080607`
 - Black cherry body: `#250913`
-- Dark carmine wound energy: `#5b101b`
+- Dark carmine wound energy: `#26030a`
 - Coagulated residue: `#311016`
-- Dirty fuchsia edge: `#8a2f58`
+- Oxblood shadow edge: `#3a050f`
 - Cold steel dark: `#5f666d`
 - Cold steel specular: `#98a1aa`
 
-Dirty fuchsia is an edge cue only. Keep it below roughly 5-8 percent of the visible effect in any frame.
+The earlier dirty fuchsia edge was rejected during in-game review as too bright. Runtime Hairpin should use oxblood shadow instead and keep bright red below roughly 4 percent of the visible effect in any frame.
 
 ## Particle Families For First Jar
 
 The first production jar should replace the single generic spark with a small sheet-based family:
 
 - `hairpin_mark_stain`: dark anchored stain/crack, world-lit, slow and restrained.
-- `hairpin_warn_edge`: short full-bright dirty-fuchsia edge pulse.
+- `hairpin_warn_edge`: short dim oxblood edge pulse.
 - `hairpin_compression_mote`: world-lit inward motes, no vortex language.
-- `hairpin_snap_crack`: 2-4 tick full-bright crack accent.
+- `hairpin_snap_crack`: short dim blood-black crack accent.
 - `hairpin_burst_residue`: black-red grit body of the burst.
 - `hairpin_burst_metal_shard`: cold metal fragments.
-- `hairpin_ignition_tick`: tiny full-bright activation tick.
+- `hairpin_ignition_tick`: tiny dim blood-black activation tick.
 
 Use `ParticleFactoryRegistry`, `FabricParticleTypes.simple(...)`, sheet JSON files, and delayed sprite factories. Do not use `ParticleRenderType.CUSTOM` for the first jar.
 
