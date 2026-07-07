@@ -1,0 +1,32 @@
+{
+	"hairpin.prep": {
+		"sounds": [
+			"jujutsumod:hairpin/prep"
+		],
+		"subtitle": "subtitles.jujutsumod.hairpin.prep"
+	},
+	"hairpin.hammer_snap": {
+		"sounds": [
+			"jujutsumod:hairpin/hammer_snap"
+		],
+		"subtitle": "subtitles.jujutsumod.hairpin.hammer_snap"
+	},
+	"hairpin.nail_ignite": {
+		"sounds": [
+			"jujutsumod:hairpin/nail_ignite"
+		],
+		"subtitle": "subtitles.jujutsumod.hairpin.nail_ignite"
+	},
+	"hairpin.bloom": {
+		"sounds": [
+			"jujutsumod:hairpin/bloom"
+		],
+		"subtitle": "subtitles.jujutsumod.hairpin.bloom"
+	},
+	"hairpin.afterglow": {
+		"sounds": [
+			"jujutsumod:hairpin/afterglow"
+		],
+		"subtitle": "subtitles.jujutsumod.hairpin.afterglow"
+	}
+}

@@ -35,6 +35,49 @@ dependencies {
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 }
 
+tasks.register('testHairpinTimeline', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for the Hairpin timeline model'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.fx.HairpinTimelineTest'
+	jvmArgs '-ea'
+}
+
+tasks.register('testHairpinVisualProfile', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for the Hairpin visual profile'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.fx.HairpinVisualProfileTest'
+	jvmArgs '-ea'
+}
+
+tasks.register('testProjectSanity', JavaExec) {
+	group = 'verification'
+	description = 'Runs resource and side-separation sanity checks'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.ProjectSanityTest'
+	jvmArgs '-ea'
+}
+
+tasks.register('testHairpinDebugLog', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for the Hairpin debug switch'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.debug.HairpinDebugLogTest'
+	jvmArgs '-ea'
+}
+
+tasks.named('check') {
+	dependsOn tasks.named('testHairpinTimeline')
+	dependsOn tasks.named('testHairpinVisualProfile')
+	dependsOn tasks.named('testProjectSanity')
+	dependsOn tasks.named('testHairpinDebugLog')
+}
+
 processResources {
 	def version = project.version
 	inputs.property "version", version
@@ -46,6 +89,10 @@ processResources {
 
 tasks.withType(JavaCompile).configureEach {
 	it.options.release = 21
+}
+
+tasks.named('test') {
+	failOnNoDiscoveredTests = false
 }
 
 java {
