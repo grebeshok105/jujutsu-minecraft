@@ -138,6 +138,9 @@ public final class ProjectJjkNailEntity extends Entity {
 		Vec3 movement = getDeltaMovement();
 		move(MoverType.SELF, movement);
 		face(movement);
+		if (level() instanceof ServerLevel serverLevel && (tickCount & 1) == 0) {
+			ProjectJjkNobaraRuntime.spawnNailFlightTrail(serverLevel, position(), movement);
+		}
 	}
 
 	@Override

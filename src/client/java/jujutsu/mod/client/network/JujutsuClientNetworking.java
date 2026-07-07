@@ -71,8 +71,10 @@ public final class JujutsuClientNetworking {
 		}
 
 		if (payload.kind() == ProjectJjkNobaraImpulsePayload.HAMMER) {
-			playNoFalloff(client, SoundEvents.ANVIL_HIT, 1.0f * proximity, 0.62f, payload.origin());
+			// Forging anvil clang for the hammer beat (matches server-side ANVIL_USE).
+			playNoFalloff(client, SoundEvents.ANVIL_USE, 1.0f * proximity, 0.94f, payload.origin());
 			playNoFalloff(client, SoundEvents.NETHERITE_BLOCK_HIT, 0.55f * proximity, 0.72f, payload.origin());
+			playNoFalloff(client, JujutsuSounds.HAIRPIN_HAMMER_SNAP, 0.75f * proximity, 1.0f, payload.origin());
 			HairpinCinematicCamera.triggerProjectJjkHammer(payload.nailCount(), proximity);
 			HairpinScreenOverlay.triggerProjectJjkHammer(proximity);
 		}

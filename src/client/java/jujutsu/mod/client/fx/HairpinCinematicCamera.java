@@ -7,6 +7,7 @@ import jujutsu.mod.fx.HairpinTimeline;
 
 public final class HairpinCinematicCamera {
 	private static final List<Impulse> IMPULSES = new ArrayList<>();
+	private static final List<FovImpulse> FOV_IMPULSES = new ArrayList<>();
 
 	private HairpinCinematicCamera() {}
 
@@ -26,12 +27,17 @@ public final class HairpinCinematicCamera {
 		float strength = projectJjkStrength(nailCount, proximity, 0.92f);
 		addImpulse(190, -2.9f * strength, 1.72f * strength, 72.0f);
 		addImpulse(95, 1.18f * strength, -0.86f * strength, 126.0f);
+		// Cinematic punch-in: camera dives forward on the hammer swing, then releases.
+		addFovImpulse(430, -7.5f * strength, 0.16f);
 	}
 
 	public static void triggerProjectJjkImpact(int nailCount, float proximity) {
 		float strength = projectJjkStrength(nailCount, proximity, 1.08f);
 		addImpulse(270, 3.3f * strength, -2.1f * strength, 58.0f);
 		addImpulse(130, -1.52f * strength, 1.18f * strength, 118.0f);
+		// Impact kick: fast punch-out, then a slow re-focus zoom back in.
+		addFovImpulse(520, 9.0f * strength, 0.10f);
+		addFovImpulse(950, -2.6f * strength, 0.34f);
 	}
 
 	public static float yawOffset() {
@@ -43,11 +49,40 @@ public final class HairpinCinematicCamera {
 	}
 
 	public static float fovOffset() {
-		return Math.max(-5.0f, Math.min(13.0f, Math.abs(sample(true)) * 3.4f + Math.abs(sample(false)) * 2.0f));
+		float shake = Math.max(-5.0f, Math.min(13.0f, Math.abs(sample(true)) * 3.4f + Math.abs(sample(false)) * 2.0f));
+		return Math.max(-18.0f, Math.min(20.0f, shake + sampleFov()));
 	}
 
 	private static void addImpulse(int durationMillis, float yawAmplitude, float pitchAmplitude, float frequency) {
 		IMPULSES.add(new Impulse(System.currentTimeMillis(), durationMillis, yawAmplitude, pitchAmplitude, frequency));
+	}
+
+	private static void addFovImpulse(int durationMillis, float amplitude, float attackFraction) {
+		FOV_IMPULSES.add(new FovImpulse(System.currentTimeMillis(), durationMillis, amplitude, Math.max(0.02f, Math.min(0.9f, attackFraction))));
+	}
+
+	private static float sampleFov() {
+		long now = System.currentTimeMillis();
+		float value = 0.0f;
+		Iterator<FovImpulse> iterator = FOV_IMPULSES.iterator();
+		while (iterator.hasNext()) {
+			FovImpulse impulse = iterator.next();
+			long elapsed = now - impulse.startedAtMillis();
+			if (elapsed < 0L || elapsed >= impulse.durationMillis()) {
+				iterator.remove();
+				continue;
+			}
+			float progress = elapsed / (float) impulse.durationMillis();
+			float envelope;
+			if (progress < impulse.attackFraction()) {
+				envelope = progress / impulse.attackFraction();
+			} else {
+				float release = 1.0f - (progress - impulse.attackFraction()) / (1.0f - impulse.attackFraction());
+				envelope = release * release;
+			}
+			value += impulse.amplitude() * envelope;
+		}
+		return value;
 	}
 
 	private static float projectJjkStrength(int nailCount, float proximity, float multiplier) {
@@ -75,4 +110,6 @@ public final class HairpinCinematicCamera {
 	}
 
 	private record Impulse(long startedAtMillis, int durationMillis, float yawAmplitude, float pitchAmplitude, float frequency) {}
+
+	private record FovImpulse(long startedAtMillis, int durationMillis, float amplitude, float attackFraction) {}
 }

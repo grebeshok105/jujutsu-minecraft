@@ -51,10 +51,14 @@ public final class ProjectJjkNobaraRuntime {
 			ProjectJjkNailEntity nail = new ProjectJjkNailEntity(JujutsuEntities.PROJECTJJK_NAIL, level);
 			nail.prepare(player, position, look);
 			level.addFreshEntity(nail);
+			// Legacy Hairpin prep read: warn edge + ignition tick around each aligned nail.
+			level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, position.x, position.y, position.z, 3, 0.05, 0.05, 0.05, 0.03);
+			level.sendParticles(JujutsuParticles.HAIRPIN_IGNITION_TICK, position.x, position.y, position.z, 2, 0.04, 0.04, 0.04, 0.02);
 		}
 
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 0.82f, 1.16f);
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SPELL_SHOT, SoundSource.PLAYERS, 0.34f, 1.42f);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.HAIRPIN_PREP, SoundSource.PLAYERS, 0.62f, 1.0f);
 	}
 
 	public static void launchHairpin(ServerPlayer player, ItemStack hammerStack, InteractionHand hand) {
@@ -77,8 +81,10 @@ public final class ProjectJjkNobaraRuntime {
 			nail.launchAt(targetPoint, ProjectJjkNobaraProfile.launchDelayForIndex(index));
 		}
 
-		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ANVIL_HIT, SoundSource.PLAYERS, 1.35f, 0.55f);
+		// Forging anvil clang: the hammer strike must read like smithing on an anvil.
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ANVIL_USE, SoundSource.PLAYERS, 1.35f, 0.9f);
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.NETHERITE_BLOCK_HIT, SoundSource.PLAYERS, 0.95f, 0.68f);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.HAIRPIN_HAMMER_SNAP, SoundSource.PLAYERS, 0.9f, 1.0f);
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 1.2f, 0.82f);
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_CINEMATIC_WHOOSH, SoundSource.PLAYERS, 0.88f, 0.86f);
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SPELL_SHOT, SoundSource.PLAYERS, 0.72f, 0.74f);
@@ -103,6 +109,8 @@ public final class ProjectJjkNobaraRuntime {
 		}
 
 		spawnCustomImpactParticles(level, point, nail.forwardDirection());
+		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.HAIRPIN_BLOOM, SoundSource.PLAYERS, 0.85f, 0.92f);
+		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.HAIRPIN_AFTERGLOW, SoundSource.PLAYERS, 0.4f, 0.8f);
 		level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, point.x, point.y, point.z, 86, 0.86, 0.72, 0.86, 0.12);
 		level.sendParticles(ParticleTypes.ELECTRIC_SPARK, point.x, point.y, point.z, 62, 0.64, 0.52, 0.64, 0.24);
 		level.sendParticles(ParticleTypes.CRIT, point.x, point.y, point.z, 38, 0.46, 0.42, 0.46, 0.2);
@@ -134,6 +142,16 @@ public final class ProjectJjkNobaraRuntime {
 		level.sendParticles(JujutsuParticles.HAIRPIN_SNAP_CRACK, core.x, core.y, core.z, 5, 0.18, 0.12, 0.18, 0.07);
 		level.sendParticles(JujutsuParticles.HAIRPIN_BURST_RESIDUE, core.x, core.y, core.z, 20, 0.46, 0.34, 0.46, 0.20);
 		level.sendParticles(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, point.x, point.y, point.z, 16, 0.42, 0.26, 0.42, 0.34);
+		// Legacy families ported: dark stain lingers at the wound, warn edge flashes the impact ring.
+		level.sendParticles(JujutsuParticles.HAIRPIN_MARK_STAIN, core.x, core.y, core.z, 6, 0.22, 0.16, 0.22, 0.012);
+		level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, point.x, point.y, point.z, 8, 0.34, 0.24, 0.34, 0.05);
+	}
+
+	static void spawnNailFlightTrail(ServerLevel level, Vec3 point, Vec3 direction) {
+		Vec3 forward = safeDirection(direction);
+		Vec3 tail = point.subtract(forward.scale(0.35));
+		// Legacy compression read: cursed energy motes stream along the flight path.
+		level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, tail.x, tail.y, tail.z, 2, 0.03, 0.03, 0.03, 0.02);
 	}
 
 	private static ProjectJjkNobaraImpulsePayload impulse(int kind, int nailCount, Vec3 point, long gameTime) {
