@@ -50,7 +50,7 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 	public void extractRenderState(ProjectJjkNailEntity entity, State state, float partialTick) {
 		super.extractRenderState(entity, state, partialTick);
 		state.direction = safeDirection(entity.getViewVector(partialTick));
-		state.launched = entity.isLaunched();
+		state.launched = entity.isFlying();
 		state.seed = entity.getId();
 		state.age = entity.tickCount + partialTick;
 	}

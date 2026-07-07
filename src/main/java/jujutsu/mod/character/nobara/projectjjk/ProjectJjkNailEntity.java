@@ -21,7 +21,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 public final class ProjectJjkNailEntity extends Entity {
-	private static final EntityDataAccessor<Boolean> DATA_LAUNCHED = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.BOOLEAN);
+	private static final EntityDataAccessor<Boolean> DATA_FLYING = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.BOOLEAN);
 	private static final String OWNER_UUID_TAG = "OwnerUuid";
 	private static final String OWNER_ENTITY_ID_TAG = "OwnerEntityId";
 	private static final String LAUNCHED_TAG = "Launched";
@@ -35,6 +35,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	private boolean launched;
 	private int launchDelayTicks;
 	private Vec3 target = Vec3.ZERO;
+	private Vec3 pendingLaunchDirection = Vec3.ZERO;
 
 	public ProjectJjkNailEntity(EntityType<? extends ProjectJjkNailEntity> entityType, Level level) {
 		super(entityType, level);
@@ -57,8 +58,14 @@ public final class ProjectJjkNailEntity extends Entity {
 		this.target = target;
 		setLaunched(true);
 		launchDelayTicks = Math.max(0, delayTicks);
-		setDeltaMovement(direction.scale(ProjectJjkNobaraProfile.LAUNCH_SPEED_BLOCKS_PER_TICK));
-		hasImpulse = true;
+		pendingLaunchDirection = direction;
+		if (launchDelayTicks <= 0) {
+			startFlight(direction);
+		} else {
+			setFlightSynced(false);
+			setDeltaMovement(Vec3.ZERO);
+			hasImpulse = false;
+		}
 		face(direction);
 	}
 
@@ -67,7 +74,11 @@ public final class ProjectJjkNailEntity extends Entity {
 	}
 
 	public boolean isLaunched() {
-		return launched || entityData.get(DATA_LAUNCHED);
+		return launched || entityData.get(DATA_FLYING);
+	}
+
+	public boolean isFlying() {
+		return entityData.get(DATA_FLYING);
 	}
 
 	public boolean isOwnedBy(UUID playerId) {
@@ -98,6 +109,11 @@ public final class ProjectJjkNailEntity extends Entity {
 
 		if (launchDelayTicks > 0) {
 			launchDelayTicks--;
+			if (launchDelayTicks <= 0) {
+				Vec3 direction = safeDirection(target.subtract(position()));
+				pendingLaunchDirection = direction;
+				startFlight(direction);
+			}
 			return;
 		}
 
@@ -132,7 +148,7 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	@Override
 	protected void defineSynchedData(SynchedEntityData.Builder builder) {
-		builder.define(DATA_LAUNCHED, false);
+		builder.define(DATA_FLYING, false);
 	}
 
 	@Override
@@ -156,11 +172,25 @@ public final class ProjectJjkNailEntity extends Entity {
 		setLaunched(input.getBooleanOr(LAUNCHED_TAG, false));
 		launchDelayTicks = input.getIntOr(LAUNCH_DELAY_TAG, 0);
 		target = new Vec3(input.getDoubleOr(TARGET_X_TAG, getX()), input.getDoubleOr(TARGET_Y_TAG, getY()), input.getDoubleOr(TARGET_Z_TAG, getZ()));
+		pendingLaunchDirection = safeDirection(target.subtract(position()));
+		setFlightSynced(launched && launchDelayTicks <= 0);
 	}
 
 	private void setLaunched(boolean launched) {
 		this.launched = launched;
-		entityData.set(DATA_LAUNCHED, launched);
+		if (!launched) {
+			setFlightSynced(false);
+		}
+	}
+
+	private void startFlight(Vec3 direction) {
+		setDeltaMovement(launchVelocity(direction));
+		setFlightSynced(true);
+		hasImpulse = true;
+	}
+
+	private void setFlightSynced(boolean flying) {
+		entityData.set(DATA_FLYING, flying);
 	}
 
 	private boolean canHitEntity(Entity entity) {
@@ -174,6 +204,9 @@ public final class ProjectJjkNailEntity extends Entity {
 	private void clientTickMovement() {
 		Vec3 movement = getDeltaMovement();
 		if (movement.lengthSqr() <= 1.0E-5) {
+			if (isLaunched() && pendingLaunchDirection.lengthSqr() > 1.0E-5) {
+				face(pendingLaunchDirection);
+			}
 			return;
 		}
 		setPos(position().add(movement));
@@ -184,8 +217,12 @@ public final class ProjectJjkNailEntity extends Entity {
 		Vec3 direction = safeDirection(vector);
 		double horizontal = Math.sqrt(direction.x * direction.x + direction.z * direction.z);
 		setYRot((float) (Mth.atan2(direction.x, direction.z) * Mth.RAD_TO_DEG));
-		setXRot((float) (Mth.atan2(direction.y, horizontal) * Mth.RAD_TO_DEG));
+		setXRot((float) (-Mth.atan2(direction.y, horizontal) * Mth.RAD_TO_DEG));
 		setOldPosAndRot(position(), getYRot(), getXRot());
+	}
+
+	private static Vec3 launchVelocity(Vec3 direction) {
+		return safeDirection(direction).scale(ProjectJjkNobaraProfile.LAUNCH_SPEED_BLOCKS_PER_TICK);
 	}
 
 	private static Vec3 safeDirection(Vec3 vector) {

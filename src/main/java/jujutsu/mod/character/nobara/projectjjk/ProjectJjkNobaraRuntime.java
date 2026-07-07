@@ -38,7 +38,7 @@ public final class ProjectJjkNobaraRuntime {
 		int available = creative ? desiredCount : countNails(player);
 		int nailCount = Math.min(desiredCount, available);
 		if (nailCount <= 0) {
-			player.displayClientMessage(Component.literal("No ProjectJJK nails to prepare."), true);
+			player.displayClientMessage(Component.translatable("message.jujutsumod.projectjjk.no_nails"), true);
 			return;
 		}
 
@@ -56,14 +56,14 @@ public final class ProjectJjkNobaraRuntime {
 
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 0.82f, 1.16f);
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SPELL_SHOT, SoundSource.PLAYERS, 0.34f, 1.42f);
-		player.displayClientMessage(Component.literal("ProjectJJK Nobara prepared " + nailCount + " nail(s)."), true);
+		player.displayClientMessage(Component.translatable("message.jujutsumod.projectjjk.prepared", nailCount), true);
 	}
 
 	public static void launchHairpin(ServerPlayer player, ItemStack hammerStack, InteractionHand hand) {
 		ServerLevel level = player.level();
 		List<ProjectJjkNailEntity> nails = findPreparedNails(level, player);
 		if (nails.isEmpty()) {
-			player.displayClientMessage(Component.literal("Prepare ProjectJJK nails first."), true);
+			player.displayClientMessage(Component.translatable("message.jujutsumod.projectjjk.prepare_first"), true);
 			return;
 		}
 
@@ -87,7 +87,7 @@ public final class ProjectJjkNobaraRuntime {
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SPELL_SHOT, SoundSource.PLAYERS, 0.72f, 0.74f);
 		JujutsuNetworking.broadcastProjectJjkImpulse(level, player.position(), IMPULSE_BROADCAST_RADIUS, impulse(ProjectJjkNobaraImpulsePayload.HAMMER, nails.size(), player.position(), level.getGameTime()));
 		damageHammer(player, hammerStack, hand);
-		player.displayClientMessage(Component.literal("ProjectJJK Hairpin launched " + nails.size() + " nail(s)."), true);
+		player.displayClientMessage(Component.translatable("message.jujutsumod.projectjjk.launched", nails.size()), true);
 	}
 
 	public static void resolveNailImpact(ServerLevel level, ProjectJjkNailEntity nail, HitResult hit) {

@@ -1,11 +1,11 @@
 {
   "textures": {
-    "particle": "jujutsumod:item/model/hammer_wood",
-    "layer0": "jujutsumod:item/straw_doll_hammer",
-    "dark_steel": "jujutsumod:item/model/dark_steel",
-    "steel_edge": "jujutsumod:item/model/steel_edge",
-    "oxblood": "jujutsumod:item/model/oxblood",
-    "hammer_wood": "jujutsumod:item/model/hammer_wood"
+    "particle": "jujutsumod:item/projectjjk/model/hammer_wood",
+    "layer0": "jujutsumod:item/projectjjk/straw_doll_hammer",
+    "dark_steel": "jujutsumod:item/projectjjk/model/dark_steel",
+    "steel_edge": "jujutsumod:item/projectjjk/model/steel_edge",
+    "oxblood": "jujutsumod:item/projectjjk/model/oxblood",
+    "hammer_wood": "jujutsumod:item/projectjjk/model/hammer_wood"
   },
   "elements": [
     {
