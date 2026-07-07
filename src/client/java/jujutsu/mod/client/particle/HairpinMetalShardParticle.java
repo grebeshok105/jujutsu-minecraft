@@ -14,15 +14,15 @@ public class HairpinMetalShardParticle extends TextureSheetParticle {
 	protected HairpinMetalShardParticle(ClientLevel level, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed, SpriteSet sprites) {
 		super(level, x, y, z, xSpeed, ySpeed, zSpeed);
 		this.sprites = sprites;
-		this.lifetime = 18 + this.random.nextInt(6);
+		this.lifetime = 14 + this.random.nextInt(5);
 		this.gravity = 0.04f;
 		this.hasPhysics = true;
-		this.quadSize = 0.12f + this.random.nextFloat() * 0.13f;
-		float tint = 0.82f + this.random.nextFloat() * 0.35f;
-		this.rCol = 0.42f * tint;
-		this.gCol = 0.45f * tint;
-		this.bCol = 0.48f * tint;
-		this.alpha = 0.82f + this.random.nextFloat() * 0.15f;
+		this.quadSize = 0.08f + this.random.nextFloat() * 0.08f;
+		float tint = 0.86f + this.random.nextFloat() * 0.22f;
+		this.rCol = 0.22f * tint;
+		this.gCol = 0.24f * tint;
+		this.bCol = 0.28f * tint;
+		this.alpha = 0.76f + this.random.nextFloat() * 0.12f;
 		this.setSpriteFromAge(sprites);
 	}
 
@@ -31,7 +31,7 @@ public class HairpinMetalShardParticle extends TextureSheetParticle {
 		super.tick();
 		this.setSpriteFromAge(this.sprites);
 		float progress = (float) this.age / (float) this.lifetime;
-		this.alpha = 0.95f * (1.0f - progress);
+		this.alpha = 0.85f * (1.0f - progress);
 	}
 
 	@Override

@@ -71,8 +71,8 @@ public final class HairpinWorldRenderer {
 
 			if (phase == HairpinTimeline.Phase.HAIRPIN_BLOOM || phase == HairpinTimeline.Phase.AFTERGLOW) {
 				Vec3 burstStart = target.add(direction.normalize().scale(0.08)).subtract(cameraPosition);
-				Vec3 burstEnd = target.add(direction.normalize().scale(0.55 + progress * 0.18)).subtract(cameraPosition);
-				Vec3 burstSide = sideVector(burstEnd.subtract(burstStart), burstStart.add(burstEnd).scale(0.5), width * (phase == HairpinTimeline.Phase.AFTERGLOW ? 0.9f : 1.65f));
+				Vec3 burstEnd = target.add(direction.normalize().scale(0.72 + progress * 0.32)).subtract(cameraPosition);
+				Vec3 burstSide = sideVector(burstEnd.subtract(burstStart), burstStart.add(burstEnd).scale(0.5), width * (phase == HairpinTimeline.Phase.AFTERGLOW ? 0.85f : 1.9f));
 				addRibbon(consumer, burstStart, burstEnd, burstSide, 91, 16, 27, coreAlpha);
 			}
 		}
@@ -89,10 +89,10 @@ public final class HairpinWorldRenderer {
 			return;
 		}
 
-		double radius = phase == HairpinTimeline.Phase.HAIRPIN_BLOOM ? 0.28 + progress * 1.15 : 0.95 + progress * 0.55;
-		float width = phase == HairpinTimeline.Phase.HAIRPIN_BLOOM ? 0.028f : 0.018f;
-		int alpha = Math.min(185, Math.round(180.0f * bloom));
-		int segments = 18;
+		double radius = phase == HairpinTimeline.Phase.HAIRPIN_BLOOM ? 0.42 + progress * 1.85 : 1.15 + progress * 0.75;
+		float width = phase == HairpinTimeline.Phase.HAIRPIN_BLOOM ? 0.04f : 0.022f;
+		int alpha = Math.min(220, Math.round(215.0f * bloom));
+		int segments = 22;
 		for (int index = 0; index < segments; index++) {
 			double a0 = (Math.PI * 2.0 * index) / segments;
 			double a1 = (Math.PI * 2.0 * (index + 1)) / segments;
@@ -109,16 +109,16 @@ public final class HairpinWorldRenderer {
 			return;
 		}
 
-		int alpha = Math.min(210, Math.round(205.0f * fade));
-		for (int index = 0; index < 7; index++) {
-			double angle = index * 0.897 + 0.35;
-			double length = 0.42 + (index % 3) * 0.18 + progress * 0.34;
+		int alpha = Math.min(230, Math.round(225.0f * fade));
+		for (int index = 0; index < 10; index++) {
+			double angle = index * 0.641 + 0.35;
+			double length = 0.62 + (index % 4) * 0.2 + progress * 0.55;
 			Vec3 direction = new Vec3(Math.cos(angle), (index % 2 == 0 ? 0.08 : -0.05), Math.sin(angle)).normalize();
 			Vec3 start = center.add(direction.scale(0.08));
 			Vec3 end = center.add(direction.scale(length));
-			Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), 0.016f + index % 2 * 0.008f);
+			Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), 0.018f + index % 2 * 0.01f);
 			addRibbon(consumer, start, end, side, 22, 8, 12, alpha);
-			addRibbon(consumer, start.add(side.scale(1.8)), end.add(side.scale(0.55)), side.scale(0.3), 152, 16, 35, alpha / 3);
+			addRibbon(consumer, start.add(side.scale(1.8)), end.add(side.scale(0.55)), side.scale(0.3), 132, 14, 31, alpha / 3);
 		}
 	}
 
@@ -134,16 +134,18 @@ public final class HairpinWorldRenderer {
 			return;
 		}
 
-		Vec3 shaft = direction.scale(0.42);
-		Vec3 head = anchor.subtract(direction.scale(0.08));
+		Vec3 shaft = direction.scale(0.56);
+		Vec3 head = anchor.subtract(direction.scale(0.1));
 		Vec3 tip = anchor.add(shaft);
-		Vec3 side = sideVector(shaft, anchor, 0.035f);
-		Vec3 cross = safeDirection(shaft).cross(side).normalize().scale(0.035f);
+		Vec3 side = sideVector(shaft, anchor, 0.044f);
+		Vec3 cross = safeDirection(shaft).cross(side).normalize().scale(0.034f);
 		int steelAlpha = Math.round(alpha * 235.0f);
-		int darkAlpha = Math.round(alpha * 210.0f);
-		addRibbon(consumer, head, tip, side, 95, 102, 109, steelAlpha);
-		addRibbon(consumer, head, tip, cross, 152, 161, 170, steelAlpha / 2);
-		addRibbon(consumer, head.subtract(direction.scale(0.035)), head.add(direction.scale(0.035)), side.scale(1.7), 18, 9, 12, darkAlpha);
+		int darkAlpha = Math.round(alpha * 220.0f);
+		addRibbon(consumer, head, tip, side, 34, 38, 44, steelAlpha);
+		addRibbon(consumer, head, tip, cross, 78, 84, 94, steelAlpha / 2);
+		addRibbon(consumer, head.subtract(direction.scale(0.042)), head.add(direction.scale(0.042)), side.scale(1.85), 16, 7, 10, darkAlpha);
+		addRibbon(consumer, head.add(direction.scale(0.1)), head.add(direction.scale(0.18)), side.scale(1.35), 105, 8, 24, Math.round(alpha * 175.0f));
+		addRibbon(consumer, tip.subtract(direction.scale(0.075)), tip.add(direction.scale(0.035)), side.scale(0.55), 112, 118, 126, Math.round(alpha * 155.0f));
 	}
 
 	private static float alphaFor(HairpinTimeline.Phase phase, float progress) {

@@ -14,14 +14,14 @@ public class HairpinBurstResidueParticle extends TextureSheetParticle {
 	protected HairpinBurstResidueParticle(ClientLevel level, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed, SpriteSet sprites) {
 		super(level, x, y, z, xSpeed, ySpeed, zSpeed);
 		this.sprites = sprites;
-		this.lifetime = 14 + this.random.nextInt(9);
-		this.gravity = 0.015f;
+		this.lifetime = 10 + this.random.nextInt(6);
+		this.gravity = 0.01f;
 		this.hasPhysics = false;
-		this.quadSize = 0.17f + this.random.nextFloat() * 0.08f;
-		this.rCol = 0.27f;
-		this.gCol = 0.075f;
-		this.bCol = 0.12f;
-		this.alpha = 0.78f;
+		this.quadSize = 0.1f + this.random.nextFloat() * 0.06f;
+		this.rCol = 0.22f;
+		this.gCol = 0.025f;
+		this.bCol = 0.045f;
+		this.alpha = 0.5f;
 		this.setSpriteFromAge(sprites);
 	}
 
@@ -30,7 +30,7 @@ public class HairpinBurstResidueParticle extends TextureSheetParticle {
 		super.tick();
 		this.setSpriteFromAge(this.sprites);
 		float progress = (float) this.age / (float) this.lifetime;
-		this.alpha = 0.78f * (1.0f - progress * progress);
+		this.alpha = 0.5f * (1.0f - progress * progress);
 	}
 
 	@Override

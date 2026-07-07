@@ -37,8 +37,8 @@ public final class HairpinScreenOverlay {
 			case PREP_FREEZE -> triggerCinematic(260, 46, 18);
 			case HAMMER_SNAP -> triggerCinematic(160, 64, 36);
 			case NAIL_IGNITION -> triggerCinematic(340, 72, 42);
-			case HAIRPIN_BLOOM -> triggerCinematic(420, 108, 82);
-			case AFTERGLOW -> triggerCinematic(760, 74, 20);
+			case HAIRPIN_BLOOM -> triggerCinematic(520, 118, 100);
+			case AFTERGLOW -> triggerCinematic(820, 78, 18);
 			case DONE -> {
 			}
 		}
