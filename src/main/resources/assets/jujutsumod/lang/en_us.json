@@ -1,9 +1,21 @@
 {
   "item.jujutsumod.hairpin_nail": "Hairpin Nail",
+  "item.jujutsumod.projectjjk_hairpin_nail": "ProjectJJK Hairpin Nail",
+  "item.jujutsumod.projectjjk_straw_doll_hammer": "ProjectJJK Straw Doll Hammer",
   "item.jujutsumod.straw_doll_hammer": "Straw Doll Hammer",
   "subtitles.jujutsumod.hairpin.afterglow": "Hairpin residue fades",
   "subtitles.jujutsumod.hairpin.bloom": "Hairpin blooms",
   "subtitles.jujutsumod.hairpin.hammer_snap": "Hammer snaps",
   "subtitles.jujutsumod.hairpin.nail_ignite": "Nail ignites",
-  "subtitles.jujutsumod.hairpin.prep": "Cursed nails align"
+  "subtitles.jujutsumod.hairpin.prep": "Cursed nails align",
+  "subtitles.jujutsumod.projectjjk.black_flash_impact": "ProjectJJK impact cracks",
+  "subtitles.jujutsumod.projectjjk.black_flash_impact2": "ProjectJJK impact cracks",
+  "subtitles.jujutsumod.projectjjk.cinematic_whoosh": "ProjectJJK air tears",
+  "subtitles.jujutsumod.projectjjk.deep_explosion": "ProjectJJK explosion booms",
+  "subtitles.jujutsumod.projectjjk.explode": "ProjectJJK nail explodes",
+  "subtitles.jujutsumod.projectjjk.goo_foley": "ProjectJJK residue shifts",
+  "subtitles.jujutsumod.projectjjk.implode": "ProjectJJK energy implodes",
+  "subtitles.jujutsumod.projectjjk.snap": "ProjectJJK snap",
+  "subtitles.jujutsumod.projectjjk.spell_shot": "ProjectJJK nail fires",
+  "subtitles.jujutsumod.projectjjk.whoosh_hit": "ProjectJJK nail hits"
 }

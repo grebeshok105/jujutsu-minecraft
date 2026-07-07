@@ -98,6 +98,15 @@ tasks.register('testHairpinGameplayService', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testProjectJjkNobaraProfile', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for ProjectJJK Nobara comparison constants'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraProfileTest'
+	jvmArgs '-ea'
+}
+
 tasks.named('check') {
 	dependsOn tasks.named('testHairpinTimeline')
 	dependsOn tasks.named('testHairpinVisualProfile')
@@ -106,6 +115,7 @@ tasks.named('check') {
 	dependsOn tasks.named('testTargetResolver')
 	dependsOn tasks.named('testNobaraCombatStateManager')
 	dependsOn tasks.named('testHairpinGameplayService')
+	dependsOn tasks.named('testProjectJjkNobaraProfile')
 }
 
 processResources {

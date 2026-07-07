@@ -1,0 +1,203 @@
+package jujutsu.mod.character.nobara.projectjjk;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.UUID;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.combat.TargetResolver;
+import jujutsu.mod.registry.JujutsuEntities;
+import jujutsu.mod.registry.JujutsuItems;
+import jujutsu.mod.registry.JujutsuSounds;
+
+public final class ProjectJjkNobaraRuntime {
+	private ProjectJjkNobaraRuntime() {}
+
+	public static void prepareNails(ServerPlayer player, ItemStack usedStack, int useTicks) {
+		ServerLevel level = player.level();
+		int desiredCount = ProjectJjkNobaraProfile.nailCountForUseTicks(useTicks);
+		boolean creative = player.getAbilities().instabuild;
+		int available = creative ? desiredCount : countNails(player);
+		int nailCount = Math.min(desiredCount, available);
+		if (nailCount <= 0) {
+			player.displayClientMessage(Component.literal("No ProjectJJK nails to prepare."), true);
+			return;
+		}
+
+		if (!creative) {
+			consumeNails(player, usedStack, nailCount);
+		}
+
+		Vec3 look = safeDirection(player.getLookAngle());
+		List<Vec3> row = preparedRow(player.getEyePosition(), look, nailCount);
+		for (Vec3 position : row) {
+			ProjectJjkNailEntity nail = new ProjectJjkNailEntity(JujutsuEntities.PROJECTJJK_NAIL, level);
+			nail.prepare(player, position, look);
+			level.addFreshEntity(nail);
+		}
+
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 0.82f, 1.16f);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SPELL_SHOT, SoundSource.PLAYERS, 0.34f, 1.42f);
+		player.displayClientMessage(Component.literal("ProjectJJK Nobara prepared " + nailCount + " nail(s)."), true);
+	}
+
+	public static void launchHairpin(ServerPlayer player, ItemStack hammerStack, InteractionHand hand) {
+		ServerLevel level = player.level();
+		List<ProjectJjkNailEntity> nails = findPreparedNails(level, player);
+		if (nails.isEmpty()) {
+			player.displayClientMessage(Component.literal("Prepare ProjectJJK nails first."), true);
+			return;
+		}
+
+		TargetResolver.Result target = TargetResolver.resolve(level, player, ProjectJjkNobaraProfile.TARGET_RANGE);
+		Vec3 look = safeDirection(player.getLookAngle());
+		Vec3 right = rightOf(look);
+		Vec3 up = right.cross(look).normalize();
+		for (int index = 0; index < nails.size(); index++) {
+			ProjectJjkNailEntity nail = nails.get(index);
+			double centered = index - (nails.size() - 1.0) * 0.5;
+			Vec3 targetPoint = target.point()
+					.add(right.scale(centered * 0.11))
+					.add(up.scale(((index & 1) == 0 ? 0.06 : -0.06)));
+			nail.launchAt(targetPoint, Math.min(index, ProjectJjkNobaraProfile.PREPARED_LAUNCH_DELAY_TICKS));
+		}
+
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ANVIL_HIT, SoundSource.PLAYERS, 1.35f, 0.55f);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.NETHERITE_BLOCK_HIT, SoundSource.PLAYERS, 0.95f, 0.68f);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 1.2f, 0.82f);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_CINEMATIC_WHOOSH, SoundSource.PLAYERS, 0.88f, 0.86f);
+		damageHammer(player, hammerStack, hand);
+		player.displayClientMessage(Component.literal("ProjectJJK Hairpin launched " + nails.size() + " nail(s)."), true);
+	}
+
+	public static void resolveNailImpact(ServerLevel level, ProjectJjkNailEntity nail, HitResult hit) {
+		Vec3 point = hit.getLocation();
+		ServerPlayer owner = owner(level, nail.ownerUuid());
+		DamageSource source = owner == null ? level.damageSources().magic() : level.damageSources().playerAttack(owner);
+		if (hit instanceof EntityHitResult entityHit && entityHit.getEntity() instanceof LivingEntity directTarget) {
+			hurtTarget(level, owner, directTarget, source, ProjectJjkNobaraProfile.NAIL_DAMAGE, point, 0.9f);
+		}
+
+		AABB area = new AABB(point, point).inflate(ProjectJjkNobaraProfile.IMPACT_RADIUS);
+		float areaDamage = ProjectJjkNobaraProfile.HAIRPIN_DAMAGE / 4.0f;
+		for (Entity entity : level.getEntities(nail, area, candidate -> candidate instanceof LivingEntity living && living.isAlive())) {
+			if (entity instanceof LivingEntity living) {
+				hurtTarget(level, owner, living, source, areaDamage, point, ProjectJjkNobaraProfile.HAIRPIN_KNOCKBACK);
+			}
+		}
+
+		level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, point.x, point.y, point.z, 42, 0.55, 0.55, 0.55, 0.08);
+		level.sendParticles(ParticleTypes.ELECTRIC_SPARK, point.x, point.y, point.z, 34, 0.42, 0.42, 0.42, 0.18);
+		level.sendParticles(ParticleTypes.CRIT, point.x, point.y, point.z, 22, 0.35, 0.35, 0.35, 0.16);
+		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_WHOOSH_HIT, SoundSource.PLAYERS, 0.95f, 0.74f);
+		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_EXPLODE, SoundSource.PLAYERS, 0.72f, 0.82f);
+		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, SoundSource.PLAYERS, 0.56f, 1.08f);
+	}
+
+	private static List<ProjectJjkNailEntity> findPreparedNails(ServerLevel level, ServerPlayer player) {
+		Vec3 look = safeDirection(player.getLookAngle());
+		AABB bounds = player.getBoundingBox().inflate(ProjectJjkNobaraProfile.HAIRPIN_SEARCH_RANGE);
+		return level.getEntities(player, bounds, entity -> entity instanceof ProjectJjkNailEntity nail && nail.isPrepared() && nail.isOwnedBy(player.getUUID()))
+				.stream()
+				.map(ProjectJjkNailEntity.class::cast)
+				.filter(nail -> nail.position().subtract(player.getEyePosition()).dot(look) > -1.5)
+				.sorted(Comparator.comparingDouble(nail -> nail.distanceToSqr(player)))
+				.limit(ProjectJjkNobaraProfile.BARRAGE_NAILS)
+				.toList();
+	}
+
+	private static List<Vec3> preparedRow(Vec3 origin, Vec3 look, int nailCount) {
+		Vec3 forward = safeDirection(look);
+		Vec3 right = rightOf(forward);
+		Vec3 up = right.cross(forward).normalize();
+		int count = Math.max(0, Math.min(ProjectJjkNobaraProfile.BARRAGE_NAILS, nailCount));
+		return java.util.stream.IntStream.range(0, count)
+				.mapToObj(index -> {
+					double centered = index - (count - 1.0) * 0.5;
+					double row = count <= 4 ? 0.0 : (index < 4 ? 0.22 : -0.22);
+					double column = count <= 4 ? centered : (index % 4) - 1.5;
+					return origin
+							.add(forward.scale(ProjectJjkNobaraProfile.PREPARED_FORWARD_OFFSET + (index % 2) * 0.06))
+							.add(right.scale(column * 0.38))
+							.add(up.scale(row + ProjectJjkNobaraProfile.PREPARED_VERTICAL_OFFSET));
+				})
+				.toList();
+	}
+
+	private static void hurtTarget(ServerLevel level, ServerPlayer owner, LivingEntity target, DamageSource source, float damage, Vec3 impact, float knockback) {
+		if (owner != null && target.getUUID().equals(owner.getUUID())) {
+			return;
+		}
+		target.hurtServer(level, source, damage);
+		Vec3 direction = target.position().subtract(impact);
+		if (direction.lengthSqr() < 1.0E-5 && owner != null) {
+			direction = owner.getLookAngle();
+		}
+		direction = safeDirection(direction);
+		target.knockback(knockback, -direction.x, -direction.z);
+	}
+
+	private static ServerPlayer owner(ServerLevel level, UUID ownerUuid) {
+		return ownerUuid == null ? null : level.getServer().getPlayerList().getPlayer(ownerUuid);
+	}
+
+	private static int countNails(ServerPlayer player) {
+		int count = 0;
+		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+			ItemStack stack = player.getInventory().getItem(slot);
+			if (stack.is(JujutsuItems.PROJECTJJK_HAIRPIN_NAIL)) {
+				count += stack.getCount();
+			}
+		}
+		return count;
+	}
+
+	private static void consumeNails(ServerPlayer player, ItemStack usedStack, int count) {
+		int remaining = count;
+		if (usedStack.is(JujutsuItems.PROJECTJJK_HAIRPIN_NAIL)) {
+			int consumed = Math.min(remaining, usedStack.getCount());
+			usedStack.shrink(consumed);
+			remaining -= consumed;
+		}
+		for (int slot = 0; slot < player.getInventory().getContainerSize() && remaining > 0; slot++) {
+			ItemStack stack = player.getInventory().getItem(slot);
+			if (!stack.is(JujutsuItems.PROJECTJJK_HAIRPIN_NAIL)) {
+				continue;
+			}
+			int consumed = Math.min(remaining, stack.getCount());
+			stack.shrink(consumed);
+			remaining -= consumed;
+		}
+	}
+
+	private static void damageHammer(ServerPlayer player, ItemStack stack, InteractionHand hand) {
+		if (player.getAbilities().instabuild || stack.isEmpty()) {
+			return;
+		}
+		EquipmentSlot slot = hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND;
+		stack.hurtAndBreak(1, player.level(), player, item -> player.onEquippedItemBroken(item, slot));
+	}
+
+	private static Vec3 rightOf(Vec3 forward) {
+		Vec3 right = new Vec3(forward.z, 0.0, -forward.x);
+		return right.lengthSqr() < 1.0E-5 ? new Vec3(1.0, 0.0, 0.0) : right.normalize();
+	}
+
+	private static Vec3 safeDirection(Vec3 vector) {
+		return vector.lengthSqr() < 1.0E-5 ? new Vec3(0.0, 0.0, 1.0) : vector.normalize();
+	}
+}
