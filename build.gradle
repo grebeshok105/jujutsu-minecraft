@@ -71,11 +71,41 @@ tasks.register('testHairpinDebugLog', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testTargetResolver', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for gameplay target resolution'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.combat.TargetResolverTest'
+	jvmArgs '-ea'
+}
+
+tasks.register('testNobaraCombatStateManager', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for Nobara combat state'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.nobara.NobaraCombatStateManagerTest'
+	jvmArgs '-ea'
+}
+
+tasks.register('testHairpinGameplayService', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for Hairpin gameplay math'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.nobara.HairpinGameplayServiceTest'
+	jvmArgs '-ea'
+}
+
 tasks.named('check') {
 	dependsOn tasks.named('testHairpinTimeline')
 	dependsOn tasks.named('testHairpinVisualProfile')
 	dependsOn tasks.named('testProjectSanity')
 	dependsOn tasks.named('testHairpinDebugLog')
+	dependsOn tasks.named('testTargetResolver')
+	dependsOn tasks.named('testNobaraCombatStateManager')
+	dependsOn tasks.named('testHairpinGameplayService')
 }
 
 processResources {
