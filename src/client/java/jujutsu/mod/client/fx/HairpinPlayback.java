@@ -89,6 +89,8 @@ public final class HairpinPlayback {
 
 	private void playPhaseSound(ClientLevel level, HairpinTimeline.Phase phase) {
 		Vec3 target = target();
+		HairpinCinematicCamera.trigger(phase);
+		HairpinScreenOverlay.triggerCinematicBeat(phase);
 		switch (phase) {
 			case PREP_FREEZE -> play(level, target, JujutsuSounds.HAIRPIN_PREP, 0.45f, 0.8f);
 			case HAMMER_SNAP -> {

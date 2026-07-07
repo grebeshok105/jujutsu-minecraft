@@ -76,6 +76,50 @@ public final class HairpinWorldRenderer {
 				addRibbon(consumer, burstStart, burstEnd, burstSide, 91, 16, 27, coreAlpha);
 			}
 		}
+
+		if (phase == HairpinTimeline.Phase.HAIRPIN_BLOOM || phase == HairpinTimeline.Phase.AFTERGLOW) {
+			renderShockwave(consumer, target.subtract(cameraPosition), phase, progress);
+			renderFractureStar(consumer, target.subtract(cameraPosition), phase, progress);
+		}
+	}
+
+	private static void renderShockwave(VertexConsumer consumer, Vec3 center, HairpinTimeline.Phase phase, float progress) {
+		float bloom = phase == HairpinTimeline.Phase.HAIRPIN_BLOOM ? 1.0f - progress * 0.25f : 0.38f * (1.0f - progress);
+		if (bloom <= 0.01f) {
+			return;
+		}
+
+		double radius = phase == HairpinTimeline.Phase.HAIRPIN_BLOOM ? 0.28 + progress * 1.15 : 0.95 + progress * 0.55;
+		float width = phase == HairpinTimeline.Phase.HAIRPIN_BLOOM ? 0.028f : 0.018f;
+		int alpha = Math.min(185, Math.round(180.0f * bloom));
+		int segments = 18;
+		for (int index = 0; index < segments; index++) {
+			double a0 = (Math.PI * 2.0 * index) / segments;
+			double a1 = (Math.PI * 2.0 * (index + 1)) / segments;
+			Vec3 start = center.add(Math.cos(a0) * radius, Math.sin(a0 * 2.0) * 0.035, Math.sin(a0) * radius);
+			Vec3 end = center.add(Math.cos(a1) * radius, Math.sin(a1 * 2.0) * 0.035, Math.sin(a1) * radius);
+			Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), width);
+			addRibbon(consumer, start, end, side, 112, 10, 28, alpha);
+		}
+	}
+
+	private static void renderFractureStar(VertexConsumer consumer, Vec3 center, HairpinTimeline.Phase phase, float progress) {
+		float fade = phase == HairpinTimeline.Phase.HAIRPIN_BLOOM ? 1.0f - progress : 0.28f * (1.0f - progress);
+		if (fade <= 0.01f) {
+			return;
+		}
+
+		int alpha = Math.min(210, Math.round(205.0f * fade));
+		for (int index = 0; index < 7; index++) {
+			double angle = index * 0.897 + 0.35;
+			double length = 0.42 + (index % 3) * 0.18 + progress * 0.34;
+			Vec3 direction = new Vec3(Math.cos(angle), (index % 2 == 0 ? 0.08 : -0.05), Math.sin(angle)).normalize();
+			Vec3 start = center.add(direction.scale(0.08));
+			Vec3 end = center.add(direction.scale(length));
+			Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), 0.016f + index % 2 * 0.008f);
+			addRibbon(consumer, start, end, side, 22, 8, 12, alpha);
+			addRibbon(consumer, start.add(side.scale(1.8)), end.add(side.scale(0.55)), side.scale(0.3), 152, 16, 35, alpha / 3);
+		}
 	}
 
 	private static void renderNailMarker(VertexConsumer consumer, Vec3 anchor, Vec3 direction, HairpinTimeline.Phase phase, float progress) {
