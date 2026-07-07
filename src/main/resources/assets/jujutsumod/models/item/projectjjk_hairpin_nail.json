@@ -1,0 +1,53 @@
+{
+  "textures": {
+    "particle": "jujutsumod:item/projectjjk/entity/nail",
+    "nail": "jujutsumod:item/projectjjk/entity/nail"
+  },
+  "elements": [
+    {
+      "from": [7.35, 3.0, 7.35],
+      "to": [8.65, 13.0, 8.65],
+      "rotation": {"origin": [8.0, 8.0, 8.0], "axis": "z", "angle": -22.5},
+      "faces": {
+        "north": {"texture": "#nail", "uv": [0, 5, 4, 9]},
+        "south": {"texture": "#nail", "uv": [0, 5, 4, 9]},
+        "east": {"texture": "#nail", "uv": [0, 5, 4, 9]},
+        "west": {"texture": "#nail", "uv": [0, 5, 4, 9]},
+        "up": {"texture": "#nail", "uv": [0, 8, 4, 10]},
+        "down": {"texture": "#nail", "uv": [0, 5, 4, 9]}
+      }
+    },
+    {
+      "from": [6.55, 12.65, 6.55],
+      "to": [9.45, 15.05, 9.45],
+      "rotation": {"origin": [8.0, 8.0, 8.0], "axis": "z", "angle": -22.5},
+      "faces": {
+        "north": {"texture": "#nail", "uv": [3, 0, 8, 3]},
+        "south": {"texture": "#nail", "uv": [3, 0, 8, 3]},
+        "east": {"texture": "#nail", "uv": [3, 0, 8, 3]},
+        "west": {"texture": "#nail", "uv": [3, 0, 8, 3]},
+        "up": {"texture": "#nail", "uv": [3, 0, 8, 3]},
+        "down": {"texture": "#nail", "uv": [0, 3, 11, 4]}
+      }
+    },
+    {
+      "from": [7.55, 1.55, 7.55],
+      "to": [8.45, 3.15, 8.45],
+      "rotation": {"origin": [8.0, 8.0, 8.0], "axis": "z", "angle": -22.5},
+      "faces": {
+        "north": {"texture": "#nail", "uv": [0, 8, 4, 10]},
+        "south": {"texture": "#nail", "uv": [0, 8, 4, 10]},
+        "east": {"texture": "#nail", "uv": [0, 8, 4, 10]},
+        "west": {"texture": "#nail", "uv": [0, 8, 4, 10]},
+        "up": {"texture": "#nail", "uv": [0, 8, 4, 10]},
+        "down": {"texture": "#nail", "uv": [0, 8, 4, 10]}
+      }
+    }
+  ],
+  "display": {
+    "thirdperson_righthand": {"rotation": [0, -90, 55], "translation": [0, 2.5, 1.25], "scale": [0.72, 0.72, 0.72]},
+    "firstperson_righthand": {"rotation": [0, -90, 35], "translation": [1.0, 3.0, 1.0], "scale": [0.82, 0.82, 0.82]},
+    "ground": {"rotation": [0, 0, -22.5], "translation": [0, 2.0, 0], "scale": [0.62, 0.62, 0.62]},
+    "gui": {"rotation": [25, -35, -35], "translation": [0, 0, 0], "scale": [1.05, 1.05, 1.05]}
+  }
+}

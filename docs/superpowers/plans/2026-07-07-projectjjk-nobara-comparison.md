@@ -12,7 +12,7 @@
 
 - Keep the current Nobara items and behavior intact.
 - Add ProjectJJK comparison items with separate ids.
-- Use ProjectJJK assets only under `assets/jujutsumod/projectjjk/...`.
+- Use ProjectJJK assets only under `assets/jujutsumod/**/projectjjk/...`.
 - Do not copy ProjectJJK Java code, mixins, access wideners, bundled jars, or dependencies.
 - Do not add GeckoLib in this pass.
 - Keep server-authoritative gameplay.

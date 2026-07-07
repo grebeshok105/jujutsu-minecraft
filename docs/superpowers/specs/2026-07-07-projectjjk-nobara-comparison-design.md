@@ -12,7 +12,7 @@ Add a separate ProjectJJK-inspired Nobara slice beside the current `jujutsumod` 
 - Add separate ProjectJJK comparison items:
   - `jujutsumod:projectjjk_hairpin_nail`
   - `jujutsumod:projectjjk_straw_doll_hammer`
-- Import useful ProjectJJK assets into `assets/jujutsumod/projectjjk/...` only after the user stated the ProjectJJK author allowed asset use.
+- Import useful ProjectJJK assets under `assets/jujutsumod/**/projectjjk/...` only after the user stated the ProjectJJK author allowed asset use.
 - Do not copy ProjectJJK Java code, mixins, access wideners, bundled jars, shader overrides, or runtime dependencies.
 - Do not add GeckoLib in this pass. Keep imported `.geo.json` and animation files as runtime/reference assets, and render the comparison nail through Fabric/Minecraft-native code.
 - Keep gameplay server-authoritative.
@@ -36,5 +36,5 @@ The comparison path intentionally stays small:
 - ProjectJJK hammer hit immediately plays a heavy metal/anvil-like hit, imported ProjectJJK snap/impact sounds, camera shake, and overlay punch.
 - ProjectJJK nails fly much faster than the current cinematic row and feel like a strike.
 - ProjectJJK nail visuals use the same item/model path as the ProjectJJK nail item.
-- Imported ProjectJJK assets are namespaced under `jujutsumod`, with no `projectjjk` namespace runtime dependency.
+- Imported ProjectJJK assets are namespaced under `jujutsumod`, with `projectjjk` kept as a resource path segment and no `projectjjk` namespace runtime dependency.
 - `gradlew.bat check --no-daemon` and `gradlew.bat build --no-daemon -x test` pass with JDK 21.
