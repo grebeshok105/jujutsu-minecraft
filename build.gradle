@@ -53,6 +53,15 @@ tasks.register('testHairpinVisualProfile', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testProjectSanity', JavaExec) {
+	group = 'verification'
+	description = 'Runs resource and side-separation sanity checks'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.ProjectSanityTest'
+	jvmArgs '-ea'
+}
+
 processResources {
 	def version = project.version
 	inputs.property "version", version
