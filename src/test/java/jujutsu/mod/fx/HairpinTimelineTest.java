@@ -36,6 +36,8 @@ public final class HairpinTimelineTest {
 		assert HairpinTimeline.elapsedMillisFromGameTime(startGameTime, 1198L) == 0L;
 		assert HairpinTimeline.elapsedMillisFromGameTime(startGameTime, 1201L) == 50L;
 		assert HairpinTimeline.elapsedMillisFromGameTime(startGameTime, 1212L) == 600L;
+		assert HairpinTimeline.elapsedMillisFromGameTime(startGameTime, 1212L, 0.5f) == 625L;
+		assert HairpinTimeline.elapsedMillisFromGameTime(startGameTime, 1212L, 1.8f) == 650L;
 		assert HairpinTimeline.phaseAtGameTime(startGameTime, 1212L) == HairpinTimeline.Phase.HAIRPIN_BLOOM;
 	}
 

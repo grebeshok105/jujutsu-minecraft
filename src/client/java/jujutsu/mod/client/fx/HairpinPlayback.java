@@ -28,12 +28,20 @@ public final class HairpinPlayback {
 		return HairpinTimeline.elapsedMillisFromGameTime(payload.startGameTime(), currentGameTime);
 	}
 
+	public long elapsedMillis(long currentGameTime, float partialTick) {
+		return HairpinTimeline.elapsedMillisFromGameTime(payload.startGameTime(), currentGameTime, partialTick);
+	}
+
 	public HairpinTimeline.Phase phase(long currentGameTime) {
 		return HairpinTimeline.phaseAtGameTime(payload.startGameTime(), currentGameTime);
 	}
 
 	public float progressInPhase(long currentGameTime) {
 		return HairpinTimeline.progressInPhase(elapsedMillis(currentGameTime));
+	}
+
+	public float progressInPhase(long currentGameTime, float partialTick) {
+		return HairpinTimeline.progressInPhase(elapsedMillis(currentGameTime, partialTick));
 	}
 
 	public boolean isDone(long currentGameTime) {

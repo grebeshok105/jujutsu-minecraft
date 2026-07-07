@@ -55,7 +55,6 @@ public final class HairpinVisualProfile {
 				new ParticleBudget(ParticleFamily.IGNITION_TICK, 2, 0)
 		));
 		budgets.put(HairpinTimeline.Phase.NAIL_IGNITION, List.of(
-				new ParticleBudget(ParticleFamily.WARN_EDGE, 1, 0),
 				new ParticleBudget(ParticleFamily.COMPRESSION_MOTE, 5, 0),
 				new ParticleBudget(ParticleFamily.IGNITION_TICK, 1, 0)
 		));

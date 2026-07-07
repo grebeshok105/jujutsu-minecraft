@@ -21,7 +21,8 @@ public final class HairpinVisualProfileTest {
 		assert contains(budgets, HairpinVisualProfile.ParticleFamily.WARN_EDGE);
 		assert contains(budgets, HairpinVisualProfile.ParticleFamily.IGNITION_TICK);
 		assert !contains(budgets, HairpinVisualProfile.ParticleFamily.BURST_RESIDUE);
-		assert HairpinVisualProfile.warningDurationTicks() >= 6;
+		assert HairpinVisualProfile.warningDurationTicks() == 6;
+		assert !contains(HairpinVisualProfile.budgetsForPhase(HairpinTimeline.Phase.NAIL_IGNITION), HairpinVisualProfile.ParticleFamily.WARN_EDGE);
 	}
 
 	private static void assertBloomCarriesBurstFamilies() {

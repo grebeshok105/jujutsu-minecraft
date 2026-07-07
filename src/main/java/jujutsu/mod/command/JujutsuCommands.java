@@ -10,6 +10,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.debug.HairpinDebugLog;
+import jujutsu.mod.fx.HairpinTimeline;
 import jujutsu.mod.network.HairpinFxPayload;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuParticles;
@@ -29,22 +30,22 @@ public final class JujutsuCommands {
 				.requires(source -> source.hasPermission(2))
 				.then(Commands.literal("hairpin")
 						.then(Commands.literal("particles")
-								.executes(ctx -> playHairpinParticleSmoke(ctx.getSource())))
+								.executes(ctx -> playHairpinParticlePreview(ctx.getSource())))
 						.then(Commands.literal("particle")
 								.then(Commands.literal("mark_stain")
-										.executes(ctx -> playSingleParticle(ctx.getSource(), "mark_stain", JujutsuParticles.HAIRPIN_MARK_STAIN, 36, 0.28, 0.18, 0.28, 0.02)))
+										.executes(ctx -> playSingleParticle(ctx.getSource(), "mark_stain", JujutsuParticles.HAIRPIN_MARK_STAIN)))
 								.then(Commands.literal("warn_edge")
-										.executes(ctx -> playSingleParticle(ctx.getSource(), "warn_edge", JujutsuParticles.HAIRPIN_WARN_EDGE, 42, 0.2, 0.2, 0.2, 0.05)))
+										.executes(ctx -> playSingleParticle(ctx.getSource(), "warn_edge", JujutsuParticles.HAIRPIN_WARN_EDGE)))
 								.then(Commands.literal("compression_mote")
-										.executes(ctx -> playSingleParticle(ctx.getSource(), "compression_mote", JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, 52, 0.28, 0.28, 0.28, 0.05)))
+										.executes(ctx -> playSingleParticle(ctx.getSource(), "compression_mote", JujutsuParticles.HAIRPIN_COMPRESSION_MOTE)))
 								.then(Commands.literal("snap_crack")
-										.executes(ctx -> playSingleParticle(ctx.getSource(), "snap_crack", JujutsuParticles.HAIRPIN_SNAP_CRACK, 42, 0.18, 0.18, 0.18, 0.04)))
+										.executes(ctx -> playSingleParticle(ctx.getSource(), "snap_crack", JujutsuParticles.HAIRPIN_SNAP_CRACK)))
 								.then(Commands.literal("burst_residue")
-										.executes(ctx -> playSingleParticle(ctx.getSource(), "burst_residue", JujutsuParticles.HAIRPIN_BURST_RESIDUE, 56, 0.35, 0.25, 0.35, 0.07)))
+										.executes(ctx -> playSingleParticle(ctx.getSource(), "burst_residue", JujutsuParticles.HAIRPIN_BURST_RESIDUE)))
 								.then(Commands.literal("metal_shard")
-										.executes(ctx -> playSingleParticle(ctx.getSource(), "metal_shard", JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, 22, 0.36, 0.2, 0.36, 0.14)))
+										.executes(ctx -> playSingleParticle(ctx.getSource(), "metal_shard", JujutsuParticles.HAIRPIN_BURST_METAL_SHARD)))
 								.then(Commands.literal("ignition_tick")
-										.executes(ctx -> playSingleParticle(ctx.getSource(), "ignition_tick", JujutsuParticles.HAIRPIN_IGNITION_TICK, 42, 0.18, 0.18, 0.18, 0.05))))
+										.executes(ctx -> playSingleParticle(ctx.getSource(), "ignition_tick", JujutsuParticles.HAIRPIN_IGNITION_TICK))))
 						.then(Commands.literal("stage")
 								.then(Commands.literal("mark")
 										.executes(ctx -> playHairpinStage(ctx.getSource(), "mark")))
@@ -79,56 +80,34 @@ public final class JujutsuCommands {
 		return 1;
 	}
 
-	private static int playSingleParticle(CommandSourceStack source, String label, SimpleParticleType type, int count, double xSpread, double ySpread, double zSpread, double speed) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+	private static int playSingleParticle(CommandSourceStack source, String label, SimpleParticleType type) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
 		VisualProbe probe = createVisualProbe(source, 3.0);
-		sendSmokeParticles(source, probe.player(), label, type, probe.center(), count, xSpread, ySpread, zSpread, speed);
+		sendControlledParticle(source, probe.player(), label, type, probe.center());
 		HairpinDebugLog.info("command /jujutsu hairpin particle {} player={} center={}", label, probe.player().getGameProfile().getName(), HairpinDebugLog.vec(probe.center()));
-		source.sendSuccess(() -> Component.literal("Spawned Hairpin particle family: " + label), false);
+		source.sendSuccess(() -> Component.literal("Spawned controlled Hairpin particle: " + label), false);
 		return 1;
 	}
 
 	private static int playHairpinStage(CommandSourceStack source, String stage) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-		VisualProbe probe = createVisualProbe(source, 3.0);
-		Vec3 center = probe.center();
-		Vec3 right = probe.right();
-		Vec3 up = probe.up();
-
-		switch (stage) {
-			case "mark" -> {
-				sendSmokeParticles(source, probe.player(), "stage.mark.stain_left", JujutsuParticles.HAIRPIN_MARK_STAIN, center.add(right.scale(-0.45)), 26, 0.16, 0.1, 0.16, 0.01);
-				sendSmokeParticles(source, probe.player(), "stage.mark.stain_right", JujutsuParticles.HAIRPIN_MARK_STAIN, center.add(right.scale(0.45)), 26, 0.16, 0.1, 0.16, 0.01);
-			}
-			case "warning" -> {
-				sendSmokeParticles(source, probe.player(), "stage.warning.edge", JujutsuParticles.HAIRPIN_WARN_EDGE, center, 48, 0.24, 0.18, 0.24, 0.04);
-				sendSmokeParticles(source, probe.player(), "stage.warning.ignition", JujutsuParticles.HAIRPIN_IGNITION_TICK, center.add(up.scale(0.15)), 30, 0.16, 0.16, 0.16, 0.04);
-			}
-			case "compression" -> {
-				sendSmokeParticles(source, probe.player(), "stage.compression.left", JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, center.add(right.scale(-0.8)), 34, 0.16, 0.16, 0.16, 0.05);
-				sendSmokeParticles(source, probe.player(), "stage.compression.right", JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, center.add(right.scale(0.8)), 34, 0.16, 0.16, 0.16, 0.05);
-				sendSmokeParticles(source, probe.player(), "stage.compression.center", JujutsuParticles.HAIRPIN_WARN_EDGE, center, 18, 0.12, 0.12, 0.12, 0.02);
-			}
-			case "snap" -> {
-				sendSmokeParticles(source, probe.player(), "stage.snap.crack", JujutsuParticles.HAIRPIN_SNAP_CRACK, center, 52, 0.2, 0.16, 0.2, 0.04);
-				sendSmokeParticles(source, probe.player(), "stage.snap.ignition", JujutsuParticles.HAIRPIN_IGNITION_TICK, center.add(up.scale(0.1)), 24, 0.12, 0.12, 0.12, 0.03);
-			}
-			case "burst" -> {
-				sendSmokeParticles(source, probe.player(), "stage.burst.residue", JujutsuParticles.HAIRPIN_BURST_RESIDUE, center, 64, 0.36, 0.24, 0.36, 0.08);
-				sendSmokeParticles(source, probe.player(), "stage.burst.shard", JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, center.add(up.scale(0.1)), 46, 0.3, 0.2, 0.3, 0.12);
-				sendSmokeParticles(source, probe.player(), "stage.burst.snap", JujutsuParticles.HAIRPIN_SNAP_CRACK, center.add(right.scale(0.2)), 20, 0.16, 0.16, 0.16, 0.04);
-			}
-			case "afterglow" -> sendSmokeParticles(source, probe.player(), "stage.afterglow.residue", JujutsuParticles.HAIRPIN_BURST_RESIDUE, center, 38, 0.32, 0.18, 0.32, 0.035);
+		HairpinTimeline.Phase phase = switch (stage) {
+			case "mark" -> HairpinTimeline.Phase.PREP_FREEZE;
+			case "warning" -> HairpinTimeline.Phase.HAMMER_SNAP;
+			case "compression" -> HairpinTimeline.Phase.NAIL_IGNITION;
+			case "snap", "burst" -> HairpinTimeline.Phase.HAIRPIN_BLOOM;
+			case "afterglow" -> HairpinTimeline.Phase.AFTERGLOW;
 			default -> {
 				source.sendFailure(Component.literal("Unknown Hairpin stage: " + stage));
-				return 0;
+				yield null;
 			}
+		};
+		if (phase == null) {
+			return 0;
 		}
 
-		HairpinDebugLog.info("command /jujutsu hairpin stage {} player={} center={}", stage, probe.player().getGameProfile().getName(), HairpinDebugLog.vec(center));
-		source.sendSuccess(() -> Component.literal("Spawned Hairpin stage: " + stage), false);
-		return 1;
+		return playHairpinAtPhase(source, phase, "stage " + stage);
 	}
 
-	private static int playHairpinParticleSmoke(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+	private static int playHairpinParticlePreview(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
 		VisualProbe probe = createVisualProbe(source, 3.0);
 		ServerPlayer player = probe.player();
 		Vec3 look = probe.look();
@@ -137,15 +116,15 @@ public final class JujutsuCommands {
 		Vec3 up = probe.up();
 
 		HairpinDebugLog.info("command /jujutsu hairpin particles player={} center={} look={}", player.getGameProfile().getName(), HairpinDebugLog.vec(center), HairpinDebugLog.vec(look));
-		sendSmokeParticles(source, player, "mark_stain", JujutsuParticles.HAIRPIN_MARK_STAIN, center.add(up.scale(0.75)), 18, 0.28, 0.18, 0.28, 0.02);
-		sendSmokeParticles(source, player, "warn_edge", JujutsuParticles.HAIRPIN_WARN_EDGE, center.add(right.scale(-0.9)), 24, 0.18, 0.18, 0.18, 0.06);
-		sendSmokeParticles(source, player, "compression_mote", JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, center.add(right.scale(0.9)), 34, 0.22, 0.22, 0.22, 0.05);
-		sendSmokeParticles(source, player, "snap_crack", JujutsuParticles.HAIRPIN_SNAP_CRACK, center, 24, 0.18, 0.18, 0.18, 0.05);
-		sendSmokeParticles(source, player, "burst_residue", JujutsuParticles.HAIRPIN_BURST_RESIDUE, center.add(up.scale(-0.65)), 26, 0.34, 0.2, 0.34, 0.065);
-		sendSmokeParticles(source, player, "burst_metal_shard", JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, center.add(right.scale(-0.35)).add(up.scale(-0.25)), 16, 0.32, 0.18, 0.32, 0.14);
-		sendSmokeParticles(source, player, "ignition_tick", JujutsuParticles.HAIRPIN_IGNITION_TICK, center.add(right.scale(0.35)).add(up.scale(-0.25)), 30, 0.18, 0.18, 0.18, 0.06);
+		sendControlledParticle(source, player, "mark_stain", JujutsuParticles.HAIRPIN_MARK_STAIN, center.add(up.scale(0.75)));
+		sendControlledParticle(source, player, "warn_edge", JujutsuParticles.HAIRPIN_WARN_EDGE, center.add(right.scale(-0.9)));
+		sendControlledParticle(source, player, "compression_mote", JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, center.add(right.scale(0.9)));
+		sendControlledParticle(source, player, "snap_crack", JujutsuParticles.HAIRPIN_SNAP_CRACK, center);
+		sendControlledParticle(source, player, "burst_residue", JujutsuParticles.HAIRPIN_BURST_RESIDUE, center.add(up.scale(-0.65)));
+		sendControlledParticle(source, player, "burst_metal_shard", JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, center.add(right.scale(-0.35)).add(up.scale(-0.25)));
+		sendControlledParticle(source, player, "ignition_tick", JujutsuParticles.HAIRPIN_IGNITION_TICK, center.add(right.scale(0.35)).add(up.scale(-0.25)));
 
-		source.sendSuccess(() -> Component.literal("Spawned Hairpin particle smoke test."), false);
+		source.sendSuccess(() -> Component.literal("Spawned controlled Hairpin particle preview."), false);
 		return 1;
 	}
 
@@ -164,14 +143,47 @@ public final class JujutsuCommands {
 		return new VisualProbe(player, look, center, right, up);
 	}
 
-	private static void sendSmokeParticles(CommandSourceStack source, ServerPlayer player, String label, SimpleParticleType type, Vec3 position, int count, double xSpread, double ySpread, double zSpread, double speed) {
-		boolean sent = source.getLevel().sendParticles(player, type, true, true, position.x, position.y, position.z, count, xSpread, ySpread, zSpread, speed);
-		HairpinDebugLog.info("smoke particles label={} sent={} count={} pos={} spread={},{},{} speed={}", label, sent, count, HairpinDebugLog.vec(position), xSpread, ySpread, zSpread, speed);
+	private static void sendControlledParticle(CommandSourceStack source, ServerPlayer player, String label, SimpleParticleType type, Vec3 position) {
+		boolean sent = source.getLevel().sendParticles(player, type, true, true, position.x, position.y, position.z, 1, 0.0, 0.0, 0.0, 0.0);
+		HairpinDebugLog.info("controlled particle label={} sent={} pos={}", label, sent, HairpinDebugLog.vec(position));
 	}
 
 	private record VisualProbe(ServerPlayer player, Vec3 look, Vec3 center, Vec3 right, Vec3 up) {}
+	private record HairpinCast(ServerPlayer player, Vec3 look, Vec3 target, Vec3 nail0, Vec3 nail1, Vec3 nail2, Vec3 nail3, HairpinFxPayload payload) {}
 
 	private static int playHairpin(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		return playHairpinAtPhase(source, HairpinTimeline.Phase.PREP_FREEZE, "cinematic prototype");
+	}
+
+	private static int playHairpinAtPhase(CommandSourceStack source, HairpinTimeline.Phase phase, String label) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		long phaseOffsetTicks = Math.round(HairpinTimeline.phaseStartMillis(phase) / 50.0f);
+		long startGameTime = Math.max(0L, source.getLevel().getGameTime() - phaseOffsetTicks);
+		HairpinCast cast = createHairpinCast(source, startGameTime);
+		HairpinDebugLog.info(
+				"command /jujutsu hairpin {} player={} seed={} phase={} startGameTime={} target={} look={} nails=[{}|{}|{}|{}]",
+				label,
+				cast.player().getGameProfile().getName(),
+				cast.payload().seed(),
+				phase,
+				startGameTime,
+				HairpinDebugLog.vec(cast.target()),
+				HairpinDebugLog.vec(cast.look()),
+				HairpinDebugLog.vec(cast.nail0()),
+				HairpinDebugLog.vec(cast.nail1()),
+				HairpinDebugLog.vec(cast.nail2()),
+				HairpinDebugLog.vec(cast.nail3())
+		);
+		int sent = JujutsuNetworking.broadcastHairpin(source.getLevel(), cast.target(), BROADCAST_RADIUS, cast.payload());
+		HairpinDebugLog.info("command /jujutsu hairpin broadcast sent={} radius={} seed={}", sent, BROADCAST_RADIUS, cast.payload().seed());
+		if (sent == 0) {
+			source.sendFailure(Component.literal("No nearby client can receive Hairpin."));
+			return 0;
+		}
+		source.sendSuccess(() -> Component.literal("Triggered Hairpin " + label + " for " + sent + " client(s)."), false);
+		return 1;
+	}
+
+	private static HairpinCast createHairpinCast(CommandSourceStack source, long startGameTime) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
 		ServerPlayer player = source.getPlayerOrException();
 		Vec3 eye = player.getEyePosition();
 		Vec3 look = player.getLookAngle();
@@ -195,7 +207,7 @@ public final class JujutsuCommands {
 				target.x,
 				target.y,
 				target.z,
-				source.getLevel().getGameTime(),
+				startGameTime,
 				nail0.x,
 				nail0.y,
 				nail0.z,
@@ -209,15 +221,6 @@ public final class JujutsuCommands {
 				nail3.y,
 				nail3.z
 		);
-
-		HairpinDebugLog.info("command /jujutsu hairpin player={} seed={} target={} look={} nails=[{}|{}|{}|{}]", player.getGameProfile().getName(), seed, HairpinDebugLog.vec(target), HairpinDebugLog.vec(look), HairpinDebugLog.vec(nail0), HairpinDebugLog.vec(nail1), HairpinDebugLog.vec(nail2), HairpinDebugLog.vec(nail3));
-		int sent = JujutsuNetworking.broadcastHairpin(source.getLevel(), target, BROADCAST_RADIUS, payload);
-		HairpinDebugLog.info("command /jujutsu hairpin broadcast sent={} radius={} seed={}", sent, BROADCAST_RADIUS, seed);
-		if (sent == 0) {
-			source.sendFailure(Component.literal("No nearby client can receive Hairpin."));
-			return 0;
-		}
-		source.sendSuccess(() -> Component.literal("Triggered Hairpin cinematic prototype for " + sent + " client(s)."), false);
-		return 1;
+		return new HairpinCast(player, look, target, nail0, nail1, nail2, nail3, payload);
 	}
 }

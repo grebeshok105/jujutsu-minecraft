@@ -28,6 +28,7 @@ public final class HairpinWorldRenderer {
 		}
 
 		long gameTime = context.world().getGameTime();
+		float partialTick = context.tickCounter().getGameTimeDeltaPartialTick(false);
 		Camera camera = context.camera();
 		Vec3 cameraPosition = camera.getPosition();
 		VertexConsumer consumer = consumers.getBuffer(RenderType.lightning());
@@ -37,7 +38,7 @@ public final class HairpinWorldRenderer {
 			if (phase == HairpinTimeline.Phase.DONE) {
 				continue;
 			}
-			renderPlayback(consumer, playback, cameraPosition, phase, playback.progressInPhase(gameTime));
+			renderPlayback(consumer, playback, cameraPosition, phase, playback.progressInPhase(gameTime, partialTick));
 		}
 	}
 

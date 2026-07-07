@@ -26,6 +26,11 @@ public final class HairpinTimeline {
 		return Math.max(0L, currentGameTime - startGameTime) * 50L;
 	}
 
+	public static long elapsedMillisFromGameTime(long startGameTime, long currentGameTime, float partialTick) {
+		float clampedPartialTick = Math.max(0.0f, Math.min(1.0f, partialTick));
+		return Math.max(0L, Math.round((Math.max(0L, currentGameTime - startGameTime) + clampedPartialTick) * 50.0f));
+	}
+
 	public static Phase phaseAtGameTime(long startGameTime, long currentGameTime) {
 		return phaseAt(elapsedMillisFromGameTime(startGameTime, currentGameTime));
 	}
