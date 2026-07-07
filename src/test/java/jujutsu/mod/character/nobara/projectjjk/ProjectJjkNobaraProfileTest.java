@@ -8,6 +8,7 @@ public final class ProjectJjkNobaraProfileTest {
 		assertShortHoldPreparesTripleNails();
 		assertLongHoldPreparesBarrageNails();
 		assertWorldNailsPersistLikeProjectJjkReference();
+		assertNailsLaunchWithTwoTickStagger();
 		System.out.println("ProjectJjkNobaraProfileTest passed");
 	}
 
@@ -30,5 +31,12 @@ public final class ProjectJjkNobaraProfileTest {
 		assert ProjectJjkNobaraProfile.MAX_NAIL_AGE_TICKS == 1200 : "ProjectJJK reference nails persist for 1200 ticks";
 		assert ProjectJjkNobaraProfile.LAUNCH_SPEED_BLOCKS_PER_TICK >= 2.8 : "comparison nails should launch sharply";
 		assert ProjectJjkNobaraProfile.PREPARED_FORWARD_OFFSET > 1.0 : "prepared nails should spawn in front of the caster";
+	}
+
+	private static void assertNailsLaunchWithTwoTickStagger() {
+		assert ProjectJjkNobaraProfile.PREPARED_LAUNCH_DELAY_TICKS == 2 : "0.1 second nail stagger should be two ticks";
+		assert ProjectJjkNobaraProfile.launchDelayForIndex(0) == 0 : "first nail should launch immediately";
+		assert ProjectJjkNobaraProfile.launchDelayForIndex(1) == 2 : "second nail should launch after 0.1s";
+		assert ProjectJjkNobaraProfile.launchDelayForIndex(7) == 14 : "barrage should keep staggering every nail";
 	}
 }

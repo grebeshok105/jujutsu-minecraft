@@ -19,9 +19,11 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3f;
 
 public final class ProjectJjkNailEntity extends Entity {
 	private static final EntityDataAccessor<Boolean> DATA_FLYING = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.BOOLEAN);
+	private static final EntityDataAccessor<Vector3f> DATA_FORWARD = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.VECTOR3);
 	private static final String OWNER_UUID_TAG = "OwnerUuid";
 	private static final String OWNER_ENTITY_ID_TAG = "OwnerEntityId";
 	private static final String LAUNCHED_TAG = "Launched";
@@ -29,6 +31,9 @@ public final class ProjectJjkNailEntity extends Entity {
 	private static final String TARGET_X_TAG = "TargetX";
 	private static final String TARGET_Y_TAG = "TargetY";
 	private static final String TARGET_Z_TAG = "TargetZ";
+	private static final String DIRECTION_X_TAG = "DirectionX";
+	private static final String DIRECTION_Y_TAG = "DirectionY";
+	private static final String DIRECTION_Z_TAG = "DirectionZ";
 
 	private UUID ownerUuid;
 	private int ownerEntityId = -1;
@@ -87,6 +92,11 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	public UUID ownerUuid() {
 		return ownerUuid;
+	}
+
+	public Vec3 forwardDirection() {
+		Vector3f forward = entityData.get(DATA_FORWARD);
+		return safeDirection(new Vec3(forward.x(), forward.y(), forward.z()));
 	}
 
 	@Override
@@ -149,6 +159,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	@Override
 	protected void defineSynchedData(SynchedEntityData.Builder builder) {
 		builder.define(DATA_FLYING, false);
+		builder.define(DATA_FORWARD, new Vector3f(0.0f, 0.0f, 1.0f));
 	}
 
 	@Override
@@ -162,6 +173,10 @@ public final class ProjectJjkNailEntity extends Entity {
 		output.putDouble(TARGET_X_TAG, target.x);
 		output.putDouble(TARGET_Y_TAG, target.y);
 		output.putDouble(TARGET_Z_TAG, target.z);
+		Vec3 forward = forwardDirection();
+		output.putDouble(DIRECTION_X_TAG, forward.x);
+		output.putDouble(DIRECTION_Y_TAG, forward.y);
+		output.putDouble(DIRECTION_Z_TAG, forward.z);
 	}
 
 	@Override
@@ -173,6 +188,7 @@ public final class ProjectJjkNailEntity extends Entity {
 		launchDelayTicks = input.getIntOr(LAUNCH_DELAY_TAG, 0);
 		target = new Vec3(input.getDoubleOr(TARGET_X_TAG, getX()), input.getDoubleOr(TARGET_Y_TAG, getY()), input.getDoubleOr(TARGET_Z_TAG, getZ()));
 		pendingLaunchDirection = safeDirection(target.subtract(position()));
+		face(new Vec3(input.getDoubleOr(DIRECTION_X_TAG, pendingLaunchDirection.x), input.getDoubleOr(DIRECTION_Y_TAG, pendingLaunchDirection.y), input.getDoubleOr(DIRECTION_Z_TAG, pendingLaunchDirection.z)));
 		setFlightSynced(launched && launchDelayTicks <= 0);
 	}
 
@@ -215,6 +231,7 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	private void face(Vec3 vector) {
 		Vec3 direction = safeDirection(vector);
+		entityData.set(DATA_FORWARD, new Vector3f((float) direction.x, (float) direction.y, (float) direction.z));
 		double horizontal = Math.sqrt(direction.x * direction.x + direction.z * direction.z);
 		setYRot((float) (Mth.atan2(direction.x, direction.z) * Mth.RAD_TO_DEG));
 		setXRot((float) (-Mth.atan2(direction.y, horizontal) * Mth.RAD_TO_DEG));

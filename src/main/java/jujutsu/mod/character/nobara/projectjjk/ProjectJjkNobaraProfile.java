@@ -29,4 +29,8 @@ public final class ProjectJjkNobaraProfile {
 		}
 		return SINGLE_NAILS;
 	}
+
+	public static int launchDelayForIndex(int index) {
+		return Math.max(0, index) * PREPARED_LAUNCH_DELAY_TICKS;
+	}
 }

@@ -49,7 +49,7 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 	@Override
 	public void extractRenderState(ProjectJjkNailEntity entity, State state, float partialTick) {
 		super.extractRenderState(entity, state, partialTick);
-		state.direction = safeDirection(entity.getViewVector(partialTick));
+		state.direction = safeDirection(entity.forwardDirection());
 		state.launched = entity.isFlying();
 		state.seed = entity.getId();
 		state.age = entity.tickCount + partialTick;
@@ -60,7 +60,7 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		Vec3 direction = safeDirection(state.direction);
 		matrices.pushPose();
 		matrices.mulPose(new Quaternionf().rotationTo(MODEL_UP, toVector3f(direction)));
-		renderBlueFlame(matrices, consumers, state);
+		renderCursedAura(matrices, consumers, state);
 		matrices.pushPose();
 		float scale = state.launched ? 0.7f : 0.62f;
 		matrices.mulPose(new Quaternionf().rotateY((float) ((state.seed & 3) * Math.PI * 0.5)));
@@ -80,39 +80,77 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		super.render(state, matrices, consumers, packedLight);
 	}
 
-	private static void renderBlueFlame(PoseStack matrices, MultiBufferSource consumers, State state) {
+	private static void renderCursedAura(PoseStack matrices, MultiBufferSource consumers, State state) {
 		VertexConsumer consumer = consumers.getBuffer(RenderType.lightning());
 		PoseStack.Pose pose = matrices.last();
-		float alpha = state.launched ? 1.0f : 0.72f;
-		float length = state.launched ? 1.72f : 1.18f;
-		float width = state.launched ? 0.34f : 0.23f;
-		float tail = -length * 0.52f;
-		float head = length * 0.52f;
-		addRibbon(consumer, pose, -width * 1.55f, tail, 0.0f, -width * 1.0f, head, 0.0f, width * 1.55f, 0.0f, 0.0f, BLUE_DARK_R, BLUE_DARK_G, BLUE_DARK_B, Math.round(150.0f * alpha));
-		addRibbon(consumer, pose, 0.0f, tail, -width * 1.18f, 0.0f, head, -width * 0.78f, 0.0f, 0.0f, width * 1.18f, BLUE_R, BLUE_G, BLUE_B, Math.round(188.0f * alpha));
-		addRibbon(consumer, pose, -width * 0.38f, tail * 0.72f, 0.0f, -width * 0.24f, head * 1.06f, 0.0f, width * 0.38f, 0.0f, 0.0f, BLUE_EDGE_R, BLUE_EDGE_G, BLUE_EDGE_B, Math.round(122.0f * alpha));
-		addRibbon(consumer, pose, 0.0f, tail * 0.54f, -width * 0.25f, 0.0f, head * 0.94f, -width * 0.18f, 0.0f, 0.0f, width * 0.25f, BLUE_WHITE_R, BLUE_WHITE_G, BLUE_WHITE_B, Math.round(46.0f * alpha));
-		renderTongues(consumer, pose, state.age, alpha, length, width, state.launched ? 7 : 4);
+		float alpha = state.launched ? 0.82f : 0.44f;
+		float length = state.launched ? 2.62f : 1.54f;
+		float radius = state.launched ? 0.62f : 0.34f;
+		float tail = -length * 0.54f;
+		float head = length * 0.48f;
+		renderAuraShell(consumer, pose, state.age, alpha, tail, head, radius, state.launched ? 8 : 5);
+		renderAuraRings(consumer, pose, state.age, alpha, tail, head, radius, state.launched ? 5 : 3);
+		renderAuraCore(consumer, pose, alpha, tail, head, radius);
 	}
 
-	private static void renderTongues(VertexConsumer consumer, PoseStack.Pose pose, float age, float alpha, float length, float width, int count) {
-		float tail = -length * 0.48f;
+	private static void renderAuraShell(VertexConsumer consumer, PoseStack.Pose pose, float age, float alpha, float tail, float head, float radius, int count) {
 		for (int index = 0; index < count; index++) {
-			float offset = (index + 0.7f) / (count + 0.8f);
-			float y = tail + length * offset;
-			float wave = (float) (Math.sin(age * 0.68f + index * 1.73f) * 0.5f + 0.5f);
-			float reach = width * (1.18f + wave * 0.95f);
-			float side = width * (0.08f + wave * 0.05f);
-			if ((index & 1) == 0) {
-				float sign = index % 4 == 0 ? 1.0f : -1.0f;
-				addRibbon(consumer, pose, 0.0f, y, 0.0f, sign * reach, y - length * 0.12f, width * 0.16f, 0.0f, 0.0f, side, BLUE_EDGE_R, BLUE_EDGE_G, BLUE_EDGE_B, Math.round(116.0f * alpha));
-				addRibbon(consumer, pose, sign * reach * 0.28f, y - length * 0.03f, width * 0.04f, sign * reach, y - length * 0.12f, width * 0.16f, 0.0f, 0.0f, side * 0.36f, BLUE_WHITE_R, BLUE_WHITE_G, BLUE_WHITE_B, Math.round(32.0f * alpha));
-			} else {
-				float sign = index % 3 == 0 ? 1.0f : -1.0f;
-				addRibbon(consumer, pose, 0.0f, y, 0.0f, width * 0.16f, y - length * 0.12f, sign * reach, side, 0.0f, 0.0f, BLUE_EDGE_R, BLUE_EDGE_G, BLUE_EDGE_B, Math.round(116.0f * alpha));
-				addRibbon(consumer, pose, width * 0.04f, y - length * 0.03f, sign * reach * 0.28f, width * 0.16f, y - length * 0.12f, sign * reach, side * 0.36f, 0.0f, 0.0f, BLUE_WHITE_R, BLUE_WHITE_G, BLUE_WHITE_B, Math.round(32.0f * alpha));
+			float phase = age * 0.22f + index * 0.78f;
+			float startAngle = (float) (phase + Math.PI * 2.0 * index / count);
+			float endAngle = startAngle + (statefulTwist(age, index) * 0.72f);
+			float startRadius = radius * (0.78f + 0.14f * (float) Math.sin(age * 0.34f + index));
+			float endRadius = radius * (0.44f + 0.10f * (float) Math.cos(age * 0.41f + index * 1.7f));
+			float sx = (float) Math.cos(startAngle) * startRadius;
+			float sz = (float) Math.sin(startAngle) * startRadius;
+			float ex = (float) Math.cos(endAngle) * endRadius;
+			float ez = (float) Math.sin(endAngle) * endRadius;
+			float sideX = (float) -Math.sin(startAngle) * radius * 0.16f;
+			float sideZ = (float) Math.cos(startAngle) * radius * 0.16f;
+			int alphaOuter = Math.round(76.0f * alpha);
+			int alphaEdge = Math.round(112.0f * alpha);
+			addRibbon(consumer, pose, sx, tail, sz, ex, head, ez, sideX, 0.0f, sideZ, BLUE_DARK_R, BLUE_DARK_G, BLUE_DARK_B, alphaOuter);
+			addRibbon(consumer, pose, sx * 0.68f, tail * 0.82f, sz * 0.68f, ex * 0.74f, head * 0.94f, ez * 0.74f, sideX * 0.48f, 0.0f, sideZ * 0.48f, BLUE_EDGE_R, BLUE_EDGE_G, BLUE_EDGE_B, alphaEdge);
+		}
+	}
+
+	private static void renderAuraRings(VertexConsumer consumer, PoseStack.Pose pose, float age, float alpha, float tail, float head, float radius, int rings) {
+		for (int ring = 0; ring < rings; ring++) {
+			float t = (ring + 0.5f) / rings;
+			float y = tail + (head - tail) * t;
+			float pulse = 0.84f + 0.16f * (float) Math.sin(age * 0.52f + ring * 1.37f);
+			float ringRadius = radius * pulse * (1.06f - t * 0.32f);
+			int alphaRing = Math.round((ring == rings - 1 ? 64.0f : 46.0f) * alpha);
+			for (int segment = 0; segment < 8; segment++) {
+				float a0 = (float) (Math.PI * 2.0 * segment / 8.0 + age * 0.018f);
+				float a1 = (float) (Math.PI * 2.0 * (segment + 0.62f) / 8.0 + age * 0.018f);
+				addRibbon(
+						consumer,
+						pose,
+						(float) Math.cos(a0) * ringRadius,
+						y,
+						(float) Math.sin(a0) * ringRadius,
+						(float) Math.cos(a1) * ringRadius,
+						y,
+						(float) Math.sin(a1) * ringRadius,
+						0.0f,
+						radius * 0.025f,
+						0.0f,
+						BLUE_R,
+						BLUE_G,
+						BLUE_B,
+						alphaRing
+				);
 			}
 		}
+	}
+
+	private static void renderAuraCore(VertexConsumer consumer, PoseStack.Pose pose, float alpha, float tail, float head, float radius) {
+		addRibbon(consumer, pose, -radius * 0.16f, tail * 0.72f, 0.0f, -radius * 0.08f, head * 1.08f, 0.0f, radius * 0.16f, 0.0f, 0.0f, BLUE_WHITE_R, BLUE_WHITE_G, BLUE_WHITE_B, Math.round(38.0f * alpha));
+		addRibbon(consumer, pose, 0.0f, tail * 0.58f, -radius * 0.14f, 0.0f, head, -radius * 0.08f, 0.0f, 0.0f, radius * 0.14f, BLUE_EDGE_R, BLUE_EDGE_G, BLUE_EDGE_B, Math.round(58.0f * alpha));
+	}
+
+	private static float statefulTwist(float age, int index) {
+		return 1.0f + 0.24f * (float) Math.sin(age * 0.31f + index * 0.93f);
 	}
 
 	private static void addRibbon(VertexConsumer consumer, PoseStack.Pose pose, float startX, float startY, float startZ, float endX, float endY, float endZ, float sideX, float sideY, float sideZ, int red, int green, int blue, int alpha) {

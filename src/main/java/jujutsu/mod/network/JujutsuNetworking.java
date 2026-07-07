@@ -86,4 +86,15 @@ public final class JujutsuNetworking {
 		}
 		return sent;
 	}
+
+	public static int broadcastProjectJjkImpulse(ServerLevel level, ProjectJjkNobaraImpulsePayload payload) {
+		int sent = 0;
+		for (ServerPlayer player : level.players()) {
+			if (ServerPlayNetworking.canSend(player, ProjectJjkNobaraImpulsePayload.TYPE)) {
+				ServerPlayNetworking.send(player, payload);
+				sent++;
+			}
+		}
+		return sent;
+	}
 }

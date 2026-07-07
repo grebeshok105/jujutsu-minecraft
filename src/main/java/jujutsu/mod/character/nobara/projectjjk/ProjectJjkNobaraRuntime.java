@@ -4,7 +4,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -38,7 +37,6 @@ public final class ProjectJjkNobaraRuntime {
 		int available = creative ? desiredCount : countNails(player);
 		int nailCount = Math.min(desiredCount, available);
 		if (nailCount <= 0) {
-			player.displayClientMessage(Component.translatable("message.jujutsumod.projectjjk.no_nails"), true);
 			return;
 		}
 
@@ -56,14 +54,12 @@ public final class ProjectJjkNobaraRuntime {
 
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 0.82f, 1.16f);
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SPELL_SHOT, SoundSource.PLAYERS, 0.34f, 1.42f);
-		player.displayClientMessage(Component.translatable("message.jujutsumod.projectjjk.prepared", nailCount), true);
 	}
 
 	public static void launchHairpin(ServerPlayer player, ItemStack hammerStack, InteractionHand hand) {
 		ServerLevel level = player.level();
 		List<ProjectJjkNailEntity> nails = findPreparedNails(level, player);
 		if (nails.isEmpty()) {
-			player.displayClientMessage(Component.translatable("message.jujutsumod.projectjjk.prepare_first"), true);
 			return;
 		}
 
@@ -77,7 +73,7 @@ public final class ProjectJjkNobaraRuntime {
 			Vec3 targetPoint = target.point()
 					.add(right.scale(centered * 0.11))
 					.add(up.scale(((index & 1) == 0 ? 0.06 : -0.06)));
-			nail.launchAt(targetPoint, Math.min(index, ProjectJjkNobaraProfile.PREPARED_LAUNCH_DELAY_TICKS));
+			nail.launchAt(targetPoint, ProjectJjkNobaraProfile.launchDelayForIndex(index));
 		}
 
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ANVIL_HIT, SoundSource.PLAYERS, 1.35f, 0.55f);
@@ -87,7 +83,6 @@ public final class ProjectJjkNobaraRuntime {
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SPELL_SHOT, SoundSource.PLAYERS, 0.72f, 0.74f);
 		JujutsuNetworking.broadcastProjectJjkImpulse(level, player.position(), IMPULSE_BROADCAST_RADIUS, impulse(ProjectJjkNobaraImpulsePayload.HAMMER, nails.size(), player.position(), level.getGameTime()));
 		damageHammer(player, hammerStack, hand);
-		player.displayClientMessage(Component.translatable("message.jujutsumod.projectjjk.launched", nails.size()), true);
 	}
 
 	public static void resolveNailImpact(ServerLevel level, ProjectJjkNailEntity nail, HitResult hit) {
@@ -116,7 +111,7 @@ public final class ProjectJjkNobaraRuntime {
 		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_IMPLODE, SoundSource.PLAYERS, 0.42f, 0.9f);
 		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, SoundSource.PLAYERS, 0.56f, 1.08f);
 		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT_2, SoundSource.PLAYERS, 0.42f, 0.96f);
-		JujutsuNetworking.broadcastProjectJjkImpulse(level, point, IMPULSE_BROADCAST_RADIUS, impulse(ProjectJjkNobaraImpulsePayload.IMPACT, 1, point, level.getGameTime()));
+		JujutsuNetworking.broadcastProjectJjkImpulse(level, impulse(ProjectJjkNobaraImpulsePayload.IMPACT, 1, point, level.getGameTime()));
 	}
 
 	private static ProjectJjkNobaraImpulsePayload impulse(int kind, int nailCount, Vec3 point, long gameTime) {
