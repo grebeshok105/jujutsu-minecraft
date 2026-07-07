@@ -35,10 +35,10 @@ public final class HairpinScreenOverlay {
 	public static void triggerCinematicBeat(HairpinTimeline.Phase phase) {
 		switch (phase) {
 			case PREP_FREEZE -> triggerCinematic(260, 46, 18);
-			case HAMMER_SNAP -> triggerCinematic(160, 64, 36);
-			case NAIL_IGNITION -> triggerCinematic(340, 72, 42);
-			case HAIRPIN_BLOOM -> triggerCinematic(520, 116, 82);
-			case AFTERGLOW -> triggerCinematic(820, 72, 12);
+			case HAMMER_SNAP -> triggerCinematic(180, 106, 88);
+			case NAIL_IGNITION -> triggerCinematic(260, 98, 104);
+			case HAIRPIN_BLOOM -> triggerCinematic(460, 148, 122);
+			case AFTERGLOW -> triggerCinematic(700, 72, 10);
 			case DONE -> {
 			}
 		}

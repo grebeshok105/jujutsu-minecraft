@@ -1,11 +1,11 @@
 package jujutsu.mod.fx;
 
 public final class HairpinTimeline {
-	public static final int PREP_FREEZE_MS = 180;
-	public static final int HAMMER_SNAP_MS = 60;
-	public static final int NAIL_IGNITION_MS = 320;
-	public static final int HAIRPIN_BLOOM_MS = 340;
-	public static final int AFTERGLOW_MS = 900;
+	public static final int PREP_FREEZE_MS = 80;
+	public static final int HAMMER_SNAP_MS = 40;
+	public static final int NAIL_IGNITION_MS = 180;
+	public static final int HAIRPIN_BLOOM_MS = 220;
+	public static final int AFTERGLOW_MS = 650;
 
 	private HairpinTimeline() {}
 

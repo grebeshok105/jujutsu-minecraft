@@ -1,19 +1,34 @@
 package jujutsu.mod.client.fx;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
+import jujutsu.mod.character.nobara.HairpinGameplayService;
 import jujutsu.mod.debug.HairpinDebugLog;
 import jujutsu.mod.fx.HairpinTimeline;
+import jujutsu.mod.registry.JujutsuItems;
 
 public final class HairpinWorldRenderer {
 	private static final Vec3 UP = new Vec3(0.0, 1.0, 0.0);
 	private static final Vec3 EAST = new Vec3(1.0, 0.0, 0.0);
+	private static final Vector3f MODEL_UP = new Vector3f(0.0f, 1.0f, 0.0f);
+	private static final ItemStack NAIL_ITEM = new ItemStack(JujutsuItems.HAIRPIN_NAIL);
 	private static final int BLOOD_BLACK_R = 38;
 	private static final int BLOOD_BLACK_G = 3;
 	private static final int BLOOD_BLACK_B = 10;
@@ -26,6 +41,12 @@ public final class HairpinWorldRenderer {
 	private static final int CURSED_BLUE_EDGE_R = 96;
 	private static final int CURSED_BLUE_EDGE_G = 178;
 	private static final int CURSED_BLUE_EDGE_B = 255;
+	private static final int CURSED_BLUE_DARK_R = 8;
+	private static final int CURSED_BLUE_DARK_G = 28;
+	private static final int CURSED_BLUE_DARK_B = 96;
+	private static final int CURSED_BLUE_WHITE_R = 132;
+	private static final int CURSED_BLUE_WHITE_G = 206;
+	private static final int CURSED_BLUE_WHITE_B = 255;
 
 	private HairpinWorldRenderer() {}
 
@@ -44,13 +65,15 @@ public final class HairpinWorldRenderer {
 		float partialTick = context.tickCounter().getGameTimeDeltaPartialTick(false);
 		Camera camera = context.camera();
 		Vec3 cameraPosition = camera.getPosition();
+		PoseStack matrices = context.matrixStack();
+		ClientLevel world = context.world();
 		VertexConsumer consumer = consumers.getBuffer(RenderType.lightning());
 
 		for (NobaraNailFlightManager.Prepared prepared : NobaraNailFlightManager.activePrepared()) {
-			renderPrepared(consumer, context.world().getEntity(prepared.payload().playerEntityId()), cameraPosition, gameTime, partialTick, prepared);
+			renderPrepared(consumer, matrices, consumers, world, world.getEntity(prepared.payload().playerEntityId()), cameraPosition, gameTime, partialTick, prepared);
 		}
 		for (NobaraNailFlightManager.Flight flight : NobaraNailFlightManager.activeFlights()) {
-			renderFlight(consumer, flight, cameraPosition, gameTime, partialTick);
+			renderFlight(consumer, matrices, consumers, world, flight, cameraPosition, gameTime, partialTick);
 		}
 
 		for (HairpinPlayback playback : HairpinPlaybackManager.activePlaybacks()) {
@@ -58,55 +81,114 @@ public final class HairpinWorldRenderer {
 			if (phase == HairpinTimeline.Phase.DONE) {
 				continue;
 			}
-			renderPlayback(consumer, playback, cameraPosition, phase, playback.progressInPhase(gameTime, partialTick));
+			renderPlayback(consumer, matrices, consumers, world, playback, cameraPosition, phase, playback.progressInPhase(gameTime, partialTick), gameTime);
 		}
 	}
 
-	private static void renderPrepared(VertexConsumer consumer, Entity entity, Vec3 cameraPosition, long gameTime, float partialTick, NobaraNailFlightManager.Prepared prepared) {
-		if (entity == null) {
-			return;
-		}
+	private static void renderPrepared(VertexConsumer consumer, PoseStack matrices, MultiBufferSource consumers, ClientLevel world, Entity entity, Vec3 cameraPosition, long gameTime, float partialTick, NobaraNailFlightManager.Prepared prepared) {
 		float fade = prepared.fade(gameTime, partialTick);
 		if (fade <= 0.01f) {
 			return;
 		}
-		Vec3 center = entity.position().add(0.0, entity.getBbHeight() * 0.72, 0.0);
-		int count = Math.max(0, Math.min(4, prepared.payload().nailCount()));
-		double spin = (gameTime + partialTick + prepared.payload().seed() * 0.031) * 0.16;
-		for (int index = 0; index < count; index++) {
-			double angle = spin + index * Math.PI * 0.5;
-			Vec3 offset = new Vec3(Math.cos(angle) * 0.56, 0.18 * Math.sin(angle * 1.7), Math.sin(angle) * 0.56);
-			Vec3 position = center.add(offset).subtract(cameraPosition);
-			Vec3 tangent = new Vec3(-Math.sin(angle), 0.08, Math.cos(angle)).normalize();
-			renderBlueNailMarker(consumer, position, tangent, fade * 0.85f);
-			Vec3 tail = position.subtract(tangent.scale(0.26));
-			Vec3 head = position.add(tangent.scale(0.22));
-			addRibbon(consumer, tail, head, sideVector(head.subtract(tail), position, 0.035f), CURSED_BLUE_R, CURSED_BLUE_G, CURSED_BLUE_B, Math.round(120.0f * fade));
+		Vec3 direction = entity == null ? EAST : safeDirection(entity.getLookAngle());
+		int index = 0;
+		Iterable<Vec3> nails = entity == null
+				? prepared.nails()
+				: HairpinGameplayService.preparedNailRow(entity.getEyePosition(partialTick), entity.getViewVector(partialTick), prepared.payload().nailCount());
+		for (Vec3 nail : nails) {
+			Vec3 position = nail.subtract(cameraPosition);
+			Vec3 tangent = direction;
+			renderItemNail(matrices, consumers, world, nail, cameraPosition, tangent, 0.46f, prepared.payload().seed() + index);
+			renderBlueFlameEnvelope(consumer, position, tangent, gameTime + index * 13L, fade, 0.72f, 0.18f, 3);
+			Vec3 tail = position.subtract(tangent.scale(0.42));
+			Vec3 head = position.add(tangent.scale(0.36));
+			addRibbon(consumer, tail, head, sideVector(head.subtract(tail), position, 0.048f), CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, Math.round(130.0f * fade));
+			addRibbon(consumer, tail, head, sideVector(head.subtract(tail), position, 0.024f), CURSED_BLUE_R, CURSED_BLUE_G, CURSED_BLUE_B, Math.round(95.0f * fade));
+			index++;
 		}
 	}
 
-	private static void renderFlight(VertexConsumer consumer, NobaraNailFlightManager.Flight flight, Vec3 cameraPosition, long gameTime, float partialTick) {
+	private static void renderFlight(VertexConsumer consumer, PoseStack matrices, MultiBufferSource consumers, ClientLevel world, NobaraNailFlightManager.Flight flight, Vec3 cameraPosition, long gameTime, float partialTick) {
 		float progress = flight.progress(gameTime, partialTick);
 		if (progress <= 0.0f) {
 			return;
 		}
-		Vec3 target = flight.target();
+		Vec3 target = flight.target(world);
+		int index = 0;
 		for (Vec3 nail : flight.nails()) {
-			Vec3 current = nail.lerp(target, progress);
-			Vec3 previous = nail.lerp(target, Math.max(0.0f, progress - 0.22f));
+			float punchProgress = flightEase(progress);
+			Vec3 current = nail.lerp(target, punchProgress);
+			Vec3 previous = nail.lerp(target, Math.max(0.0f, punchProgress - 0.46f));
 			Vec3 direction = safeDirection(target.subtract(nail));
 			Vec3 start = previous.subtract(cameraPosition);
 			Vec3 end = current.subtract(cameraPosition);
-			float alpha = 1.0f - Math.max(0.0f, progress - 0.82f) / 0.18f;
-			Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), 0.08f);
-			addRibbon(consumer, start, end, side, CURSED_BLUE_R, CURSED_BLUE_G, CURSED_BLUE_B, Math.round(190.0f * alpha));
-			addRibbon(consumer, start.add(side.scale(0.72)), end.add(side.scale(0.72)), side.scale(0.32), CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, Math.round(120.0f * alpha));
-			renderBlueNailMarker(consumer, end, direction, alpha);
+			float alpha = 1.0f - Math.max(0.0f, punchProgress - 0.88f) / 0.12f;
+			Vec3 midpoint = start.add(end).scale(0.5);
+			Vec3 side = sideVector(end.subtract(start), midpoint, 0.12f);
+			addRibbon(consumer, start, end, side.scale(2.15), CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, Math.round(175.0f * alpha));
+			addRibbon(consumer, start, end, side.scale(1.05), CURSED_BLUE_R, CURSED_BLUE_G, CURSED_BLUE_B, Math.round(220.0f * alpha));
+			addRibbon(consumer, start.add(side.scale(0.22)), end.add(side.scale(0.22)), side.scale(0.34), CURSED_BLUE_WHITE_R, CURSED_BLUE_WHITE_G, CURSED_BLUE_WHITE_B, Math.round(135.0f * alpha));
+			renderBlueFlameEnvelope(consumer, end, direction, gameTime + index * 17L, alpha, 0.94f, 0.25f, 5);
+			renderBlueFlameTongues(consumer, start, end, midpoint, gameTime + index * 19L, alpha, 5, 0.34f);
+			renderItemNail(matrices, consumers, world, current, cameraPosition, direction, 0.54f, flight.payload().seed() + index);
+			index++;
 		}
 	}
 
-	private static void renderPlayback(VertexConsumer consumer, HairpinPlayback playback, Vec3 cameraPosition, HairpinTimeline.Phase phase, float progress) {
-		Vec3 target = playback.target();
+	private static float flightEase(float progress) {
+		float clamped = Math.max(0.0f, Math.min(1.0f, progress));
+		return 1.0f - (float) Math.pow(1.0f - clamped, 3.0);
+	}
+
+	private static void renderBlueFlameEnvelope(VertexConsumer consumer, Vec3 center, Vec3 direction, long gameTime, float alpha, float length, float width, int tongues) {
+		if (alpha <= 0.01f) {
+			return;
+		}
+		Vec3 line = safeDirection(direction);
+		Vec3 tail = center.subtract(line.scale(length * 0.5f));
+		Vec3 head = center.add(line.scale(length * 0.5f));
+		Vec3 side = sideVector(head.subtract(tail), center, width);
+		Vec3 cross = line.cross(side);
+		if (cross.lengthSqr() < 1.0E-5) {
+			cross = sideVector(head.subtract(tail), center.add(0.0, 0.35, 0.0), width * 0.8f);
+		} else {
+			cross = cross.normalize().scale(width * 0.78f);
+		}
+		addRibbon(consumer, tail, head, side.scale(1.55), CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, Math.round(145.0f * alpha));
+		addRibbon(consumer, tail.add(line.scale(length * 0.08f)), head, side.scale(0.76), CURSED_BLUE_R, CURSED_BLUE_G, CURSED_BLUE_B, Math.round(185.0f * alpha));
+		addRibbon(consumer, tail, head, cross.scale(0.92), CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, Math.round(115.0f * alpha));
+		addRibbon(consumer, center.subtract(line.scale(length * 0.18f)), head.add(line.scale(length * 0.08f)), side.scale(0.22), CURSED_BLUE_WHITE_R, CURSED_BLUE_WHITE_G, CURSED_BLUE_WHITE_B, Math.round(42.0f * alpha));
+		for (int index = 0; index < tongues; index++) {
+			double offset = (index + 0.45) / (tongues + 0.3);
+			double wave = Math.sin(gameTime * 0.55 + index * 1.73) * 0.5 + 0.5;
+			Vec3 root = tail.lerp(head, Math.min(0.96, offset));
+			Vec3 flare = (index % 2 == 0 ? side : cross).normalize().scale(width * (1.45 + wave * 0.72));
+			Vec3 lick = root.add(flare).subtract(line.scale(length * (0.10 + wave * 0.08)));
+			Vec3 tongueSide = sideVector(lick.subtract(root), root.add(lick).scale(0.5), 0.022f + width * 0.06f);
+			addRibbon(consumer, root, lick, tongueSide, CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, Math.round(120.0f * alpha));
+			addRibbon(consumer, root.lerp(lick, 0.34), lick, tongueSide.scale(0.42), CURSED_BLUE_WHITE_R, CURSED_BLUE_WHITE_G, CURSED_BLUE_WHITE_B, Math.round(34.0f * alpha));
+		}
+	}
+
+	private static void renderBlueFlameTongues(VertexConsumer consumer, Vec3 start, Vec3 end, Vec3 midpoint, long gameTime, float alpha, int count, float width) {
+		Vec3 travel = end.subtract(start);
+		if (travel.lengthSqr() < 1.0E-5 || alpha <= 0.01f) {
+			return;
+		}
+		Vec3 side = sideVector(travel, midpoint, width);
+		for (int index = 0; index < count; index++) {
+			double offset = (index + 1.0) / (count + 1.0);
+			double wave = Math.sin(gameTime * 0.7 + index * 1.9) * 0.5 + 0.5;
+			Vec3 root = start.lerp(end, offset);
+			Vec3 lick = root.add(side.scale((index % 2 == 0 ? 1.0 : -1.0) * (0.75 + wave * 0.55)));
+			Vec3 tongueSide = sideVector(lick.subtract(root), root.add(lick).scale(0.5), 0.018f + 0.01f * (float) wave);
+			addRibbon(consumer, root, lick, tongueSide, CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, Math.round(105.0f * alpha));
+			addRibbon(consumer, root.lerp(lick, 0.25), lick, tongueSide.scale(0.45), CURSED_BLUE_WHITE_R, CURSED_BLUE_WHITE_G, CURSED_BLUE_WHITE_B, Math.round(36.0f * alpha));
+		}
+	}
+
+	private static void renderPlayback(VertexConsumer consumer, PoseStack matrices, MultiBufferSource consumers, ClientLevel world, HairpinPlayback playback, Vec3 cameraPosition, HairpinTimeline.Phase phase, float progress, long gameTime) {
+		Vec3 target = playback.target(world);
 		float alpha = alphaFor(phase, progress);
 		if (alpha <= 0.01f) {
 			return;
@@ -119,7 +201,11 @@ public final class HairpinWorldRenderer {
 				continue;
 			}
 
-			renderNailMarker(consumer, nail.subtract(cameraPosition), safeDirection(direction), phase, progress);
+			Vec3 travelDirection = safeDirection(direction);
+			renderItemNail(matrices, consumers, world, nail, cameraPosition, travelDirection, 0.5f, playback.seed());
+			if (phase == HairpinTimeline.Phase.PREP_FREEZE || phase == HairpinTimeline.Phase.HAMMER_SNAP || phase == HairpinTimeline.Phase.NAIL_IGNITION) {
+				renderBlueFlameEnvelope(consumer, nail.subtract(cameraPosition), travelDirection, gameTime + playback.seed(), alpha * 0.75f, 0.78f, 0.16f + progress * 0.08f, 3);
+			}
 			Vec3 start = nail.lerp(target, startLerpFor(phase, progress)).subtract(cameraPosition);
 			Vec3 end = nail.lerp(target, endLerpFor(phase, progress)).subtract(cameraPosition);
 			Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), width);
@@ -141,29 +227,36 @@ public final class HairpinWorldRenderer {
 		}
 
 		if (phase == HairpinTimeline.Phase.HAIRPIN_BLOOM) {
-			renderShockwave(consumer, target.subtract(cameraPosition), phase, progress);
-			renderFractureStar(consumer, target.subtract(cameraPosition), phase, progress);
+			renderFractureBurst(consumer, playback, target, target.subtract(cameraPosition), cameraPosition, progress);
 		}
 	}
 
-	private static void renderShockwave(VertexConsumer consumer, Vec3 center, HairpinTimeline.Phase phase, float progress) {
-		float bloom = phase == HairpinTimeline.Phase.HAIRPIN_BLOOM ? 1.0f - progress * 0.25f : 0.38f * (1.0f - progress);
+	private static void renderFractureBurst(VertexConsumer consumer, HairpinPlayback playback, Vec3 target, Vec3 center, Vec3 cameraPosition, float progress) {
+		float bloom = 1.0f - progress * 0.42f;
 		if (bloom <= 0.01f) {
 			return;
 		}
-
-		double radius = phase == HairpinTimeline.Phase.HAIRPIN_BLOOM ? 0.42 + progress * 1.85 : 1.15 + progress * 0.75;
-		float width = phase == HairpinTimeline.Phase.HAIRPIN_BLOOM ? 0.04f : 0.022f;
-		int alpha = Math.min(220, Math.round(215.0f * bloom));
-		int segments = 22;
-		for (int index = 0; index < segments; index++) {
-			double a0 = (Math.PI * 2.0 * index) / segments;
-			double a1 = (Math.PI * 2.0 * (index + 1)) / segments;
-			Vec3 start = center.add(Math.cos(a0) * radius, Math.sin(a0 * 2.0) * 0.035, Math.sin(a0) * radius);
-			Vec3 end = center.add(Math.cos(a1) * radius, Math.sin(a1 * 2.0) * 0.035, Math.sin(a1) * radius);
-			Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), width);
-			addRibbon(consumer, start, end, side, OXBLOOD_R, OXBLOOD_G, OXBLOOD_B, alpha);
+		int alpha = Math.min(230, Math.round(230.0f * bloom));
+		int nailIndex = 0;
+		for (Vec3 nail : playback.nails()) {
+			Vec3 vector = safeDirection(target.subtract(nail));
+			Vec3 start = target.add(vector.scale(0.06)).subtract(cameraPosition);
+			Vec3 end = target.add(vector.scale(0.95 + progress * (0.45 + nailIndex * 0.07))).subtract(cameraPosition);
+			Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), 0.13f + nailIndex * 0.012f);
+			addRibbon(consumer, start, end, side, BLOOD_BLACK_R, BLOOD_BLACK_G, BLOOD_BLACK_B, alpha);
+			addRibbon(consumer, start.add(side.scale(0.82)), end.add(side.scale(0.26)), side.scale(0.18), OXBLOOD_R, OXBLOOD_G, OXBLOOD_B, alpha / 3);
+			Vec3 branchBase = start.lerp(end, 0.42 + (nailIndex % 2) * 0.18);
+			Vec3 branch = vector.cross(UP);
+			if (branch.lengthSqr() < 1.0E-5) {
+				branch = vector.cross(EAST);
+			}
+			branch = branch.normalize().scale(0.42 + progress * 0.22);
+			Vec3 branchEnd = branchBase.add((nailIndex % 2 == 0 ? branch : branch.scale(-1.0))).add(vector.scale(0.16));
+			Vec3 branchSide = sideVector(branchEnd.subtract(branchBase), branchBase.add(branchEnd).scale(0.5), 0.035f);
+			addRibbon(consumer, branchBase, branchEnd, branchSide, 22, 8, 12, alpha / 2);
+			nailIndex++;
 		}
+		renderFractureStar(consumer, center, HairpinTimeline.Phase.HAIRPIN_BLOOM, progress);
 	}
 
 	private static void renderFractureStar(VertexConsumer consumer, Vec3 center, HairpinTimeline.Phase phase, float progress) {
@@ -183,48 +276,6 @@ public final class HairpinWorldRenderer {
 			addRibbon(consumer, start, end, side, 22, 8, 12, alpha);
 			addRibbon(consumer, start.add(side.scale(1.8)), end.add(side.scale(0.55)), side.scale(0.3), OXBLOOD_R, OXBLOOD_G, OXBLOOD_B, alpha / 4);
 		}
-	}
-
-	private static void renderNailMarker(VertexConsumer consumer, Vec3 anchor, Vec3 direction, HairpinTimeline.Phase phase, float progress) {
-		float alpha = switch (phase) {
-			case PREP_FREEZE -> 0.95f;
-			case HAMMER_SNAP, NAIL_IGNITION -> 1.0f;
-			case HAIRPIN_BLOOM -> 0.9f * (1.0f - progress * 0.35f);
-			case AFTERGLOW -> 0.45f * (1.0f - progress);
-			case DONE -> 0.0f;
-		};
-		if (alpha <= 0.01f) {
-			return;
-		}
-
-		Vec3 shaft = direction.scale(0.56);
-		Vec3 head = anchor.subtract(direction.scale(0.1));
-		Vec3 tip = anchor.add(shaft);
-		Vec3 side = sideVector(shaft, anchor, 0.044f);
-		Vec3 cross = safeDirection(shaft).cross(side).normalize().scale(0.034f);
-		int steelAlpha = Math.round(alpha * 235.0f);
-		int darkAlpha = Math.round(alpha * 220.0f);
-		addRibbon(consumer, head, tip, side, 34, 38, 44, steelAlpha);
-		addRibbon(consumer, head, tip, cross, 78, 84, 94, steelAlpha / 2);
-		addRibbon(consumer, head.subtract(direction.scale(0.042)), head.add(direction.scale(0.042)), side.scale(1.85), 16, 7, 10, darkAlpha);
-		addRibbon(consumer, head.add(direction.scale(0.1)), head.add(direction.scale(0.18)), side.scale(1.35), OXBLOOD_R, OXBLOOD_G, OXBLOOD_B, Math.round(alpha * 150.0f));
-		addRibbon(consumer, tip.subtract(direction.scale(0.075)), tip.add(direction.scale(0.035)), side.scale(0.55), 112, 118, 126, Math.round(alpha * 155.0f));
-	}
-
-	private static void renderBlueNailMarker(VertexConsumer consumer, Vec3 anchor, Vec3 direction, float alpha) {
-		if (alpha <= 0.01f) {
-			return;
-		}
-
-		Vec3 shaft = direction.scale(0.62);
-		Vec3 head = anchor.subtract(direction.scale(0.12));
-		Vec3 tip = anchor.add(shaft);
-		Vec3 side = sideVector(shaft, anchor, 0.04f);
-		Vec3 cross = safeDirection(shaft).cross(side).normalize().scale(0.028f);
-		addRibbon(consumer, head, tip, side, 28, 32, 40, Math.round(alpha * 235.0f));
-		addRibbon(consumer, head, tip, cross, 86, 96, 112, Math.round(alpha * 135.0f));
-		addRibbon(consumer, head.subtract(direction.scale(0.035)), head.add(direction.scale(0.06)), side.scale(1.65), CURSED_BLUE_R, CURSED_BLUE_G, CURSED_BLUE_B, Math.round(alpha * 160.0f));
-		addRibbon(consumer, tip.subtract(direction.scale(0.08)), tip.add(direction.scale(0.04)), side.scale(0.65), CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, Math.round(alpha * 130.0f));
 	}
 
 	private static float alphaFor(HairpinTimeline.Phase phase, float progress) {
@@ -283,6 +334,31 @@ public final class HairpinWorldRenderer {
 
 	private static Vec3 safeDirection(Vec3 vector) {
 		return vector.lengthSqr() < 1.0E-5 ? UP : vector.normalize();
+	}
+
+	private static void renderItemNail(PoseStack matrices, MultiBufferSource consumers, ClientLevel world, Vec3 worldPosition, Vec3 cameraPosition, Vec3 direction, float scale, int seed) {
+		ItemRenderer itemRenderer = Minecraft.getInstance().getItemRenderer();
+		matrices.pushPose();
+		Vec3 renderPosition = worldPosition.subtract(cameraPosition);
+		matrices.translate(renderPosition.x, renderPosition.y, renderPosition.z);
+		matrices.mulPose(new Quaternionf().rotationTo(MODEL_UP, toVector3f(safeDirection(direction))));
+		matrices.mulPose(new Quaternionf().rotateY((float) ((seed & 3) * Math.PI * 0.5)));
+		matrices.scale(scale, scale, scale);
+		itemRenderer.renderStatic(
+				NAIL_ITEM,
+				ItemDisplayContext.NONE,
+				LevelRenderer.getLightColor(world, BlockPos.containing(worldPosition)),
+				OverlayTexture.NO_OVERLAY,
+				matrices,
+				consumers,
+				world,
+				seed
+		);
+		matrices.popPose();
+	}
+
+	private static Vector3f toVector3f(Vec3 vector) {
+		return new Vector3f((float) vector.x, (float) vector.y, (float) vector.z);
 	}
 
 	private static void addRibbon(VertexConsumer consumer, Vec3 start, Vec3 end, Vec3 side, int red, int green, int blue, int alpha) {

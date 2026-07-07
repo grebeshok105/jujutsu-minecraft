@@ -11,6 +11,7 @@ public final class HairpinVisualProfileTest {
 		assertBloomCarriesBurstFamilies();
 		assertAfterglowKeepsResidueOnBurstVectors();
 		assertBloomDensityStaysReadable();
+		assertBloomFavorsMetalShrapnelOverGlowResidue();
 		assertEveryProductionFamilyIsScheduled();
 		assertPaletteKeepsBrightRedRestrained();
 		System.out.println("HairpinVisualProfileTest passed");
@@ -50,6 +51,14 @@ public final class HairpinVisualProfileTest {
 		assert totalParticlesPerTick <= 52 : totalParticlesPerTick;
 	}
 
+	private static void assertBloomFavorsMetalShrapnelOverGlowResidue() {
+		List<HairpinVisualProfile.ParticleBudget> budgets = HairpinVisualProfile.budgetsForPhase(HairpinTimeline.Phase.HAIRPIN_BLOOM);
+		int metal = totalFor(budgets, HairpinVisualProfile.ParticleFamily.BURST_METAL_SHARD);
+		int residue = totalFor(budgets, HairpinVisualProfile.ParticleFamily.BURST_RESIDUE);
+		assert metal >= 28 : metal;
+		assert residue <= 9 : residue;
+	}
+
 	private static void assertEveryProductionFamilyIsScheduled() {
 		EnumSet<HairpinVisualProfile.ParticleFamily> scheduled = EnumSet.noneOf(HairpinVisualProfile.ParticleFamily.class);
 		for (HairpinTimeline.Phase phase : HairpinTimeline.Phase.values()) {
@@ -67,5 +76,12 @@ public final class HairpinVisualProfileTest {
 
 	private static boolean contains(List<HairpinVisualProfile.ParticleBudget> budgets, HairpinVisualProfile.ParticleFamily family) {
 		return budgets.stream().anyMatch(budget -> budget.family() == family);
+	}
+
+	private static int totalFor(List<HairpinVisualProfile.ParticleBudget> budgets, HairpinVisualProfile.ParticleFamily family) {
+		return budgets.stream()
+				.filter(budget -> budget.family() == family)
+				.mapToInt(budget -> budget.countPerNail() * 4 + budget.countAtTarget())
+				.sum();
 	}
 }

@@ -4,13 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.network.HairpinNailFlightPayload;
 import jujutsu.mod.network.PreparedNailsPayload;
 
 public final class NobaraNailFlightManager {
-	private static final int FLIGHT_TICKS = 10;
-	private static final int PREPARED_VISUAL_TICKS = 42;
+	private static final int FLIGHT_TICKS = 3;
 	private static final List<Flight> FLIGHTS = new ArrayList<>();
 	private static final List<Prepared> PREPARED = new ArrayList<>();
 
@@ -21,7 +22,9 @@ public final class NobaraNailFlightManager {
 	}
 
 	public static void startFlight(HairpinNailFlightPayload payload) {
-		FLIGHTS.add(new Flight(payload));
+		Flight flight = new Flight(payload);
+		PREPARED.removeIf(prepared -> prepared.payload().playerEntityId() == payload.ownerEntityId());
+		FLIGHTS.add(flight);
 	}
 
 	public static void showPrepared(PreparedNailsPayload payload) {
@@ -44,12 +47,19 @@ public final class NobaraNailFlightManager {
 		}
 		long gameTime = client.level.getGameTime();
 		FLIGHTS.removeIf(flight -> gameTime - flight.payload().startGameTime() > FLIGHT_TICKS + 8L);
-		PREPARED.removeIf(prepared -> gameTime - prepared.payload().startGameTime() > PREPARED_VISUAL_TICKS);
 	}
 
 	public record Flight(HairpinNailFlightPayload payload) {
 		public Vec3 target() {
 			return new Vec3(payload.targetX(), payload.targetY(), payload.targetZ());
+		}
+
+		public Vec3 target(ClientLevel level) {
+			if (payload.targetEntityId() < 0) {
+				return target();
+			}
+			Entity entity = level.getEntity(payload.targetEntityId());
+			return entity == null ? target() : entity.getBoundingBox().getCenter();
 		}
 
 		public List<Vec3> nails() {
@@ -70,9 +80,12 @@ public final class NobaraNailFlightManager {
 	}
 
 	public record Prepared(PreparedNailsPayload payload) {
+		public List<Vec3> nails() {
+			return payload.nails();
+		}
+
 		public float fade(long gameTime, float partialTick) {
-			float elapsed = Math.max(0.0f, gameTime - payload.startGameTime() + partialTick);
-			return Math.max(0.0f, 1.0f - elapsed / PREPARED_VISUAL_TICKS);
+			return 1.0f;
 		}
 	}
 }

@@ -9,20 +9,20 @@ import net.minecraft.client.particle.TextureSheetParticle;
 import net.minecraft.core.particles.SimpleParticleType;
 
 public class HairpinIgnitionTickParticle extends TextureSheetParticle {
-	private static final int DIM_BLOOD_LIGHT = 0x00A000A0;
+	private static final int DIM_BLUE_LIGHT = 0x00B000D0;
 	private final SpriteSet sprites;
 
 	protected HairpinIgnitionTickParticle(ClientLevel level, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed, SpriteSet sprites) {
 		super(level, x, y, z, xSpeed * 0.25, ySpeed * 0.25, zSpeed * 0.25);
 		this.sprites = sprites;
-		this.lifetime = 10 + this.random.nextInt(3);
+		this.lifetime = 8 + this.random.nextInt(3);
 		this.gravity = 0.0f;
 		this.hasPhysics = false;
-		this.quadSize = 0.16f + this.random.nextFloat() * 0.06f;
-		this.rCol = 0.28f;
-		this.gCol = 0.035f;
-		this.bCol = 0.075f;
-		this.alpha = 0.82f;
+		this.quadSize = 0.13f + this.random.nextFloat() * 0.05f;
+		this.rCol = 0.12f;
+		this.gCol = 0.32f;
+		this.bCol = 0.78f;
+		this.alpha = 0.74f;
 		this.setSpriteFromAge(sprites);
 	}
 
@@ -30,12 +30,12 @@ public class HairpinIgnitionTickParticle extends TextureSheetParticle {
 	public void tick() {
 		super.tick();
 		this.setSpriteFromAge(this.sprites);
-		this.alpha = 0.82f * (1.0f - ((float) this.age / (float) this.lifetime));
+		this.alpha = 0.74f * (1.0f - ((float) this.age / (float) this.lifetime));
 	}
 
 	@Override
 	public int getLightColor(float partialTick) {
-		return DIM_BLOOD_LIGHT;
+		return DIM_BLUE_LIGHT;
 	}
 
 	@Override

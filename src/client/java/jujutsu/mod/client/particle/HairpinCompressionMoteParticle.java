@@ -14,14 +14,14 @@ public class HairpinCompressionMoteParticle extends TextureSheetParticle {
 	protected HairpinCompressionMoteParticle(ClientLevel level, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed, SpriteSet sprites) {
 		super(level, x, y, z, xSpeed, ySpeed, zSpeed);
 		this.sprites = sprites;
-		this.lifetime = 14 + this.random.nextInt(5);
+		this.lifetime = 9 + this.random.nextInt(4);
 		this.gravity = 0.0f;
 		this.hasPhysics = false;
-		this.quadSize = 0.16f + this.random.nextFloat() * 0.06f;
-		this.rCol = 0.38f;
-		this.gCol = 0.07f;
-		this.bCol = 0.12f;
-		this.alpha = 0.95f;
+		this.quadSize = 0.1f + this.random.nextFloat() * 0.045f;
+		this.rCol = 0.23f;
+		this.gCol = 0.025f;
+		this.bCol = 0.065f;
+		this.alpha = 0.72f;
 		this.setSpriteFromAge(sprites);
 	}
 
@@ -30,7 +30,7 @@ public class HairpinCompressionMoteParticle extends TextureSheetParticle {
 		super.tick();
 		this.setSpriteFromAge(this.sprites);
 		float progress = (float) this.age / (float) this.lifetime;
-		this.alpha = 0.95f * (1.0f - progress);
+		this.alpha = 0.72f * (1.0f - progress);
 	}
 
 	@Override

@@ -59,9 +59,9 @@ public final class HairpinVisualProfile {
 				new ParticleBudget(ParticleFamily.IGNITION_TICK, 1, 0)
 		));
 		budgets.put(HairpinTimeline.Phase.HAIRPIN_BLOOM, List.of(
-				new ParticleBudget(ParticleFamily.SNAP_CRACK, 3, 4),
-				new ParticleBudget(ParticleFamily.BURST_RESIDUE, 2, 2),
-				new ParticleBudget(ParticleFamily.BURST_METAL_SHARD, 4, 3)
+				new ParticleBudget(ParticleFamily.SNAP_CRACK, 2, 2),
+				new ParticleBudget(ParticleFamily.BURST_RESIDUE, 2, 1),
+				new ParticleBudget(ParticleFamily.BURST_METAL_SHARD, 6, 4)
 		));
 		budgets.put(HairpinTimeline.Phase.AFTERGLOW, List.of(
 				new ParticleBudget(ParticleFamily.BURST_RESIDUE, 1, 0)
