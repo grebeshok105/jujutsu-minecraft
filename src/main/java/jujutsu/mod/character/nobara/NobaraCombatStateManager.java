@@ -6,9 +6,8 @@ import java.util.UUID;
 
 public final class NobaraCombatStateManager {
 	public static final int MAX_PREPARED_NAILS = 4;
-	public static final int PREPARED_TTL_TICKS = 100;
-	public static final int WINDUP_TICKS = 8;
-	public static final int FLIGHT_TICKS = 10;
+	public static final int WINDUP_TICKS = 6;
+	public static final int FLIGHT_TICKS = 3;
 	public static final int RECOVERY_TICKS = 14;
 	public static final int COOLDOWN_TICKS = 70;
 
@@ -94,10 +93,6 @@ public final class NobaraCombatStateManager {
 
 		public int preparedCount(long gameTime) {
 			if (preparedCount <= 0) {
-				return 0;
-			}
-			if (gameTime - preparedAt > PREPARED_TTL_TICKS) {
-				clearPrepared();
 				return 0;
 			}
 			return preparedCount;

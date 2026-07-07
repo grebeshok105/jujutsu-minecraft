@@ -45,6 +45,28 @@ public final class HairpinGameplayService {
 		return nails;
 	}
 
+	public static List<Vec3> preparedNailRow(Vec3 origin, Vec3 look, int nailCount) {
+		Vec3 forward = safeDirection(look);
+		Vec3 right = rightOf(forward);
+		double[] offsets = {-0.72, -0.24, 0.24, 0.72};
+		List<Vec3> nails = new ArrayList<>();
+		for (int index = 0; index < Math.min(4, Math.max(0, nailCount)); index++) {
+			nails.add(origin
+					.add(forward.scale(1.15))
+					.add(right.scale(offsets[index]))
+					.add(0.0, -0.24, 0.0));
+		}
+		return nails;
+	}
+
+	private static Vec3 rightOf(Vec3 forward) {
+		Vec3 right = new Vec3(forward.z, 0.0, -forward.x);
+		if (right.lengthSqr() < 1.0E-5) {
+			return new Vec3(1.0, 0.0, 0.0);
+		}
+		return right.normalize();
+	}
+
 	private static Vec3 safeDirection(Vec3 vector) {
 		return vector.lengthSqr() < 1.0E-5 ? new Vec3(0.0, 0.0, 1.0) : vector.normalize();
 	}

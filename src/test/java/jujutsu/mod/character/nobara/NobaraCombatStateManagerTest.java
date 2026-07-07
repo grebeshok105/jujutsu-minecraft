@@ -7,7 +7,7 @@ public final class NobaraCombatStateManagerTest {
 
 	public static void main(String[] args) {
 		assertPreparingConsumesAtMostFourNails();
-		assertPreparedNailsExpireAfterTimeout();
+		assertPreparedNailsPersistUntilLaunchOrClear();
 		assertCooldownRejectsHammerActivation();
 		assertDimensionChangeClearsPreparedNails();
 		assertLaunchTransitionsThroughWindupFlightRecoveryCooldown();
@@ -25,13 +25,20 @@ public final class NobaraCombatStateManagerTest {
 		assert manager.state(player).preparedCount(20L) == 4;
 	}
 
-	private static void assertPreparedNailsExpireAfterTimeout() {
+	private static void assertPreparedNailsPersistUntilLaunchOrClear() {
 		NobaraCombatStateManager manager = new NobaraCombatStateManager();
 		UUID player = UUID.randomUUID();
 		manager.prepareNails(player, "minecraft:overworld", 10L, 4, false);
 
-		assert manager.state(player).preparedCount(109L) == 4;
-		assert manager.state(player).preparedCount(111L) == 0;
+		assert manager.state(player).preparedCount(10L) == 4;
+		assert manager.state(player).preparedCount(111L) == 4;
+		assert manager.state(player).preparedCount(1210L) == 4;
+
+		NobaraCombatStateManager.LaunchResult launch = manager.startHairpin(player, "minecraft:overworld", 1211L);
+
+		assert launch.accepted() : launch;
+		assert launch.nailCount() == 4 : launch;
+		assert manager.state(player).preparedCount(1211L) == 0;
 	}
 
 	private static void assertCooldownRejectsHammerActivation() {
@@ -68,12 +75,12 @@ public final class NobaraCombatStateManagerTest {
 		NobaraCombatStateManager.LaunchResult launch = manager.startHairpin(player, "minecraft:overworld", 5L);
 
 		assert launch.accepted() : launch;
-		assert launch.windupEndsAt() == 13L : launch;
-		assert launch.impactAt() == 23L : launch;
-		assert manager.state(player).phaseAt(12L) == NobaraCombatStateManager.Phase.WINDUP;
-		assert manager.state(player).phaseAt(14L) == NobaraCombatStateManager.Phase.FLIGHT;
-		assert manager.state(player).phaseAt(23L) == NobaraCombatStateManager.Phase.RECOVERY;
-		assert manager.state(player).phaseAt(37L) == NobaraCombatStateManager.Phase.COOLDOWN;
-		assert manager.state(player).phaseAt(94L) == NobaraCombatStateManager.Phase.IDLE;
+		assert launch.windupEndsAt() == 11L : launch;
+		assert launch.impactAt() == 14L : launch;
+		assert manager.state(player).phaseAt(10L) == NobaraCombatStateManager.Phase.WINDUP;
+		assert manager.state(player).phaseAt(12L) == NobaraCombatStateManager.Phase.FLIGHT;
+		assert manager.state(player).phaseAt(14L) == NobaraCombatStateManager.Phase.RECOVERY;
+		assert manager.state(player).phaseAt(28L) == NobaraCombatStateManager.Phase.COOLDOWN;
+		assert manager.state(player).phaseAt(85L) == NobaraCombatStateManager.Phase.IDLE;
 	}
 }

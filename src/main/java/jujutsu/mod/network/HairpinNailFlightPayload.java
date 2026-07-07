@@ -7,6 +7,8 @@ import jujutsu.mod.JujutsuMod;
 
 public record HairpinNailFlightPayload(
 		int seed,
+		int ownerEntityId,
+		int targetEntityId,
 		int nailCount,
 		double targetX,
 		double targetY,
@@ -35,6 +37,8 @@ public record HairpinNailFlightPayload(
 		return new HairpinNailFlightPayload(
 				buffer.readInt(),
 				buffer.readVarInt(),
+				buffer.readVarInt(),
+				buffer.readVarInt(),
 				buffer.readDouble(),
 				buffer.readDouble(),
 				buffer.readDouble(),
@@ -56,6 +60,8 @@ public record HairpinNailFlightPayload(
 
 	private void write(RegistryFriendlyByteBuf buffer) {
 		buffer.writeInt(seed);
+		buffer.writeVarInt(ownerEntityId);
+		buffer.writeVarInt(targetEntityId);
 		buffer.writeVarInt(nailCount);
 		buffer.writeDouble(targetX);
 		buffer.writeDouble(targetY);

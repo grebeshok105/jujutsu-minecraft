@@ -243,6 +243,7 @@ public final class JujutsuCommands {
 
 		HairpinFxPayload payload = new HairpinFxPayload(
 				seed,
+				-1,
 				target.x,
 				target.y,
 				target.z,

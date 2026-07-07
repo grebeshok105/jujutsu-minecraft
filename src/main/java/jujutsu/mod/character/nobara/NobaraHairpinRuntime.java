@@ -14,6 +14,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
@@ -31,7 +32,6 @@ import jujutsu.mod.network.HairpinNailFlightPayload;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.network.PreparedNailsPayload;
 import jujutsu.mod.registry.JujutsuItems;
-import jujutsu.mod.registry.JujutsuSounds;
 
 public final class NobaraHairpinRuntime {
 	private static final double TARGET_RANGE = 32.0;
@@ -63,9 +63,11 @@ public final class NobaraHairpinRuntime {
 		if (result.consumedCount() > 0) {
 			consumeHairpinNails(player, stack, result.consumedCount());
 		}
-		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.HAIRPIN_PREP, SoundSource.PLAYERS, 0.55f, 1.0f);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 0.28f, 0.58f);
 		int seed = seed(level, player, result.preparedCount());
-		PreparedNailsPayload payload = new PreparedNailsPayload(seed, player.getId(), result.preparedCount(), gameTime);
+		Vec3 rowOrigin = player.getEyePosition();
+		List<Vec3> row = HairpinGameplayService.preparedNailRow(rowOrigin, player.getLookAngle(), result.preparedCount());
+		PreparedNailsPayload payload = PreparedNailsPayload.create(seed, player.getId(), result.preparedCount(), gameTime, row);
 		int sent = JujutsuNetworking.broadcastPreparedNails(level, player.position(), BROADCAST_RADIUS, payload);
 		HairpinDebugLog.info("nobara prepared nails player={} count={} consumed={} sent={}", player.getGameProfile().getName(), result.preparedCount(), result.consumedCount(), sent);
 		player.displayClientMessage(Component.literal("Prepared " + result.preparedCount() + " cursed nail(s)."), true);
@@ -83,15 +85,16 @@ public final class NobaraHairpinRuntime {
 		}
 
 		TargetResolver.Result target = TargetResolver.resolve(level, player, TARGET_RANGE);
-		Vec3 origin = player.getEyePosition().add(player.getLookAngle().normalize().scale(0.6)).add(0.0, -0.18, 0.0);
-		List<Vec3> starts = HairpinGameplayService.cinematicNailStarts(origin, player.getLookAngle(), target.point(), launch.nailCount());
+		List<Vec3> starts = HairpinGameplayService.preparedNailRow(player.getEyePosition(), player.getLookAngle(), launch.nailCount());
 		List<Vec3> fourStarts = fillNails(starts, target.point());
 		int seed = seed(level, player, launch.nailCount());
-		HairpinNailFlightPayload flightPayload = flightPayload(seed, launch.nailCount(), target.point(), launch.windupEndsAt(), fourStarts);
+		int targetEntityId = target.entityId().orElse(-1);
+		HairpinNailFlightPayload flightPayload = flightPayload(seed, player.getId(), targetEntityId, launch.nailCount(), target.point(), launch.windupEndsAt(), fourStarts);
 		int sent = JujutsuNetworking.broadcastNailFlight(level, target.point(), BROADCAST_RADIUS, flightPayload);
-		PENDING_IMPACTS.add(new PendingImpact(player.getUUID(), level.dimension(), target.point(), fourStarts, launch.nailCount(), launch.impactAt(), seed));
+		PENDING_IMPACTS.add(new PendingImpact(player.getUUID(), level.dimension(), targetEntityId, target.point(), fourStarts, launch.nailCount(), launch.impactAt(), seed));
 		LAST_TARGETS.put(player.getUUID(), target.mode() + " " + format(target.point()) + target.entityId().map(id -> " entity=" + id).orElse(""));
-		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.HAIRPIN_HAMMER_SNAP, SoundSource.PLAYERS, 0.75f, 1.1f);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ANVIL_HIT, SoundSource.PLAYERS, 0.9f, 0.68f);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.NETHERITE_BLOCK_HIT, SoundSource.PLAYERS, 0.5f, 0.74f);
 		damageHammer(player, hammerStack, hand);
 		HairpinDebugLog.info("nobara hairpin launched player={} nails={} targetMode={} target={} impactAt={} sent={}", player.getGameProfile().getName(), launch.nailCount(), target.mode(), HairpinDebugLog.vec(target.point()), launch.impactAt(), sent);
 	}
@@ -202,9 +205,11 @@ public final class NobaraHairpinRuntime {
 		}
 	}
 
-	private static HairpinNailFlightPayload flightPayload(int seed, int nailCount, Vec3 target, long startGameTime, List<Vec3> nails) {
+	private static HairpinNailFlightPayload flightPayload(int seed, int ownerEntityId, int targetEntityId, int nailCount, Vec3 target, long startGameTime, List<Vec3> nails) {
 		return new HairpinNailFlightPayload(
 				seed,
+				ownerEntityId,
+				targetEntityId,
 				nailCount,
 				target.x,
 				target.y,
@@ -230,6 +235,7 @@ public final class NobaraHairpinRuntime {
 		Vec3 target = impact.target();
 		return new HairpinFxPayload(
 				impact.seed(),
+				impact.targetEntityId(),
 				target.x,
 				target.y,
 				target.z,
@@ -280,5 +286,5 @@ public final class NobaraHairpinRuntime {
 		return pos.getX() + "," + pos.getY() + "," + pos.getZ();
 	}
 
-	private record PendingImpact(UUID ownerId, ResourceKey<Level> dimension, Vec3 target, List<Vec3> nails, int nailCount, long impactAt, int seed) {}
+	private record PendingImpact(UUID ownerId, ResourceKey<Level> dimension, int targetEntityId, Vec3 target, List<Vec3> nails, int nailCount, long impactAt, int seed) {}
 }

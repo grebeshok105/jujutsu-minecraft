@@ -7,6 +7,7 @@ import jujutsu.mod.JujutsuMod;
 
 public record HairpinFxPayload(
 		int seed,
+		int targetEntityId,
 		double targetX,
 		double targetY,
 		double targetZ,
@@ -33,6 +34,7 @@ public record HairpinFxPayload(
 	private static HairpinFxPayload read(RegistryFriendlyByteBuf buffer) {
 		return new HairpinFxPayload(
 				buffer.readInt(),
+				buffer.readVarInt(),
 				buffer.readDouble(),
 				buffer.readDouble(),
 				buffer.readDouble(),
@@ -54,6 +56,7 @@ public record HairpinFxPayload(
 
 	private void write(RegistryFriendlyByteBuf buffer) {
 		buffer.writeInt(seed);
+		buffer.writeVarInt(targetEntityId);
 		buffer.writeDouble(targetX);
 		buffer.writeDouble(targetY);
 		buffer.writeDouble(targetZ);
