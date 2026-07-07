@@ -84,6 +84,10 @@ public final class NobaraNailFlightManager {
 			return payload.nails();
 		}
 
+		public Vec3 direction() {
+			return payload.direction();
+		}
+
 		public float fade(long gameTime, float partialTick) {
 			return 1.0f;
 		}

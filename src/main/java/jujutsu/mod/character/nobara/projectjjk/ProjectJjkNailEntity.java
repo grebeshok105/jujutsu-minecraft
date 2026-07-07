@@ -1,6 +1,9 @@
 package jujutsu.mod.character.nobara.projectjjk;
 
 import java.util.UUID;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
@@ -18,6 +21,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 public final class ProjectJjkNailEntity extends Entity {
+	private static final EntityDataAccessor<Boolean> DATA_LAUNCHED = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.BOOLEAN);
 	private static final String OWNER_UUID_TAG = "OwnerUuid";
 	private static final String OWNER_ENTITY_ID_TAG = "OwnerEntityId";
 	private static final String LAUNCHED_TAG = "Launched";
@@ -41,7 +45,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	public void prepare(ServerPlayer owner, Vec3 position, Vec3 direction) {
 		ownerUuid = owner.getUUID();
 		ownerEntityId = owner.getId();
-		launched = false;
+		setLaunched(false);
 		target = position;
 		setDeltaMovement(Vec3.ZERO);
 		setPos(position);
@@ -51,14 +55,19 @@ public final class ProjectJjkNailEntity extends Entity {
 	public void launchAt(Vec3 target, int delayTicks) {
 		Vec3 direction = safeDirection(target.subtract(position()));
 		this.target = target;
-		launched = true;
+		setLaunched(true);
 		launchDelayTicks = Math.max(0, delayTicks);
 		setDeltaMovement(direction.scale(ProjectJjkNobaraProfile.LAUNCH_SPEED_BLOCKS_PER_TICK));
+		hasImpulse = true;
 		face(direction);
 	}
 
 	public boolean isPrepared() {
-		return !launched && !isRemoved();
+		return !isLaunched() && !isRemoved();
+	}
+
+	public boolean isLaunched() {
+		return launched || entityData.get(DATA_LAUNCHED);
 	}
 
 	public boolean isOwnedBy(UUID playerId) {
@@ -82,7 +91,7 @@ public final class ProjectJjkNailEntity extends Entity {
 			return;
 		}
 
-		if (!launched) {
+		if (!isLaunched()) {
 			setDeltaMovement(Vec3.ZERO);
 			return;
 		}
@@ -122,7 +131,9 @@ public final class ProjectJjkNailEntity extends Entity {
 	}
 
 	@Override
-	protected void defineSynchedData(net.minecraft.network.syncher.SynchedEntityData.Builder builder) {}
+	protected void defineSynchedData(SynchedEntityData.Builder builder) {
+		builder.define(DATA_LAUNCHED, false);
+	}
 
 	@Override
 	protected void addAdditionalSaveData(ValueOutput output) {
@@ -130,7 +141,7 @@ public final class ProjectJjkNailEntity extends Entity {
 			output.putString(OWNER_UUID_TAG, ownerUuid.toString());
 		}
 		output.putInt(OWNER_ENTITY_ID_TAG, ownerEntityId);
-		output.putBoolean(LAUNCHED_TAG, launched);
+		output.putBoolean(LAUNCHED_TAG, isLaunched());
 		output.putInt(LAUNCH_DELAY_TAG, launchDelayTicks);
 		output.putDouble(TARGET_X_TAG, target.x);
 		output.putDouble(TARGET_Y_TAG, target.y);
@@ -142,9 +153,14 @@ public final class ProjectJjkNailEntity extends Entity {
 		String owner = input.getStringOr(OWNER_UUID_TAG, "");
 		ownerUuid = owner.isBlank() ? null : UUID.fromString(owner);
 		ownerEntityId = input.getIntOr(OWNER_ENTITY_ID_TAG, -1);
-		launched = input.getBooleanOr(LAUNCHED_TAG, false);
+		setLaunched(input.getBooleanOr(LAUNCHED_TAG, false));
 		launchDelayTicks = input.getIntOr(LAUNCH_DELAY_TAG, 0);
 		target = new Vec3(input.getDoubleOr(TARGET_X_TAG, getX()), input.getDoubleOr(TARGET_Y_TAG, getY()), input.getDoubleOr(TARGET_Z_TAG, getZ()));
+	}
+
+	private void setLaunched(boolean launched) {
+		this.launched = launched;
+		entityData.set(DATA_LAUNCHED, launched);
 	}
 
 	private boolean canHitEntity(Entity entity) {

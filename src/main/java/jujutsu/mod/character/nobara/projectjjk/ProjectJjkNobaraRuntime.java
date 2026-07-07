@@ -20,11 +20,15 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.combat.TargetResolver;
+import jujutsu.mod.network.JujutsuNetworking;
+import jujutsu.mod.network.ProjectJjkNobaraImpulsePayload;
 import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.registry.JujutsuSounds;
 
 public final class ProjectJjkNobaraRuntime {
+	private static final double IMPULSE_BROADCAST_RADIUS = 56.0;
+
 	private ProjectJjkNobaraRuntime() {}
 
 	public static void prepareNails(ServerPlayer player, ItemStack usedStack, int useTicks) {
@@ -80,6 +84,8 @@ public final class ProjectJjkNobaraRuntime {
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.NETHERITE_BLOCK_HIT, SoundSource.PLAYERS, 0.95f, 0.68f);
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 1.2f, 0.82f);
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_CINEMATIC_WHOOSH, SoundSource.PLAYERS, 0.88f, 0.86f);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SPELL_SHOT, SoundSource.PLAYERS, 0.72f, 0.74f);
+		JujutsuNetworking.broadcastProjectJjkImpulse(level, player.position(), IMPULSE_BROADCAST_RADIUS, impulse(ProjectJjkNobaraImpulsePayload.HAMMER, nails.size(), player.position(), level.getGameTime()));
 		damageHammer(player, hammerStack, hand);
 		player.displayClientMessage(Component.literal("ProjectJJK Hairpin launched " + nails.size() + " nail(s)."), true);
 	}
@@ -100,12 +106,21 @@ public final class ProjectJjkNobaraRuntime {
 			}
 		}
 
-		level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, point.x, point.y, point.z, 42, 0.55, 0.55, 0.55, 0.08);
-		level.sendParticles(ParticleTypes.ELECTRIC_SPARK, point.x, point.y, point.z, 34, 0.42, 0.42, 0.42, 0.18);
-		level.sendParticles(ParticleTypes.CRIT, point.x, point.y, point.z, 22, 0.35, 0.35, 0.35, 0.16);
+		level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, point.x, point.y, point.z, 86, 0.86, 0.72, 0.86, 0.12);
+		level.sendParticles(ParticleTypes.ELECTRIC_SPARK, point.x, point.y, point.z, 62, 0.64, 0.52, 0.64, 0.24);
+		level.sendParticles(ParticleTypes.CRIT, point.x, point.y, point.z, 38, 0.46, 0.42, 0.46, 0.2);
+		level.sendParticles(ParticleTypes.FLASH, point.x, point.y, point.z, 3, 0.12, 0.12, 0.12, 0.0);
 		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_WHOOSH_HIT, SoundSource.PLAYERS, 0.95f, 0.74f);
-		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_EXPLODE, SoundSource.PLAYERS, 0.72f, 0.82f);
+		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_EXPLODE, SoundSource.PLAYERS, 0.88f, 0.78f);
+		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, SoundSource.PLAYERS, 0.58f, 0.72f);
+		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_IMPLODE, SoundSource.PLAYERS, 0.42f, 0.9f);
 		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, SoundSource.PLAYERS, 0.56f, 1.08f);
+		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT_2, SoundSource.PLAYERS, 0.42f, 0.96f);
+		JujutsuNetworking.broadcastProjectJjkImpulse(level, point, IMPULSE_BROADCAST_RADIUS, impulse(ProjectJjkNobaraImpulsePayload.IMPACT, 1, point, level.getGameTime()));
+	}
+
+	private static ProjectJjkNobaraImpulsePayload impulse(int kind, int nailCount, Vec3 point, long gameTime) {
+		return new ProjectJjkNobaraImpulsePayload(kind, nailCount, point.x, point.y, point.z, gameTime);
 	}
 
 	private static List<ProjectJjkNailEntity> findPreparedNails(ServerLevel level, ServerPlayer player) {

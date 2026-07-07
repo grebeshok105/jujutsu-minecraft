@@ -66,8 +66,9 @@ public final class NobaraHairpinRuntime {
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 0.28f, 0.58f);
 		int seed = seed(level, player, result.preparedCount());
 		Vec3 rowOrigin = player.getEyePosition();
-		List<Vec3> row = HairpinGameplayService.preparedNailRow(rowOrigin, player.getLookAngle(), result.preparedCount());
-		PreparedNailsPayload payload = PreparedNailsPayload.create(seed, player.getId(), result.preparedCount(), gameTime, row);
+		Vec3 direction = player.getLookAngle();
+		List<Vec3> row = HairpinGameplayService.preparedNailRow(rowOrigin, direction, result.preparedCount());
+		PreparedNailsPayload payload = PreparedNailsPayload.create(seed, player.getId(), result.preparedCount(), gameTime, row, direction);
 		int sent = JujutsuNetworking.broadcastPreparedNails(level, player.position(), BROADCAST_RADIUS, payload);
 		HairpinDebugLog.info("nobara prepared nails player={} count={} consumed={} sent={}", player.getGameProfile().getName(), result.preparedCount(), result.consumedCount(), sent);
 		player.displayClientMessage(Component.literal("Prepared " + result.preparedCount() + " cursed nail(s)."), true);

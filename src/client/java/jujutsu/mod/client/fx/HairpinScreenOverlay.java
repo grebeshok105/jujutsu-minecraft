@@ -44,11 +44,25 @@ public final class HairpinScreenOverlay {
 		}
 	}
 
+	public static void triggerProjectJjkHammer(float proximity) {
+		triggerCinematic(220, scaledAlpha(150, proximity), scaledAlpha(126, proximity));
+		triggerFlash(90, scaledAlpha(82, proximity));
+	}
+
+	public static void triggerProjectJjkImpact(float proximity) {
+		triggerCinematic(380, scaledAlpha(170, proximity), scaledAlpha(130, proximity));
+		triggerFlash(150, scaledAlpha(160, proximity));
+	}
+
 	private static void triggerCinematic(int durationMillis, int vignetteAlpha, int lineAlpha) {
 		cinematicStartedAtMillis = System.currentTimeMillis();
 		cinematicDurationMillis = Math.max(1, durationMillis);
 		vignetteMaxAlpha = Math.max(0, Math.min(170, vignetteAlpha));
 		speedLineAlpha = Math.max(0, Math.min(130, lineAlpha));
+	}
+
+	private static int scaledAlpha(int alpha, float proximity) {
+		return Math.round(alpha * Math.max(0.0f, Math.min(1.0f, proximity)));
 	}
 
 	private static void render(GuiGraphics graphics, DeltaTracker tickCounter) {

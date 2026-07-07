@@ -13,13 +13,11 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-import jujutsu.mod.character.nobara.HairpinGameplayService;
 import jujutsu.mod.debug.HairpinDebugLog;
 import jujutsu.mod.fx.HairpinTimeline;
 import jujutsu.mod.registry.JujutsuItems;
@@ -70,7 +68,7 @@ public final class HairpinWorldRenderer {
 		VertexConsumer consumer = consumers.getBuffer(RenderType.lightning());
 
 		for (NobaraNailFlightManager.Prepared prepared : NobaraNailFlightManager.activePrepared()) {
-			renderPrepared(consumer, matrices, consumers, world, world.getEntity(prepared.payload().playerEntityId()), cameraPosition, gameTime, partialTick, prepared);
+			renderPrepared(consumer, matrices, consumers, world, cameraPosition, gameTime, partialTick, prepared);
 		}
 		for (NobaraNailFlightManager.Flight flight : NobaraNailFlightManager.activeFlights()) {
 			renderFlight(consumer, matrices, consumers, world, flight, cameraPosition, gameTime, partialTick);
@@ -85,17 +83,14 @@ public final class HairpinWorldRenderer {
 		}
 	}
 
-	private static void renderPrepared(VertexConsumer consumer, PoseStack matrices, MultiBufferSource consumers, ClientLevel world, Entity entity, Vec3 cameraPosition, long gameTime, float partialTick, NobaraNailFlightManager.Prepared prepared) {
+	private static void renderPrepared(VertexConsumer consumer, PoseStack matrices, MultiBufferSource consumers, ClientLevel world, Vec3 cameraPosition, long gameTime, float partialTick, NobaraNailFlightManager.Prepared prepared) {
 		float fade = prepared.fade(gameTime, partialTick);
 		if (fade <= 0.01f) {
 			return;
 		}
-		Vec3 direction = entity == null ? EAST : safeDirection(entity.getLookAngle());
+		Vec3 direction = safeDirection(prepared.direction());
 		int index = 0;
-		Iterable<Vec3> nails = entity == null
-				? prepared.nails()
-				: HairpinGameplayService.preparedNailRow(entity.getEyePosition(partialTick), entity.getViewVector(partialTick), prepared.payload().nailCount());
-		for (Vec3 nail : nails) {
+		for (Vec3 nail : prepared.nails()) {
 			Vec3 position = nail.subtract(cameraPosition);
 			Vec3 tangent = direction;
 			renderItemNail(matrices, consumers, world, nail, cameraPosition, tangent, 0.46f, prepared.payload().seed() + index);

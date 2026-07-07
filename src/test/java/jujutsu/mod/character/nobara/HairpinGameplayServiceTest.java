@@ -74,6 +74,7 @@ public final class HairpinGameplayServiceTest {
 		assert nails.size() == 3 : nails;
 		assert close(nails.get(0).x, row.get(0).x) : nails;
 		assert close(nails.get(2).z, row.get(2).z) : nails;
+		assert close(payload.direction().z, 1.0) : payload.direction();
 	}
 
 	private static void assertFlightAndFxPayloadsCarryAttachmentIds() {

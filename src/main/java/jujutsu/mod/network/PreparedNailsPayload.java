@@ -12,6 +12,9 @@ public record PreparedNailsPayload(
 		int playerEntityId,
 		int nailCount,
 		long startGameTime,
+		double directionX,
+		double directionY,
+		double directionZ,
 		double nail0X,
 		double nail0Y,
 		double nail0Z,
@@ -32,16 +35,24 @@ public record PreparedNailsPayload(
 	);
 
 	public static PreparedNailsPayload create(int seed, int playerEntityId, int nailCount, long startGameTime, List<Vec3> nails) {
+		return create(seed, playerEntityId, nailCount, startGameTime, nails, Vec3.ZERO);
+	}
+
+	public static PreparedNailsPayload create(int seed, int playerEntityId, int nailCount, long startGameTime, List<Vec3> nails, Vec3 direction) {
 		int clampedCount = Math.max(0, Math.min(4, Math.min(nailCount, nails.size())));
 		Vec3 nail0 = nailOrZero(nails, 0);
 		Vec3 nail1 = nailOrZero(nails, 1);
 		Vec3 nail2 = nailOrZero(nails, 2);
 		Vec3 nail3 = nailOrZero(nails, 3);
+		Vec3 facing = safeDirection(direction);
 		return new PreparedNailsPayload(
 				seed,
 				playerEntityId,
 				clampedCount,
 				startGameTime,
+				facing.x,
+				facing.y,
+				facing.z,
 				nail0.x,
 				nail0.y,
 				nail0.z,
@@ -74,6 +85,9 @@ public record PreparedNailsPayload(
 				buffer.readDouble(),
 				buffer.readDouble(),
 				buffer.readDouble(),
+				buffer.readDouble(),
+				buffer.readDouble(),
+				buffer.readDouble(),
 				buffer.readDouble()
 		);
 	}
@@ -83,6 +97,9 @@ public record PreparedNailsPayload(
 		buffer.writeVarInt(playerEntityId);
 		buffer.writeVarInt(nailCount);
 		buffer.writeLong(startGameTime);
+		buffer.writeDouble(directionX);
+		buffer.writeDouble(directionY);
+		buffer.writeDouble(directionZ);
 		buffer.writeDouble(nail0X);
 		buffer.writeDouble(nail0Y);
 		buffer.writeDouble(nail0Z);
@@ -107,8 +124,16 @@ public record PreparedNailsPayload(
 		return nails.subList(0, Math.max(0, Math.min(nailCount, nails.size())));
 	}
 
+	public Vec3 direction() {
+		return safeDirection(new Vec3(directionX, directionY, directionZ));
+	}
+
 	private static Vec3 nailOrZero(List<Vec3> nails, int index) {
 		return index < nails.size() ? nails.get(index) : Vec3.ZERO;
+	}
+
+	private static Vec3 safeDirection(Vec3 vector) {
+		return vector.lengthSqr() < 1.0E-5 ? new Vec3(0.0, 0.0, 1.0) : vector.normalize();
 	}
 
 	@Override

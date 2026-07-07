@@ -22,6 +22,18 @@ public final class HairpinCinematicCamera {
 		}
 	}
 
+	public static void triggerProjectJjkHammer(int nailCount, float proximity) {
+		float strength = projectJjkStrength(nailCount, proximity, 0.92f);
+		addImpulse(190, -2.9f * strength, 1.72f * strength, 72.0f);
+		addImpulse(95, 1.18f * strength, -0.86f * strength, 126.0f);
+	}
+
+	public static void triggerProjectJjkImpact(int nailCount, float proximity) {
+		float strength = projectJjkStrength(nailCount, proximity, 1.08f);
+		addImpulse(270, 3.3f * strength, -2.1f * strength, 58.0f);
+		addImpulse(130, -1.52f * strength, 1.18f * strength, 118.0f);
+	}
+
 	public static float yawOffset() {
 		return sample(true);
 	}
@@ -36,6 +48,11 @@ public final class HairpinCinematicCamera {
 
 	private static void addImpulse(int durationMillis, float yawAmplitude, float pitchAmplitude, float frequency) {
 		IMPULSES.add(new Impulse(System.currentTimeMillis(), durationMillis, yawAmplitude, pitchAmplitude, frequency));
+	}
+
+	private static float projectJjkStrength(int nailCount, float proximity, float multiplier) {
+		float countScale = 0.84f + Math.min(8, Math.max(1, nailCount)) * 0.055f;
+		return Math.max(0.0f, Math.min(1.65f, proximity * countScale * multiplier));
 	}
 
 	private static float sample(boolean yaw) {
