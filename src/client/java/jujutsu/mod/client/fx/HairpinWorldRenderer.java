@@ -77,7 +77,7 @@ public final class HairpinWorldRenderer {
 			}
 		}
 
-		if (phase == HairpinTimeline.Phase.HAIRPIN_BLOOM || phase == HairpinTimeline.Phase.AFTERGLOW) {
+		if (phase == HairpinTimeline.Phase.HAIRPIN_BLOOM) {
 			renderShockwave(consumer, target.subtract(cameraPosition), phase, progress);
 			renderFractureStar(consumer, target.subtract(cameraPosition), phase, progress);
 		}

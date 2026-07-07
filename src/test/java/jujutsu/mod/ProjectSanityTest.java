@@ -20,7 +20,9 @@ public final class ProjectSanityTest {
 	private static final Pattern SOUND_ID = Pattern.compile("\"(?:minecraft|jujutsumod):([^\"]+)\"");
 	private static final Pattern ITEM_MODEL_ID = Pattern.compile("\"model\"\\s*:\\s*\"jujutsumod:item/([^\"]+)\"");
 	private static final Pattern ITEM_TEXTURE_ID = Pattern.compile("\"([a-z0-9_]+)\"\\s*:\\s*\"jujutsumod:item/([^\"]+)\"");
-	private static final Pattern ITEM_FACE_UV = Pattern.compile("\"(?:north|south|east|west|up|down)\"\\s*:\\s*\\{[^}]*\"texture\"\\s*:\\s*\"#([a-z0-9_]+)\"[^}]*\"uv\"\\s*:\\s*\\[\\s*([0-9.]+)\\s*,\\s*([0-9.]+)\\s*,\\s*([0-9.]+)\\s*,\\s*([0-9.]+)\\s*]");
+	private static final Pattern ITEM_FACE = Pattern.compile("\"(?:north|south|east|west|up|down)\"\\s*:\\s*\\{([^}]*)}");
+	private static final Pattern FACE_TEXTURE = Pattern.compile("\"texture\"\\s*:\\s*\"#([a-z0-9_]+)\"");
+	private static final Pattern FACE_UV = Pattern.compile("\"uv\"\\s*:\\s*\\[\\s*([0-9.]+)\\s*,\\s*([0-9.]+)\\s*,\\s*([0-9.]+)\\s*,\\s*([0-9.]+)\\s*]");
 	private static final String FORBIDDEN_FABRIC_IMPL = "net.fabricmc.fabric." + "impl.";
 	private static final String CLIENT_IMPORT = "import net.minecraft." + "client.";
 
@@ -78,19 +80,27 @@ public final class ProjectSanityTest {
 	}
 
 	private static void assertModelFaceUvsAreOpaque(Path model, String modelJson, Map<String, Path> textures) throws IOException {
-		Matcher faceMatcher = ITEM_FACE_UV.matcher(modelJson);
+		Matcher faceMatcher = ITEM_FACE.matcher(modelJson);
+		boolean foundFace = false;
 		while (faceMatcher.find()) {
-			String textureKey = faceMatcher.group(1);
+			foundFace = true;
+			String faceJson = faceMatcher.group(1);
+			Matcher textureMatcher = FACE_TEXTURE.matcher(faceJson);
+			Matcher uvMatcher = FACE_UV.matcher(faceJson);
+			assert textureMatcher.find() : "Item model face has no texture reference in " + model;
+			assert uvMatcher.find() : "Item model face has no uv coordinates in " + model;
+			String textureKey = textureMatcher.group(1);
 			Path texturePath = textures.get(textureKey);
 			assert texturePath != null : "Item model face references unknown texture key #" + textureKey + " in " + model;
 			BufferedImage image = ImageIO.read(texturePath.toFile());
 			assert image != null : "Could not read item texture " + texturePath;
-			double u0 = Double.parseDouble(faceMatcher.group(2));
-			double v0 = Double.parseDouble(faceMatcher.group(3));
-			double u1 = Double.parseDouble(faceMatcher.group(4));
-			double v1 = Double.parseDouble(faceMatcher.group(5));
+			double u0 = Double.parseDouble(uvMatcher.group(1));
+			double v0 = Double.parseDouble(uvMatcher.group(2));
+			double u1 = Double.parseDouble(uvMatcher.group(3));
+			double v1 = Double.parseDouble(uvMatcher.group(4));
 			assertOpaqueCoverage(model, texturePath, image, u0, v0, u1, v1);
 		}
+		assert foundFace : "Item model has no 3D faces to validate: " + model;
 	}
 
 	private static void assertOpaqueCoverage(Path model, Path texturePath, BufferedImage image, double u0, double v0, double u1, double v1) {
