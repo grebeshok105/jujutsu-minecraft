@@ -111,7 +111,10 @@ public final class ProjectJjkNobaraRuntime {
 		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_IMPLODE, SoundSource.PLAYERS, 0.42f, 0.9f);
 		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, SoundSource.PLAYERS, 0.56f, 1.08f);
 		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT_2, SoundSource.PLAYERS, 0.42f, 0.96f);
-		JujutsuNetworking.broadcastProjectJjkImpulse(level, impulse(ProjectJjkNobaraImpulsePayload.IMPACT, 1, point, level.getGameTime()));
+		JujutsuNetworking.broadcastProjectJjkImpulse(level, point, IMPULSE_BROADCAST_RADIUS, impulse(ProjectJjkNobaraImpulsePayload.IMPACT, 1, point, level.getGameTime()));
+		if (owner != null) {
+			JujutsuNetworking.sendProjectJjkImpulse(owner, impulse(ProjectJjkNobaraImpulsePayload.IMPACT_SOUND, 1, point, level.getGameTime()));
+		}
 	}
 
 	private static ProjectJjkNobaraImpulsePayload impulse(int kind, int nailCount, Vec3 point, long gameTime) {

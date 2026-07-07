@@ -29,6 +29,12 @@ The comparison path intentionally stays small:
 - No Resonance, body parts, doll cinematic, NPC AI, or cursed spirit entity AI in this pass.
 - Imported doll/body-part/spirit assets are available for later work but are not activated as gameplay.
 
+## Character Selection Addendum
+
+The comparison build includes a small character selection screen so the player can switch into Nobara while testing the ProjectJJK path. The first implementation is session-only: the server stores the selected character in memory, syncs it to connected clients, and clears it when the player disconnects. Persistent character selection is deferred until the character system needs real progression or saved loadouts.
+
+Nobara's player skin is applied by a narrowly scoped client mixin on `AbstractClientPlayer#getSkin`. A normal Fabric event/layer can add visuals, but it cannot fully replace the vanilla base player skin before the player renderer draws it. The mixin is therefore used only to return a different `PlayerSkin` for players whose synced character selection is `NOBARA`, preventing the default player skin from rendering underneath.
+
 ## Acceptance Criteria
 
 - Both Nobara versions are available in the same dev jar through separate items.
