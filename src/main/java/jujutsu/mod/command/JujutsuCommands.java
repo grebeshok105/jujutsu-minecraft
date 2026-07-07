@@ -58,7 +58,25 @@ public final class JujutsuCommands {
 										.executes(ctx -> playHairpinStage(ctx.getSource(), "burst")))
 								.then(Commands.literal("afterglow")
 										.executes(ctx -> playHairpinStage(ctx.getSource(), "afterglow"))))
-						.executes(ctx -> playHairpin(ctx.getSource()))));
+						.executes(ctx -> playHairpin(ctx.getSource())))
+				.then(Commands.literal("debug")
+						.then(Commands.literal("hairpin")
+								.executes(ctx -> reportHairpinDebug(ctx.getSource()))
+								.then(Commands.literal("true")
+										.executes(ctx -> setHairpinDebug(ctx.getSource(), true)))
+								.then(Commands.literal("false")
+										.executes(ctx -> setHairpinDebug(ctx.getSource(), false))))));
+	}
+
+	private static int reportHairpinDebug(CommandSourceStack source) {
+		source.sendSuccess(() -> Component.literal("Hairpin debug logging is " + (HairpinDebugLog.isEnabled() ? "enabled" : "disabled")), false);
+		return 1;
+	}
+
+	private static int setHairpinDebug(CommandSourceStack source, boolean enabled) {
+		HairpinDebugLog.setEnabled(enabled);
+		source.sendSuccess(() -> Component.literal("Hairpin debug logging " + (enabled ? "enabled" : "disabled")), true);
+		return 1;
 	}
 
 	private static int playSingleParticle(CommandSourceStack source, String label, SimpleParticleType type, int count, double xSpread, double ySpread, double zSpread, double speed) throws com.mojang.brigadier.exceptions.CommandSyntaxException {

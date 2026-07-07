@@ -62,6 +62,15 @@ tasks.register('testProjectSanity', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testHairpinDebugLog', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for the Hairpin debug switch'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.debug.HairpinDebugLogTest'
+	jvmArgs '-ea'
+}
+
 processResources {
 	def version = project.version
 	inputs.property "version", version
