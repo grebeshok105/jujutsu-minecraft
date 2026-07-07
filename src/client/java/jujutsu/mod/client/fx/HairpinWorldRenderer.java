@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.Camera;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.debug.HairpinDebugLog;
 import jujutsu.mod.fx.HairpinTimeline;
@@ -19,6 +20,12 @@ public final class HairpinWorldRenderer {
 	private static final int OXBLOOD_R = 58;
 	private static final int OXBLOOD_G = 5;
 	private static final int OXBLOOD_B = 15;
+	private static final int CURSED_BLUE_R = 32;
+	private static final int CURSED_BLUE_G = 92;
+	private static final int CURSED_BLUE_B = 184;
+	private static final int CURSED_BLUE_EDGE_R = 96;
+	private static final int CURSED_BLUE_EDGE_G = 178;
+	private static final int CURSED_BLUE_EDGE_B = 255;
 
 	private HairpinWorldRenderer() {}
 
@@ -39,12 +46,62 @@ public final class HairpinWorldRenderer {
 		Vec3 cameraPosition = camera.getPosition();
 		VertexConsumer consumer = consumers.getBuffer(RenderType.lightning());
 
+		for (NobaraNailFlightManager.Prepared prepared : NobaraNailFlightManager.activePrepared()) {
+			renderPrepared(consumer, context.world().getEntity(prepared.payload().playerEntityId()), cameraPosition, gameTime, partialTick, prepared);
+		}
+		for (NobaraNailFlightManager.Flight flight : NobaraNailFlightManager.activeFlights()) {
+			renderFlight(consumer, flight, cameraPosition, gameTime, partialTick);
+		}
+
 		for (HairpinPlayback playback : HairpinPlaybackManager.activePlaybacks()) {
 			HairpinTimeline.Phase phase = playback.phase(gameTime);
 			if (phase == HairpinTimeline.Phase.DONE) {
 				continue;
 			}
 			renderPlayback(consumer, playback, cameraPosition, phase, playback.progressInPhase(gameTime, partialTick));
+		}
+	}
+
+	private static void renderPrepared(VertexConsumer consumer, Entity entity, Vec3 cameraPosition, long gameTime, float partialTick, NobaraNailFlightManager.Prepared prepared) {
+		if (entity == null) {
+			return;
+		}
+		float fade = prepared.fade(gameTime, partialTick);
+		if (fade <= 0.01f) {
+			return;
+		}
+		Vec3 center = entity.position().add(0.0, entity.getBbHeight() * 0.72, 0.0);
+		int count = Math.max(0, Math.min(4, prepared.payload().nailCount()));
+		double spin = (gameTime + partialTick + prepared.payload().seed() * 0.031) * 0.16;
+		for (int index = 0; index < count; index++) {
+			double angle = spin + index * Math.PI * 0.5;
+			Vec3 offset = new Vec3(Math.cos(angle) * 0.56, 0.18 * Math.sin(angle * 1.7), Math.sin(angle) * 0.56);
+			Vec3 position = center.add(offset).subtract(cameraPosition);
+			Vec3 tangent = new Vec3(-Math.sin(angle), 0.08, Math.cos(angle)).normalize();
+			renderBlueNailMarker(consumer, position, tangent, fade * 0.85f);
+			Vec3 tail = position.subtract(tangent.scale(0.26));
+			Vec3 head = position.add(tangent.scale(0.22));
+			addRibbon(consumer, tail, head, sideVector(head.subtract(tail), position, 0.035f), CURSED_BLUE_R, CURSED_BLUE_G, CURSED_BLUE_B, Math.round(120.0f * fade));
+		}
+	}
+
+	private static void renderFlight(VertexConsumer consumer, NobaraNailFlightManager.Flight flight, Vec3 cameraPosition, long gameTime, float partialTick) {
+		float progress = flight.progress(gameTime, partialTick);
+		if (progress <= 0.0f) {
+			return;
+		}
+		Vec3 target = flight.target();
+		for (Vec3 nail : flight.nails()) {
+			Vec3 current = nail.lerp(target, progress);
+			Vec3 previous = nail.lerp(target, Math.max(0.0f, progress - 0.22f));
+			Vec3 direction = safeDirection(target.subtract(nail));
+			Vec3 start = previous.subtract(cameraPosition);
+			Vec3 end = current.subtract(cameraPosition);
+			float alpha = 1.0f - Math.max(0.0f, progress - 0.82f) / 0.18f;
+			Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), 0.08f);
+			addRibbon(consumer, start, end, side, CURSED_BLUE_R, CURSED_BLUE_G, CURSED_BLUE_B, Math.round(190.0f * alpha));
+			addRibbon(consumer, start.add(side.scale(0.72)), end.add(side.scale(0.72)), side.scale(0.32), CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, Math.round(120.0f * alpha));
+			renderBlueNailMarker(consumer, end, direction, alpha);
 		}
 	}
 
@@ -152,6 +209,22 @@ public final class HairpinWorldRenderer {
 		addRibbon(consumer, head.subtract(direction.scale(0.042)), head.add(direction.scale(0.042)), side.scale(1.85), 16, 7, 10, darkAlpha);
 		addRibbon(consumer, head.add(direction.scale(0.1)), head.add(direction.scale(0.18)), side.scale(1.35), OXBLOOD_R, OXBLOOD_G, OXBLOOD_B, Math.round(alpha * 150.0f));
 		addRibbon(consumer, tip.subtract(direction.scale(0.075)), tip.add(direction.scale(0.035)), side.scale(0.55), 112, 118, 126, Math.round(alpha * 155.0f));
+	}
+
+	private static void renderBlueNailMarker(VertexConsumer consumer, Vec3 anchor, Vec3 direction, float alpha) {
+		if (alpha <= 0.01f) {
+			return;
+		}
+
+		Vec3 shaft = direction.scale(0.62);
+		Vec3 head = anchor.subtract(direction.scale(0.12));
+		Vec3 tip = anchor.add(shaft);
+		Vec3 side = sideVector(shaft, anchor, 0.04f);
+		Vec3 cross = safeDirection(shaft).cross(side).normalize().scale(0.028f);
+		addRibbon(consumer, head, tip, side, 28, 32, 40, Math.round(alpha * 235.0f));
+		addRibbon(consumer, head, tip, cross, 86, 96, 112, Math.round(alpha * 135.0f));
+		addRibbon(consumer, head.subtract(direction.scale(0.035)), head.add(direction.scale(0.06)), side.scale(1.65), CURSED_BLUE_R, CURSED_BLUE_G, CURSED_BLUE_B, Math.round(alpha * 160.0f));
+		addRibbon(consumer, tip.subtract(direction.scale(0.08)), tip.add(direction.scale(0.04)), side.scale(0.65), CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, Math.round(alpha * 130.0f));
 	}
 
 	private static float alphaFor(HairpinTimeline.Phase phase, float progress) {

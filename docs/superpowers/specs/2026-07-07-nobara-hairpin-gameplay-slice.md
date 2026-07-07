@@ -26,7 +26,7 @@ Build the first playable Nobara Hairpin gameplay loop: prepare nails, strike wit
 ## Gameplay
 
 1. Right-click with `jujutsumod:hairpin_nail` to prepare a volley.
-2. The server consumes up to four nails from the stack in survival and stores them as prepared nails.
+2. The server consumes up to four nails from the inventory in survival and stores them as prepared nails.
 3. Prepared nails expire after 100 ticks if not used.
 4. Right-click with `jujutsumod:straw_doll_hammer` while a volley is prepared.
 5. Server validates cooldown and cast phase, then starts an 8 tick windup.
@@ -54,6 +54,7 @@ Build the first playable Nobara Hairpin gameplay loop: prepare nails, strike wit
   - `jujutsumod:straw_doll_hammer`
 - New S2C payload:
   - `jujutsumod:hairpin_nail_flight`
+  - `jujutsumod:prepared_nails`
 - Debug commands:
   - `/jujutsu debug nobara_state`
   - `/jujutsu debug nobara_clear`

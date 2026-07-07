@@ -4,6 +4,7 @@ import net.fabricmc.api.ClientModInitializer;
 import jujutsu.mod.client.fx.HairpinPlaybackManager;
 import jujutsu.mod.client.fx.HairpinScreenOverlay;
 import jujutsu.mod.client.fx.HairpinWorldRenderer;
+import jujutsu.mod.client.fx.NobaraNailFlightManager;
 import jujutsu.mod.client.network.JujutsuClientNetworking;
 import jujutsu.mod.client.particle.JujutsuClientParticles;
 
@@ -13,6 +14,7 @@ public class JujutsuModClient implements ClientModInitializer {
 		JujutsuClientParticles.registerFactories();
 		HairpinScreenOverlay.register();
 		HairpinPlaybackManager.registerClientTick();
+		NobaraNailFlightManager.registerClientTick();
 		HairpinWorldRenderer.register();
 		JujutsuClientNetworking.registerReceivers();
 	}

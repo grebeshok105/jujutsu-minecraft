@@ -10,6 +10,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.character.nobara.NobaraHairpinRuntime;
 import jujutsu.mod.debug.HairpinDebugLog;
 import jujutsu.mod.fx.HairpinTimeline;
 import jujutsu.mod.network.HairpinFxPayload;
@@ -68,7 +69,11 @@ public final class JujutsuCommands {
 								.then(Commands.literal("true")
 										.executes(ctx -> setHairpinDebug(ctx.getSource(), true)))
 								.then(Commands.literal("false")
-										.executes(ctx -> setHairpinDebug(ctx.getSource(), false)))))
+										.executes(ctx -> setHairpinDebug(ctx.getSource(), false))))
+						.then(Commands.literal("nobara_state")
+								.executes(ctx -> reportNobaraState(ctx.getSource())))
+						.then(Commands.literal("nobara_clear")
+								.executes(ctx -> clearNobaraState(ctx.getSource()))))
 				.then(Commands.literal("give")
 						.then(Commands.literal("nobara_tools")
 								.executes(ctx -> giveNobaraTools(ctx.getSource())))));
@@ -99,6 +104,18 @@ public final class JujutsuCommands {
 	private static int setHairpinDebug(CommandSourceStack source, boolean enabled) {
 		HairpinDebugLog.setEnabled(enabled);
 		source.sendSuccess(() -> Component.literal("Hairpin debug logging " + (enabled ? "enabled" : "disabled")), true);
+		return 1;
+	}
+
+	private static int reportNobaraState(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		ServerPlayer player = source.getPlayerOrException();
+		source.sendSuccess(() -> Component.literal("Nobara state: " + NobaraHairpinRuntime.describe(player)), false);
+		return 1;
+	}
+
+	private static int clearNobaraState(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		NobaraHairpinRuntime.clear(source.getPlayerOrException());
+		source.sendSuccess(() -> Component.literal("Nobara state cleared."), true);
 		return 1;
 	}
 

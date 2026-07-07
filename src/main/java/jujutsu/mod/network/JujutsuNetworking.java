@@ -12,6 +12,8 @@ public final class JujutsuNetworking {
 
 	public static void registerPayloads() {
 		PayloadTypeRegistry.playS2C().register(HairpinFxPayload.TYPE, HairpinFxPayload.STREAM_CODEC);
+		PayloadTypeRegistry.playS2C().register(HairpinNailFlightPayload.TYPE, HairpinNailFlightPayload.STREAM_CODEC);
+		PayloadTypeRegistry.playS2C().register(PreparedNailsPayload.TYPE, PreparedNailsPayload.STREAM_CODEC);
 	}
 
 	public static boolean sendHairpin(ServerPlayer player, HairpinFxPayload payload) {
@@ -34,6 +36,36 @@ public final class JujutsuNetworking {
 				sent++;
 			} else {
 				HairpinDebugLog.info("server could not send hairpin payload to={} seed={} canSend=false", player.getGameProfile().getName(), payload.seed());
+			}
+		}
+		return sent;
+	}
+
+	public static int broadcastNailFlight(ServerLevel level, Vec3 center, double radius, HairpinNailFlightPayload payload) {
+		double radiusSqr = radius * radius;
+		int sent = 0;
+		for (ServerPlayer player : level.players()) {
+			if (player.position().distanceToSqr(center) > radiusSqr) {
+				continue;
+			}
+			if (ServerPlayNetworking.canSend(player, HairpinNailFlightPayload.TYPE)) {
+				ServerPlayNetworking.send(player, payload);
+				sent++;
+			}
+		}
+		return sent;
+	}
+
+	public static int broadcastPreparedNails(ServerLevel level, Vec3 center, double radius, PreparedNailsPayload payload) {
+		double radiusSqr = radius * radius;
+		int sent = 0;
+		for (ServerPlayer player : level.players()) {
+			if (player.position().distanceToSqr(center) > radiusSqr) {
+				continue;
+			}
+			if (ServerPlayNetworking.canSend(player, PreparedNailsPayload.TYPE)) {
+				ServerPlayNetworking.send(player, payload);
+				sent++;
 			}
 		}
 		return sent;

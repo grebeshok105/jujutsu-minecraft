@@ -3,6 +3,14 @@ package jujutsu.mod.combat;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 public final class TargetResolver {
@@ -21,6 +29,26 @@ public final class TargetResolver {
 	public record EntityCandidate(int entityId, Vec3 center, double radius) {}
 
 	public record Result(Mode mode, Vec3 point, Vec3 normal, Optional<Integer> entityId, double maxRange) {}
+
+	public static Result resolve(ServerLevel level, ServerPlayer owner, double maxRange) {
+		Vec3 origin = owner.getEyePosition();
+		Vec3 look = owner.getLookAngle();
+		Vec3 direction = safeDirection(look);
+		Vec3 end = origin.add(direction.scale(maxRange));
+		BlockHitResult blockHit = level.clip(new ClipContext(origin, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, owner));
+		Optional<BlockCandidate> blockCandidate = blockHit.getType() == HitResult.Type.MISS
+				? Optional.empty()
+				: Optional.of(new BlockCandidate(blockHit.getLocation(), directionVector(blockHit.getDirection())));
+		AABB sweepBounds = new AABB(origin, end).inflate(2.25);
+		List<EntityCandidate> entityCandidates = level.getEntities(owner, sweepBounds, entity -> entity instanceof LivingEntity living && living.isAlive()).stream()
+				.map(entity -> {
+					AABB bounds = entity.getBoundingBox();
+					double radius = Math.max(bounds.getXsize(), Math.max(bounds.getYsize(), bounds.getZsize())) * 0.5;
+					return new EntityCandidate(entity.getId(), bounds.getCenter(), radius);
+				})
+				.toList();
+		return resolveForTests(origin, look, maxRange, blockCandidate, entityCandidates, owner.getId());
+	}
 
 	public static Result resolveForTests(Vec3 origin, Vec3 look, double maxRange, Optional<BlockCandidate> blockCandidate, List<EntityCandidate> entityCandidates, int ownerEntityId) {
 		Vec3 direction = safeDirection(look);
@@ -61,5 +89,9 @@ public final class TargetResolver {
 
 	private static Vec3 safeDirection(Vec3 vector) {
 		return vector.lengthSqr() < 1.0E-5 ? new Vec3(0.0, 0.0, 1.0) : vector.normalize();
+	}
+
+	private static Vec3 directionVector(Direction direction) {
+		return new Vec3(direction.getStepX(), direction.getStepY(), direction.getStepZ());
 	}
 }
