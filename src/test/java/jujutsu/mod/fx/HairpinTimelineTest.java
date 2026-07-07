@@ -6,6 +6,7 @@ public final class HairpinTimelineTest {
 	public static void main(String[] args) {
 		assertPhaseBoundaries();
 		assertProgressClamps();
+		assertGameTimeClock();
 		System.out.println("HairpinTimelineTest passed");
 	}
 
@@ -28,6 +29,14 @@ public final class HairpinTimelineTest {
 		assert HairpinTimeline.progressInPhase(0) == 0.0f;
 		assert closeTo(HairpinTimeline.progressInPhase(90), 0.5f);
 		assert HairpinTimeline.progressInPhase(1800) == 1.0f;
+	}
+
+	private static void assertGameTimeClock() {
+		long startGameTime = 1200L;
+		assert HairpinTimeline.elapsedMillisFromGameTime(startGameTime, 1198L) == 0L;
+		assert HairpinTimeline.elapsedMillisFromGameTime(startGameTime, 1201L) == 50L;
+		assert HairpinTimeline.elapsedMillisFromGameTime(startGameTime, 1212L) == 600L;
+		assert HairpinTimeline.phaseAtGameTime(startGameTime, 1212L) == HairpinTimeline.Phase.HAIRPIN_BLOOM;
 	}
 
 	private static boolean closeTo(float actual, float expected) {

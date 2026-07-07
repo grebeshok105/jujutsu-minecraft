@@ -27,17 +27,17 @@ public final class HairpinWorldRenderer {
 			return;
 		}
 
-		long now = System.currentTimeMillis();
+		long gameTime = context.world().getGameTime();
 		Camera camera = context.camera();
 		Vec3 cameraPosition = camera.getPosition();
 		VertexConsumer consumer = consumers.getBuffer(RenderType.lightning());
 
 		for (HairpinPlayback playback : HairpinPlaybackManager.activePlaybacks()) {
-			HairpinTimeline.Phase phase = playback.phase(now);
+			HairpinTimeline.Phase phase = playback.phase(gameTime);
 			if (phase == HairpinTimeline.Phase.DONE) {
 				continue;
 			}
-			renderPlayback(consumer, playback, cameraPosition, phase, playback.progressInPhase(now));
+			renderPlayback(consumer, playback, cameraPosition, phase, playback.progressInPhase(gameTime));
 		}
 	}
 

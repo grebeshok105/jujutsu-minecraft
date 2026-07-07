@@ -17,8 +17,8 @@ public final class HairpinPlaybackManager {
 	}
 
 	public static void start(HairpinFxPayload payload) {
-		ACTIVE_PLAYBACKS.add(new HairpinPlayback(payload, System.currentTimeMillis()));
-		HairpinDebugLog.info("playback started seed={} activeCount={}", payload.seed(), ACTIVE_PLAYBACKS.size());
+		ACTIVE_PLAYBACKS.add(new HairpinPlayback(payload));
+		HairpinDebugLog.info("playback started seed={} startGameTime={} activeCount={}", payload.seed(), payload.startGameTime(), ACTIVE_PLAYBACKS.size());
 	}
 
 	public static List<HairpinPlayback> activePlaybacks() {
@@ -26,15 +26,15 @@ public final class HairpinPlaybackManager {
 	}
 
 	private static void tick(Minecraft client) {
-		long now = System.currentTimeMillis();
 		if (client.level == null || client.player == null) {
 			ACTIVE_PLAYBACKS.clear();
 			return;
 		}
 
+		long gameTime = client.level.getGameTime();
 		for (HairpinPlayback playback : ACTIVE_PLAYBACKS) {
-			playback.tick(client, now);
+			playback.tick(client, gameTime);
 		}
-		ACTIVE_PLAYBACKS.removeIf(playback -> playback.isDone(now));
+		ACTIVE_PLAYBACKS.removeIf(playback -> playback.isDone(gameTime));
 	}
 }

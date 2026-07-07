@@ -22,6 +22,14 @@ public final class HairpinTimeline {
 		return PREP_FREEZE_MS + HAMMER_SNAP_MS + NAIL_IGNITION_MS + HAIRPIN_BLOOM_MS + AFTERGLOW_MS;
 	}
 
+	public static long elapsedMillisFromGameTime(long startGameTime, long currentGameTime) {
+		return Math.max(0L, currentGameTime - startGameTime) * 50L;
+	}
+
+	public static Phase phaseAtGameTime(long startGameTime, long currentGameTime) {
+		return phaseAt(elapsedMillisFromGameTime(startGameTime, currentGameTime));
+	}
+
 	public static Phase phaseAt(long elapsedMillis) {
 		if (elapsedMillis < 0) {
 			return Phase.PREP_FREEZE;

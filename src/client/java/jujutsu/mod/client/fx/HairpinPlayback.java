@@ -16,52 +16,50 @@ import jujutsu.mod.registry.JujutsuSounds;
 
 public final class HairpinPlayback {
 	private final HairpinFxPayload payload;
-	private final long startedAtMillis;
 	private final Random random;
 	private HairpinTimeline.Phase lastPhase = HairpinTimeline.Phase.DONE;
 
-	public HairpinPlayback(HairpinFxPayload payload, long startedAtMillis) {
+	public HairpinPlayback(HairpinFxPayload payload) {
 		this.payload = payload;
-		this.startedAtMillis = startedAtMillis;
 		this.random = new Random(payload.seed());
 	}
 
-	public long elapsedMillis(long currentTimeMillis) {
-		return Math.max(0L, currentTimeMillis - startedAtMillis);
+	public long elapsedMillis(long currentGameTime) {
+		return HairpinTimeline.elapsedMillisFromGameTime(payload.startGameTime(), currentGameTime);
 	}
 
-	public HairpinTimeline.Phase phase(long currentTimeMillis) {
-		return HairpinTimeline.phaseAt(elapsedMillis(currentTimeMillis));
+	public HairpinTimeline.Phase phase(long currentGameTime) {
+		return HairpinTimeline.phaseAtGameTime(payload.startGameTime(), currentGameTime);
 	}
 
-	public float progressInPhase(long currentTimeMillis) {
-		return HairpinTimeline.progressInPhase(elapsedMillis(currentTimeMillis));
+	public float progressInPhase(long currentGameTime) {
+		return HairpinTimeline.progressInPhase(elapsedMillis(currentGameTime));
 	}
 
-	public boolean isDone(long currentTimeMillis) {
-		return phase(currentTimeMillis) == HairpinTimeline.Phase.DONE;
+	public boolean isDone(long currentGameTime) {
+		return phase(currentGameTime) == HairpinTimeline.Phase.DONE;
 	}
 
-	public void tick(Minecraft client, long currentTimeMillis) {
+	public void tick(Minecraft client, long currentGameTime) {
 		if (client.level == null) {
 			return;
 		}
 
-		HairpinTimeline.Phase phase = phase(currentTimeMillis);
+		HairpinTimeline.Phase phase = phase(currentGameTime);
 		if (phase != lastPhase) {
 			HairpinDebugLog.info(
 					"playback phase seed={} phase={} elapsedMs={} progress={} target={} scheduledParticlesPerTick={}",
 					payload.seed(),
 					phase,
-					elapsedMillis(currentTimeMillis),
-					progressInPhase(currentTimeMillis),
+					elapsedMillis(currentGameTime),
+					progressInPhase(currentGameTime),
 					HairpinDebugLog.vec(target()),
 					scheduledParticlesPerTick(phase)
 			);
 			playPhaseSound(client.level, phase);
 			lastPhase = phase;
 		}
-		spawnPhaseParticles(client.level, phase, progressInPhase(currentTimeMillis));
+		spawnPhaseParticles(client.level, phase, progressInPhase(currentGameTime));
 	}
 
 	public int seed() {
