@@ -61,11 +61,11 @@ public final class HairpinVisualProfile {
 		));
 		budgets.put(HairpinTimeline.Phase.HAIRPIN_BLOOM, List.of(
 				new ParticleBudget(ParticleFamily.SNAP_CRACK, 2, 2),
-				new ParticleBudget(ParticleFamily.BURST_RESIDUE, 7, 8),
-				new ParticleBudget(ParticleFamily.BURST_METAL_SHARD, 4, 4)
+				new ParticleBudget(ParticleFamily.BURST_RESIDUE, 4, 4),
+				new ParticleBudget(ParticleFamily.BURST_METAL_SHARD, 3, 2)
 		));
 		budgets.put(HairpinTimeline.Phase.AFTERGLOW, List.of(
-				new ParticleBudget(ParticleFamily.BURST_RESIDUE, 3, 0)
+				new ParticleBudget(ParticleFamily.BURST_RESIDUE, 2, 0)
 		));
 		budgets.put(HairpinTimeline.Phase.DONE, List.of());
 		return Map.copyOf(budgets);
