@@ -2,15 +2,11 @@
 	"schemaVersion": 1,
 	"id": "jujutsumod",
 	"version": "${version}",
-	"name": "JujutsuMod",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"name": "Jujutsu Minecraft",
+	"description": "A Fabric jujutsu combat mod focused on polished character kits and readable cinematic VFX.",
 	"authors": [
-		"Me!"
+		"Jujutsu Minecraft team"
 	],
-	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
-	},
 	"license": "CC0-1.0",
 	"icon": "assets/jujutsumod/icon.png",
 	"environment": "*",
@@ -22,13 +18,6 @@
 			"jujutsu.mod.client.JujutsuModClient"
 		]
 	},
-	"mixins": [
-		"jujutsumod.mixins.json",
-		{
-			"config": "jujutsumod.client.mixins.json",
-			"environment": "client"
-		}
-	],
 	"depends": {
 		"fabricloader": ">=0.19.3",
 		"minecraft": "~1.21.8",
