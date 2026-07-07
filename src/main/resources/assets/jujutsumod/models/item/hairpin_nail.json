@@ -1,5 +1,6 @@
 {
   "textures": {
+    "particle": "jujutsumod:item/model/dark_steel",
     "layer0": "jujutsumod:item/hairpin_nail",
     "dark_steel": "jujutsumod:item/model/dark_steel",
     "steel_edge": "jujutsumod:item/model/steel_edge",

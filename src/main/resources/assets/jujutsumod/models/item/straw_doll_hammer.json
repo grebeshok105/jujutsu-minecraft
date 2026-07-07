@@ -1,5 +1,6 @@
 {
   "textures": {
+    "particle": "jujutsumod:item/model/hammer_wood",
     "layer0": "jujutsumod:item/straw_doll_hammer",
     "dark_steel": "jujutsumod:item/model/dark_steel",
     "steel_edge": "jujutsumod:item/model/steel_edge",

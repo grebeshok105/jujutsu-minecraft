@@ -74,6 +74,7 @@ public final class ProjectSanityTest {
 					textures.put(textureMatcher.group(1), texture);
 				}
 				assert !textures.isEmpty() : "Item model has no jujutsumod item textures: " + model;
+				assert textures.containsKey("particle") : "Item model has no particle texture reference: " + model;
 				assertModelFaceUvsAreOpaque(model, modelJson, textures);
 			}
 		}
