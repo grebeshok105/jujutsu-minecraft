@@ -31,7 +31,7 @@ public final class CharacterSelectScreen extends Screen {
 
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderBackground(graphics, mouseX, mouseY, partialTick);
+		renderTransparentBackground(graphics);
 		int panelX = width / 2 - PANEL_WIDTH / 2;
 		int panelY = height / 2 - 54;
 		graphics.fill(panelX, panelY, panelX + PANEL_WIDTH, panelY + 108, 0xCC080A12);
