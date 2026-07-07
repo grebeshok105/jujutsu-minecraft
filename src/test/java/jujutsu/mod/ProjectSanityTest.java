@@ -31,7 +31,10 @@ public final class ProjectSanityTest {
 	public static void main(String[] args) throws IOException {
 		assertParticleJsonTexturesExist();
 		assertItemDefinitionsResolveToTextures();
+		assertDefaultNobaraItemsUseProjectJjkModels();
 		assertItemRegistryUsesKeyedProperties();
+		assertDefaultNobaraEntrypointSkipsLegacyRuntime();
+		assertNobaraSkinUsesWideArms();
 		assertSoundReferencesAreLocalAndPresent();
 		assertNoForbiddenImports();
 		System.out.println("ProjectSanityTest passed");
@@ -127,6 +130,44 @@ public final class ProjectSanityTest {
 		assert source.contains("ResourceKey.create(BuiltInRegistries.ITEM.key()") : "JujutsuItems must create ResourceKey<Item> before Item construction";
 		assert source.contains("properties.setId(key)") : "JujutsuItems must call Item.Properties#setId before Item construction";
 		assert !source.contains("new Item(new Item.Properties())") : "JujutsuItems must not construct items with unkeyed default properties";
+		assert source.contains("HAIRPIN_NAIL = createProjectJjkNail(\"hairpin_nail\"") : "Default hairpin_nail must use ProjectJJK runtime item";
+		assert source.contains("STRAW_DOLL_HAMMER = createProjectJjkHammer(\"straw_doll_hammer\"") : "Default straw_doll_hammer must use ProjectJJK runtime item";
+	}
+
+	private static void assertDefaultNobaraEntrypointSkipsLegacyRuntime() throws IOException {
+		Path entrypoint = MAIN_JAVA.resolve("jujutsu/mod/JujutsuMod.java");
+		String source = Files.readString(entrypoint);
+		assert !source.contains("NobaraHairpinRuntime.register()") : "Legacy Nobara runtime must not register when ProjectJJK Nobara is the default";
+	}
+
+	private static void assertDefaultNobaraItemsUseProjectJjkModels() throws IOException {
+		Path defaultNail = JUJUTSU_ASSETS.resolve("items/hairpin_nail.json");
+		Path defaultHammer = JUJUTSU_ASSETS.resolve("items/straw_doll_hammer.json");
+		assert Files.readString(defaultNail).contains("\"model\": \"jujutsumod:item/projectjjk_hairpin_nail\"") : "hairpin_nail must render with the ProjectJJK nail model";
+		assert Files.readString(defaultHammer).contains("\"model\": \"jujutsumod:item/projectjjk_straw_doll_hammer\"") : "straw_doll_hammer must render with the ProjectJJK hammer model";
+	}
+
+	private static void assertNobaraSkinUsesWideArms() throws IOException {
+		Path skin = JUJUTSU_ASSETS.resolve("textures/entity/character/nobara.png");
+		BufferedImage image = ImageIO.read(skin.toFile());
+		assert image != null : "Could not read Nobara skin " + skin;
+		assert image.getWidth() == 64 && image.getHeight() == 64 : "Nobara skin must be a 64x64 player skin";
+		assertWideArmCoverage(image, 40, 16, "right arm");
+		assertWideArmCoverage(image, 32, 48, "left arm");
+	}
+
+	private static void assertWideArmCoverage(BufferedImage image, int x, int y, String label) {
+		assertOpaqueRect(image, x + 4, y, 8, 4, label + " top/bottom must be classic 4px-wide UVs");
+		assertOpaqueRect(image, x, y + 4, 16, 12, label + " side faces must be classic 4px-wide UVs");
+	}
+
+	private static void assertOpaqueRect(BufferedImage image, int x, int y, int width, int height, String message) {
+		for (int py = y; py < y + height; py++) {
+			for (int px = x; px < x + width; px++) {
+				int alpha = (image.getRGB(px, py) >>> 24) & 0xff;
+				assert alpha >= 224 : message + " at " + px + "," + py;
+			}
+		}
 	}
 
 	private static void assertSoundReferencesAreLocalAndPresent() throws IOException {

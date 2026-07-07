@@ -203,6 +203,9 @@ public final class ProjectJjkNailEntity extends Entity {
 		setDeltaMovement(launchVelocity(direction));
 		setFlightSynced(true);
 		hasImpulse = true;
+		if (level() instanceof ServerLevel serverLevel) {
+			ProjectJjkNobaraRuntime.spawnNailLaunchParticles(serverLevel, position(), direction);
+		}
 	}
 
 	private void setFlightSynced(boolean flying) {

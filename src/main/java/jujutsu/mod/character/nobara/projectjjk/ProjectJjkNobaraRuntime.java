@@ -23,6 +23,7 @@ import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.network.ProjectJjkNobaraImpulsePayload;
 import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.registry.JujutsuItems;
+import jujutsu.mod.registry.JujutsuParticles;
 import jujutsu.mod.registry.JujutsuSounds;
 
 public final class ProjectJjkNobaraRuntime {
@@ -101,6 +102,7 @@ public final class ProjectJjkNobaraRuntime {
 			}
 		}
 
+		spawnCustomImpactParticles(level, point, nail.forwardDirection());
 		level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, point.x, point.y, point.z, 86, 0.86, 0.72, 0.86, 0.12);
 		level.sendParticles(ParticleTypes.ELECTRIC_SPARK, point.x, point.y, point.z, 62, 0.64, 0.52, 0.64, 0.24);
 		level.sendParticles(ParticleTypes.CRIT, point.x, point.y, point.z, 38, 0.46, 0.42, 0.46, 0.2);
@@ -115,6 +117,23 @@ public final class ProjectJjkNobaraRuntime {
 		if (owner != null) {
 			JujutsuNetworking.sendProjectJjkImpulse(owner, impulse(ProjectJjkNobaraImpulsePayload.IMPACT_SOUND, 1, point, level.getGameTime()));
 		}
+	}
+
+	static void spawnNailLaunchParticles(ServerLevel level, Vec3 point, Vec3 direction) {
+		Vec3 forward = safeDirection(direction);
+		Vec3 anchor = point.add(forward.scale(0.16));
+		level.sendParticles(JujutsuParticles.HAIRPIN_IGNITION_TICK, anchor.x, anchor.y, anchor.z, 4, 0.06, 0.06, 0.06, 0.035);
+		level.sendParticles(JujutsuParticles.HAIRPIN_SPARK, anchor.x, anchor.y, anchor.z, 10, 0.16, 0.12, 0.16, 0.18);
+	}
+
+	private static void spawnCustomImpactParticles(ServerLevel level, Vec3 point, Vec3 direction) {
+		Vec3 forward = safeDirection(direction);
+		Vec3 core = point.add(forward.scale(-0.08));
+		level.sendParticles(JujutsuParticles.HAIRPIN_IGNITION_TICK, point.x, point.y, point.z, 6, 0.08, 0.08, 0.08, 0.05);
+		level.sendParticles(JujutsuParticles.HAIRPIN_SPARK, point.x, point.y, point.z, 30, 0.38, 0.30, 0.38, 0.28);
+		level.sendParticles(JujutsuParticles.HAIRPIN_SNAP_CRACK, core.x, core.y, core.z, 5, 0.18, 0.12, 0.18, 0.07);
+		level.sendParticles(JujutsuParticles.HAIRPIN_BURST_RESIDUE, core.x, core.y, core.z, 20, 0.46, 0.34, 0.46, 0.20);
+		level.sendParticles(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, point.x, point.y, point.z, 16, 0.42, 0.26, 0.42, 0.34);
 	}
 
 	private static ProjectJjkNobaraImpulsePayload impulse(int kind, int nailCount, Vec3 point, long gameTime) {
@@ -172,7 +191,7 @@ public final class ProjectJjkNobaraRuntime {
 		int count = 0;
 		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
 			ItemStack stack = player.getInventory().getItem(slot);
-			if (stack.is(JujutsuItems.PROJECTJJK_HAIRPIN_NAIL)) {
+			if (isHairpinNail(stack)) {
 				count += stack.getCount();
 			}
 		}
@@ -181,20 +200,24 @@ public final class ProjectJjkNobaraRuntime {
 
 	private static void consumeNails(ServerPlayer player, ItemStack usedStack, int count) {
 		int remaining = count;
-		if (usedStack.is(JujutsuItems.PROJECTJJK_HAIRPIN_NAIL)) {
+		if (isHairpinNail(usedStack)) {
 			int consumed = Math.min(remaining, usedStack.getCount());
 			usedStack.shrink(consumed);
 			remaining -= consumed;
 		}
 		for (int slot = 0; slot < player.getInventory().getContainerSize() && remaining > 0; slot++) {
 			ItemStack stack = player.getInventory().getItem(slot);
-			if (!stack.is(JujutsuItems.PROJECTJJK_HAIRPIN_NAIL)) {
+			if (!isHairpinNail(stack)) {
 				continue;
 			}
 			int consumed = Math.min(remaining, stack.getCount());
 			stack.shrink(consumed);
 			remaining -= consumed;
 		}
+	}
+
+	private static boolean isHairpinNail(ItemStack stack) {
+		return stack.is(JujutsuItems.HAIRPIN_NAIL) || stack.is(JujutsuItems.PROJECTJJK_HAIRPIN_NAIL);
 	}
 
 	private static void damageHammer(ServerPlayer player, ItemStack stack, InteractionHand hand) {

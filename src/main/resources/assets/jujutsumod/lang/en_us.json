@@ -1,8 +1,8 @@
 {
-  "item.jujutsumod.hairpin_nail": "Hairpin Nail",
-  "item.jujutsumod.projectjjk_hairpin_nail": "ProjectJJK Hairpin Nail",
-  "item.jujutsumod.projectjjk_straw_doll_hammer": "ProjectJJK Straw Doll Hammer",
-  "item.jujutsumod.straw_doll_hammer": "Straw Doll Hammer",
+  "item.jujutsumod.hairpin_nail": "Nobara Hairpin Nail",
+  "item.jujutsumod.projectjjk_hairpin_nail": "Nobara Hairpin Nail (ProjectJJK Alias)",
+  "item.jujutsumod.projectjjk_straw_doll_hammer": "Nobara Straw Doll Hammer (ProjectJJK Alias)",
+  "item.jujutsumod.straw_doll_hammer": "Nobara Straw Doll Hammer",
   "key.categories.jujutsumod": "Jujutsu Minecraft",
   "key.jujutsumod.character_select": "Select Character",
   "message.jujutsumod.projectjjk.launched": "ProjectJJK Hairpin launched %s nail(s).",

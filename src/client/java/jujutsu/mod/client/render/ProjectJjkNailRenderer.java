@@ -20,7 +20,7 @@ import jujutsu.mod.registry.JujutsuItems;
 
 public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailEntity, ProjectJjkNailRenderer.State> {
 	private static final Vector3f MODEL_UP = new Vector3f(0.0f, 1.0f, 0.0f);
-	private static final ItemStack NAIL_STACK = new ItemStack(JujutsuItems.PROJECTJJK_HAIRPIN_NAIL);
+	private static final ItemStack NAIL_STACK = new ItemStack(JujutsuItems.HAIRPIN_NAIL);
 	private static final int BLUE_DARK_R = 7;
 	private static final int BLUE_DARK_G = 24;
 	private static final int BLUE_DARK_B = 96;
