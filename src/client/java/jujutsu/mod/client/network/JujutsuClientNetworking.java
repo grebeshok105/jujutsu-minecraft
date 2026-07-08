@@ -17,6 +17,7 @@ import jujutsu.mod.client.fx.CursedEnergyHud;
 import jujutsu.mod.client.fx.HairpinScreenOverlay;
 import jujutsu.mod.client.fx.NobaraNailFlightManager;
 import jujutsu.mod.client.fx.ResonanceEffects;
+import jujutsu.mod.client.fx.TargetMarkRenderManager;
 import jujutsu.mod.network.ProjectJjkCursedEnergyPayload;
 import jujutsu.mod.debug.HairpinDebugLog;
 import jujutsu.mod.network.CharacterSelectionSyncPayload;
@@ -24,6 +25,7 @@ import jujutsu.mod.network.HairpinFxPayload;
 import jujutsu.mod.network.HairpinNailFlightPayload;
 import jujutsu.mod.network.PreparedNailsPayload;
 import jujutsu.mod.network.ProjectJjkNobaraImpulsePayload;
+import jujutsu.mod.network.ProjectJjkTargetMarkPayload;
 import jujutsu.mod.registry.JujutsuSounds;
 
 public final class JujutsuClientNetworking {
@@ -48,11 +50,19 @@ public final class JujutsuClientNetworking {
 				context.client().execute(() -> NobaraNailFlightManager.showPrepared(payload)));
 		ClientPlayNetworking.registerGlobalReceiver(ProjectJjkNobaraImpulsePayload.TYPE, (payload, context) ->
 				context.client().execute(() -> handleProjectJjkImpulse(context.client(), payload)));
+		ClientPlayNetworking.registerGlobalReceiver(ProjectJjkTargetMarkPayload.TYPE, (payload, context) ->
+				context.client().execute(() -> {
+					long gameTime = context.client().level == null ? 0L : context.client().level.getGameTime();
+					TargetMarkRenderManager.apply(payload, gameTime);
+				}));
 		ClientPlayNetworking.registerGlobalReceiver(ProjectJjkCursedEnergyPayload.TYPE, (payload, context) ->
 				context.client().execute(() -> CursedEnergyHud.update(payload.current(), payload.max(), payload.linkedMarks(), payload.linked())));
 		ClientPlayNetworking.registerGlobalReceiver(CharacterSelectionSyncPayload.TYPE, (payload, context) ->
 				context.client().execute(() -> ClientCharacterSelectionManager.apply(payload)));
-		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ClientCharacterSelectionManager.clear());
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+			ClientCharacterSelectionManager.clear();
+			TargetMarkRenderManager.clear();
+		});
 	}
 
 	private static void handleProjectJjkImpulse(Minecraft client, ProjectJjkNobaraImpulsePayload payload) {

@@ -2,25 +2,22 @@ package jujutsu.mod.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.world.item.ItemDisplayContext;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
+import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEntity;
-import jujutsu.mod.registry.JujutsuItems;
 
 public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailEntity, ProjectJjkNailRenderer.State> {
 	private static final Vector3f MODEL_UP = new Vector3f(0.0f, 1.0f, 0.0f);
-	private static final ItemStack NAIL_STACK = new ItemStack(JujutsuItems.HAIRPIN_NAIL);
+	private static final ResourceLocation NAIL_TEXTURE = JujutsuMod.id("textures/projectjjk/entity/nail.png");
 	private static final int BLUE_DARK_R = 7;
 	private static final int BLUE_DARK_G = 24;
 	private static final int BLUE_DARK_B = 96;
@@ -33,11 +30,9 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 	private static final int BLUE_WHITE_R = 176;
 	private static final int BLUE_WHITE_G = 230;
 	private static final int BLUE_WHITE_B = 255;
-	private final ItemRenderer itemRenderer;
 
 	public ProjectJjkNailRenderer(EntityRendererProvider.Context context) {
 		super(context);
-		itemRenderer = Minecraft.getInstance().getItemRenderer();
 		shadowRadius = 0.0f;
 	}
 
@@ -61,28 +56,24 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		Vec3 direction = safeDirection(state.direction);
 		matrices.pushPose();
 		matrices.mulPose(new Quaternionf().rotationTo(MODEL_UP, toVector3f(direction)));
-		if (state.embedded) {
-			renderEmbeddedMark(matrices, consumers, state);
-		} else {
+		if (!state.embedded) {
 			renderCursedAura(matrices, consumers, state);
 		}
-		matrices.pushPose();
-		float scale = state.launched ? 0.7f : 0.62f;
-		matrices.mulPose(new Quaternionf().rotateY((float) ((state.seed & 3) * Math.PI * 0.5)));
-		matrices.scale(scale, scale, scale);
-		itemRenderer.renderStatic(
-				NAIL_STACK,
-				ItemDisplayContext.NONE,
-				packedLight,
-				OverlayTexture.NO_OVERLAY,
-				matrices,
-				consumers,
-				Minecraft.getInstance().level,
-				state.seed
-		);
-		matrices.popPose();
+		renderNailGeometry(matrices, consumers, packedLight, state);
 		matrices.popPose();
 		super.render(state, matrices, consumers, packedLight);
+	}
+
+	private static void renderNailGeometry(PoseStack matrices, MultiBufferSource consumers, int packedLight, State state) {
+		VertexConsumer consumer = consumers.getBuffer(RenderType.entityCutoutNoCull(NAIL_TEXTURE));
+		PoseStack.Pose pose = matrices.last();
+		float scale = state.launched ? 0.82f : 0.74f;
+		if (state.embedded) {
+			scale = 0.68f;
+		}
+		renderBox(consumer, pose, -0.032f * scale, -0.30f * scale, -0.032f * scale, 0.032f * scale, 0.28f * scale, 0.032f * scale, packedLight, 216, 208, 188);
+		renderBox(consumer, pose, -0.088f * scale, -0.43f * scale, -0.088f * scale, 0.088f * scale, -0.29f * scale, 0.088f * scale, packedLight, 146, 130, 106);
+		renderBox(consumer, pose, -0.046f * scale, 0.27f * scale, -0.046f * scale, 0.046f * scale, 0.41f * scale, 0.046f * scale, packedLight, 188, 178, 158);
 	}
 
 	private static void renderCursedAura(PoseStack matrices, MultiBufferSource consumers, State state) {
@@ -154,18 +145,33 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		addRibbon(consumer, pose, 0.0f, tail * 0.58f, -radius * 0.14f, 0.0f, head, -radius * 0.08f, 0.0f, 0.0f, radius * 0.14f, BLUE_EDGE_R, BLUE_EDGE_G, BLUE_EDGE_B, Math.round(58.0f * alpha));
 	}
 
-	private static void renderEmbeddedMark(PoseStack matrices, MultiBufferSource consumers, State state) {
-		VertexConsumer consumer = consumers.getBuffer(RenderType.lightning());
-		PoseStack.Pose pose = matrices.last();
-		float pulse = 0.82f + 0.18f * (float) Math.sin(state.age * 0.18f);
-		int alpha = Math.round(118.0f * pulse);
-		addRibbon(consumer, pose, -0.34f, -0.08f, 0.0f, 0.34f, -0.08f, 0.0f, 0.0f, 0.0f, 0.075f, 24, 3, 8, alpha);
-		addRibbon(consumer, pose, 0.0f, -0.12f, -0.3f, 0.0f, -0.12f, 0.3f, 0.075f, 0.0f, 0.0f, 44, 4, 12, alpha / 2);
-		addRibbon(consumer, pose, -0.18f, -0.02f, -0.18f, 0.18f, -0.02f, 0.18f, 0.038f, 0.0f, -0.038f, 74, 8, 16, alpha / 3);
-	}
-
 	private static float statefulTwist(float age, int index) {
 		return 1.0f + 0.24f * (float) Math.sin(age * 0.31f + index * 0.93f);
+	}
+
+	private static void renderBox(VertexConsumer consumer, PoseStack.Pose pose, float x0, float y0, float z0, float x1, float y1, float z1, int light, int red, int green, int blue) {
+		addTexturedQuad(consumer, pose, x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1, light, red, green, blue, 0.0f, 0.25f, 0.5f, 0.75f, 0.0f, 0.0f, 1.0f);
+		addTexturedQuad(consumer, pose, x1, y0, z0, x0, y0, z0, x0, y1, z0, x1, y1, z0, light, red, green, blue, 0.0f, 0.25f, 0.5f, 0.75f, 0.0f, 0.0f, -1.0f);
+		addTexturedQuad(consumer, pose, x1, y0, z1, x1, y0, z0, x1, y1, z0, x1, y1, z1, light, red, green, blue, 0.0f, 0.25f, 0.5f, 0.75f, 1.0f, 0.0f, 0.0f);
+		addTexturedQuad(consumer, pose, x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0, light, red, green, blue, 0.0f, 0.25f, 0.5f, 0.75f, -1.0f, 0.0f, 0.0f);
+		addTexturedQuad(consumer, pose, x0, y1, z1, x1, y1, z1, x1, y1, z0, x0, y1, z0, light, red, green, blue, 0.5f, 0.0f, 1.0f, 0.25f, 0.0f, 1.0f, 0.0f);
+		addTexturedQuad(consumer, pose, x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1, light, red, green, blue, 0.5f, 0.75f, 1.0f, 1.0f, 0.0f, -1.0f, 0.0f);
+	}
+
+	private static void addTexturedQuad(VertexConsumer consumer, PoseStack.Pose pose, float x0, float y0, float z0, float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3, int light, int red, int green, int blue, float u0, float v0, float u1, float v1, float normalX, float normalY, float normalZ) {
+		addTexturedVertex(consumer, pose, x0, y0, z0, light, red, green, blue, u0, v1, normalX, normalY, normalZ);
+		addTexturedVertex(consumer, pose, x1, y1, z1, light, red, green, blue, u1, v1, normalX, normalY, normalZ);
+		addTexturedVertex(consumer, pose, x2, y2, z2, light, red, green, blue, u1, v0, normalX, normalY, normalZ);
+		addTexturedVertex(consumer, pose, x3, y3, z3, light, red, green, blue, u0, v0, normalX, normalY, normalZ);
+	}
+
+	private static void addTexturedVertex(VertexConsumer consumer, PoseStack.Pose pose, float x, float y, float z, int light, int red, int green, int blue, float u, float v, float normalX, float normalY, float normalZ) {
+		consumer.addVertex(pose, x, y, z)
+				.setColor(red, green, blue, 255)
+				.setUv(u, v)
+				.setOverlay(OverlayTexture.NO_OVERLAY)
+				.setLight(light)
+				.setNormal(pose, normalX, normalY, normalZ);
 	}
 
 	private static void addRibbon(VertexConsumer consumer, PoseStack.Pose pose, float startX, float startY, float startZ, float endX, float endY, float endZ, float sideX, float sideY, float sideZ, int red, int green, int blue, int alpha) {
@@ -173,6 +179,10 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		consumer.addVertex(pose, endX - sideX, endY - sideY, endZ - sideZ).setColor(red, green, blue, alpha);
 		consumer.addVertex(pose, endX + sideX, endY + sideY, endZ + sideZ).setColor(red, green, blue, alpha);
 		consumer.addVertex(pose, startX + sideX, startY + sideY, startZ + sideZ).setColor(red, green, blue, alpha);
+		consumer.addVertex(pose, startX + sideX, startY + sideY, startZ + sideZ).setColor(red, green, blue, alpha);
+		consumer.addVertex(pose, endX + sideX, endY + sideY, endZ + sideZ).setColor(red, green, blue, alpha);
+		consumer.addVertex(pose, endX - sideX, endY - sideY, endZ - sideZ).setColor(red, green, blue, alpha);
+		consumer.addVertex(pose, startX - sideX, startY - sideY, startZ - sideZ).setColor(red, green, blue, alpha);
 	}
 
 	private static Vec3 safeDirection(Vec3 vector) {

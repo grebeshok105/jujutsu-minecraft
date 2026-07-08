@@ -31,6 +31,7 @@ public final class ProjectJjkNobaraProfile {
 	public static final int MARK_MAX_PER_TARGET = 4;
 	public static final int MARK_DURATION_TICKS = 900;
 	public static final int EMBEDDED_NAIL_AGE_TICKS = MARK_DURATION_TICKS;
+	public static final int TARGET_MARK_RENDER_TICKS = 72;
 
 	// Hairpin mark detonation.
 	public static final double DETONATE_RANGE = 24.0;

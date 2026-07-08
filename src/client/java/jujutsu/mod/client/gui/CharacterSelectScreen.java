@@ -8,7 +8,6 @@ import net.minecraft.network.chat.Component;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.client.ui.CharacterCard;
 import jujutsu.mod.client.ui.UiButton;
-import jujutsu.mod.client.ui.UiEase;
 import jujutsu.mod.client.ui.UiRender;
 import jujutsu.mod.client.ui.UiScreen;
 import jujutsu.mod.client.ui.UiTheme;
@@ -79,12 +78,9 @@ public final class CharacterSelectScreen extends UiScreen {
 		confirmButton.setAccentRgb(accent);
 		cancelButton.setAccentRgb(accent);
 
-		// Backdrop glow + animated cursed motes behind the panel.
-		UiRender.glow(g, panelX, panelY, PANEL_W, PANEL_H, 9, accent, 0.24f * anim);
-		drawBackdropMotes(g, panelX, panelY, anim, accent);
-
 		// Main panel.
-		UiRender.shadow(g, panelX, panelY + 2, PANEL_W, PANEL_H, 11, 0x8A000000);
+		UiRender.fastShadow(g, panelX, panelY + 2, PANEL_W, PANEL_H, 0xAA000000);
+		UiRender.fastGlow(g, panelX, panelY, PANEL_W, PANEL_H, accent, 0.35f * anim);
 		UiRender.roundedRect(g, panelX, panelY, PANEL_W, PANEL_H, 10, UiTheme.PANEL, UiRender.withAlpha(accent, 0.28f + 0.18f * anim));
 		UiRender.horizontalLine(g, panelX + 18, panelX + PANEL_W - 18, panelY + 3, UiRender.withAlpha(accent, 0.68f * anim));
 
@@ -94,18 +90,6 @@ public final class CharacterSelectScreen extends UiScreen {
 		Component subtitle = Component.translatable("screen.jujutsumod.character_select.subtitle");
 		g.drawString(font, subtitle, panelX + (PANEL_W - font.width(subtitle)) / 2, panelY + 28, UiTheme.TEXT_DIM, false);
 		// Elements (cards + buttons) are drawn by the base UiScreen after paint().
-	}
-
-	private void drawBackdropMotes(GuiGraphics g, int panelX, int panelY, float anim, int accent) {
-		long t = System.currentTimeMillis();
-		for (int i = 0; i < 14; i++) {
-			double phase = i * 1.7 + t / 900.0;
-			int mx = panelX + (int) ((Math.sin(phase) * 0.5 + 0.5) * PANEL_W);
-			int my = panelY + (int) (((Math.cos(phase * 0.7) * 0.5 + 0.5)) * PANEL_H);
-			float tw = (float) (0.4 + 0.6 * (0.5 + 0.5 * Math.sin(t / 300.0 + i)));
-			int size = 1 + (i % 3);
-			g.fill(mx, my, mx + size, my + size, UiRender.withAlpha(accent, 0.18f * tw * anim));
-		}
 	}
 
 	private int selectedAccentRgb() {

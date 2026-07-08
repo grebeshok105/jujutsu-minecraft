@@ -18,6 +18,7 @@ import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.network.ProjectJjkCursedEnergyPayload;
 import jujutsu.mod.network.ProjectJjkNobaraImpulsePayload;
+import jujutsu.mod.network.ProjectJjkTargetMarkPayload;
 import jujutsu.mod.registry.JujutsuParticles;
 import jujutsu.mod.registry.JujutsuSounds;
 
@@ -67,9 +68,10 @@ public final class ProjectJjkRitualRuntime {
 		int marks = ProjectJjkNailMarks.apply(target.getUUID(), level.getGameTime());
 		Vec3 center = target.position().add(0.0, target.getBbHeight() * 0.55, 0.0);
 		Vec3 at = wound == null ? center : wound.lerp(center, 0.18);
-		level.sendParticles(JujutsuParticles.HAIRPIN_MARK_STAIN, at.x, at.y, at.z, 6 + marks * 2, 0.16, 0.20, 0.16, 0.006);
-		level.sendParticles(JujutsuParticles.HAIRPIN_SNAP_CRACK, at.x, at.y, at.z, 2 + marks, 0.09, 0.12, 0.09, 0.024);
-		level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, at.x, at.y, at.z, 3 + marks, 0.18, 0.22, 0.18, 0.025);
+		long expiresGameTime = level.getGameTime() + ProjectJjkNobaraProfile.TARGET_MARK_RENDER_TICKS;
+		JujutsuNetworking.broadcastProjectJjkTargetMark(level, at, IMPULSE_RADIUS, new ProjectJjkTargetMarkPayload(target.getId(), marks, expiresGameTime));
+		level.sendParticles(JujutsuParticles.HAIRPIN_SNAP_CRACK, at.x, at.y, at.z, 2 + marks, 0.08, 0.10, 0.08, 0.022);
+		level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, at.x, at.y, at.z, 2, 0.12, 0.14, 0.12, 0.018);
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_SIZZLE, SoundSource.PLAYERS, 0.5f, 0.8f + marks * 0.06f);
 		if (owner != null) {
 			syncCursedEnergy(owner, level.getGameTime(), true);
@@ -167,6 +169,7 @@ public final class ProjectJjkRitualRuntime {
 			Vec3 at = living.position().add(0.0, living.getBbHeight() * 0.5, 0.0);
 			spawnResonanceStrike(level, at, marks);
 			level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_EXPLODE, SoundSource.PLAYERS, 0.95f, 0.9f);
+			JujutsuNetworking.broadcastProjectJjkTargetMark(level, at, IMPULSE_RADIUS, new ProjectJjkTargetMarkPayload(living.getId(), 0, gameTime));
 			broadcast(level, at, ProjectJjkNobaraImpulsePayload.DETONATE, marks, at, gameTime);
 		}
 		if (any) {

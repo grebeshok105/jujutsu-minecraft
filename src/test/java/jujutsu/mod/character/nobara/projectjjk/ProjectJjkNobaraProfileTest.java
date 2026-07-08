@@ -16,6 +16,9 @@ public final class ProjectJjkNobaraProfileTest {
 		assertPreparedLaunchRangeUsesPlayerBounds();
 		assertGroundImpactsStayTighterThanDirectHits();
 		assertEmbeddedNailsLastAsLongAsMarks();
+		assertTargetMarksAreShortVisualHints();
+		assertBodyEmbedPointStaysInsideBodyHeight();
+		assertLoadoutTopsUpNails();
 		assertCursedEnergyEconomy();
 		System.out.println("ProjectJjkNobaraProfileTest passed");
 	}
@@ -66,6 +69,26 @@ public final class ProjectJjkNobaraProfileTest {
 
 	private static void assertEmbeddedNailsLastAsLongAsMarks() {
 		assert ProjectJjkNobaraProfile.EMBEDDED_NAIL_AGE_TICKS == ProjectJjkNobaraProfile.MARK_DURATION_TICKS : "visible stuck nails should match cursed mark duration";
+	}
+
+	private static void assertTargetMarksAreShortVisualHints() {
+		assert ProjectJjkNobaraProfile.TARGET_MARK_RENDER_TICKS <= 100 : "target render mark should disappear quickly";
+		assert ProjectJjkNobaraProfile.TARGET_MARK_RENDER_TICKS > 30 : "target render mark should stay readable";
+	}
+
+	private static void assertBodyEmbedPointStaysInsideBodyHeight() {
+		Vec3 targetPosition = new Vec3(10.0, 64.0, 10.0);
+		Vec3 hitPoint = targetPosition.add(0.0, 1.72, 0.0);
+		Vec3 embedPoint = ProjectJjkNailEmbedding.bodyEmbedPoint(targetPosition, 0.6, 1.8, hitPoint, new Vec3(0.0, -1.0, 0.0), 3);
+		double relativeY = embedPoint.y - targetPosition.y;
+		assert relativeY >= 1.8 * 0.28 - 1.0E-6 && relativeY <= 1.8 * 0.86 + 1.0E-6 : "embedded nails should stay within the victim body height";
+	}
+
+	private static void assertLoadoutTopsUpNails() {
+		assert ProjectJjkNobaraLoadout.missingNails(0) == 16 : "Nobara selection should provide a starter nail stack";
+		assert ProjectJjkNobaraLoadout.missingNails(9) == 7 : "Nobara selection should top up partial nail stacks";
+		assert ProjectJjkNobaraLoadout.missingNails(16) == 0 : "Nobara selection should not duplicate full starter nails";
+		assert ProjectJjkNobaraLoadout.missingNails(30) == 0 : "Nobara selection should not add nails when player already has enough";
 	}
 
 	private static void assertCursedEnergyEconomy() {

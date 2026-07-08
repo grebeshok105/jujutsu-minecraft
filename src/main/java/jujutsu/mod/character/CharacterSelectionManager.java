@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraLoadout;
 import jujutsu.mod.network.CharacterSelectionSyncPayload;
 
 public final class CharacterSelectionManager {
@@ -18,6 +19,9 @@ public final class CharacterSelectionManager {
 			SELECTIONS.remove(player.getUUID());
 		} else {
 			SELECTIONS.put(player.getUUID(), character);
+		}
+		if (character == JujutsuCharacter.NOBARA) {
+			ProjectJjkNobaraLoadout.ensureStarterTools(player);
 		}
 		broadcast(player.getServer(), player.getUUID(), character);
 	}

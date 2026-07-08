@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
@@ -81,6 +82,7 @@ public final class HairpinWorldRenderer {
 			}
 			renderPlayback(consumer, matrices, consumers, world, playback, cameraPosition, phase, playback.progressInPhase(gameTime, partialTick), gameTime);
 		}
+		renderTargetMarks(consumer, world, cameraPosition, gameTime, partialTick);
 	}
 
 	private static void renderPrepared(VertexConsumer consumer, PoseStack matrices, MultiBufferSource consumers, ClientLevel world, Vec3 cameraPosition, long gameTime, float partialTick, NobaraNailFlightManager.Prepared prepared) {
@@ -273,6 +275,58 @@ public final class HairpinWorldRenderer {
 		}
 	}
 
+	private static void renderTargetMarks(VertexConsumer consumer, ClientLevel world, Vec3 cameraPosition, long gameTime, float partialTick) {
+		for (TargetMarkRenderManager.TargetMark mark : TargetMarkRenderManager.active(gameTime)) {
+			Entity entity = world.getEntity(mark.targetEntityId());
+			if (entity == null || !entity.isAlive()) {
+				TargetMarkRenderManager.remove(mark.targetEntityId());
+				continue;
+			}
+			float fade = mark.fade(gameTime, partialTick);
+			if (fade <= 0.01f) {
+				continue;
+			}
+			Vec3 worldCenter = entity.position().add(0.0, entity.getBbHeight() * 0.86, 0.0);
+			Vec3 center = worldCenter.subtract(cameraPosition);
+			Vec3 view = safeDirection(cameraPosition.subtract(worldCenter));
+			Vec3 side = view.cross(UP);
+			if (side.lengthSqr() < 1.0E-5) {
+				side = EAST;
+			} else {
+				side = side.normalize();
+			}
+			Vec3 up = side.cross(view);
+			if (up.lengthSqr() < 1.0E-5) {
+				up = UP;
+			} else {
+				up = up.normalize();
+			}
+			float age = mark.age(gameTime, partialTick);
+			float pulse = 0.84f + 0.16f * (float) Math.sin(age * 0.42f);
+			float scale = Math.max(0.34f, entity.getBbWidth() * (0.54f + mark.marks() * 0.035f));
+			int alpha = Math.min(210, Math.round(188.0f * fade * pulse));
+			Vec3 thickness = up.scale(0.018f + mark.marks() * 0.002f);
+
+			Vec3 leftStart = center.subtract(side.scale(scale * 0.62)).add(up.scale(scale * 0.18));
+			Vec3 leftEnd = center.subtract(side.scale(scale * 0.12)).add(up.scale(scale * 0.06));
+			Vec3 rightStart = center.add(side.scale(scale * 0.12)).add(up.scale(scale * 0.06));
+			Vec3 rightEnd = center.add(side.scale(scale * 0.62)).add(up.scale(scale * 0.18));
+			addRibbon(consumer, leftStart, leftEnd, thickness, 16, 2, 6, alpha);
+			addRibbon(consumer, rightStart, rightEnd, thickness, 16, 2, 6, alpha);
+			addRibbon(consumer, leftStart.add(up.scale(scale * 0.03)), leftEnd.add(up.scale(scale * 0.03)), thickness.scale(0.42), 104, 10, 22, alpha / 3);
+			addRibbon(consumer, rightStart.add(up.scale(scale * 0.03)), rightEnd.add(up.scale(scale * 0.03)), thickness.scale(0.42), 104, 10, 22, alpha / 3);
+
+			Vec3 nailStart = center.add(up.scale(scale * 0.18));
+			Vec3 nailEnd = center.subtract(up.scale(scale * 0.22));
+			addRibbon(consumer, nailStart, nailEnd, side.scale(0.018f), 28, 3, 8, alpha);
+			if (mark.marks() >= 2) {
+				Vec3 crackStart = center.subtract(side.scale(scale * 0.42)).subtract(up.scale(scale * 0.18));
+				Vec3 crackEnd = center.add(side.scale(scale * 0.34)).subtract(up.scale(scale * 0.28));
+				addRibbon(consumer, crackStart, crackEnd, up.scale(0.014f), 54, 4, 12, alpha / 2);
+			}
+		}
+	}
+
 	private static float alphaFor(HairpinTimeline.Phase phase, float progress) {
 		return switch (phase) {
 			case PREP_FREEZE -> 0.18f;
@@ -361,5 +415,9 @@ public final class HairpinWorldRenderer {
 		consumer.addVertex((float) (end.x - side.x), (float) (end.y - side.y), (float) (end.z - side.z)).setColor(red, green, blue, alpha);
 		consumer.addVertex((float) (end.x + side.x), (float) (end.y + side.y), (float) (end.z + side.z)).setColor(red, green, blue, alpha);
 		consumer.addVertex((float) (start.x + side.x), (float) (start.y + side.y), (float) (start.z + side.z)).setColor(red, green, blue, alpha);
+		consumer.addVertex((float) (start.x + side.x), (float) (start.y + side.y), (float) (start.z + side.z)).setColor(red, green, blue, alpha);
+		consumer.addVertex((float) (end.x + side.x), (float) (end.y + side.y), (float) (end.z + side.z)).setColor(red, green, blue, alpha);
+		consumer.addVertex((float) (end.x - side.x), (float) (end.y - side.y), (float) (end.z - side.z)).setColor(red, green, blue, alpha);
+		consumer.addVertex((float) (start.x - side.x), (float) (start.y - side.y), (float) (start.z - side.z)).setColor(red, green, blue, alpha);
 	}
 }

@@ -254,11 +254,12 @@ public final class ProjectJjkNailEntity extends Entity {
 	}
 
 	private void embedIn(LivingEntity target, Vec3 hitPoint) {
+		Vec3 embedPoint = bodyEmbedPoint(target, hitPoint, forwardDirection(), getId());
 		embeddedTargetUuid = target.getUUID();
 		embeddedTargetId = target.getId();
 		embeddedAgeTicks = 0;
-		embeddedOffset = hitPoint.subtract(target.position());
-		setPos(hitPoint);
+		embeddedOffset = embedPoint.subtract(target.position());
+		setPos(embedPoint);
 		setEmbedded(true);
 		hasImpulse = false;
 	}
@@ -282,9 +283,6 @@ public final class ProjectJjkNailEntity extends Entity {
 		}
 		Vec3 next = target.position().add(embeddedOffset);
 		setPos(next);
-		if ((embeddedAgeTicks & 15) == 0 && level() instanceof ServerLevel serverLevel) {
-			ProjectJjkNobaraRuntime.spawnEmbeddedNailMark(serverLevel, next, forwardDirection());
-		}
 	}
 
 	private void startFlight(Vec3 direction) {
@@ -332,6 +330,10 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	private static Vec3 launchVelocity(Vec3 direction) {
 		return safeDirection(direction).scale(ProjectJjkNobaraProfile.LAUNCH_SPEED_BLOCKS_PER_TICK);
+	}
+
+	private static Vec3 bodyEmbedPoint(LivingEntity target, Vec3 hitPoint, Vec3 direction, int seed) {
+		return ProjectJjkNailEmbedding.bodyEmbedPoint(target.position(), target.getBbWidth(), target.getBbHeight(), hitPoint, direction, seed);
 	}
 
 	private static Vec3 safeDirection(Vec3 vector) {

@@ -38,9 +38,9 @@ public class UiButton extends UiElement {
 		int bh = Math.round(height);
 		int radius = bh / 2;
 
-		UiRender.shadow(g, bx, by + 1, bw, bh, 3, 0x44000000);
+		UiRender.fastShadow(g, bx, by + 1, bw, bh, 0x55000000);
 		if (hover > 0.01f) {
-			UiRender.glow(g, bx, by, bw, bh, 4, accentRgb, hover * (primary ? 0.72f : 0.42f));
+			UiRender.fastGlow(g, bx, by, bw, bh, accentRgb, hover * (primary ? 0.72f : 0.42f));
 		}
 
 		if (primary) {

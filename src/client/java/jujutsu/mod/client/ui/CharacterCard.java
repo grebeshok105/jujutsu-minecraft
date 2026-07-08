@@ -47,9 +47,9 @@ public final class CharacterCard extends UiElement {
 		int bh = Math.round(height);
 
 		float energy = Math.max(hover, selectAnim);
-		UiRender.shadow(g, bx, by + 2, bw, bh, 8, 0x66000000);
+		UiRender.fastShadow(g, bx, by + 2, bw, bh, 0x88000000);
 		if (energy > 0.01f) {
-			UiRender.glow(g, bx, by, bw, bh, 5, accentRgb, energy * 0.72f);
+			UiRender.fastGlow(g, bx, by, bw, bh, accentRgb, energy * 0.82f);
 		}
 
 		// Body with a subtle vertical gradient.
@@ -91,14 +91,8 @@ public final class CharacterCard extends UiElement {
 
 	private void paintBody(GuiGraphics g, int x, int y, int w, int h, float energy) {
 		int top = UiRender.lerpColor(UiTheme.PANEL_RAISED, UiRender.lerpColor(UiTheme.PANEL_RAISED, accentRgb | 0xFF000000, 0.16f), energy);
-		int bottom = UiTheme.PANEL_INSET;
-		for (int row = 1; row < h - 1; row++) {
-			float t = row / (float) (h - 1);
-			int color = UiRender.lerpColor(top, bottom, t);
-			int inset = row < 8 ? (8 - row) : (row >= h - 8 ? row - (h - 8) + 1 : 0);
-			inset = Math.max(0, inset);
-			UiRender.fill(g, x + inset, y + row, w - inset * 2, 1, color);
-		}
+		UiRender.roundedRect(g, x + 1, y + 1, w - 2, h - 2, 7, top);
+		UiRender.fill(g, x + 7, y + h - 12, w - 14, 5, UiTheme.PANEL_INSET);
 	}
 
 	private void drawPortrait(GuiGraphics g, int x, int y, int w, int h, float energy) {
@@ -115,8 +109,6 @@ public final class CharacterCard extends UiElement {
 		int head = 46;
 		int headX = cx - head / 2;
 		int headY = y + 14;
-		UiRender.glow(g, headX - 4, headY - 4, head + 8, head + 8, 6, accentRgb, 0.28f + energy * 0.42f);
-		UiRender.roundedRect(g, headX - 5, headY - 5, head + 10, head + 10, 8, 0xAA080508, UiRender.withAlpha(accentRgb, 0.28f + energy * 0.28f));
 		g.blit(RenderPipelines.GUI_TEXTURED, NOBARA_SKIN, headX, headY, 8.0f, 8.0f, head, head, 8, 8, 64, 64);
 		g.blit(RenderPipelines.GUI_TEXTURED, NOBARA_SKIN, headX, headY, 40.0f, 8.0f, head, head, 8, 8, 64, 64);
 
@@ -124,14 +116,14 @@ public final class CharacterCard extends UiElement {
 		UiRender.roundedRect(g, cx - 23, coatY, 46, 24, 7, 0xFF211928, UiRender.withAlpha(accentRgb, 0.18f));
 		UiRender.roundedRect(g, cx - 4, coatY + 2, 8, 22, 3, UiRender.withAlpha(accentRgb, 0.46f + energy * 0.18f));
 		int nailX = x + w - 12;
-		int nailY = y + 12 + (int) (Math.sin(System.currentTimeMillis() / 320.0) * 2);
+		int nailY = y + 12;
 		g.fill(nailX, nailY, nailX + 2, nailY + 12, 0xFFD8D2C0);
 		g.fill(nailX - 2, nailY, nailX + 4, nailY + 2, 0xFF8E867C);
 	}
 
 	private void drawNonePortrait(GuiGraphics g, int cx, int y, int h, float energy) {
 		int accent = UiRender.withAlpha(accentRgb, 0.26f + energy * 0.25f);
-		UiRender.glow(g, cx - 18, y + 16, 36, 42, 5, accentRgb, 0.12f + energy * 0.22f);
+		UiRender.fastGlow(g, cx - 18, y + 16, 36, 42, accentRgb, 0.12f + energy * 0.22f);
 		UiRender.roundedRect(g, cx - 14, y + 16, 28, 28, 9, 0xFF242934, accent);
 		UiRender.roundedRect(g, cx - 21, y + h - 27, 42, 25, 7, 0xFF171B23, accent);
 		g.fill(cx - 12, y + 31, cx + 12, y + 33, 0xFF0B0E13);

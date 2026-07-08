@@ -89,6 +89,26 @@ public final class UiRender {
 		}
 	}
 
+	public static void fastShadow(GuiGraphics g, int x, int y, int w, int h, int argb) {
+		int baseAlpha = (argb >>> 24) & 0xff;
+		int rgb = argb & 0x00FFFFFF;
+		fill(g, x + 3, y + h, w - 6, 3, ((baseAlpha / 2) << 24) | rgb);
+		fill(g, x + 5, y + h + 3, w - 10, 3, ((baseAlpha / 4) << 24) | rgb);
+		fill(g, x + w, y + 4, 3, h - 8, ((baseAlpha / 4) << 24) | rgb);
+	}
+
+	public static void fastGlow(GuiGraphics g, int x, int y, int w, int h, int accentRgb, float intensity) {
+		int alpha = Math.max(0, Math.min(110, Math.round(72.0f * intensity)));
+		if (alpha <= 0) {
+			return;
+		}
+		int color = (alpha << 24) | (accentRgb & 0x00FFFFFF);
+		horizontalLine(g, x + 6, x + w - 6, y - 1, color);
+		horizontalLine(g, x + 6, x + w - 6, y + h, color);
+		fill(g, x - 1, y + 6, 1, h - 12, color);
+		fill(g, x + w, y + 6, 1, h - 12, color);
+	}
+
 	/** Outer glow ring in a single accent color, brightest at the edge. */
 	public static void glow(GuiGraphics g, int x, int y, int w, int h, int spread, int accentRgb, float intensity) {
 		for (int i = spread; i >= 1; i--) {

@@ -166,13 +166,6 @@ public final class ProjectJjkNobaraRuntime {
 		level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, point.x, point.y, point.z, 8, 0.34, 0.24, 0.34, 0.05);
 	}
 
-	static void spawnEmbeddedNailMark(ServerLevel level, Vec3 point, Vec3 direction) {
-		Vec3 forward = safeDirection(direction);
-		Vec3 stain = point.subtract(forward.scale(0.04));
-		level.sendParticles(JujutsuParticles.HAIRPIN_MARK_STAIN, stain.x, stain.y, stain.z, 2, 0.07, 0.06, 0.07, 0.003);
-		level.sendParticles(JujutsuParticles.HAIRPIN_SNAP_CRACK, stain.x, stain.y, stain.z, 1, 0.04, 0.04, 0.04, 0.012);
-	}
-
 	static void spawnNailFlightTrail(ServerLevel level, Vec3 point, Vec3 direction) {
 		Vec3 forward = safeDirection(direction);
 		Vec3 tail = point.subtract(forward.scale(0.35));
