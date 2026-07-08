@@ -25,6 +25,9 @@ public final class ProjectJjkNailEntity extends Entity {
 	private static final EntityDataAccessor<Boolean> DATA_FLYING = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.BOOLEAN);
 	private static final EntityDataAccessor<Boolean> DATA_EMBEDDED = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.BOOLEAN);
 	private static final EntityDataAccessor<Vector3f> DATA_FORWARD = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.VECTOR3);
+	private static final EntityDataAccessor<Integer> DATA_EMBEDDED_TARGET_ID = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.INT);
+	private static final EntityDataAccessor<Vector3f> DATA_EMBEDDED_LOCAL_OFFSET = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.VECTOR3);
+	private static final EntityDataAccessor<Vector3f> DATA_EMBEDDED_LOCAL_FORWARD = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.VECTOR3);
 	private static final String OWNER_UUID_TAG = "OwnerUuid";
 	private static final String OWNER_ENTITY_ID_TAG = "OwnerEntityId";
 	private static final String LAUNCHED_TAG = "Launched";
@@ -54,6 +57,8 @@ public final class ProjectJjkNailEntity extends Entity {
 	private int embeddedTargetId = -1;
 	private int embeddedAgeTicks;
 	private Vec3 embeddedOffset = Vec3.ZERO;
+	private Vec3 embeddedLocalOffset = Vec3.ZERO;
+	private Vec3 embeddedLocalForward = new Vec3(0.0, 0.0, 1.0);
 
 	public ProjectJjkNailEntity(EntityType<? extends ProjectJjkNailEntity> entityType, Level level) {
 		super(entityType, level);
@@ -109,6 +114,14 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	public UUID ownerUuid() {
 		return ownerUuid;
+	}
+
+	public UUID embeddedTargetUuid() {
+		return embeddedTargetUuid;
+	}
+
+	public int embeddedTargetEntityId() {
+		return embeddedTargetId;
 	}
 
 	public Vec3 forwardDirection() {
@@ -190,6 +203,9 @@ public final class ProjectJjkNailEntity extends Entity {
 		builder.define(DATA_FLYING, false);
 		builder.define(DATA_EMBEDDED, false);
 		builder.define(DATA_FORWARD, new Vector3f(0.0f, 0.0f, 1.0f));
+		builder.define(DATA_EMBEDDED_TARGET_ID, -1);
+		builder.define(DATA_EMBEDDED_LOCAL_OFFSET, new Vector3f(0.0f, 0.0f, 0.0f));
+		builder.define(DATA_EMBEDDED_LOCAL_FORWARD, new Vector3f(0.0f, 0.0f, 1.0f));
 	}
 
 	@Override
@@ -206,13 +222,13 @@ public final class ProjectJjkNailEntity extends Entity {
 		}
 		output.putInt(EMBEDDED_TARGET_ID_TAG, embeddedTargetId);
 		output.putInt(EMBEDDED_AGE_TAG, embeddedAgeTicks);
-		output.putDouble(EMBEDDED_OFFSET_X_TAG, embeddedOffset.x);
-		output.putDouble(EMBEDDED_OFFSET_Y_TAG, embeddedOffset.y);
-		output.putDouble(EMBEDDED_OFFSET_Z_TAG, embeddedOffset.z);
+		output.putDouble(EMBEDDED_OFFSET_X_TAG, embeddedLocalOffset.x);
+		output.putDouble(EMBEDDED_OFFSET_Y_TAG, embeddedLocalOffset.y);
+		output.putDouble(EMBEDDED_OFFSET_Z_TAG, embeddedLocalOffset.z);
 		output.putDouble(TARGET_X_TAG, target.x);
 		output.putDouble(TARGET_Y_TAG, target.y);
 		output.putDouble(TARGET_Z_TAG, target.z);
-		Vec3 forward = forwardDirection();
+		Vec3 forward = isEmbedded() ? embeddedLocalForward : forwardDirection();
 		output.putDouble(DIRECTION_X_TAG, forward.x);
 		output.putDouble(DIRECTION_Y_TAG, forward.y);
 		output.putDouble(DIRECTION_Z_TAG, forward.z);
@@ -230,10 +246,13 @@ public final class ProjectJjkNailEntity extends Entity {
 		embeddedTargetUuid = embeddedTarget.isBlank() ? null : UUID.fromString(embeddedTarget);
 		embeddedTargetId = input.getIntOr(EMBEDDED_TARGET_ID_TAG, -1);
 		embeddedAgeTicks = input.getIntOr(EMBEDDED_AGE_TAG, 0);
-		embeddedOffset = new Vec3(input.getDoubleOr(EMBEDDED_OFFSET_X_TAG, 0.0), input.getDoubleOr(EMBEDDED_OFFSET_Y_TAG, 0.0), input.getDoubleOr(EMBEDDED_OFFSET_Z_TAG, 0.0));
+		embeddedLocalOffset = new Vec3(input.getDoubleOr(EMBEDDED_OFFSET_X_TAG, 0.0), input.getDoubleOr(EMBEDDED_OFFSET_Y_TAG, 0.0), input.getDoubleOr(EMBEDDED_OFFSET_Z_TAG, 0.0));
+		embeddedOffset = embeddedLocalOffset;
 		target = new Vec3(input.getDoubleOr(TARGET_X_TAG, getX()), input.getDoubleOr(TARGET_Y_TAG, getY()), input.getDoubleOr(TARGET_Z_TAG, getZ()));
 		pendingLaunchDirection = safeDirection(target.subtract(position()));
-		face(new Vec3(input.getDoubleOr(DIRECTION_X_TAG, pendingLaunchDirection.x), input.getDoubleOr(DIRECTION_Y_TAG, pendingLaunchDirection.y), input.getDoubleOr(DIRECTION_Z_TAG, pendingLaunchDirection.z)));
+		embeddedLocalForward = safeDirection(new Vec3(input.getDoubleOr(DIRECTION_X_TAG, pendingLaunchDirection.x), input.getDoubleOr(DIRECTION_Y_TAG, pendingLaunchDirection.y), input.getDoubleOr(DIRECTION_Z_TAG, pendingLaunchDirection.z)));
+		face(embeddedLocalForward);
+		syncEmbeddedAttachment();
 		setFlightSynced(launched && launchDelayTicks <= 0);
 	}
 
@@ -250,39 +269,50 @@ public final class ProjectJjkNailEntity extends Entity {
 		if (embedded) {
 			setLaunched(false);
 			setDeltaMovement(Vec3.ZERO);
+		} else {
+			embeddedTargetId = -1;
+			embeddedLocalOffset = Vec3.ZERO;
+			embeddedLocalForward = new Vec3(0.0, 0.0, 1.0);
+			syncEmbeddedAttachment();
 		}
 	}
 
 	private void embedIn(LivingEntity target, Vec3 hitPoint) {
-		Vec3 embedPoint = bodyEmbedPoint(target, hitPoint, forwardDirection(), getId());
+		Vec3 direction = forwardDirection();
+		Vec3 embedPoint = clampEmbedPoint(target, hitPoint.add(direction.scale(0.06)));
+		Vec3 localOffset = rotateY(embedPoint.subtract(target.position()), -target.getYRot());
+		Vec3 localForward = safeDirection(rotateY(direction, -target.getYRot()));
 		embeddedTargetUuid = target.getUUID();
 		embeddedTargetId = target.getId();
 		embeddedAgeTicks = 0;
 		embeddedOffset = embedPoint.subtract(target.position());
+		embeddedLocalOffset = localOffset;
+		embeddedLocalForward = localForward;
+		syncEmbeddedAttachment();
 		setPos(embedPoint);
 		setEmbedded(true);
 		hasImpulse = false;
+		updateEmbeddedPosition(target);
 	}
 
 	private void tickEmbedded() {
 		setDeltaMovement(Vec3.ZERO);
-		if (level().isClientSide()) {
-			return;
-		}
-		if (embeddedAgeTicks++ >= ProjectJjkNobaraProfile.EMBEDDED_NAIL_AGE_TICKS) {
+		if (!level().isClientSide() && embeddedAgeTicks++ >= ProjectJjkNobaraProfile.EMBEDDED_NAIL_AGE_TICKS) {
 			discard();
 			return;
 		}
-		Entity target = embeddedTargetId < 0 ? null : level().getEntity(embeddedTargetId);
+		int targetId = level().isClientSide() ? entityData.get(DATA_EMBEDDED_TARGET_ID) : embeddedTargetId;
+		Entity target = targetId < 0 ? null : level().getEntity(targetId);
 		if (!(target instanceof LivingEntity living) || !living.isAlive() || (embeddedTargetUuid != null && !living.getUUID().equals(embeddedTargetUuid))) {
 			target = embeddedTargetUuid == null || !(level() instanceof ServerLevel serverLevel) ? null : serverLevel.getEntity(embeddedTargetUuid);
 		}
 		if (!(target instanceof LivingEntity living) || !living.isAlive()) {
-			discard();
+			if (!level().isClientSide()) {
+				discard();
+			}
 			return;
 		}
-		Vec3 next = target.position().add(embeddedOffset);
-		setPos(next);
+		updateEmbeddedPosition(living);
 	}
 
 	private void startFlight(Vec3 direction) {
@@ -332,8 +362,49 @@ public final class ProjectJjkNailEntity extends Entity {
 		return safeDirection(direction).scale(ProjectJjkNobaraProfile.LAUNCH_SPEED_BLOCKS_PER_TICK);
 	}
 
-	private static Vec3 bodyEmbedPoint(LivingEntity target, Vec3 hitPoint, Vec3 direction, int seed) {
-		return ProjectJjkNailEmbedding.bodyEmbedPoint(target.position(), target.getBbWidth(), target.getBbHeight(), hitPoint, direction, seed);
+	private void updateEmbeddedPosition(LivingEntity target) {
+		Vec3 localOffset = level().isClientSide() ? fromVector(entityData.get(DATA_EMBEDDED_LOCAL_OFFSET)) : embeddedLocalOffset;
+		Vec3 localForward = level().isClientSide() ? fromVector(entityData.get(DATA_EMBEDDED_LOCAL_FORWARD)) : embeddedLocalForward;
+		Vec3 worldOffset = rotateY(localOffset, target.getYRot());
+		Vec3 worldForward = safeDirection(rotateY(localForward, target.getYRot()));
+		Vec3 next = target.position().add(worldOffset);
+		setPos(next);
+		face(worldForward);
+		setOldPosAndRot(next, getYRot(), getXRot());
+	}
+
+	private void syncEmbeddedAttachment() {
+		entityData.set(DATA_EMBEDDED_TARGET_ID, embeddedTargetId);
+		entityData.set(DATA_EMBEDDED_LOCAL_OFFSET, toVector(embeddedLocalOffset));
+		entityData.set(DATA_EMBEDDED_LOCAL_FORWARD, toVector(embeddedLocalForward));
+	}
+
+	private static Vec3 clampEmbedPoint(LivingEntity target, Vec3 point) {
+		double minY = target.getY() + target.getBbHeight() * 0.18;
+		double maxY = target.getY() + target.getBbHeight() * 0.88;
+		double x = clamp(point.x, target.getBoundingBox().minX + 0.04, target.getBoundingBox().maxX - 0.04);
+		double y = clamp(point.y, minY, maxY);
+		double z = clamp(point.z, target.getBoundingBox().minZ + 0.04, target.getBoundingBox().maxZ - 0.04);
+		return new Vec3(x, y, z);
+	}
+
+	private static Vec3 rotateY(Vec3 vector, float yawDegrees) {
+		double radians = Math.toRadians(yawDegrees);
+		double sin = Math.sin(radians);
+		double cos = Math.cos(radians);
+		return new Vec3(vector.x * cos - vector.z * sin, vector.y, vector.x * sin + vector.z * cos);
+	}
+
+	private static Vector3f toVector(Vec3 vector) {
+		return new Vector3f((float) vector.x, (float) vector.y, (float) vector.z);
+	}
+
+	private static Vec3 fromVector(Vector3f vector) {
+		return new Vec3(vector.x(), vector.y(), vector.z());
+	}
+
+	private static double clamp(double value, double min, double max) {
+		return Math.max(min, Math.min(max, value));
 	}
 
 	private static Vec3 safeDirection(Vec3 vector) {
