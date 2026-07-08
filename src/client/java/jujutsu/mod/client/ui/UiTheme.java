@@ -8,10 +8,10 @@ public final class UiTheme {
 	private UiTheme() {}
 
 	// Surfaces.
-	public static final int SCRIM = 0xC008040A;
-	public static final int PANEL = 0xF2140A16;
-	public static final int PANEL_RAISED = 0xF21C1022;
-	public static final int PANEL_INSET = 0xF00E0712;
+	public static final int SCRIM = 0xC026252A;
+	public static final int PANEL = 0xF21A151E;
+	public static final int PANEL_RAISED = 0xF2241C29;
+	public static final int PANEL_INSET = 0xF0151219;
 	public static final int BORDER = 0x33FF4DA6;
 	public static final int BORDER_STRONG = 0x66FF54C8;
 

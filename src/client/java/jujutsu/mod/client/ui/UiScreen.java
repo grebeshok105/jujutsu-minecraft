@@ -2,7 +2,6 @@ package jujutsu.mod.client.ui;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -17,6 +16,7 @@ public abstract class UiScreen extends Screen {
 	protected float openAnim;
 	private boolean closing;
 	private long closeStartedMillis;
+	private long lastFrameNanos;
 
 	protected UiScreen(Component title) {
 		super(title);
@@ -35,12 +35,13 @@ public abstract class UiScreen extends Screen {
 		elements.clear();
 		openAnim = 0.0f;
 		closing = false;
+		lastFrameNanos = System.nanoTime();
 		layout();
 	}
 
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		float delta = Math.max(0.0f, Minecraft().getDeltaTracker().getGameTimeDeltaTicks());
+		float delta = frameDeltaTicks();
 		float target = closing ? 0.0f : 1.0f;
 		openAnim = UiEase.approach(openAnim, target, 0.4f, delta);
 		if (closing && System.currentTimeMillis() - closeStartedMillis > UiTheme.OPEN_MS) {
@@ -58,8 +59,12 @@ public abstract class UiScreen extends Screen {
 		}
 	}
 
-	private net.minecraft.client.Minecraft Minecraft() {
-		return net.minecraft.client.Minecraft.getInstance();
+	private float frameDeltaTicks() {
+		long now = System.nanoTime();
+		long elapsed = lastFrameNanos == 0L ? 0L : now - lastFrameNanos;
+		lastFrameNanos = now;
+		float delta = elapsed <= 0L ? 1.0f : elapsed / 50_000_000.0f;
+		return Math.max(0.05f, Math.min(3.0f, delta));
 	}
 
 	@Override

@@ -53,7 +53,7 @@ public final class CharacterCard extends UiElement {
 		}
 
 		// Body with a subtle vertical gradient.
-		UiRender.roundedRect(g, bx, by, bw, bh, 8, 0xFF000000);
+		UiRender.roundedRect(g, bx, by, bw, bh, 8, 0xFF111116);
 		paintBody(g, bx, by, bw, bh, energy);
 		int border = UiRender.lerpColor(UiTheme.BORDER, UiRender.withAlpha(accentRgb, 1.0f), energy);
 		UiRender.roundedRect(g, bx, by, bw, bh, 8, 0x00000000, border);
