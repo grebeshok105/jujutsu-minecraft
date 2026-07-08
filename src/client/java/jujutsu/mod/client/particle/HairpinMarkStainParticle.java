@@ -14,13 +14,13 @@ public class HairpinMarkStainParticle extends TextureSheetParticle {
 	protected HairpinMarkStainParticle(ClientLevel level, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed, SpriteSet sprites) {
 		super(level, x, y, z, xSpeed * 0.08, ySpeed * 0.08, zSpeed * 0.08);
 		this.sprites = sprites;
-		this.lifetime = 18 + this.random.nextInt(8);
+		this.lifetime = 30 + this.random.nextInt(14);
 		this.gravity = 0.0f;
 		this.hasPhysics = false;
-		this.quadSize = 0.3f + this.random.nextFloat() * 0.1f;
-		this.rCol = 0.28f;
-		this.gCol = 0.06f;
-		this.bCol = 0.1f;
+		this.quadSize = 0.34f + this.random.nextFloat() * 0.16f;
+		this.rCol = 0.2f;
+		this.gCol = 0.018f;
+		this.bCol = 0.04f;
 		this.alpha = 0.95f;
 		this.setSpriteFromAge(sprites);
 	}

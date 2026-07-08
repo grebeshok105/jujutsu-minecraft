@@ -13,7 +13,9 @@ public final class ProjectJjkNobaraProfile {
 	public static final double LAUNCH_SPEED_BLOCKS_PER_TICK = 3.35;
 	public static final double TARGET_RANGE = 36.0;
 	public static final double HAIRPIN_SEARCH_RANGE = 18.0;
+	public static final double PREPARED_LAUNCH_RANGE = 2.0;
 	public static final double IMPACT_RADIUS = 3.75;
+	public static final double GROUND_IMPACT_RADIUS = 2.25;
 	public static final float NAIL_DAMAGE = 2.0f;
 	public static final float HAIRPIN_DAMAGE = 18.0f;
 	public static final float HAIRPIN_KNOCKBACK = 1.9f;
@@ -28,6 +30,7 @@ public final class ProjectJjkNobaraProfile {
 	// Embedded nail marks (the cursed connection carrier).
 	public static final int MARK_MAX_PER_TARGET = 4;
 	public static final int MARK_DURATION_TICKS = 900;
+	public static final int EMBEDDED_NAIL_AGE_TICKS = MARK_DURATION_TICKS;
 
 	// Hairpin mark detonation.
 	public static final double DETONATE_RANGE = 24.0;

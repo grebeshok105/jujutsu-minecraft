@@ -105,17 +105,23 @@ public final class ProjectJjkNobaraRuntime {
 		Vec3 point = hit.getLocation();
 		ServerPlayer owner = owner(level, nail.ownerUuid());
 		DamageSource source = owner == null ? level.damageSources().magic() : level.damageSources().playerAttack(owner);
-		if (hit instanceof EntityHitResult entityHit && entityHit.getEntity() instanceof LivingEntity directTarget) {
+		LivingEntity directTarget = null;
+		if (hit instanceof EntityHitResult entityHit && entityHit.getEntity() instanceof LivingEntity livingTarget) {
+			directTarget = livingTarget;
 			hurtTarget(level, owner, directTarget, source, ProjectJjkNobaraProfile.NAIL_DAMAGE, point, 0.9f);
 			// Direct hit embeds a cursed nail mark — the connective tissue for detonation + resonance.
 			if (!(owner != null && directTarget.getUUID().equals(owner.getUUID()))) {
-				ProjectJjkRitualRuntime.markTarget(level, directTarget, owner);
+				ProjectJjkRitualRuntime.markTarget(level, directTarget, owner, point);
 			}
 		}
 
-		AABB area = new AABB(point, point).inflate(ProjectJjkNobaraProfile.IMPACT_RADIUS);
+		double impactRadius = directTarget == null ? ProjectJjkNobaraProfile.GROUND_IMPACT_RADIUS : ProjectJjkNobaraProfile.IMPACT_RADIUS;
+		AABB area = new AABB(point, point).inflate(impactRadius);
 		float areaDamage = ProjectJjkNobaraProfile.HAIRPIN_DAMAGE / 4.0f;
 		for (Entity entity : level.getEntities(nail, area, candidate -> candidate instanceof LivingEntity living && living.isAlive())) {
+			if (directTarget != null && entity.getId() == directTarget.getId()) {
+				continue;
+			}
 			if (entity instanceof LivingEntity living) {
 				hurtTarget(level, owner, living, source, areaDamage, point, ProjectJjkNobaraProfile.HAIRPIN_KNOCKBACK);
 			}
@@ -156,8 +162,15 @@ public final class ProjectJjkNobaraRuntime {
 		level.sendParticles(JujutsuParticles.HAIRPIN_BURST_RESIDUE, core.x, core.y, core.z, 20, 0.46, 0.34, 0.46, 0.20);
 		level.sendParticles(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, point.x, point.y, point.z, 16, 0.42, 0.26, 0.42, 0.34);
 		// Legacy families ported: dark stain lingers at the wound, warn edge flashes the impact ring.
-		level.sendParticles(JujutsuParticles.HAIRPIN_MARK_STAIN, core.x, core.y, core.z, 6, 0.22, 0.16, 0.22, 0.012);
+		level.sendParticles(JujutsuParticles.HAIRPIN_MARK_STAIN, core.x, core.y, core.z, 9, 0.18, 0.14, 0.18, 0.008);
 		level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, point.x, point.y, point.z, 8, 0.34, 0.24, 0.34, 0.05);
+	}
+
+	static void spawnEmbeddedNailMark(ServerLevel level, Vec3 point, Vec3 direction) {
+		Vec3 forward = safeDirection(direction);
+		Vec3 stain = point.subtract(forward.scale(0.04));
+		level.sendParticles(JujutsuParticles.HAIRPIN_MARK_STAIN, stain.x, stain.y, stain.z, 2, 0.07, 0.06, 0.07, 0.003);
+		level.sendParticles(JujutsuParticles.HAIRPIN_SNAP_CRACK, stain.x, stain.y, stain.z, 1, 0.04, 0.04, 0.04, 0.012);
 	}
 
 	static void spawnNailFlightTrail(ServerLevel level, Vec3 point, Vec3 direction) {
@@ -172,15 +185,22 @@ public final class ProjectJjkNobaraRuntime {
 	}
 
 	private static List<ProjectJjkNailEntity> findPreparedNails(ServerLevel level, ServerPlayer player) {
-		Vec3 look = safeDirection(player.getLookAngle());
-		AABB bounds = player.getBoundingBox().inflate(ProjectJjkNobaraProfile.HAIRPIN_SEARCH_RANGE);
+		Vec3 anchor = player.getEyePosition();
+		double range = ProjectJjkNobaraProfile.PREPARED_LAUNCH_RANGE;
+		AABB playerBounds = player.getBoundingBox();
+		AABB bounds = playerBounds.inflate(range);
 		return level.getEntities(player, bounds, entity -> entity instanceof ProjectJjkNailEntity nail && nail.isPrepared() && nail.isOwnedBy(player.getUUID()))
 				.stream()
 				.map(ProjectJjkNailEntity.class::cast)
-				.filter(nail -> nail.position().subtract(player.getEyePosition()).dot(look) > -1.5)
-				.sorted(Comparator.comparingDouble(nail -> nail.distanceToSqr(player)))
+				.filter(nail -> isPreparedNailWithinLaunchRange(playerBounds, nail.position()))
+				.sorted(Comparator.comparingDouble(nail -> playerBounds.distanceToSqr(nail.position())))
 				.limit(ProjectJjkNobaraProfile.BARRAGE_NAILS)
 				.toList();
+	}
+
+	static boolean isPreparedNailWithinLaunchRange(AABB playerBounds, Vec3 nailPosition) {
+		double range = ProjectJjkNobaraProfile.PREPARED_LAUNCH_RANGE;
+		return playerBounds.distanceToSqr(nailPosition) <= range * range;
 	}
 
 	private static List<Vec3> preparedRow(Vec3 origin, Vec3 look, int nailCount) {

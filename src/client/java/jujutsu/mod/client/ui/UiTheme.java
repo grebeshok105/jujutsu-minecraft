@@ -1,8 +1,8 @@
 package jujutsu.mod.client.ui;
 
 /**
- * Single source of truth for the custom UI look: a cursed-fuchsia / oxblood palette on dark glass.
- * Keeping every color here means every screen and widget stays visually consistent.
+ * Single source of truth for the custom UI look: character accents on dark cursed glass. Keeping
+ * every color here means every screen and widget stays visually consistent.
  */
 public final class UiTheme {
 	private UiTheme() {}
@@ -20,6 +20,12 @@ public final class UiTheme {
 	public static final int ACCENT_DEEP = 0xFFB01E4B;
 	public static final int ACCENT_RGB = 0x00FF54C8;
 	public static final int OXBLOOD = 0xFF7A1030;
+	public static final int NOBARA_ACCENT = 0xFFE48A36;
+	public static final int NOBARA_ACCENT_DEEP = 0xFF8B3F1C;
+	public static final int NOBARA_ACCENT_RGB = 0x00E48A36;
+	public static final int NONE_ACCENT = 0xFF505760;
+	public static final int NONE_ACCENT_DEEP = 0xFF181C24;
+	public static final int NONE_ACCENT_RGB = 0x00505760;
 
 	// Text.
 	public static final int TEXT = 0xFFF3E6FF;

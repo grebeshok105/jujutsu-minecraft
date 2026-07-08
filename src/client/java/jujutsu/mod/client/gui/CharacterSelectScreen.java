@@ -26,6 +26,8 @@ public final class CharacterSelectScreen extends UiScreen {
 	private JujutsuCharacter selection = JujutsuCharacter.NOBARA;
 	private CharacterCard nobaraCard;
 	private CharacterCard defaultCard;
+	private UiButton confirmButton;
+	private UiButton cancelButton;
 
 	public CharacterSelectScreen() {
 		super(Component.translatable("screen.jujutsumod.character_select"));
@@ -45,12 +47,12 @@ public final class CharacterSelectScreen extends UiScreen {
 		nobaraCard = new CharacterCard(cardsX, cardsY, cardW, cardH,
 				Component.translatable("screen.jujutsumod.character_select.nobara"),
 				Component.translatable("screen.jujutsumod.character_select.nobara.role"),
-				UiTheme.ACCENT_RGB, CharacterCard.Portrait.NOBARA,
+				UiTheme.NOBARA_ACCENT_RGB, CharacterCard.Portrait.NOBARA,
 				() -> selection = JujutsuCharacter.NOBARA);
 		defaultCard = new CharacterCard(cardsX + cardW + gap, cardsY, cardW, cardH,
 				Component.translatable("screen.jujutsumod.character_select.default"),
 				Component.translatable("screen.jujutsumod.character_select.default.role"),
-				0x008FB8FF, CharacterCard.Portrait.NONE,
+				UiTheme.NONE_ACCENT_RGB, CharacterCard.Portrait.NONE,
 				() -> selection = JujutsuCharacter.NONE);
 		add(nobaraCard);
 		add(defaultCard);
@@ -58,10 +60,12 @@ public final class CharacterSelectScreen extends UiScreen {
 		int footerY = panelY + PANEL_H - 30;
 		int btnW = 116;
 		int btnH = 20;
-		add(new UiButton(panelX + PANEL_W - btnW - 16, footerY, btnW, btnH,
-				Component.translatable("screen.jujutsumod.character_select.confirm"), this::confirm).primary());
-		add(new UiButton(panelX + PANEL_W - btnW * 2 - 26, footerY, btnW, btnH,
-				Component.translatable("gui.cancel"), this::onClose));
+		confirmButton = new UiButton(panelX + PANEL_W - btnW - 16, footerY, btnW, btnH,
+				Component.translatable("screen.jujutsumod.character_select.confirm"), this::confirm).primary();
+		cancelButton = new UiButton(panelX + PANEL_W - btnW * 2 - 26, footerY, btnW, btnH,
+				Component.translatable("gui.cancel"), this::onClose);
+		add(confirmButton);
+		add(cancelButton);
 	}
 
 	@Override
@@ -71,15 +75,18 @@ public final class CharacterSelectScreen extends UiScreen {
 
 		nobaraCard.setSelected(selection == JujutsuCharacter.NOBARA);
 		defaultCard.setSelected(selection == JujutsuCharacter.NONE);
+		int accent = selectedAccentRgb();
+		confirmButton.setAccentRgb(accent);
+		cancelButton.setAccentRgb(accent);
 
 		// Backdrop glow + animated cursed motes behind the panel.
-		UiRender.glow(g, panelX, panelY, PANEL_W, PANEL_H, 10, UiTheme.ACCENT_RGB, 0.35f * anim);
-		drawBackdropMotes(g, panelX, panelY, anim);
+		UiRender.glow(g, panelX, panelY, PANEL_W, PANEL_H, 9, accent, 0.24f * anim);
+		drawBackdropMotes(g, panelX, panelY, anim, accent);
 
 		// Main panel.
-		UiRender.shadow(g, panelX, panelY, PANEL_W, PANEL_H, 8, 0x99000000);
-		UiRender.roundedRect(g, panelX, panelY, PANEL_W, PANEL_H, 12, UiTheme.PANEL, UiTheme.BORDER);
-		UiRender.horizontalLine(g, panelX + 16, panelX + PANEL_W - 16, panelY + 3, UiRender.withAlpha(UiTheme.ACCENT_RGB, 0.8f * anim));
+		UiRender.shadow(g, panelX, panelY + 2, PANEL_W, PANEL_H, 11, 0x8A000000);
+		UiRender.roundedRect(g, panelX, panelY, PANEL_W, PANEL_H, 10, UiTheme.PANEL, UiRender.withAlpha(accent, 0.28f + 0.18f * anim));
+		UiRender.horizontalLine(g, panelX + 18, panelX + PANEL_W - 18, panelY + 3, UiRender.withAlpha(accent, 0.68f * anim));
 
 		Font font = Minecraft.getInstance().font;
 		Component title = Component.translatable("screen.jujutsumod.character_select.title");
@@ -89,16 +96,20 @@ public final class CharacterSelectScreen extends UiScreen {
 		// Elements (cards + buttons) are drawn by the base UiScreen after paint().
 	}
 
-	private void drawBackdropMotes(GuiGraphics g, int panelX, int panelY, float anim) {
+	private void drawBackdropMotes(GuiGraphics g, int panelX, int panelY, float anim, int accent) {
 		long t = System.currentTimeMillis();
-		for (int i = 0; i < 18; i++) {
+		for (int i = 0; i < 14; i++) {
 			double phase = i * 1.7 + t / 900.0;
 			int mx = panelX + (int) ((Math.sin(phase) * 0.5 + 0.5) * PANEL_W);
 			int my = panelY + (int) (((Math.cos(phase * 0.7) * 0.5 + 0.5)) * PANEL_H);
 			float tw = (float) (0.4 + 0.6 * (0.5 + 0.5 * Math.sin(t / 300.0 + i)));
 			int size = 1 + (i % 3);
-			g.fill(mx, my, mx + size, my + size, UiRender.withAlpha(UiTheme.ACCENT_RGB, 0.25f * tw * anim));
+			g.fill(mx, my, mx + size, my + size, UiRender.withAlpha(accent, 0.18f * tw * anim));
 		}
+	}
+
+	private int selectedAccentRgb() {
+		return selection == JujutsuCharacter.NOBARA ? UiTheme.NOBARA_ACCENT_RGB : UiTheme.NONE_ACCENT_RGB;
 	}
 
 	private void confirm() {

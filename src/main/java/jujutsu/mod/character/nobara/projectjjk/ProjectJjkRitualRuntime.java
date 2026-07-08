@@ -59,10 +59,17 @@ public final class ProjectJjkRitualRuntime {
 
 	/** Called on a direct nail hit: embeds a cursed mark and paints the wound. */
 	public static void markTarget(ServerLevel level, LivingEntity target, ServerPlayer owner) {
+		markTarget(level, target, owner, target.position().add(0.0, target.getBbHeight() * 0.55, 0.0));
+	}
+
+	/** Called on a direct nail hit: embeds a cursed mark and paints the wound. */
+	public static void markTarget(ServerLevel level, LivingEntity target, ServerPlayer owner, Vec3 wound) {
 		int marks = ProjectJjkNailMarks.apply(target.getUUID(), level.getGameTime());
-		Vec3 at = target.position().add(0.0, target.getBbHeight() * 0.55, 0.0);
-		level.sendParticles(JujutsuParticles.HAIRPIN_MARK_STAIN, at.x, at.y, at.z, 4 + marks, 0.24, 0.34, 0.24, 0.01);
-		level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, at.x, at.y, at.z, 6 + marks * 2, 0.3, 0.4, 0.3, 0.04);
+		Vec3 center = target.position().add(0.0, target.getBbHeight() * 0.55, 0.0);
+		Vec3 at = wound == null ? center : wound.lerp(center, 0.18);
+		level.sendParticles(JujutsuParticles.HAIRPIN_MARK_STAIN, at.x, at.y, at.z, 6 + marks * 2, 0.16, 0.20, 0.16, 0.006);
+		level.sendParticles(JujutsuParticles.HAIRPIN_SNAP_CRACK, at.x, at.y, at.z, 2 + marks, 0.09, 0.12, 0.09, 0.024);
+		level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, at.x, at.y, at.z, 3 + marks, 0.18, 0.22, 0.18, 0.025);
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_SIZZLE, SoundSource.PLAYERS, 0.5f, 0.8f + marks * 0.06f);
 		if (owner != null) {
 			syncCursedEnergy(owner, level.getGameTime(), true);

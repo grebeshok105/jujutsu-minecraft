@@ -1,5 +1,8 @@
 package jujutsu.mod.character.nobara.projectjjk;
 
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+
 public final class ProjectJjkNobaraProfileTest {
 	private ProjectJjkNobaraProfileTest() {}
 
@@ -9,6 +12,10 @@ public final class ProjectJjkNobaraProfileTest {
 		assertLongHoldPreparesBarrageNails();
 		assertWorldNailsPersistLikeProjectJjkReference();
 		assertNailsLaunchWithTwoTickStagger();
+		assertPreparedLaunchRequiresCloseNails();
+		assertPreparedLaunchRangeUsesPlayerBounds();
+		assertGroundImpactsStayTighterThanDirectHits();
+		assertEmbeddedNailsLastAsLongAsMarks();
 		assertCursedEnergyEconomy();
 		System.out.println("ProjectJjkNobaraProfileTest passed");
 	}
@@ -39,6 +46,26 @@ public final class ProjectJjkNobaraProfileTest {
 		assert ProjectJjkNobaraProfile.launchDelayForIndex(0) == 0 : "first nail should launch immediately";
 		assert ProjectJjkNobaraProfile.launchDelayForIndex(1) == 4 : "second nail should launch after 0.2s";
 		assert ProjectJjkNobaraProfile.launchDelayForIndex(7) == 28 : "barrage should keep staggering every nail";
+	}
+
+	private static void assertPreparedLaunchRequiresCloseNails() {
+		assert ProjectJjkNobaraProfile.PREPARED_LAUNCH_RANGE == 2.0 : "prepared nails should only launch within two blocks";
+		assert ProjectJjkNobaraProfile.PREPARED_LAUNCH_RANGE < ProjectJjkNobaraProfile.HAIRPIN_SEARCH_RANGE : "launch range must be tighter than legacy search range";
+	}
+
+	private static void assertPreparedLaunchRangeUsesPlayerBounds() {
+		AABB playerBounds = new AABB(-0.3, 0.0, -0.3, 0.3, 1.8, 0.3);
+		assert ProjectJjkNobaraRuntime.isPreparedNailWithinLaunchRange(playerBounds, new Vec3(0.0, 0.0, 2.25)) : "nail two blocks from player body should launch";
+		assert !ProjectJjkNobaraRuntime.isPreparedNailWithinLaunchRange(playerBounds, new Vec3(0.0, 0.0, 2.31)) : "nail beyond two blocks from player body should not launch";
+	}
+
+	private static void assertGroundImpactsStayTighterThanDirectHits() {
+		assert ProjectJjkNobaraProfile.GROUND_IMPACT_RADIUS < ProjectJjkNobaraProfile.IMPACT_RADIUS : "ground impact should be smaller than direct hit bloom";
+		assert ProjectJjkNobaraProfile.GROUND_IMPACT_RADIUS >= 2.0 : "ground impact should still read visually";
+	}
+
+	private static void assertEmbeddedNailsLastAsLongAsMarks() {
+		assert ProjectJjkNobaraProfile.EMBEDDED_NAIL_AGE_TICKS == ProjectJjkNobaraProfile.MARK_DURATION_TICKS : "visible stuck nails should match cursed mark duration";
 	}
 
 	private static void assertCursedEnergyEconomy() {

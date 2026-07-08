@@ -23,11 +23,19 @@ import org.joml.Vector3f;
 
 public final class ProjectJjkNailEntity extends Entity {
 	private static final EntityDataAccessor<Boolean> DATA_FLYING = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.BOOLEAN);
+	private static final EntityDataAccessor<Boolean> DATA_EMBEDDED = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.BOOLEAN);
 	private static final EntityDataAccessor<Vector3f> DATA_FORWARD = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.VECTOR3);
 	private static final String OWNER_UUID_TAG = "OwnerUuid";
 	private static final String OWNER_ENTITY_ID_TAG = "OwnerEntityId";
 	private static final String LAUNCHED_TAG = "Launched";
 	private static final String LAUNCH_DELAY_TAG = "LaunchDelay";
+	private static final String EMBEDDED_TAG = "Embedded";
+	private static final String EMBEDDED_TARGET_UUID_TAG = "EmbeddedTargetUuid";
+	private static final String EMBEDDED_TARGET_ID_TAG = "EmbeddedTargetId";
+	private static final String EMBEDDED_AGE_TAG = "EmbeddedAge";
+	private static final String EMBEDDED_OFFSET_X_TAG = "EmbeddedOffsetX";
+	private static final String EMBEDDED_OFFSET_Y_TAG = "EmbeddedOffsetY";
+	private static final String EMBEDDED_OFFSET_Z_TAG = "EmbeddedOffsetZ";
 	private static final String TARGET_X_TAG = "TargetX";
 	private static final String TARGET_Y_TAG = "TargetY";
 	private static final String TARGET_Z_TAG = "TargetZ";
@@ -41,6 +49,11 @@ public final class ProjectJjkNailEntity extends Entity {
 	private int launchDelayTicks;
 	private Vec3 target = Vec3.ZERO;
 	private Vec3 pendingLaunchDirection = Vec3.ZERO;
+	private boolean embedded;
+	private UUID embeddedTargetUuid;
+	private int embeddedTargetId = -1;
+	private int embeddedAgeTicks;
+	private Vec3 embeddedOffset = Vec3.ZERO;
 
 	public ProjectJjkNailEntity(EntityType<? extends ProjectJjkNailEntity> entityType, Level level) {
 		super(entityType, level);
@@ -75,7 +88,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	}
 
 	public boolean isPrepared() {
-		return !isLaunched() && !isRemoved();
+		return !isLaunched() && !isEmbedded() && !isRemoved();
 	}
 
 	public boolean isLaunched() {
@@ -84,6 +97,10 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	public boolean isFlying() {
 		return entityData.get(DATA_FLYING);
+	}
+
+	public boolean isEmbedded() {
+		return embedded || entityData.get(DATA_EMBEDDED);
 	}
 
 	public boolean isOwnedBy(UUID playerId) {
@@ -102,13 +119,18 @@ public final class ProjectJjkNailEntity extends Entity {
 	@Override
 	public void tick() {
 		super.tick();
-		if (tickCount > ProjectJjkNobaraProfile.MAX_NAIL_AGE_TICKS) {
-			discard();
+		if (isEmbedded()) {
+			tickEmbedded();
 			return;
 		}
 
 		if (level().isClientSide()) {
 			clientTickMovement();
+			return;
+		}
+
+		if (tickCount > ProjectJjkNobaraProfile.MAX_NAIL_AGE_TICKS) {
+			discard();
 			return;
 		}
 
@@ -131,7 +153,11 @@ public final class ProjectJjkNailEntity extends Entity {
 		if (hit.getType() != HitResult.Type.MISS && level() instanceof ServerLevel serverLevel) {
 			setPos(hit.getLocation());
 			ProjectJjkNobaraRuntime.resolveNailImpact(serverLevel, this, hit);
-			discard();
+			if (hit instanceof net.minecraft.world.phys.EntityHitResult entityHit && entityHit.getEntity() instanceof LivingEntity living) {
+				embedIn(living, hit.getLocation());
+			} else {
+				discard();
+			}
 			return;
 		}
 
@@ -162,6 +188,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	@Override
 	protected void defineSynchedData(SynchedEntityData.Builder builder) {
 		builder.define(DATA_FLYING, false);
+		builder.define(DATA_EMBEDDED, false);
 		builder.define(DATA_FORWARD, new Vector3f(0.0f, 0.0f, 1.0f));
 	}
 
@@ -173,6 +200,15 @@ public final class ProjectJjkNailEntity extends Entity {
 		output.putInt(OWNER_ENTITY_ID_TAG, ownerEntityId);
 		output.putBoolean(LAUNCHED_TAG, isLaunched());
 		output.putInt(LAUNCH_DELAY_TAG, launchDelayTicks);
+		output.putBoolean(EMBEDDED_TAG, isEmbedded());
+		if (embeddedTargetUuid != null) {
+			output.putString(EMBEDDED_TARGET_UUID_TAG, embeddedTargetUuid.toString());
+		}
+		output.putInt(EMBEDDED_TARGET_ID_TAG, embeddedTargetId);
+		output.putInt(EMBEDDED_AGE_TAG, embeddedAgeTicks);
+		output.putDouble(EMBEDDED_OFFSET_X_TAG, embeddedOffset.x);
+		output.putDouble(EMBEDDED_OFFSET_Y_TAG, embeddedOffset.y);
+		output.putDouble(EMBEDDED_OFFSET_Z_TAG, embeddedOffset.z);
 		output.putDouble(TARGET_X_TAG, target.x);
 		output.putDouble(TARGET_Y_TAG, target.y);
 		output.putDouble(TARGET_Z_TAG, target.z);
@@ -189,6 +225,12 @@ public final class ProjectJjkNailEntity extends Entity {
 		ownerEntityId = input.getIntOr(OWNER_ENTITY_ID_TAG, -1);
 		setLaunched(input.getBooleanOr(LAUNCHED_TAG, false));
 		launchDelayTicks = input.getIntOr(LAUNCH_DELAY_TAG, 0);
+		setEmbedded(input.getBooleanOr(EMBEDDED_TAG, false));
+		String embeddedTarget = input.getStringOr(EMBEDDED_TARGET_UUID_TAG, "");
+		embeddedTargetUuid = embeddedTarget.isBlank() ? null : UUID.fromString(embeddedTarget);
+		embeddedTargetId = input.getIntOr(EMBEDDED_TARGET_ID_TAG, -1);
+		embeddedAgeTicks = input.getIntOr(EMBEDDED_AGE_TAG, 0);
+		embeddedOffset = new Vec3(input.getDoubleOr(EMBEDDED_OFFSET_X_TAG, 0.0), input.getDoubleOr(EMBEDDED_OFFSET_Y_TAG, 0.0), input.getDoubleOr(EMBEDDED_OFFSET_Z_TAG, 0.0));
 		target = new Vec3(input.getDoubleOr(TARGET_X_TAG, getX()), input.getDoubleOr(TARGET_Y_TAG, getY()), input.getDoubleOr(TARGET_Z_TAG, getZ()));
 		pendingLaunchDirection = safeDirection(target.subtract(position()));
 		face(new Vec3(input.getDoubleOr(DIRECTION_X_TAG, pendingLaunchDirection.x), input.getDoubleOr(DIRECTION_Y_TAG, pendingLaunchDirection.y), input.getDoubleOr(DIRECTION_Z_TAG, pendingLaunchDirection.z)));
@@ -199,6 +241,49 @@ public final class ProjectJjkNailEntity extends Entity {
 		this.launched = launched;
 		if (!launched) {
 			setFlightSynced(false);
+		}
+	}
+
+	private void setEmbedded(boolean embedded) {
+		this.embedded = embedded;
+		entityData.set(DATA_EMBEDDED, embedded);
+		if (embedded) {
+			setLaunched(false);
+			setDeltaMovement(Vec3.ZERO);
+		}
+	}
+
+	private void embedIn(LivingEntity target, Vec3 hitPoint) {
+		embeddedTargetUuid = target.getUUID();
+		embeddedTargetId = target.getId();
+		embeddedAgeTicks = 0;
+		embeddedOffset = hitPoint.subtract(target.position());
+		setPos(hitPoint);
+		setEmbedded(true);
+		hasImpulse = false;
+	}
+
+	private void tickEmbedded() {
+		setDeltaMovement(Vec3.ZERO);
+		if (level().isClientSide()) {
+			return;
+		}
+		if (embeddedAgeTicks++ >= ProjectJjkNobaraProfile.EMBEDDED_NAIL_AGE_TICKS) {
+			discard();
+			return;
+		}
+		Entity target = embeddedTargetId < 0 ? null : level().getEntity(embeddedTargetId);
+		if (!(target instanceof LivingEntity living) || !living.isAlive() || (embeddedTargetUuid != null && !living.getUUID().equals(embeddedTargetUuid))) {
+			target = embeddedTargetUuid == null || !(level() instanceof ServerLevel serverLevel) ? null : serverLevel.getEntity(embeddedTargetUuid);
+		}
+		if (!(target instanceof LivingEntity living) || !living.isAlive()) {
+			discard();
+			return;
+		}
+		Vec3 next = target.position().add(embeddedOffset);
+		setPos(next);
+		if ((embeddedAgeTicks & 15) == 0 && level() instanceof ServerLevel serverLevel) {
+			ProjectJjkNobaraRuntime.spawnEmbeddedNailMark(serverLevel, next, forwardDirection());
 		}
 	}
 
@@ -220,6 +305,7 @@ public final class ProjectJjkNailEntity extends Entity {
 				&& entity.isAlive()
 				&& entity.isPickable()
 				&& entity.getId() != ownerEntityId
+				&& !entity.getUUID().equals(ownerUuid)
 				&& !(entity instanceof ProjectJjkNailEntity);
 	}
 

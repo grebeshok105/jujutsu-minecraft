@@ -3,13 +3,17 @@ package jujutsu.mod.client.ui;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
+import jujutsu.mod.JujutsuMod;
 
 /**
  * Selectable character card for the roster screen. Fully hand-painted: glass body, animated accent
  * glow on hover/selection, a procedural portrait emblem, name, role tagline and a selected checkmark.
  */
 public final class CharacterCard extends UiElement {
+	private static final ResourceLocation NOBARA_SKIN = JujutsuMod.id("textures/entity/character/nobara.png");
 	private final Component name;
 	private final Component role;
 	private final int accentRgb;
@@ -43,9 +47,9 @@ public final class CharacterCard extends UiElement {
 		int bh = Math.round(height);
 
 		float energy = Math.max(hover, selectAnim);
-		UiRender.shadow(g, bx, by, bw, bh, 6, 0x77000000);
+		UiRender.shadow(g, bx, by + 2, bw, bh, 8, 0x66000000);
 		if (energy > 0.01f) {
-			UiRender.glow(g, bx, by, bw, bh, 6, accentRgb, energy);
+			UiRender.glow(g, bx, by, bw, bh, 5, accentRgb, energy * 0.72f);
 		}
 
 		// Body with a subtle vertical gradient.
@@ -60,7 +64,7 @@ public final class CharacterCard extends UiElement {
 		int px = bx + pad;
 		int py = by + pad;
 		int pw = bw - pad * 2;
-		UiRender.roundedRect(g, px, py, pw, portraitH, 6, 0xFF0B0610, UiTheme.BORDER);
+		UiRender.roundedRect(g, px, py, pw, portraitH, 6, 0xFF0B080E, UiRender.withAlpha(accentRgb, 0.18f + energy * 0.22f));
 		drawPortrait(g, px, py, pw, portraitH, energy);
 
 		// Name + role.
@@ -97,47 +101,42 @@ public final class CharacterCard extends UiElement {
 		}
 	}
 
-	/** Procedural portrait: a stylized bust reading as the character, tinted by accent + energy. */
 	private void drawPortrait(GuiGraphics g, int x, int y, int w, int h, float energy) {
 		int cx = x + w / 2;
 		if (portrait == Portrait.NOBARA) {
-			// Backlight halo.
-			UiRender.glow(g, cx - 14, y + h / 2 - 16, 28, 34, 5, accentRgb, 0.35f + energy * 0.5f);
-			int skin = 0xFFF0C9A8;
-			int hair = 0xFF6E4A2E;
-			int hairShade = 0xFF553517;
-			int coat = 0xFF2C2436;
-			// Hair back.
-			UiRender.roundedRect(g, cx - 15, y + 8, 30, 26, 8, hairShade);
-			// Face.
-			UiRender.roundedRect(g, cx - 10, y + 12, 20, 22, 7, skin);
-			// Hair front fringe.
-			UiRender.roundedRect(g, cx - 15, y + 8, 30, 10, 5, hair);
-			g.fill(cx - 15, y + 12, cx - 9, y + 26, hair);
-			g.fill(cx + 9, y + 12, cx + 15, y + 26, hair);
-			// Eyes with accent glint.
-			int eyeY = y + 22;
-			g.fill(cx - 6, eyeY, cx - 3, eyeY + 2, 0xFF3A2A22);
-			g.fill(cx + 3, eyeY, cx + 6, eyeY + 2, 0xFF3A2A22);
-			int glint = UiRender.withAlpha(accentRgb, 0.7f + energy * 0.3f);
-			g.fill(cx - 5, eyeY, cx - 4, eyeY + 1, glint);
-			g.fill(cx + 4, eyeY, cx + 5, eyeY + 1, glint);
-			// Shoulders / coat.
-			int coatY = y + h - 16;
-			UiRender.roundedRect(g, cx - 18, coatY, 36, 18, 6, coat);
-			UiRender.roundedRect(g, cx - 4, coatY, 8, 18, 3, UiRender.withAlpha(accentRgb, 0.6f));
-			// Floating nail motif.
-			int nailX = x + w - 9;
-			int nailY = y + 8 + (int) (Math.sin(System.currentTimeMillis() / 320.0) * 2);
-			g.fill(nailX, nailY, nailX + 2, nailY + 10, 0xFFD8D2C0);
+			drawNobaraPortrait(g, x, y, w, h, energy);
 		} else {
-			// Neutral silhouette.
-			UiRender.roundedRect(g, cx - 12, y + 10, 24, 24, 8, 0xFF2A2233);
-			UiRender.roundedRect(g, cx - 16, y + h - 16, 32, 18, 6, 0xFF201A29);
-			Font font = Minecraft.getInstance().font;
-			String q = "?";
-			g.drawString(font, q, cx - font.width(q) / 2, y + h / 2 - 8, UiTheme.TEXT_DIM, false);
+			drawNonePortrait(g, cx, y, h, energy);
 		}
+	}
+
+	private void drawNobaraPortrait(GuiGraphics g, int x, int y, int w, int h, float energy) {
+		int cx = x + w / 2;
+		int head = 46;
+		int headX = cx - head / 2;
+		int headY = y + 14;
+		UiRender.glow(g, headX - 4, headY - 4, head + 8, head + 8, 6, accentRgb, 0.28f + energy * 0.42f);
+		UiRender.roundedRect(g, headX - 5, headY - 5, head + 10, head + 10, 8, 0xAA080508, UiRender.withAlpha(accentRgb, 0.28f + energy * 0.28f));
+		g.blit(RenderPipelines.GUI_TEXTURED, NOBARA_SKIN, headX, headY, 8.0f, 8.0f, head, head, 8, 8, 64, 64);
+		g.blit(RenderPipelines.GUI_TEXTURED, NOBARA_SKIN, headX, headY, 40.0f, 8.0f, head, head, 8, 8, 64, 64);
+
+		int coatY = y + h - 24;
+		UiRender.roundedRect(g, cx - 23, coatY, 46, 24, 7, 0xFF211928, UiRender.withAlpha(accentRgb, 0.18f));
+		UiRender.roundedRect(g, cx - 4, coatY + 2, 8, 22, 3, UiRender.withAlpha(accentRgb, 0.46f + energy * 0.18f));
+		int nailX = x + w - 12;
+		int nailY = y + 12 + (int) (Math.sin(System.currentTimeMillis() / 320.0) * 2);
+		g.fill(nailX, nailY, nailX + 2, nailY + 12, 0xFFD8D2C0);
+		g.fill(nailX - 2, nailY, nailX + 4, nailY + 2, 0xFF8E867C);
+	}
+
+	private void drawNonePortrait(GuiGraphics g, int cx, int y, int h, float energy) {
+		int accent = UiRender.withAlpha(accentRgb, 0.26f + energy * 0.25f);
+		UiRender.glow(g, cx - 18, y + 16, 36, 42, 5, accentRgb, 0.12f + energy * 0.22f);
+		UiRender.roundedRect(g, cx - 14, y + 16, 28, 28, 9, 0xFF242934, accent);
+		UiRender.roundedRect(g, cx - 21, y + h - 27, 42, 25, 7, 0xFF171B23, accent);
+		g.fill(cx - 12, y + 31, cx + 12, y + 33, 0xFF0B0E13);
+		g.fill(cx - 2, y + 22, cx + 2, y + 40, 0xFF0B0E13);
+		g.fill(cx - 24, y + h - 17, cx + 24, y + h - 15, UiRender.withAlpha(0x00B0BAC7, 0.16f + energy * 0.18f));
 	}
 
 	@Override

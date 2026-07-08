@@ -51,6 +51,7 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		super.extractRenderState(entity, state, partialTick);
 		state.direction = safeDirection(entity.forwardDirection());
 		state.launched = entity.isFlying();
+		state.embedded = entity.isEmbedded();
 		state.seed = entity.getId();
 		state.age = entity.tickCount + partialTick;
 	}
@@ -60,7 +61,11 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		Vec3 direction = safeDirection(state.direction);
 		matrices.pushPose();
 		matrices.mulPose(new Quaternionf().rotationTo(MODEL_UP, toVector3f(direction)));
-		renderCursedAura(matrices, consumers, state);
+		if (state.embedded) {
+			renderEmbeddedMark(matrices, consumers, state);
+		} else {
+			renderCursedAura(matrices, consumers, state);
+		}
 		matrices.pushPose();
 		float scale = state.launched ? 0.7f : 0.62f;
 		matrices.mulPose(new Quaternionf().rotateY((float) ((state.seed & 3) * Math.PI * 0.5)));
@@ -149,6 +154,16 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		addRibbon(consumer, pose, 0.0f, tail * 0.58f, -radius * 0.14f, 0.0f, head, -radius * 0.08f, 0.0f, 0.0f, radius * 0.14f, BLUE_EDGE_R, BLUE_EDGE_G, BLUE_EDGE_B, Math.round(58.0f * alpha));
 	}
 
+	private static void renderEmbeddedMark(PoseStack matrices, MultiBufferSource consumers, State state) {
+		VertexConsumer consumer = consumers.getBuffer(RenderType.lightning());
+		PoseStack.Pose pose = matrices.last();
+		float pulse = 0.82f + 0.18f * (float) Math.sin(state.age * 0.18f);
+		int alpha = Math.round(118.0f * pulse);
+		addRibbon(consumer, pose, -0.34f, -0.08f, 0.0f, 0.34f, -0.08f, 0.0f, 0.0f, 0.0f, 0.075f, 24, 3, 8, alpha);
+		addRibbon(consumer, pose, 0.0f, -0.12f, -0.3f, 0.0f, -0.12f, 0.3f, 0.075f, 0.0f, 0.0f, 44, 4, 12, alpha / 2);
+		addRibbon(consumer, pose, -0.18f, -0.02f, -0.18f, 0.18f, -0.02f, 0.18f, 0.038f, 0.0f, -0.038f, 74, 8, 16, alpha / 3);
+	}
+
 	private static float statefulTwist(float age, int index) {
 		return 1.0f + 0.24f * (float) Math.sin(age * 0.31f + index * 0.93f);
 	}
@@ -171,6 +186,7 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 	public static final class State extends EntityRenderState {
 		private Vec3 direction = new Vec3(0.0, 0.0, 1.0);
 		private boolean launched;
+		private boolean embedded;
 		private int seed;
 		private float age;
 	}
