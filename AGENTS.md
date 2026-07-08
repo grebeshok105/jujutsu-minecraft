@@ -47,6 +47,13 @@ Before implementing gameplay systems, characters, effects, networking, assets, o
 
 No code-first experiments in the main mod unless the user explicitly asks for a throwaway prototype.
 
+## Obsidian Knowledge Base
+
+- Before designing, implementing, or reviewing ProjectJJK/Nobara/ported systems, consult the local Obsidian knowledge base through the available MCP (`mcpvault`) first.
+- Treat `Jujutsu Kaizen/grok-projectjjk-codex/` as the current ProjectJJK research index: start from `00-MOC.md`, then read the relevant architecture, ability, reference, and porting notes.
+- Cross-check Obsidian notes against the actual jujutsumod codebase before changing behavior. Use the project code graph/MCP tools for source discovery, then fall back to `rg` only when MCP results are insufficient or the target is non-code.
+- When using Obsidian findings in an implementation or review, mention the note path(s) used. If the Obsidian MCP is unavailable, say so explicitly and continue with repository docs/code search.
+
 ## Technical Rules
 
 - Use public Fabric APIs only. Never import `net.fabricmc.fabric.impl.*`.
