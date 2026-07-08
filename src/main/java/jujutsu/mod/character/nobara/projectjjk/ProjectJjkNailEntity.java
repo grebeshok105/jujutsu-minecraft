@@ -149,6 +149,9 @@ public final class ProjectJjkNailEntity extends Entity {
 
 		if (!isLaunched()) {
 			setDeltaMovement(Vec3.ZERO);
+			if (level() instanceof ServerLevel serverLevel && (tickCount & 3) == 0) {
+				ProjectJjkNobaraRuntime.spawnPreparedNailFlame(serverLevel, position(), forwardDirection());
+			}
 			return;
 		}
 

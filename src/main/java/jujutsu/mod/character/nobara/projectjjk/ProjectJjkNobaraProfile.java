@@ -20,13 +20,6 @@ public final class ProjectJjkNobaraProfile {
 	public static final float HAIRPIN_DAMAGE = 18.0f;
 	public static final float HAIRPIN_KNOCKBACK = 1.9f;
 
-	// Cursed energy resource model.
-	public static final float CE_MAX = 100.0f;
-	public static final float CE_REGEN_PER_TICK = 0.4f;
-	public static final float CE_COST_LAUNCH_PER_NAIL = 2.0f;
-	public static final float CE_COST_DETONATE = 15.0f;
-	public static final float CE_COST_RESONANCE = 25.0f;
-
 	// Embedded nail marks (the cursed connection carrier).
 	public static final int MARK_MAX_PER_TARGET = 4;
 	public static final int MARK_DURATION_TICKS = 900;

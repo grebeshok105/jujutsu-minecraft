@@ -34,17 +34,17 @@ public final class HairpinWorldRenderer {
 	private static final int OXBLOOD_R = 58;
 	private static final int OXBLOOD_G = 5;
 	private static final int OXBLOOD_B = 15;
-	private static final int CURSED_BLUE_R = 32;
-	private static final int CURSED_BLUE_G = 92;
-	private static final int CURSED_BLUE_B = 184;
-	private static final int CURSED_BLUE_EDGE_R = 96;
-	private static final int CURSED_BLUE_EDGE_G = 178;
+	private static final int CURSED_BLUE_R = 12;
+	private static final int CURSED_BLUE_G = 190;
+	private static final int CURSED_BLUE_B = 255;
+	private static final int CURSED_BLUE_EDGE_R = 64;
+	private static final int CURSED_BLUE_EDGE_G = 236;
 	private static final int CURSED_BLUE_EDGE_B = 255;
-	private static final int CURSED_BLUE_DARK_R = 8;
-	private static final int CURSED_BLUE_DARK_G = 28;
-	private static final int CURSED_BLUE_DARK_B = 96;
-	private static final int CURSED_BLUE_WHITE_R = 132;
-	private static final int CURSED_BLUE_WHITE_G = 206;
+	private static final int CURSED_BLUE_DARK_R = 0;
+	private static final int CURSED_BLUE_DARK_G = 74;
+	private static final int CURSED_BLUE_DARK_B = 118;
+	private static final int CURSED_BLUE_WHITE_R = 184;
+	private static final int CURSED_BLUE_WHITE_G = 255;
 	private static final int CURSED_BLUE_WHITE_B = 255;
 
 	private HairpinWorldRenderer() {}

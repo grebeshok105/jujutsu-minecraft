@@ -2,11 +2,9 @@ package jujutsu.mod.character.nobara.projectjjk;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -27,20 +25,18 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.network.JujutsuNetworking;
-import jujutsu.mod.network.ProjectJjkCursedEnergyPayload;
 import jujutsu.mod.network.ProjectJjkNobaraImpulsePayload;
 import jujutsu.mod.network.ProjectJjkTargetMarkPayload;
 import jujutsu.mod.registry.JujutsuParticles;
 import jujutsu.mod.registry.JujutsuSounds;
 
 /**
- * The beating heart of Nobara's Straw Doll RPG loop. Owns cursed-energy regeneration, the resonance
- * ritual (remote strike through walls), the doll->target bind, and Hairpin mark detonation, plus the
- * owner-only HUD sync. Server-authoritative; all visuals are broadcast as impulse payloads.
+ * The beating heart of Nobara's Straw Doll RPG loop. Owns the resonance ritual (remote strike
+ * through walls), the doll->target bind, and Hairpin mark detonation. Server-authoritative; all
+ * visuals are broadcast as impulse payloads.
  */
 public final class ProjectJjkRitualRuntime {
 	private static final double IMPULSE_RADIUS = 64.0;
-	private static final Map<UUID, Float> LAST_SENT_CE = new HashMap<>();
 	private static final List<PendingExplosion> PENDING_EXPLOSIONS = new ArrayList<>();
 	private static final List<PendingEnlarge> PENDING_ENLARGES = new ArrayList<>();
 	private static final RandomSource RANDOM = RandomSource.create();
@@ -52,14 +48,10 @@ public final class ProjectJjkRitualRuntime {
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			PENDING_EXPLOSIONS.clear();
 			PENDING_ENLARGES.clear();
-			LAST_SENT_CE.clear();
 		});
-		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> ProjectJjkCursedEnergy.reset(handler.player.getUUID()));
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
 			UUID id = handler.player.getUUID();
-			ProjectJjkCursedEnergy.clear(id);
 			ProjectJjkResonanceLink.clear(id);
-			LAST_SENT_CE.remove(id);
 		});
 	}
 
@@ -68,11 +60,6 @@ public final class ProjectJjkRitualRuntime {
 		tickHairpinTasks(gameTime);
 		if ((gameTime & 63L) == 0L) {
 			ProjectJjkNailMarks.pruneExpired(gameTime);
-		}
-		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-			UUID id = player.getUUID();
-			ProjectJjkCursedEnergy.regenerate(id, ProjectJjkNobaraProfile.CE_REGEN_PER_TICK);
-			syncCursedEnergy(player, gameTime, false);
 		}
 	}
 
@@ -93,9 +80,6 @@ public final class ProjectJjkRitualRuntime {
 		level.sendParticles(JujutsuParticles.HAIRPIN_SNAP_CRACK, at.x, at.y, at.z, 2 + marks, 0.08, 0.10, 0.08, 0.022);
 		level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, at.x, at.y, at.z, 2, 0.12, 0.14, 0.12, 0.018);
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_SIZZLE, SoundSource.PLAYERS, 0.5f, 0.8f + marks * 0.06f);
-		if (owner != null) {
-			syncCursedEnergy(owner, level.getGameTime(), true);
-		}
 	}
 
 	// -- Resonance ritual (Shift + doll-hammer) -------------------------------------------------
@@ -124,7 +108,6 @@ public final class ProjectJjkRitualRuntime {
 			level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, at.x, at.y, at.z, 24, 0.5, 0.7, 0.5, 0.05);
 			broadcast(level, caster.position(), ProjectJjkNobaraImpulsePayload.LINK_BIND, 1, at, gameTime);
 			caster.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.jujutsumod.projectjjk.resonance.bound"), true);
-			syncCursedEnergy(caster, gameTime, true);
 			return;
 		}
 
@@ -133,12 +116,6 @@ public final class ProjectJjkRitualRuntime {
 		if (target == null || !target.isAlive()) {
 			ProjectJjkResonanceLink.clear(casterId);
 			caster.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.jujutsumod.projectjjk.resonance.lost"), true);
-			return;
-		}
-
-		if (!ProjectJjkCursedEnergy.spend(casterId, ProjectJjkNobaraProfile.CE_COST_RESONANCE)) {
-			caster.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.jujutsumod.projectjjk.no_energy"), true);
-			level.playSound(null, caster.getX(), caster.getY(), caster.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 0.5f, 0.5f);
 			return;
 		}
 
@@ -156,10 +133,12 @@ public final class ProjectJjkRitualRuntime {
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, SoundSource.PLAYERS, 1.0f, 0.78f);
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, SoundSource.PLAYERS, 0.7f, 1.0f);
 		level.playSound(null, caster.getX(), caster.getY(), caster.getZ(), JujutsuSounds.PROJECTJJK_CLAP, SoundSource.PLAYERS, 0.9f, 0.9f);
+		ProjectJjkNailMarks.consume(target.getUUID(), gameTime);
+		discardOwnedEmbeddedNails(level, casterId, target);
+		clearTargetMark(level, target, gameTime);
 		broadcast(level, at, ProjectJjkNobaraImpulsePayload.RESONANCE_STRIKE, marks, at, gameTime);
 		JujutsuNetworking.sendProjectJjkImpulse(caster, impulse(ProjectJjkNobaraImpulsePayload.RESONANCE_CHANNEL, marks, caster.getEyePosition(), gameTime));
 		ProjectJjkResonanceLink.clear(casterId);
-		syncCursedEnergy(caster, gameTime, true);
 	}
 
 	// -- Hairpin mark detonation ----------------------------------------------------------------
@@ -180,11 +159,6 @@ public final class ProjectJjkRitualRuntime {
 		if (marks <= 0) {
 			return false;
 		}
-		if (!spend(caster, ProjectJjkNobaraProfile.CE_COST_DETONATE)) {
-			caster.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.jujutsumod.projectjjk.no_energy"), true);
-			level.playSound(null, caster.getX(), caster.getY(), caster.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 0.5f, 0.5f);
-			return true;
-		}
 
 		level.playSound(null, caster.getX(), caster.getY(), caster.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 2.0f, 1.0f);
 		broadcast(level, caster.position(), ProjectJjkNobaraImpulsePayload.HAMMER, Math.max(1, marks), target.position(), gameTime);
@@ -200,11 +174,6 @@ public final class ProjectJjkRitualRuntime {
 		if (anchors.isEmpty()) {
 			return false;
 		}
-		if (!spend(caster, ProjectJjkNobaraProfile.CE_COST_DETONATE)) {
-			caster.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.jujutsumod.projectjjk.no_energy"), true);
-			level.playSound(null, caster.getX(), caster.getY(), caster.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 0.5f, 0.5f);
-			return false;
-		}
 
 		Collections.shuffle(anchors);
 		for (ExplosionAnchor anchor : anchors) {
@@ -216,7 +185,6 @@ public final class ProjectJjkRitualRuntime {
 		level.playSound(null, caster.getX(), caster.getY(), caster.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 2.0f, 1.0f);
 		consumeAnchorMarks(level, anchors, gameTime);
 		PENDING_EXPLOSIONS.add(new PendingExplosion(level, caster.getUUID(), anchors, gameTime + ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_START_DELAY_TICKS));
-		syncCursedEnergy(caster, gameTime, true);
 		return true;
 	}
 
@@ -261,21 +229,6 @@ public final class ProjectJjkRitualRuntime {
 		return anchors;
 	}
 
-	public static boolean canAfford(ServerPlayer player, float cost) {
-		return player.getAbilities().instabuild || ProjectJjkCursedEnergy.has(player.getUUID(), cost);
-	}
-
-	public static boolean spend(ServerPlayer player, float cost) {
-		if (player.getAbilities().instabuild) {
-			return true;
-		}
-		boolean ok = ProjectJjkCursedEnergy.spend(player.getUUID(), cost);
-		if (ok) {
-			syncCursedEnergy(player, player.level().getGameTime(), true);
-		}
-		return ok;
-	}
-
 	// -- Helpers --------------------------------------------------------------------------------
 
 	private static void tickHairpinTasks(long gameTime) {
@@ -298,6 +251,7 @@ public final class ProjectJjkRitualRuntime {
 				explodeAnchor(pending.level(), caster, pending.next(), gameTime);
 			}
 			if (!pending.hasNext()) {
+				discardExplosionTargetNails(pending);
 				iterator.remove();
 			}
 		}
@@ -320,12 +274,13 @@ public final class ProjectJjkRitualRuntime {
 		target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_STUN_TICKS, 1));
 		target.hurtServer(level, source, ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DAMAGE);
 		ProjectJjkNailMarks.consume(target.getUUID(), gameTime);
+		discardOwnedEmbeddedNails(level, pending.casterId(), target);
 		Vec3 at = target.position().add(0.0, target.getBbHeight() * 0.56, 0.0);
 		spawnProjectJjkEnlarge(level, at, pending.marks());
 		level.playSound(null, at.x, at.y, at.z, SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 0.25f, 2.0f);
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, SoundSource.PLAYERS, 2.0f, 2.0f);
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_GOO_FOLEY, SoundSource.PLAYERS, 0.25f, 1.5f);
-		JujutsuNetworking.broadcastProjectJjkTargetMark(level, at, IMPULSE_RADIUS, new ProjectJjkTargetMarkPayload(target.getId(), 0, gameTime));
+		clearTargetMark(level, target, gameTime);
 		broadcast(level, at, ProjectJjkNobaraImpulsePayload.HAIRPIN_ENLARGE, pending.marks(), at, gameTime);
 	}
 
@@ -356,6 +311,9 @@ public final class ProjectJjkRitualRuntime {
 		spawnProjectJjkExplosion(level, at, anchor.marks());
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_EXPLODE, SoundSource.PLAYERS, 0.2f, 2.0f);
 		broadcast(level, at, ProjectJjkNobaraImpulsePayload.HAIRPIN_EXPLOSION, anchor.marks(), at, gameTime);
+		if (!anchor.nail() && anchor.targetId() != null && caster != null && sourceEntity instanceof LivingEntity living) {
+			discardOwnedEmbeddedNails(level, caster.getUUID(), living);
+		}
 	}
 
 	private static void spawnProjectJjkPrime(ServerLevel level, Vec3 at) {
@@ -451,10 +409,52 @@ public final class ProjectJjkRitualRuntime {
 			}
 			Entity target = level.getEntity(targetEntityId);
 			if (target instanceof LivingEntity living) {
-				Vec3 at = living.position().add(0.0, living.getBbHeight() * 0.5, 0.0);
-				JujutsuNetworking.broadcastProjectJjkTargetMark(level, at, IMPULSE_RADIUS, new ProjectJjkTargetMarkPayload(targetEntityId, 0, gameTime));
+				clearTargetMark(level, living, gameTime);
 			}
 		}
+	}
+
+	private static void discardExplosionTargetNails(PendingExplosion pending) {
+		Set<UUID> targets = new HashSet<>();
+		for (ExplosionAnchor anchor : pending.anchors) {
+			UUID targetId = anchor.targetId();
+			if (targetId == null || !targets.add(targetId)) {
+				continue;
+			}
+			discardOwnedEmbeddedNails(pending.level(), pending.casterId(), targetId, anchor.targetEntityId());
+		}
+	}
+
+	private static void discardOwnedEmbeddedNails(ServerLevel level, UUID ownerId, UUID targetId, int targetEntityId) {
+		if (ownerId == null || targetId == null) {
+			return;
+		}
+		Entity byId = targetEntityId < 0 ? null : level.getEntity(targetEntityId);
+		if (byId instanceof LivingEntity living && living.getUUID().equals(targetId)) {
+			discardOwnedEmbeddedNails(level, ownerId, living);
+			return;
+		}
+		Entity byUuid = level.getEntity(targetId);
+		if (byUuid instanceof LivingEntity living) {
+			discardOwnedEmbeddedNails(level, ownerId, living);
+		}
+	}
+
+	private static void discardOwnedEmbeddedNails(ServerLevel level, UUID ownerId, LivingEntity target) {
+		if (ownerId == null) {
+			return;
+		}
+		UUID targetId = target.getUUID();
+		AABB area = target.getBoundingBox().inflate(2.0);
+		for (ProjectJjkNailEntity nail : level.getEntitiesOfClass(ProjectJjkNailEntity.class, area, nail ->
+				nail.isEmbedded() && nail.isOwnedBy(ownerId) && targetId.equals(nail.embeddedTargetUuid()))) {
+			nail.discard();
+		}
+	}
+
+	private static void clearTargetMark(ServerLevel level, LivingEntity target, long gameTime) {
+		Vec3 at = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
+		JujutsuNetworking.broadcastProjectJjkTargetMark(level, at, IMPULSE_RADIUS, new ProjectJjkTargetMarkPayload(target.getId(), 0, gameTime));
 	}
 
 	private static boolean isInsideSearchCapsule(Vec3 point, Vec3 start, Vec3 end, double radius) {
@@ -469,26 +469,6 @@ public final class ProjectJjkRitualRuntime {
 		}
 		Vec3 closest = start.add(segment.scale(t));
 		return point.distanceToSqr(closest) <= radius * radius;
-	}
-
-	private static void syncCursedEnergy(ServerPlayer player, long gameTime, boolean force) {
-		UUID id = player.getUUID();
-		float current = ProjectJjkCursedEnergy.get(id);
-		Float last = LAST_SENT_CE.get(id);
-		boolean heartbeat = (gameTime % 10L) == 0L;
-		if (!force && !heartbeat && last != null && Math.abs(last - current) < 0.5f) {
-			return;
-		}
-		LAST_SENT_CE.put(id, current);
-		boolean linked = ProjectJjkResonanceLink.isValid(id, gameTime);
-		int linkedMarks = 0;
-		if (linked) {
-			ProjectJjkResonanceLink.Link link = ProjectJjkResonanceLink.get(id);
-			if (link != null) {
-				linkedMarks = ProjectJjkNailMarks.marks(link.targetId(), gameTime);
-			}
-		}
-		JujutsuNetworking.sendCursedEnergy(player, new ProjectJjkCursedEnergyPayload(current, ProjectJjkNobaraProfile.CE_MAX, linkedMarks, linked));
 	}
 
 	private static void broadcast(ServerLevel level, Vec3 center, int kind, int marks, Vec3 at, long gameTime) {

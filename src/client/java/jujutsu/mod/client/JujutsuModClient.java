@@ -2,7 +2,6 @@ package jujutsu.mod.client;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
-import jujutsu.mod.client.fx.CursedEnergyHud;
 import jujutsu.mod.client.fx.HairpinPlaybackManager;
 import jujutsu.mod.client.fx.HairpinScreenOverlay;
 import jujutsu.mod.client.fx.HairpinWorldRenderer;
@@ -19,7 +18,6 @@ public class JujutsuModClient implements ClientModInitializer {
 		EntityRendererRegistry.register(JujutsuEntities.PROJECTJJK_NAIL, ProjectJjkNailRenderer::new);
 		JujutsuClientParticles.registerFactories();
 		HairpinScreenOverlay.register();
-		CursedEnergyHud.register();
 		HairpinPlaybackManager.registerClientTick();
 		NobaraNailFlightManager.registerClientTick();
 		HairpinWorldRenderer.register();

@@ -19,7 +19,6 @@ public final class JujutsuNetworking {
 		PayloadTypeRegistry.playS2C().register(PreparedNailsPayload.TYPE, PreparedNailsPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(ProjectJjkNobaraImpulsePayload.TYPE, ProjectJjkNobaraImpulsePayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(ProjectJjkTargetMarkPayload.TYPE, ProjectJjkTargetMarkPayload.STREAM_CODEC);
-		PayloadTypeRegistry.playS2C().register(ProjectJjkCursedEnergyPayload.TYPE, ProjectJjkCursedEnergyPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(CharacterSelectionSyncPayload.TYPE, CharacterSelectionSyncPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(SelectCharacterPayload.TYPE, SelectCharacterPayload.STREAM_CODEC);
 		registerServerReceivers();
@@ -123,13 +122,5 @@ public final class JujutsuNetworking {
 			}
 		}
 		return sent;
-	}
-
-	public static boolean sendCursedEnergy(ServerPlayer player, ProjectJjkCursedEnergyPayload payload) {
-		if (!ServerPlayNetworking.canSend(player, ProjectJjkCursedEnergyPayload.TYPE)) {
-			return false;
-		}
-		ServerPlayNetworking.send(player, payload);
-		return true;
 	}
 }

@@ -19,7 +19,7 @@ public final class ProjectJjkNobaraProfileTest {
 		assertTargetMarksFollowCurseMarkDuration();
 		assertBodyEmbedPointStaysInsideBodyHeight();
 		assertLoadoutTopsUpNails();
-		assertCursedEnergyEconomy();
+		assertDamageScaling();
 		System.out.println("ProjectJjkNobaraProfileTest passed");
 	}
 
@@ -90,8 +90,7 @@ public final class ProjectJjkNobaraProfileTest {
 		assert ProjectJjkNobaraLoadout.missingNails(30) == 0 : "Nobara selection should not add nails when player already has enough";
 	}
 
-	private static void assertCursedEnergyEconomy() {
-		assert ProjectJjkNobaraProfile.CE_MAX == 100.0f : "cursed energy pool should cap at 100";
+	private static void assertDamageScaling() {
 		assert ProjectJjkNobaraProfile.detonateDamage(0) == ProjectJjkNobaraProfile.DETONATE_DAMAGE_BASE : "zero marks detonate for the base amount";
 		assert ProjectJjkNobaraProfile.detonateDamage(4) > ProjectJjkNobaraProfile.detonateDamage(1) : "more marks must detonate harder";
 		assert ProjectJjkNobaraProfile.resonanceDamage(4) > ProjectJjkNobaraProfile.resonanceDamage(0) : "resonance must scale with marks";

@@ -13,12 +13,10 @@ import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.client.character.ClientCharacterSelectionManager;
 import jujutsu.mod.client.fx.HairpinCinematicCamera;
 import jujutsu.mod.client.fx.HairpinPlaybackManager;
-import jujutsu.mod.client.fx.CursedEnergyHud;
 import jujutsu.mod.client.fx.HairpinScreenOverlay;
 import jujutsu.mod.client.fx.NobaraNailFlightManager;
 import jujutsu.mod.client.fx.ResonanceEffects;
 import jujutsu.mod.client.fx.TargetMarkRenderManager;
-import jujutsu.mod.network.ProjectJjkCursedEnergyPayload;
 import jujutsu.mod.debug.HairpinDebugLog;
 import jujutsu.mod.network.CharacterSelectionSyncPayload;
 import jujutsu.mod.network.HairpinFxPayload;
@@ -55,8 +53,6 @@ public final class JujutsuClientNetworking {
 					long gameTime = context.client().level == null ? 0L : context.client().level.getGameTime();
 					TargetMarkRenderManager.apply(payload, gameTime);
 				}));
-		ClientPlayNetworking.registerGlobalReceiver(ProjectJjkCursedEnergyPayload.TYPE, (payload, context) ->
-				context.client().execute(() -> CursedEnergyHud.update(payload.current(), payload.max(), payload.linkedMarks(), payload.linked())));
 		ClientPlayNetworking.registerGlobalReceiver(CharacterSelectionSyncPayload.TYPE, (payload, context) ->
 				context.client().execute(() -> ClientCharacterSelectionManager.apply(payload)));
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
