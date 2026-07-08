@@ -21,12 +21,7 @@ public final class ProjectJjkHammerItem extends Item {
 				// Straw-doll ritual: bind to a marked target, then transmit the resonant strike.
 				ProjectJjkRitualRuntime.performResonance(serverPlayer, stack, hand);
 			} else {
-				boolean launched = ProjectJjkNobaraRuntime.launchHairpin(serverPlayer, stack, hand);
-				if (launched) {
-					ProjectJjkRitualRuntime.detonateMarks(serverPlayer);
-				} else if (!ProjectJjkRitualRuntime.tryEnlargeMarkedTarget(serverPlayer)) {
-					ProjectJjkRitualRuntime.detonateMarks(serverPlayer);
-				}
+				ProjectJjkNobaraRuntime.launchHairpin(serverPlayer, stack, hand);
 			}
 		}
 		return InteractionResult.SUCCESS;

@@ -14,6 +14,7 @@ import jujutsu.mod.client.character.ClientCharacterSelectionManager;
 import jujutsu.mod.client.fx.HairpinCinematicCamera;
 import jujutsu.mod.client.fx.HairpinPlaybackManager;
 import jujutsu.mod.client.fx.HairpinScreenOverlay;
+import jujutsu.mod.client.fx.HairpinWorldRenderer;
 import jujutsu.mod.client.fx.NobaraNailFlightManager;
 import jujutsu.mod.client.fx.ResonanceEffects;
 import jujutsu.mod.client.fx.TargetMarkRenderManager;
@@ -142,6 +143,7 @@ public final class JujutsuClientNetworking {
 		float proximity = (float) Math.max(0.0, 1.0 - distance / 64.0);
 		int marks = Math.max(1, payload.nailCount());
 		ResonanceEffects.spawnHairpinEnlarge(origin, marks);
+		HairpinWorldRenderer.triggerHairpinEnlarge(origin, marks);
 		if (proximity > 0.01f) {
 			playNoFalloff(client, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, 1.35f * proximity, 1.82f, origin);
 			playNoFalloff(client, JujutsuSounds.PROJECTJJK_GOO_FOLEY, 0.36f * proximity, 1.45f, origin);
@@ -156,6 +158,7 @@ public final class JujutsuClientNetworking {
 		float proximity = (float) Math.max(0.0, 1.0 - distance / 64.0);
 		int marks = Math.max(1, payload.nailCount());
 		ResonanceEffects.spawnHairpinExplosion(origin, marks);
+		HairpinWorldRenderer.triggerHairpinExplosion(origin, marks);
 		if (proximity > 0.01f) {
 			playNoFalloff(client, JujutsuSounds.PROJECTJJK_EXPLODE, 0.42f * proximity, 1.96f, origin);
 			playNoFalloff(client, JujutsuSounds.PROJECTJJK_IMPLODE, 0.24f * proximity, 1.22f, origin);

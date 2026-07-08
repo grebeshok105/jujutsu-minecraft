@@ -2,6 +2,7 @@ package jujutsu.mod.client.fx;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.RandomSource;
@@ -15,6 +16,8 @@ import jujutsu.mod.registry.JujutsuParticles;
  */
 public final class ResonanceEffects {
 	private static final RandomSource RANDOM = RandomSource.create();
+	private static final DustParticleOptions PROJECTJJK_CYAN = new DustParticleOptions(0x2CE8F5, 1.35f);
+	private static final DustParticleOptions PROJECTJJK_CYAN_SMALL = new DustParticleOptions(0x2CE8F5, 0.68f);
 
 	private ResonanceEffects() {}
 
@@ -79,6 +82,7 @@ public final class ResonanceEffects {
 		}
 		int sparks = 22 + marks * 5;
 		level.addParticle(ParticleTypes.FLASH, at.x, at.y + 0.18, at.z, 0.0, 0.0, 0.0);
+		cyanFlash(level, at, 24 + marks * 5, 0.85, 0.2);
 		burst(level, ParticleTypes.SOUL_FIRE_FLAME, at, 10 + marks * 3, 0.38, 0.09);
 		burst(level, JujutsuParticles.HAIRPIN_SPARK, at, sparks, 0.52, 0.28);
 		burst(level, JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, at, 6 + marks, 0.28, 0.08);
@@ -102,6 +106,7 @@ public final class ResonanceEffects {
 		}
 		level.addParticle(ParticleTypes.FLASH, at.x, at.y + 0.18, at.z, 0.0, 0.0, 0.0);
 		level.addParticle(ParticleTypes.FLASH, at.x, at.y + 0.36, at.z, 0.0, 0.0, 0.0);
+		cyanFlash(level, at.add(0.0, 0.2, 0.0), 34 + marks * 7, 1.15, 0.18);
 		burst(level, ParticleTypes.DAMAGE_INDICATOR, at, 12, 0.22, 0.04);
 		burst(level, ParticleTypes.SOUL_FIRE_FLAME, at, 18 + marks * 4, 0.36, 0.08);
 		burst(level, JujutsuParticles.HAIRPIN_SNAP_CRACK, at, 12 + marks, 0.3, 0.08);
@@ -119,6 +124,19 @@ public final class ResonanceEffects {
 					-Math.cos(a) * 0.12,
 					0.02,
 					-Math.sin(a) * 0.12);
+		}
+	}
+
+	private static void cyanFlash(ClientLevel level, Vec3 at, int count, double radius, double speed) {
+		for (int i = 0; i < count; i++) {
+			double a = RANDOM.nextDouble() * Math.PI * 2.0;
+			double y = (RANDOM.nextDouble() - 0.35) * radius;
+			double r = radius * (0.18 + RANDOM.nextDouble() * 0.82);
+			double vx = Math.cos(a) * speed * (0.35 + RANDOM.nextDouble());
+			double vz = Math.sin(a) * speed * (0.35 + RANDOM.nextDouble());
+			double vy = (RANDOM.nextDouble() - 0.2) * speed;
+			ParticleOptions particle = i % 3 == 0 ? PROJECTJJK_CYAN : PROJECTJJK_CYAN_SMALL;
+			level.addParticle(particle, at.x + Math.cos(a) * r, at.y + y, at.z + Math.sin(a) * r, vx, vy, vz);
 		}
 	}
 

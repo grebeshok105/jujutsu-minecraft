@@ -10,6 +10,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraActions;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.registry.JujutsuParticles;
 
@@ -24,6 +25,10 @@ public final class JujutsuCommands {
 		dispatcher.register(Commands.literal("jujutsu")
 				.requires(source -> source.hasPermission(2))
 				.then(Commands.literal("hairpin")
+						.then(Commands.literal("enlarge")
+								.executes(ctx -> castHairpinEnlarge(ctx.getSource())))
+						.then(Commands.literal("explosion")
+								.executes(ctx -> castHairpinExplosion(ctx.getSource())))
 						.then(Commands.literal("particles")
 								.executes(ctx -> playProjectJjkImpactPreview(ctx.getSource())))
 						.then(Commands.literal("particle")
@@ -62,6 +67,21 @@ public final class JujutsuCommands {
 			player.drop(stack, false);
 		}
 		return stored;
+	}
+
+	private static int castHairpinEnlarge(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		return castNobaraAction(source, ProjectJjkNobaraActions.HAIRPIN_ENLARGE, "Hairpin Enlarge");
+	}
+
+	private static int castHairpinExplosion(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		return castNobaraAction(source, ProjectJjkNobaraActions.HAIRPIN_EXPLOSION, "Hairpin Explosion");
+	}
+
+	private static int castNobaraAction(CommandSourceStack source, int action, String label) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		ServerPlayer player = source.getPlayerOrException();
+		boolean cast = ProjectJjkNobaraActions.tryCast(player, action, true);
+		source.sendSuccess(() -> Component.literal(cast ? "Cast " + label + "." : label + " did not cast."), false);
+		return cast ? 1 : 0;
 	}
 
 	private static int playSingleParticle(CommandSourceStack source, String label, SimpleParticleType type) throws com.mojang.brigadier.exceptions.CommandSyntaxException {

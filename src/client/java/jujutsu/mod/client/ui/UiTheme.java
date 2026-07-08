@@ -8,12 +8,12 @@ public final class UiTheme {
 	private UiTheme() {}
 
 	// Surfaces.
-	public static final int SCRIM = 0xC026252A;
-	public static final int PANEL = 0xF21A151E;
-	public static final int PANEL_RAISED = 0xF2241C29;
-	public static final int PANEL_INSET = 0xF0151219;
-	public static final int BORDER = 0x33FF4DA6;
-	public static final int BORDER_STRONG = 0x66FF54C8;
+	public static final int SCRIM = 0xC0343539;
+	public static final int PANEL = 0xF228292E;
+	public static final int PANEL_RAISED = 0xF232333A;
+	public static final int PANEL_INSET = 0xF01B1C22;
+	public static final int BORDER = 0x334D5662;
+	public static final int BORDER_STRONG = 0x66727C8A;
 
 	// Accents.
 	public static final int ACCENT = 0xFFFF54C8;
@@ -28,9 +28,9 @@ public final class UiTheme {
 	public static final int NONE_ACCENT_RGB = 0x00505760;
 
 	// Text.
-	public static final int TEXT = 0xFFF3E6FF;
-	public static final int TEXT_MUTED = 0xFFB79ACB;
-	public static final int TEXT_DIM = 0xFF6E5A82;
+	public static final int TEXT = 0xFFF4EFE8;
+	public static final int TEXT_MUTED = 0xFFC8C0B8;
+	public static final int TEXT_DIM = 0xFF8A8582;
 	public static final int TEXT_ON_ACCENT = 0xFF1A0410;
 
 	// Timing (ms).

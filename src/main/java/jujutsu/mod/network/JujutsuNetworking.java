@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.character.CharacterSelectionManager;
 import jujutsu.mod.character.JujutsuCharacter;
+import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraActions;
 import jujutsu.mod.debug.HairpinDebugLog;
 
 public final class JujutsuNetworking {
@@ -21,14 +22,21 @@ public final class JujutsuNetworking {
 		PayloadTypeRegistry.playS2C().register(ProjectJjkTargetMarkPayload.TYPE, ProjectJjkTargetMarkPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(CharacterSelectionSyncPayload.TYPE, CharacterSelectionSyncPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(SelectCharacterPayload.TYPE, SelectCharacterPayload.STREAM_CODEC);
+		PayloadTypeRegistry.playC2S().register(NobaraActionPayload.TYPE, NobaraActionPayload.STREAM_CODEC);
 		registerServerReceivers();
 	}
 
 	private static void registerServerReceivers() {
 		ServerPlayNetworking.registerGlobalReceiver(SelectCharacterPayload.TYPE, (payload, context) ->
 				context.server().execute(() -> CharacterSelectionManager.select(context.player(), JujutsuCharacter.byId(payload.characterId()))));
+		ServerPlayNetworking.registerGlobalReceiver(NobaraActionPayload.TYPE, (payload, context) ->
+				context.server().execute(() -> handleNobaraAction(context.player(), payload)));
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> CharacterSelectionManager.syncTo(handler.player));
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> CharacterSelectionManager.clear(handler.player));
+	}
+
+	private static void handleNobaraAction(ServerPlayer player, NobaraActionPayload payload) {
+		ProjectJjkNobaraActions.tryCast(player, payload.action(), true);
 	}
 
 	public static boolean sendHairpin(ServerPlayer player, HairpinFxPayload payload) {

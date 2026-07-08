@@ -26,6 +26,10 @@ public final class CharacterSelectionManager {
 		broadcast(player.getServer(), player.getUUID(), character);
 	}
 
+	public static JujutsuCharacter selected(ServerPlayer player) {
+		return SELECTIONS.getOrDefault(player.getUUID(), JujutsuCharacter.NONE);
+	}
+
 	public static void syncTo(ServerPlayer player) {
 		for (Map.Entry<UUID, JujutsuCharacter> entry : SELECTIONS.entrySet()) {
 			send(player, entry.getKey(), entry.getValue());

@@ -10,6 +10,7 @@ import java.util.UUID;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -40,6 +41,7 @@ public final class ProjectJjkRitualRuntime {
 	private static final List<PendingExplosion> PENDING_EXPLOSIONS = new ArrayList<>();
 	private static final List<PendingEnlarge> PENDING_ENLARGES = new ArrayList<>();
 	private static final RandomSource RANDOM = RandomSource.create();
+	private static final DustParticleOptions PROJECTJJK_CYAN = new DustParticleOptions(0x2CE8F5, 1.15f);
 
 	private ProjectJjkRitualRuntime() {}
 
@@ -296,7 +298,7 @@ public final class ProjectJjkRitualRuntime {
 			nail.discard();
 		}
 		DamageSource source = caster == null ? level.damageSources().magic() : level.damageSources().indirectMagic(caster, caster);
-		float damage = anchor.nail() ? ProjectJjkNobaraProfile.HAIRPIN_DAMAGE : ProjectJjkNobaraProfile.detonateDamage(anchor.marks());
+		float damage = ProjectJjkNobaraProfile.detonateDamage(anchor.marks());
 		AABB blast = new AABB(at, at).inflate(ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_RADIUS);
 		for (Entity entity : level.getEntitiesOfClass(Entity.class, blast, e -> e instanceof LivingEntity living && living.isAlive())) {
 			if (caster != null && entity.getUUID().equals(caster.getUUID())) {
@@ -317,6 +319,7 @@ public final class ProjectJjkRitualRuntime {
 	}
 
 	private static void spawnProjectJjkPrime(ServerLevel level, Vec3 at) {
+		level.sendParticles(PROJECTJJK_CYAN, at.x, at.y + 0.1, at.z, 8, 0.18, 0.18, 0.18, 0.02);
 		level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, at.x, at.y, at.z, 1, 0.05, 0.05, 0.05, 0.05);
 		level.sendParticles(ParticleTypes.SMOKE, at.x, at.y, at.z, 5, 0.16, 0.16, 0.16, 0.25);
 		level.sendParticles(JujutsuParticles.HAIRPIN_IGNITION_TICK, at.x, at.y, at.z, 3, 0.07, 0.07, 0.07, 0.04);
@@ -324,6 +327,7 @@ public final class ProjectJjkRitualRuntime {
 
 	private static void spawnProjectJjkExplosion(ServerLevel level, Vec3 at, int marks) {
 		level.sendParticles(ParticleTypes.FLASH, at.x, at.y + 0.2, at.z, 1, 0.0, 0.0, 0.0, 0.0);
+		level.sendParticles(PROJECTJJK_CYAN, at.x, at.y + 0.1, at.z, 18 + marks * 4, 0.52, 0.34, 0.52, 0.16);
 		level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, at.x, at.y, at.z, 10 + marks * 2, 0.28, 0.22, 0.28, 0.08);
 		level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, at.x, at.y, at.z, 4 + marks, 0.18, 0.16, 0.18, 0.02);
 		level.sendParticles(JujutsuParticles.HAIRPIN_SPARK, at.x, at.y, at.z, 12 + marks * 3, 0.34, 0.26, 0.34, 0.18);
@@ -332,6 +336,7 @@ public final class ProjectJjkRitualRuntime {
 
 	private static void spawnProjectJjkEnlarge(ServerLevel level, Vec3 at, int marks) {
 		level.sendParticles(ParticleTypes.FLASH, at.x, at.y, at.z, 3, 0.12, 0.12, 0.12, 0.0);
+		level.sendParticles(PROJECTJJK_CYAN, at.x, at.y + 0.15, at.z, 28 + marks * 7, 0.7, 0.58, 0.7, 0.18);
 		level.sendParticles(ParticleTypes.DAMAGE_INDICATOR, at.x, at.y, at.z, 10, 0.18, 0.24, 0.18, 0.04);
 		level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, at.x, at.y, at.z, 12 + marks * 2, 0.22, 0.3, 0.22, 0.06);
 		level.sendParticles(JujutsuParticles.HAIRPIN_SNAP_CRACK, at.x, at.y, at.z, 8, 0.18, 0.18, 0.18, 0.06);

@@ -14,6 +14,7 @@ import javax.imageio.ImageIO;
 public final class ProjectSanityTest {
 	private static final Path ROOT = Path.of("").toAbsolutePath();
 	private static final Path MAIN_JAVA = ROOT.resolve("src/main/java");
+	private static final Path CLIENT_JAVA = ROOT.resolve("src/client/java");
 	private static final Path MAIN_RESOURCES = ROOT.resolve("src/main/resources");
 	private static final Path JUJUTSU_ASSETS = MAIN_RESOURCES.resolve("assets/jujutsumod");
 	private static final Pattern TEXTURE_ID = Pattern.compile("\"jujutsumod:([^\"]+)\"");
@@ -33,6 +34,8 @@ public final class ProjectSanityTest {
 		assertItemDefinitionsResolveToTextures();
 		assertDefaultNobaraItemsUseProjectJjkModels();
 		assertItemRegistryUsesKeyedProperties();
+		assertExplicitNobaraActionsAreVisible();
+		assertProjectJjkHairpinFinisherNumbers();
 		assertDefaultNobaraEntrypointSkipsLegacyRuntime();
 		assertNobaraSkinUsesWideArms();
 		assertSoundReferencesAreLocalAndPresent();
@@ -145,6 +148,39 @@ public final class ProjectSanityTest {
 		Path defaultHammer = JUJUTSU_ASSETS.resolve("items/straw_doll_hammer.json");
 		assert Files.readString(defaultNail).contains("\"model\": \"jujutsumod:item/projectjjk_hairpin_nail\"") : "hairpin_nail must render with the ProjectJJK nail model";
 		assert Files.readString(defaultHammer).contains("\"model\": \"jujutsumod:item/projectjjk_straw_doll_hammer\"") : "straw_doll_hammer must render with the ProjectJJK hammer model";
+	}
+
+	private static void assertExplicitNobaraActionsAreVisible() throws IOException {
+		Path payload = MAIN_JAVA.resolve("jujutsu/mod/network/NobaraActionPayload.java");
+		assert Files.exists(payload) : "Nobara Enlarge/Explosion must have an explicit client->server action payload";
+		String networking = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/network/JujutsuNetworking.java"));
+		assert networking.contains("NobaraActionPayload.TYPE") : "Nobara action payload must be registered server-side";
+		String keybinds = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/input/JujutsuKeybinds.java"));
+		assert keybinds.contains("key.jujutsumod.nobara_hairpin_enlarge") : "Hairpin Enlarge must be a visible keybind";
+		assert keybinds.contains("key.jujutsumod.nobara_hairpin_explosion") : "Hairpin Explosion must be a visible keybind";
+		String screen = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/gui/CharacterSelectScreen.java"));
+		assert screen.contains("ability.hairpin_enlarge") : "Character select must show Hairpin Enlarge in the kit preview";
+		assert screen.contains("ability.hairpin_explosion") : "Character select must show Hairpin Explosion in the kit preview";
+		String commands = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/command/JujutsuCommands.java"));
+		assert commands.contains("\"enlarge\"") && commands.contains("\"explosion\"") : "Hairpin Enlarge/Explosion must have test commands";
+		assert commands.contains("ProjectJjkNobaraActions.tryCast") : "Hairpin commands must use the shared Nobara selection gate";
+		String actionRuntime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraActions.java"));
+		assert actionRuntime.contains("CharacterSelectionManager.selected(player) != JujutsuCharacter.NOBARA") : "Nobara actions must reject non-Nobara players";
+		assert actionRuntime.contains("tryEnlargeMarkedTarget(player)") : "Hairpin Enlarge action must call the runtime cast";
+		assert actionRuntime.contains("detonateMarks(player)") : "Hairpin Explosion action must call the runtime cast";
+		String hammer = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkHammerItem.java"));
+		assert !hammer.contains("tryEnlargeMarkedTarget") : "Hammer must not hide Hairpin Enlarge as a fallback action";
+		assert !hammer.contains("detonateMarks") : "Hammer must not hide Hairpin Explosion as a fallback action";
+		assert Files.exists(JUJUTSU_ASSETS.resolve("textures/gui/abilities/hairpin_enlargement.png")) : "Missing Hairpin Enlarge UI icon";
+		assert Files.exists(JUJUTSU_ASSETS.resolve("textures/gui/abilities/hairpin_explosion.png")) : "Missing Hairpin Explosion UI icon";
+	}
+
+	private static void assertProjectJjkHairpinFinisherNumbers() throws IOException {
+		String profile = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraProfile.java"));
+		assert profile.contains("HAIRPIN_ENLARGE_RANGE = 20.0") : "Hairpin Enlarge range should match ProjectJJK player ability registry";
+		assert profile.contains("HAIRPIN_ENLARGE_DAMAGE = 12.0f") : "Hairpin Enlarge damage should match ProjectJJK player ability registry";
+		assert profile.contains("DETONATE_DAMAGE_BASE = 1.0f") : "Hairpin Explosion damage should match ProjectJJK player ability registry";
+		assert profile.contains("DETONATE_DAMAGE_PER_MARK = 0.0f") : "Hairpin Explosion must not scale from old jujutsumod mark damage";
 	}
 
 	private static void assertNobaraSkinUsesWideArms() throws IOException {

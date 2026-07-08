@@ -92,7 +92,9 @@ public final class ProjectJjkNobaraProfileTest {
 
 	private static void assertDamageScaling() {
 		assert ProjectJjkNobaraProfile.detonateDamage(0) == ProjectJjkNobaraProfile.DETONATE_DAMAGE_BASE : "zero marks detonate for the base amount";
-		assert ProjectJjkNobaraProfile.detonateDamage(4) > ProjectJjkNobaraProfile.detonateDamage(1) : "more marks must detonate harder";
+		assert ProjectJjkNobaraProfile.detonateDamage(4) == ProjectJjkNobaraProfile.detonateDamage(1) : "ProjectJJK Hairpin Explosion damage is fixed by the ability registry";
+		assert ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DAMAGE == 12.0f : "ProjectJJK Hairpin Enlarge damage is 12";
+		assert ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_RANGE == 20.0 : "ProjectJJK Hairpin Enlarge player range is 20 blocks";
 		assert ProjectJjkNobaraProfile.resonanceDamage(4) > ProjectJjkNobaraProfile.resonanceDamage(0) : "resonance must scale with marks";
 	}
 }

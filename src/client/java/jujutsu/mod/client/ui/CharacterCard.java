@@ -64,7 +64,7 @@ public final class CharacterCard extends UiElement {
 		int px = bx + pad;
 		int py = by + pad;
 		int pw = bw - pad * 2;
-		UiRender.roundedRect(g, px, py, pw, portraitH, 6, 0xFF0B080E, UiRender.withAlpha(accentRgb, 0.18f + energy * 0.22f));
+		UiRender.roundedRect(g, px, py, pw, portraitH, 6, 0xFF15171D, UiRender.withAlpha(accentRgb, 0.14f + energy * 0.2f));
 		drawPortrait(g, px, py, pw, portraitH, energy);
 
 		// Name + role.
@@ -109,11 +109,12 @@ public final class CharacterCard extends UiElement {
 		int head = 46;
 		int headX = cx - head / 2;
 		int headY = y + 14;
+		UiRender.roundedRect(g, headX - 5, headY - 5, head + 10, head + 10, 8, 0xFF20232A, UiRender.withAlpha(accentRgb, 0.16f + energy * 0.18f));
 		g.blit(RenderPipelines.GUI_TEXTURED, NOBARA_SKIN, headX, headY, 8.0f, 8.0f, head, head, 8, 8, 64, 64);
 		g.blit(RenderPipelines.GUI_TEXTURED, NOBARA_SKIN, headX, headY, 40.0f, 8.0f, head, head, 8, 8, 64, 64);
 
 		int coatY = y + h - 24;
-		UiRender.roundedRect(g, cx - 23, coatY, 46, 24, 7, 0xFF211928, UiRender.withAlpha(accentRgb, 0.18f));
+		UiRender.roundedRect(g, cx - 23, coatY, 46, 24, 7, 0xFF20232A, UiRender.withAlpha(accentRgb, 0.18f));
 		UiRender.roundedRect(g, cx - 4, coatY + 2, 8, 22, 3, UiRender.withAlpha(accentRgb, 0.46f + energy * 0.18f));
 		int nailX = x + w - 12;
 		int nailY = y + 12;
