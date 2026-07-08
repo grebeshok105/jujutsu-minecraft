@@ -21,6 +21,8 @@ public record ProjectJjkNobaraImpulsePayload(
 	public static final int RESONANCE_STRIKE = 4;
 	public static final int LINK_BIND = 5;
 	public static final int DETONATE = 6;
+	public static final int HAIRPIN_ENLARGE = 7;
+	public static final int HAIRPIN_EXPLOSION = 8;
 	public static final Type<ProjectJjkNobaraImpulsePayload> TYPE = new Type<>(JujutsuMod.id("projectjjk_nobara_impulse"));
 	public static final StreamCodec<RegistryFriendlyByteBuf, ProjectJjkNobaraImpulsePayload> STREAM_CODEC = CustomPacketPayload.codec(
 			ProjectJjkNobaraImpulsePayload::write,

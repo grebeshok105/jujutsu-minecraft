@@ -286,44 +286,60 @@ public final class HairpinWorldRenderer {
 			if (fade <= 0.01f) {
 				continue;
 			}
-			Vec3 worldCenter = entity.position().add(0.0, entity.getBbHeight() * 0.86, 0.0);
-			Vec3 center = worldCenter.subtract(cameraPosition);
-			Vec3 view = safeDirection(cameraPosition.subtract(worldCenter));
-			Vec3 side = view.cross(UP);
-			if (side.lengthSqr() < 1.0E-5) {
-				side = EAST;
-			} else {
-				side = side.normalize();
-			}
-			Vec3 up = side.cross(view);
-			if (up.lengthSqr() < 1.0E-5) {
-				up = UP;
-			} else {
-				up = up.normalize();
-			}
-			float age = mark.age(gameTime, partialTick);
-			float pulse = 0.84f + 0.16f * (float) Math.sin(age * 0.42f);
-			float scale = Math.max(0.34f, entity.getBbWidth() * (0.54f + mark.marks() * 0.035f));
-			int alpha = Math.min(210, Math.round(188.0f * fade * pulse));
-			Vec3 thickness = up.scale(0.018f + mark.marks() * 0.002f);
+			renderProjectJjkTargetMark(consumer, entity, cameraPosition, mark, gameTime, partialTick, fade);
+		}
+	}
 
-			Vec3 leftStart = center.subtract(side.scale(scale * 0.62)).add(up.scale(scale * 0.18));
-			Vec3 leftEnd = center.subtract(side.scale(scale * 0.12)).add(up.scale(scale * 0.06));
-			Vec3 rightStart = center.add(side.scale(scale * 0.12)).add(up.scale(scale * 0.06));
-			Vec3 rightEnd = center.add(side.scale(scale * 0.62)).add(up.scale(scale * 0.18));
-			addRibbon(consumer, leftStart, leftEnd, thickness, 16, 2, 6, alpha);
-			addRibbon(consumer, rightStart, rightEnd, thickness, 16, 2, 6, alpha);
-			addRibbon(consumer, leftStart.add(up.scale(scale * 0.03)), leftEnd.add(up.scale(scale * 0.03)), thickness.scale(0.42), 104, 10, 22, alpha / 3);
-			addRibbon(consumer, rightStart.add(up.scale(scale * 0.03)), rightEnd.add(up.scale(scale * 0.03)), thickness.scale(0.42), 104, 10, 22, alpha / 3);
+	private static void renderProjectJjkTargetMark(VertexConsumer consumer, Entity entity, Vec3 cameraPosition, TargetMarkRenderManager.TargetMark mark, long gameTime, float partialTick, float fade) {
+		float age = mark.age(gameTime, partialTick);
+		float pulse = 0.78f + 0.22f * (float) Math.sin(age * 0.34f);
+		Vec3 worldCenter = entity.position().add(0.0, entity.getBbHeight() * 0.52, 0.0);
+		Vec3 center = worldCenter.subtract(cameraPosition);
+		Vec3 view = safeDirection(cameraPosition.subtract(worldCenter));
+		Vec3 side = view.cross(UP);
+		if (side.lengthSqr() < 1.0E-5) {
+			side = EAST;
+		} else {
+			side = side.normalize();
+		}
+		Vec3 depth = side.cross(UP);
+		if (depth.lengthSqr() < 1.0E-5) {
+			depth = new Vec3(0.0, 0.0, 1.0);
+		} else {
+			depth = depth.normalize();
+		}
+		float radius = Math.max(0.34f, entity.getBbWidth() * (0.68f + mark.marks() * 0.035f));
+		float height = Math.max(0.74f, entity.getBbHeight() * 0.82f);
+		int coreAlpha = Math.min(210, Math.round(172.0f * fade * pulse));
+		int edgeAlpha = Math.min(235, Math.round(210.0f * fade * pulse));
+		int darkAlpha = Math.min(150, Math.round(122.0f * fade));
+		renderBlueBodyRing(consumer, center, side, depth, radius, -height * 0.36f, darkAlpha, coreAlpha, age * 0.018f);
+		renderBlueBodyRing(consumer, center, side, depth, radius * 1.08f, 0.0f, darkAlpha, edgeAlpha, -age * 0.014f);
+		renderBlueBodyRing(consumer, center, side, depth, radius * 0.94f, height * 0.34f, darkAlpha, coreAlpha, age * 0.012f);
+		for (int index = 0; index < 6; index++) {
+			double angle = index * Math.PI * 2.0 / 6.0 + age * 0.01;
+			Vec3 horizontal = side.scale(Math.cos(angle) * radius).add(depth.scale(Math.sin(angle) * radius));
+			Vec3 bottom = center.add(horizontal).add(UP.scale(-height * 0.42f));
+			Vec3 top = center.add(horizontal.scale(0.76)).add(UP.scale(height * 0.42f));
+			Vec3 thickness = sideVector(top.subtract(bottom), bottom.add(top).scale(0.5), 0.016f + mark.marks() * 0.002f);
+			addRibbon(consumer, bottom, top, thickness.scale(2.1), CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, darkAlpha);
+			addRibbon(consumer, bottom.lerp(top, 0.18), top, thickness, CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, edgeAlpha);
+		}
+		Vec3 snapStart = center.subtract(side.scale(radius * 0.62f)).add(UP.scale(height * 0.05f));
+		Vec3 snapEnd = center.add(side.scale(radius * 0.62f)).subtract(UP.scale(height * 0.08f));
+		addRibbon(consumer, snapStart, snapEnd, depth.scale(0.018f), CURSED_BLUE_WHITE_R, CURSED_BLUE_WHITE_G, CURSED_BLUE_WHITE_B, Math.round(70.0f * fade * pulse));
+	}
 
-			Vec3 nailStart = center.add(up.scale(scale * 0.18));
-			Vec3 nailEnd = center.subtract(up.scale(scale * 0.22));
-			addRibbon(consumer, nailStart, nailEnd, side.scale(0.018f), 28, 3, 8, alpha);
-			if (mark.marks() >= 2) {
-				Vec3 crackStart = center.subtract(side.scale(scale * 0.42)).subtract(up.scale(scale * 0.18));
-				Vec3 crackEnd = center.add(side.scale(scale * 0.34)).subtract(up.scale(scale * 0.28));
-				addRibbon(consumer, crackStart, crackEnd, up.scale(0.014f), 54, 4, 12, alpha / 2);
-			}
+	private static void renderBlueBodyRing(VertexConsumer consumer, Vec3 center, Vec3 side, Vec3 depth, float radius, float y, int darkAlpha, int edgeAlpha, float phase) {
+		int segments = 18;
+		for (int segment = 0; segment < segments; segment++) {
+			double a0 = phase + segment * Math.PI * 2.0 / segments;
+			double a1 = phase + (segment + 0.78) * Math.PI * 2.0 / segments;
+			Vec3 start = center.add(UP.scale(y)).add(side.scale(Math.cos(a0) * radius)).add(depth.scale(Math.sin(a0) * radius * 0.72f));
+			Vec3 end = center.add(UP.scale(y)).add(side.scale(Math.cos(a1) * radius)).add(depth.scale(Math.sin(a1) * radius * 0.72f));
+			Vec3 thickness = sideVector(end.subtract(start), start.add(end).scale(0.5), 0.018f);
+			addRibbon(consumer, start, end, thickness.scale(2.4), CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, darkAlpha);
+			addRibbon(consumer, start, end, thickness, CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, edgeAlpha);
 		}
 	}
 

@@ -16,7 +16,7 @@ public final class ProjectJjkNobaraProfileTest {
 		assertPreparedLaunchRangeUsesPlayerBounds();
 		assertGroundImpactsStayTighterThanDirectHits();
 		assertEmbeddedNailsLastAsLongAsMarks();
-		assertTargetMarksAreShortVisualHints();
+		assertTargetMarksFollowCurseMarkDuration();
 		assertBodyEmbedPointStaysInsideBodyHeight();
 		assertLoadoutTopsUpNails();
 		assertCursedEnergyEconomy();
@@ -71,9 +71,8 @@ public final class ProjectJjkNobaraProfileTest {
 		assert ProjectJjkNobaraProfile.EMBEDDED_NAIL_AGE_TICKS == ProjectJjkNobaraProfile.MARK_DURATION_TICKS : "visible stuck nails should match cursed mark duration";
 	}
 
-	private static void assertTargetMarksAreShortVisualHints() {
-		assert ProjectJjkNobaraProfile.TARGET_MARK_RENDER_TICKS <= 100 : "target render mark should disappear quickly";
-		assert ProjectJjkNobaraProfile.TARGET_MARK_RENDER_TICKS > 30 : "target render mark should stay readable";
+	private static void assertTargetMarksFollowCurseMarkDuration() {
+		assert ProjectJjkNobaraProfile.TARGET_MARK_RENDER_TICKS == ProjectJjkNobaraProfile.MARK_DURATION_TICKS : "ProjectJJK-style target marks should stay with the cursed mark";
 	}
 
 	private static void assertBodyEmbedPointStaysInsideBodyHeight() {

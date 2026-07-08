@@ -82,6 +82,14 @@ public final class JujutsuClientNetworking {
 			handleResonanceStrike(client, payload);
 			return;
 		}
+		if (payload.kind() == ProjectJjkNobaraImpulsePayload.HAIRPIN_ENLARGE) {
+			handleHairpinEnlarge(client, payload);
+			return;
+		}
+		if (payload.kind() == ProjectJjkNobaraImpulsePayload.HAIRPIN_EXPLOSION) {
+			handleHairpinExplosion(client, payload);
+			return;
+		}
 		if (payload.kind() == ProjectJjkNobaraImpulsePayload.LINK_BIND) {
 			ResonanceEffects.spawnLinkBurst(payload.origin());
 			playNoFalloff(client, JujutsuSounds.PROJECTJJK_CHIME, 0.7f, 1.15f, payload.origin());
@@ -114,6 +122,7 @@ public final class JujutsuClientNetworking {
 		double distance = client.player.position().distanceTo(origin);
 		float proximity = (float) Math.max(0.0, 1.0 - distance / 56.0);
 		if (proximity > 0.01f) {
+			playProjectJjkImpactSound(client, origin, proximity);
 			HairpinCinematicCamera.triggerProjectJjkImpact(payload.nailCount(), proximity);
 			HairpinScreenOverlay.triggerProjectJjkImpact(proximity);
 		}
@@ -131,9 +140,41 @@ public final class JujutsuClientNetworking {
 		}
 	}
 
+	private static void handleHairpinEnlarge(Minecraft client, ProjectJjkNobaraImpulsePayload payload) {
+		Vec3 origin = payload.origin();
+		double distance = client.player.position().distanceTo(origin);
+		float proximity = (float) Math.max(0.0, 1.0 - distance / 64.0);
+		int marks = Math.max(1, payload.nailCount());
+		ResonanceEffects.spawnHairpinEnlarge(origin, marks);
+		if (proximity > 0.01f) {
+			playNoFalloff(client, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, 1.35f * proximity, 1.82f, origin);
+			playNoFalloff(client, JujutsuSounds.PROJECTJJK_GOO_FOLEY, 0.36f * proximity, 1.45f, origin);
+			HairpinCinematicCamera.triggerProjectJjkImpact(marks + 2, Math.min(1.0f, proximity * 1.15f));
+			HairpinScreenOverlay.triggerProjectJjkImpact(Math.min(1.0f, proximity * 1.1f));
+		}
+	}
+
+	private static void handleHairpinExplosion(Minecraft client, ProjectJjkNobaraImpulsePayload payload) {
+		Vec3 origin = payload.origin();
+		double distance = client.player.position().distanceTo(origin);
+		float proximity = (float) Math.max(0.0, 1.0 - distance / 64.0);
+		int marks = Math.max(1, payload.nailCount());
+		ResonanceEffects.spawnHairpinExplosion(origin, marks);
+		if (proximity > 0.01f) {
+			playNoFalloff(client, JujutsuSounds.PROJECTJJK_EXPLODE, 0.42f * proximity, 1.96f, origin);
+			playNoFalloff(client, JujutsuSounds.PROJECTJJK_IMPLODE, 0.24f * proximity, 1.22f, origin);
+			HairpinCinematicCamera.triggerProjectJjkImpact(marks, Math.min(1.0f, proximity * 0.82f));
+			HairpinScreenOverlay.triggerProjectJjkImpact(Math.min(1.0f, proximity * 0.74f));
+		}
+	}
+
 	private static void playProjectJjkImpactSound(Minecraft client, Vec3 origin) {
-		playNoFalloff(client, JujutsuSounds.PROJECTJJK_WHOOSH_HIT, 0.9f, 0.72f, origin);
-		playNoFalloff(client, JujutsuSounds.PROJECTJJK_EXPLODE, 0.52f, 0.78f, origin);
+		playProjectJjkImpactSound(client, origin, 1.0f);
+	}
+
+	private static void playProjectJjkImpactSound(Minecraft client, Vec3 origin, float volumeScale) {
+		playNoFalloff(client, JujutsuSounds.PROJECTJJK_WHOOSH_HIT, 0.9f * volumeScale, 0.72f, origin);
+		playNoFalloff(client, JujutsuSounds.PROJECTJJK_EXPLODE, 0.52f * volumeScale, 0.78f, origin);
 	}
 
 	private static void playNoFalloff(Minecraft client, SoundEvent soundEvent, float volume, float pitch, Vec3 origin) {

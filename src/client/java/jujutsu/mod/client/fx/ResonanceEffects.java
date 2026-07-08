@@ -72,6 +72,56 @@ public final class ResonanceEffects {
 		burst(level, JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, at, 12, 0.5, 0.08);
 	}
 
+	public static void spawnHairpinExplosion(Vec3 at, int marks) {
+		ClientLevel level = Minecraft.getInstance().level;
+		if (level == null) {
+			return;
+		}
+		int sparks = 22 + marks * 5;
+		level.addParticle(ParticleTypes.FLASH, at.x, at.y + 0.18, at.z, 0.0, 0.0, 0.0);
+		burst(level, ParticleTypes.SOUL_FIRE_FLAME, at, 10 + marks * 3, 0.38, 0.09);
+		burst(level, JujutsuParticles.HAIRPIN_SPARK, at, sparks, 0.52, 0.28);
+		burst(level, JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, at, 6 + marks, 0.28, 0.08);
+		burst(level, JujutsuParticles.HAIRPIN_WARN_EDGE, at, 10, 0.42, 0.12);
+
+		int ringCount = 20 + marks * 3;
+		double radius = 1.1 + Math.min(4, marks) * 0.12;
+		for (int i = 0; i < ringCount; i++) {
+			double a = (i / (double) ringCount) * Math.PI * 2.0;
+			double px = at.x + Math.cos(a) * radius;
+			double pz = at.z + Math.sin(a) * radius;
+			level.addParticle(JujutsuParticles.HAIRPIN_IGNITION_TICK, px, at.y + 0.08, pz,
+					Math.cos(a) * 0.04, 0.015, Math.sin(a) * 0.04);
+		}
+	}
+
+	public static void spawnHairpinEnlarge(Vec3 at, int marks) {
+		ClientLevel level = Minecraft.getInstance().level;
+		if (level == null) {
+			return;
+		}
+		level.addParticle(ParticleTypes.FLASH, at.x, at.y + 0.18, at.z, 0.0, 0.0, 0.0);
+		level.addParticle(ParticleTypes.FLASH, at.x, at.y + 0.36, at.z, 0.0, 0.0, 0.0);
+		burst(level, ParticleTypes.DAMAGE_INDICATOR, at, 12, 0.22, 0.04);
+		burst(level, ParticleTypes.SOUL_FIRE_FLAME, at, 18 + marks * 4, 0.36, 0.08);
+		burst(level, JujutsuParticles.HAIRPIN_SNAP_CRACK, at, 12 + marks, 0.3, 0.08);
+		burst(level, JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, at, 18, 0.44, 0.3);
+		burst(level, JujutsuParticles.HAIRPIN_BURST_RESIDUE, at, 24, 0.48, 0.18);
+		int strikeCount = 12;
+		for (int i = 0; i < strikeCount; i++) {
+			double a = (i / (double) strikeCount) * Math.PI * 2.0 + RANDOM.nextDouble() * 0.16;
+			double height = (RANDOM.nextDouble() - 0.5) * 0.72;
+			double radius = 0.22 + RANDOM.nextDouble() * 0.36;
+			level.addParticle(JujutsuParticles.HAIRPIN_WARN_EDGE,
+					at.x + Math.cos(a) * radius,
+					at.y + height,
+					at.z + Math.sin(a) * radius,
+					-Math.cos(a) * 0.12,
+					0.02,
+					-Math.sin(a) * 0.12);
+		}
+	}
+
 	private static void burst(ClientLevel level, ParticleOptions particle, Vec3 at, int count, double spread, double speed) {
 		for (int i = 0; i < count; i++) {
 			level.addParticle(particle,

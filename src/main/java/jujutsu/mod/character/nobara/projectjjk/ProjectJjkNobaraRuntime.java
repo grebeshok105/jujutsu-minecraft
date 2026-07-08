@@ -70,11 +70,11 @@ public final class ProjectJjkNobaraRuntime {
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.HAIRPIN_PREP, SoundSource.PLAYERS, 0.62f, 1.0f);
 	}
 
-	public static void launchHairpin(ServerPlayer player, ItemStack hammerStack, InteractionHand hand) {
+	public static boolean launchHairpin(ServerPlayer player, ItemStack hammerStack, InteractionHand hand) {
 		ServerLevel level = player.level();
 		List<ProjectJjkNailEntity> nails = findPreparedNails(level, player);
 		if (nails.isEmpty()) {
-			return;
+			return false;
 		}
 
 		TargetResolver.Result target = TargetResolver.resolve(level, player, ProjectJjkNobaraProfile.TARGET_RANGE);
@@ -99,6 +99,7 @@ public final class ProjectJjkNobaraRuntime {
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SPELL_SHOT, SoundSource.PLAYERS, 0.72f, 0.74f);
 		JujutsuNetworking.broadcastProjectJjkImpulse(level, player.position(), IMPULSE_BROADCAST_RADIUS, impulse(ProjectJjkNobaraImpulsePayload.HAMMER, nails.size(), player.position(), level.getGameTime()));
 		damageHammer(player, hammerStack, hand);
+		return true;
 	}
 
 	public static void resolveNailImpact(ServerLevel level, ProjectJjkNailEntity nail, HitResult hit) {
