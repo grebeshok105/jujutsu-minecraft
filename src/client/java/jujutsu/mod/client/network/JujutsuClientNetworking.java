@@ -13,16 +13,10 @@ import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.client.character.ClientCharacterSelectionManager;
 import jujutsu.mod.client.fx.FpSnapAnimator;
 import jujutsu.mod.client.fx.HairpinCinematicCamera;
-import jujutsu.mod.client.fx.HairpinPlaybackManager;
 import jujutsu.mod.client.fx.HairpinScreenOverlay;
 import jujutsu.mod.client.fx.HairpinWorldRenderer;
-import jujutsu.mod.client.fx.NobaraNailFlightManager;
 import jujutsu.mod.client.fx.ResonanceEffects;
-import jujutsu.mod.debug.HairpinDebugLog;
 import jujutsu.mod.network.CharacterSelectionSyncPayload;
-import jujutsu.mod.network.HairpinFxPayload;
-import jujutsu.mod.network.HairpinNailFlightPayload;
-import jujutsu.mod.network.PreparedNailsPayload;
 import jujutsu.mod.network.ProjectJjkNobaraImpulsePayload;
 import jujutsu.mod.registry.JujutsuSounds;
 
@@ -30,22 +24,6 @@ public final class JujutsuClientNetworking {
 	private JujutsuClientNetworking() {}
 
 	public static void registerReceivers() {
-		ClientPlayNetworking.registerGlobalReceiver(HairpinFxPayload.TYPE, (payload, context) ->
-				context.client().execute(() -> {
-					HairpinDebugLog.info(
-							"client received hairpin payload seed={} target={},{},{} startGameTime={}",
-							payload.seed(),
-							payload.targetX(),
-							payload.targetY(),
-							payload.targetZ(),
-							payload.startGameTime()
-					);
-					HairpinPlaybackManager.start(payload);
-				}));
-		ClientPlayNetworking.registerGlobalReceiver(HairpinNailFlightPayload.TYPE, (payload, context) ->
-				context.client().execute(() -> NobaraNailFlightManager.startFlight(payload)));
-		ClientPlayNetworking.registerGlobalReceiver(PreparedNailsPayload.TYPE, (payload, context) ->
-				context.client().execute(() -> NobaraNailFlightManager.showPrepared(payload)));
 		ClientPlayNetworking.registerGlobalReceiver(ProjectJjkNobaraImpulsePayload.TYPE, (payload, context) ->
 				context.client().execute(() -> handleProjectJjkImpulse(context.client(), payload)));
 		ClientPlayNetworking.registerGlobalReceiver(CharacterSelectionSyncPayload.TYPE, (payload, context) ->

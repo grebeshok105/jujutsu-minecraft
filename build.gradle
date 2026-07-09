@@ -38,39 +38,13 @@ dependencies {
 	modImplementation "software.bernie.geckolib:geckolib-fabric-${project.minecraft_version}:${project.geckolib_version}"
 }
 
-tasks.register('testHairpinTimeline', JavaExec) {
-	group = 'verification'
-	description = 'Runs assertion-based tests for the Hairpin timeline model'
-	dependsOn tasks.named('testClasses')
-	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'jujutsu.mod.fx.HairpinTimelineTest'
-	jvmArgs '-ea'
-}
-
-tasks.register('testHairpinVisualProfile', JavaExec) {
-	group = 'verification'
-	description = 'Runs assertion-based tests for the Hairpin visual profile'
-	dependsOn tasks.named('testClasses')
-	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'jujutsu.mod.fx.HairpinVisualProfileTest'
-	jvmArgs '-ea'
-}
-
 tasks.register('testProjectSanity', JavaExec) {
 	group = 'verification'
 	description = 'Runs resource and side-separation sanity checks'
 	dependsOn tasks.named('testClasses')
 	classpath = sourceSets.test.runtimeClasspath
 	mainClass = 'jujutsu.mod.ProjectSanityTest'
-	jvmArgs '-ea'
-}
-
-tasks.register('testHairpinDebugLog', JavaExec) {
-	group = 'verification'
-	description = 'Runs assertion-based tests for the Hairpin debug switch'
-	dependsOn tasks.named('testClasses')
-	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'jujutsu.mod.debug.HairpinDebugLogTest'
+	maxHeapSize = '128m'
 	jvmArgs '-ea'
 }
 
@@ -80,24 +54,7 @@ tasks.register('testTargetResolver', JavaExec) {
 	dependsOn tasks.named('testClasses')
 	classpath = sourceSets.test.runtimeClasspath
 	mainClass = 'jujutsu.mod.combat.TargetResolverTest'
-	jvmArgs '-ea'
-}
-
-tasks.register('testNobaraCombatStateManager', JavaExec) {
-	group = 'verification'
-	description = 'Runs assertion-based tests for Nobara combat state'
-	dependsOn tasks.named('testClasses')
-	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'jujutsu.mod.character.nobara.NobaraCombatStateManagerTest'
-	jvmArgs '-ea'
-}
-
-tasks.register('testHairpinGameplayService', JavaExec) {
-	group = 'verification'
-	description = 'Runs assertion-based tests for Hairpin gameplay math'
-	dependsOn tasks.named('testClasses')
-	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'jujutsu.mod.character.nobara.HairpinGameplayServiceTest'
+	maxHeapSize = '128m'
 	jvmArgs '-ea'
 }
 
@@ -107,17 +64,13 @@ tasks.register('testProjectJjkNobaraProfile', JavaExec) {
 	dependsOn tasks.named('testClasses')
 	classpath = sourceSets.test.runtimeClasspath
 	mainClass = 'jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraProfileTest'
+	maxHeapSize = '128m'
 	jvmArgs '-ea'
 }
 
 tasks.named('check') {
-	dependsOn tasks.named('testHairpinTimeline')
-	dependsOn tasks.named('testHairpinVisualProfile')
 	dependsOn tasks.named('testProjectSanity')
-	dependsOn tasks.named('testHairpinDebugLog')
 	dependsOn tasks.named('testTargetResolver')
-	dependsOn tasks.named('testNobaraCombatStateManager')
-	dependsOn tasks.named('testHairpinGameplayService')
 	dependsOn tasks.named('testProjectJjkNobaraProfile')
 }
 

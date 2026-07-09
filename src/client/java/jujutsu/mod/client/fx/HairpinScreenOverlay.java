@@ -5,7 +5,6 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.gui.GuiGraphics;
 import jujutsu.mod.JujutsuMod;
-import jujutsu.mod.fx.HairpinTimeline;
 
 public final class HairpinScreenOverlay {
 	private static long flashStartedAtMillis;
@@ -30,18 +29,6 @@ public final class HairpinScreenOverlay {
 		flashStartedAtMillis = System.currentTimeMillis();
 		flashDurationMillis = Math.max(1, durationMillis);
 		flashMaxAlpha = Math.max(0, Math.min(180, maxAlpha));
-	}
-
-	public static void triggerCinematicBeat(HairpinTimeline.Phase phase) {
-		switch (phase) {
-			case PREP_FREEZE -> triggerCinematic(260, 46, 18);
-			case HAMMER_SNAP -> triggerCinematic(180, 106, 88);
-			case NAIL_IGNITION -> triggerCinematic(260, 98, 104);
-			case HAIRPIN_BLOOM -> triggerCinematic(460, 148, 122);
-			case AFTERGLOW -> triggerCinematic(700, 72, 10);
-			case DONE -> {
-			}
-		}
 	}
 
 	public static void triggerProjectJjkHammer(float proximity) {

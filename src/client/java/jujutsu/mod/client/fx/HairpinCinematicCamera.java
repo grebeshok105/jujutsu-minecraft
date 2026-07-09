@@ -3,25 +3,12 @@ package jujutsu.mod.client.fx;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import jujutsu.mod.fx.HairpinTimeline;
 
 public final class HairpinCinematicCamera {
 	private static final List<Impulse> IMPULSES = new ArrayList<>();
 	private static final List<FovImpulse> FOV_IMPULSES = new ArrayList<>();
 
 	private HairpinCinematicCamera() {}
-
-	public static void trigger(HairpinTimeline.Phase phase) {
-		switch (phase) {
-			case PREP_FREEZE -> addImpulse(180, 0.18f, -0.12f, 18.0f);
-			case HAMMER_SNAP -> addImpulse(130, -1.25f, 0.72f, 44.0f);
-			case NAIL_IGNITION -> addImpulse(180, 0.58f, -0.38f, 36.0f);
-			case HAIRPIN_BLOOM -> addImpulse(280, 2.35f, -1.32f, 48.0f);
-			case AFTERGLOW -> addImpulse(420, -0.20f, 0.12f, 11.0f);
-			case DONE -> {
-			}
-		}
-	}
 
 	public static void triggerProjectJjkHammer(int nailCount, float proximity) {
 		float strength = projectJjkStrength(nailCount, proximity, 0.92f);

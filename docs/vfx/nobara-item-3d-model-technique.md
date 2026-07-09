@@ -1,6 +1,8 @@
 # Nobara Item 3D Model Technique
 
-Status: captured from the working Nobara Hairpin slice.
+Status: superseded archival note.
+
+Superseded 2026-07-09: the default `hairpin_nail` and `straw_doll_hammer` ids now point at ProjectJJK item models and textures. The old `textures/item/hairpin_nail.png`, `textures/item/straw_doll_hammer.png`, and `textures/item/model/*` assets described below were removed with the legacy Nobara cleanup. Keep this note only as historical context for why current item models must sample opaque texture regions.
 
 ## Purpose
 

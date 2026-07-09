@@ -38,6 +38,7 @@ public final class ProjectSanityTest {
 		assertProjectJjkHairpinFinisherNumbers();
 		assertHairpinFinishersSnapWithoutMarks();
 		assertDefaultNobaraEntrypointSkipsLegacyRuntime();
+		assertLegacyNobaraRuntimeIsRemoved();
 		assertNobaraNailsEmbedLikeOpaqueBodyAnchors();
 		assertNobaraTargetMarksUseVanillaGlowing();
 		assertHairpinFinishersUseSnapImpulse();
@@ -153,6 +154,69 @@ public final class ProjectSanityTest {
 		Path entrypoint = MAIN_JAVA.resolve("jujutsu/mod/JujutsuMod.java");
 		String source = Files.readString(entrypoint);
 		assert !source.contains("NobaraHairpinRuntime.register()") : "Legacy Nobara runtime must not register when ProjectJJK Nobara is the default";
+	}
+
+	private static void assertLegacyNobaraRuntimeIsRemoved() throws IOException {
+		assertMissing(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/NobaraHairpinRuntime.java"));
+		assertMissing(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/NobaraCombatStateManager.java"));
+		assertMissing(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/HairpinGameplayService.java"));
+		assertMissing(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/HairpinNailItem.java"));
+		assertMissing(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/StrawDollHammerItem.java"));
+		assertMissing(MAIN_JAVA.resolve("jujutsu/mod/debug/HairpinDebugLog.java"));
+		assertMissing(MAIN_JAVA.resolve("jujutsu/mod/fx/HairpinTimeline.java"));
+		assertMissing(MAIN_JAVA.resolve("jujutsu/mod/fx/HairpinVisualProfile.java"));
+		assertMissing(MAIN_JAVA.resolve("jujutsu/mod/network/HairpinFxPayload.java"));
+		assertMissing(MAIN_JAVA.resolve("jujutsu/mod/network/HairpinNailFlightPayload.java"));
+		assertMissing(MAIN_JAVA.resolve("jujutsu/mod/network/PreparedNailsPayload.java"));
+		assertMissing(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinPlayback.java"));
+		assertMissing(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinPlaybackManager.java"));
+		assertMissing(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/NobaraNailFlightManager.java"));
+		assertMissing(ROOT.resolve("src/test/java/jujutsu/mod/character/nobara/HairpinGameplayServiceTest.java"));
+		assertMissing(ROOT.resolve("src/test/java/jujutsu/mod/character/nobara/NobaraCombatStateManagerTest.java"));
+		assertMissing(ROOT.resolve("src/test/java/jujutsu/mod/debug/HairpinDebugLogTest.java"));
+		assertMissing(ROOT.resolve("src/test/java/jujutsu/mod/fx/HairpinTimelineTest.java"));
+		assertMissing(ROOT.resolve("src/test/java/jujutsu/mod/fx/HairpinVisualProfileTest.java"));
+		assertMissing(MAIN_RESOURCES.resolve("assets/jujutsumod/models/item/hairpin_nail.json"));
+		assertMissing(MAIN_RESOURCES.resolve("assets/jujutsumod/models/item/straw_doll_hammer.json"));
+		assertMissing(MAIN_RESOURCES.resolve("assets/jujutsumod/textures/item/hairpin_nail.png"));
+		assertMissing(MAIN_RESOURCES.resolve("assets/jujutsumod/textures/item/straw_doll_hammer.png"));
+		assertMissing(MAIN_RESOURCES.resolve("assets/jujutsumod/textures/item/model/dark_steel.png"));
+		assertMissing(MAIN_RESOURCES.resolve("assets/jujutsumod/textures/item/model/hammer_wood.png"));
+		assertMissing(MAIN_RESOURCES.resolve("assets/jujutsumod/textures/item/model/oxblood.png"));
+		assertMissing(MAIN_RESOURCES.resolve("assets/jujutsumod/textures/item/model/steel_edge.png"));
+		assertMissing(MAIN_RESOURCES.resolve("assets/jujutsumod/shaders/include/hairpin_fracture.glsl"));
+		assertMissing(MAIN_RESOURCES.resolve("assets/jujutsumod/shaders/include/hairpin_timeline.glsl"));
+		assertMissing(MAIN_RESOURCES.resolve("assets/jujutsumod/shaders/post/hairpin_cinematic_distort.fsh"));
+		assertMissing(MAIN_RESOURCES.resolve("assets/jujutsumod/shaders/post/hairpin_cinematic_distort.vsh"));
+		assertMissing(MAIN_RESOURCES.resolve("assets/jujutsumod/shaders/post/hairpin_snap_edge.fsh"));
+		assertMissing(MAIN_RESOURCES.resolve("assets/jujutsumod/shaders/post/hairpin_snap_edge.vsh"));
+		assertMissing(MAIN_RESOURCES.resolve("assets/jujutsumod/shaders/post/hairpin_residue_dissolve.fsh"));
+		assertMissing(MAIN_RESOURCES.resolve("assets/jujutsumod/shaders/post/hairpin_residue_dissolve.vsh"));
+
+		String build = Files.readString(ROOT.resolve("build.gradle"));
+		assert !build.contains("testHairpinTimeline") : "Legacy Hairpin timeline test task must not be registered";
+		assert !build.contains("testHairpinVisualProfile") : "Legacy Hairpin visual profile test task must not be registered";
+		assert !build.contains("testHairpinDebugLog") : "Legacy Hairpin debug-log test task must not be registered";
+		assert !build.contains("testNobaraCombatStateManager") : "Legacy Nobara combat-state test task must not be registered";
+		assert !build.contains("testHairpinGameplayService") : "Legacy Hairpin gameplay-service test task must not be registered";
+
+		String networking = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/network/JujutsuNetworking.java"));
+		assert !networking.contains("HairpinFxPayload") : "Legacy Hairpin FX payload must not be registered";
+		assert !networking.contains("HairpinNailFlightPayload") : "Legacy nail flight payload must not be registered";
+		assert !networking.contains("PreparedNailsPayload") : "Legacy prepared-nail payload must not be registered";
+
+		String clientNetworking = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/network/JujutsuClientNetworking.java"));
+		assert !clientNetworking.contains("HairpinFxPayload") : "Client must not receive legacy Hairpin FX payloads";
+		assert !clientNetworking.contains("HairpinNailFlightPayload") : "Client must not receive legacy nail flight payloads";
+		assert !clientNetworking.contains("PreparedNailsPayload") : "Client must not receive legacy prepared-nail payloads";
+
+		String clientInit = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/JujutsuModClient.java"));
+		assert !clientInit.contains("HairpinPlaybackManager") : "Client must not tick the removed legacy Hairpin playback manager";
+		assert !clientInit.contains("NobaraNailFlightManager") : "Client must not tick the removed legacy nail-flight manager";
+	}
+
+	private static void assertMissing(Path path) {
+		assert !Files.exists(path) : "Legacy Nobara file should be removed: " + path;
 	}
 
 	private static void assertDefaultNobaraItemsUseProjectJjkModels() throws IOException {
@@ -280,8 +344,8 @@ public final class ProjectSanityTest {
 	private static void assertNobaraNailAuraAvoidsSoulFire() throws IOException {
 		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraRuntime.java"));
 		assert !runtime.contains("ParticleTypes.SOUL_FIRE_FLAME") : "Nobara nail aura must not use vanilla soul-fire particles";
-		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java"));
-		assert renderer.contains("renderBlueForceFieldEnvelope") : "Prepared and flying nails must use the previous blue force-field envelope";
+		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/ProjectJjkNailRenderer.java"));
+		assert renderer.contains("renderBlueForceFieldEnvelope") : "Real ProjectJJK nail entities must render the blue force-field envelope";
 		assert !renderer.contains("renderCyanNailFireAura") : "Blue nail aura must not use the rejected cyan flame ribbon geometry";
 		assert !renderer.contains("ParticleTypes.SOUL_FIRE_FLAME") : "Blue nail aura must be rendered geometry, not vanilla particles";
 	}
