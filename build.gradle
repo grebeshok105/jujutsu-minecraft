@@ -68,10 +68,21 @@ tasks.register('testProjectJjkNobaraProfile', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testVfxCore', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for shared VFX cue contracts'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.vfx.VfxCueTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.named('check') {
 	dependsOn tasks.named('testProjectSanity')
 	dependsOn tasks.named('testTargetResolver')
 	dependsOn tasks.named('testProjectJjkNobaraProfile')
+	dependsOn tasks.named('testVfxCore')
 }
 
 processResources {

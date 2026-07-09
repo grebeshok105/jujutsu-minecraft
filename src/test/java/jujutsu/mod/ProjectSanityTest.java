@@ -37,6 +37,7 @@ public final class ProjectSanityTest {
 		assertExplicitNobaraActionsAreVisible();
 		assertProjectJjkHairpinFinisherNumbers();
 		assertHairpinFinishersSnapWithoutMarks();
+		assertVfxCueTransportIsRegistered();
 		assertDefaultNobaraEntrypointSkipsLegacyRuntime();
 		assertLegacyNobaraRuntimeIsRemoved();
 		assertNobaraNailsEmbedLikeOpaqueBodyAnchors();
@@ -305,6 +306,14 @@ public final class ProjectSanityTest {
 		String client = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/network/JujutsuClientNetworking.java"));
 		assert client.contains("ProjectJjkNobaraImpulsePayload.FP_SNAP") : "Client networking must handle the first-person snap impulse";
 		assert client.contains("FpSnapAnimator.playSnap") : "Snap impulse must start the first-person hand animation";
+	}
+
+	private static void assertVfxCueTransportIsRegistered() throws IOException {
+		String networking = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/network/JujutsuNetworking.java"));
+		assert networking.contains("VfxCuePayload.TYPE") : "VFX cue payload must be registered on the S2C channel";
+		assert networking.contains("broadcastVfxCue") : "VFX core needs one radius-filtered server broadcast helper";
+		assert networking.contains("sendVfxCue") : "VFX core needs one direct server send helper";
+		assert networking.contains("ServerPlayNetworking.canSend(player, VfxCuePayload.TYPE)") : "VFX cue sends must remain capability-gated";
 	}
 
 	private static void assertFirstPersonSnapPipelineWired() throws IOException {

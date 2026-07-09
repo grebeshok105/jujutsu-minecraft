@@ -9,12 +9,14 @@ import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.character.CharacterSelectionManager;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraActions;
+import jujutsu.mod.vfx.VfxCue;
 
 public final class JujutsuNetworking {
 	private JujutsuNetworking() {}
 
 	public static void registerPayloads() {
 		PayloadTypeRegistry.playS2C().register(ProjectJjkNobaraImpulsePayload.TYPE, ProjectJjkNobaraImpulsePayload.STREAM_CODEC);
+		PayloadTypeRegistry.playS2C().register(VfxCuePayload.TYPE, VfxCuePayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(CharacterSelectionSyncPayload.TYPE, CharacterSelectionSyncPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(SelectCharacterPayload.TYPE, SelectCharacterPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(NobaraActionPayload.TYPE, NobaraActionPayload.STREAM_CODEC);
@@ -54,6 +56,30 @@ public final class JujutsuNetworking {
 			return false;
 		}
 		ServerPlayNetworking.send(player, payload);
+		return true;
+	}
+
+	public static int broadcastVfxCue(ServerLevel level, Vec3 center, double radius, VfxCue cue) {
+		double radiusSqr = radius * radius;
+		VfxCuePayload payload = new VfxCuePayload(cue);
+		int sent = 0;
+		for (ServerPlayer player : level.players()) {
+			if (player.position().distanceToSqr(center) > radiusSqr) {
+				continue;
+			}
+			if (ServerPlayNetworking.canSend(player, VfxCuePayload.TYPE)) {
+				ServerPlayNetworking.send(player, payload);
+				sent++;
+			}
+		}
+		return sent;
+	}
+
+	public static boolean sendVfxCue(ServerPlayer player, VfxCue cue) {
+		if (!ServerPlayNetworking.canSend(player, VfxCuePayload.TYPE)) {
+			return false;
+		}
+		ServerPlayNetworking.send(player, new VfxCuePayload(cue));
 		return true;
 	}
 
