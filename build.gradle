@@ -78,11 +78,33 @@ tasks.register('testVfxCore', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testVfxTimeline', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for VFX timeline timing'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.vfx.VfxTimelineTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
+tasks.register('testVfxQuality', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for VFX particle quality scaling'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.client.vfx.VfxQualityTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.named('check') {
 	dependsOn tasks.named('testProjectSanity')
 	dependsOn tasks.named('testTargetResolver')
 	dependsOn tasks.named('testProjectJjkNobaraProfile')
 	dependsOn tasks.named('testVfxCore')
+	dependsOn tasks.named('testVfxTimeline')
+	dependsOn tasks.named('testVfxQuality')
 }
 
 processResources {

@@ -38,6 +38,8 @@ public final class ProjectSanityTest {
 		assertProjectJjkHairpinFinisherNumbers();
 		assertHairpinFinishersSnapWithoutMarks();
 		assertVfxCueTransportIsRegistered();
+		assertVfxDirectorOwnsClientLifecycle();
+		assertVfxCoreProvidesReusableChannels();
 		assertDefaultNobaraEntrypointSkipsLegacyRuntime();
 		assertLegacyNobaraRuntimeIsRemoved();
 		assertNobaraNailsEmbedLikeOpaqueBodyAnchors();
@@ -314,6 +316,34 @@ public final class ProjectSanityTest {
 		assert networking.contains("broadcastVfxCue") : "VFX core needs one radius-filtered server broadcast helper";
 		assert networking.contains("sendVfxCue") : "VFX core needs one direct server send helper";
 		assert networking.contains("ServerPlayNetworking.canSend(player, VfxCuePayload.TYPE)") : "VFX cue sends must remain capability-gated";
+	}
+
+	private static void assertVfxDirectorOwnsClientLifecycle() throws IOException {
+		Path directorPath = CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxDirector.java");
+		assert Files.exists(directorPath) : "Missing client VfxDirector";
+		String director = Files.readString(directorPath);
+		assert director.contains("WorldRenderEvents.AFTER_ENTITIES.register") : "VfxDirector must own the transient world render callback";
+		assert director.contains("HudElementRegistry.attachElementAfter") : "VfxDirector must own the VFX HUD overlay callback";
+		assert director.contains("ClientPlayConnectionEvents.DISCONNECT") : "VfxDirector must clear active scenes on disconnect";
+		assert director.contains("VfxTimeline.isExpired") : "VfxDirector must discard expired late cues";
+		String clientEntrypoint = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/JujutsuModClient.java"));
+		assert clientEntrypoint.contains("VfxDirector.initialize()") : "Client startup must initialize VFX Core before receivers";
+	}
+
+	private static void assertVfxCoreProvidesReusableChannels() throws IOException {
+		String world = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxWorldChannel.java"));
+		assert world.contains("triggerImpact") : "VFX world channel must expose a timed impact primitive";
+		assert world.contains("renderCyanRing") && world.contains("addRibbon") && world.contains("addFlashBlade") : "VFX world channel must provide ring, ribbon, and blade primitives";
+		String hud = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxHudChannel.java"));
+		assert hud.contains("triggerImpact") && hud.contains("renderSmoothEdgeVignette") : "VFX HUD channel must own impact overlay primitives";
+		String camera = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxCameraChannel.java"));
+		assert camera.contains("triggerImpact") && camera.contains("triggerSwing") : "VFX camera channel must expose impact and swing impulses";
+		String firstPerson = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxFirstPersonChannel.java"));
+		assert firstPerson.contains("triggerSnap") && firstPerson.contains("DURATION_SECONDS") : "VFX first-person channel must own the snap animation";
+		String particles = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxParticleChannel.java"));
+		assert particles.contains("burst") && particles.contains("ring") : "VFX particle channel must expose reusable burst and ring helpers";
+		String sound = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxSoundChannel.java"));
+		assert sound.contains("playNoFalloff") : "VFX sound channel must own local cinematic sound playback";
 	}
 
 	private static void assertFirstPersonSnapPipelineWired() throws IOException {
