@@ -283,6 +283,12 @@ public final class ProjectSanityTest {
 		assert renderer.contains("DataTickets.PACKED_LIGHT") : "Nobara geo render must provide GeckoLib packed light data outside the dispatcher path";
 		assert !renderer.contains("render(cast(state), matrices") : "Nobara geo render must not render a raw vanilla PlayerRenderState without GeckoLib data";
 		assert !renderer.contains("catch (IllegalArgumentException") : "Nobara geo render must not silently fall back to the old player skin when GeckoLib data is missing";
+		String animatable = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoAnimatable.java"));
+		assert animatable.contains("state.isMoving()") : "Nobara idle/walk/run must use GeckoLib movement data";
+		assert animatable.contains("DataTickets.SPRINTING") && animatable.contains("DataTickets.VELOCITY") : "Nobara run animation must use real player movement tickets";
+		assert !animatable.contains("speedValue >") : "HumanoidRenderState.speedValue is a vanilla limb scale, not a movement trigger";
+		String geo = Files.readString(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json"));
+		assert geo.contains("\"name\": \"bb_main\",\n\t\t\t\t\t\"parent\": \"skirt\"") : "Nobara skirt/coat panels must follow the body instead of floating as a root bone";
 		String card = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/CharacterCard.java"));
 		assert card.contains("textures/entity/character/nobara.png") : "Character select portrait must keep using the player-skin head, not the GeckoLib NPC texture";
 	}

@@ -41,11 +41,21 @@ After the pose-stack fix, selecting Nobara no longer crashed but showed the old 
 
 The fix stores a weak client render context from `PlayerRenderer.extractRenderState`, resolves the current `AbstractClientPlayer` during the living render hook, runs `fillRenderState(getAnimatable(), player, state, partialTick)`, and adds `DataTickets.PACKED_LIGHT` before rendering. The old `IllegalArgumentException` catch was removed so a broken Gecko state cannot be hidden behind the old skin again.
 
+## Follow-up Idle / Skirt Fix
+
+After the Gecko body appeared in-game, the model stayed in the run pose while standing still and the rear/side clothing panel appeared detached. Root causes:
+
+- `NobaraPlayerGeoAnimatable` used `HumanoidRenderState.speedValue` as a movement trigger. In vanilla player animation this field is a limb-animation scale/divisor, not proof that the entity is moving, and it can sit around `1.0`.
+- The ProjectJJK `bb_main` clothing-panel bone is a root bone while the empty `skirt` bone is parented to `body`. In our player-replacement render path, that made the panels fail to follow the body pose.
+
+The animation predicate now follows ProjectJJK's intent more closely by using GeckoLib movement data (`state.isMoving()`), real velocity, and sprinting data tickets. `bb_main` is parented to `skirt` in the GeckoLib 5 runtime copy of the model so the clothing panels inherit the body transform.
+
 ## Verification
 
 - `gradlew.bat testProjectSanity testProjectJjkNobaraProfile --no-daemon` passed after the body-yaw and FP snap polish.
 - `gradlew.bat testProjectSanity --no-daemon` first failed on the missing pose-stack guard, then passed after the guard was added.
 - `gradlew.bat testProjectSanity --no-daemon` first failed on the missing Gecko render context, then passed after the player/partialTick context and `fillRenderState` path were added.
+- `gradlew.bat testProjectSanity --no-daemon` first failed on the old movement/skirt contract, then passed after the movement predicate and `bb_main` parent fix.
 - `gradlew.bat check --no-daemon` passed after all code changes.
 - `gradlew.bat build --no-daemon -x test` passed and produced `build/libs/jujutsumod-1.0.0.jar`.
 - The runtime jar was copied to `D:\Games\instances\Jujutsu\mods\jujutsumod-1.0.0.jar`.

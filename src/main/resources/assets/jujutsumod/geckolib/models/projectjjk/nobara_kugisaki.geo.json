@@ -13,6 +13,7 @@
 			"bones": [
 				{
 					"name": "bb_main",
+					"parent": "skirt",
 					"pivot": [0, 0, 0],
 					"cubes": [
 						{"origin": [1.7, 9.25, -2.25], "size": [2.75, 5, 4.5], "pivot": [2.7, 12.25, -0.5], "rotation": [0, 0, -22.5], "uv": [77, 4], "mirror": true},

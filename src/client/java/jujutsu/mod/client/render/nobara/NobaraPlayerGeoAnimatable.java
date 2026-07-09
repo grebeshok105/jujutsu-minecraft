@@ -1,6 +1,8 @@
 package jujutsu.mod.client.render.nobara;
 
+import net.minecraft.client.renderer.entity.state.PlayerRenderState;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.phys.Vec3;
 import software.bernie.geckolib.animatable.GeoReplacedEntity;
 import software.bernie.geckolib.animatable.SingletonGeoAnimatable;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
@@ -9,13 +11,16 @@ import software.bernie.geckolib.animatable.processing.AnimationController;
 import software.bernie.geckolib.animatable.processing.AnimationTest;
 import software.bernie.geckolib.animation.PlayState;
 import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.constant.DataTickets;
 import software.bernie.geckolib.renderer.base.GeoRenderState;
 import software.bernie.geckolib.util.GeckoLibUtil;
-import net.minecraft.client.renderer.entity.state.PlayerRenderState;
 
 public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 	public static final NobaraPlayerGeoAnimatable INSTANCE = new NobaraPlayerGeoAnimatable();
 	private static final String BASE_CONTROLLER = "nobara_player_base";
+	private static final float WALK_ANIMATION_THRESHOLD = 0.035f;
+	private static final double WALK_VELOCITY_THRESHOLD_SQR = 0.0016;
+	private static final double RUN_VELOCITY_THRESHOLD_SQR = 0.018;
 	private static final RawAnimation IDLE = loop("animation.player_model.idle");
 	private static final RawAnimation WALK = loop("animation.player_model.walk");
 	private static final RawAnimation RUN = loop("animation.player_model.run");
@@ -72,14 +77,25 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 			if (playerState.swinging || playerState.attackTime > 0.05f) {
 				return state.setAndContinue(ATTACK_1);
 			}
-			if (playerState.speedValue > 0.82f || playerState.walkAnimationSpeed > 0.82f) {
-				return state.setAndContinue(RUN);
-			}
-			if (playerState.walkAnimationSpeed > 0.035f || playerState.speedValue > 0.035f) {
-				return state.setAndContinue(WALK);
-			}
 		}
-		return state.setAndContinue(IDLE);
+		Movement movement = movement(state, renderState);
+		if (!movement.moving()) {
+			return state.setAndContinue(IDLE);
+		}
+		if (movement.running()) {
+			return state.setAndContinue(RUN);
+		}
+		return state.setAndContinue(WALK);
+	}
+
+	private static Movement movement(AnimationTest<NobaraPlayerGeoAnimatable> state, GeoRenderState renderState) {
+		float walkSpeed = renderState instanceof PlayerRenderState playerState ? playerState.walkAnimationSpeed : 0.0f;
+		Vec3 velocity = state.getDataOrDefault(DataTickets.VELOCITY, Vec3.ZERO);
+		double horizontalSpeedSqr = velocity.x * velocity.x + velocity.z * velocity.z;
+		boolean sprinting = Boolean.TRUE.equals(state.getDataOrDefault(DataTickets.SPRINTING, false));
+		boolean moving = state.isMoving() || walkSpeed > WALK_ANIMATION_THRESHOLD || horizontalSpeedSqr > WALK_VELOCITY_THRESHOLD_SQR;
+		boolean running = moving && (sprinting || walkSpeed > 0.82f || horizontalSpeedSqr > RUN_VELOCITY_THRESHOLD_SQR);
+		return new Movement(moving, running);
 	}
 
 	private static RawAnimation loop(String name) {
@@ -89,4 +105,6 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 	private static RawAnimation play(String name) {
 		return RawAnimation.begin().thenPlay(name);
 	}
+
+	private record Movement(boolean moving, boolean running) {}
 }
