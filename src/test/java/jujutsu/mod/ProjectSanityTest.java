@@ -44,6 +44,7 @@ public final class ProjectSanityTest {
 		assertNobaraNailAuraAvoidsSoulFire();
 		assertCharacterSelectUsesCheapUiPrimitives();
 		assertGeckoLibNobaraPlayerModelWired();
+		assertNobaraGeoHeadTracksPlayerLook();
 		assertNobaraGeoRenderRestoresPoseStack();
 		assertNobaraSkinUsesWideArms();
 		assertSoundReferencesAreLocalAndPresent();
@@ -291,6 +292,16 @@ public final class ProjectSanityTest {
 		assert geo.contains("\"name\": \"bb_main\",\n\t\t\t\t\t\"parent\": \"skirt\"") : "Nobara skirt/coat panels must follow the body instead of floating as a root bone";
 		String card = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/CharacterCard.java"));
 		assert card.contains("textures/entity/character/nobara.png") : "Character select portrait must keep using the player-skin head, not the GeckoLib NPC texture";
+	}
+
+	private static void assertNobaraGeoHeadTracksPlayerLook() throws IOException {
+		String geoModel = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoModel.java"));
+		assert geoModel.contains("setCustomAnimations") : "Nobara Gecko model must apply per-frame look rotation after ProjectJJK animations";
+		assert geoModel.contains("getBone(HEAD_BONE)") : "Nobara Gecko model must rotate the separate head bone, not the whole model";
+		assert geoModel.contains("playerState.yRot - playerState.bodyRot") : "Nobara head yaw must be relative to body yaw like vanilla players";
+		assert geoModel.contains("MAX_HEAD_YAW_DEGREES") : "Nobara head look must clamp yaw to avoid broken neck poses";
+		String geo = Files.readString(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json"));
+		assert Pattern.compile("\"name\"\\s*:\\s*\"head\"\\s*,\\s*\"parent\"\\s*:\\s*\"body\"").matcher(geo).find() : "Nobara model must keep a separate head bone parented to body for look tracking";
 	}
 
 	private static void assertNobaraGeoRenderRestoresPoseStack() throws IOException {
