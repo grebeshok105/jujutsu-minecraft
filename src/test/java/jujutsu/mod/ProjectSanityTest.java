@@ -44,6 +44,7 @@ public final class ProjectSanityTest {
 		assertNobaraNailAuraAvoidsSoulFire();
 		assertCharacterSelectUsesCheapUiPrimitives();
 		assertGeckoLibNobaraPlayerModelWired();
+		assertNobaraGeoRenderRestoresPoseStack();
 		assertNobaraSkinUsesWideArms();
 		assertSoundReferencesAreLocalAndPresent();
 		assertNoForbiddenImports();
@@ -273,6 +274,13 @@ public final class ProjectSanityTest {
 		assert manager.contains("rememberEntity") && manager.contains("selectionByEntityId") : "Renderer needs entity-id lookup while keeping GUI portrait skin logic separate";
 		String card = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/CharacterCard.java"));
 		assert card.contains("textures/entity/character/nobara.png") : "Character select portrait must keep using the player-skin head, not the GeckoLib NPC texture";
+	}
+
+	private static void assertNobaraGeoRenderRestoresPoseStack() throws IOException {
+		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoRenderer.java"));
+		assert renderer.contains("restorePoseStack") : "Nobara GeckoLib replacement render must restore PoseStack depth after rendering";
+		assert renderer.contains("matrices.pushPose()") : "Nobara GeckoLib replacement render needs a local guard pose";
+		assert renderer.contains("finally") : "PoseStack restoration must run even when GeckoLib render exits unusually";
 	}
 
 	private static void assertNobaraSkinUsesWideArms() throws IOException {

@@ -29,9 +29,16 @@ This pass implements the crash/glow/nails/boom/snap fixes from the maintenance a
 - `ProjectJjkNailRenderer` render-attaches embedded nails to the host with partial-tick host position and interpolated body yaw.
 - Hairpin Explosion search starts at the caster eye (`HAIRPIN_EXPLOSION_DETECT_FORWARD_OFFSET = 0.0`) and falls back to nearby owned embedded nails/marked targets.
 
+## Follow-up Crash Fix
+
+After the first jar install, the client crashed at `2026-07-09 14:39:54` with `IllegalStateException: Pose stack not empty` in `LevelRenderer.checkPoseStack`. The crash was a render-stack balance issue, not the earlier GeckoLib missing-model issue.
+
+`NobaraPlayerGeoRenderer.renderNobara` now wraps the GeckoLib replacement render in a local `PoseStack` guard and restores the stack in `finally`. This keeps a GeckoLib replacement render from leaking an extra pose into Minecraft's world render pass.
+
 ## Verification
 
 - `gradlew.bat testProjectSanity testProjectJjkNobaraProfile --no-daemon` passed after the body-yaw and FP snap polish.
+- `gradlew.bat testProjectSanity --no-daemon` first failed on the missing pose-stack guard, then passed after the guard was added.
 - `gradlew.bat check --no-daemon` passed after all code changes.
 - `gradlew.bat build --no-daemon -x test` passed and produced `build/libs/jujutsumod-1.0.0.jar`.
 - The runtime jar was copied to `D:\Games\instances\Jujutsu\mods\jujutsumod-1.0.0.jar`.

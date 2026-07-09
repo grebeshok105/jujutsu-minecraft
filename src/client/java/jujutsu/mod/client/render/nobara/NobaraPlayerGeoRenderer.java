@@ -16,11 +16,24 @@ public final class NobaraPlayerGeoRenderer<R extends PlayerRenderState & GeoRend
 	}
 
 	public boolean renderNobara(PlayerRenderState state, PoseStack matrices, MultiBufferSource consumers, int packedLight) {
+		matrices.pushPose();
+		Object guardPose = matrices.last();
 		try {
 			render(cast(state), matrices, consumers, packedLight);
 			return true;
 		} catch (IllegalArgumentException exception) {
 			return false;
+		} finally {
+			restorePoseStack(matrices, guardPose);
+		}
+	}
+
+	private static void restorePoseStack(PoseStack matrices, Object guardPose) {
+		while (!matrices.isEmpty() && matrices.last() != guardPose) {
+			matrices.popPose();
+		}
+		if (!matrices.isEmpty()) {
+			matrices.popPose();
 		}
 	}
 
