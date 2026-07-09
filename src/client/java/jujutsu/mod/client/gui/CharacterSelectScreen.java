@@ -134,11 +134,13 @@ public final class CharacterSelectScreen extends UiScreen {
 		Component clipped = trimToWidth(font, label, available);
 		g.drawString(font, clipped, textX, y + (h - font.lineHeight) / 2 + 1, UiTheme.TEXT, false);
 		if (!key.isEmpty()) {
-			int badgeW = 12;
+			int badgeW = 13;
+			int badgeH = 12;
 			int badgeX = x + w - badgeW - 4;
-			int badgeY = y + 4;
-			UiRender.roundedRect(g, badgeX, badgeY, badgeW, 10, 4, 0xD10B0E13, UiRender.withAlpha(accent, 0.42f));
-			g.drawString(font, key, badgeX + (badgeW - font.width(key)) / 2, badgeY + 1, UiTheme.TEXT, false);
+			int badgeY = y + h - badgeH - 4;
+			UiRender.fastGlow(g, badgeX, badgeY, badgeW, badgeH, accent, 0.12f);
+			UiRender.roundedRect(g, badgeX, badgeY, badgeW, badgeH, 4, UiRender.withAlpha(accent, 0.28f), UiRender.withAlpha(accent, 0.62f));
+			g.drawString(font, key, badgeX + (badgeW - font.width(key)) / 2, badgeY + 2, UiTheme.TEXT, false);
 		}
 	}
 

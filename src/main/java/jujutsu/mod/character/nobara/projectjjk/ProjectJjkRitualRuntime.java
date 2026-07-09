@@ -5,13 +5,17 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -22,6 +26,8 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.scores.PlayerTeam;
+import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.combat.TargetResolver;
@@ -41,6 +47,8 @@ public final class ProjectJjkRitualRuntime {
 	private static final List<PendingEnlarge> PENDING_ENLARGES = new ArrayList<>();
 	private static final RandomSource RANDOM = RandomSource.create();
 	private static final DustParticleOptions PROJECTJJK_CYAN = new DustParticleOptions(0x2CE8F5, 1.15f);
+	private static final String MARK_GLOW_TEAM_NAME = "jjk_ce_mark";
+	private static final Map<UUID, MarkGlowState> MARK_GLOW_RESTORE = new ConcurrentHashMap<>();
 
 	private ProjectJjkRitualRuntime() {}
 
@@ -49,6 +57,7 @@ public final class ProjectJjkRitualRuntime {
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			PENDING_EXPLOSIONS.clear();
 			PENDING_ENLARGES.clear();
+			restoreAllGlowTeams(server.getScoreboard());
 		});
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
 			UUID id = handler.player.getUUID();
@@ -56,11 +65,12 @@ public final class ProjectJjkRitualRuntime {
 		});
 	}
 
-	private static void onServerTick(net.minecraft.server.MinecraftServer server) {
+	private static void onServerTick(MinecraftServer server) {
 		long gameTime = server.overworld().getGameTime();
 		tickHairpinTasks(gameTime);
 		if ((gameTime & 63L) == 0L) {
 			ProjectJjkNailMarks.pruneExpired(gameTime);
+			pruneGlowingMarks(server, gameTime);
 		}
 	}
 
@@ -76,6 +86,7 @@ public final class ProjectJjkRitualRuntime {
 		int marks = ProjectJjkNailMarks.apply(target.getUUID(), level.getGameTime());
 		Vec3 center = target.position().add(0.0, target.getBbHeight() * 0.55, 0.0);
 		Vec3 at = wound == null ? center : wound.lerp(center, 0.18);
+		applyCursedGlow(level, target);
 		target.addEffect(new MobEffectInstance(MobEffects.GLOWING, ProjectJjkNobaraProfile.MARK_DURATION_TICKS, 0, false, false, true));
 		level.sendParticles(JujutsuParticles.HAIRPIN_SNAP_CRACK, at.x, at.y, at.z, 2 + marks, 0.08, 0.10, 0.08, 0.022);
 		level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, at.x, at.y, at.z, 2, 0.12, 0.14, 0.12, 0.018);
@@ -492,6 +503,75 @@ public final class ProjectJjkRitualRuntime {
 
 	private static void clearGlowingMark(LivingEntity target) {
 		target.removeEffect(MobEffects.GLOWING);
+		restoreGlowTeam(target.level().getScoreboard(), target.getUUID());
+	}
+
+	private static void applyCursedGlow(ServerLevel level, LivingEntity target) {
+		Scoreboard scoreboard = level.getScoreboard();
+		PlayerTeam current = scoreboard.getPlayersTeam(target.getScoreboardName());
+		if (current == null || !MARK_GLOW_TEAM_NAME.equals(current.getName())) {
+			MARK_GLOW_RESTORE.putIfAbsent(target.getUUID(),
+					new MarkGlowState(target.getScoreboardName(), current == null ? null : current.getName()));
+		}
+		PlayerTeam markTeam = scoreboard.getPlayerTeam(MARK_GLOW_TEAM_NAME);
+		if (markTeam == null) {
+			markTeam = scoreboard.addPlayerTeam(MARK_GLOW_TEAM_NAME);
+		}
+		markTeam.setColor(ChatFormatting.AQUA);
+		scoreboard.addPlayerToTeam(target.getScoreboardName(), markTeam);
+	}
+
+	private static void pruneGlowingMarks(MinecraftServer server, long gameTime) {
+		for (UUID targetId : new ArrayList<>(MARK_GLOW_RESTORE.keySet())) {
+			if (ProjectJjkNailMarks.marks(targetId, gameTime) > 0) {
+				continue;
+			}
+			Entity entity = findEntity(server, targetId);
+			if (entity instanceof LivingEntity living) {
+				clearGlowingMark(living);
+			} else {
+				restoreGlowTeam(server.getScoreboard(), targetId);
+			}
+		}
+	}
+
+	private static Entity findEntity(MinecraftServer server, UUID targetId) {
+		for (ServerLevel level : server.getAllLevels()) {
+			Entity entity = level.getEntity(targetId);
+			if (entity != null) {
+				return entity;
+			}
+		}
+		return null;
+	}
+
+	private static void restoreGlowTeam(Scoreboard scoreboard, UUID targetId) {
+		MarkGlowState state = MARK_GLOW_RESTORE.remove(targetId);
+		if (state == null) {
+			return;
+		}
+		restoreGlowTeam(scoreboard, state);
+	}
+
+	private static void restoreAllGlowTeams(Scoreboard scoreboard) {
+		for (MarkGlowState state : new ArrayList<>(MARK_GLOW_RESTORE.values())) {
+			restoreGlowTeam(scoreboard, state);
+		}
+		MARK_GLOW_RESTORE.clear();
+	}
+
+	private static void restoreGlowTeam(Scoreboard scoreboard, MarkGlowState state) {
+		PlayerTeam markTeam = scoreboard.getPlayerTeam(MARK_GLOW_TEAM_NAME);
+		if (markTeam != null && markTeam.getPlayers().contains(state.scoreboardName())) {
+			scoreboard.removePlayerFromTeam(state.scoreboardName(), markTeam);
+		}
+		if (state.previousTeamName() == null) {
+			return;
+		}
+		PlayerTeam previous = scoreboard.getPlayerTeam(state.previousTeamName());
+		if (previous != null) {
+			scoreboard.addPlayerToTeam(state.scoreboardName(), previous);
+		}
 	}
 
 	private static boolean isInsideSearchCapsule(Vec3 point, Vec3 start, Vec3 end, double radius) {
@@ -521,6 +601,8 @@ public final class ProjectJjkRitualRuntime {
 	}
 
 	private record PendingEnlarge(ServerLevel level, UUID casterId, UUID targetId, int targetEntityId, long dueGameTime, int marks) {}
+
+	private record MarkGlowState(String scoreboardName, String previousTeamName) {}
 
 	private static final class PendingExplosion {
 		private final ServerLevel level;

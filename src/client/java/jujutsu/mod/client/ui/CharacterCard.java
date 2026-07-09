@@ -39,14 +39,13 @@ public final class CharacterCard extends UiElement {
 
 	@Override
 	protected void draw(GuiGraphics g, int mouseX, int mouseY, float deltaTicks) {
-		selectAnim = UiEase.approach(selectAnim, selected ? 1.0f : 0.0f, 0.3f, deltaTicks);
-		float lift = hover * 3.0f + selectAnim * 2.0f;
+		selectAnim = UiEase.approach(selectAnim, selected ? 1.0f : 0.0f, 0.22f, deltaTicks);
 		int bx = Math.round(x);
-		int by = Math.round(y - lift);
+		int by = Math.round(y);
 		int bw = Math.round(width);
 		int bh = Math.round(height);
 
-		float energy = Math.max(hover, selectAnim);
+		float energy = UiEase.inOutCubic(Math.max(hover, selectAnim));
 		UiRender.fastShadow(g, bx, by + 2, bw, bh, 0x88000000);
 		if (energy > 0.01f) {
 			UiRender.fastGlow(g, bx, by, bw, bh, accentRgb, energy * 0.82f);
@@ -64,7 +63,9 @@ public final class CharacterCard extends UiElement {
 		int px = bx + pad;
 		int py = by + pad;
 		int pw = bw - pad * 2;
-		UiRender.roundedRect(g, px, py, pw, portraitH, 6, 0xFF15171D, UiRender.withAlpha(accentRgb, 0.14f + energy * 0.2f));
+		if (portrait != Portrait.NOBARA) {
+			UiRender.roundedRect(g, px, py, pw, portraitH, 6, 0xFF15171D, UiRender.withAlpha(accentRgb, 0.14f + energy * 0.2f));
+		}
 		drawPortrait(g, px, py, pw, portraitH, energy);
 
 		// Name + role.
@@ -106,20 +107,14 @@ public final class CharacterCard extends UiElement {
 
 	private void drawNobaraPortrait(GuiGraphics g, int x, int y, int w, int h, float energy) {
 		int cx = x + w / 2;
-		int head = 46;
+		int head = Math.min(60, Math.max(52, Math.min(w - 34, h - 32)));
 		int headX = cx - head / 2;
-		int headY = y + 14;
-		UiRender.roundedRect(g, headX - 5, headY - 5, head + 10, head + 10, 8, 0xFF20232A, UiRender.withAlpha(accentRgb, 0.16f + energy * 0.18f));
+		int headY = y + 16;
+		if (energy > 0.02f) {
+			UiRender.fastGlow(g, headX + 3, headY + 3, head - 6, head - 6, accentRgb, energy * 0.16f);
+		}
 		g.blit(RenderPipelines.GUI_TEXTURED, NOBARA_SKIN, headX, headY, 8.0f, 8.0f, head, head, 8, 8, 64, 64);
 		g.blit(RenderPipelines.GUI_TEXTURED, NOBARA_SKIN, headX, headY, 40.0f, 8.0f, head, head, 8, 8, 64, 64);
-
-		int coatY = y + h - 24;
-		UiRender.roundedRect(g, cx - 23, coatY, 46, 24, 7, 0xFF20232A, UiRender.withAlpha(accentRgb, 0.18f));
-		UiRender.roundedRect(g, cx - 4, coatY + 2, 8, 22, 3, UiRender.withAlpha(accentRgb, 0.46f + energy * 0.18f));
-		int nailX = x + w - 12;
-		int nailY = y + 12;
-		g.fill(nailX, nailY, nailX + 2, nailY + 12, 0xFFD8D2C0);
-		g.fill(nailX - 2, nailY, nailX + 4, nailY + 2, 0xFF8E867C);
 	}
 
 	private void drawNonePortrait(GuiGraphics g, int cx, int y, int h, float energy) {

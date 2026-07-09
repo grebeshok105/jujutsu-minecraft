@@ -210,6 +210,12 @@ public final class ProjectSanityTest {
 	private static void assertNobaraTargetMarksUseVanillaGlowing() throws IOException {
 		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
 		assert runtime.contains("MobEffects.GLOWING") : "Target marks must use Minecraft's real Glowing effect";
+		assert runtime.contains("ChatFormatting.AQUA") : "Target mark Glowing must be cursed-energy cyan/blue, not vanilla white";
+		assert runtime.contains("scoreboard.addPlayerToTeam(target.getScoreboardName(), markTeam)") : "Target mark must color Glowing through a scoreboard team";
+		assert runtime.contains("previousTeamName") : "Target mark team coloring must remember the victim's previous scoreboard team";
+		assert runtime.contains("scoreboard.removePlayerFromTeam(state.scoreboardName(), markTeam)") : "Clearing marks must remove only our temporary glow team membership";
+		assert runtime.contains("pruneGlowingMarks(server, gameTime)") : "Expired target marks must clean up temporary glow team state";
+		assert runtime.contains("restoreAllGlowTeams(server.getScoreboard())") : "Server stop must restore glow teams before dropping in-memory snapshots";
 		assert runtime.contains("clearGlowingMark") : "Consumed marks must remove our Glowing effect instead of leaving a stale target mark";
 		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java"));
 		assert !renderer.contains("renderTargetMarks") : "Target marks must not be custom world geometry when vanilla Glowing is active";
@@ -237,13 +243,17 @@ public final class ProjectSanityTest {
 		assert !snapMixin.contains("ci.cancel()") : "First-person snap must not cancel vanilla hand rendering; that makes the arm disappear";
 		assert snapMixin.contains("@Inject(method = \"renderHandsWithItems\", at = @At(\"HEAD\"))") : "First-person snap should apply a transform before vanilla hand rendering";
 		assert snapMixin.contains("@Inject(method = \"renderHandsWithItems\", at = @At(\"RETURN\"))") : "First-person snap must restore the pose stack after vanilla hand rendering";
+		String snap = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/FpSnapAnimator.java"));
+		assert snap.contains("DURATION_SECONDS = 0.75f") : "Snap timing should preserve ProjectJJK's full 0..15 scaled snap phases";
+		assert snap.contains("scaledProgress") && snap.contains("easeInQuint") && snap.contains("easeInCubic") : "Snap pose should keep ProjectJJK-style windup/hold/release phases";
 	}
 
 	private static void assertNobaraNailAuraAvoidsSoulFire() throws IOException {
 		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraRuntime.java"));
 		assert !runtime.contains("ParticleTypes.SOUL_FIRE_FLAME") : "Nobara nail aura must not use vanilla soul-fire particles";
 		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java"));
-		assert renderer.contains("renderCyanNailFireAura") : "Prepared and flying nails must use cyan flame geometry around the nail";
+		assert renderer.contains("renderBlueForceFieldEnvelope") : "Prepared and flying nails must use the previous blue force-field envelope";
+		assert !renderer.contains("renderCyanNailFireAura") : "Blue nail aura must not use the rejected cyan flame ribbon geometry";
 		assert !renderer.contains("ParticleTypes.SOUL_FIRE_FLAME") : "Blue nail aura must be rendered geometry, not vanilla particles";
 	}
 
@@ -253,6 +263,11 @@ public final class ProjectSanityTest {
 		assert !uiRender.contains("cornerInset(") : "Rounded rects should use cheap block primitives instead of per-row corner scans";
 		String uiButton = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/UiButton.java"));
 		assert !uiButton.contains("for (int row = 0; row < h; row++)") : "Character select buttons must not paint gradients one pixel row at a time";
+		String card = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/CharacterCard.java"));
+		assert !card.contains("y - lift") : "Character cards must not animate through rounded integer Y jumps";
+		assert !card.contains("headX - 5") : "Nobara portrait must not draw the side background around the skin head";
+		assert !card.contains("coatY") : "Nobara portrait must not draw the old orange body/coat stub below the head";
+		assert !card.contains("nailX") : "Nobara portrait must not draw the old right-side nail that reads like a T";
 	}
 
 	private static void assertGeckoLibNobaraPlayerModelWired() throws IOException {
