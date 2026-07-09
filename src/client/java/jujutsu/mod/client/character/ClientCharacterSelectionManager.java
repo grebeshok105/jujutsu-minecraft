@@ -9,6 +9,7 @@ import jujutsu.mod.network.CharacterSelectionSyncPayload;
 
 public final class ClientCharacterSelectionManager {
 	private static final Map<UUID, Selection> SELECTIONS = new ConcurrentHashMap<>();
+	private static final Map<Integer, UUID> ENTITY_IDS = new ConcurrentHashMap<>();
 
 	private ClientCharacterSelectionManager() {}
 
@@ -25,8 +26,18 @@ public final class ClientCharacterSelectionManager {
 		return SELECTIONS.get(playerId);
 	}
 
+	public static void rememberEntity(int entityId, UUID playerId) {
+		ENTITY_IDS.put(entityId, playerId);
+	}
+
+	public static Selection selectionByEntityId(int entityId) {
+		UUID playerId = ENTITY_IDS.get(entityId);
+		return playerId == null ? null : selection(playerId);
+	}
+
 	public static void clear() {
 		SELECTIONS.clear();
+		ENTITY_IDS.clear();
 	}
 
 	private static PlayerSkin.Model model(String modelId) {

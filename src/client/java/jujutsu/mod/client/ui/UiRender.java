@@ -45,10 +45,7 @@ public final class UiRender {
 		roundedRect(g, x, y, w, h, radius, argb, 0);
 	}
 
-	/**
-	 * Rounded rectangle with optional 1px border. Corners use a small per-row inset table so the
-	 * silhouette reads as a smooth radius rather than a hard box.
-	 */
+	/** Rounded rectangle with optional 1px border using a small fixed set of fills. */
 	public static void roundedRect(GuiGraphics g, int x, int y, int w, int h, int radius, int fillArgb, int borderArgb) {
 		if (w <= 0 || h <= 0) {
 			return;
@@ -56,25 +53,34 @@ public final class UiRender {
 		int r = Math.max(0, Math.min(radius, Math.min(w, h) / 2));
 		boolean hasFill = (fillArgb >>> 24) != 0;
 		boolean hasBorder = (borderArgb >>> 24) != 0;
-		for (int row = 0; row < h; row++) {
-			int inset = cornerInset(row, h, r);
-			int rowX = x + inset;
-			int rowW = w - inset * 2;
-			if (rowW <= 0) {
-				continue;
-			}
+		if (r <= 1) {
 			if (hasFill) {
-				g.fill(rowX, y + row, rowX + rowW, y + row + 1, fillArgb);
+				fill(g, x, y, w, h, fillArgb);
 			}
 			if (hasBorder) {
-				boolean edgeRow = row == 0 || row == h - 1 || inset != cornerInset(row - 1, h, r) || inset != cornerInset(row + 1, h, r);
-				if (edgeRow) {
-					g.fill(rowX, y + row, rowX + rowW, y + row + 1, borderArgb);
-				} else {
-					g.fill(rowX, y + row, rowX + 1, y + row + 1, borderArgb);
-					g.fill(rowX + rowW - 1, y + row, rowX + rowW, y + row + 1, borderArgb);
-				}
+				border(g, x, y, w, h, borderArgb);
 			}
+			return;
+		}
+
+		int half = Math.max(1, r / 2);
+		if (hasFill) {
+			fill(g, x + r, y, w - r * 2, h, fillArgb);
+			fill(g, x, y + r, r, h - r * 2, fillArgb);
+			fill(g, x + w - r, y + r, r, h - r * 2, fillArgb);
+			fill(g, x + half, y + half, w - half * 2, r - half, fillArgb);
+			fill(g, x + half, y + h - r, w - half * 2, r - half, fillArgb);
+			fill(g, x + half, y + r, w - half * 2, h - r * 2, fillArgb);
+		}
+		if (hasBorder) {
+			horizontalLine(g, x + r, x + w - r, y, borderArgb);
+			horizontalLine(g, x + r, x + w - r, y + h - 1, borderArgb);
+			fill(g, x, y + r, 1, h - r * 2, borderArgb);
+			fill(g, x + w - 1, y + r, 1, h - r * 2, borderArgb);
+			fill(g, x + half, y + half, 1, half, borderArgb);
+			fill(g, x + w - half - 1, y + half, 1, half, borderArgb);
+			fill(g, x + half, y + h - r, 1, half, borderArgb);
+			fill(g, x + w - half - 1, y + h - r, 1, half, borderArgb);
 		}
 	}
 
@@ -137,21 +143,10 @@ public final class UiRender {
 		return (a << 24) | (rgb & 0x00FFFFFF);
 	}
 
-	private static int cornerInset(int row, int h, int r) {
-		if (r <= 0) {
-			return 0;
-		}
-		int dist;
-		if (row < r) {
-			dist = r - row;
-		} else if (row >= h - r) {
-			dist = row - (h - r) + 1;
-		} else {
-			return 0;
-		}
-		// Circle-ish inset: inset = r - sqrt(r^2 - (r-dist)^2).
-		int k = r - dist;
-		double v = Math.sqrt(Math.max(0, (double) r * r - (double) k * k));
-		return Math.max(0, r - (int) Math.round(v));
+	private static void border(GuiGraphics g, int x, int y, int w, int h, int argb) {
+		horizontalLine(g, x, x + w, y, argb);
+		horizontalLine(g, x, x + w, y + h - 1, argb);
+		fill(g, x, y, 1, h, argb);
+		fill(g, x + w - 1, y, 1, h, argb);
 	}
 }

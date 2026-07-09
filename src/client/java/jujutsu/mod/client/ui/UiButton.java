@@ -72,26 +72,13 @@ public class UiButton extends UiElement {
 	}
 
 	private static void paintGradientPill(GuiGraphics g, int x, int y, int w, int h, int radius, int top, int bottom) {
-		for (int row = 0; row < h; row++) {
-			float t = h == 1 ? 0.0f : row / (float) (h - 1);
-			int color = UiRender.lerpColor(top, bottom, t);
-			int inset = insetForRow(row, h, radius);
-			UiRender.fill(g, x + inset, y + row, w - inset * 2, 1, color);
-		}
-	}
-
-	private static int insetForRow(int row, int h, int r) {
-		int dist;
-		if (row < r) {
-			dist = r - row;
-		} else if (row >= h - r) {
-			dist = row - (h - r) + 1;
-		} else {
-			return 0;
-		}
-		int k = r - dist;
-		double v = Math.sqrt(Math.max(0, (double) r * r - (double) k * k));
-		return Math.max(0, r - (int) Math.round(v));
+		int upperH = Math.max(1, h / 3);
+		int middleH = Math.max(1, h - upperH * 2);
+		int lowerY = y + upperH + middleH;
+		UiRender.roundedRect(g, x, y, w, h, radius, bottom);
+		UiRender.fill(g, x + radius / 2, y + 1, w - radius, upperH, top);
+		UiRender.fill(g, x + 2, y + upperH, w - 4, middleH, UiRender.lerpColor(top, bottom, 0.52f));
+		UiRender.fill(g, x + radius / 2, lowerY, w - radius, Math.max(1, y + h - lowerY - 1), bottom);
 	}
 
 	@Override

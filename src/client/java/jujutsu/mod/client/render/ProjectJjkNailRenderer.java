@@ -1,10 +1,8 @@
 package jujutsu.mod.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.ItemRenderer;
@@ -50,15 +48,15 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		matrices.pushPose();
 		matrices.mulPose(new Quaternionf().rotationTo(MODEL_UP, toVector3f(direction)));
 		if (state.embedded) {
-			renderEmbeddedMark(matrices, consumers, state);
+			matrices.translate(0.0f, -0.18f, 0.0f);
 		}
 		matrices.pushPose();
-		float scale = state.embedded ? 0.54f : state.launched ? 0.7f : 0.62f;
+		float scale = state.embedded ? 0.58f : state.launched ? 0.7f : 0.62f;
 		matrices.mulPose(new Quaternionf().rotateY((float) ((state.seed & 3) * Math.PI * 0.5)));
 		matrices.scale(scale, scale, scale);
 		itemRenderer.renderStatic(
 				NAIL_STACK,
-				ItemDisplayContext.NONE,
+				ItemDisplayContext.FIXED,
 				packedLight,
 				OverlayTexture.NO_OVERLAY,
 				matrices,
@@ -69,27 +67,6 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		matrices.popPose();
 		matrices.popPose();
 		super.render(state, matrices, consumers, packedLight);
-	}
-
-	private static void renderEmbeddedMark(PoseStack matrices, MultiBufferSource consumers, State state) {
-		VertexConsumer consumer = consumers.getBuffer(RenderType.lightning());
-		PoseStack.Pose pose = matrices.last();
-		float pulse = 0.82f + 0.18f * (float) Math.sin(state.age * 0.18f);
-		int alpha = Math.round(84.0f * pulse);
-		addRibbon(consumer, pose, -0.28f, -0.06f, 0.0f, 0.28f, -0.06f, 0.0f, 0.0f, 0.0f, 0.052f, 24, 3, 8, alpha);
-		addRibbon(consumer, pose, 0.0f, -0.09f, -0.24f, 0.0f, -0.09f, 0.24f, 0.052f, 0.0f, 0.0f, 44, 4, 12, alpha / 2);
-		addRibbon(consumer, pose, -0.14f, -0.02f, -0.14f, 0.14f, -0.02f, 0.14f, 0.026f, 0.0f, -0.026f, 74, 8, 16, alpha / 3);
-	}
-
-	private static void addRibbon(VertexConsumer consumer, PoseStack.Pose pose, float startX, float startY, float startZ, float endX, float endY, float endZ, float sideX, float sideY, float sideZ, int red, int green, int blue, int alpha) {
-		consumer.addVertex(pose, startX - sideX, startY - sideY, startZ - sideZ).setColor(red, green, blue, alpha);
-		consumer.addVertex(pose, endX - sideX, endY - sideY, endZ - sideZ).setColor(red, green, blue, alpha);
-		consumer.addVertex(pose, endX + sideX, endY + sideY, endZ + sideZ).setColor(red, green, blue, alpha);
-		consumer.addVertex(pose, startX + sideX, startY + sideY, startZ + sideZ).setColor(red, green, blue, alpha);
-		consumer.addVertex(pose, startX + sideX, startY + sideY, startZ + sideZ).setColor(red, green, blue, alpha);
-		consumer.addVertex(pose, endX + sideX, endY + sideY, endZ + sideZ).setColor(red, green, blue, alpha);
-		consumer.addVertex(pose, endX - sideX, endY - sideY, endZ - sideZ).setColor(red, green, blue, alpha);
-		consumer.addVertex(pose, startX - sideX, startY - sideY, startZ - sideZ).setColor(red, green, blue, alpha);
 	}
 
 	private static Vec3 safeDirection(Vec3 vector) {

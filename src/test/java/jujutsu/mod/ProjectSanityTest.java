@@ -37,6 +37,11 @@ public final class ProjectSanityTest {
 		assertExplicitNobaraActionsAreVisible();
 		assertProjectJjkHairpinFinisherNumbers();
 		assertDefaultNobaraEntrypointSkipsLegacyRuntime();
+		assertNobaraNailsEmbedLikeOpaqueBodyAnchors();
+		assertNobaraTargetMarksRenderAsBodyGlow();
+		assertNobaraNailAuraAvoidsSoulFire();
+		assertCharacterSelectUsesCheapUiPrimitives();
+		assertGeckoLibNobaraPlayerModelWired();
 		assertNobaraSkinUsesWideArms();
 		assertSoundReferencesAreLocalAndPresent();
 		assertNoForbiddenImports();
@@ -181,6 +186,61 @@ public final class ProjectSanityTest {
 		assert profile.contains("HAIRPIN_ENLARGE_DAMAGE = 12.0f") : "Hairpin Enlarge damage should match ProjectJJK player ability registry";
 		assert profile.contains("DETONATE_DAMAGE_BASE = 1.0f") : "Hairpin Explosion damage should match ProjectJJK player ability registry";
 		assert profile.contains("DETONATE_DAMAGE_PER_MARK = 0.0f") : "Hairpin Explosion must not scale from old jujutsumod mark damage";
+	}
+
+	private static void assertNobaraNailsEmbedLikeOpaqueBodyAnchors() throws IOException {
+		String nailEntity = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNailEntity.java"));
+		assert nailEntity.contains("ProjectJjkNailEmbedding.bodyEmbedPoint") : "Embedded nails must use body-space attachment math, not AABB clamp-only placement";
+		assert !nailEntity.contains("setOldPosAndRot(next") : "Embedded nails must not reset old position each tick; that creates visible chase/teleporting";
+		String nailRenderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/ProjectJjkNailRenderer.java"));
+		assert !nailRenderer.contains("renderEmbeddedMark") : "Embedded nail renderer must not draw translucent lightning ribbons on the nail mesh";
+		assert nailRenderer.contains("ItemDisplayContext.FIXED") : "Nail renderer should use the fixed 3D item transform for stable arrow-like embedding";
+	}
+
+	private static void assertNobaraTargetMarksRenderAsBodyGlow() throws IOException {
+		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java"));
+		assert renderer.contains("entity.getPosition(partialTick)") : "Target marks must use partial-tick entity position so the glow is glued to the body";
+		assert renderer.contains("renderBodyGlowShell") : "Target marks should render as a tight body glow shell";
+		assert !renderer.contains("renderBlueBodyRing") : "Target marks must not be the old free-floating blue cage";
+	}
+
+	private static void assertNobaraNailAuraAvoidsSoulFire() throws IOException {
+		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraRuntime.java"));
+		assert !runtime.contains("ParticleTypes.SOUL_FIRE_FLAME") : "Nobara nail aura must not use vanilla soul-fire particles";
+		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java"));
+		assert renderer.contains("renderBlueForceFieldEnvelope") : "Prepared and flying nails must use a blue force-field envelope";
+		assert !renderer.contains("renderBlueFlameEnvelope") : "Blue nail aura should not be implemented as flame tongues";
+	}
+
+	private static void assertCharacterSelectUsesCheapUiPrimitives() throws IOException {
+		String uiRender = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/UiRender.java"));
+		assert !uiRender.contains("for (int row = 0; row < h; row++)") : "Large rounded UI panels must not submit one fill per pixel row";
+		assert !uiRender.contains("cornerInset(") : "Rounded rects should use cheap block primitives instead of per-row corner scans";
+		String uiButton = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/UiButton.java"));
+		assert !uiButton.contains("for (int row = 0; row < h; row++)") : "Character select buttons must not paint gradients one pixel row at a time";
+	}
+
+	private static void assertGeckoLibNobaraPlayerModelWired() throws IOException {
+		String gradle = Files.readString(ROOT.resolve("build.gradle"));
+		assert gradle.contains("software.bernie.geckolib") : "GeckoLib must be a declared dependency for the Nobara player geo model";
+		String properties = Files.readString(ROOT.resolve("gradle.properties"));
+		assert properties.contains("geckolib_version=5.2.2") : "GeckoLib version must match the installed 1.21.8 runtime jar";
+		String modJson = Files.readString(ROOT.resolve("src/main/resources/fabric.mod.json"));
+		assert modJson.contains("\"geckolib\"") : "fabric.mod.json must declare the required GeckoLib runtime dependency";
+		String mixins = Files.readString(ROOT.resolve("src/client/resources/jujutsumod.client.mixins.json"));
+		assert mixins.contains("NobaraPlayerRendererMixin") : "Nobara player geo render must hook the vanilla player renderer";
+		assert mixins.contains("NobaraLivingEntityRendererMixin") : "Nobara player geo render must hook the declared LivingEntityRenderer render method";
+		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoAnimatable.java")) : "Missing Nobara GeckoLib animatable";
+		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoModel.java")) : "Missing Nobara GeckoLib model";
+		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoRenderer.java")) : "Missing Nobara GeckoLib renderer";
+		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/NobaraLivingEntityRendererMixin.java")) : "Missing LivingEntityRenderer hook for Nobara player geo render";
+		assert Files.exists(MAIN_RESOURCES.resolve("assets/jujutsumod/geo/projectjjk/nobara_kugisaki.geo.json")) : "Missing Nobara geo model asset";
+		assert Files.exists(MAIN_RESOURCES.resolve("assets/jujutsumod/animations/projectjjk/npc.animation.json")) : "Missing Nobara NPC animation asset";
+		assert Files.exists(MAIN_RESOURCES.resolve("assets/jujutsumod/textures/projectjjk/entity/npcs/nobara_kugisaki.png")) : "Missing Nobara NPC texture";
+		String manager = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/character/ClientCharacterSelectionManager.java"));
+		assert manager.contains("rememberEntity") && manager.contains("selectionByEntityId") : "Renderer needs entity-id lookup while keeping GUI portrait skin logic separate";
+		String card = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/CharacterCard.java"));
+		assert card.contains("textures/entity/character/nobara.png") : "Character select portrait must keep using the player-skin head, not the GeckoLib NPC texture";
 	}
 
 	private static void assertNobaraSkinUsesWideArms() throws IOException {

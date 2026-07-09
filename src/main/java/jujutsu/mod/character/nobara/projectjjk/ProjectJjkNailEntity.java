@@ -282,7 +282,7 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	private void embedIn(LivingEntity target, Vec3 hitPoint) {
 		Vec3 direction = forwardDirection();
-		Vec3 embedPoint = clampEmbedPoint(target, hitPoint.add(direction.scale(0.06)));
+		Vec3 embedPoint = ProjectJjkNailEmbedding.bodyEmbedPoint(target.position(), target.getBbWidth(), target.getBbHeight(), hitPoint, direction, getId());
 		Vec3 localOffset = rotateY(embedPoint.subtract(target.position()), -target.getYRot());
 		Vec3 localForward = safeDirection(rotateY(direction, -target.getYRot()));
 		embeddedTargetUuid = target.getUUID();
@@ -358,7 +358,6 @@ public final class ProjectJjkNailEntity extends Entity {
 		double horizontal = Math.sqrt(direction.x * direction.x + direction.z * direction.z);
 		setYRot((float) (Mth.atan2(direction.x, direction.z) * Mth.RAD_TO_DEG));
 		setXRot((float) (-Mth.atan2(direction.y, horizontal) * Mth.RAD_TO_DEG));
-		setOldPosAndRot(position(), getYRot(), getXRot());
 	}
 
 	private static Vec3 launchVelocity(Vec3 direction) {
@@ -373,22 +372,12 @@ public final class ProjectJjkNailEntity extends Entity {
 		Vec3 next = target.position().add(worldOffset);
 		setPos(next);
 		face(worldForward);
-		setOldPosAndRot(next, getYRot(), getXRot());
 	}
 
 	private void syncEmbeddedAttachment() {
 		entityData.set(DATA_EMBEDDED_TARGET_ID, embeddedTargetId);
 		entityData.set(DATA_EMBEDDED_LOCAL_OFFSET, toVector(embeddedLocalOffset));
 		entityData.set(DATA_EMBEDDED_LOCAL_FORWARD, toVector(embeddedLocalForward));
-	}
-
-	private static Vec3 clampEmbedPoint(LivingEntity target, Vec3 point) {
-		double minY = target.getY() + target.getBbHeight() * 0.18;
-		double maxY = target.getY() + target.getBbHeight() * 0.88;
-		double x = clamp(point.x, target.getBoundingBox().minX + 0.04, target.getBoundingBox().maxX - 0.04);
-		double y = clamp(point.y, minY, maxY);
-		double z = clamp(point.z, target.getBoundingBox().minZ + 0.04, target.getBoundingBox().maxZ - 0.04);
-		return new Vec3(x, y, z);
 	}
 
 	private static Vec3 rotateY(Vec3 vector, float yawDegrees) {
@@ -404,10 +393,6 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	private static Vec3 fromVector(Vector3f vector) {
 		return new Vec3(vector.x(), vector.y(), vector.z());
-	}
-
-	private static double clamp(double value, double min, double max) {
-		return Math.max(min, Math.min(max, value));
 	}
 
 	private static Vec3 safeDirection(Vec3 vector) {

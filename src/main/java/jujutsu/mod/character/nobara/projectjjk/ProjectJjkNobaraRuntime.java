@@ -51,10 +51,8 @@ public final class ProjectJjkNobaraRuntime {
 			ProjectJjkNailEntity nail = new ProjectJjkNailEntity(JujutsuEntities.PROJECTJJK_NAIL, level);
 			nail.prepare(player, position, look);
 			level.addFreshEntity(nail);
-			// Cyan flame now lives as particles, so prepared nails read as fire instead of a rigid shell.
 			level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, position.x, position.y, position.z, 3, 0.05, 0.05, 0.05, 0.03);
-			level.sendParticles(JujutsuParticles.HAIRPIN_IGNITION_TICK, position.x, position.y, position.z, 7, 0.09, 0.12, 0.09, 0.045);
-			level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, position.x, position.y, position.z, 4, 0.08, 0.08, 0.08, 0.035);
+			level.sendParticles(JujutsuParticles.HAIRPIN_IGNITION_TICK, position.x, position.y, position.z, 4, 0.07, 0.09, 0.07, 0.035);
 		}
 
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 0.82f, 1.16f);
@@ -123,7 +121,6 @@ public final class ProjectJjkNobaraRuntime {
 		spawnCustomImpactParticles(level, point, nail.forwardDirection());
 		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.HAIRPIN_BLOOM, SoundSource.PLAYERS, 0.85f, 0.92f);
 		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.HAIRPIN_AFTERGLOW, SoundSource.PLAYERS, 0.4f, 0.8f);
-		level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, point.x, point.y, point.z, 86, 0.86, 0.72, 0.86, 0.12);
 		level.sendParticles(ParticleTypes.ELECTRIC_SPARK, point.x, point.y, point.z, 62, 0.64, 0.52, 0.64, 0.24);
 		level.sendParticles(ParticleTypes.CRIT, point.x, point.y, point.z, 38, 0.46, 0.42, 0.46, 0.2);
 		level.sendParticles(ParticleTypes.FLASH, point.x, point.y, point.z, 3, 0.12, 0.12, 0.12, 0.0);
@@ -143,7 +140,6 @@ public final class ProjectJjkNobaraRuntime {
 		Vec3 forward = safeDirection(direction);
 		Vec3 anchor = point.add(forward.scale(0.16));
 		level.sendParticles(JujutsuParticles.HAIRPIN_IGNITION_TICK, anchor.x, anchor.y, anchor.z, 13, 0.12, 0.14, 0.12, 0.07);
-		level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, anchor.x, anchor.y, anchor.z, 10, 0.12, 0.12, 0.12, 0.055);
 		level.sendParticles(ParticleTypes.ELECTRIC_SPARK, anchor.x, anchor.y, anchor.z, 6, 0.10, 0.10, 0.10, 0.16);
 		level.sendParticles(JujutsuParticles.HAIRPIN_SPARK, anchor.x, anchor.y, anchor.z, 8, 0.16, 0.12, 0.16, 0.18);
 	}
@@ -165,15 +161,13 @@ public final class ProjectJjkNobaraRuntime {
 		Vec3 forward = safeDirection(direction);
 		Vec3 tail = point.subtract(forward.scale(0.35));
 		level.sendParticles(JujutsuParticles.HAIRPIN_IGNITION_TICK, tail.x, tail.y, tail.z, 4, 0.045, 0.055, 0.045, 0.035);
-		level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, tail.x, tail.y, tail.z, 2, 0.04, 0.04, 0.04, 0.028);
 		level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, tail.x, tail.y, tail.z, 1, 0.025, 0.025, 0.025, 0.018);
 	}
 
 	static void spawnPreparedNailFlame(ServerLevel level, Vec3 point, Vec3 direction) {
 		Vec3 forward = safeDirection(direction);
 		Vec3 center = point.add(forward.scale(0.05));
-		level.sendParticles(JujutsuParticles.HAIRPIN_IGNITION_TICK, center.x, center.y, center.z, 3, 0.07, 0.09, 0.07, 0.028);
-		level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, center.x, center.y, center.z, 1, 0.05, 0.05, 0.05, 0.016);
+		level.sendParticles(JujutsuParticles.HAIRPIN_IGNITION_TICK, center.x, center.y, center.z, 1, 0.05, 0.06, 0.05, 0.018);
 	}
 
 	private static ProjectJjkNobaraImpulsePayload impulse(int kind, int nailCount, Vec3 point, long gameTime) {

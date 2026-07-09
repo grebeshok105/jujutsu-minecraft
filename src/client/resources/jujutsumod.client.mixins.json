@@ -5,7 +5,9 @@
   "client": [
     "CharacterSkinMixin",
     "HairpinCameraMixin",
-    "HairpinGameRendererMixin"
+    "HairpinGameRendererMixin",
+    "NobaraLivingEntityRendererMixin",
+    "NobaraPlayerRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
