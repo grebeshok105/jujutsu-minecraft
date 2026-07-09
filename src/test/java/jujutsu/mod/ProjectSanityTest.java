@@ -44,7 +44,7 @@ public final class ProjectSanityTest {
 		assertNobaraNailAuraAvoidsSoulFire();
 		assertCharacterSelectUsesCheapUiPrimitives();
 		assertGeckoLibNobaraPlayerModelWired();
-		assertNobaraGeoHeadLookIsDisabledUntilSafe();
+		assertNobaraGeoHeadLookIsSafeAndEnabled();
 		assertNobaraGeoRenderRestoresPoseStack();
 		assertNobaraSkinUsesWideArms();
 		assertSoundReferencesAreLocalAndPresent();
@@ -315,10 +315,21 @@ public final class ProjectSanityTest {
 		assert card.contains("textures/entity/character/nobara.png") : "Character select portrait must keep using the player-skin head, not the GeckoLib NPC texture";
 	}
 
-	private static void assertNobaraGeoHeadLookIsDisabledUntilSafe() throws IOException {
+	private static void assertNobaraGeoHeadLookIsSafeAndEnabled() throws IOException {
 		String geoModel = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoModel.java"));
-		assert !geoModel.contains("setCustomAnimations") : "Imported ProjectJJK Nobara head clips must not be overridden by the unsafe custom head-look pass";
-		assert !geoModel.contains("applyHeadLook") : "Unsafe custom head-look must stay disabled until a safe neck/head bone contract exists";
+		assert geoModel.contains("setCustomAnimations") : "Nobara Gecko model must apply a safe per-frame head look pass";
+		assert geoModel.contains("getBone(HEAD_BONE)") : "Nobara head look must rotate the separate head bone only";
+		assert geoModel.contains("NobaraPlayerGeoAnimatable.headLookWeight(animationState, playerState)") : "Nobara head look must use the animatable/controller-aware action weight";
+		assert geoModel.contains("MAX_HEAD_YAW_DEGREES = 38.0f") : "Nobara head yaw clamp must stay conservative after the unsafe 75 degree attempt";
+		assert geoModel.contains("MAX_HEAD_PITCH_DEGREES = 22.0f") : "Nobara head pitch clamp must stay conservative after the unsafe 45 degree attempt";
+		assert !geoModel.contains("MAX_HEAD_YAW_DEGREES = 75.0f") : "Do not restore the old unsafe head yaw range";
+		assert !geoModel.contains("MAX_HEAD_PITCH_DEGREES = 45.0f") : "Do not restore the old unsafe head pitch range";
+		String animatable = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoAnimatable.java"));
+		assert animatable.contains("headKeyframedActionIsPlaying(state)") : "Nobara head look must attenuate while ProjectJJK head-keyframed action clips are active";
+		assert animatable.contains("getTriggeredAnimation()") && animatable.contains("getCurrentRawAnimation()") : "Nobara head look must account for GeckoLib triggered and current raw action animations";
+		assert animatable.contains("animation == SNAP") && animatable.contains("animation == SPELL_5") && animatable.contains("animation == SWIPE_1") : "Nobara head look action guard must include snap, spell, and swipe ProjectJJK clips";
+		String geo = Files.readString(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json"));
+		assert Pattern.compile("\"name\"\\s*:\\s*\"head\"\\s*,\\s*\"parent\"\\s*:\\s*\"body\"").matcher(geo).find() : "Nobara model must keep a separate head bone parented to body for look tracking";
 	}
 
 	private static void assertNobaraGeoRenderRestoresPoseStack() throws IOException {

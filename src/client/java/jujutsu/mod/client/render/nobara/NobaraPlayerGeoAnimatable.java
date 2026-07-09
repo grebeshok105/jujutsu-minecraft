@@ -8,6 +8,7 @@ import software.bernie.geckolib.animatable.SingletonGeoAnimatable;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animatable.manager.AnimatableManager;
 import software.bernie.geckolib.animatable.processing.AnimationController;
+import software.bernie.geckolib.animatable.processing.AnimationState;
 import software.bernie.geckolib.animatable.processing.AnimationTest;
 import software.bernie.geckolib.animation.PlayState;
 import software.bernie.geckolib.animation.RawAnimation;
@@ -71,6 +72,22 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 		return cache;
 	}
 
+	static float headLookWeight(AnimationState<NobaraPlayerGeoAnimatable> state, PlayerRenderState playerState) {
+		float weight = 1.0f;
+		if (playerState.swinging || playerState.attackTime > 0.05f || playerState.isUsingItem) {
+			weight *= 0.35f;
+		}
+		if (headKeyframedActionIsPlaying(state)) {
+			weight *= 0.25f;
+		}
+		if (playerState.walkAnimationSpeed > 0.82f) {
+			weight *= 0.55f;
+		} else if (playerState.walkAnimationSpeed > 0.08f) {
+			weight *= 0.72f;
+		}
+		return weight;
+	}
+
 	private PlayState baseAnimation(AnimationTest<NobaraPlayerGeoAnimatable> state) {
 		GeoRenderState renderState = state.renderState();
 		if (renderState instanceof PlayerRenderState playerState) {
@@ -104,6 +121,18 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 
 	private static RawAnimation play(String name) {
 		return RawAnimation.begin().thenPlay(name);
+	}
+
+	private static boolean headKeyframedActionIsPlaying(AnimationState<NobaraPlayerGeoAnimatable> state) {
+		AnimationController<NobaraPlayerGeoAnimatable> controller = state.manager().getAnimationControllers().get(BASE_CONTROLLER);
+		return controller != null && (headKeyframedAction(controller.getTriggeredAnimation())
+				|| headKeyframedAction(controller.getCurrentRawAnimation()));
+	}
+
+	private static boolean headKeyframedAction(RawAnimation animation) {
+		return animation == ONE_TWO || animation == ATTACK_1 || animation == ATTACK_2 || animation == ATTACK_3
+				|| animation == SNAP || animation == SPELL_1 || animation == SPELL_2 || animation == SPELL_3
+				|| animation == SPELL_4 || animation == SPELL_5 || animation == SWIPE_1;
 	}
 
 	private record Movement(boolean moving, boolean running) {}
