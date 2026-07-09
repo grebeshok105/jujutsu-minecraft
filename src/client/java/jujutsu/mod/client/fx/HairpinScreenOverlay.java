@@ -92,80 +92,38 @@ public final class HairpinScreenOverlay {
 		float ease = remaining * remaining;
 		int width = graphics.guiWidth();
 		int height = graphics.guiHeight();
-		int vignetteAlpha = Math.round(vignetteMaxAlpha * ease);
-		int lineAlpha = Math.round(speedLineAlpha * ease);
-		int lineColor = (lineAlpha << 24) | 0x0026030A;
-		int hotLineColor = (Math.min(140, lineAlpha + 16) << 24) | 0x003A050F;
-
-		renderEdgeVignette(graphics, width, height, vignetteAlpha, ease);
-
-		int centerY = height / 2;
-		int centerX = width / 2;
-		int sweep = Math.round((elapsed % 180L) / 180.0f * width * 0.35f);
-		for (int index = 0; index < 5; index++) {
-			int y = centerY - 42 + index * 18;
-			int x0 = Math.max(0, centerX - 160 + sweep + index * 12);
-			int x1 = Math.min(width, x0 + 96 + index * 24);
-			graphics.fill(x0, y, x1, y + 2, index == 2 ? hotLineColor : lineColor);
-		}
-
-		int rollOffset = Math.round(24.0f * ease);
-		for (int index = 0; index < 4; index++) {
-			int y = centerY - 70 + index * 42;
-			int x0 = Math.max(0, centerX - 220 + index * 32);
-			int x1 = Math.min(width, centerX + 220 + index * 32);
-			int skew = (index % 2 == 0 ? rollOffset : -rollOffset);
-			graphics.fill(Math.max(0, x0 + skew), y, Math.min(width, x1 + skew + 52), y + 1, lineColor);
-		}
-		renderEdgeTears(graphics, width, height, elapsed, lineAlpha, ease);
+		int vignetteAlpha = Math.round((vignetteMaxAlpha + speedLineAlpha * 0.2f) * ease);
+		renderSmoothEdgeVignette(graphics, width, height, vignetteAlpha, ease);
 	}
 
-	private static void renderEdgeVignette(GuiGraphics graphics, int width, int height, int alpha, float ease) {
+	private static void renderSmoothEdgeVignette(GuiGraphics graphics, int width, int height, int alpha, float ease) {
 		if (alpha <= 0) {
 			return;
 		}
-		int layers = 7;
-		int maxX = Math.max(18, Math.round(width * 0.16f));
-		int maxY = Math.max(14, Math.round(height * 0.15f));
+		int layers = 28;
+		int maxX = Math.max(34, Math.round(width * (0.22f + ease * 0.04f)));
+		int maxY = Math.max(28, Math.round(height * (0.20f + ease * 0.04f)));
 		for (int layer = 0; layer < layers; layer++) {
-			float t = (layer + 1.0f) / layers;
-			int layerAlpha = Math.round(alpha * (1.0f - t * 0.72f));
+			float t = layer / (float) (layers - 1);
+			float falloff = 1.0f - t;
+			float strength = falloff * falloff * (0.16f + ease * 0.04f);
+			int layerAlpha = Math.min(48, Math.round(alpha * strength));
 			int color = (layerAlpha << 24) | 0x00090508;
-			int x = Math.max(1, Math.round(maxX * (1.0f - t)));
-			int y = Math.max(1, Math.round(maxY * (1.0f - t)));
+			int x = Math.max(1, Math.round(maxX * falloff));
+			int y = Math.max(1, Math.round(maxY * falloff));
 			graphics.fill(0, 0, width, y, color);
 			graphics.fill(0, height - y, width, height, color);
 			graphics.fill(0, 0, x, height, color);
 			graphics.fill(width - x, 0, width, height, color);
 		}
 
-		int coreAlpha = Math.round(alpha * (0.32f + ease * 0.18f));
-		int core = (coreAlpha << 24) | 0x0012070A;
-		graphics.fill(0, 0, width, Math.max(4, maxY / 4), core);
-		graphics.fill(0, height - Math.max(4, maxY / 4), width, height, core);
-		graphics.fill(0, 0, Math.max(4, maxX / 4), height, core);
-		graphics.fill(width - Math.max(4, maxX / 4), 0, width, height, core);
-	}
-
-	private static void renderEdgeTears(GuiGraphics graphics, int width, int height, long elapsed, int alpha, float ease) {
-		if (alpha <= 0) {
-			return;
-		}
-		int tearAlpha = Math.min(150, Math.round((alpha + 10) * ease * (0.74f + ease * 0.26f)));
-		int blood = (tearAlpha << 24) | 0x002B0309;
-		int black = (Math.min(170, tearAlpha + 18) << 24) | 0x00040204;
-		int roll = Math.round((elapsed % 240L) / 240.0f * 18.0f);
-		for (int index = 0; index < 6; index++) {
-			boolean left = (index & 1) == 0;
-			int y = 18 + index * Math.max(14, height / 8) + ((index % 3) - 1) * roll;
-			if (y >= height - 12) {
-				y = height - 20 - index * 7;
-			}
-			int len = 18 + (index % 3) * 9;
-			int x0 = left ? 2 + index % 2 * 4 : width - len - 2 - index % 2 * 4;
-			int x1 = x0 + len;
-			graphics.fill(x0, y, x1, y + 2, black);
-			graphics.fill(left ? x0 + len / 2 : x0 + 3, y + 2, left ? x0 + len / 2 + 2 : x0 + 5, y + 9, blood);
-		}
+		int coreAlpha = Math.round(alpha * (0.18f + ease * 0.16f));
+		int core = (coreAlpha << 24) | 0x00100609;
+		int coreX = Math.max(6, maxX / 5);
+		int coreY = Math.max(6, maxY / 5);
+		graphics.fill(0, 0, width, coreY, core);
+		graphics.fill(0, height - coreY, width, height, core);
+		graphics.fill(0, 0, coreX, height, core);
+		graphics.fill(width - coreX, 0, width, height, core);
 	}
 }

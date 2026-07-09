@@ -49,5 +49,6 @@ public final class NobaraPlayerGeoModel extends GeoModel<NobaraPlayerGeoAnimatab
 		float pitchDegrees = Mth.clamp(playerState.xRot, -MAX_HEAD_PITCH_DEGREES, MAX_HEAD_PITCH_DEGREES);
 		head.setRotY(head.getRotY() - yawDegrees * Mth.DEG_TO_RAD * weight);
 		head.setRotX(head.getRotX() - pitchDegrees * Mth.DEG_TO_RAD * weight);
+		head.resetStateChanges();
 	}
 }

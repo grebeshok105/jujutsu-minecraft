@@ -3,6 +3,7 @@ package jujutsu.mod.character.nobara.projectjjk;
 public final class ProjectJjkNobaraProfile {
 	public static final int TRIPLE_HOLD_TICKS = 6;
 	public static final int BARRAGE_HOLD_TICKS = 16;
+	public static final int EXTRA_NAIL_HOLD_TICKS = 10;
 	public static final int SINGLE_NAILS = 1;
 	public static final int TRIPLE_NAILS = 3;
 	public static final int BARRAGE_NAILS = 8;
@@ -61,13 +62,7 @@ public final class ProjectJjkNobaraProfile {
 	}
 
 	public static int nailCountForUseTicks(int useTicks) {
-		if (useTicks >= BARRAGE_HOLD_TICKS) {
-			return BARRAGE_NAILS;
-		}
-		if (useTicks >= TRIPLE_HOLD_TICKS) {
-			return TRIPLE_NAILS;
-		}
-		return SINGLE_NAILS;
+		return Math.min(BARRAGE_NAILS, SINGLE_NAILS + Math.max(0, useTicks) / EXTRA_NAIL_HOLD_TICKS);
 	}
 
 	public static int launchDelayForIndex(int index) {

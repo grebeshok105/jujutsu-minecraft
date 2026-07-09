@@ -5,13 +5,16 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.world.item.ItemStack;
 import jujutsu.mod.client.gui.CharacterSelectScreen;
 import jujutsu.mod.network.NobaraActionPayload;
+import jujutsu.mod.registry.JujutsuItems;
 
 public final class JujutsuKeybinds {
 	private static KeyMapping characterSelect;
 	private static KeyMapping nobaraEnlarge;
 	private static KeyMapping nobaraExplosion;
+	private static boolean attackWasDown;
 
 	private JujutsuKeybinds() {}
 
@@ -46,6 +49,11 @@ public final class JujutsuKeybinds {
 			while (nobaraExplosion.consumeClick()) {
 				sendNobaraAction(NobaraActionPayload.HAIRPIN_EXPLOSION);
 			}
+			boolean attackDown = client.options.keyAttack.isDown();
+			if (attackDown && !attackWasDown && client.player != null && client.screen == null && isHoldingNobaraHammer(client.player.getMainHandItem(), client.player.getOffhandItem())) {
+				sendNobaraAction(NobaraActionPayload.NAIL_LAUNCH_EXPLOSIVE);
+			}
+			attackWasDown = attackDown;
 		});
 	}
 
@@ -53,5 +61,13 @@ public final class JujutsuKeybinds {
 		if (ClientPlayNetworking.canSend(NobaraActionPayload.TYPE)) {
 			ClientPlayNetworking.send(new NobaraActionPayload(action));
 		}
+	}
+
+	private static boolean isHoldingNobaraHammer(ItemStack mainHand, ItemStack offHand) {
+		return isNobaraHammer(mainHand) || isNobaraHammer(offHand);
+	}
+
+	private static boolean isNobaraHammer(ItemStack stack) {
+		return stack.is(JujutsuItems.STRAW_DOLL_HAMMER) || stack.is(JujutsuItems.PROJECTJJK_STRAW_DOLL_HAMMER);
 	}
 }

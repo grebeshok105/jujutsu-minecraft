@@ -1,6 +1,8 @@
 package jujutsu.mod.character.nobara.projectjjk;
 
 import java.util.UUID;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -17,6 +19,7 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
@@ -31,6 +34,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	private static final String OWNER_UUID_TAG = "OwnerUuid";
 	private static final String OWNER_ENTITY_ID_TAG = "OwnerEntityId";
 	private static final String LAUNCHED_TAG = "Launched";
+	private static final String EXPLOSIVE_IMPACT_TAG = "ExplosiveImpact";
 	private static final String LAUNCH_DELAY_TAG = "LaunchDelay";
 	private static final String EMBEDDED_TAG = "Embedded";
 	private static final String EMBEDDED_TARGET_UUID_TAG = "EmbeddedTargetUuid";
@@ -49,6 +53,8 @@ public final class ProjectJjkNailEntity extends Entity {
 	private UUID ownerUuid;
 	private int ownerEntityId = -1;
 	private boolean launched;
+	private boolean explosiveImpact;
+	private boolean explosiveImpactTracked;
 	private int launchDelayTicks;
 	private Vec3 target = Vec3.ZERO;
 	private Vec3 pendingLaunchDirection = Vec3.ZERO;
@@ -77,9 +83,15 @@ public final class ProjectJjkNailEntity extends Entity {
 	}
 
 	public void launchAt(Vec3 target, int delayTicks) {
+		launchAt(target, delayTicks, false);
+	}
+
+	public void launchAt(Vec3 target, int delayTicks, boolean explosiveImpact) {
 		Vec3 direction = safeDirection(target.subtract(position()));
 		this.target = target;
+		this.explosiveImpact = explosiveImpact;
 		setLaunched(true);
+		trackActiveExplosiveNail();
 		launchDelayTicks = Math.max(0, delayTicks);
 		pendingLaunchDirection = direction;
 		if (launchDelayTicks <= 0) {
@@ -176,7 +188,11 @@ public final class ProjectJjkNailEntity extends Entity {
 		HitResult hit = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity, ClipContext.Block.COLLIDER);
 		if (hit.getType() != HitResult.Type.MISS && level() instanceof ServerLevel serverLevel) {
 			setPos(hit.getLocation());
-			ProjectJjkNobaraRuntime.resolveNailImpact(serverLevel, this, hit);
+			ProjectJjkNobaraRuntime.resolveNailImpact(serverLevel, this, hit, explosiveImpact);
+			if (explosiveImpact) {
+				discard();
+				return;
+			}
 			if (hit instanceof net.minecraft.world.phys.EntityHitResult entityHit && entityHit.getEntity() instanceof LivingEntity living) {
 				embedIn(living, hit.getLocation());
 			} else {
@@ -186,8 +202,12 @@ public final class ProjectJjkNailEntity extends Entity {
 		}
 
 		Vec3 movement = getDeltaMovement();
+		Vec3 beforeMove = position();
 		move(MoverType.SELF, movement);
 		face(movement);
+		if (level() instanceof ServerLevel serverLevel && explodeAtTargetIfPassed(serverLevel, beforeMove, movement)) {
+			return;
+		}
 		if (level() instanceof ServerLevel serverLevel && (tickCount & 1) == 0) {
 			ProjectJjkNobaraRuntime.spawnNailFlightTrail(serverLevel, position(), movement);
 		}
@@ -226,6 +246,7 @@ public final class ProjectJjkNailEntity extends Entity {
 		}
 		output.putInt(OWNER_ENTITY_ID_TAG, ownerEntityId);
 		output.putBoolean(LAUNCHED_TAG, isLaunched());
+		output.putBoolean(EXPLOSIVE_IMPACT_TAG, explosiveImpact);
 		output.putInt(LAUNCH_DELAY_TAG, launchDelayTicks);
 		output.putBoolean(EMBEDDED_TAG, isEmbedded());
 		if (embeddedTargetUuid != null) {
@@ -251,6 +272,7 @@ public final class ProjectJjkNailEntity extends Entity {
 		ownerUuid = owner.isBlank() ? null : UUID.fromString(owner);
 		ownerEntityId = input.getIntOr(OWNER_ENTITY_ID_TAG, -1);
 		setLaunched(input.getBooleanOr(LAUNCHED_TAG, false));
+		explosiveImpact = input.getBooleanOr(EXPLOSIVE_IMPACT_TAG, false);
 		launchDelayTicks = input.getIntOr(LAUNCH_DELAY_TAG, 0);
 		setEmbedded(input.getBooleanOr(EMBEDDED_TAG, false));
 		String embeddedTarget = input.getStringOr(EMBEDDED_TARGET_UUID_TAG, "");
@@ -265,11 +287,13 @@ public final class ProjectJjkNailEntity extends Entity {
 		face(embeddedLocalForward);
 		syncEmbeddedAttachment();
 		setFlightSynced(launched && launchDelayTicks <= 0);
+		trackActiveExplosiveNail();
 	}
 
 	private void setLaunched(boolean launched) {
 		this.launched = launched;
 		if (!launched) {
+			untrackActiveExplosiveNail();
 			setFlightSynced(false);
 		}
 	}
@@ -327,6 +351,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	}
 
 	private void startFlight(Vec3 direction) {
+		trackActiveExplosiveNail();
 		setDeltaMovement(launchVelocity(direction));
 		setFlightSynced(true);
 		hasImpulse = true;
@@ -360,6 +385,24 @@ public final class ProjectJjkNailEntity extends Entity {
 		face(movement);
 	}
 
+	private boolean explodeAtTargetIfPassed(ServerLevel level, Vec3 beforeMove, Vec3 movement) {
+		if (!explosiveImpact || movement.lengthSqr() <= 1.0E-5) {
+			return false;
+		}
+		Vec3 afterMove = position();
+		Vec3 beforeToTarget = target.subtract(beforeMove);
+		Vec3 afterToTarget = target.subtract(afterMove);
+		boolean passedTarget = beforeToTarget.dot(movement) >= 0.0 && afterToTarget.dot(movement) <= 0.0;
+		boolean closeEnough = afterToTarget.lengthSqr() <= 0.25;
+		if (!passedTarget && !closeEnough) {
+			return false;
+		}
+		setPos(target);
+		ProjectJjkNobaraRuntime.resolveNailImpact(level, this, BlockHitResult.miss(target, Direction.UP, BlockPos.containing(target)), true);
+		discard();
+		return true;
+	}
+
 	private void face(Vec3 vector) {
 		Vec3 direction = safeDirection(vector);
 		entityData.set(DATA_FORWARD, new Vector3f((float) direction.x, (float) direction.y, (float) direction.z));
@@ -384,6 +427,26 @@ public final class ProjectJjkNailEntity extends Entity {
 		entityData.set(DATA_EMBEDDED_TARGET_ID, embeddedTargetId);
 		entityData.set(DATA_EMBEDDED_LOCAL_OFFSET, toVector(embeddedLocalOffset));
 		entityData.set(DATA_EMBEDDED_LOCAL_FORWARD, toVector(embeddedLocalForward));
+	}
+
+	@Override
+	public void onRemoval(RemovalReason removalReason) {
+		untrackActiveExplosiveNail();
+		super.onRemoval(removalReason);
+	}
+
+	private void trackActiveExplosiveNail() {
+		if (!level().isClientSide() && ownerUuid != null && explosiveImpact && isLaunched() && !isEmbedded() && !explosiveImpactTracked) {
+			ProjectJjkNobaraRuntime.registerActiveExplosiveNail(ownerUuid);
+			explosiveImpactTracked = true;
+		}
+	}
+
+	private void untrackActiveExplosiveNail() {
+		if (explosiveImpactTracked) {
+			ProjectJjkNobaraRuntime.unregisterActiveExplosiveNail(ownerUuid);
+			explosiveImpactTracked = false;
+		}
 	}
 
 	private static Vec3 rotateY(Vec3 vector, float yawDegrees) {

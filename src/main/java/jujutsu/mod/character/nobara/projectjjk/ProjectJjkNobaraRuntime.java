@@ -2,7 +2,9 @@ package jujutsu.mod.character.nobara.projectjjk;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -28,6 +30,7 @@ import jujutsu.mod.registry.JujutsuSounds;
 
 public final class ProjectJjkNobaraRuntime {
 	private static final double IMPULSE_BROADCAST_RADIUS = 56.0;
+	private static final Map<UUID, Integer> ACTIVE_EXPLOSIVE_NAILS = new ConcurrentHashMap<>();
 
 	private ProjectJjkNobaraRuntime() {}
 
@@ -61,6 +64,22 @@ public final class ProjectJjkNobaraRuntime {
 	}
 
 	public static boolean launchHairpin(ServerPlayer player, ItemStack hammerStack, InteractionHand hand) {
+		return launchHairpin(player, hammerStack, hand, false);
+	}
+
+	public static boolean launchHairpin(ServerPlayer player, boolean explosiveImpact) {
+		ItemStack mainHand = player.getMainHandItem();
+		if (isHairpinHammer(mainHand)) {
+			return launchHairpin(player, mainHand, InteractionHand.MAIN_HAND, explosiveImpact);
+		}
+		ItemStack offHand = player.getOffhandItem();
+		if (isHairpinHammer(offHand)) {
+			return launchHairpin(player, offHand, InteractionHand.OFF_HAND, explosiveImpact);
+		}
+		return false;
+	}
+
+	public static boolean launchHairpin(ServerPlayer player, ItemStack hammerStack, InteractionHand hand, boolean explosiveImpact) {
 		ServerLevel level = player.level();
 		List<ProjectJjkNailEntity> nails = findPreparedNails(level, player);
 		if (nails.isEmpty()) {
@@ -77,7 +96,7 @@ public final class ProjectJjkNobaraRuntime {
 			Vec3 targetPoint = target.point()
 					.add(right.scale(centered * 0.11))
 					.add(up.scale(((index & 1) == 0 ? 0.06 : -0.06)));
-			nail.launchAt(targetPoint, ProjectJjkNobaraProfile.launchDelayForIndex(index));
+			nail.launchAt(targetPoint, ProjectJjkNobaraProfile.launchDelayForIndex(index), explosiveImpact);
 		}
 
 		// Forging anvil clang: the hammer strike must read like smithing on an anvil.
@@ -92,7 +111,31 @@ public final class ProjectJjkNobaraRuntime {
 		return true;
 	}
 
-	public static void resolveNailImpact(ServerLevel level, ProjectJjkNailEntity nail, HitResult hit) {
+	public static boolean isExplosiveLaunchLocked(ServerPlayer player) {
+		return hasActiveExplosiveNails(player);
+	}
+
+	public static boolean canCastMarkedHairpin(ServerPlayer player) {
+		return !isExplosiveLaunchLocked(player);
+	}
+
+	public static boolean hasActiveExplosiveNails(ServerPlayer player) {
+		return ACTIVE_EXPLOSIVE_NAILS.getOrDefault(player.getUUID(), 0) > 0;
+	}
+
+	static void registerActiveExplosiveNail(UUID ownerUuid) {
+		if (ownerUuid != null) {
+			ACTIVE_EXPLOSIVE_NAILS.merge(ownerUuid, 1, Integer::sum);
+		}
+	}
+
+	static void unregisterActiveExplosiveNail(UUID ownerUuid) {
+		if (ownerUuid != null) {
+			ACTIVE_EXPLOSIVE_NAILS.computeIfPresent(ownerUuid, (uuid, count) -> count <= 1 ? null : count - 1);
+		}
+	}
+
+	public static void resolveNailImpact(ServerLevel level, ProjectJjkNailEntity nail, HitResult hit, boolean explosiveImpact) {
 		Vec3 point = hit.getLocation();
 		ServerPlayer owner = owner(level, nail.ownerUuid());
 		DamageSource source = owner == null ? level.damageSources().magic() : level.damageSources().playerAttack(owner);
@@ -101,9 +144,14 @@ public final class ProjectJjkNobaraRuntime {
 			directTarget = livingTarget;
 			hurtTarget(level, owner, directTarget, source, ProjectJjkNobaraProfile.NAIL_DAMAGE, point, 0.9f);
 			// Direct hit embeds a cursed nail mark — the connective tissue for detonation + resonance.
-			if (!(owner != null && directTarget.getUUID().equals(owner.getUUID()))) {
+			if (!explosiveImpact && !(owner != null && directTarget.getUUID().equals(owner.getUUID()))) {
 				ProjectJjkRitualRuntime.markTarget(level, directTarget, owner, point);
 			}
+		}
+
+		if (!explosiveImpact) {
+			spawnPiercingImpactFeedback(level, point, nail.forwardDirection());
+			return;
 		}
 
 		double impactRadius = directTarget == null ? ProjectJjkNobaraProfile.GROUND_IMPACT_RADIUS : ProjectJjkNobaraProfile.IMPACT_RADIUS;
@@ -134,6 +182,14 @@ public final class ProjectJjkNobaraRuntime {
 		if (owner != null) {
 			JujutsuNetworking.sendProjectJjkImpulse(owner, impulse(ProjectJjkNobaraImpulsePayload.IMPACT_SOUND, 1, point, level.getGameTime()));
 		}
+	}
+
+	private static void spawnPiercingImpactFeedback(ServerLevel level, Vec3 point, Vec3 direction) {
+		Vec3 forward = safeDirection(direction);
+		Vec3 core = point.add(forward.scale(-0.04));
+		level.sendParticles(JujutsuParticles.HAIRPIN_SNAP_CRACK, core.x, core.y, core.z, 3, 0.08, 0.07, 0.08, 0.025);
+		level.sendParticles(JujutsuParticles.HAIRPIN_MARK_STAIN, core.x, core.y, core.z, 4, 0.12, 0.10, 0.12, 0.004);
+		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_WHOOSH_HIT, SoundSource.PLAYERS, 0.42f, 1.18f);
 	}
 
 	static void spawnNailLaunchParticles(ServerLevel level, Vec3 point, Vec3 direction) {
@@ -259,6 +315,10 @@ public final class ProjectJjkNobaraRuntime {
 
 	private static boolean isHairpinNail(ItemStack stack) {
 		return stack.is(JujutsuItems.HAIRPIN_NAIL) || stack.is(JujutsuItems.PROJECTJJK_HAIRPIN_NAIL);
+	}
+
+	private static boolean isHairpinHammer(ItemStack stack) {
+		return stack.is(JujutsuItems.STRAW_DOLL_HAMMER) || stack.is(JujutsuItems.PROJECTJJK_STRAW_DOLL_HAMMER);
 	}
 
 	private static void damageHammer(ServerPlayer player, ItemStack stack, InteractionHand hand) {

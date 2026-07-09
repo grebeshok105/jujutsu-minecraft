@@ -8,8 +8,7 @@ public final class ProjectJjkNobaraProfileTest {
 
 	public static void main(String[] args) {
 		assertTapPreparesOneNail();
-		assertShortHoldPreparesTripleNails();
-		assertLongHoldPreparesBarrageNails();
+		assertHoldAddsOneNailEveryHalfSecond();
 		assertWorldNailsPersistLikeProjectJjkReference();
 		assertNailsLaunchWithTwoTickStagger();
 		assertPreparedLaunchRequiresCloseNails();
@@ -27,17 +26,15 @@ public final class ProjectJjkNobaraProfileTest {
 
 	private static void assertTapPreparesOneNail() {
 		assert ProjectJjkNobaraProfile.nailCountForUseTicks(0) == 1 : "tap should prepare one nail";
-		assert ProjectJjkNobaraProfile.nailCountForUseTicks(5) == 1 : "250 ms should still be one nail";
+		assert ProjectJjkNobaraProfile.nailCountForUseTicks(9) == 1 : "less than 0.5s should still be one nail";
 	}
 
-	private static void assertShortHoldPreparesTripleNails() {
-		assert ProjectJjkNobaraProfile.nailCountForUseTicks(6) == 3 : "300 ms should prepare three nails";
-		assert ProjectJjkNobaraProfile.nailCountForUseTicks(15) == 3 : "750 ms should stay at triple nails";
-	}
-
-	private static void assertLongHoldPreparesBarrageNails() {
-		assert ProjectJjkNobaraProfile.nailCountForUseTicks(16) == ProjectJjkNobaraProfile.BARRAGE_NAILS : "800 ms should prepare barrage nails";
-		assert ProjectJjkNobaraProfile.nailCountForUseTicks(60) == ProjectJjkNobaraProfile.BARRAGE_NAILS : "long holds should clamp to barrage nails";
+	private static void assertHoldAddsOneNailEveryHalfSecond() {
+		assert ProjectJjkNobaraProfile.EXTRA_NAIL_HOLD_TICKS == 10 : "one extra nail should require 0.5s / 10 ticks of hold";
+		assert ProjectJjkNobaraProfile.nailCountForUseTicks(10) == 2 : "0.5s should add the second nail";
+		assert ProjectJjkNobaraProfile.nailCountForUseTicks(20) == 3 : "1.0s should prepare three nails";
+		assert ProjectJjkNobaraProfile.nailCountForUseTicks(70) == ProjectJjkNobaraProfile.BARRAGE_NAILS : "3.5s should reach the barrage cap";
+		assert ProjectJjkNobaraProfile.nailCountForUseTicks(120) == ProjectJjkNobaraProfile.BARRAGE_NAILS : "long holds should clamp to barrage nails";
 	}
 
 	private static void assertWorldNailsPersistLikeProjectJjkReference() {

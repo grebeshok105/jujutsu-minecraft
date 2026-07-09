@@ -41,7 +41,9 @@ public final class ProjectSanityTest {
 		assertNobaraTargetMarksUseVanillaGlowing();
 		assertHairpinFinishersUseSnapImpulse();
 		assertFirstPersonSnapPipelineWired();
+		assertNobaraHammerHasExplosiveAndPiercingLaunchModes();
 		assertNobaraNailAuraAvoidsSoulFire();
+		assertHairpinScreenOverlayUsesSmoothGradientVignette();
 		assertCharacterSelectUsesCheapUiPrimitives();
 		assertGeckoLibNobaraPlayerModelWired();
 		assertNobaraGeoHeadLookIsSafeAndEnabled();
@@ -248,6 +250,26 @@ public final class ProjectSanityTest {
 		assert snap.contains("scaledProgress") && snap.contains("easeInQuint") && snap.contains("easeInCubic") : "Snap pose should keep ProjectJJK-style windup/hold/release phases";
 	}
 
+	private static void assertNobaraHammerHasExplosiveAndPiercingLaunchModes() throws IOException {
+		String payload = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/network/NobaraActionPayload.java"));
+		assert payload.contains("NAIL_LAUNCH_EXPLOSIVE") : "Left-click hammer launch needs an explicit explosive nail-launch payload";
+		String keybinds = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/input/JujutsuKeybinds.java"));
+		assert keybinds.contains("keyAttack.isDown()") : "Client input must edge-detect left-click attack for explosive hammer launches";
+		assert keybinds.contains("NAIL_LAUNCH_EXPLOSIVE") : "Left-click hammer launch must send the explosive payload";
+		String hammer = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkHammerItem.java"));
+		assert hammer.contains("launchHairpin(serverPlayer, stack, hand, false)") : "Right-click hammer use must launch non-explosive piercing nails";
+		String actions = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraActions.java"));
+		assert actions.contains("NAIL_LAUNCH_EXPLOSIVE") && actions.contains("launchHairpin(player, true)") : "Nobara action gate must route left-click to explosive launch mode";
+		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraRuntime.java"));
+		assert runtime.contains("launchHairpin(ServerPlayer player, boolean explosiveImpact)") : "Nobara runtime must expose an explosive/non-explosive launch mode";
+		assert runtime.contains("isExplosiveLaunchLocked(player)") : "Hairpin Enlarge/Boom must be gated while explosive nails are in flight";
+		assert runtime.contains("hasActiveExplosiveNails(player)") : "Explosive launch lock must follow actual live explosive nails, not only a fixed timer";
+		String nail = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNailEntity.java"));
+		assert nail.contains("explosiveImpact") : "Nail entity must remember whether this launched nail should explode on impact";
+		assert nail.contains("resolveNailImpact(serverLevel, this, hit, explosiveImpact)") : "Impact resolution must branch on explosive vs piercing launch mode";
+		assert nail.contains("explodeAtTargetIfPassed") : "Explosive nails must detonate and disappear after reaching their target even when they miss collision";
+	}
+
 	private static void assertNobaraNailAuraAvoidsSoulFire() throws IOException {
 		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraRuntime.java"));
 		assert !runtime.contains("ParticleTypes.SOUL_FIRE_FLAME") : "Nobara nail aura must not use vanilla soul-fire particles";
@@ -255,6 +277,14 @@ public final class ProjectSanityTest {
 		assert renderer.contains("renderBlueForceFieldEnvelope") : "Prepared and flying nails must use the previous blue force-field envelope";
 		assert !renderer.contains("renderCyanNailFireAura") : "Blue nail aura must not use the rejected cyan flame ribbon geometry";
 		assert !renderer.contains("ParticleTypes.SOUL_FIRE_FLAME") : "Blue nail aura must be rendered geometry, not vanilla particles";
+	}
+
+	private static void assertHairpinScreenOverlayUsesSmoothGradientVignette() throws IOException {
+		String overlay = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinScreenOverlay.java"));
+		assert overlay.contains("renderSmoothEdgeVignette") : "Impact screen darkness must use the smooth vignette path";
+		assert overlay.contains("layers = 28") : "Impact screen darkness needs enough layers to avoid visible hard bands";
+		assert !overlay.contains("renderEdgeTears") : "Impact screen darkness must not draw strip-like edge tears";
+		assert !overlay.contains("index < 5") : "Impact screen darkness must not draw obvious horizontal sweep stripes";
 	}
 
 	private static void assertCharacterSelectUsesCheapUiPrimitives() throws IOException {
@@ -268,6 +298,8 @@ public final class ProjectSanityTest {
 		assert !card.contains("headX - 5") : "Nobara portrait must not draw the side background around the skin head";
 		assert !card.contains("coatY") : "Nobara portrait must not draw the old orange body/coat stub below the head";
 		assert !card.contains("nailX") : "Nobara portrait must not draw the old right-side nail that reads like a T";
+		assert !card.contains("y + h - 12") : "Character cards must not draw the dark strip under the technique label";
+		assert card.contains("drawPortraitBackdrop") : "Nobara portrait should reuse the cleaner Default-style portrait backdrop";
 	}
 
 	private static void assertGeckoLibNobaraPlayerModelWired() throws IOException {
@@ -322,6 +354,7 @@ public final class ProjectSanityTest {
 		assert geoModel.contains("NobaraPlayerGeoAnimatable.headLookWeight(animationState, playerState)") : "Nobara head look must use the animatable/controller-aware action weight";
 		assert geoModel.contains("MAX_HEAD_YAW_DEGREES = 38.0f") : "Nobara head yaw clamp must stay conservative after the unsafe 75 degree attempt";
 		assert geoModel.contains("MAX_HEAD_PITCH_DEGREES = 22.0f") : "Nobara head pitch clamp must stay conservative after the unsafe 45 degree attempt";
+		assert geoModel.contains("head.resetStateChanges()") : "Nobara render-only head look must not leak rotationChanged into GeckoLib's next-frame reset bookkeeping";
 		assert !geoModel.contains("MAX_HEAD_YAW_DEGREES = 75.0f") : "Do not restore the old unsafe head yaw range";
 		assert !geoModel.contains("MAX_HEAD_PITCH_DEGREES = 45.0f") : "Do not restore the old unsafe head pitch range";
 		String animatable = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoAnimatable.java"));

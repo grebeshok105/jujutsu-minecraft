@@ -63,9 +63,7 @@ public final class CharacterCard extends UiElement {
 		int px = bx + pad;
 		int py = by + pad;
 		int pw = bw - pad * 2;
-		if (portrait != Portrait.NOBARA) {
-			UiRender.roundedRect(g, px, py, pw, portraitH, 6, 0xFF15171D, UiRender.withAlpha(accentRgb, 0.14f + energy * 0.2f));
-		}
+		drawPortraitBackdrop(g, px, py, pw, portraitH, energy);
 		drawPortrait(g, px, py, pw, portraitH, energy);
 
 		// Name + role.
@@ -93,7 +91,13 @@ public final class CharacterCard extends UiElement {
 	private void paintBody(GuiGraphics g, int x, int y, int w, int h, float energy) {
 		int top = UiRender.lerpColor(UiTheme.PANEL_RAISED, UiRender.lerpColor(UiTheme.PANEL_RAISED, accentRgb | 0xFF000000, 0.16f), energy);
 		UiRender.roundedRect(g, x + 1, y + 1, w - 2, h - 2, 7, top);
-		UiRender.fill(g, x + 7, y + h - 12, w - 14, 5, UiTheme.PANEL_INSET);
+	}
+
+	private void drawPortraitBackdrop(GuiGraphics g, int x, int y, int w, int h, float energy) {
+		int panel = UiRender.lerpColor(0xFF15171D, UiRender.lerpColor(0xFF15171D, accentRgb | 0xFF000000, 0.10f), energy);
+		int border = UiRender.withAlpha(accentRgb, 0.14f + energy * 0.2f);
+		UiRender.roundedRect(g, x, y, w, h, 6, panel, border);
+		UiRender.fastGlow(g, x + w / 2 - 20, y + 16, 40, Math.min(44, h - 18), accentRgb, 0.08f + energy * 0.16f);
 	}
 
 	private void drawPortrait(GuiGraphics g, int x, int y, int w, int h, float energy) {
