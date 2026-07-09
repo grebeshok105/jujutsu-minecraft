@@ -3,8 +3,7 @@ package jujutsu.mod.client;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import jujutsu.mod.client.vfx.VfxDirector;
-import jujutsu.mod.client.fx.HairpinScreenOverlay;
-import jujutsu.mod.client.fx.HairpinWorldRenderer;
+import jujutsu.mod.client.vfx.nobara.NobaraVfxRecipes;
 import jujutsu.mod.client.input.JujutsuKeybinds;
 import jujutsu.mod.client.network.JujutsuClientNetworking;
 import jujutsu.mod.client.particle.JujutsuClientParticles;
@@ -17,8 +16,7 @@ public class JujutsuModClient implements ClientModInitializer {
 		EntityRendererRegistry.register(JujutsuEntities.PROJECTJJK_NAIL, ProjectJjkNailRenderer::new);
 		JujutsuClientParticles.registerFactories();
 		VfxDirector.initialize();
-		HairpinScreenOverlay.register();
-		HairpinWorldRenderer.register();
+		NobaraVfxRecipes.register();
 		JujutsuClientNetworking.registerReceivers();
 		JujutsuKeybinds.register();
 	}

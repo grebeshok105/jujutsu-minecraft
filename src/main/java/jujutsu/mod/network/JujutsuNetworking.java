@@ -15,7 +15,6 @@ public final class JujutsuNetworking {
 	private JujutsuNetworking() {}
 
 	public static void registerPayloads() {
-		PayloadTypeRegistry.playS2C().register(ProjectJjkNobaraImpulsePayload.TYPE, ProjectJjkNobaraImpulsePayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(VfxCuePayload.TYPE, VfxCuePayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(CharacterSelectionSyncPayload.TYPE, CharacterSelectionSyncPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(SelectCharacterPayload.TYPE, SelectCharacterPayload.STREAM_CODEC);
@@ -34,29 +33,6 @@ public final class JujutsuNetworking {
 
 	private static void handleNobaraAction(ServerPlayer player, NobaraActionPayload payload) {
 		ProjectJjkNobaraActions.tryCast(player, payload.action(), true);
-	}
-
-	public static int broadcastProjectJjkImpulse(ServerLevel level, Vec3 center, double radius, ProjectJjkNobaraImpulsePayload payload) {
-		double radiusSqr = radius * radius;
-		int sent = 0;
-		for (ServerPlayer player : level.players()) {
-			if (player.position().distanceToSqr(center) > radiusSqr) {
-				continue;
-			}
-			if (ServerPlayNetworking.canSend(player, ProjectJjkNobaraImpulsePayload.TYPE)) {
-				ServerPlayNetworking.send(player, payload);
-				sent++;
-			}
-		}
-		return sent;
-	}
-
-	public static boolean sendProjectJjkImpulse(ServerPlayer player, ProjectJjkNobaraImpulsePayload payload) {
-		if (!ServerPlayNetworking.canSend(player, ProjectJjkNobaraImpulsePayload.TYPE)) {
-			return false;
-		}
-		ServerPlayNetworking.send(player, payload);
-		return true;
 	}
 
 	public static int broadcastVfxCue(ServerLevel level, Vec3 center, double radius, VfxCue cue) {

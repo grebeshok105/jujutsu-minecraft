@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -22,11 +23,12 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.network.JujutsuNetworking;
-import jujutsu.mod.network.ProjectJjkNobaraImpulsePayload;
 import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.registry.JujutsuParticles;
 import jujutsu.mod.registry.JujutsuSounds;
+import jujutsu.mod.vfx.NobaraVfxIds;
+import jujutsu.mod.vfx.VfxCue;
 
 public final class ProjectJjkNobaraRuntime {
 	private static final double IMPULSE_BROADCAST_RADIUS = 56.0;
@@ -106,7 +108,8 @@ public final class ProjectJjkNobaraRuntime {
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 1.2f, 0.82f);
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_CINEMATIC_WHOOSH, SoundSource.PLAYERS, 0.88f, 0.86f);
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SPELL_SHOT, SoundSource.PLAYERS, 0.72f, 0.74f);
-		JujutsuNetworking.broadcastProjectJjkImpulse(level, player.position(), IMPULSE_BROADCAST_RADIUS, impulse(ProjectJjkNobaraImpulsePayload.HAMMER, nails.size(), player.position(), level.getGameTime()));
+		JujutsuNetworking.broadcastVfxCue(level, player.position(), IMPULSE_BROADCAST_RADIUS,
+				cue(level, NobaraVfxIds.HAMMER, nails.size(), player.position(), level.getGameTime(), player.getId()));
 		damageHammer(player, hammerStack, hand);
 		return true;
 	}
@@ -178,9 +181,10 @@ public final class ProjectJjkNobaraRuntime {
 		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_IMPLODE, SoundSource.PLAYERS, 0.42f, 0.9f);
 		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, SoundSource.PLAYERS, 0.56f, 1.08f);
 		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT_2, SoundSource.PLAYERS, 0.42f, 0.96f);
-		JujutsuNetworking.broadcastProjectJjkImpulse(level, point, IMPULSE_BROADCAST_RADIUS, impulse(ProjectJjkNobaraImpulsePayload.IMPACT, 1, point, level.getGameTime()));
+		JujutsuNetworking.broadcastVfxCue(level, point, IMPULSE_BROADCAST_RADIUS,
+				cue(level, NobaraVfxIds.IMPACT, 1, point, level.getGameTime()));
 		if (owner != null) {
-			JujutsuNetworking.sendProjectJjkImpulse(owner, impulse(ProjectJjkNobaraImpulsePayload.IMPACT_SOUND, 1, point, level.getGameTime()));
+			JujutsuNetworking.sendVfxCue(owner, cue(level, NobaraVfxIds.IMPACT_SOUND, 1, point, level.getGameTime()));
 		}
 	}
 
@@ -226,8 +230,12 @@ public final class ProjectJjkNobaraRuntime {
 		level.sendParticles(JujutsuParticles.HAIRPIN_IGNITION_TICK, center.x, center.y, center.z, 1, 0.05, 0.06, 0.05, 0.018);
 	}
 
-	private static ProjectJjkNobaraImpulsePayload impulse(int kind, int nailCount, Vec3 point, long gameTime) {
-		return new ProjectJjkNobaraImpulsePayload(kind, nailCount, point.x, point.y, point.z, gameTime);
+	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 point, long gameTime) {
+		return cue(level, effectId, intensity, point, gameTime, VfxCue.NO_ANCHOR);
+	}
+
+	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 point, long gameTime, int anchorEntityId) {
+		return new VfxCue(effectId, point, anchorEntityId, Math.max(1, intensity), gameTime, level.random.nextLong());
 	}
 
 	private static List<ProjectJjkNailEntity> findPreparedNails(ServerLevel level, ServerPlayer player) {

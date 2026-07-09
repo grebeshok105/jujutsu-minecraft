@@ -98,6 +98,16 @@ tasks.register('testVfxQuality', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testVfxAnchor', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for VFX anchor fallback'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.vfx.VfxAnchorResolverTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.named('check') {
 	dependsOn tasks.named('testProjectSanity')
 	dependsOn tasks.named('testTargetResolver')
@@ -105,6 +115,7 @@ tasks.named('check') {
 	dependsOn tasks.named('testVfxCore')
 	dependsOn tasks.named('testVfxTimeline')
 	dependsOn tasks.named('testVfxQuality')
+	dependsOn tasks.named('testVfxAnchor')
 }
 
 processResources {

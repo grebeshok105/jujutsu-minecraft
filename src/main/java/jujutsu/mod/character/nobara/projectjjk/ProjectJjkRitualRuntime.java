@@ -15,6 +15,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -32,9 +33,10 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.network.JujutsuNetworking;
-import jujutsu.mod.network.ProjectJjkNobaraImpulsePayload;
 import jujutsu.mod.registry.JujutsuParticles;
 import jujutsu.mod.registry.JujutsuSounds;
+import jujutsu.mod.vfx.NobaraVfxIds;
+import jujutsu.mod.vfx.VfxCue;
 
 /**
  * The beating heart of Nobara's Straw Doll RPG loop. Owns the resonance ritual (remote strike
@@ -117,7 +119,7 @@ public final class ProjectJjkRitualRuntime {
 			level.playSound(null, caster.getX(), caster.getY(), caster.getZ(), JujutsuSounds.PROJECTJJK_CHIME, SoundSource.PLAYERS, 0.9f, 1.1f);
 			level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_MAGIC, SoundSource.PLAYERS, 0.7f, 1.2f);
 			level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, at.x, at.y, at.z, 24, 0.5, 0.7, 0.5, 0.05);
-			broadcast(level, caster.position(), ProjectJjkNobaraImpulsePayload.LINK_BIND, 1, at, gameTime);
+			broadcast(level, caster.position(), NobaraVfxIds.LINK_BIND, 1, at, gameTime);
 			caster.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.jujutsumod.projectjjk.resonance.bound"), true);
 			return;
 		}
@@ -147,8 +149,8 @@ public final class ProjectJjkRitualRuntime {
 		ProjectJjkNailMarks.consume(target.getUUID(), gameTime);
 		discardOwnedEmbeddedNails(level, casterId, target);
 		clearGlowingMark(target);
-		broadcast(level, at, ProjectJjkNobaraImpulsePayload.RESONANCE_STRIKE, marks, at, gameTime);
-		JujutsuNetworking.sendProjectJjkImpulse(caster, impulse(ProjectJjkNobaraImpulsePayload.RESONANCE_CHANNEL, marks, caster.getEyePosition(), gameTime));
+		broadcast(level, at, NobaraVfxIds.RESONANCE_STRIKE, marks, at, gameTime);
+		JujutsuNetworking.sendVfxCue(caster, cue(level, NobaraVfxIds.RESONANCE_CHANNEL, marks, caster.getEyePosition(), gameTime, caster.getId()));
 		ProjectJjkResonanceLink.clear(casterId);
 	}
 
@@ -197,6 +199,8 @@ public final class ProjectJjkRitualRuntime {
 			}
 		}
 		playCasterSnap(level, caster, anchors.size(), gameTime);
+		JujutsuNetworking.sendVfxCue(caster,
+				cue(level, NobaraVfxIds.DETONATE, anchors.size(), caster.getEyePosition(), gameTime, caster.getId()));
 		consumeAnchorMarks(level, anchors, gameTime);
 		PENDING_EXPLOSIONS.add(new PendingExplosion(level, caster.getUUID(), anchors, gameTime + ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_START_DELAY_TICKS));
 		return true;
@@ -329,7 +333,7 @@ public final class ProjectJjkRitualRuntime {
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, SoundSource.PLAYERS, 2.0f, 2.0f);
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_GOO_FOLEY, SoundSource.PLAYERS, 0.25f, 1.5f);
 		clearGlowingMark(target);
-		broadcast(level, at, ProjectJjkNobaraImpulsePayload.HAIRPIN_ENLARGE, pending.marks(), at, gameTime);
+		broadcast(level, at, NobaraVfxIds.ENLARGE, pending.marks(), at, gameTime);
 	}
 
 	private static void explodeAnchor(ServerLevel level, ServerPlayer caster, ExplosionAnchor anchor, long gameTime) {
@@ -358,7 +362,7 @@ public final class ProjectJjkRitualRuntime {
 		}
 		spawnProjectJjkExplosion(level, at, anchor.marks());
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_EXPLODE, SoundSource.PLAYERS, 0.2f, 2.0f);
-		broadcast(level, at, ProjectJjkNobaraImpulsePayload.HAIRPIN_EXPLOSION, anchor.marks(), at, gameTime);
+		broadcast(level, at, NobaraVfxIds.EXPLOSION, anchor.marks(), at, gameTime);
 		if (!anchor.nail() && anchor.targetId() != null && caster != null && sourceEntity instanceof LivingEntity living) {
 			discardOwnedEmbeddedNails(level, caster.getUUID(), living);
 		}
@@ -590,17 +594,22 @@ public final class ProjectJjkRitualRuntime {
 		return point.distanceToSqr(closest) <= radius * radius;
 	}
 
-	private static void broadcast(ServerLevel level, Vec3 center, int kind, int marks, Vec3 at, long gameTime) {
-		JujutsuNetworking.broadcastProjectJjkImpulse(level, center, IMPULSE_RADIUS, impulse(kind, marks, at, gameTime));
+	private static void broadcast(ServerLevel level, Vec3 center, ResourceLocation effectId, int marks, Vec3 at, long gameTime) {
+		JujutsuNetworking.broadcastVfxCue(level, center, IMPULSE_RADIUS, cue(level, effectId, marks, at, gameTime));
 	}
 
-	private static ProjectJjkNobaraImpulsePayload impulse(int kind, int marks, Vec3 at, long gameTime) {
-		return new ProjectJjkNobaraImpulsePayload(kind, marks, at.x, at.y, at.z, gameTime);
+	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 at, long gameTime) {
+		return cue(level, effectId, intensity, at, gameTime, VfxCue.NO_ANCHOR);
+	}
+
+	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 at, long gameTime, int anchorEntityId) {
+		return new VfxCue(effectId, at, anchorEntityId, Math.max(1, intensity), gameTime, level.random.nextLong());
 	}
 
 	private static void playCasterSnap(ServerLevel level, ServerPlayer caster, int marks, long gameTime) {
 		level.playSound(null, caster.getX(), caster.getY(), caster.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 2.0f, 1.0f);
-		JujutsuNetworking.sendProjectJjkImpulse(caster, impulse(ProjectJjkNobaraImpulsePayload.FP_SNAP, Math.max(1, marks), caster.getEyePosition(), gameTime));
+		JujutsuNetworking.sendVfxCue(caster,
+				cue(level, NobaraVfxIds.FIRST_PERSON_SNAP, Math.max(1, marks), caster.getEyePosition(), gameTime, caster.getId()));
 	}
 
 	private static Vec3 safeDirection(Vec3 vector) {

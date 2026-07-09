@@ -20,6 +20,7 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEmbedding;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEntity;
+import jujutsu.mod.client.vfx.VfxPalette;
 import jujutsu.mod.registry.JujutsuItems;
 
 public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailEntity, ProjectJjkNailRenderer.State> {
@@ -27,18 +28,18 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 	private static final Vec3 EAST = new Vec3(1.0, 0.0, 0.0);
 	private static final Vector3f MODEL_UP = new Vector3f(0.0f, 1.0f, 0.0f);
 	private static final ItemStack NAIL_STACK = new ItemStack(JujutsuItems.HAIRPIN_NAIL);
-	private static final int CURSED_BLUE_R = 12;
-	private static final int CURSED_BLUE_G = 190;
-	private static final int CURSED_BLUE_B = 255;
-	private static final int CURSED_BLUE_EDGE_R = 64;
-	private static final int CURSED_BLUE_EDGE_G = 236;
-	private static final int CURSED_BLUE_EDGE_B = 255;
-	private static final int CURSED_BLUE_DARK_R = 0;
-	private static final int CURSED_BLUE_DARK_G = 74;
-	private static final int CURSED_BLUE_DARK_B = 118;
-	private static final int CURSED_BLUE_WHITE_R = 184;
-	private static final int CURSED_BLUE_WHITE_G = 255;
-	private static final int CURSED_BLUE_WHITE_B = 255;
+	private static final int CURSED_BLUE_R = VfxPalette.CURSED_BLUE_R;
+	private static final int CURSED_BLUE_G = VfxPalette.CURSED_BLUE_G;
+	private static final int CURSED_BLUE_B = VfxPalette.CURSED_BLUE_B;
+	private static final int CURSED_BLUE_EDGE_R = VfxPalette.CURSED_BLUE_EDGE_R;
+	private static final int CURSED_BLUE_EDGE_G = VfxPalette.CURSED_BLUE_EDGE_G;
+	private static final int CURSED_BLUE_EDGE_B = VfxPalette.CURSED_BLUE_EDGE_B;
+	private static final int CURSED_BLUE_DARK_R = VfxPalette.CURSED_BLUE_DARK_R;
+	private static final int CURSED_BLUE_DARK_G = VfxPalette.CURSED_BLUE_DARK_G;
+	private static final int CURSED_BLUE_DARK_B = VfxPalette.CURSED_BLUE_DARK_B;
+	private static final int CURSED_BLUE_WHITE_R = VfxPalette.CURSED_BLUE_WHITE_R;
+	private static final int CURSED_BLUE_WHITE_G = VfxPalette.CURSED_BLUE_WHITE_G;
+	private static final int CURSED_BLUE_WHITE_B = VfxPalette.CURSED_BLUE_WHITE_B;
 	private final ItemRenderer itemRenderer;
 
 	public ProjectJjkNailRenderer(EntityRendererProvider.Context context) {

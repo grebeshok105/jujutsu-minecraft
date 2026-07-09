@@ -6,6 +6,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.vfx.VfxAnchorResolver;
 import jujutsu.mod.vfx.VfxCue;
 
 public final class VfxContext {
@@ -39,11 +40,13 @@ public final class VfxContext {
 	}
 
 	public Vec3 resolveOrigin(VfxCue cue) {
-		if (cue.anchorEntityId() == VfxCue.NO_ANCHOR || client.level == null) {
-			return cue.origin();
-		}
-		Entity anchor = client.level.getEntity(cue.anchorEntityId());
-		return anchor == null ? cue.origin() : anchor.position();
+		return VfxAnchorResolver.resolve(cue, entityId -> {
+			if (client.level == null) {
+				return null;
+			}
+			Entity anchor = client.level.getEntity(entityId);
+			return anchor == null ? null : anchor.position();
+		});
 	}
 
 	public float proximity(VfxCue cue, double radius) {

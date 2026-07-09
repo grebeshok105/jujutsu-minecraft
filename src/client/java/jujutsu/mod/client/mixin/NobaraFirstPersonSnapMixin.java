@@ -11,7 +11,8 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import jujutsu.mod.client.fx.FpSnapAnimator;
+import jujutsu.mod.client.vfx.VfxDirector;
+import jujutsu.mod.client.vfx.VfxFirstPersonChannel;
 
 @Mixin(ItemInHandRenderer.class)
 public abstract class NobaraFirstPersonSnapMixin {
@@ -20,7 +21,7 @@ public abstract class NobaraFirstPersonSnapMixin {
 
 	@Inject(method = "renderHandsWithItems", at = @At("HEAD"))
 	private void jujutsumod$applySnapHandTransform(float partialTick, PoseStack matrices, MultiBufferSource.BufferSource buffer, LocalPlayer player, int combinedLight, CallbackInfo ci) {
-		FpSnapAnimator.Pose pose = FpSnapAnimator.currentPose();
+		VfxFirstPersonChannel.Pose pose = VfxDirector.firstPersonPose();
 		if (pose == null) {
 			jujutsumod$snapTransformPushed = false;
 			return;
@@ -29,10 +30,10 @@ public abstract class NobaraFirstPersonSnapMixin {
 		float side = arm == HumanoidArm.RIGHT ? 1.0f : -1.0f;
 		matrices.pushPose();
 		jujutsumod$snapTransformPushed = true;
-		matrices.translate(pose.translate().x() * side, pose.translate().y(), pose.translate().z());
-		matrices.mulPose(Axis.XP.rotationDegrees(pose.rotate().x()));
-		matrices.mulPose(Axis.ZP.rotationDegrees(side * pose.rotate().z()));
-		matrices.mulPose(Axis.YP.rotationDegrees(side * pose.rotate().y()));
+		matrices.translate(pose.translateX() * side, pose.translateY(), pose.translateZ());
+		matrices.mulPose(Axis.XP.rotationDegrees(pose.rotateX()));
+		matrices.mulPose(Axis.ZP.rotationDegrees(side * pose.rotateZ()));
+		matrices.mulPose(Axis.YP.rotationDegrees(side * pose.rotateY()));
 	}
 
 	@Inject(method = "renderHandsWithItems", at = @At("RETURN"))

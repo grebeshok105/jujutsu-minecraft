@@ -40,6 +40,7 @@ public final class ProjectSanityTest {
 		assertVfxCueTransportIsRegistered();
 		assertVfxDirectorOwnsClientLifecycle();
 		assertVfxCoreProvidesReusableChannels();
+		assertNobaraUsesVfxCoreRecipes();
 		assertDefaultNobaraEntrypointSkipsLegacyRuntime();
 		assertLegacyNobaraRuntimeIsRemoved();
 		assertNobaraNailsEmbedLikeOpaqueBodyAnchors();
@@ -293,21 +294,20 @@ public final class ProjectSanityTest {
 		assert runtime.contains("pruneGlowingMarks(server, gameTime)") : "Expired target marks must clean up temporary glow team state";
 		assert runtime.contains("restoreAllGlowTeams(server.getScoreboard())") : "Server stop must restore glow teams before dropping in-memory snapshots";
 		assert runtime.contains("clearGlowingMark") : "Consumed marks must remove our Glowing effect instead of leaving a stale target mark";
-		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java"));
+		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxWorldChannel.java"));
 		assert !renderer.contains("renderTargetMarks") : "Target marks must not be custom world geometry when vanilla Glowing is active";
 		assert !renderer.contains("renderBodyGlowShell") : "Target marks must not be the old free-floating body shell";
 		assert !renderer.contains("TargetMarkRenderManager") : "Target mark world-render manager should not drive the visual mark";
 	}
 
 	private static void assertHairpinFinishersUseSnapImpulse() throws IOException {
-		String payload = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/network/ProjectJjkNobaraImpulsePayload.java"));
-		assert payload.contains("FP_SNAP") : "Hairpin Enlarge/Explosion need an explicit first-person snap impulse";
 		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
-		assert runtime.contains("ProjectJjkNobaraImpulsePayload.FP_SNAP") : "Hairpin finishers must request snap animation on the caster";
-		assert !runtime.contains("ProjectJjkNobaraImpulsePayload.HAMMER, Math.max(1, marks)") : "Hairpin Enlarge must not reuse the hammer/anvil impulse";
+		assert runtime.contains("NobaraVfxIds.FIRST_PERSON_SNAP") : "Hairpin finishers must request the typed first-person snap cue";
+		assert !runtime.contains("NobaraVfxIds.HAMMER, Math.max(1, marks)") : "Hairpin Enlarge must not reuse the hammer swing cue";
 		String client = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/network/JujutsuClientNetworking.java"));
-		assert client.contains("ProjectJjkNobaraImpulsePayload.FP_SNAP") : "Client networking must handle the first-person snap impulse";
-		assert client.contains("FpSnapAnimator.playSnap") : "Snap impulse must start the first-person hand animation";
+		assert client.contains("VfxCuePayload.TYPE") : "Client networking must receive typed VFX cues";
+		assert client.contains("VfxDirector.receive") : "Client networking must delegate visual cues to VfxDirector";
+		assert !client.contains("ProjectJjkNobaraImpulsePayload") : "Client networking must not retain the legacy integer impulse switch";
 	}
 
 	private static void assertVfxCueTransportIsRegistered() throws IOException {
@@ -346,16 +346,33 @@ public final class ProjectSanityTest {
 		assert sound.contains("playNoFalloff") : "VFX sound channel must own local cinematic sound playback";
 	}
 
+	private static void assertNobaraUsesVfxCoreRecipes() throws IOException {
+		Path recipesPath = CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/nobara/NobaraVfxRecipes.java");
+		assert Files.exists(recipesPath) : "Nobara requires VFX Core recipes";
+		String recipes = Files.readString(recipesPath);
+		assert recipes.contains("NobaraVfxIds.HAMMER") : "Missing Nobara hammer recipe";
+		assert recipes.contains("NobaraVfxIds.RESONANCE_STRIKE") : "Missing Nobara resonance recipe";
+		assert recipes.contains("NobaraVfxIds.ENLARGE") && recipes.contains("NobaraVfxIds.EXPLOSION") : "Missing Nobara finisher recipes";
+		assert recipes.contains("NobaraVfxIds.FIRST_PERSON_SNAP") : "Missing Nobara first-person snap recipe";
+		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/network/ProjectJjkNobaraImpulsePayload.java")) : "Legacy integer VFX payload must be removed after migration";
+		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java")) : "Legacy Hairpin world renderer must be replaced by VFX Core";
+		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinCinematicCamera.java")) : "Legacy Hairpin camera manager must be replaced by VFX Core";
+		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinScreenOverlay.java")) : "Legacy Hairpin HUD manager must be replaced by VFX Core";
+		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/ResonanceEffects.java")) : "Legacy resonance particle manager must be replaced by VFX Core";
+		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/FpSnapAnimator.java")) : "Legacy first-person animator must be replaced by VFX Core";
+	}
+
 	private static void assertFirstPersonSnapPipelineWired() throws IOException {
 		String mixins = Files.readString(ROOT.resolve("src/client/resources/jujutsumod.client.mixins.json"));
 		assert mixins.contains("NobaraFirstPersonSnapMixin") : "First-person snap animation needs a narrow hand-render mixin";
-		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/FpSnapAnimator.java")) : "Missing first-person snap animator";
+		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxFirstPersonChannel.java")) : "Missing VFX Core first-person channel";
 		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/NobaraFirstPersonSnapMixin.java")) : "Missing first-person snap hand render mixin";
 		String snapMixin = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/NobaraFirstPersonSnapMixin.java"));
 		assert !snapMixin.contains("ci.cancel()") : "First-person snap must not cancel vanilla hand rendering; that makes the arm disappear";
 		assert snapMixin.contains("@Inject(method = \"renderHandsWithItems\", at = @At(\"HEAD\"))") : "First-person snap should apply a transform before vanilla hand rendering";
 		assert snapMixin.contains("@Inject(method = \"renderHandsWithItems\", at = @At(\"RETURN\"))") : "First-person snap must restore the pose stack after vanilla hand rendering";
-		String snap = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/FpSnapAnimator.java"));
+		assert snapMixin.contains("VfxDirector.firstPersonPose") : "First-person mixin must read the pose from VFX Core";
+		String snap = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxFirstPersonChannel.java"));
 		assert snap.contains("DURATION_SECONDS = 0.75f") : "Snap timing should preserve ProjectJJK's full 0..15 scaled snap phases";
 		assert snap.contains("scaledProgress") && snap.contains("easeInQuint") && snap.contains("easeInCubic") : "Snap pose should keep ProjectJJK-style windup/hold/release phases";
 	}
@@ -385,12 +402,13 @@ public final class ProjectSanityTest {
 		assert !runtime.contains("ParticleTypes.SOUL_FIRE_FLAME") : "Nobara nail aura must not use vanilla soul-fire particles";
 		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/ProjectJjkNailRenderer.java"));
 		assert renderer.contains("renderBlueForceFieldEnvelope") : "Real ProjectJJK nail entities must render the blue force-field envelope";
+		assert renderer.contains("VfxPalette") : "Persistent nail aura must reuse the VFX Core cursed-energy palette";
 		assert !renderer.contains("renderCyanNailFireAura") : "Blue nail aura must not use the rejected cyan flame ribbon geometry";
 		assert !renderer.contains("ParticleTypes.SOUL_FIRE_FLAME") : "Blue nail aura must be rendered geometry, not vanilla particles";
 	}
 
 	private static void assertHairpinScreenOverlayUsesSmoothGradientVignette() throws IOException {
-		String overlay = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinScreenOverlay.java"));
+		String overlay = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxHudChannel.java"));
 		assert overlay.contains("renderSmoothEdgeVignette") : "Impact screen darkness must use the smooth vignette path";
 		assert overlay.contains("layers = 28") : "Impact screen darkness needs enough layers to avoid visible hard bands";
 		assert !overlay.contains("renderEdgeTears") : "Impact screen darkness must not draw strip-like edge tears";
