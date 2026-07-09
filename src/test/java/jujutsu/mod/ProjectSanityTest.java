@@ -38,7 +38,9 @@ public final class ProjectSanityTest {
 		assertProjectJjkHairpinFinisherNumbers();
 		assertDefaultNobaraEntrypointSkipsLegacyRuntime();
 		assertNobaraNailsEmbedLikeOpaqueBodyAnchors();
-		assertNobaraTargetMarksRenderAsBodyGlow();
+		assertNobaraTargetMarksUseVanillaGlowing();
+		assertHairpinFinishersUseSnapImpulse();
+		assertFirstPersonSnapPipelineWired();
 		assertNobaraNailAuraAvoidsSoulFire();
 		assertCharacterSelectUsesCheapUiPrimitives();
 		assertGeckoLibNobaraPlayerModelWired();
@@ -192,16 +194,41 @@ public final class ProjectSanityTest {
 		String nailEntity = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNailEntity.java"));
 		assert nailEntity.contains("ProjectJjkNailEmbedding.bodyEmbedPoint") : "Embedded nails must use body-space attachment math, not AABB clamp-only placement";
 		assert !nailEntity.contains("setOldPosAndRot(next") : "Embedded nails must not reset old position each tick; that creates visible chase/teleporting";
+		assert nailEntity.contains("embeddedLocalOffset()") : "Embedded nail renderer needs synced local body offset for render-attaching to the host";
+		assert nailEntity.contains("target.yBodyRot") : "Embedded nails must anchor to body rotation, not head/look yaw";
 		String nailRenderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/ProjectJjkNailRenderer.java"));
 		assert !nailRenderer.contains("renderEmbeddedMark") : "Embedded nail renderer must not draw translucent lightning ribbons on the nail mesh";
+		assert nailRenderer.contains("state.hostOffset") : "Embedded nails must render-attached to the host with partial ticks instead of visually chasing entity position";
+		assert nailRenderer.contains("living.yBodyRot") : "Embedded nail renderer must use interpolated body rotation for the host attachment";
 		assert nailRenderer.contains("ItemDisplayContext.FIXED") : "Nail renderer should use the fixed 3D item transform for stable arrow-like embedding";
 	}
 
-	private static void assertNobaraTargetMarksRenderAsBodyGlow() throws IOException {
+	private static void assertNobaraTargetMarksUseVanillaGlowing() throws IOException {
+		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
+		assert runtime.contains("MobEffects.GLOWING") : "Target marks must use Minecraft's real Glowing effect";
+		assert runtime.contains("clearGlowingMark") : "Consumed marks must remove our Glowing effect instead of leaving a stale target mark";
 		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java"));
-		assert renderer.contains("entity.getPosition(partialTick)") : "Target marks must use partial-tick entity position so the glow is glued to the body";
-		assert renderer.contains("renderBodyGlowShell") : "Target marks should render as a tight body glow shell";
-		assert !renderer.contains("renderBlueBodyRing") : "Target marks must not be the old free-floating blue cage";
+		assert !renderer.contains("renderTargetMarks") : "Target marks must not be custom world geometry when vanilla Glowing is active";
+		assert !renderer.contains("renderBodyGlowShell") : "Target marks must not be the old free-floating body shell";
+		assert !renderer.contains("TargetMarkRenderManager") : "Target mark world-render manager should not drive the visual mark";
+	}
+
+	private static void assertHairpinFinishersUseSnapImpulse() throws IOException {
+		String payload = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/network/ProjectJjkNobaraImpulsePayload.java"));
+		assert payload.contains("FP_SNAP") : "Hairpin Enlarge/Explosion need an explicit first-person snap impulse";
+		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
+		assert runtime.contains("ProjectJjkNobaraImpulsePayload.FP_SNAP") : "Hairpin finishers must request snap animation on the caster";
+		assert !runtime.contains("ProjectJjkNobaraImpulsePayload.HAMMER, Math.max(1, marks)") : "Hairpin Enlarge must not reuse the hammer/anvil impulse";
+		String client = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/network/JujutsuClientNetworking.java"));
+		assert client.contains("ProjectJjkNobaraImpulsePayload.FP_SNAP") : "Client networking must handle the first-person snap impulse";
+		assert client.contains("FpSnapAnimator.playSnap") : "Snap impulse must start the first-person hand animation";
+	}
+
+	private static void assertFirstPersonSnapPipelineWired() throws IOException {
+		String mixins = Files.readString(ROOT.resolve("src/client/resources/jujutsumod.client.mixins.json"));
+		assert mixins.contains("NobaraFirstPersonSnapMixin") : "First-person snap animation needs a narrow hand-render mixin";
+		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/FpSnapAnimator.java")) : "Missing first-person snap animator";
+		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/NobaraFirstPersonSnapMixin.java")) : "Missing first-person snap hand render mixin";
 	}
 
 	private static void assertNobaraNailAuraAvoidsSoulFire() throws IOException {
@@ -234,9 +261,14 @@ public final class ProjectSanityTest {
 		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoModel.java")) : "Missing Nobara GeckoLib model";
 		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoRenderer.java")) : "Missing Nobara GeckoLib renderer";
 		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/NobaraLivingEntityRendererMixin.java")) : "Missing LivingEntityRenderer hook for Nobara player geo render";
-		assert Files.exists(MAIN_RESOURCES.resolve("assets/jujutsumod/geo/projectjjk/nobara_kugisaki.geo.json")) : "Missing Nobara geo model asset";
-		assert Files.exists(MAIN_RESOURCES.resolve("assets/jujutsumod/animations/projectjjk/npc.animation.json")) : "Missing Nobara NPC animation asset";
+		assert Files.exists(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json")) : "Missing GeckoLib 5 Nobara model asset";
+		assert Files.exists(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/animations/projectjjk/npc.animation.json")) : "Missing GeckoLib 5 Nobara animation asset";
 		assert Files.exists(MAIN_RESOURCES.resolve("assets/jujutsumod/textures/projectjjk/entity/npcs/nobara_kugisaki.png")) : "Missing Nobara NPC texture";
+		String geoModel = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoModel.java"));
+		assert geoModel.contains("projectjjk/nobara_kugisaki") : "GeckoLib model key should be stripped to projectjjk/nobara_kugisaki";
+		assert geoModel.contains("projectjjk/npc") : "GeckoLib animation key should be stripped to projectjjk/npc";
+		assert !geoModel.contains("geo/projectjjk") : "GeckoLib 5 does not bake models from the old geo/ path";
+		assert !geoModel.contains("animations/projectjjk") : "GeckoLib 5 does not bake animations from the old animations/ path";
 		String manager = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/character/ClientCharacterSelectionManager.java"));
 		assert manager.contains("rememberEntity") && manager.contains("selectionByEntityId") : "Renderer needs entity-id lookup while keeping GUI portrait skin logic separate";
 		String card = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/CharacterCard.java"));

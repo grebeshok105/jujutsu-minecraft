@@ -16,7 +16,6 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
@@ -88,7 +87,6 @@ public final class HairpinWorldRenderer {
 			}
 			renderPlayback(consumer, matrices, consumers, world, playback, cameraPosition, phase, playback.progressInPhase(gameTime, partialTick), gameTime);
 		}
-		renderTargetMarks(consumer, world, cameraPosition, gameTime, partialTick);
 		renderImpactFlashes(consumer, world, cameraPosition, gameTime, partialTick);
 	}
 
@@ -296,62 +294,6 @@ public final class HairpinWorldRenderer {
 			addRibbon(consumer, start, end, side, 22, 8, 12, alpha);
 			addRibbon(consumer, start.add(side.scale(1.8)), end.add(side.scale(0.55)), side.scale(0.3), OXBLOOD_R, OXBLOOD_G, OXBLOOD_B, alpha / 4);
 		}
-	}
-
-	private static void renderTargetMarks(VertexConsumer consumer, ClientLevel world, Vec3 cameraPosition, long gameTime, float partialTick) {
-		for (TargetMarkRenderManager.TargetMark mark : TargetMarkRenderManager.active(gameTime)) {
-			Entity entity = world.getEntity(mark.targetEntityId());
-			if (entity == null || !entity.isAlive()) {
-				TargetMarkRenderManager.remove(mark.targetEntityId());
-				continue;
-			}
-			float fade = mark.fade(gameTime, partialTick);
-			if (fade <= 0.01f) {
-				continue;
-			}
-			renderProjectJjkTargetMark(consumer, entity, cameraPosition, mark, gameTime, partialTick, fade);
-		}
-	}
-
-	private static void renderProjectJjkTargetMark(VertexConsumer consumer, Entity entity, Vec3 cameraPosition, TargetMarkRenderManager.TargetMark mark, long gameTime, float partialTick, float fade) {
-		float age = mark.age(gameTime, partialTick);
-		float pulse = 0.78f + 0.22f * (float) Math.sin(age * 0.34f);
-		Vec3 worldCenter = entity.getPosition(partialTick).add(0.0, entity.getBbHeight() * 0.52, 0.0);
-		Vec3 center = worldCenter.subtract(cameraPosition);
-		Vec3 view = safeDirection(cameraPosition.subtract(worldCenter));
-		Vec3 side = view.cross(UP);
-		if (side.lengthSqr() < 1.0E-5) {
-			side = EAST;
-		} else {
-			side = side.normalize();
-		}
-		Vec3 depth = side.cross(UP);
-		if (depth.lengthSqr() < 1.0E-5) {
-			depth = new Vec3(0.0, 0.0, 1.0);
-		} else {
-			depth = depth.normalize();
-		}
-		float radius = Math.max(0.26f, entity.getBbWidth() * (0.46f + mark.marks() * 0.018f));
-		float height = Math.max(0.68f, entity.getBbHeight() * 0.74f);
-		renderBodyGlowShell(consumer, center, side, depth, radius, height, fade, pulse, mark.marks(), age);
-	}
-
-	private static void renderBodyGlowShell(VertexConsumer consumer, Vec3 center, Vec3 side, Vec3 depth, float radius, float height, float fade, float pulse, int marks, float age) {
-		int darkAlpha = Math.min(116, Math.round(88.0f * fade));
-		int coreAlpha = Math.min(182, Math.round((132.0f + marks * 10.0f) * fade * pulse));
-		int edgeAlpha = Math.min(210, Math.round((154.0f + marks * 8.0f) * fade * pulse));
-		for (int index = 0; index < 8; index++) {
-			double angle = index * Math.PI * 2.0 / 8.0 + Math.sin(age * 0.035f) * 0.08;
-			Vec3 radial = side.scale(Math.cos(angle) * radius).add(depth.scale(Math.sin(angle) * radius * 0.72f));
-			Vec3 bottom = center.add(radial).add(UP.scale(-height * 0.46f));
-			Vec3 top = center.add(radial.scale(0.82)).add(UP.scale(height * 0.46f));
-			Vec3 thickness = sideVector(top.subtract(bottom), bottom.add(top).scale(0.5), 0.025f + marks * 0.002f);
-			addRibbon(consumer, bottom, top, thickness.scale(3.0), CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, darkAlpha);
-			addRibbon(consumer, bottom.lerp(top, 0.08), top, thickness.scale(1.2), CURSED_BLUE_R, CURSED_BLUE_G, CURSED_BLUE_B, coreAlpha);
-		}
-		Vec3 chest = center.add(UP.scale(height * 0.04f));
-		addRibbon(consumer, chest.subtract(side.scale(radius * 0.55f)), chest.add(side.scale(radius * 0.55f)), depth.scale(0.02f), CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, edgeAlpha);
-		addRibbon(consumer, chest.subtract(depth.scale(radius * 0.36f)), chest.add(depth.scale(radius * 0.36f)), side.scale(0.018f), CURSED_BLUE_WHITE_R, CURSED_BLUE_WHITE_G, CURSED_BLUE_WHITE_B, edgeAlpha / 3);
 	}
 
 	private static void renderImpactFlashes(VertexConsumer consumer, ClientLevel world, Vec3 cameraPosition, long gameTime, float partialTick) {

@@ -10,7 +10,7 @@ This pass implements the approved eight-point Nobara repair against the cinemati
 
 - Embedded nails now use `ProjectJjkNailEmbedding.bodyEmbedPoint` and no longer reset old position every embedded tick, so interpolation is not killed while the target moves.
 - Embedded nail rendering no longer draws translucent lightning ribbons over the mesh. The nail uses the fixed 3D item transform and a small embed offset.
-- Target marks now use `entity.getPosition(partialTick)` and render as a tight cyan body glow shell instead of the old orbiting blue cage.
+- Superseded on the same date: target marks now use vanilla `MobEffects.GLOWING`; see `2026-07-09-nobara-crash-glow-nails-boom-implementation.md`.
 - Prepared/flying nails now render a cyan force-field envelope in the client world renderer. `ProjectJjkNobaraRuntime` no longer emits vanilla soul-fire particles for nail prepare/flight/impact.
 - The V character select UI no longer uses per-pixel-row rounded rectangle fills for large panels/cards.
 - GeckoLib `5.2.2` is a required dependency, matching the installed `geckolib-fabric-1.21.8-5.2.2.jar`.

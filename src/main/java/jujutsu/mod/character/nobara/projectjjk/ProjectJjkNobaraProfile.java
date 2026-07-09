@@ -33,8 +33,8 @@ public final class ProjectJjkNobaraProfile {
 	public static final int HAIRPIN_EXPLOSION_START_DELAY_TICKS = 10;
 	public static final double HAIRPIN_EXPLOSION_RADIUS = 1.5;
 	public static final float HAIRPIN_EXPLOSION_KNOCKBACK = 0.2f;
-	public static final double HAIRPIN_EXPLOSION_DETECT_FORWARD_OFFSET = 4.0;
-	public static final double HAIRPIN_EXPLOSION_DETECT_RANGE = 10.0;
+	public static final double HAIRPIN_EXPLOSION_DETECT_FORWARD_OFFSET = 0.0;
+	public static final double HAIRPIN_EXPLOSION_DETECT_RANGE = 14.0;
 	public static final double HAIRPIN_EXPLOSION_DETECT_RADIUS = 5.0;
 
 	// Hairpin enlargement: ProjectJJK-style delayed snap against a marked looked-at target.

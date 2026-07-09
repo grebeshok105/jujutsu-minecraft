@@ -8,11 +8,15 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
+import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEmbedding;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEntity;
 import jujutsu.mod.registry.JujutsuItems;
 
@@ -40,12 +44,27 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		state.embedded = entity.isEmbedded();
 		state.seed = entity.getId();
 		state.age = entity.tickCount + partialTick;
+		state.hostOffset = Vec3.ZERO;
+		if (state.embedded) {
+			Entity host = entity.embeddedTargetEntityId() < 0 ? null : entity.level().getEntity(entity.embeddedTargetEntityId());
+			if (host instanceof LivingEntity living && living.isAlive()) {
+				Vec3 entityPosition = entity.getPosition(partialTick);
+				Vec3 hostPosition = living.getPosition(partialTick);
+				float bodyYaw = Mth.rotLerp(partialTick, living.yBodyRotO, living.yBodyRot);
+				Vec3 anchor = hostPosition.add(ProjectJjkNailEmbedding.worldOffset(entity.embeddedLocalOffset(), bodyYaw));
+				state.hostOffset = anchor.subtract(entityPosition);
+				state.direction = safeDirection(ProjectJjkNailEmbedding.worldForward(entity.embeddedLocalForward(), bodyYaw));
+			}
+		}
 	}
 
 	@Override
 	public void render(State state, PoseStack matrices, MultiBufferSource consumers, int packedLight) {
 		Vec3 direction = safeDirection(state.direction);
 		matrices.pushPose();
+		if (state.embedded) {
+			matrices.translate(state.hostOffset.x, state.hostOffset.y, state.hostOffset.z);
+		}
 		matrices.mulPose(new Quaternionf().rotationTo(MODEL_UP, toVector3f(direction)));
 		if (state.embedded) {
 			matrices.translate(0.0f, -0.18f, 0.0f);
@@ -83,5 +102,6 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		private boolean embedded;
 		private int seed;
 		private float age;
+		private Vec3 hostOffset = Vec3.ZERO;
 	}
 }

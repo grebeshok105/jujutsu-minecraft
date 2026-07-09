@@ -38,7 +38,8 @@ public abstract class NobaraLivingEntityRendererMixin {
 		if (selection == null || selection.character() != JujutsuCharacter.NOBARA || playerState.isSpectator) {
 			return;
 		}
-		jujutsumod$nobaraRenderer.renderNobara(playerState, matrices, consumers, packedLight);
-		ci.cancel();
+		if (jujutsumod$nobaraRenderer.renderNobara(playerState, matrices, consumers, packedLight)) {
+			ci.cancel();
+		}
 	}
 }

@@ -19,7 +19,6 @@ public final class JujutsuNetworking {
 		PayloadTypeRegistry.playS2C().register(HairpinNailFlightPayload.TYPE, HairpinNailFlightPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(PreparedNailsPayload.TYPE, PreparedNailsPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(ProjectJjkNobaraImpulsePayload.TYPE, ProjectJjkNobaraImpulsePayload.STREAM_CODEC);
-		PayloadTypeRegistry.playS2C().register(ProjectJjkTargetMarkPayload.TYPE, ProjectJjkTargetMarkPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(CharacterSelectionSyncPayload.TYPE, CharacterSelectionSyncPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(SelectCharacterPayload.TYPE, SelectCharacterPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(NobaraActionPayload.TYPE, NobaraActionPayload.STREAM_CODEC);
@@ -117,18 +116,4 @@ public final class JujutsuNetworking {
 		return true;
 	}
 
-	public static int broadcastProjectJjkTargetMark(ServerLevel level, Vec3 center, double radius, ProjectJjkTargetMarkPayload payload) {
-		double radiusSqr = radius * radius;
-		int sent = 0;
-		for (ServerPlayer player : level.players()) {
-			if (player.position().distanceToSqr(center) > radiusSqr) {
-				continue;
-			}
-			if (ServerPlayNetworking.canSend(player, ProjectJjkTargetMarkPayload.TYPE)) {
-				ServerPlayNetworking.send(player, payload);
-				sent++;
-			}
-		}
-		return sent;
-	}
 }

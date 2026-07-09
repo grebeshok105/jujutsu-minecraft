@@ -124,6 +124,14 @@ public final class ProjectJjkNailEntity extends Entity {
 		return embeddedTargetId;
 	}
 
+	public Vec3 embeddedLocalOffset() {
+		return level().isClientSide() ? fromVector(entityData.get(DATA_EMBEDDED_LOCAL_OFFSET)) : embeddedLocalOffset;
+	}
+
+	public Vec3 embeddedLocalForward() {
+		return level().isClientSide() ? fromVector(entityData.get(DATA_EMBEDDED_LOCAL_FORWARD)) : embeddedLocalForward;
+	}
+
 	public Vec3 forwardDirection() {
 		Vector3f forward = entityData.get(DATA_FORWARD);
 		return safeDirection(new Vec3(forward.x(), forward.y(), forward.z()));
@@ -283,8 +291,8 @@ public final class ProjectJjkNailEntity extends Entity {
 	private void embedIn(LivingEntity target, Vec3 hitPoint) {
 		Vec3 direction = forwardDirection();
 		Vec3 embedPoint = ProjectJjkNailEmbedding.bodyEmbedPoint(target.position(), target.getBbWidth(), target.getBbHeight(), hitPoint, direction, getId());
-		Vec3 localOffset = rotateY(embedPoint.subtract(target.position()), -target.getYRot());
-		Vec3 localForward = safeDirection(rotateY(direction, -target.getYRot()));
+		Vec3 localOffset = rotateY(embedPoint.subtract(target.position()), -target.yBodyRot);
+		Vec3 localForward = safeDirection(rotateY(direction, -target.yBodyRot));
 		embeddedTargetUuid = target.getUUID();
 		embeddedTargetId = target.getId();
 		embeddedAgeTicks = 0;
@@ -365,10 +373,8 @@ public final class ProjectJjkNailEntity extends Entity {
 	}
 
 	private void updateEmbeddedPosition(LivingEntity target) {
-		Vec3 localOffset = level().isClientSide() ? fromVector(entityData.get(DATA_EMBEDDED_LOCAL_OFFSET)) : embeddedLocalOffset;
-		Vec3 localForward = level().isClientSide() ? fromVector(entityData.get(DATA_EMBEDDED_LOCAL_FORWARD)) : embeddedLocalForward;
-		Vec3 worldOffset = rotateY(localOffset, target.getYRot());
-		Vec3 worldForward = safeDirection(rotateY(localForward, target.getYRot()));
+		Vec3 worldOffset = ProjectJjkNailEmbedding.worldOffset(embeddedLocalOffset(), target.yBodyRot);
+		Vec3 worldForward = ProjectJjkNailEmbedding.worldForward(embeddedLocalForward(), target.yBodyRot);
 		Vec3 next = target.position().add(worldOffset);
 		setPos(next);
 		face(worldForward);

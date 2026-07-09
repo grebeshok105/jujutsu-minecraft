@@ -6,9 +6,9 @@ import software.bernie.geckolib.renderer.base.GeoRenderState;
 import jujutsu.mod.JujutsuMod;
 
 public final class NobaraPlayerGeoModel extends GeoModel<NobaraPlayerGeoAnimatable> {
-	private static final ResourceLocation MODEL = JujutsuMod.id("geo/projectjjk/nobara_kugisaki.geo.json");
+	private static final ResourceLocation MODEL = JujutsuMod.id("projectjjk/nobara_kugisaki");
 	private static final ResourceLocation TEXTURE = JujutsuMod.id("textures/projectjjk/entity/npcs/nobara_kugisaki.png");
-	private static final ResourceLocation ANIMATIONS = JujutsuMod.id("animations/projectjjk/npc.animation.json");
+	private static final ResourceLocation ANIMATIONS = JujutsuMod.id("projectjjk/npc");
 
 	@Override
 	public ResourceLocation getModelResource(GeoRenderState renderState) {

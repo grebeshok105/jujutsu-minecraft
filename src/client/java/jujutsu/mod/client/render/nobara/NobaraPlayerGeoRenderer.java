@@ -15,8 +15,13 @@ public final class NobaraPlayerGeoRenderer<R extends PlayerRenderState & GeoRend
 		withScale(0.94f, 0.94f);
 	}
 
-	public void renderNobara(PlayerRenderState state, PoseStack matrices, MultiBufferSource consumers, int packedLight) {
-		render(cast(state), matrices, consumers, packedLight);
+	public boolean renderNobara(PlayerRenderState state, PoseStack matrices, MultiBufferSource consumers, int packedLight) {
+		try {
+			render(cast(state), matrices, consumers, packedLight);
+			return true;
+		} catch (IllegalArgumentException exception) {
+			return false;
+		}
 	}
 
 	@SuppressWarnings("unchecked")

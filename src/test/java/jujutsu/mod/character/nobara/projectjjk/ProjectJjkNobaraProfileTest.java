@@ -18,6 +18,8 @@ public final class ProjectJjkNobaraProfileTest {
 		assertEmbeddedNailsLastAsLongAsMarks();
 		assertTargetMarksFollowCurseMarkDuration();
 		assertBodyEmbedPointStaysInsideBodyHeight();
+		assertBodyEmbedPointPiercesIntoBody();
+		assertHairpinExplosionCanSeeCloseAnchors();
 		assertLoadoutTopsUpNails();
 		assertDamageScaling();
 		System.out.println("ProjectJjkNobaraProfileTest passed");
@@ -81,6 +83,20 @@ public final class ProjectJjkNobaraProfileTest {
 		Vec3 embedPoint = ProjectJjkNailEmbedding.bodyEmbedPoint(targetPosition, 0.6, 1.8, hitPoint, new Vec3(0.0, -1.0, 0.0), 3);
 		double relativeY = embedPoint.y - targetPosition.y;
 		assert relativeY >= 1.8 * 0.28 - 1.0E-6 && relativeY <= 1.8 * 0.86 + 1.0E-6 : "embedded nails should stay within the victim body height";
+	}
+
+	private static void assertBodyEmbedPointPiercesIntoBody() {
+		Vec3 targetPosition = new Vec3(0.0, 64.0, 0.0);
+		Vec3 direction = new Vec3(0.0, 0.0, 1.0);
+		Vec3 hitPoint = targetPosition.add(0.0, 1.0, -0.3);
+		Vec3 embedPoint = ProjectJjkNailEmbedding.bodyEmbedPoint(targetPosition, 0.6, 1.8, hitPoint, direction, 16);
+		assert embedPoint.z > -0.18 : "embedded nails should pierce past the front surface instead of floating outside: " + embedPoint;
+		assert embedPoint.z < 0.24 : "embedded nails should not cross through the whole target body: " + embedPoint;
+	}
+
+	private static void assertHairpinExplosionCanSeeCloseAnchors() {
+		assert ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_DETECT_FORWARD_OFFSET == 0.0 : "Hairpin Explosion search must start at the caster eye so close nails are not cut off";
+		assert ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_DETECT_RANGE >= 12.0 : "Hairpin Explosion needs enough forward reach after removing the old 4-block offset";
 	}
 
 	private static void assertLoadoutTopsUpNails() {
