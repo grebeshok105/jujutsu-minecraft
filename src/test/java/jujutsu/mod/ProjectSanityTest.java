@@ -44,7 +44,7 @@ public final class ProjectSanityTest {
 		assertNobaraNailAuraAvoidsSoulFire();
 		assertCharacterSelectUsesCheapUiPrimitives();
 		assertGeckoLibNobaraPlayerModelWired();
-		assertNobaraGeoHeadTracksPlayerLook();
+		assertNobaraGeoHeadLookIsDisabledUntilSafe();
 		assertNobaraGeoRenderRestoresPoseStack();
 		assertNobaraSkinUsesWideArms();
 		assertSoundReferencesAreLocalAndPresent();
@@ -197,10 +197,12 @@ public final class ProjectSanityTest {
 		assert nailEntity.contains("ProjectJjkNailEmbedding.bodyEmbedPoint") : "Embedded nails must use body-space attachment math, not AABB clamp-only placement";
 		assert !nailEntity.contains("setOldPosAndRot(next") : "Embedded nails must not reset old position each tick; that creates visible chase/teleporting";
 		assert nailEntity.contains("embeddedLocalOffset()") : "Embedded nail renderer needs synced local body offset for render-attaching to the host";
+		assert nailEntity.contains("level().isClientSide() ? entityData.get(DATA_EMBEDDED_TARGET_ID) : embeddedTargetId") : "Client embedded nail rendering must read the synced target id, not the stale server-only field";
 		assert nailEntity.contains("target.yBodyRot") : "Embedded nails must anchor to body rotation, not head/look yaw";
 		String nailRenderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/ProjectJjkNailRenderer.java"));
 		assert !nailRenderer.contains("renderEmbeddedMark") : "Embedded nail renderer must not draw translucent lightning ribbons on the nail mesh";
-		assert nailRenderer.contains("state.hostOffset") : "Embedded nails must render-attached to the host with partial ticks instead of visually chasing entity position";
+		assert !nailRenderer.contains("state.hostOffset") : "Embedded nails must not use the old follower offset that visually chases target position";
+		assert nailRenderer.contains("state.embeddedAnchorOffset") : "Embedded nails must render from the target body anchor, relative to the dispatcher render origin";
 		assert nailRenderer.contains("living.yBodyRot") : "Embedded nail renderer must use interpolated body rotation for the host attachment";
 		assert nailRenderer.contains("ItemDisplayContext.FIXED") : "Nail renderer should use the fixed 3D item transform for stable arrow-like embedding";
 	}
@@ -231,14 +233,18 @@ public final class ProjectSanityTest {
 		assert mixins.contains("NobaraFirstPersonSnapMixin") : "First-person snap animation needs a narrow hand-render mixin";
 		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/FpSnapAnimator.java")) : "Missing first-person snap animator";
 		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/NobaraFirstPersonSnapMixin.java")) : "Missing first-person snap hand render mixin";
+		String snapMixin = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/NobaraFirstPersonSnapMixin.java"));
+		assert !snapMixin.contains("ci.cancel()") : "First-person snap must not cancel vanilla hand rendering; that makes the arm disappear";
+		assert snapMixin.contains("@Inject(method = \"renderHandsWithItems\", at = @At(\"HEAD\"))") : "First-person snap should apply a transform before vanilla hand rendering";
+		assert snapMixin.contains("@Inject(method = \"renderHandsWithItems\", at = @At(\"RETURN\"))") : "First-person snap must restore the pose stack after vanilla hand rendering";
 	}
 
 	private static void assertNobaraNailAuraAvoidsSoulFire() throws IOException {
 		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraRuntime.java"));
 		assert !runtime.contains("ParticleTypes.SOUL_FIRE_FLAME") : "Nobara nail aura must not use vanilla soul-fire particles";
 		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java"));
-		assert renderer.contains("renderBlueForceFieldEnvelope") : "Prepared and flying nails must use a blue force-field envelope";
-		assert !renderer.contains("renderBlueFlameEnvelope") : "Blue nail aura should not be implemented as flame tongues";
+		assert renderer.contains("renderCyanNailFireAura") : "Prepared and flying nails must use cyan flame geometry around the nail";
+		assert !renderer.contains("ParticleTypes.SOUL_FIRE_FLAME") : "Blue nail aura must be rendered geometry, not vanilla particles";
 	}
 
 	private static void assertCharacterSelectUsesCheapUiPrimitives() throws IOException {
@@ -294,14 +300,10 @@ public final class ProjectSanityTest {
 		assert card.contains("textures/entity/character/nobara.png") : "Character select portrait must keep using the player-skin head, not the GeckoLib NPC texture";
 	}
 
-	private static void assertNobaraGeoHeadTracksPlayerLook() throws IOException {
+	private static void assertNobaraGeoHeadLookIsDisabledUntilSafe() throws IOException {
 		String geoModel = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoModel.java"));
-		assert geoModel.contains("setCustomAnimations") : "Nobara Gecko model must apply per-frame look rotation after ProjectJJK animations";
-		assert geoModel.contains("getBone(HEAD_BONE)") : "Nobara Gecko model must rotate the separate head bone, not the whole model";
-		assert geoModel.contains("playerState.yRot - playerState.bodyRot") : "Nobara head yaw must be relative to body yaw like vanilla players";
-		assert geoModel.contains("MAX_HEAD_YAW_DEGREES") : "Nobara head look must clamp yaw to avoid broken neck poses";
-		String geo = Files.readString(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json"));
-		assert Pattern.compile("\"name\"\\s*:\\s*\"head\"\\s*,\\s*\"parent\"\\s*:\\s*\"body\"").matcher(geo).find() : "Nobara model must keep a separate head bone parented to body for look tracking";
+		assert !geoModel.contains("setCustomAnimations") : "Imported ProjectJJK Nobara head clips must not be overridden by the unsafe custom head-look pass";
+		assert !geoModel.contains("applyHeadLook") : "Unsafe custom head-look must stay disabled until a safe neck/head bone contract exists";
 	}
 
 	private static void assertNobaraGeoRenderRestoresPoseStack() throws IOException {

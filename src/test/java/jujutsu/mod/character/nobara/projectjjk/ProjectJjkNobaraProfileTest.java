@@ -90,7 +90,7 @@ public final class ProjectJjkNobaraProfileTest {
 		Vec3 direction = new Vec3(0.0, 0.0, 1.0);
 		Vec3 hitPoint = targetPosition.add(0.0, 1.0, -0.3);
 		Vec3 embedPoint = ProjectJjkNailEmbedding.bodyEmbedPoint(targetPosition, 0.6, 1.8, hitPoint, direction, 16);
-		assert embedPoint.z > -0.18 : "embedded nails should pierce past the front surface instead of floating outside: " + embedPoint;
+		assert embedPoint.z > 0.0 : "embedded nails should pierce visibly into the target body instead of sitting in front of it: " + embedPoint;
 		assert embedPoint.z < 0.24 : "embedded nails should not cross through the whole target body: " + embedPoint;
 	}
 

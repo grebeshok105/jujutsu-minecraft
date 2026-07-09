@@ -4,7 +4,7 @@ import net.minecraft.util.Mth;
 import org.joml.Vector3f;
 
 public final class FpSnapAnimator {
-	private static final float DURATION_SECONDS = 0.5f;
+	private static final float DURATION_SECONDS = 0.36f;
 	private static long startedAtNanos = Long.MIN_VALUE;
 
 	private FpSnapAnimator() {}
@@ -26,28 +26,20 @@ public final class FpSnapAnimator {
 	}
 
 	private static Pose pose(float progress) {
-		float scaled = progress * 10.0f;
-		Vector3f translate = new Vector3f(1.25f, -0.8f, 0.0f);
-		Vector3f rotate = new Vector3f(50.0f, 70.0f, -20.0f);
-		if (scaled < 1.0f) {
-			return new Pose(translate, rotate);
-		}
-		if (scaled < 4.0f) {
-			float phase = (scaled - 1.0f) / 3.0f;
-			float eased = phase * phase * phase * phase;
-			translate.set(1.4f, Mth.lerp(eased, -0.8f, -0.3f), 0.0f);
-			rotate.set(Mth.lerp(eased, 50.0f, 20.0f), 70.0f, -20.0f);
-			return new Pose(translate, rotate);
-		}
-		if (scaled < 8.0f) {
-			translate.set(1.25f, -0.3f, 0.0f);
-			rotate.set(20.0f, 70.0f, -20.0f);
-			return new Pose(translate, rotate);
-		}
-		float phase = (scaled - 8.0f) / 2.0f;
-		float eased = phase * phase * phase;
-		translate.set(1.25f, Mth.lerp(eased, -0.3f, -1.2f), 0.0f);
-		rotate.set(20.0f, 70.0f, -20.0f);
+		float windup = progress < 0.36f ? progress / 0.36f : 1.0f;
+		float release = progress < 0.36f ? 0.0f : Math.min(1.0f, (progress - 0.36f) / 0.64f);
+		float snap = (float) Math.sin(windup * Math.PI);
+		float recover = 1.0f - release * release;
+		Vector3f translate = new Vector3f(
+				0.08f + 0.1f * snap,
+				Mth.lerp(snap, 0.0f, -0.055f) * recover,
+				-0.08f - 0.16f * snap * recover
+		);
+		Vector3f rotate = new Vector3f(
+				-4.0f + 18.0f * snap * recover,
+				7.0f * snap * recover,
+				-16.0f * snap * recover
+		);
 		return new Pose(translate, rotate);
 	}
 

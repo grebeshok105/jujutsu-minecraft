@@ -121,7 +121,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	}
 
 	public int embeddedTargetEntityId() {
-		return embeddedTargetId;
+		return level().isClientSide() ? entityData.get(DATA_EMBEDDED_TARGET_ID) : embeddedTargetId;
 	}
 
 	public Vec3 embeddedLocalOffset() {

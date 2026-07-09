@@ -19,7 +19,7 @@ public final class ProjectJjkNailEmbedding {
 			right = right.normalize();
 		}
 		double surfaceRadius = Math.max(0.18, targetWidth * 0.42);
-		double embedDepth = Math.min(0.3, Math.max(0.16, targetWidth * 0.34));
+		double embedDepth = Math.min(0.36, Math.max(0.24, targetWidth * 0.52));
 		double sideJitter = (((seed * 37) & 15) / 15.0 - 0.5) * targetWidth * 0.34;
 		double heightJitter = (((seed * 53) & 15) / 15.0 - 0.5) * targetHeight * 0.22;
 		double y = clamp(hitPoint.y - targetPosition.y, targetHeight * 0.32, targetHeight * 0.82) + heightJitter;

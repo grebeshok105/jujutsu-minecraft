@@ -120,7 +120,7 @@ public final class HairpinWorldRenderer {
 			Vec3 position = nail.subtract(cameraPosition);
 			Vec3 tangent = direction;
 			renderItemNail(matrices, consumers, world, nail, cameraPosition, tangent, 0.46f, prepared.payload().seed() + index);
-			renderBlueForceFieldEnvelope(consumer, position, tangent, gameTime + index * 13L, fade, 0.86f, 0.24f, 3);
+			renderCyanNailFireAura(consumer, position, tangent, gameTime + index * 13L, fade, 0.78f, 0.18f, 7);
 			Vec3 tail = position.subtract(tangent.scale(0.42));
 			Vec3 head = position.add(tangent.scale(0.36));
 			addRibbon(consumer, tail, head, sideVector(head.subtract(tail), position, 0.048f), CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, Math.round(130.0f * fade));
@@ -149,7 +149,7 @@ public final class HairpinWorldRenderer {
 			addRibbon(consumer, start, end, side.scale(2.15), CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, Math.round(175.0f * alpha));
 			addRibbon(consumer, start, end, side.scale(1.05), CURSED_BLUE_R, CURSED_BLUE_G, CURSED_BLUE_B, Math.round(220.0f * alpha));
 			addRibbon(consumer, start.add(side.scale(0.22)), end.add(side.scale(0.22)), side.scale(0.34), CURSED_BLUE_WHITE_R, CURSED_BLUE_WHITE_G, CURSED_BLUE_WHITE_B, Math.round(135.0f * alpha));
-			renderBlueForceFieldEnvelope(consumer, end, direction, gameTime + index * 17L, alpha, 1.06f, 0.32f, 4);
+			renderCyanNailFireAura(consumer, end, direction, gameTime + index * 17L, alpha, 0.98f, 0.24f, 9);
 			renderItemNail(matrices, consumers, world, current, cameraPosition, direction, 0.54f, flight.payload().seed() + index);
 			index++;
 		}
@@ -160,7 +160,7 @@ public final class HairpinWorldRenderer {
 		return 1.0f - (float) Math.pow(1.0f - clamped, 3.0);
 	}
 
-	private static void renderBlueForceFieldEnvelope(VertexConsumer consumer, Vec3 center, Vec3 direction, long gameTime, float alpha, float length, float width, int bands) {
+	private static void renderCyanNailFireAura(VertexConsumer consumer, Vec3 center, Vec3 direction, long gameTime, float alpha, float length, float width, int tongues) {
 		if (alpha <= 0.01f) {
 			return;
 		}
@@ -174,35 +174,22 @@ public final class HairpinWorldRenderer {
 		} else {
 			cross = cross.normalize().scale(width * 0.78f);
 		}
-		float pulse = 0.86f + 0.14f * (float) Math.sin(gameTime * 0.42);
-		addRibbon(consumer, tail, head, side.scale(1.9 * pulse), CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, Math.round(116.0f * alpha));
-		addRibbon(consumer, tail, head, cross.scale(1.62 * pulse), CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, Math.round(88.0f * alpha));
-		addRibbon(consumer, tail.add(line.scale(length * 0.08f)), head.subtract(line.scale(length * 0.04f)), side.scale(0.84), CURSED_BLUE_R, CURSED_BLUE_G, CURSED_BLUE_B, Math.round(190.0f * alpha));
-		addRibbon(consumer, tail.add(line.scale(length * 0.12f)), head, cross.scale(0.62), CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, Math.round(150.0f * alpha));
-		addRibbon(consumer, center.subtract(line.scale(length * 0.22f)), head.add(line.scale(length * 0.06f)), side.scale(0.18), CURSED_BLUE_WHITE_R, CURSED_BLUE_WHITE_G, CURSED_BLUE_WHITE_B, Math.round(48.0f * alpha));
-		for (int index = 0; index < bands; index++) {
-			double offset = (index + 0.5) / bands;
-			double wave = Math.sin(gameTime * 0.35 + index * 1.7) * 0.5 + 0.5;
-			Vec3 ringCenter = tail.lerp(head, offset);
-			float ringRadius = width * (0.74f + (float) wave * 0.22f);
-			renderForceFieldBand(consumer, ringCenter, side.normalize(), cross.normalize(), ringRadius, Math.round(92.0f * alpha));
+		Vec3 sideUnit = side.normalize();
+		Vec3 crossUnit = cross.normalize();
+		for (int index = 0; index < tongues; index++) {
+			double phase = gameTime * 0.3 + index * 1.12;
+			double angle = phase + index * Math.PI * 2.0 / tongues;
+			Vec3 radial = sideUnit.scale(Math.cos(angle)).add(crossUnit.scale(Math.sin(angle))).normalize();
+			Vec3 tangent = sideUnit.scale(-Math.sin(angle)).add(crossUnit.scale(Math.cos(angle))).normalize();
+			double flicker = 0.66 + 0.34 * Math.sin(gameTime * 0.47 + index * 1.7);
+			double base = (index % 3) * 0.11;
+			Vec3 start = tail.add(line.scale(length * base)).add(radial.scale(width * (0.38 + flicker * 0.2)));
+			Vec3 end = head.add(line.scale(length * 0.08 * flicker)).add(radial.scale(width * (1.08 + flicker * 0.34))).add(tangent.scale(width * 0.22 * Math.sin(phase)));
+			addRibbon(consumer, start, end, tangent.scale(width * 0.16), CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, Math.round(86.0f * alpha));
+			addRibbon(consumer, start.lerp(end, 0.24), end, tangent.scale(width * 0.058), CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, Math.round(156.0f * alpha));
 		}
-	}
-
-	private static void renderForceFieldBand(VertexConsumer consumer, Vec3 center, Vec3 side, Vec3 cross, float radius, int alpha) {
-		if (alpha <= 0) {
-			return;
-		}
-		int segments = 10;
-		for (int segment = 0; segment < segments; segment++) {
-			double a0 = segment * Math.PI * 2.0 / segments;
-			double a1 = (segment + 0.65) * Math.PI * 2.0 / segments;
-			Vec3 start = center.add(side.scale(Math.cos(a0) * radius)).add(cross.scale(Math.sin(a0) * radius));
-			Vec3 end = center.add(side.scale(Math.cos(a1) * radius)).add(cross.scale(Math.sin(a1) * radius));
-			Vec3 thickness = sideVector(end.subtract(start), start.add(end).scale(0.5), 0.012f);
-			addRibbon(consumer, start, end, thickness.scale(2.0), CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, alpha / 2);
-			addRibbon(consumer, start, end, thickness, CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, alpha);
-		}
+		addRibbon(consumer, tail.add(line.scale(length * 0.08f)), head, sideUnit.scale(width * 0.26), CURSED_BLUE_R, CURSED_BLUE_G, CURSED_BLUE_B, Math.round(138.0f * alpha));
+		addRibbon(consumer, tail.add(line.scale(length * 0.14f)), head.add(line.scale(length * 0.08f)), crossUnit.scale(width * 0.2), CURSED_BLUE_WHITE_R, CURSED_BLUE_WHITE_G, CURSED_BLUE_WHITE_B, Math.round(62.0f * alpha));
 	}
 
 	private static void renderPlayback(VertexConsumer consumer, PoseStack matrices, MultiBufferSource consumers, ClientLevel world, HairpinPlayback playback, Vec3 cameraPosition, HairpinTimeline.Phase phase, float progress, long gameTime) {
@@ -222,7 +209,7 @@ public final class HairpinWorldRenderer {
 			Vec3 travelDirection = safeDirection(direction);
 			renderItemNail(matrices, consumers, world, nail, cameraPosition, travelDirection, 0.5f, playback.seed());
 			if (phase == HairpinTimeline.Phase.PREP_FREEZE || phase == HairpinTimeline.Phase.HAMMER_SNAP || phase == HairpinTimeline.Phase.NAIL_IGNITION) {
-				renderBlueForceFieldEnvelope(consumer, nail.subtract(cameraPosition), travelDirection, gameTime + playback.seed(), alpha * 0.75f, 0.88f, 0.21f + progress * 0.1f, 3);
+				renderCyanNailFireAura(consumer, nail.subtract(cameraPosition), travelDirection, gameTime + playback.seed(), alpha * 0.75f, 0.82f, 0.18f + progress * 0.08f, 7);
 			}
 			Vec3 start = nail.lerp(target, startLerpFor(phase, progress)).subtract(cameraPosition);
 			Vec3 end = nail.lerp(target, endLerpFor(phase, progress)).subtract(cameraPosition);
