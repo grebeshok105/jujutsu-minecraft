@@ -5,6 +5,7 @@ import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.state.PlayerRenderState;
+import software.bernie.geckolib.constant.DataTickets;
 import software.bernie.geckolib.renderer.GeoReplacedEntityRenderer;
 import software.bernie.geckolib.renderer.base.GeoRenderState;
 
@@ -15,14 +16,15 @@ public final class NobaraPlayerGeoRenderer<R extends PlayerRenderState & GeoRend
 		withScale(0.94f, 0.94f);
 	}
 
-	public boolean renderNobara(PlayerRenderState state, PoseStack matrices, MultiBufferSource consumers, int packedLight) {
+	public boolean renderNobara(AbstractClientPlayer player, PlayerRenderState state, float partialTick, PoseStack matrices, MultiBufferSource consumers, int packedLight) {
 		matrices.pushPose();
 		Object guardPose = matrices.last();
 		try {
-			render(cast(state), matrices, consumers, packedLight);
+			R geoState = cast(state);
+			fillRenderState(getAnimatable(), player, geoState, partialTick);
+			geoState.addGeckolibData(DataTickets.PACKED_LIGHT, packedLight);
+			render(geoState, matrices, consumers, packedLight);
 			return true;
-		} catch (IllegalArgumentException exception) {
-			return false;
 		} finally {
 			restorePoseStack(matrices, guardPose);
 		}

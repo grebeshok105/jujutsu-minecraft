@@ -2,6 +2,7 @@ package jujutsu.mod.client.mixin;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.model.EntityModel;
+import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
@@ -38,7 +39,12 @@ public abstract class NobaraLivingEntityRendererMixin {
 		if (selection == null || selection.character() != JujutsuCharacter.NOBARA || playerState.isSpectator) {
 			return;
 		}
-		if (jujutsumod$nobaraRenderer.renderNobara(playerState, matrices, consumers, packedLight)) {
+		ClientCharacterSelectionManager.RenderContext renderContext = ClientCharacterSelectionManager.renderContextByEntityId(playerState.id);
+		AbstractClientPlayer player = renderContext == null ? null : renderContext.player();
+		if (player == null) {
+			return;
+		}
+		if (jujutsumod$nobaraRenderer.renderNobara(player, playerState, renderContext.partialTick(), matrices, consumers, packedLight)) {
 			ci.cancel();
 		}
 	}

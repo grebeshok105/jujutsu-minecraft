@@ -20,7 +20,7 @@ This pass implements the crash/glow/nails/boom/snap fixes from the maintenance a
   - `assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json`
   - `assets/jujutsumod/geckolib/animations/projectjjk/npc.animation.json`
 - `NobaraPlayerGeoModel` now uses stripped GeckoLib resource keys: `projectjjk/nobara_kugisaki` and `projectjjk/npc`.
-- `NobaraPlayerGeoRenderer` falls back to vanilla player rendering if GeckoLib still throws while resolving the model.
+- `NobaraPlayerGeoRenderer` renders through GeckoLib with an extracted `AbstractClientPlayer`, the already-filled `PlayerRenderState`, and explicit GeckoLib render data; it no longer silently falls back to the old player skin on missing Gecko data.
 - `ProjectJjkRitualRuntime.markTarget` applies `MobEffects.GLOWING`, and consumed marks clear that effect.
 - The old target-mark S2C payload and client target-mark render manager were removed from the runtime path.
 - Hairpin Enlarge and Hairpin Explosion send `ProjectJjkNobaraImpulsePayload.FP_SNAP` to the caster instead of reusing the hammer impulse.
@@ -35,10 +35,17 @@ After the first jar install, the client crashed at `2026-07-09 14:39:54` with `I
 
 `NobaraPlayerGeoRenderer.renderNobara` now wraps the GeckoLib replacement render in a local `PoseStack` guard and restores the stack in `finally`. This keeps a GeckoLib replacement render from leaking an extra pose into Minecraft's world render pass.
 
+## Follow-up Skin Fallback Fix
+
+After the pose-stack fix, selecting Nobara no longer crashed but showed the old player-skin replacement instead of the new GeckoLib NPC body. Root cause: the custom render hook called GeckoLib `render(...)` directly on Minecraft's vanilla `PlayerRenderState`. GeckoLib 5 expects its data tickets to be filled by the replaced-entity pipeline before rendering; the old code caught the resulting `IllegalArgumentException` and returned `false`, so vanilla player rendering continued with `CharacterSkinMixin`.
+
+The fix stores a weak client render context from `PlayerRenderer.extractRenderState`, resolves the current `AbstractClientPlayer` during the living render hook, runs `fillRenderState(getAnimatable(), player, state, partialTick)`, and adds `DataTickets.PACKED_LIGHT` before rendering. The old `IllegalArgumentException` catch was removed so a broken Gecko state cannot be hidden behind the old skin again.
+
 ## Verification
 
 - `gradlew.bat testProjectSanity testProjectJjkNobaraProfile --no-daemon` passed after the body-yaw and FP snap polish.
 - `gradlew.bat testProjectSanity --no-daemon` first failed on the missing pose-stack guard, then passed after the guard was added.
+- `gradlew.bat testProjectSanity --no-daemon` first failed on the missing Gecko render context, then passed after the player/partialTick context and `fillRenderState` path were added.
 - `gradlew.bat check --no-daemon` passed after all code changes.
 - `gradlew.bat build --no-daemon -x test` passed and produced `build/libs/jujutsumod-1.0.0.jar`.
 - The runtime jar was copied to `D:\Games\instances\Jujutsu\mods\jujutsumod-1.0.0.jar`.

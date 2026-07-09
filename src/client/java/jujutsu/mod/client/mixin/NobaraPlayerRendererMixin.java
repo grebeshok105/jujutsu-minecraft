@@ -13,6 +13,6 @@ import jujutsu.mod.client.character.ClientCharacterSelectionManager;
 public abstract class NobaraPlayerRendererMixin {
 	@Inject(method = "extractRenderState(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/client/renderer/entity/state/PlayerRenderState;F)V", at = @At("RETURN"))
 	private void jujutsumod$rememberNobaraPlayer(AbstractClientPlayer player, PlayerRenderState state, float partialTick, CallbackInfo ci) {
-		ClientCharacterSelectionManager.rememberEntity(player.getId(), player.getUUID());
+		ClientCharacterSelectionManager.rememberEntity(player, partialTick);
 	}
 }
