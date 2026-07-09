@@ -36,6 +36,7 @@ public final class ProjectSanityTest {
 		assertItemRegistryUsesKeyedProperties();
 		assertExplicitNobaraActionsAreVisible();
 		assertProjectJjkHairpinFinisherNumbers();
+		assertHairpinFinishersSnapWithoutMarks();
 		assertDefaultNobaraEntrypointSkipsLegacyRuntime();
 		assertNobaraNailsEmbedLikeOpaqueBodyAnchors();
 		assertNobaraTargetMarksUseVanillaGlowing();
@@ -189,9 +190,15 @@ public final class ProjectSanityTest {
 	private static void assertProjectJjkHairpinFinisherNumbers() throws IOException {
 		String profile = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraProfile.java"));
 		assert profile.contains("HAIRPIN_ENLARGE_RANGE = 20.0") : "Hairpin Enlarge range should match ProjectJJK player ability registry";
-		assert profile.contains("HAIRPIN_ENLARGE_DAMAGE = 12.0f") : "Hairpin Enlarge damage should match ProjectJJK player ability registry";
-		assert profile.contains("DETONATE_DAMAGE_BASE = 1.0f") : "Hairpin Explosion damage should match ProjectJJK player ability registry";
+		assert profile.contains("HAIRPIN_ENLARGE_DAMAGE = 16.0f") : "Hairpin Enlarge should be tuned high enough to kill a cow";
+		assert profile.contains("DETONATE_DAMAGE_BASE = 12.0f") : "Hairpin Explosion should be tuned high enough to kill a cow";
 		assert profile.contains("DETONATE_DAMAGE_PER_MARK = 0.0f") : "Hairpin Explosion must not scale from old jujutsumod mark damage";
+	}
+
+	private static void assertHairpinFinishersSnapWithoutMarks() throws IOException {
+		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
+		assert runtime.contains("playCasterSnap(level, caster, 1, gameTime)") : "Hairpin finishers should still play the snap gesture when there is no active mark";
+		assert runtime.contains("return true;") && runtime.contains("anchors.isEmpty()") : "Empty Hairpin Explosion should consume the action as a snap-only cast instead of showing no-target failure";
 	}
 
 	private static void assertNobaraNailsEmbedLikeOpaqueBodyAnchors() throws IOException {

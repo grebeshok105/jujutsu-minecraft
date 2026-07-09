@@ -160,19 +160,21 @@ public final class ProjectJjkRitualRuntime {
 		long gameTime = level.getGameTime();
 		TargetResolver.Result result = TargetResolver.resolve(level, caster, ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_RANGE);
 		if (result.mode() != TargetResolver.Mode.ENTITY || result.entityId().isEmpty()) {
-			return false;
+			playCasterSnap(level, caster, 1, gameTime);
+			return true;
 		}
 		Entity entity = level.getEntity(result.entityId().get());
 		if (!(entity instanceof LivingEntity target) || !target.isAlive()) {
-			return false;
+			playCasterSnap(level, caster, 1, gameTime);
+			return true;
 		}
 		int marks = ProjectJjkNailMarks.marks(target.getUUID(), gameTime);
 		if (marks <= 0) {
-			return false;
+			playCasterSnap(level, caster, 1, gameTime);
+			return true;
 		}
 
-		level.playSound(null, caster.getX(), caster.getY(), caster.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 2.0f, 1.0f);
-		JujutsuNetworking.sendProjectJjkImpulse(caster, impulse(ProjectJjkNobaraImpulsePayload.FP_SNAP, Math.max(1, marks), caster.getEyePosition(), gameTime));
+		playCasterSnap(level, caster, Math.max(1, marks), gameTime);
 		PENDING_ENLARGES.add(new PendingEnlarge(level, caster.getUUID(), target.getUUID(), target.getId(), gameTime + ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DELAY_TICKS, marks));
 		return true;
 	}
@@ -183,7 +185,8 @@ public final class ProjectJjkRitualRuntime {
 		long gameTime = level.getGameTime();
 		List<ExplosionAnchor> anchors = collectExplosionAnchors(level, caster, gameTime);
 		if (anchors.isEmpty()) {
-			return false;
+			playCasterSnap(level, caster, 1, gameTime);
+			return true;
 		}
 
 		Collections.shuffle(anchors);
@@ -193,8 +196,7 @@ public final class ProjectJjkRitualRuntime {
 				spawnProjectJjkPrime(level, entity.position());
 			}
 		}
-		level.playSound(null, caster.getX(), caster.getY(), caster.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 2.0f, 1.0f);
-		JujutsuNetworking.sendProjectJjkImpulse(caster, impulse(ProjectJjkNobaraImpulsePayload.FP_SNAP, anchors.size(), caster.getEyePosition(), gameTime));
+		playCasterSnap(level, caster, anchors.size(), gameTime);
 		consumeAnchorMarks(level, anchors, gameTime);
 		PENDING_EXPLOSIONS.add(new PendingExplosion(level, caster.getUUID(), anchors, gameTime + ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_START_DELAY_TICKS));
 		return true;
@@ -594,6 +596,11 @@ public final class ProjectJjkRitualRuntime {
 
 	private static ProjectJjkNobaraImpulsePayload impulse(int kind, int marks, Vec3 at, long gameTime) {
 		return new ProjectJjkNobaraImpulsePayload(kind, marks, at.x, at.y, at.z, gameTime);
+	}
+
+	private static void playCasterSnap(ServerLevel level, ServerPlayer caster, int marks, long gameTime) {
+		level.playSound(null, caster.getX(), caster.getY(), caster.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 2.0f, 1.0f);
+		JujutsuNetworking.sendProjectJjkImpulse(caster, impulse(ProjectJjkNobaraImpulsePayload.FP_SNAP, Math.max(1, marks), caster.getEyePosition(), gameTime));
 	}
 
 	private static Vec3 safeDirection(Vec3 vector) {

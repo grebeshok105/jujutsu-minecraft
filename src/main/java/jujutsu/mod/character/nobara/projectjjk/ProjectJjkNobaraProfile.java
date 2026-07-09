@@ -29,7 +29,7 @@ public final class ProjectJjkNobaraProfile {
 
 	// Hairpin mark detonation.
 	public static final double DETONATE_RANGE = 24.0;
-	public static final float DETONATE_DAMAGE_BASE = 1.0f;
+	public static final float DETONATE_DAMAGE_BASE = 12.0f;
 	public static final float DETONATE_DAMAGE_PER_MARK = 0.0f;
 	public static final int HAIRPIN_EXPLOSION_START_DELAY_TICKS = 10;
 	public static final double HAIRPIN_EXPLOSION_RADIUS = 1.5;
@@ -42,7 +42,7 @@ public final class ProjectJjkNobaraProfile {
 	public static final double HAIRPIN_ENLARGE_RANGE = 20.0;
 	public static final int HAIRPIN_ENLARGE_DELAY_TICKS = 20;
 	public static final int HAIRPIN_ENLARGE_STUN_TICKS = 50;
-	public static final float HAIRPIN_ENLARGE_DAMAGE = 12.0f;
+	public static final float HAIRPIN_ENLARGE_DAMAGE = 16.0f;
 
 	// Resonance (straw doll remote strike).
 	public static final double RESONANCE_RANGE = 96.0;
