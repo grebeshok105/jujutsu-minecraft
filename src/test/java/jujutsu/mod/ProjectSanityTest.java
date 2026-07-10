@@ -334,8 +334,8 @@ public final class ProjectSanityTest {
 		assert director.contains("activeLevel = null") : "VfxDirector must forget the world on disconnect or a null level";
 		String clientEntrypoint = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/JujutsuModClient.java"));
 		assert clientEntrypoint.contains("VfxDirector.initialize()") : "Client startup must initialize VFX Core before receivers";
+		assertVfxCoreAuthoringContractAndOwnership(clientEntrypoint);
 	}
-
 	private static void assertVfxCoreProvidesReusableChannels() throws IOException {
 		String world = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxWorldChannel.java"));
 		assert world.contains("triggerImpact") : "VFX world channel must expose a timed impact primitive";
@@ -557,6 +557,51 @@ public final class ProjectSanityTest {
 				if (javaFile.startsWith(MAIN_JAVA)) {
 					assert !source.contains(CLIENT_IMPORT) : "Client import in common source set: " + javaFile;
 				}
+			}
+		}
+	}
+
+	private static void assertVfxCoreAuthoringContractAndOwnership(String clientEntrypoint) throws IOException {
+		String agents = Files.readString(ROOT.resolve("AGENTS.md"));
+		assert agents.contains("## Mandatory VFX Core Contract") : "AGENTS.md must define the mandatory VFX Core contract";
+		assert agents.contains("server-confirmed action -> `VfxCue` -> typed S2C transport -> `VfxDirector` -> `<Character>VfxRecipes` -> director-owned channels")
+			: "AGENTS.md must state the complete transient VFX path";
+		assert agents.contains("Persistent, stateful visuals") : "AGENTS.md must preserve real renderers for persistent visuals";
+		assert agents.contains("Jujutsu Kaizen/jujutsumod-codebase-codex/04-client-vfx/VFX-core.md")
+			: "AGENTS.md must link the detailed VFX Core authoring note";
+
+		Path networkingPath = CLIENT_JAVA.resolve("jujutsu/mod/client/network/JujutsuClientNetworking.java");
+		Path directorPath = CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxDirector.java");
+		StringBuilder clientSources = new StringBuilder();
+		try (Stream<Path> files = Files.walk(CLIENT_JAVA)) {
+			for (Path javaFile : files.filter(path -> path.toString().endsWith(".java")).toList()) {
+				String source = Files.readString(javaFile);
+				clientSources.append(source).append('\n');
+				String normalizedPath = javaFile.toString().replace('\\', '/');
+				boolean effectPath = normalizedPath.contains("/client/vfx/") || normalizedPath.contains("/client/fx/");
+				if (source.contains("ClientPlayNetworking.registerGlobalReceiver")) {
+					assert javaFile.equals(networkingPath) : "Client packet receivers must remain centralized in JujutsuClientNetworking: " + javaFile;
+				}
+				if (effectPath && (source.contains("WorldRenderEvents.") || source.contains("HudElementRegistry."))) {
+					assert javaFile.equals(directorPath) : "Transient world/HUD callbacks must remain centralized in VfxDirector: " + javaFile;
+				}
+			}
+		}
+
+		int directorIndex = clientEntrypoint.indexOf("VfxDirector.initialize()");
+		Matcher recipeBootstrap = Pattern.compile("\\b\\w+VfxRecipes\\.(?:register|registerAll)\\(\\)").matcher(clientEntrypoint);
+		assert recipeBootstrap.find() : "Client startup must register VFX recipes";
+		int recipesIndex = recipeBootstrap.start();
+		int receiversIndex = clientEntrypoint.indexOf("JujutsuClientNetworking.registerReceivers()");
+		assert directorIndex >= 0 : "Client startup must initialize VfxDirector";
+		assert recipesIndex > directorIndex : "Client startup must register recipes after VfxDirector initialization";
+		assert receiversIndex > recipesIndex : "Client startup must register recipes before VFX cue receivers";
+
+		Path recipesRoot = CLIENT_JAVA.resolve("jujutsu/mod/client/vfx");
+		try (Stream<Path> files = Files.walk(recipesRoot)) {
+			for (Path recipeFile : files.filter(path -> path.getFileName().toString().endsWith("VfxRecipes.java")).toList()) {
+				String className = recipeFile.getFileName().toString().replace(".java", "");
+				assert clientSources.indexOf(className + ".register()") >= 0 : "Unregistered character VFX recipes: " + className;
 			}
 		}
 	}

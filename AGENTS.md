@@ -73,6 +73,18 @@ No code-first experiments in the main mod unless the user explicitly asks for a 
   - mark private helper fields/methods with `@Unique`
   - keep each mixin narrowly scoped and documented in the design/spec, not in code comments
 
+## Mandatory VFX Core Contract
+
+- Read `Jujutsu Kaizen/jujutsumod-codebase-codex/04-client-vfx/VFX-core.md` before designing, implementing, or reviewing combat visuals.
+- Every transient combat effect must use: server-confirmed action -> `VfxCue` -> typed S2C transport -> `VfxDirector` -> `<Character>VfxRecipes` -> director-owned channels.
+- Keep gameplay authority on the server. A cue and its recipe may render only; they must never apply damage, marks, cooldowns, targeting, entity spawning, or other gameplay state.
+- For each character, keep stable IDs in `<Character>VfxIds` and client scene composition in `<Character>VfxRecipes`. Use `VfxContext` and the director-owned world, particle, sound, HUD, camera/FOV, and first-person channels.
+- Persistent, stateful visuals whose lifetime follows a real entity or gameplay state stay in the real entity/state renderer. They may share stable helpers such as `VfxPalette`; do not force them into a transient timeline.
+- Do not add per-effect packet receivers, global render/HUD callbacks, HUD or camera singletons, parallel lifecycle managers, or effect-specific mixins as a shortcut around VFX Core.
+- If an effect cannot be expressed through existing channels, stop and update the approved design before adding one narrow director-owned channel. Add shared primitives only when two characters need them or when they enforce a global policy such as lifecycle, timing, quality, culling, or budgets.
+- When the second character with transient VFX is added, introduce one explicit `JujutsuVfxRecipes.registerAll()` bootstrap that calls each character recipe class. Do not use reflection, classpath scanning, JSON/DSL registration, or a giant effect switch.
+- Every new effect requires ID/recipe registration coverage, quality and distance policy, codex updates, `ProjectSanityTest`, `check`, build, and manual visual QA. Compilation alone does not prove effect quality or multiplayer observation.
+
 ## Dependency Policy
 
 Third-party libraries and companion mods are allowed, but every dependency must justify itself.
