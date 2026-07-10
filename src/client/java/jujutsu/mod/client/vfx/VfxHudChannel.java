@@ -2,6 +2,7 @@ package jujutsu.mod.client.vfx;
 
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.gui.GuiGraphics;
+import jujutsu.mod.vfx.VfxTimeline;
 
 public final class VfxHudChannel {
 	private long flashStartedAtMillis;
@@ -13,17 +14,35 @@ public final class VfxHudChannel {
 	private int speedLineAlpha;
 
 	public void triggerSwing(float proximity) {
-		triggerCinematic(220, scaledAlpha(150, proximity), scaledAlpha(126, proximity));
-		triggerFlash(90, scaledAlpha(82, proximity));
+		triggerSwing(proximity, 0.0f);
+	}
+
+	public void triggerSwing(float proximity, float initialAgeTicks) {
+		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
+		triggerCinematic(startedAtMillis, 220, scaledAlpha(150, proximity), scaledAlpha(126, proximity));
+		triggerFlash(startedAtMillis, 90, scaledAlpha(82, proximity));
 	}
 
 	public void triggerImpact(float proximity) {
-		triggerCinematic(380, scaledAlpha(170, proximity), scaledAlpha(130, proximity));
-		triggerFlash(150, scaledAlpha(160, proximity));
+		triggerImpact(proximity, 0.0f);
+	}
+
+	public void triggerImpact(float proximity, float initialAgeTicks) {
+		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
+		triggerCinematic(startedAtMillis, 380, scaledAlpha(170, proximity), scaledAlpha(130, proximity));
+		triggerFlash(startedAtMillis, 150, scaledAlpha(160, proximity));
 	}
 
 	public void triggerFlash(int durationMillis, int maxAlpha) {
-		flashStartedAtMillis = System.currentTimeMillis();
+		triggerFlash(durationMillis, maxAlpha, 0.0f);
+	}
+
+	public void triggerFlash(int durationMillis, int maxAlpha, float initialAgeTicks) {
+		triggerFlash(VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks), durationMillis, maxAlpha);
+	}
+
+	private void triggerFlash(long startedAtMillis, int durationMillis, int maxAlpha) {
+		flashStartedAtMillis = startedAtMillis;
 		flashDurationMillis = Math.max(1, durationMillis);
 		flashMaxAlpha = Math.max(0, Math.min(180, maxAlpha));
 	}
@@ -43,8 +62,8 @@ public final class VfxHudChannel {
 		speedLineAlpha = 0;
 	}
 
-	private void triggerCinematic(int durationMillis, int vignetteAlpha, int lineAlpha) {
-		cinematicStartedAtMillis = System.currentTimeMillis();
+	private void triggerCinematic(long startedAtMillis, int durationMillis, int vignetteAlpha, int lineAlpha) {
+		cinematicStartedAtMillis = startedAtMillis;
 		cinematicDurationMillis = Math.max(1, durationMillis);
 		vignetteMaxAlpha = Math.max(0, Math.min(170, vignetteAlpha));
 		speedLineAlpha = Math.max(0, Math.min(130, lineAlpha));

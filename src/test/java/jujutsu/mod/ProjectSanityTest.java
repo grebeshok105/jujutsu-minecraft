@@ -326,6 +326,10 @@ public final class ProjectSanityTest {
 		assert director.contains("HudElementRegistry.attachElementAfter") : "VfxDirector must own the VFX HUD overlay callback";
 		assert director.contains("ClientPlayConnectionEvents.DISCONNECT") : "VfxDirector must clear active scenes on disconnect";
 		assert director.contains("VfxTimeline.isExpired") : "VfxDirector must discard expired late cues";
+		assert director.contains("private static ClientLevel activeLevel") : "VfxDirector must track the active client world identity";
+		assert director.contains("if (activeLevel != client.level)") : "VfxDirector must clear scenes when the ClientLevel object changes";
+		assert director.contains("activeLevel = client.level") : "VfxDirector must bind lifecycle state to the current ClientLevel";
+		assert director.contains("activeLevel = null") : "VfxDirector must forget the world on disconnect or a null level";
 		String clientEntrypoint = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/JujutsuModClient.java"));
 		assert clientEntrypoint.contains("VfxDirector.initialize()") : "Client startup must initialize VFX Core before receivers";
 	}
@@ -334,12 +338,17 @@ public final class ProjectSanityTest {
 		String world = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxWorldChannel.java"));
 		assert world.contains("triggerImpact") : "VFX world channel must expose a timed impact primitive";
 		assert world.contains("renderCyanRing") && world.contains("addRibbon") && world.contains("addFlashBlade") : "VFX world channel must provide ring, ribbon, and blade primitives";
+		assert world.contains("new ImpactFlash(cue") : "World primitives must retain the cue for live anchor resolution";
+		assert world.contains("VfxAnchorResolver.resolve(flash.cue()") && world.contains("context.world().getEntity") : "World primitives must follow a live anchor and fall back through VfxAnchorResolver";
 		String hud = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxHudChannel.java"));
 		assert hud.contains("triggerImpact") && hud.contains("renderSmoothEdgeVignette") : "VFX HUD channel must own impact overlay primitives";
+		assert hud.contains("VfxTimeline.startedAtMillis") : "HUD effects must enter the correct phase for late cues";
 		String camera = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxCameraChannel.java"));
 		assert camera.contains("triggerImpact") && camera.contains("triggerSwing") : "VFX camera channel must expose impact and swing impulses";
+		assert camera.contains("VfxTimeline.startedAtMillis") : "Camera effects must enter the correct phase for late cues";
 		String firstPerson = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxFirstPersonChannel.java"));
 		assert firstPerson.contains("triggerSnap") && firstPerson.contains("DURATION_SECONDS") : "VFX first-person channel must own the snap animation";
+		assert firstPerson.contains("VfxTimeline.startedAtNanos") : "First-person effects must enter the correct phase for late cues";
 		String particles = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxParticleChannel.java"));
 		assert particles.contains("burst") && particles.contains("ring") : "VFX particle channel must expose reusable burst and ring helpers";
 		String sound = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxSoundChannel.java"));
@@ -354,6 +363,10 @@ public final class ProjectSanityTest {
 		assert recipes.contains("NobaraVfxIds.RESONANCE_STRIKE") : "Missing Nobara resonance recipe";
 		assert recipes.contains("NobaraVfxIds.ENLARGE") && recipes.contains("NobaraVfxIds.EXPLOSION") : "Missing Nobara finisher recipes";
 		assert recipes.contains("NobaraVfxIds.FIRST_PERSON_SNAP") : "Missing Nobara first-person snap recipe";
+		long openingBeatGuards = Pattern.compile("VfxTimeline\\.isOpeningBeat\\(initialAgeTicks\\)").matcher(recipes).results().count();
+		assert openingBeatGuards >= 8 : "Every non-seekable Nobara sound/particle opening beat must reject late playback";
+		long ageAwareChannelCalls = Pattern.compile("trigger(?:Swing|Impact|Snap)\\([^\\n]*initialAgeTicks\\)").matcher(recipes).results().count();
+		assert ageAwareChannelCalls >= 8 : "Nobara timed channels must receive initialAgeTicks";
 		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/network/ProjectJjkNobaraImpulsePayload.java")) : "Legacy integer VFX payload must be removed after migration";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java")) : "Legacy Hairpin world renderer must be replaced by VFX Core";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinCinematicCamera.java")) : "Legacy Hairpin camera manager must be replaced by VFX Core";
@@ -374,6 +387,7 @@ public final class ProjectSanityTest {
 		assert snapMixin.contains("VfxDirector.firstPersonPose") : "First-person mixin must read the pose from VFX Core";
 		String snap = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxFirstPersonChannel.java"));
 		assert snap.contains("DURATION_SECONDS = 0.75f") : "Snap timing should preserve ProjectJJK's full 0..15 scaled snap phases";
+		assert snap.contains("scaledProgress = progress * 15.0f") : "Snap timing must actually traverse the full 0..15 phase range";
 		assert snap.contains("scaledProgress") && snap.contains("easeInQuint") && snap.contains("easeInCubic") : "Snap pose should keep ProjectJJK-style windup/hold/release phases";
 	}
 

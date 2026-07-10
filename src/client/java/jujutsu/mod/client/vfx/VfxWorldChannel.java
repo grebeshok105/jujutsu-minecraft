@@ -8,7 +8,9 @@ import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.Camera;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.vfx.VfxAnchorResolver;
 import jujutsu.mod.vfx.VfxCue;
 
 public final class VfxWorldChannel {
@@ -30,7 +32,7 @@ public final class VfxWorldChannel {
 	private final List<ImpactFlash> impactFlashes = new ArrayList<>();
 
 	public void triggerImpact(VfxCue cue, ImpactStyle style, int durationTicks) {
-		impactFlashes.add(new ImpactFlash(cue.origin(), Math.max(1, cue.intensity()), style, cue.startGameTime(), Math.max(1, durationTicks)));
+		impactFlashes.add(new ImpactFlash(cue, style, Math.max(1, durationTicks)));
 		if (impactFlashes.size() > MAX_IMPACT_FLASHES) {
 			impactFlashes.remove(0);
 		}
@@ -43,28 +45,32 @@ public final class VfxWorldChannel {
 		}
 		Camera camera = context.camera();
 		VertexConsumer consumer = consumers.getBuffer(RenderType.lightning());
-		renderImpactFlashes(consumer, camera.getPosition(), context.world().getGameTime(), context.tickCounter().getGameTimeDeltaPartialTick(false));
+		renderImpactFlashes(consumer, camera.getPosition(), context, context.tickCounter().getGameTimeDeltaPartialTick(false));
 	}
 
 	void clear() {
 		impactFlashes.clear();
 	}
 
-	private void renderImpactFlashes(VertexConsumer consumer, Vec3 cameraPosition, long gameTime, float partialTick) {
+	private void renderImpactFlashes(VertexConsumer consumer, Vec3 cameraPosition, WorldRenderContext context, float partialTick) {
 		for (Iterator<ImpactFlash> iterator = impactFlashes.iterator(); iterator.hasNext();) {
 			ImpactFlash flash = iterator.next();
-			float age = gameTime - flash.startGameTime() + partialTick;
+			float age = context.world().getGameTime() - flash.cue().startGameTime() + partialTick;
 			if (age >= flash.durationTicks()) {
 				iterator.remove();
 				continue;
 			}
 			float progress = Math.max(0.0f, Math.min(1.0f, age / flash.durationTicks()));
 			float fade = 1.0f - progress;
-			Vec3 center = flash.origin().subtract(cameraPosition);
+			Vec3 origin = VfxAnchorResolver.resolve(flash.cue(), entityId -> {
+				Entity anchor = context.world().getEntity(entityId);
+				return anchor == null ? null : anchor.position();
+			});
+			Vec3 center = origin.subtract(cameraPosition);
 			if (flash.style() == ImpactStyle.ENLARGE) {
-				renderEnlargeImpact(consumer, center, flash.intensity(), progress, fade);
+				renderEnlargeImpact(consumer, center, Math.max(1, flash.cue().intensity()), progress, fade);
 			} else {
-				renderExplosionImpact(consumer, center, flash.intensity(), progress, fade);
+				renderExplosionImpact(consumer, center, Math.max(1, flash.cue().intensity()), progress, fade);
 			}
 		}
 	}
@@ -151,5 +157,5 @@ public final class VfxWorldChannel {
 		EXPLOSION
 	}
 
-	private record ImpactFlash(Vec3 origin, int intensity, ImpactStyle style, long startGameTime, int durationTicks) {}
+	private record ImpactFlash(VfxCue cue, ImpactStyle style, int durationTicks) {}
 }

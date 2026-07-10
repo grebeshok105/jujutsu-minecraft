@@ -16,6 +16,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.resources.ResourceLocation;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.vfx.VfxCue;
@@ -32,6 +33,7 @@ public final class VfxDirector {
 	private static final VfxFirstPersonChannel FIRST_PERSON = new VfxFirstPersonChannel();
 	private static final VfxParticleChannel PARTICLES = new VfxParticleChannel();
 	private static final VfxSoundChannel SOUND = new VfxSoundChannel();
+	private static ClientLevel activeLevel;
 	private static boolean initialized;
 
 	private VfxDirector() {}
@@ -44,7 +46,7 @@ public final class VfxDirector {
 		WorldRenderEvents.AFTER_ENTITIES.register(VfxDirector::renderWorld);
 		HudElementRegistry.attachElementAfter(VanillaHudElements.MISC_OVERLAYS, JujutsuMod.id("vfx_overlay"), VfxDirector::renderHud);
 		ClientTickEvents.END_CLIENT_TICK.register(VfxDirector::tick);
-		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> clear());
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> reset());
 	}
 
 	public static void register(ResourceLocation effectId, VfxRecipe recipe) {
@@ -59,6 +61,7 @@ public final class VfxDirector {
 		if (client.level == null || client.player == null) {
 			return;
 		}
+		bindLevel(client);
 		VfxRecipe recipe = RECIPES.get(cue.effectId());
 		if (recipe == null) {
 			if (UNKNOWN_EFFECT_IDS.add(cue.effectId())) {
@@ -105,9 +108,10 @@ public final class VfxDirector {
 
 	private static void tick(Minecraft client) {
 		if (client.level == null) {
-			clear();
+			reset();
 			return;
 		}
+		bindLevel(client);
 		Iterator<ActiveInstance> iterator = ACTIVE_INSTANCES.iterator();
 		while (iterator.hasNext()) {
 			ActiveInstance active = iterator.next();
@@ -119,6 +123,18 @@ public final class VfxDirector {
 
 	private static VfxContext context(Minecraft client) {
 		return new VfxContext(client, VfxQuality.from(client.options.particles().get()), WORLD, HUD, CAMERA, FIRST_PERSON, PARTICLES, SOUND);
+	}
+
+	private static void bindLevel(Minecraft client) {
+		if (activeLevel != client.level) {
+			clear();
+			activeLevel = client.level;
+		}
+	}
+
+	private static void reset() {
+		clear();
+		activeLevel = null;
 	}
 
 	private static void clear() {

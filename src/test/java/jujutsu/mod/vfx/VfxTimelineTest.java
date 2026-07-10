@@ -9,6 +9,8 @@ public final class VfxTimelineTest {
 		assertLateCueUsesItsTrueAge();
 		assertFutureCueDoesNotRunBackwards();
 		assertExpiredCueIsSkipped();
+		assertOpeningBeatWindow();
+		assertLateCueOffsetsRealtimeChannels();
 		System.out.println("VfxTimelineTest passed");
 	}
 
@@ -26,5 +28,17 @@ public final class VfxTimelineTest {
 		VfxCue cue = new VfxCue(NobaraVfxIds.EXPLOSION, Vec3.ZERO, VfxCue.NO_ANCHOR, 1, 100L, 3L);
 		assert !VfxTimeline.isExpired(cue, 117L, 18) : "cue must render through its final active tick";
 		assert VfxTimeline.isExpired(cue, 118L, 18) : "cue must stop at its configured duration";
+	}
+
+	private static void assertOpeningBeatWindow() {
+		assert VfxTimeline.isOpeningBeat(0.0f) : "fresh cues must play one-shot beats";
+		assert VfxTimeline.isOpeningBeat(1.999f) : "one-shot beats remain valid through the opening window";
+		assert !VfxTimeline.isOpeningBeat(2.0f) : "late cues must not replay elapsed one-shot beats";
+	}
+
+	private static void assertLateCueOffsetsRealtimeChannels() {
+		assert VfxTimeline.startedAtMillis(1_000L, 4.5f) == 775L : "4.5 ticks must offset realtime channels by 225 ms";
+		assert VfxTimeline.startedAtNanos(1_000_000_000L, 4.5f) == 775_000_000L : "4.5 ticks must offset first-person timing by 225 ms";
+		assert VfxTimeline.startedAtMillis(1_000L, -2.0f) == 1_000L : "future cues must not start before now";
 	}
 }

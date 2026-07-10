@@ -1,13 +1,18 @@
 package jujutsu.mod.client.vfx;
 
 import net.minecraft.util.Mth;
+import jujutsu.mod.vfx.VfxTimeline;
 
 public final class VfxFirstPersonChannel {
 	private static final float DURATION_SECONDS = 0.75f;
 	private long startedAtNanos = Long.MIN_VALUE;
 
 	public void triggerSnap() {
-		startedAtNanos = System.nanoTime();
+		triggerSnap(0.0f);
+	}
+
+	public void triggerSnap(float initialAgeTicks) {
+		startedAtNanos = VfxTimeline.startedAtNanos(System.nanoTime(), initialAgeTicks);
 	}
 
 	public Pose currentPose() {
@@ -27,7 +32,7 @@ public final class VfxFirstPersonChannel {
 	}
 
 	private static Pose pose(float progress) {
-		float scaledProgress = progress * 10.0f;
+		float scaledProgress = progress * 15.0f;
 		if (scaledProgress < 1.0f) {
 			return new Pose(0.13f, -0.07f, -0.06f, 13.0f, 18.0f, -8.0f);
 		}

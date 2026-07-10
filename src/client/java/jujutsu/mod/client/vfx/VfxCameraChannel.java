@@ -3,24 +3,35 @@ package jujutsu.mod.client.vfx;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import jujutsu.mod.vfx.VfxTimeline;
 
 public final class VfxCameraChannel {
 	private final List<Impulse> impulses = new ArrayList<>();
 	private final List<FovImpulse> fovImpulses = new ArrayList<>();
 
 	public void triggerSwing(int intensity, float proximity) {
+		triggerSwing(intensity, proximity, 0.0f);
+	}
+
+	public void triggerSwing(int intensity, float proximity, float initialAgeTicks) {
+		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
 		float strength = strength(intensity, proximity, 0.92f);
-		addImpulse(190, -2.9f * strength, 1.72f * strength, 72.0f);
-		addImpulse(95, 1.18f * strength, -0.86f * strength, 126.0f);
-		addFovImpulse(430, -7.5f * strength, 0.16f);
+		addImpulse(startedAtMillis, 190, -2.9f * strength, 1.72f * strength, 72.0f);
+		addImpulse(startedAtMillis, 95, 1.18f * strength, -0.86f * strength, 126.0f);
+		addFovImpulse(startedAtMillis, 430, -7.5f * strength, 0.16f);
 	}
 
 	public void triggerImpact(int intensity, float proximity) {
+		triggerImpact(intensity, proximity, 0.0f);
+	}
+
+	public void triggerImpact(int intensity, float proximity, float initialAgeTicks) {
+		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
 		float strength = strength(intensity, proximity, 1.08f);
-		addImpulse(270, 3.3f * strength, -2.1f * strength, 58.0f);
-		addImpulse(130, -1.52f * strength, 1.18f * strength, 118.0f);
-		addFovImpulse(520, 9.0f * strength, 0.10f);
-		addFovImpulse(950, -2.6f * strength, 0.34f);
+		addImpulse(startedAtMillis, 270, 3.3f * strength, -2.1f * strength, 58.0f);
+		addImpulse(startedAtMillis, 130, -1.52f * strength, 1.18f * strength, 118.0f);
+		addFovImpulse(startedAtMillis, 520, 9.0f * strength, 0.10f);
+		addFovImpulse(startedAtMillis, 950, -2.6f * strength, 0.34f);
 	}
 
 	public float yawOffset() {
@@ -41,12 +52,12 @@ public final class VfxCameraChannel {
 		fovImpulses.clear();
 	}
 
-	private void addImpulse(int durationMillis, float yawAmplitude, float pitchAmplitude, float frequency) {
-		impulses.add(new Impulse(System.currentTimeMillis(), durationMillis, yawAmplitude, pitchAmplitude, frequency));
+	private void addImpulse(long startedAtMillis, int durationMillis, float yawAmplitude, float pitchAmplitude, float frequency) {
+		impulses.add(new Impulse(startedAtMillis, durationMillis, yawAmplitude, pitchAmplitude, frequency));
 	}
 
-	private void addFovImpulse(int durationMillis, float amplitude, float attackFraction) {
-		fovImpulses.add(new FovImpulse(System.currentTimeMillis(), durationMillis, amplitude, Math.max(0.02f, Math.min(0.9f, attackFraction))));
+	private void addFovImpulse(long startedAtMillis, int durationMillis, float amplitude, float attackFraction) {
+		fovImpulses.add(new FovImpulse(startedAtMillis, durationMillis, amplitude, Math.max(0.02f, Math.min(0.9f, attackFraction))));
 	}
 
 	private float sampleFov() {
