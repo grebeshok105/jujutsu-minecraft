@@ -203,6 +203,11 @@
 					]
 				},
 				{
+					"name": "leftHandItem",
+					"parent": "left_elbow",
+					"pivot": [-5.5, 13.25, 0]
+				},
+				{
 					"name": "rightArm",
 					"parent": "body",
 					"pivot": [5, 22, 0],
@@ -217,6 +222,11 @@
 					"cubes": [
 						{"origin": [4, 13, -2], "size": [3, 5.75, 4], "inflate": -0.1, "uv": [0, 35]}
 					]
+				},
+				{
+					"name": "rightHandItem",
+					"parent": "right_elbow",
+					"pivot": [5.5, 13.25, 0]
 				},
 				{
 					"name": "skirt",

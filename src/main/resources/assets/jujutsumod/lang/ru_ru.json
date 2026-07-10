@@ -2,6 +2,8 @@
   "item.jujutsumod.resonance_remnant": "Связанный останок цели",
   "item.jujutsumod.resonance_remnant.bound": "Останок: %s",
   "item.jujutsumod.straw_doll": "Соломенная кукла",
+  "tooltip.jujutsumod.straw_doll.ritual": "Во вторую руку: присядьте и используйте молот",
+  "tooltip.jujutsumod.straw_doll.requires": "Нужны связанный останок цели и один проклятый гвоздь",
   "message.jujutsumod.projectjjk.resonance.already_casting": "Ритуал Резонанса уже начат.",
   "message.jujutsumod.projectjjk.resonance.casting": "Привязка цели %s к соломенной кукле...",
   "message.jujutsumod.projectjjk.resonance.complete": "Резонанс поразил цель %s.",

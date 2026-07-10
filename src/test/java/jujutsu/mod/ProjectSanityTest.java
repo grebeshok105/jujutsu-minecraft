@@ -56,6 +56,7 @@ public final class ProjectSanityTest {
 		assertHairpinScreenOverlayUsesSmoothGradientVignette();
 		assertCharacterSelectUsesCheapUiPrimitives();
 		assertGeckoLibNobaraPlayerModelWired();
+		assertNobaraHeldItemsAndArmPosesWired();
 		assertNobaraGeoHeadLookIsSafeAndEnabled();
 		assertNobaraGeoRenderRestoresPoseStack();
 		assertNobaraSkinUsesWideArms();
@@ -690,6 +691,32 @@ public final class ProjectSanityTest {
 		assert geo.contains("\"name\": \"bb_main\",\n\t\t\t\t\t\"parent\": \"skirt\"") : "Nobara skirt/coat panels must follow the body instead of floating as a root bone";
 		String card = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/CharacterCard.java"));
 		assert card.contains("textures/entity/character/nobara.png") : "Character select portrait must keep using the player-skin head, not the GeckoLib NPC texture";
+	}
+
+	private static void assertNobaraHeldItemsAndArmPosesWired() throws IOException {
+		Path heldItemLayer = CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraHeldItemLayer.java");
+		assert Files.exists(heldItemLayer) : "Nobara replacement renderer must restore held-item rendering";
+		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoRenderer.java"));
+		assert renderer.contains("addRenderLayer(new NobaraHeldItemLayer<>(this))")
+				: "Nobara renderer must attach the held-item layer";
+		assert renderer.contains("vanillaPoseModel.setupAnim(renderState)") && renderer.contains("DataTickets.HUMANOID_MODEL")
+				: "Nobara renderer must derive arm poses from the current vanilla player render state";
+		String geoModel = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoModel.java"));
+		assert geoModel.contains("applyVanillaArmPose") && geoModel.contains("DataTickets.HUMANOID_MODEL")
+				: "Nobara model must apply vanilla-equivalent held-item arm rotations";
+		String geo = Files.readString(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json"));
+		assert Pattern.compile("\"name\"\\s*:\\s*\"rightHandItem\"\\s*,\\s*\"parent\"\\s*:\\s*\"right_elbow\"").matcher(geo).find()
+				: "Nobara model needs a right-hand item attachment under the right elbow";
+		assert Pattern.compile("\"name\"\\s*:\\s*\"leftHandItem\"\\s*,\\s*\"parent\"\\s*:\\s*\"left_elbow\"").matcher(geo).find()
+				: "Nobara model needs a left-hand item attachment under the left elbow";
+		String itemRegistry = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/registry/JujutsuItems.java"));
+		assert itemRegistry.contains("ItemLore") && itemRegistry.contains("tooltip.jujutsumod.straw_doll.ritual")
+				: "Straw Doll tooltip must use the current item-lore API to explain how to start Resonance";
+		for (String language : new String[] {"en_us.json", "ru_ru.json"}) {
+			String lang = Files.readString(JUJUTSU_ASSETS.resolve("lang").resolve(language));
+			assert lang.contains("tooltip.jujutsumod.straw_doll.ritual") && lang.contains("tooltip.jujutsumod.straw_doll.requires")
+					: "Missing Straw Doll ritual tooltip translations in " + language;
+		}
 	}
 
 	private static void assertNobaraGeoHeadLookIsSafeAndEnabled() throws IOException {

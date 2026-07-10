@@ -123,7 +123,7 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 		return RawAnimation.begin().thenPlay(name);
 	}
 
-	private static boolean headKeyframedActionIsPlaying(AnimationState<NobaraPlayerGeoAnimatable> state) {
+	static boolean headKeyframedActionIsPlaying(AnimationState<NobaraPlayerGeoAnimatable> state) {
 		AnimationController<NobaraPlayerGeoAnimatable> controller = state.manager().getAnimationControllers().get(BASE_CONTROLLER);
 		return controller != null && (headKeyframedAction(controller.getTriggeredAnimation())
 				|| headKeyframedAction(controller.getCurrentRawAnimation()));

@@ -6,6 +6,8 @@
   "item.jujutsumod.resonance_remnant.bound": "%s's Bound Remnant",
   "item.jujutsumod.straw_doll": "Straw Doll",
   "item.jujutsumod.straw_doll_hammer": "Nobara Straw Doll Hammer",
+  "tooltip.jujutsumod.straw_doll.ritual": "Off hand: sneak and use the Straw Doll Hammer",
+  "tooltip.jujutsumod.straw_doll.requires": "Requires a bound remnant and one cursed nail",
   "key.categories.jujutsumod": "Jujutsu Minecraft",
   "key.jujutsumod.character_select": "Select Character",
   "key.jujutsumod.nobara_hairpin_enlarge": "Nobara: Hairpin Enlarge",
