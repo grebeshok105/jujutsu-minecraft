@@ -11,6 +11,7 @@ public final class VfxTimelineTest {
 		assertExpiredCueIsSkipped();
 		assertOpeningBeatWindow();
 		assertLateCueOffsetsRealtimeChannels();
+		assertLateRealtimeWindowCannotEraseFreshState();
 		assertStrawDollCueIdsStayStable();
 		System.out.println("VfxTimelineTest passed");
 	}
@@ -41,6 +42,17 @@ public final class VfxTimelineTest {
 		assert VfxTimeline.startedAtMillis(1_000L, 4.5f) == 775L : "4.5 ticks must offset realtime channels by 225 ms";
 		assert VfxTimeline.startedAtNanos(1_000_000_000L, 4.5f) == 775_000_000L : "4.5 ticks must offset first-person timing by 225 ms";
 		assert VfxTimeline.startedAtMillis(1_000L, -2.0f) == 1_000L : "future cues must not start before now";
+	}
+
+	private static void assertLateRealtimeWindowCannotEraseFreshState() {
+		assert !VfxTimeline.shouldExtendRealtimeWindow(950L, 200, 775L, 150, 1_000L)
+				: "an already-expired late cue must not replace a live realtime window";
+		assert !VfxTimeline.shouldExtendRealtimeWindow(950L, 200, 900L, 150, 1_000L)
+				: "a candidate that ends earlier must not shorten the current effect";
+		assert VfxTimeline.shouldExtendRealtimeWindow(950L, 200, 900L, 400, 1_000L)
+				: "a candidate that extends the visible window may replace it";
+		assert VfxTimeline.shouldExtendRealtimeWindow(0L, 0, 1_000L, 90, 1_000L)
+				: "a fresh candidate must start when no prior window exists";
 	}
 
 	private static void assertStrawDollCueIdsStayStable() {

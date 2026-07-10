@@ -42,8 +42,18 @@ public final class VfxHudChannel {
 	}
 
 	private void triggerFlash(long startedAtMillis, int durationMillis, int maxAlpha) {
+		int boundedDurationMillis = Math.max(1, durationMillis);
+		if (!VfxTimeline.shouldExtendRealtimeWindow(
+				flashStartedAtMillis,
+				flashDurationMillis,
+				startedAtMillis,
+				boundedDurationMillis,
+				System.currentTimeMillis()
+		)) {
+			return;
+		}
 		flashStartedAtMillis = startedAtMillis;
-		flashDurationMillis = Math.max(1, durationMillis);
+		flashDurationMillis = boundedDurationMillis;
 		flashMaxAlpha = Math.max(0, Math.min(180, maxAlpha));
 	}
 
@@ -63,8 +73,18 @@ public final class VfxHudChannel {
 	}
 
 	private void triggerCinematic(long startedAtMillis, int durationMillis, int vignetteAlpha, int lineAlpha) {
+		int boundedDurationMillis = Math.max(1, durationMillis);
+		if (!VfxTimeline.shouldExtendRealtimeWindow(
+				cinematicStartedAtMillis,
+				cinematicDurationMillis,
+				startedAtMillis,
+				boundedDurationMillis,
+				System.currentTimeMillis()
+		)) {
+			return;
+		}
 		cinematicStartedAtMillis = startedAtMillis;
-		cinematicDurationMillis = Math.max(1, durationMillis);
+		cinematicDurationMillis = boundedDurationMillis;
 		vignetteMaxAlpha = Math.max(0, Math.min(170, vignetteAlpha));
 		speedLineAlpha = Math.max(0, Math.min(130, lineAlpha));
 	}

@@ -357,6 +357,8 @@ public final class ProjectSanityTest {
 		assert world.contains("renderCyanRing") && world.contains("addRibbon") && world.contains("addFlashBlade") : "VFX world channel must provide ring, ribbon, and blade primitives";
 		assert world.contains("new ImpactFlash(cue") : "World primitives must retain the cue for live anchor resolution";
 		assert world.contains("VfxAnchorResolver.resolve(flash.cue()") && world.contains("context.world().getEntity") : "World primitives must follow a live anchor and fall back through VfxAnchorResolver";
+		assert world.contains("MAX_IMPACT_FLASHES") && world.contains("impactFlashes.remove(0)")
+				: "World-channel work must stay bounded alongside director instances";
 		String hud = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxHudChannel.java"));
 		assert hud.contains("triggerImpact") && hud.contains("renderSmoothEdgeVignette") : "VFX HUD channel must own impact overlay primitives";
 		assert hud.contains("VfxTimeline.startedAtMillis") : "HUD effects must enter the correct phase for late cues";
@@ -365,6 +367,8 @@ public final class ProjectSanityTest {
 				&& camera.contains("triggerExplosion") && camera.contains("triggerRitual")
 				: "VFX camera channel must expose named cinematic profiles";
 		assert camera.contains("VfxTimeline.startedAtMillis") : "Camera effects must enter the correct phase for late cues";
+		assert camera.contains("MAX_CHANNEL_IMPULSES = 64") && camera.contains("addImpulse") && camera.contains("addFovImpulse")
+				: "Camera and FOV work must stay bounded alongside director instances";
 		String firstPerson = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxFirstPersonChannel.java"));
 		assert firstPerson.contains("triggerSnap") && firstPerson.contains("DURATION_SECONDS") : "VFX first-person channel must own the snap animation";
 		assert firstPerson.contains("VfxTimeline.startedAtNanos") : "First-person effects must enter the correct phase for late cues";

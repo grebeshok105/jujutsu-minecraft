@@ -27,6 +27,18 @@ public final class VfxTimeline {
 		return nowNanos - Math.round(clampedAge(ageTicks) * NANOS_PER_TICK);
 	}
 
+	public static boolean shouldExtendRealtimeWindow(
+			long currentStartedAtMillis,
+			int currentDurationMillis,
+			long candidateStartedAtMillis,
+			int candidateDurationMillis,
+			long nowMillis
+	) {
+		long currentEndsAtMillis = currentStartedAtMillis + Math.max(0, currentDurationMillis);
+		long candidateEndsAtMillis = candidateStartedAtMillis + Math.max(1, candidateDurationMillis);
+		return candidateEndsAtMillis > nowMillis && candidateEndsAtMillis > currentEndsAtMillis;
+	}
+
 	private static float clampedAge(float ageTicks) {
 		return Math.max(0.0f, ageTicks);
 	}

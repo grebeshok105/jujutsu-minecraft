@@ -6,6 +6,7 @@ import java.util.List;
 import jujutsu.mod.vfx.VfxTimeline;
 
 public final class VfxCameraChannel {
+	private static final int MAX_CHANNEL_IMPULSES = 64;
 	private final List<Impulse> impulses = new ArrayList<>();
 	private final List<FovImpulse> fovImpulses = new ArrayList<>();
 
@@ -67,10 +68,16 @@ public final class VfxCameraChannel {
 	}
 
 	private void addImpulse(long startedAtMillis, int durationMillis, float yawAmplitude, float pitchAmplitude, float frequency) {
+		if (impulses.size() >= MAX_CHANNEL_IMPULSES) {
+			impulses.remove(0);
+		}
 		impulses.add(new Impulse(startedAtMillis, durationMillis, yawAmplitude, pitchAmplitude, frequency));
 	}
 
 	private void addFovImpulse(long startedAtMillis, int durationMillis, float amplitude, float attackFraction) {
+		if (fovImpulses.size() >= MAX_CHANNEL_IMPULSES) {
+			fovImpulses.remove(0);
+		}
 		fovImpulses.add(new FovImpulse(startedAtMillis, durationMillis, amplitude, Math.max(0.02f, Math.min(0.9f, attackFraction))));
 	}
 
