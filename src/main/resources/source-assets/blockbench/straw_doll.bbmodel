@@ -206,8 +206,8 @@
     }
   ],
   "unhandled_root_fields": {
-    "runtime_geometry": "assets/jujutsumod/geo/straw_doll.geo.json",
-    "runtime_animations": "assets/jujutsumod/animations/straw_doll.animation.json",
+    "runtime_geometry": "assets/jujutsumod/geckolib/models/straw_doll.geo.json",
+    "runtime_animations": "assets/jujutsumod/geckolib/animations/straw_doll.animation.json",
     "original_asset_note": "Original jujutsumod geometry, palette, proportions, bindings, and timing. No ProjectJJK runtime source was used."
   }
 }

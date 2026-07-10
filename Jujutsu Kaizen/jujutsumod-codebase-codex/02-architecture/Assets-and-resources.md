@@ -25,7 +25,7 @@
 | Particle types | `particles/*.json` + `textures/particle/**` |
 | Sounds | `sounds.json` + `sounds/hairpin/*` + `sounds/projectjjk/*` |
 | Conventional items | `items/*.json` + `models/item/*` |
-| Animated Straw Doll | `items/straw_doll.json` + `geo/straw_doll.geo.json` + `animations/straw_doll.animation.json` + `textures/item/straw_doll.png` |
+| Animated Straw Doll | `items/straw_doll.json` + `geckolib/models/straw_doll.geo.json` + `geckolib/animations/straw_doll.animation.json` + `textures/item/straw_doll.png` |
 | Editable original asset source | `source-assets/blockbench/straw_doll.bbmodel` + deterministic texture/preview scripts |
 | Icon | `icon.png` |
 | ProjectJJK comparison art | `geo/projectjjk`, `animations/projectjjk`, textures under `projectjjk/` |

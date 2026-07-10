@@ -60,8 +60,8 @@ The reusable item is a compact asymmetric bundled-straw effigy with dark binding
 | Asset | Source |
 |---|---|
 | editable Blockbench source | `src/main/resources/source-assets/blockbench/straw_doll.bbmodel` |
-| runtime geometry | `assets/jujutsumod/geo/straw_doll.geo.json` |
-| idle / ritual raise / impact / release | `assets/jujutsumod/animations/straw_doll.animation.json` |
+| runtime geometry | `assets/jujutsumod/geckolib/models/straw_doll.geo.json` |
+| idle / ritual raise / impact / release | `assets/jujutsumod/geckolib/animations/straw_doll.animation.json` |
 | deterministic original texture source | `source-assets/blockbench/generate_straw_doll_textures.ps1` |
 | runtime texture | `assets/jujutsumod/textures/item/straw_doll.png` |
 | headless preview renderer | `source-assets/blockbench/render_straw_doll_preview.py` |

@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 
 
 ROOT = Path(__file__).resolve().parents[5]
-GEOMETRY = ROOT / "src/main/resources/assets/jujutsumod/geo/straw_doll.geo.json"
+GEOMETRY = ROOT / "src/main/resources/assets/jujutsumod/geckolib/models/straw_doll.geo.json"
 TEXTURE = ROOT / "src/main/resources/assets/jujutsumod/textures/item/straw_doll.png"
 OUTPUT = ROOT / "build/asset-previews"
 

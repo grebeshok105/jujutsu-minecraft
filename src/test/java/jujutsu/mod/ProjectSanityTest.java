@@ -500,8 +500,8 @@ public final class ProjectSanityTest {
 	}
 
 	private static void assertOriginalStrawDollAssetWired() throws IOException {
-		Path geo = JUJUTSU_ASSETS.resolve("geo/straw_doll.geo.json");
-		Path animations = JUJUTSU_ASSETS.resolve("animations/straw_doll.animation.json");
+		Path geo = JUJUTSU_ASSETS.resolve("geckolib/models/straw_doll.geo.json");
+		Path animations = JUJUTSU_ASSETS.resolve("geckolib/animations/straw_doll.animation.json");
 		Path texture = JUJUTSU_ASSETS.resolve("textures/item/straw_doll.png");
 		Path itemDefinition = JUJUTSU_ASSETS.resolve("items/straw_doll.json");
 		Path itemModel = JUJUTSU_ASSETS.resolve("models/item/straw_doll.json");

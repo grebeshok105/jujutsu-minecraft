@@ -164,8 +164,8 @@ feat(nobara): implement straw doll resonance ritual
 ### Task 3: Original Straw Doll Model, Texture, and Animation
 
 **Files:**
-- Create: `src/main/resources/assets/jujutsumod/geo/straw_doll.geo.json`
-- Create: `src/main/resources/assets/jujutsumod/animations/straw_doll.animation.json`
+- Create: `src/main/resources/assets/jujutsumod/geckolib/models/straw_doll.geo.json`
+- Create: `src/main/resources/assets/jujutsumod/geckolib/animations/straw_doll.animation.json`
 - Create: `src/main/resources/assets/jujutsumod/textures/item/straw_doll.png`
 - Create: `src/main/resources/assets/jujutsumod/items/straw_doll.json`
 - Create: `src/main/resources/assets/jujutsumod/models/item/straw_doll.json` only if GeckoLib's 1.21.8 item definition delegates through a vanilla model.

@@ -139,7 +139,7 @@ All sources relative to that worktree unless noted.
 |---|---|---|
 | 8 particle json | `assets/jujutsumod/particles/` | VERIFIED |
 | runtime item models include ProjectJJK nail/hammer and original Straw Doll/remnant resources | `ProjectSanityTest.java:195-199,480-534` | VERIFIED |
-| original Straw Doll source/runtime set includes 25 matching source/runtime cubes, 14 source animator tracks/four runtime clips, portable texture path, bounded 64x64 Box UVs, deterministic texture source, and texture-backed previews | `source-assets/blockbench/straw_doll.bbmodel:11-202`; `assets/jujutsumod/geo/straw_doll.geo.json`; `assets/jujutsumod/animations/straw_doll.animation.json`; guard `ProjectSanityTest.java:495-563` | VERIFIED resource completeness + live Blockbench inspection; in-game presentation UNKNOWN |
+| original Straw Doll source/runtime set includes 25 matching source/runtime cubes, 14 source animator tracks/four runtime clips, portable texture path, bounded 64x64 Box UVs, deterministic texture source, and texture-backed previews | `source-assets/blockbench/straw_doll.bbmodel:11-202`; `assets/jujutsumod/geckolib/models/straw_doll.geo.json`; `assets/jujutsumod/geckolib/animations/straw_doll.animation.json`; guard `ProjectSanityTest.java:495-563` | VERIFIED resource completeness + native Blockbench MCP inspection; in-game presentation UNKNOWN |
 | copied ProjectJJK doll geometry/animation/texture are absent from runtime assets | guard `ProjectSanityTest.java:557-563`; deleted `assets/jujutsumod/{geo,animations,textures}/projectjjk/doll*` | VERIFIED |
 | old unused Hairpin post-shaders removed | `ProjectSanityTest.java:173-174` | VERIFIED |
 
