@@ -6,6 +6,8 @@ import jujutsu.mod.client.character.ClientCharacterSelectionManager;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.network.CharacterSelectionSyncPayload;
 import jujutsu.mod.network.VfxCuePayload;
+import jujutsu.mod.network.CurseLinkOptionsPayload;
+import jujutsu.mod.client.gui.CurseLinkSelectionScreen;
 
 public final class JujutsuClientNetworking {
 	private JujutsuClientNetworking() {}
@@ -15,6 +17,8 @@ public final class JujutsuClientNetworking {
 				context.client().execute(() -> VfxDirector.receive(payload.cue())));
 		ClientPlayNetworking.registerGlobalReceiver(CharacterSelectionSyncPayload.TYPE, (payload, context) ->
 				context.client().execute(() -> ClientCharacterSelectionManager.apply(payload)));
+		ClientPlayNetworking.registerGlobalReceiver(CurseLinkOptionsPayload.TYPE, (payload, context) ->
+				context.client().execute(() -> context.client().setScreen(new CurseLinkSelectionScreen(payload.entries()))));
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ClientCharacterSelectionManager.clear());
 	}
 }

@@ -18,6 +18,11 @@ public final class NobaraVfxIds {
 	public static final ResourceLocation RITUAL_BIND = id("ritual_bind");
 	public static final ResourceLocation DOLL_STRIKE = id("doll_strike");
 	public static final ResourceLocation RESONANCE_RELEASE = id("resonance_release");
+	public static final ResourceLocation HAMMER_HORIZONTAL = id("hammer_horizontal");
+	public static final ResourceLocation HAMMER_OVERHEAD = id("hammer_overhead");
+	public static final ResourceLocation EMBEDDED_NAIL_DRIVE = id("embedded_nail_drive");
+	public static final ResourceLocation BLACK_FLASH = id("black_flash");
+	public static final ResourceLocation SELF_RESONANCE = id("self_resonance");
 
 	private NobaraVfxIds() {}
 

@@ -12,5 +12,8 @@
   "message.jujutsumod.projectjjk.resonance.no_remnant": "В инвентаре нет связанного останка цели.",
   "message.jujutsumod.projectjjk.resonance.out_of_range": "Связанная цель слишком далеко.",
   "message.jujutsumod.projectjjk.resonance.target_invalid": "Связанная цель мертва или не загружена.",
-  "message.jujutsumod.projectjjk.resonance.wrong_dimension": "Связанная цель находится в другом измерении."
+  "message.jujutsumod.projectjjk.resonance.wrong_dimension": "Связанная цель находится в другом измерении.",
+  "screen.jujutsumod.curse_link.title": "Выберите проклятую связь",
+  "message.jujutsumod.nobara.self_resonance.no_link": "Нет активной явной проклятой связи.",
+  "message.jujutsumod.nobara.self_resonance.selected": "Выбрана техника %s. Нажмите Shift+R ещё раз для Self Resonance."
 }

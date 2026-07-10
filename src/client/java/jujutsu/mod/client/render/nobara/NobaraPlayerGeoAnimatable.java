@@ -44,6 +44,10 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 		SingletonGeoAnimatable.registerSyncedAnimatable(this);
 	}
 
+	public void triggerAction(net.minecraft.world.entity.Entity player, String animation) {
+		triggerAnim(player, BASE_CONTROLLER, animation);
+	}
+
 	@Override
 	public EntityType<?> getReplacingEntityType() {
 		return EntityType.PLAYER;

@@ -1,11 +1,13 @@
 package jujutsu.mod;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 
 import net.minecraft.resources.ResourceLocation;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkRitualRuntime;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollRuntime;
 import jujutsu.mod.character.nobara.projectjjk.NailAnchorLifecycle;
+import jujutsu.mod.character.nobara.projectjjk.NobaraHammerCombatRuntime;
 import jujutsu.mod.command.JujutsuCommands;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuDataComponents;
@@ -13,6 +15,7 @@ import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.registry.JujutsuParticles;
 import jujutsu.mod.registry.JujutsuSounds;
+import jujutsu.mod.curse.CurseLinkRegistry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +35,8 @@ public class JujutsuMod implements ModInitializer {
 		ProjectJjkRitualRuntime.register();
 		ProjectJjkStrawDollRuntime.register();
 		NailAnchorLifecycle.register();
+		NobaraHammerCombatRuntime.register();
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> CurseLinkRegistry.GLOBAL.clear());
 		JujutsuCommands.register();
 		LOGGER.info("JujutsuMod initialized");
 	}

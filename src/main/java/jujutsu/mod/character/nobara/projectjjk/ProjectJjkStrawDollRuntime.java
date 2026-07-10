@@ -18,8 +18,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -30,6 +28,7 @@ import jujutsu.mod.registry.JujutsuDataComponents;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.vfx.NobaraVfxIds;
 import jujutsu.mod.vfx.VfxCue;
+import jujutsu.mod.combat.CombatStagger;
 
 public final class ProjectJjkStrawDollRuntime {
 	private static final int REMNANT_HIT_THRESHOLD = 2;
@@ -221,11 +220,7 @@ public final class ProjectJjkStrawDollRuntime {
 		triggerDollImpact(caster);
 		long gameTime = level.getGameTime();
 		target.hurtServer(level, level.damageSources().indirectMagic(caster, caster), ProjectJjkNobaraProfile.RESONANCE_DAMAGE);
-		target.addEffect(new MobEffectInstance(
-				MobEffects.WEAKNESS,
-				ProjectJjkNobaraProfile.RESONANCE_WEAKNESS_TICKS,
-				ProjectJjkNobaraProfile.RESONANCE_WEAKNESS_AMPLIFIER
-		));
+		CombatStagger.GLOBAL.apply(target, gameTime, ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
 
 		Vec3 targetOrigin = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
 		Vec3 dollOrigin = caster.getEyePosition().add(caster.getLookAngle().scale(0.45));

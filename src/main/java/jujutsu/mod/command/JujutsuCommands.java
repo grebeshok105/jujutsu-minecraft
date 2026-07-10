@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -13,6 +14,8 @@ import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraActions;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.registry.JujutsuParticles;
+import jujutsu.mod.curse.CurseLinkRegistry;
+import java.util.Set;
 
 public final class JujutsuCommands {
 	private JujutsuCommands() {}
@@ -49,7 +52,32 @@ public final class JujutsuCommands {
 						.executes(ctx -> playProjectJjkImpactPreview(ctx.getSource())))
 				.then(Commands.literal("give")
 						.then(Commands.literal("nobara_tools")
-								.executes(ctx -> giveNobaraTools(ctx.getSource())))));
+								.executes(ctx -> giveNobaraTools(ctx.getSource()))))
+				.then(Commands.literal("curse_link")
+						.then(Commands.literal("create")
+								.then(Commands.argument("target", EntityArgument.player())
+										.executes(ctx -> createTestCurseLink(ctx.getSource(), EntityArgument.getPlayer(ctx, "target")))))
+						.then(Commands.literal("clear").executes(ctx -> clearTestCurseLinks(ctx.getSource())))
+						.then(Commands.literal("list").executes(ctx -> listCurseLinks(ctx.getSource())))));
+	}
+
+	private static int createTestCurseLink(CommandSourceStack source, ServerPlayer target) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		ServerPlayer owner = source.getPlayerOrException();
+		var link = CurseLinkRegistry.GLOBAL.createLink(owner.getUUID(), jujutsu.mod.JujutsuMod.id("dev_decay"), Set.of(owner.getUUID(), target.getUUID()), owner.level().getGameTime());
+		source.sendSuccess(() -> Component.literal("Created dev curse link " + link.id()), false);
+		return 1;
+	}
+
+	private static int clearTestCurseLinks(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		int removed = CurseLinkRegistry.GLOBAL.removeLinksOwnedBy(source.getPlayerOrException().getUUID());
+		source.sendSuccess(() -> Component.literal("Removed " + removed + " owned curse links."), false);
+		return removed;
+	}
+
+	private static int listCurseLinks(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		var links = CurseLinkRegistry.GLOBAL.linksForParticipant(source.getPlayerOrException().getUUID());
+		source.sendSuccess(() -> Component.literal("Active curse links: " + links.size() + " " + links.stream().map(link -> link.techniqueId().toString()).toList()), false);
+		return links.size();
 	}
 
 	private static int giveNobaraTools(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {

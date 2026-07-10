@@ -56,5 +56,8 @@
   "subtitles.jujutsumod.projectjjk.magic": "Ritual hums",
   "subtitles.jujutsumod.projectjjk.snap": "ProjectJJK snap",
   "subtitles.jujutsumod.projectjjk.spell_shot": "ProjectJJK nail fires",
-  "subtitles.jujutsumod.projectjjk.whoosh_hit": "ProjectJJK nail hits"
+  "subtitles.jujutsumod.projectjjk.whoosh_hit": "ProjectJJK nail hits",
+  "screen.jujutsumod.curse_link.title": "Choose cursed technique link",
+  "message.jujutsumod.nobara.self_resonance.no_link": "No explicit cursed link is active.",
+  "message.jujutsumod.nobara.self_resonance.selected": "Selected %s. Press Shift+R again to use Self Resonance."
 }

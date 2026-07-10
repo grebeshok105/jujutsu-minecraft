@@ -98,6 +98,26 @@ tasks.register('testNailAnchor', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testBlackFlash', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for exact Black Flash timing'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.combat.BlackFlashWindowTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
+tasks.register('testCurseLinks', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for explicit cursed technique links'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.curse.CurseLinkRegistryTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.register('testVfxCore', JavaExec) {
 	group = 'verification'
 	description = 'Runs assertion-based tests for shared VFX cue contracts'
@@ -145,6 +165,8 @@ tasks.named('check') {
 	dependsOn tasks.named('testNobaraRemnant')
 	dependsOn tasks.named('testNobaraRitual')
 	dependsOn tasks.named('testNailAnchor')
+	dependsOn tasks.named('testBlackFlash')
+	dependsOn tasks.named('testCurseLinks')
 	dependsOn tasks.named('testVfxCore')
 	dependsOn tasks.named('testVfxTimeline')
 	dependsOn tasks.named('testVfxQuality')

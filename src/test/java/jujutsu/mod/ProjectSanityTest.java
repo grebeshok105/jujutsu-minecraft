@@ -32,6 +32,7 @@ public final class ProjectSanityTest {
 
 	public static void main(String[] args) throws IOException {
 		assertPerNailHairpinDamageContract();
+		assertResonanceUsesInternalDamageAndStagger();
 		assertParticleJsonTexturesExist();
 		assertItemDefinitionsResolveToTextures();
 		assertDefaultNobaraItemsUseProjectJjkModels();
@@ -75,6 +76,12 @@ public final class ProjectSanityTest {
 		assert !ritual.contains("ProjectJjkNailMarks.marks(living.getUUID(), gameTime)") : "Boom must not synthesize aggregate anchors from marks";
 		assert damage.contains("HAIRPIN") : "Hairpin needs a dedicated damage type";
 		assert bypassTag.contains("jujutsumod:hairpin") : "Hairpin damage must bypass vanilla hurt cooldown";
+	}
+
+	private static void assertResonanceUsesInternalDamageAndStagger() throws IOException {
+		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkStrawDollRuntime.java"));
+		assert !runtime.contains("MobEffects.WEAKNESS") : "Resonance must not use vanilla Weakness";
+		assert runtime.contains("CombatStagger.GLOBAL.apply") : "Resonance must use the explicit action-interrupt stagger";
 	}
 
 	private static void assertParticleJsonTexturesExist() throws IOException {
@@ -403,7 +410,7 @@ public final class ProjectSanityTest {
 		assert openingBeatGuards >= 8 : "Every non-seekable Nobara sound/particle opening beat must reject late playback";
 		long ageAwareChannelCalls = Pattern.compile("trigger(?:Launch|HeavyImpact|Explosion|Ritual|Swing|Impact|Snap|Blur)\\([^\\n]*initialAgeTicks\\)")
 				.matcher(recipes).results().count();
-		assert ageAwareChannelCalls == 23 : "All 23 Nobara realtime channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
+		assert ageAwareChannelCalls == 29 : "All 29 Nobara realtime channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
 		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/network/ProjectJjkNobaraImpulsePayload.java")) : "Legacy integer VFX payload must be removed after migration";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java")) : "Legacy Hairpin world renderer must be replaced by VFX Core";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinCinematicCamera.java")) : "Legacy Hairpin camera manager must be replaced by VFX Core";
@@ -430,14 +437,14 @@ public final class ProjectSanityTest {
 
 	private static void assertNobaraHammerHasExplosiveAndPiercingLaunchModes() throws IOException {
 		String payload = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/network/NobaraActionPayload.java"));
-		assert payload.contains("NAIL_LAUNCH_EXPLOSIVE") : "Left-click hammer launch needs an explicit explosive nail-launch payload";
+		assert payload.contains("HAMMER_CONTEXT") : "Left-click hammer combat needs an explicit contextual action payload";
 		String keybinds = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/input/JujutsuKeybinds.java"));
 		assert keybinds.contains("keyAttack.isDown()") : "Client input must edge-detect left-click attack for explosive hammer launches";
-		assert keybinds.contains("NAIL_LAUNCH_EXPLOSIVE") : "Left-click hammer launch must send the explosive payload";
+		assert keybinds.contains("HAMMER_CONTEXT") : "Left-click hammer combat must send the contextual payload";
 		String hammer = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkHammerItem.java"));
 		assert hammer.contains("launchHairpin(serverPlayer, stack, hand, false)") : "Right-click hammer use must launch non-explosive piercing nails";
 		String actions = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraActions.java"));
-		assert actions.contains("NAIL_LAUNCH_EXPLOSIVE") && actions.contains("launchHairpin(player, true)") : "Nobara action gate must route left-click to explosive launch mode";
+		assert actions.contains("HAMMER_CONTEXT") && actions.contains("NobaraHammerCombatRuntime.handleInput(player)") : "Nobara action gate must route left-click through the server contextual combat router";
 		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraRuntime.java"));
 		assert runtime.contains("launchHairpin(ServerPlayer player, boolean explosiveImpact)") : "Nobara runtime must expose an explosive/non-explosive launch mode";
 		assert runtime.contains("isExplosiveLaunchLocked(player)") : "Hairpin Enlarge/Boom must be gated while explosive nails are in flight";

@@ -166,6 +166,25 @@ public final class ProjectJjkNailEntity extends Entity {
 		setEmbedded(true);
 	}
 
+	public void driveDeeper(double depth) {
+		if (!isEmbedded() || depth <= 0.0) return;
+		embeddedLocalOffset = embeddedLocalOffset.add(embeddedLocalForward.scale(depth));
+		anchor = switch (anchor.kind()) {
+			case ENTITY -> NailAnchor.entity(anchor.stableId(), anchor.cachedEntityId(), embeddedLocalOffset, embeddedLocalForward);
+			case BLOCK -> NailAnchor.block(anchor.blockPos(), anchor.blockStateSignature(), embeddedLocalOffset, embeddedLocalForward);
+			case RUNTIME_OBJECT -> NailAnchor.runtime(anchor.runtimeType(), anchor.stableId(), embeddedLocalOffset, embeddedLocalForward);
+			default -> anchor;
+		};
+		syncEmbeddedAttachment();
+	}
+
+	public void amplifyFlight(double multiplier) {
+		if (isFlying() && multiplier > 1.0) {
+			setDeltaMovement(getDeltaMovement().scale(multiplier));
+			hasImpulse = true;
+		}
+	}
+
 	public Vec3 forwardDirection() {
 		Vector3f forward = entityData.get(DATA_FORWARD);
 		return safeDirection(new Vec3(forward.x(), forward.y(), forward.z()));

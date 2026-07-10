@@ -48,11 +48,16 @@ public final class ProjectJjkNobaraProfile {
 
 	// Resonance (straw doll remote strike).
 	public static final float RESONANCE_DAMAGE = 28.0f;
-	public static final int RESONANCE_WEAKNESS_TICKS = 80;
-	public static final int RESONANCE_WEAKNESS_AMPLIFIER = 2;
 	public static final float SELF_RESONANCE_SELF_DAMAGE = 6.0f;
 	public static final float SELF_RESONANCE_LINKED_DAMAGE = 18.0f;
 	public static final float BLACK_FLASH_DAMAGE_MULTIPLIER = 1.75f;
+	public static final float HAMMER_HORIZONTAL_DAMAGE = 5.0f;
+	public static final float HAMMER_OVERHEAD_DAMAGE = 8.0f;
+	public static final float EMBEDDED_NAIL_DRIVE_DAMAGE = 4.0f;
+	public static final double HAMMER_MELEE_RANGE = 3.5;
+	public static final double HAMMER_SWEEP_RADIUS = 3.25;
+	public static final double NAIL_CONTEXT_RANGE = 4.5;
+	public static final double EMBEDDED_NAIL_DRIVE_DEPTH = 0.10;
 	public static final int HORIZONTAL_IMPACT_TICK = 3;
 	public static final int HORIZONTAL_RECOVERY_TICKS = 8;
 	public static final int OVERHEAD_IMPACT_TICK = 8;
