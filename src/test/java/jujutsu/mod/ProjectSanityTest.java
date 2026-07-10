@@ -528,6 +528,10 @@ public final class ProjectSanityTest {
 				double maxU = Double.parseDouble(boxUv.group(4)) + 2.0 * (sizeX + sizeZ);
 				double maxV = Double.parseDouble(boxUv.group(5)) + sizeZ + sizeY;
 				assert maxU <= 64.001 && maxV <= 64.001 : "Straw doll box UV exceeds the 64x64 texture: " + line.trim();
+				double minU = Double.parseDouble(boxUv.group(4));
+				double minV = Double.parseDouble(boxUv.group(5));
+				assert !(minU < 64.0 && maxU > 48.0 && minV < 32.0 && maxV > 16.0)
+						: "Idle straw doll cube overlaps the effects-only cyan atlas region: " + line.trim();
 			}
 		}
 
@@ -543,9 +547,9 @@ public final class ProjectSanityTest {
 		assert Files.readString(itemModel).contains("\"parent\": \"builtin/entity\"")
 				: "Straw doll display model must use builtin/entity";
 		String sourceModelJson = Files.readString(sourceModel);
-		assert sourceModelJson.contains("\"model_identifier\": \"geometry.jujutsumod.straw_doll\"")
+		assert Pattern.compile("\"model_identifier\"\\s*:\\s*\"geometry\\.jujutsumod\\.straw_doll\"").matcher(sourceModelJson).find()
 				: "Blockbench source must retain the exported geometry identity";
-		assert sourceModelJson.contains("\"relative_path\": \"../../assets/jujutsumod/textures/item/straw_doll.png\"")
+		assert Pattern.compile("\"relative_path\"\\s*:\\s*\"\\.\\./\\.\\./assets/jujutsumod/textures/item/straw_doll\\.png\"").matcher(sourceModelJson).find()
 				: "Blockbench source must resolve the portable runtime texture when opened directly";
 		assert !sourceModelJson.contains("\"animators\":{}")
 				: "Blockbench source must retain editable keyframes for every Straw Doll animation";
