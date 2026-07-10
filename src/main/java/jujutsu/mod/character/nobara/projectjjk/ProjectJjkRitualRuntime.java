@@ -328,17 +328,6 @@ public final class ProjectJjkRitualRuntime {
 		level.sendParticles(JujutsuParticles.HAIRPIN_BURST_RESIDUE, at.x, at.y, at.z, 18, 0.38, 0.34, 0.38, 0.16);
 	}
 
-	static void spawnResonanceStrike(ServerLevel level, Vec3 at, int marks) {
-		int intensity = 20 + marks * 12;
-		level.sendParticles(JujutsuParticles.HAIRPIN_SNAP_CRACK, at.x, at.y, at.z, 4 + marks, 0.2, 0.3, 0.2, 0.06);
-		level.sendParticles(JujutsuParticles.HAIRPIN_BURST_RESIDUE, at.x, at.y, at.z, intensity, 0.5, 0.6, 0.5, 0.22);
-		level.sendParticles(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, at.x, at.y, at.z, 10 + marks * 4, 0.5, 0.4, 0.5, 0.35);
-		level.sendParticles(JujutsuParticles.HAIRPIN_MARK_STAIN, at.x, at.y, at.z, 6 + marks * 2, 0.3, 0.4, 0.3, 0.01);
-		level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, at.x, at.y, at.z, intensity, 0.6, 0.7, 0.6, 0.1);
-		level.sendParticles(ParticleTypes.CRIT, at.x, at.y, at.z, intensity, 0.5, 0.6, 0.5, 0.2);
-		level.sendParticles(ParticleTypes.FLASH, at.x, at.y, at.z, 2, 0.0, 0.0, 0.0, 0.0);
-	}
-
 	private static ServerPlayer owner(ServerLevel level, UUID ownerUuid) {
 		return ownerUuid == null ? null : level.getServer().getPlayerList().getPlayer(ownerUuid);
 	}

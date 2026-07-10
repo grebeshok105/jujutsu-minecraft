@@ -45,18 +45,14 @@ public final class ProjectJjkNobaraProfile {
 	public static final float HAIRPIN_ENLARGE_DAMAGE = 16.0f;
 
 	// Resonance (straw doll remote strike).
-	public static final float RESONANCE_DAMAGE_BASE = 8.0f;
-	public static final float RESONANCE_DAMAGE_PER_MARK = 3.0f;
+	public static final float RESONANCE_DAMAGE = 20.0f;
 	public static final int RESONANCE_WEAKNESS_TICKS = 80;
+	public static final int RESONANCE_WEAKNESS_AMPLIFIER = 2;
 
 	private ProjectJjkNobaraProfile() {}
 
 	public static float detonateDamage(int marks) {
 		return DETONATE_DAMAGE_BASE + DETONATE_DAMAGE_PER_MARK * Math.max(0, marks);
-	}
-
-	public static float resonanceDamage(int marks) {
-		return RESONANCE_DAMAGE_BASE + RESONANCE_DAMAGE_PER_MARK * Math.max(0, marks);
 	}
 
 	public static int nailCountForUseTicks(int useTicks) {

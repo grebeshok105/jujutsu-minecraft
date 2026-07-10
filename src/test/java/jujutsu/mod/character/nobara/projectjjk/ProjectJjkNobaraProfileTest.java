@@ -109,6 +109,7 @@ public final class ProjectJjkNobaraProfileTest {
 		assert ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DAMAGE >= 16.0f : "Hairpin Enlarge should comfortably kill a cow";
 		assert ProjectJjkNobaraProfile.DETONATE_DAMAGE_BASE >= 12.0f : "Hairpin Explosion should comfortably kill a cow";
 		assert ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_RANGE == 20.0 : "ProjectJJK Hairpin Enlarge player range is 20 blocks";
-		assert ProjectJjkNobaraProfile.resonanceDamage(4) > ProjectJjkNobaraProfile.resonanceDamage(0) : "resonance must scale with marks";
+		assert ProjectJjkNobaraProfile.RESONANCE_DAMAGE == 20.0f : "physical-remnant Resonance keeps its full fixed strike damage";
+		assert ProjectJjkNobaraProfile.RESONANCE_WEAKNESS_AMPLIFIER == 2 : "physical-remnant Resonance applies the approved fixed Weakness tier";
 	}
 }

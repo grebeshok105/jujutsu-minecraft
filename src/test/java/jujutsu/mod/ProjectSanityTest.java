@@ -485,6 +485,10 @@ public final class ProjectSanityTest {
 				: "Pending rituals must tolerate synchronous death callbacks mutating the map during impact";
 		assert !ritual.contains("sendParticles(") && !ritual.contains("playSound(") && !ritual.contains("spawnResonanceStrike")
 				: "Transient Straw Doll ritual feedback must travel only through VFX Core cues";
+		assert !ritual.contains("ProjectJjkNailMarks")
+				&& !ritual.contains("discardOwnedEmbeddedNails")
+				&& !ritual.contains("clearGlowingMark")
+				: "Physical-remnant Resonance must not read or consume Hairpin marks and embedded nails";
 
 		String hammer = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkHammerItem.java"));
 		assert hammer.contains("ProjectJjkStrawDollRuntime.tryStart") : "Shift-hammer must start the physical remnant ritual";

@@ -34,6 +34,7 @@ import jujutsu.mod.vfx.VfxCue;
 public final class ProjectJjkStrawDollRuntime {
 	private static final int REMNANT_HIT_THRESHOLD = 2;
 	private static final int RITUAL_WINDUP_TICKS = 14;
+	private static final int RITUAL_VFX_INTENSITY = 2;
 	private static final double VFX_RADIUS = 64.0;
 	private static final ProjectJjkRemnantProgress REMNANT_PROGRESS = new ProjectJjkRemnantProgress(REMNANT_HIT_THRESHOLD);
 	private static final Map<UUID, PendingRitual> PENDING_RITUALS = new HashMap<>();
@@ -219,23 +220,19 @@ public final class ProjectJjkStrawDollRuntime {
 		ServerLevel level = caster.level();
 		triggerDollImpact(caster);
 		long gameTime = level.getGameTime();
-		int marks = ProjectJjkNailMarks.marks(target.getUUID(), gameTime);
-		target.hurtServer(level, level.damageSources().indirectMagic(caster, caster), ProjectJjkNobaraProfile.resonanceDamage(marks));
+		target.hurtServer(level, level.damageSources().indirectMagic(caster, caster), ProjectJjkNobaraProfile.RESONANCE_DAMAGE);
 		target.addEffect(new MobEffectInstance(
 				MobEffects.WEAKNESS,
 				ProjectJjkNobaraProfile.RESONANCE_WEAKNESS_TICKS,
-				Math.min(2, marks)
+				ProjectJjkNobaraProfile.RESONANCE_WEAKNESS_AMPLIFIER
 		));
-		ProjectJjkNailMarks.consume(target.getUUID(), gameTime);
-		ProjectJjkRitualRuntime.discardOwnedEmbeddedNails(level, caster.getUUID(), target);
-		ProjectJjkRitualRuntime.clearGlowingMark(target);
 
 		Vec3 targetOrigin = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
 		Vec3 dollOrigin = caster.getEyePosition().add(caster.getLookAngle().scale(0.45));
 		JujutsuNetworking.broadcastVfxCue(level, caster.position(), VFX_RADIUS,
-				cue(level, NobaraVfxIds.DOLL_STRIKE, Math.max(1, marks), dollOrigin, gameTime, caster));
+				cue(level, NobaraVfxIds.DOLL_STRIKE, RITUAL_VFX_INTENSITY, dollOrigin, gameTime, caster));
 		JujutsuNetworking.broadcastVfxCue(level, targetOrigin, VFX_RADIUS,
-				cue(level, NobaraVfxIds.RESONANCE_RELEASE, Math.max(1, marks), targetOrigin, gameTime, target));
+				cue(level, NobaraVfxIds.RESONANCE_RELEASE, RITUAL_VFX_INTENSITY, targetOrigin, gameTime, target));
 		caster.displayClientMessage(Component.translatable(
 				"message.jujutsumod.projectjjk.resonance.complete",
 				remnant.targetName()
