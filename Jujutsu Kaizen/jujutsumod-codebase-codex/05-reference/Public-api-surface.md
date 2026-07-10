@@ -20,6 +20,9 @@ These are safe **product extension points**, not merely Java-public symbols.
 | `VfxDirector.register` + `VfxRecipe` + `VfxInstance` | typed client composition point | `client/vfx/VfxDirector.java:50-54` |
 | `VfxContext` | world/particles/sound/HUD/camera/first-person/internal post-process channels | `client/vfx/VfxContext.java` |
 | `VfxPalette` | shared cursed-energy colors for compatible persistent renderers | `client/vfx/VfxPalette.java` |
+| `NailRuntimeAnchorRegistry.register` | attach a nail to a stable non-entity runtime object | `projectjjk/NailRuntimeAnchorRegistry.java` |
+| `CurseLinkRegistry` | source-owned explicit curse-link lifecycle | `curse/CurseLinkRegistry.java` |
+| `BlackFlashFocus.hasFocus` | read persistent Black Flash focus without client authority | `combat/BlackFlashFocus.java` |
 
 **Status:** VERIFIED as current extension hubs.
 
@@ -68,9 +71,7 @@ The starter loadout grants one reusable Straw Doll but never grants a target-bou
 
 ## Combat extension contracts
 
-- `CurseLinkRegistry.createLink/removeLink/removeLinksOwnedBy/linksForParticipant` — explicit server-owned cursed-technique relationships.
-- `NailRuntimeAnchorRegistry.register` — extension point for entity-independent runtime objects with stable UUID identity.
-- `BlackFlashFocus.hasFocus` — reusable read API for later character systems; this slice grants focus but invents no extra passive bonus.
+`CurseLinkRegistry.createLink/removeLink/removeLinksOwnedBy/linksForParticipant` is a server API. `NailRuntimeAnchorRegistry.register` must return `RESOLVED`, `TEMPORARILY_UNAVAILABLE`, `CONFIRMED_REMOVED`, or `INVALID` deliberately: missing objects must not be reported as removed. `BlackFlashFocus.hasFocus` is read-only for later systems; this slice grants focus but does not assign it a passive bonus.
 
 ---
 tags: #jujutsumod #api #vfx #verified

@@ -33,7 +33,7 @@ flowchart LR
   W --> R{revalidate each server tick}
   R -->|invalid/interrupted| F
   R -->|due + valid| C[atomically consume nail + exact remnant]
-  C --> X[damage + Weakness + clear marks/nails/glow]
+  C --> X[28 damage + heavy stagger + clear marks/nails/glow]
 ```
 
 `ProjectJjkStrawDollRuntime.onOrdinaryNailHit` records only accepted ordinary damage hits and drops a typed `resonance_remnant` at the wound on the second hit (`ProjectJjkNobaraRuntime.java:148-153`; `ProjectJjkStrawDollRuntime.java:60-86`). Invulnerable/rejected damage, explosive impacts, and self-hits do not advance marks or remnant progress (`ProjectJjkRitualPolicy.java:45-47`). The item stores target UUID, dimension, and display name through persistent/network-synchronized `resonance_target` (`ProjectJjkResonanceRemnant.java:14-28`; `JujutsuDataComponents.java:10-20`).
@@ -47,11 +47,11 @@ The runtime revalidates the same state every server tick throughout the 14-tick 
 On successful impact the server:
 
 - consumes one matching remnant and one nail;
-- applies profile-defined Resonance damage and Weakness;
+- applies `28` profile-defined Resonance damage and heavy stagger, without Weakness or Slowness;
 - consumes target marks, discards owned embedded nails, and clears the glowing mark;
 - emits separate caster-side `DOLL_STRIKE` and target-side `RESONANCE_RELEASE` cues.
 
-Remnant acquisition and ritual binding have their own `REMNANT_DROP` and `RITUAL_BIND` cues. These four cues carry every transient ritual particle/sound/world/HUD/camera/blur composition through VFX Core; the common runtime contains no direct ritual `sendParticles`, `playSound`, or old `spawnResonanceStrike` call. Gameplay remains on the server (`ProjectJjkStrawDollRuntime.java:208-240`; `NobaraVfxIds.java:17-20`; guard `ProjectSanityTest.java:481-484`).
+Remnant acquisition and ritual binding have their own `REMNANT_DROP` and `RITUAL_BIND` cues. These four cues carry every transient ritual particle/sound/world/HUD/camera/blur composition through VFX Core; the common runtime contains no direct ritual `sendParticles`, `playSound`, or old `spawnResonanceStrike` call. Gameplay remains on the server (`ProjectJjkStrawDollRuntime.java:208-240`; `ProjectJjkNobaraProfile.java:40`; `NobaraVfxIds.java:17-20`; guard `ProjectSanityTest.java:481-484`).
 
 ## Original doll asset
 

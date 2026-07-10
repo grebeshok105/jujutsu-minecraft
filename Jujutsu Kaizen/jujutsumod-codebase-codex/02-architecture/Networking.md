@@ -11,10 +11,13 @@ Prefix: `.worktrees/nobara-cinematic-slice/`
 
 | Direction | Payload | Register source | Purpose | Status |
 |---|---|---|---|---|
-| S2C | `VfxCuePayload` | `JujutsuNetworking.java:18` | one typed visual cue: ID, origin, optional anchor, intensity, server time, seed | VERIFIED |
-| S2C | `CharacterSelectionSyncPayload` | `JujutsuNetworking.java:19` | selected character sync to client render/UI | VERIFIED |
-| C2S | `SelectCharacterPayload` | `JujutsuNetworking.java:20` | GUI character choice | VERIFIED |
-| C2S | `NobaraActionPayload` | `JujutsuNetworking.java:21` | R/B/left-click Nobara actions | VERIFIED |
+| S2C | `VfxCuePayload` | `JujutsuNetworking.java:15` | one typed visual cue: ID, origin, optional anchor, intensity, server time, seed | VERIFIED |
+| S2C | `CharacterSelectionSyncPayload` | `JujutsuNetworking.java:16` | selected character sync to client render/UI | VERIFIED |
+| C2S | `SelectCharacterPayload` | `JujutsuNetworking.java:17` | GUI character choice | VERIFIED |
+| C2S | `NobaraActionPayload` | `JujutsuNetworking.java:18` | R/B/left-click Nobara action request | VERIFIED |
+| S2C | `CurseLinkOptionsPayload` | `JujutsuNetworking.java:19` | identities offered for an ambiguous self-resonance selection | VERIFIED |
+| C2S | `SelectCurseLinkPayload` | `JujutsuNetworking.java:20` | selected link id; never a damage authorization | VERIFIED |
+| S2C | `BlackFlashFocusPayload` | `JujutsuNetworking.java:21` | authoritative focus-tag mirror for the local client | VERIFIED |
 
 Removed S2C VFX payloads: `ProjectJjkNobaraImpulsePayload`, `HairpinFxPayload`, `HairpinNailFlightPayload`, and `PreparedNailsPayload`. `ProjectSanityTest.java:357-362` guards the core migration; old legacy guards remain in the same test.
 
@@ -23,11 +26,13 @@ Removed S2C VFX payloads: `ProjectJjkNobaraImpulsePayload`, `HairpinFxPayload`, 
 | Payload | Server path | Source | Status |
 |---|---|---|---|
 | `SelectCharacterPayload` | `CharacterSelectionManager.select(context.player(), JujutsuCharacter.byId(...))` | `JujutsuNetworking.java:26-28` | VERIFIED |
-| `NobaraActionPayload` | `ProjectJjkNobaraActions.tryCast(player, payload.action(), true)` | `JujutsuNetworking.java:29-36` | VERIFIED |
+| `NobaraActionPayload` | `ProjectJjkNobaraActions.tryCast(player, payload.action(), true)` | `JujutsuNetworking.java:31-35` | VERIFIED |
+| `SelectCurseLinkPayload` | `SelfResonanceRuntime.select(player, payload.linkId())` | `JujutsuNetworking.java:24-26` | VERIFIED |
 
 Connection lifecycle:
 
 - join → `CharacterSelectionManager.syncTo(handler.player)`
+- join → `BlackFlashFocus.sync(handler.player)`
 - disconnect → `CharacterSelectionManager.clear(handler.player)`
 
 ## VFX cue broadcast
@@ -48,6 +53,8 @@ The server decides whether and when a cue exists. The payload has no gameplay re
 |---|---|---|---|
 | `VfxCuePayload` | schedule `VfxDirector.receive(payload.cue())` | `JujutsuClientNetworking.java:14-15` | VERIFIED |
 | `CharacterSelectionSyncPayload` | `ClientCharacterSelectionManager.apply` | `JujutsuClientNetworking.java:16-17` | VERIFIED |
+| `CurseLinkOptionsPayload` | opens `CurseLinkSelectionScreen` | `JujutsuClientNetworking.java:20-22` | VERIFIED |
+| `BlackFlashFocusPayload` | `ClientBlackFlashFocus.apply` | `JujutsuClientNetworking.java:23-25` | VERIFIED |
 
 The receiver deliberately contains no effect-ID switch. `VfxDirector` finds a registered Java recipe or logs/ignores an unknown ID once.
 
@@ -63,10 +70,9 @@ sequenceDiagram
   Note over C: VfxDirector maps ID to a visual-only recipe
 ```
 
-## Risks
+## Combat payload rules
 
-Nobara combat adds `CurseLinkOptionsPayload` (S2C) and `SelectCurseLinkPayload` (C2S). The server revalidates selected link membership before self resonance; the menu carries identity only and never authorizes damage.
-`BlackFlashFocusPayload` synchronizes the persistent server player-tag state on grant and join; it does not let the client grant focus.
+`NobaraActionPayload` has only a numeric action request. It does not carry target, timing, damage, or anchor data. `SelectCurseLinkPayload` carries only an id; the server requires current participant membership and ambiguity before keeping it. `BlackFlashFocusPayload` is server-to-client state mirroring only. The menu and focus cache cannot authorize gameplay.
 
 | Risk | Status | Source |
 |---|---|---|

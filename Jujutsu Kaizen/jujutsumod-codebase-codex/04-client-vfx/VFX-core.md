@@ -79,7 +79,7 @@ Post-process is intentionally a narrow internal channel, not an authoring framew
 | Enlarge / Boom | `enlarge`, `explosion`, `first_person_snap` | cyan rings, ribbons/blades, shards, sound stack, HUD/camera, caster hand snap | VERIFIED |
 | Straw Doll ritual | `remnant_drop`, `ritual_bind`, `doll_strike`, `resonance_release` | trace pickup, constricting bind, effigy puncture, dark-center/cyan-fracture remote release | VERIFIED |
 
-Nobara registers the complete recipe set, including hammer actions, Black Flash, self resonance, Straw Doll, and Hairpin scenes. Enlarge stages compression, a held frame, then blades/rings; Explosion stages implosion then staggered shell breaks. `ProjectJjkNailRenderer` remains state-driven for persistent real nail aura, renders a compressed-energy envelope around prepared/flying nails, and shares `VfxPalette`; embedded nails deliberately have no broad aura.
+Nobara registers the complete recipe set, including horizontal/overhead hammer, prepared launch, embedded drive, Black Flash, self resonance, Straw Doll, and Hairpin scenes. Enlarge stages compression, a held frame, then blades/rings; Explosion stages implosion then staggered shell breaks. `ProjectJjkNailRenderer` remains state-driven for persistent real nail aura, renders a compressed-energy envelope around prepared/flying nails, and shares `VfxPalette`; embedded nails deliberately have no broad aura. Gameplay ownership for these cues is documented in [[../03-systems/Nobara-runtime-flow]].
 
 ## Verification
 

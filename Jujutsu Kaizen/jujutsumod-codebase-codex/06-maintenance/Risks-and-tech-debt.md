@@ -15,6 +15,9 @@ Only code-backed or process-backed risks.
 | R7 | Custom particle classes still have boilerplate even though burst/ring spawning is centralized | **P2** | particle package + `VfxParticleChannel` | MITIGATED |
 | R8 | A future agent could bypass VFX Core, drop late-cue age from a recipe, or reintroduce legacy static managers | **P1** | `ProjectSanityTest.java:303-393` + [[VFX-core]] | MITIGATED |
 | R9 | Vanilla blur call compiles but its availability/feel across live client state and graphics settings is not manually verified | **P2** | `VfxPostProcessChannel.java:23-36` | MITIGATED |
+| R10 | Curse links are in-memory only and vanish at server stop; no ordinary gameplay source exists yet | **P1** | `CurseLinkRegistry.java:12-36`; `JujutsuCommands.java:43-73` | VERIFIED |
+| R11 | Runtime-object nail anchors depend on external resolvers correctly distinguishing temporary absence from removal | **P1** | `NailRuntimeAnchorRegistry.java:16-31` | MITIGATED |
+| R12 | Combat-expansion behavior has structural tests but no manual timing/two-client QA | **P1** | `NailAnchorTest`, `BlackFlashWindowTest`, `CurseLinkRegistryTest`, current handoff | VERIFIED |
 
 ## VFX-specific guardrails
 
@@ -26,6 +29,8 @@ Only code-backed or process-backed risks.
 - `VfxDirector` caps active instances at 64. High-frequency scenes need a measured budget, not an unbounded new manager.
 - Vanilla particle settings reduce local density. Verify spectacle at ALL, DECREASED, and MINIMAL before declaring an effect tuned.
 - Blur remains internal to the director. If the public vanilla call throws a runtime/linkage error, it disables only blur for that client session; world/HUD/camera/particle fallbacks must remain sufficient.
+- A runtime-anchor resolver must return `TEMPORARILY_UNAVAILABLE` for an unloaded object. Returning `CONFIRMED_REMOVED` discards a persistent nail and is irreversible for that entity.
+- A future gameplay source for curse links must explicitly own their removal and decide restart persistence before it calls `createLink`.
 
 ## Resolved on 2026-07-10
 
