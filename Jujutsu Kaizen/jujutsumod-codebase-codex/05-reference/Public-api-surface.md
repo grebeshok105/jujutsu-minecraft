@@ -30,13 +30,15 @@ public static final ResourceLocation ABILITY_HIT = JujutsuMod.id("character/abil
 
 // 2. server-confirmed action
 JujutsuNetworking.broadcastVfxCue(level, origin, 64.0,
-    new VfxCue(ABILITY_HIT, origin, VfxCue.NO_ANCHOR, intensity,
+    new VfxCue(ABILITY_HIT, origin, VfxCue.NO_ANCHOR, Vec3.ZERO, intensity,
         level.getGameTime(), level.random.nextLong()));
 
 // 3. client registration
 VfxDirector.register(ABILITY_HIT, cue -> VfxInstance.of(12,
     (context, initialAge) -> context.hud().triggerImpact(1.0f)));
 ```
+
+For an entity-anchored cue, pass `anchor.getId()` and the world-space offset `origin.subtract(anchor.position())`. The resolver follows the live entity as `anchor.position() + anchorOffset`; if the entity is unavailable it renders at the immutable `origin` fallback. Do not invent an attachment type or rotating/bone offset for this contract.
 
 Then add tests and update the character/VFX docs. Do not touch client networking or register another render callback for this normal case.
 

@@ -21,19 +21,21 @@ flowchart LR
 
 | Type | Responsibility | Source | Status |
 |---|---|---|---|
-| `VfxCue` | effect ID, world origin, optional entity ID anchor, intensity, server game time, seed | `vfx/VfxCue.java:6-14` | VERIFIED |
+| `VfxCue` | effect ID, immutable world-origin fallback, optional entity ID anchor, world-space anchor offset, intensity, server game time, seed | `vfx/VfxCue.java:6-15` | VERIFIED |
 | `VfxCuePayload` | typed S2C serialization of exactly one cue | `network/VfxCuePayload.java:9-40` | VERIFIED |
 | `JujutsuNetworking.broadcastVfxCue` / `sendVfxCue` | radius-filtered or direct server send, both capability-gated | `network/JujutsuNetworking.java:38-60` | VERIFIED |
-| `VfxAnchorResolver` | use a live client anchor when present, otherwise the immutable cue origin | `vfx/VfxAnchorResolver.java:9-15`; `client/vfx/VfxWorldChannel.java:34-69` | VERIFIED |
+| `VfxAnchorResolver` | resolve a live anchor as `anchor position + anchorOffset`, otherwise use the immutable cue origin | `vfx/VfxAnchorResolver.java:9-15`; `client/vfx/VfxWorldChannel.java:34-69` | VERIFIED |
 | `VfxTimeline` | calculate late-packet age, admit opening beats only while age is `< 2` ticks, offset realtime clocks, and reject expired instances | `vfx/VfxTimeline.java:10-27`; `VfxTimelineTest.java:17-43` | VERIFIED |
 
 The cue is visual-only. It never carries damage, marks, cooldowns, entity spawning, or other gameplay authority.
+
+Anchor semantics are explicit. Unanchored cues use `VfxCue.NO_ANCHOR` with `Vec3.ZERO`. Anchored server cues store `origin.subtract(anchor.position())`; while the entity exists, the client resolves `anchor.position().add(cue.anchorOffset())`. If the entity is missing or despawned, resolution returns the original immutable `cue.origin()`. This preserves eye/center displacement while an anchor moves without introducing local-space rotation, bones, or attachment types (`ProjectJjkNobaraRuntime.java:233-238`; `ProjectJjkRitualRuntime.java:601-606`; `VfxAnchorResolverTest.java:16-40`).
 
 ## Client director
 
 `VfxDirector` is initialized once from `JujutsuModClient`, then Nobara registers recipes before client packet receivers. It owns a 64-instance bound, unknown-ID warning-once behavior, expiry cleanup, the one `AFTER_ENTITIES` world callback, and the HUD callback. It tracks `ClientLevel` by object identity: a changed level clears every active instance/channel before rebinding, while `level == null` and disconnect both clear and reset the tracked level to `null` (`VfxDirector.java:25-148`).
 
-For every non-expired late cue, the director computes and passes the actual `initialAgeTicks` into the recipe (`VfxDirector.java:59-82`). Nobara recipes suppress elapsed one-shot sound/particle opening beats at age `>= 2` ticks but pass the age into all 15 HUD, camera/FOV, and first-person starts, whose realtime timestamps are offset instead of restarting from zero (`NobaraVfxRecipes.java:37-189`; `VfxTimeline.java:18-27`). World impact geometry remains active for the cue's remaining server-time phase. Each render resolves the retained cue's current entity anchor and falls back to `cue.origin()` after despawn (`VfxWorldChannel.java:34-69`). The first-person snap lasts `0.75s` and traverses the complete `0..15` phase scale (`VfxFirstPersonChannel.java:14-59`; guard `ProjectSanityTest.java:380-393`).
+For every non-expired late cue, the director computes and passes the actual `initialAgeTicks` into the recipe (`VfxDirector.java:59-82`). Nobara recipes suppress elapsed one-shot sound/particle opening beats at age `>= 2` ticks but pass the age into all 15 HUD, camera/FOV, and first-person starts, whose realtime timestamps are offset instead of restarting from zero (`NobaraVfxRecipes.java:37-189`; `VfxTimeline.java:18-27`). World impact geometry remains active for the cue's remaining server-time phase. Each render resolves the retained cue's current entity anchor plus its world-space offset and falls back to `cue.origin()` after despawn (`VfxWorldChannel.java:34-69`; `VfxAnchorResolver.java:9-15`). The first-person snap lasts `0.75s` and traverses the complete `0..15` phase scale (`VfxFirstPersonChannel.java:14-59`; guard `ProjectSanityTest.java:380-393`).
 
 | Channel | Role | Source | Status |
 |---|---|---|---|
@@ -51,7 +53,7 @@ For every non-expired late cue, the director computes and passes the actual `ini
 Required path: **stable ID -> server-confirmed cue -> client recipe -> automated and in-game verification**.
 
 1. Add a stable `ResourceLocation` to an appropriate `*VfxIds` class.
-2. At the server-confirmed gameplay point, build a `VfxCue` with server game time and a server seed, then call `JujutsuNetworking.broadcastVfxCue` or `sendVfxCue`.
+2. At the server-confirmed gameplay point, build a `VfxCue` with server game time and a server seed, then call `JujutsuNetworking.broadcastVfxCue` or `sendVfxCue`. Use `Vec3.ZERO` for an unanchored cue; for an entity anchor store `origin.subtract(anchor.position())`.
 3. Add a `VfxRecipe` registration. The recipe returns a `VfxInstance`; its starter receives `VfxContext` and uses only director channels.
 4. Add assertion coverage for ID/registration and any new pure timeline/anchor policy.
 5. Update this note, the character VFX note, MOC, and affected networking/boundary docs.
@@ -79,7 +81,7 @@ All ten IDs are registered in `NobaraVfxRecipes.java:23-34`. `ProjectJjkNailRend
 
 ## Verification
 
-- Pure assertion tasks cover cue codec/seed, timeline age/expiry/opening-window/realtime offsets, anchor fallback, quality scaling, registration, transport guards, lifecycle cleanup, all 15 age-aware timed-channel calls, and legacy-path absence.
+- Pure assertion tasks cover cue codec/seed/anchor offset, timeline age/expiry/opening-window/realtime offsets, zero/non-zero live-anchor resolution, immutable-origin fallback, quality scaling, registration, transport guards, lifecycle cleanup, all 15 age-aware timed-channel calls, and legacy-path absence.
 - `ProjectSanityTest.java:303-393` prevents an accidental return to the old payload/static-manager path and checks the current timeline, lifecycle, live-anchor, and first-person wiring; legacy absence assertions are at `ProjectSanityTest.java:372-377`.
 - On 2026-07-10, `check` and `build --no-daemon -x test` were successful and all seven assertion tasks passed.
 - Standard Gradle `runClient` was blocked by Windows system commit limit `errno=1455`. A terminal-only direct launch of the same generated Loom client config, without a Gradle daemon and with `-Xms128m -Xmx1024m`, reached `JujutsuMod initialized`, LWJGL, OpenAL, resource reload, and atlas creation. `logs/2026-07-10-1.log.gz` contained no `ERROR`/`FATAL`; the process was intentionally stopped with Ctrl+C. This was startup smoke, not gameplay QA.

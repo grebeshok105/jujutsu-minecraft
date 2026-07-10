@@ -55,6 +55,8 @@ All sources relative to that worktree unless noted.
 | client receives only typed VFX cues and character selection sync | `JujutsuClientNetworking.java:13-19` | VERIFIED |
 | removed legacy S2C VFX payloads are guarded against re-registration | `ProjectSanityTest.java:163-220,372-377` | VERIFIED |
 | VFX cue broadcast uses radius filtering and `canSend` | `JujutsuNetworking.java:38-60` | VERIFIED |
+| `VfxCue` carries immutable origin fallback, optional anchor ID, and world-space `anchorOffset` | `VfxCue.java:6-15`; test `VfxCueTest.java:19-47` | VERIFIED |
+| typed payload writes and reads `anchorOffset` immediately after `anchorEntityId` | `VfxCuePayload.java:16-37`; test `VfxCueTest.java:38-47` | VERIFIED |
 
 ## Character selection
 
@@ -104,7 +106,8 @@ All sources relative to that worktree unless noted.
 | director owns world/HUD callbacks, tick, unknown-ID safety, a 64-instance bound, `ClientLevel` identity cleanup, and null/disconnect reset | `VfxDirector.java:25-148`, guard `ProjectSanityTest.java:321-337` | VERIFIED |
 | non-expired late cues receive actual `initialAgeTicks`; one-shot opening beats run only below two ticks; all 15 timed Nobara channel calls preserve age | `VfxTimeline.java:10-27`, `NobaraVfxRecipes.java:37-189`, guard `ProjectSanityTest.java:360-371` | VERIFIED |
 | HUD, camera/FOV, and first-person realtime starts are offset to the late cue phase | `VfxTimeline.java:22-27`, `NobaraVfxRecipes.java:37-189`, `VfxFirstPersonChannel.java:14-27` | VERIFIED |
-| world impact rendering resolves the current entity anchor every frame and falls back to `cue.origin()` after despawn | `VfxWorldChannel.java:34-69`, guard `ProjectSanityTest.java:339-344` | VERIFIED |
+| live world anchors resolve as `anchor.position() + anchorOffset`; missing anchors fall back to immutable `cue.origin()` | `VfxAnchorResolver.java:9-15`, `VfxWorldChannel.java:34-69`, test `VfxAnchorResolverTest.java:16-40` | VERIFIED |
+| unanchored server cues use `Vec3.ZERO`; anchored Nobara cues store `origin.subtract(anchor.position())` | `ProjectJjkNobaraRuntime.java:233-238`, `ProjectJjkRitualRuntime.java:601-606` | VERIFIED |
 | no-falloff SFX is a director channel | `VfxSoundChannel.java:12-27`, `VfxContext.java:92-94` | VERIFIED |
 | removed overlay/world/camera/playback managers are guarded as absent | `ProjectSanityTest.java:372-377` | VERIFIED |
 | first-person snap uses an age-aware `VfxFirstPersonChannel` start, lasts 0.75 seconds, and traverses the full `0..15` phase; the narrow hand mixin only reads director state | `NobaraVfxRecipes.java:188-189`, `VfxFirstPersonChannel.java:14-59`, `ProjectSanityTest.java:380-393`, `NobaraFirstPersonSnapMixin.java:24` | VERIFIED |

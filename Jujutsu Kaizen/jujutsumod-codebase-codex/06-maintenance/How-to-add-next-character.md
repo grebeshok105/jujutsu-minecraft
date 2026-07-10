@@ -11,7 +11,7 @@
 5. Use explicit C2S action payloads only for client input that requires server validation.
 6. For each transient visual event:
    - add `<Character>VfxIds`,
-   - emit a server `VfxCue`,
+   - emit a server `VfxCue`; use `Vec3.ZERO` when unanchored, or `origin.subtract(anchor.position())` for an entity anchor,
    - register a Java `VfxRecipe`,
    - test/document it.
 7. Keep persistent, stateful visual objects (for example an entity aura) in their real entity renderer; share `VfxPalette`/helpers only where useful.
@@ -22,7 +22,7 @@
 | Step | Required result |
 |---|---|
 | ID | stable `ResourceLocation` under the character namespace |
-| Server cue | origin fallback, optional entity anchor, bounded intensity, `level.getGameTime()`, `level.random.nextLong()` |
+| Server cue | immutable origin fallback; `NO_ANCHOR` + `Vec3.ZERO` when static; entity ID + `origin.subtract(anchor.position())` when anchored; bounded intensity, `level.getGameTime()`, `level.random.nextLong()` |
 | Recipe | one registration through `VfxDirector`; channel-only composition |
 | Quality | readable result at reduced/minimal particles; cull local spectacle by proximity as needed |
 | Boundaries | no client gameplay mutation and no per-effect receiver/render callback/mixin |
