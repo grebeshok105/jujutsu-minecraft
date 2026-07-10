@@ -36,11 +36,11 @@ flowchart LR
   C --> X[damage + Weakness + clear marks/nails/glow]
 ```
 
-`ProjectJjkStrawDollRuntime.onOrdinaryNailHit` records only ordinary hits and drops a typed `resonance_remnant` at the wound on the second hit (`ProjectJjkStrawDollRuntime.java:57-85`). The item stores target UUID, dimension, and display name through persistent/network-synchronized `resonance_target` (`ProjectJjkResonanceRemnant.java:14-28`; `JujutsuDataComponents.java:10-20`).
+`ProjectJjkStrawDollRuntime.onOrdinaryNailHit` records only accepted ordinary damage hits and drops a typed `resonance_remnant` at the wound on the second hit (`ProjectJjkNobaraRuntime.java:148-153`; `ProjectJjkStrawDollRuntime.java:60-86`). Invulnerable/rejected damage, explosive impacts, and self-hits do not advance marks or remnant progress (`ProjectJjkRitualPolicy.java:45-47`). The item stores target UUID, dimension, and display name through persistent/network-synchronized `resonance_target` (`ProjectJjkResonanceRemnant.java:14-28`; `JujutsuDataComponents.java:10-20`).
 
 `tryStart` accepts only main-hand hammer use. The candidate must match a remnant in inventory, the doll must be in the offhand, a nail must exist, the target must be alive and loaded in the caster's current dimension, the distance must be finite and at most 64 blocks, and that caster must not already be casting (`ProjectJjkStrawDollRuntime.java:88-112,139-203`; `ProjectJjkRitualPolicy.java:3-54`). Line of sight is deliberately absent.
 
-The runtime revalidates the same state every server tick throughout the 14-tick wind-up. A disconnect, caster death, target death, or server stop clears pending state/progress. Only the successful impact locates both exact resources and shrinks them together before applying gameplay (`ProjectJjkStrawDollRuntime.java:45-54,115-136,211-275,318-326`).
+The runtime revalidates the same state every server tick throughout the 14-tick wind-up. A disconnect, caster death, target death/unload, or server stop clears pending state/progress, so partial caster-target pairs cannot accumulate after entity unload (`ProjectJjkStrawDollRuntime.java:45-57`). Only the successful impact locates both exact resources and shrinks them together before applying gameplay (`ProjectJjkStrawDollRuntime.java:112-133,208-272`).
 
 ## Resolution and feedback
 
@@ -51,7 +51,7 @@ On successful impact the server:
 - consumes target marks, discards owned embedded nails, and clears the glowing mark;
 - emits separate caster-side `DOLL_STRIKE` and target-side `RESONANCE_RELEASE` cues.
 
-Remnant acquisition and ritual binding have their own `REMNANT_DROP` and `RITUAL_BIND` cues. These four cues are visual feedback only; gameplay remains in the server runtime (`ProjectJjkStrawDollRuntime.java:211-243`; `NobaraVfxIds.java:17-20`).
+Remnant acquisition and ritual binding have their own `REMNANT_DROP` and `RITUAL_BIND` cues. These four cues carry every transient ritual particle/sound/world/HUD/camera/blur composition through VFX Core; the common runtime contains no direct ritual `sendParticles`, `playSound`, or old `spawnResonanceStrike` call. Gameplay remains on the server (`ProjectJjkStrawDollRuntime.java:208-240`; `NobaraVfxIds.java:17-20`; guard `ProjectSanityTest.java:481-484`).
 
 ## Original doll asset
 
@@ -66,12 +66,13 @@ The reusable item is a compact asymmetric bundled-straw effigy with dark binding
 | runtime texture | `assets/jujutsumod/textures/item/straw_doll.png` |
 | headless preview renderer | `source-assets/blockbench/render_straw_doll_preview.py` |
 
-The Blockbench MCP creation tools were unavailable in the implementation session, so the editable `.bbmodel`, runtime GeckoLib resources, deterministic texture, and three headless preview angles were authored directly. This fallback is an implementation provenance note, not evidence of in-game rendering.
+The Blockbench MCP creation tools were unavailable during initial authoring, so the editable `.bbmodel`, runtime GeckoLib resources, deterministic texture, and three headless preview angles were authored directly. After the user launched Blockbench, the source project was opened and inspected in the live app: all 25 runtime cubes are present in the outliner, the portable relative texture resolves, the 64x64 UV layout displays, the model-issues counter is clear, and `idle` (2.0s), `ritual_raise` (0.7s), `impact` (0.18s), and `release` (0.45s) expose editable timeline keyframes. The source contains 14 animator bone tracks (`straw_doll.bbmodel:11-202`). This proves Blockbench source integrity, not in-game rendering.
 
 ## Verification status
 
 - Pure remnant progress/component and ritual-policy tests are wired into `check`.
 - `ProjectSanityTest` guards runtime registration, resource completeness, the four cue IDs/recipes, and the removal of the mark-only shortcut.
+- The same guard enforces source/runtime cube/animation parity, portable texture resolution, box-UV bounds, minimum one-unit Box UV faces, texture-backed previews, and absence of packaged ProjectJJK doll copies (`ProjectSanityTest.java:495-563`).
 - Compilation/build proves source/resource integration only.
 - In-game acquisition, inventory presentation, interruption feel, remote hit timing, reduced-particle readability, and two-client observation remain **UNKNOWN** until manual QA.
 

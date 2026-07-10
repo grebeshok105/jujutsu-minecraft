@@ -43,9 +43,9 @@
 
 ## Legal note
 
-ProjectJJK-derived assets under `projectjjk/` paths are comparison/research material — follow project import notes; ProjectJJK jar is ARR.
+ProjectJJK-derived assets under remaining `projectjjk/` paths are comparison/research material — follow project import notes; ProjectJJK jar is ARR. The copied ProjectJJK doll geometry, animation, and texture were removed from the runtime namespace and are guarded as absent.
 
-The runtime `straw_doll` assets and their `source-assets/blockbench` source are original project work. They deliberately avoid ProjectJJK's copied box proportions, textures, and animation keyframes.
+The runtime `straw_doll` assets and their `source-assets/blockbench` source are original project work. They deliberately avoid ProjectJJK's copied box proportions, textures, and animation keyframes. Live Blockbench inspection on 2026-07-10 confirmed texture resolution, 25-element source/runtime parity, zero model issues, and editable keyframes for all four clips.
 
 ---
 tags: #jujutsumod #assets

@@ -85,12 +85,13 @@ All sources relative to that worktree unless noted.
 
 | Claim | Source | Status |
 |---|---|---|
-| every second ordinary nail hit for one caster/target pair drops a target-bound remnant at the wound | `ProjectJjkStrawDollRuntime.java:36-40,57-85`; `ProjectJjkRemnantProgress.java:7-24` | VERIFIED implementation; Minecraft adaptation |
+| every second accepted ordinary nail damage hit for one caster/target pair drops a target-bound remnant at the wound; rejected/explosive/self hits do not advance | `ProjectJjkNobaraRuntime.java:148-153`; `ProjectJjkRitualPolicy.java:45-47`; `ProjectJjkStrawDollRuntime.java:36-40,60-86`; `ProjectJjkRemnantProgress.java:7-24` | VERIFIED implementation; Minecraft adaptation |
 | Resonance start requires main-hand hammer, offhand doll, matching remnant, nail, alive loaded target, same dimension, finite distance <=64, and no duplicate cast | `ProjectJjkStrawDollRuntime.java:88-112,139-203`; `ProjectJjkRitualPolicy.java:3-54` | VERIFIED implementation; range/timing are adaptations |
 | the 14-tick ritual revalidates requirements every server tick and does not require line of sight | `ProjectJjkStrawDollRuntime.java:100-136,167-203` | VERIFIED |
 | nail and exact remnant are both located before either shrinks; only successful impact consumes them | `ProjectJjkStrawDollRuntime.java:211-215,246-275` | VERIFIED |
 | successful Resonance damages/weakens target, consumes marks, discards owned embedded nails, clears glow, and emits caster/target cues | `ProjectJjkStrawDollRuntime.java:217-243` | VERIFIED |
-| disconnect/caster death/target death/server stop clear relevant pending/progress state | `ProjectJjkStrawDollRuntime.java:45-54,318-326` | VERIFIED |
+| disconnect/caster death/target death-or-unload/server stop clear relevant pending/progress state | `ProjectJjkStrawDollRuntime.java:45-57,315-323` | VERIFIED |
+| all new Straw Doll transient particles/sounds use VFX Core cues; common ritual runtime has no direct particle/sound composition | `ProjectJjkStrawDollRuntime.java`; guard `ProjectSanityTest.java:481-484` | VERIFIED |
 | canonical invariant is meaningful link + effigy/proxy + hammer-driven nail; Hairpin is separate | `docs/research/2026-07-10-nobara-straw-doll-canon.md:24-50,127-152` | VERIFIED research |
 | hit threshold, wind-up, resource consumption, and 64-block/same-dimension/loaded-target policy are Minecraft rules, not universal canon claims | `docs/research/2026-07-10-nobara-straw-doll-canon.md:45,50-51,139-152,208-216`; [[../03-systems/Straw-Doll-resonance]] | VERIFIED classification |
 
@@ -138,7 +139,8 @@ All sources relative to that worktree unless noted.
 |---|---|---|
 | 8 particle json | `assets/jujutsumod/particles/` | VERIFIED |
 | runtime item models include ProjectJJK nail/hammer and original Straw Doll/remnant resources | `ProjectSanityTest.java:195-199,480-534` | VERIFIED |
-| original Straw Doll source/runtime set includes `.bbmodel`, deterministic texture source, geometry, four animations, texture, item definition, and headless preview script | `source-assets/blockbench/straw_doll.bbmodel`; `source-assets/blockbench/generate_straw_doll_textures.ps1`; `source-assets/blockbench/render_straw_doll_preview.py`; `assets/jujutsumod/geo/straw_doll.geo.json`; `assets/jujutsumod/animations/straw_doll.animation.json`; guard `ProjectSanityTest.java:480-534` | VERIFIED resource completeness; in-game presentation UNKNOWN |
+| original Straw Doll source/runtime set includes 25 matching source/runtime cubes, 14 source animator tracks/four runtime clips, portable texture path, bounded 64x64 Box UVs, deterministic texture source, and texture-backed previews | `source-assets/blockbench/straw_doll.bbmodel:11-202`; `assets/jujutsumod/geo/straw_doll.geo.json`; `assets/jujutsumod/animations/straw_doll.animation.json`; guard `ProjectSanityTest.java:495-563` | VERIFIED resource completeness + live Blockbench inspection; in-game presentation UNKNOWN |
+| copied ProjectJJK doll geometry/animation/texture are absent from runtime assets | guard `ProjectSanityTest.java:557-563`; deleted `assets/jujutsumod/{geo,animations,textures}/projectjjk/doll*` | VERIFIED |
 | old unused Hairpin post-shaders removed | `ProjectSanityTest.java:173-174` | VERIFIED |
 
 ## Tests / build

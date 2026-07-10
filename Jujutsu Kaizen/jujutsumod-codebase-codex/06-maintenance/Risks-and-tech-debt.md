@@ -39,6 +39,8 @@ Only code-backed or process-backed risks.
 | Persistent nail aura could be lost in a generic timeline migration | it remains state-driven and shares `VfxPalette` | `ProjectJjkNailRenderer.java:23,31-42` | VERIFIED |
 | Post-process had no proven internal route | director-owned `VfxPostProcessChannel` calls the public vanilla blur method and disables itself safely on runtime/linkage failure | `VfxPostProcessChannel.java:7-46` | MITIGATED |
 | Mark-only remote hit omitted the canon-defining physical link/effigy ritual | target-bound remnant, reusable doll, nail, hammer, wind-up, and server revalidation now gate Resonance | [[../03-systems/Straw-Doll-resonance]] | VERIFIED |
+| Initial `.bbmodel` was a reduced blockout with empty animators and unstable Box UV details | source now matches all 25 runtime cubes/14 animator tracks, loads its texture portably, and opens with zero Blockbench model issues | [[../03-systems/Straw-Doll-resonance]] | VERIFIED |
+| Copied ProjectJJK doll research files were still packageable runtime resources | geometry, animation, and texture copies removed from `assets/jujutsumod`; sanity guard prevents reintroduction | `ProjectSanityTest.java:557-563` | VERIFIED |
 
 ## P0 action
 

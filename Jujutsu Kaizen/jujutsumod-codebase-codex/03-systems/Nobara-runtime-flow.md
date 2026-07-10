@@ -10,7 +10,7 @@ Prefix: `.worktrees/nobara-cinematic-slice/src/main/java/jujutsu/mod/character/n
 |---|---:|---|---|
 | `prepareNails` | 39-66 | count nails by hold ticks; consume; spawn prepared entities; particles/sounds | VERIFIED |
 | `launchHairpin` | 84-115 | find prepared nails; target resolve; stagger launch delays; hammer SFX; typed `hammer` cue | VERIFIED |
-| `resolveNailImpact` | 141-189 | server damage/mark resolution, ordinary-hit remnant progress, plus typed `impact` / direct `impact_sound` cues | VERIFIED |
+| `resolveNailImpact` | 141-190 | server damage/mark resolution, accepted ordinary-hit remnant progress, plus typed `impact` / direct `impact_sound` cues | VERIFIED |
 | helpers | 191+ | server particles, prepared-nail lookup, inventory use, hammer damage | VERIFIED |
 
 ### prepareNails logic
@@ -29,6 +29,8 @@ Prefix: `.worktrees/nobara-cinematic-slice/src/main/java/jujutsu/mod/character/n
 4. Forge/anvil/snap SFX remain server-authoritative (`ProjectJjkNobaraRuntime.java:106-111`).
 5. The server broadcasts `NobaraVfxIds.HAMMER` with a player anchor (`ProjectJjkNobaraRuntime.java:112-113`).
 6. Hammer durability is applied after the cue (`ProjectJjkNobaraRuntime.java:114`).
+
+An ordinary direct impact advances marks/remnant progress only when `hurtServer` accepted the damage and the hit is neither explosive nor self-directed (`ProjectJjkNobaraRuntime.java:148-153,280-294`; `ProjectJjkRitualPolicy.java:45-47`).
 
 ## `ProjectJjkHammerItem`
 
