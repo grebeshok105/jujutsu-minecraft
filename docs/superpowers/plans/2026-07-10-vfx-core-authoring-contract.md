@@ -24,12 +24,12 @@
 ### Task 1: Make the VFX Core contract binding and machine-guarded
 
 **Files:**
-- Modify: `src/test/java/jujutsu/mod/ProjectSanityTest.java:321-337,552-563`
+- Modify: `src/test/java/jujutsu/mod/ProjectSanityTest.java:8,322-340,553-645`
 - Modify: `AGENTS.md` after `## Technical Rules`
 
 **Interfaces:**
-- Consumes: existing `ProjectSanityTest` source-tree scanning, `VfxDirector.initialize()`, `NobaraVfxRecipes.register()`, and `JujutsuClientNetworking.registerReceivers()`.
-- Produces: `assertVfxCoreAuthoringContractAndOwnership(String clientEntrypoint)`, the mandatory `AGENTS.md` contract, and a structural guard for central receiver/callback ownership and recipe registration.
+- Consumes: existing `ProjectSanityTest` source-tree scanning, `VfxDirector.initialize()`, direct `<Character>VfxRecipes.register()` calls, optional `JujutsuVfxRecipes.registerAll()`, and `JujutsuClientNetworking.registerReceivers()`.
+- Produces: `assertVfxCoreAuthoringContractAndOwnership(String clientEntrypoint)`, the mandatory `AGENTS.md` contract, and narrow structural guards for VFX cue receiver ownership, transient callback ownership, and direct/deferred recipe registration.
 
 - [ ] **Step 1: Add the failing architectural assertion**
 
@@ -41,7 +41,7 @@ In `assertVfxDirectorOwnsClientLifecycle()`, add the helper call immediately aft
 
 Remove the now-unnecessary blank line between that method and `assertVfxCoreProvidesReusableChannels()` so existing downstream code citations do not shift.
 
-Add this helper immediately before the class-closing brace, after `assertNoForbiddenImports()`:
+Add `java.util.List` to the imports, then add this helper immediately before the class-closing brace, after `assertNoForbiddenImports()`:
 
 ```java
 	private static void assertVfxCoreAuthoringContractAndOwnership(String clientEntrypoint) throws IOException {
@@ -55,15 +55,16 @@ Add this helper immediately before the class-closing brace, after `assertNoForbi
 
 		Path networkingPath = CLIENT_JAVA.resolve("jujutsu/mod/client/network/JujutsuClientNetworking.java");
 		Path directorPath = CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxDirector.java");
-		StringBuilder clientSources = new StringBuilder();
+		Pattern vfxCueReceiverRegistration = Pattern.compile(
+			"ClientPlayNetworking\\.registerGlobalReceiver\\s*\\(\\s*VfxCuePayload\\.TYPE"
+		);
 		try (Stream<Path> files = Files.walk(CLIENT_JAVA)) {
 			for (Path javaFile : files.filter(path -> path.toString().endsWith(".java")).toList()) {
 				String source = Files.readString(javaFile);
-				clientSources.append(source).append('\n');
 				String normalizedPath = javaFile.toString().replace('\\', '/');
 				boolean effectPath = normalizedPath.contains("/client/vfx/") || normalizedPath.contains("/client/fx/");
-				if (source.contains("ClientPlayNetworking.registerGlobalReceiver")) {
-					assert javaFile.equals(networkingPath) : "Client packet receivers must remain centralized in JujutsuClientNetworking: " + javaFile;
+				if (vfxCueReceiverRegistration.matcher(source).find()) {
+					assert javaFile.equals(networkingPath) : "VFX cue receiver must remain centralized in JujutsuClientNetworking: " + javaFile;
 				}
 				if (effectPath && (source.contains("WorldRenderEvents.") || source.contains("HudElementRegistry."))) {
 					assert javaFile.equals(directorPath) : "Transient world/HUD callbacks must remain centralized in VfxDirector: " + javaFile;
@@ -72,19 +73,54 @@ Add this helper immediately before the class-closing brace, after `assertNoForbi
 		}
 
 		int directorIndex = clientEntrypoint.indexOf("VfxDirector.initialize()");
-		Matcher recipeBootstrap = Pattern.compile("\\b\\w+VfxRecipes\\.(?:register|registerAll)\\(\\)").matcher(clientEntrypoint);
-		assert recipeBootstrap.find() : "Client startup must register VFX recipes";
-		int recipesIndex = recipeBootstrap.start();
 		int receiversIndex = clientEntrypoint.indexOf("JujutsuClientNetworking.registerReceivers()");
 		assert directorIndex >= 0 : "Client startup must initialize VfxDirector";
-		assert recipesIndex > directorIndex : "Client startup must register recipes after VfxDirector initialization";
-		assert receiversIndex > recipesIndex : "Client startup must register recipes before VFX cue receivers";
+		assert receiversIndex > directorIndex : "Client startup must register VFX cue receivers after VfxDirector initialization";
 
 		Path recipesRoot = CLIENT_JAVA.resolve("jujutsu/mod/client/vfx");
+		Path bootstrapPath = recipesRoot.resolve("JujutsuVfxRecipes.java");
+		List<Path> characterRecipeFiles;
 		try (Stream<Path> files = Files.walk(recipesRoot)) {
-			for (Path recipeFile : files.filter(path -> path.getFileName().toString().endsWith("VfxRecipes.java")).toList()) {
+			characterRecipeFiles = files
+				.filter(path -> path.getFileName().toString().endsWith("VfxRecipes.java"))
+				.filter(path -> !path.equals(bootstrapPath))
+				.toList();
+		}
+
+		Pattern entrypointRecipeRegistration = Pattern.compile(
+			"\\b(\\w+VfxRecipes)\\s*\\.\\s*(register|registerAll)\\s*\\(\\s*\\)"
+		);
+		Matcher entrypointRegistrations = entrypointRecipeRegistration.matcher(clientEntrypoint);
+		if (Files.exists(bootstrapPath)) {
+			assert entrypointRegistrations.find() : "Client startup must call JujutsuVfxRecipes.registerAll()";
+			assert entrypointRegistrations.group(1).equals("JujutsuVfxRecipes") && entrypointRegistrations.group(2).equals("registerAll")
+				: "JujutsuVfxRecipes.registerAll() must be the sole VFX recipe bootstrap";
+			int bootstrapIndex = entrypointRegistrations.start();
+			assert bootstrapIndex > directorIndex : "Client startup must register all VFX recipes after VfxDirector initialization";
+			assert bootstrapIndex < receiversIndex : "Client startup must register all VFX recipes before VFX cue receivers";
+			assert !entrypointRegistrations.find() : "JujutsuVfxRecipes.registerAll() must be the sole VFX recipe bootstrap";
+
+			String bootstrap = Files.readString(bootstrapPath);
+			for (Path recipeFile : characterRecipeFiles) {
 				String className = recipeFile.getFileName().toString().replace(".java", "");
-				assert clientSources.indexOf(className + ".register()") >= 0 : "Unregistered character VFX recipes: " + className;
+				Pattern characterRegistration = Pattern.compile(
+					"\\b" + Pattern.quote(className) + "\\s*\\.\\s*register\\s*\\(\\s*\\)"
+				);
+				assert characterRegistration.matcher(bootstrap).find() : "Unregistered character VFX recipes in JujutsuVfxRecipes: " + className;
+			}
+		} else {
+			Map<String, Integer> directRegistrations = new HashMap<>();
+			while (entrypointRegistrations.find()) {
+				String className = entrypointRegistrations.group(1);
+				assert entrypointRegistrations.group(2).equals("register") : "Client startup may use registerAll() only through JujutsuVfxRecipes";
+				int registrationIndex = entrypointRegistrations.start();
+				assert registrationIndex > directorIndex : "Client startup must register " + className + " after VfxDirector initialization";
+				assert registrationIndex < receiversIndex : "Client startup must register " + className + " before VFX cue receivers";
+				directRegistrations.merge(className, 1, Integer::sum);
+			}
+			for (Path recipeFile : characterRecipeFiles) {
+				String className = recipeFile.getFileName().toString().replace(".java", "");
+				assert directRegistrations.getOrDefault(className, 0) == 1 : "Client startup must register character VFX recipes exactly once: " + className;
 			}
 		}
 	}
@@ -168,14 +204,14 @@ Add this section after `## Agent authoring contract` and its forbidden shortcuts
 ```markdown
 ## Repository enforcement and roster scaling
 
-`AGENTS.md` makes this authoring path mandatory at repository scope. `ProjectSanityTest` guards the parts that can be checked structurally: packet receiver ownership, transient world/HUD callback ownership, startup ordering, and explicit registration of every `*VfxRecipes` class. The guard intentionally does not ban legitimate C2S gameplay payloads or real entity renderers.
+`AGENTS.md` makes this authoring path mandatory at repository scope. `ProjectSanityTest` guards the parts that can be checked structurally: VFX cue receiver ownership, transient world/HUD callback ownership, startup ordering, and explicit registration of every character `*VfxRecipes` class. The guard intentionally does not ban legitimate unrelated gameplay networking or real entity renderers.
 
 Keep one `<Character>VfxRecipes` class per character so visual language remains local. When a second character becomes a real consumer, add a small explicit `JujutsuVfxRecipes.registerAll()` bootstrap between `VfxDirector.initialize()` and `JujutsuClientNetworking.registerReceivers()`. Do not use reflection or a universal effect switch.
 
 Expand VFX Core only when a primitive is reused by at least two characters, enforces a global policy, or requires a reviewed new director-owned rendering channel. One-off scene composition stays in the character recipe.
 ```
 
-Update the verification bullets so they cite `ProjectSanityTest.java:321-338` for lifecycle/startup ownership and `ProjectSanityTest.java:564-608` for the repository authoring/registration guard. Verify those planned anchors with:
+Update the verification bullets so they cite `ProjectSanityTest.java:322-339` for lifecycle/startup ownership and `ProjectSanityTest.java:565-644` for the repository authoring/registration guard. Verify those planned anchors with:
 
 ```powershell
 rg -n "assertVfxDirectorOwnsClientLifecycle|assertVfxCoreAuthoringContractAndOwnership|assertVfxCoreProvidesReusableChannels" src/test/java/jujutsu/mod/ProjectSanityTest.java
@@ -206,7 +242,7 @@ Change risk `R8` in `Risks-and-tech-debt.md` to state that future bypass risk is
 Add this claim to the VFX section of `Claim-Source-Index.md`:
 
 ```markdown
-| transient combat VFX have a repository-mandated authoring path; receiver/callback ownership, startup order, and character recipe registration are structurally guarded | `AGENTS.md:76-86`; `ProjectSanityTest.java:564-608` | VERIFIED |
+| transient combat VFX have a repository-mandated authoring path; VFX cue receiver/callback ownership, startup order, and character recipe registration are structurally guarded | `AGENTS.md:76-86`; `ProjectSanityTest.java:565-644` | VERIFIED |
 ```
 
 Verify the planned exact anchors after editing:
@@ -216,7 +252,7 @@ rg -n "^## Mandatory VFX Core Contract|^## Dependency Policy" AGENTS.md
 rg -n "assertVfxCoreAuthoringContractAndOwnership|private static void assertNoForbiddenImports" src/test/java/jujutsu/mod/ProjectSanityTest.java
 ```
 
-Expected: the mandatory contract occupies `AGENTS.md:76-86`; `assertNoForbiddenImports` remains at line 552; the new helper starts at line 564 and ends at line 608. If formatting changes those anchors, correct every affected codex citation before committing rather than leaving stale line numbers.
+Expected: the mandatory contract occupies `AGENTS.md:76-86`; `assertNoForbiddenImports` starts at line 553; the new helper starts at line 565 and ends at line 644. If formatting changes those anchors, correct every affected codex citation before committing rather than leaving stale line numbers.
 
 - [ ] **Step 4: Verify documentation consistency**
 
