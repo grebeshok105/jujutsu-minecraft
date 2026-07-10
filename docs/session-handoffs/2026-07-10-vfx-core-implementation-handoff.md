@@ -162,6 +162,28 @@ The SDD report is intentionally ignored scratch and may disappear if the worktre
 - When a second local client is available, verify one server-confirmed scene from caster and observer viewpoints and confirm no client gameplay authority.
 - Capture any gameplay/visual feedback as a new scoped task; do not silently fold unrelated polish into this completed VFX Core migration.
 
+## 2026-07-10 Addendum — Minimal VFX Guidance For Future Agents
+
+Пользователь попросил закрепить использование готовой VFX Core для следующих персонажей прямо в `AGENTS.md`. Первая попытка переусложнила задачу отдельным design/implementation plan и новыми архитектурными `ProjectSanityTest` guards. После обратной связи пользователя этот подход полностью свёрнут.
+
+Финальное состояние:
+
+- `AGENTS.md:76-82` содержит ровно пять обязательных правил: прочитать VFX Core note, вести transient-эффекты через `VfxCue -> VfxDirector -> <Character>VfxRecipes`, создавать `<Character>VfxIds`/`<Character>VfxRecipes`, оставить persistent visuals в настоящих renderers и не строить параллельные effect managers/callbacks/mixins.
+- Для второго персонажа инструкция требует один явный `JujutsuVfxRecipes.registerAll()`; отдельный bootstrap сейчас не создавался.
+- Новые общие VFX channels добавляются только после отдельного одобренного дизайна, если существующих channels недостаточно.
+- Новые generic authoring guards удалены. `src/test/java/jujutsu/mod/ProjectSanityTest.java` побайтно по git diff возвращён к состоянию `da30e25`; существующие Nobara/VFX regression guards сохранены без изменений.
+- Временные `docs/superpowers/specs/2026-07-10-vfx-core-authoring-contract-design.md` и `docs/superpowers/plans/2026-07-10-vfx-core-authoring-contract.md` удалены как избыточные и больше не являются source of truth.
+- Финальный упрощающий коммит: `f5c916b docs(vfx): simplify agent guidance`. Предыдущие промежуточные `eb20dda`, `da30e25`, `7d15531` и `dbdcf7e` сохранены в истории, но их расширенный guard/design подход отменён итоговым состоянием дерева.
+
+Проверка после упрощения:
+
+- `git diff --exit-code da30e25 -- src/test/java/jujutsu/mod/ProjectSanityTest.java` — без diff.
+- `.\gradlew.bat testProjectSanity --no-daemon` — `ProjectSanityTest passed`, `BUILD SUCCESSFUL in 9s`.
+- `git diff --check` — без ошибок.
+- Computer Use и UI automation не использовались.
+
+Для нового персонажа агенту достаточно прочитать `AGENTS.md` и `Jujutsu Kaizen/jujutsumod-codebase-codex/04-client-vfx/VFX-core.md`. Manual gameplay/two-client QA остаётся в прежнем статусе и не проверялось этой документационной правкой.
+
 ## Suggested Skills
 
 - `using-git-worktrees`
