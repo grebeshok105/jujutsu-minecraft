@@ -8,11 +8,14 @@ import jujutsu.mod.client.input.JujutsuKeybinds;
 import jujutsu.mod.client.network.JujutsuClientNetworking;
 import jujutsu.mod.client.particle.JujutsuClientParticles;
 import jujutsu.mod.client.render.ProjectJjkNailRenderer;
+import jujutsu.mod.client.render.nobara.doll.ProjectJjkStrawDollRenderer;
+import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollItem;
 import jujutsu.mod.registry.JujutsuEntities;
 
 public class JujutsuModClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
+		ProjectJjkStrawDollItem.setRendererFactory(ProjectJjkStrawDollRenderer::provider);
 		EntityRendererRegistry.register(JujutsuEntities.PROJECTJJK_NAIL, ProjectJjkNailRenderer::new);
 		JujutsuClientParticles.registerFactories();
 		VfxDirector.initialize();

@@ -20,6 +20,7 @@ public final class ProjectSanityTest {
 	private static final Pattern TEXTURE_ID = Pattern.compile("\"jujutsumod:([^\"]+)\"");
 	private static final Pattern SOUND_ID = Pattern.compile("\"(?:minecraft|jujutsumod):([^\"]+)\"");
 	private static final Pattern ITEM_MODEL_ID = Pattern.compile("\"model\"\\s*:\\s*\"jujutsumod:item/([^\"]+)\"");
+	private static final Pattern ITEM_BASE_MODEL_ID = Pattern.compile("\"base\"\\s*:\\s*\"jujutsumod:item/([^\"]+)\"");
 	private static final Pattern ITEM_TEXTURE_ID = Pattern.compile("\"([a-z0-9_]+)\"\\s*:\\s*\"jujutsumod:item/([^\"]+)\"");
 	private static final Pattern ITEM_FACE = Pattern.compile("\"(?:north|south|east|west|up|down)\"\\s*:\\s*\\{([^}]*)}");
 	private static final Pattern FACE_TEXTURE = Pattern.compile("\"texture\"\\s*:\\s*\"#([a-z0-9_]+)\"");
@@ -49,6 +50,7 @@ public final class ProjectSanityTest {
 		assertFirstPersonSnapPipelineWired();
 		assertNobaraHammerHasExplosiveAndPiercingLaunchModes();
 		assertStrawDollRitualUsesPhysicalRemnants();
+		assertOriginalStrawDollAssetWired();
 		assertNobaraNailAuraAvoidsSoulFire();
 		assertHairpinScreenOverlayUsesSmoothGradientVignette();
 		assertCharacterSelectUsesCheapUiPrimitives();
@@ -83,13 +85,19 @@ public final class ProjectSanityTest {
 		try (Stream<Path> files = Files.list(itemsDir)) {
 			for (Path itemDefinition : files.filter(path -> path.toString().endsWith(".json")).toList()) {
 				String json = Files.readString(itemDefinition);
-				Matcher modelMatcher = ITEM_MODEL_ID.matcher(json);
+				boolean geckoItem = json.contains("\"type\": \"geckolib:geckolib\"");
+				Matcher modelMatcher = (geckoItem ? ITEM_BASE_MODEL_ID : ITEM_MODEL_ID).matcher(json);
 				assert modelMatcher.find() : "Item definition has no jujutsumod model: " + itemDefinition;
 				String modelName = modelMatcher.group(1);
 				Path model = JUJUTSU_ASSETS.resolve("models/item").resolve(modelName + ".json");
 				assert Files.exists(model) : "Missing item model " + model + " referenced by " + itemDefinition;
 
 				String modelJson = Files.readString(model);
+				if (geckoItem) {
+					assert modelJson.contains("\"parent\": \"builtin/entity\"")
+							: "GeckoLib item display model must use builtin/entity: " + model;
+					continue;
+				}
 				Matcher textureMatcher = ITEM_TEXTURE_ID.matcher(modelJson);
 				Map<String, Path> textures = new HashMap<>();
 				while (textureMatcher.find()) {
@@ -98,7 +106,11 @@ public final class ProjectSanityTest {
 					textures.put(textureMatcher.group(1), texture);
 				}
 				assert !textures.isEmpty() : "Item model has no jujutsumod item textures: " + model;
-				assert textures.containsKey("particle") : "Item model has no particle texture reference: " + model;
+				if (modelJson.contains("\"parent\": \"minecraft:item/generated\"")) {
+					assert textures.containsKey("layer0") : "Generated item model has no layer0 texture: " + model;
+					continue;
+				}
+				assert textures.containsKey("particle") : "3D item model has no particle texture reference: " + model;
 				assertModelFaceUvsAreOpaque(model, modelJson, textures);
 			}
 		}
@@ -434,6 +446,52 @@ public final class ProjectSanityTest {
 		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraRuntime.java"));
 		assert runtime.contains("onOrdinaryNailHit(level, owner, directTarget, point)")
 				: "Ordinary nail hits must advance remnant acquisition";
+	}
+
+	private static void assertOriginalStrawDollAssetWired() throws IOException {
+		Path geo = JUJUTSU_ASSETS.resolve("geo/straw_doll.geo.json");
+		Path animations = JUJUTSU_ASSETS.resolve("animations/straw_doll.animation.json");
+		Path texture = JUJUTSU_ASSETS.resolve("textures/item/straw_doll.png");
+		Path itemDefinition = JUJUTSU_ASSETS.resolve("items/straw_doll.json");
+		Path itemModel = JUJUTSU_ASSETS.resolve("models/item/straw_doll.json");
+		Path sourceModel = MAIN_RESOURCES.resolve("source-assets/blockbench/straw_doll.bbmodel");
+		for (Path required : new Path[] {geo, animations, texture, itemDefinition, itemModel, sourceModel}) {
+			assert Files.exists(required) : "Missing original straw doll asset: " + required;
+		}
+
+		String geoJson = Files.readString(geo);
+		assert geoJson.contains("geometry.jujutsumod.straw_doll") : "Straw doll geometry must use the jujutsumod namespace";
+		for (String bone : new String[] {"root", "body", "head", "arm_left", "arm_right", "leg_left", "leg_right"}) {
+			assert geoJson.contains("\"name\": \"" + bone + "\"") : "Straw doll is missing animated bone " + bone;
+		}
+
+		String animationJson = Files.readString(animations);
+		for (String animation : new String[] {"idle", "ritual_raise", "impact", "release"}) {
+			assert animationJson.contains("animation.straw_doll." + animation) : "Missing straw doll animation " + animation;
+		}
+		BufferedImage dollTexture = ImageIO.read(texture.toFile());
+		assert dollTexture != null && dollTexture.getWidth() == 64 && dollTexture.getHeight() == 64
+				: "Straw doll texture must be a readable 64x64 PNG";
+		assert Files.readString(itemDefinition).contains("\"type\": \"geckolib:geckolib\"")
+				: "Minecraft 1.21.8 item definition must delegate to GeckoLib 5 special rendering";
+		assert Files.readString(itemModel).contains("\"parent\": \"builtin/entity\"")
+				: "Straw doll display model must use builtin/entity";
+		assert Files.readString(sourceModel).contains("\"model_identifier\": \"geometry.jujutsumod.straw_doll\"")
+				: "Blockbench source must retain the exported geometry identity";
+
+		Path itemClass = MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkStrawDollItem.java");
+		Path renderer = CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/doll/ProjectJjkStrawDollRenderer.java");
+		Path model = CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/doll/ProjectJjkStrawDollModel.java");
+		String itemSource = Files.readString(itemClass);
+		assert itemSource.contains("implements GeoItem") && itemSource.contains("GeoItem.registerSyncedAnimatable(this)")
+				: "Straw doll item must use the GeckoLib 5 synced item contract";
+		assert Files.exists(renderer) && Files.exists(model) : "Missing GeckoLib straw doll client renderer/model";
+
+		for (Path originalAsset : new Path[] {geo, animations, sourceModel, itemClass, renderer, model}) {
+			String source = Files.readString(originalAsset).toLowerCase();
+			assert !source.contains("assets/projectjjk") && !source.contains(".reference/projectjjk")
+					: "Original straw doll runtime/source must not reference ProjectJJK assets: " + originalAsset;
+		}
 	}
 
 	private static void assertNobaraNailAuraAvoidsSoulFire() throws IOException {

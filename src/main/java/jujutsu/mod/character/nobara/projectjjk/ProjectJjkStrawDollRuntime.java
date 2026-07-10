@@ -100,6 +100,7 @@ public final class ProjectJjkStrawDollRuntime {
 		long dueGameTime = caster.level().getGameTime() + RITUAL_WINDUP_TICKS;
 		PendingRitual pending = new PendingRitual(caster.getUUID(), selection.remnant(), dueGameTime);
 		PENDING_RITUALS.put(caster.getUUID(), pending);
+		triggerDollRitual(caster);
 		Vec3 origin = caster.getEyePosition().add(caster.getLookAngle().scale(0.45));
 		caster.level().playSound(null, caster.getX(), caster.getY(), caster.getZ(), JujutsuSounds.PROJECTJJK_MAGIC, SoundSource.PLAYERS, 0.82f, 0.72f);
 		JujutsuNetworking.broadcastVfxCue(caster.level(), caster.position(), VFX_RADIUS,
@@ -214,6 +215,7 @@ public final class ProjectJjkStrawDollRuntime {
 		}
 
 		ServerLevel level = caster.level();
+		triggerDollImpact(caster);
 		long gameTime = level.getGameTime();
 		int marks = ProjectJjkNailMarks.marks(target.getUUID(), gameTime);
 		target.hurtServer(level, level.damageSources().indirectMagic(caster, caster), ProjectJjkNobaraProfile.resonanceDamage(marks));
@@ -291,6 +293,18 @@ public final class ProjectJjkStrawDollRuntime {
 
 	private static boolean isDoll(ItemStack stack) {
 		return stack.is(JujutsuItems.STRAW_DOLL);
+	}
+
+	private static void triggerDollRitual(ServerPlayer caster) {
+		if (JujutsuItems.STRAW_DOLL instanceof ProjectJjkStrawDollItem doll) {
+			doll.triggerRitual(caster, caster.getOffhandItem());
+		}
+	}
+
+	private static void triggerDollImpact(ServerPlayer caster) {
+		if (JujutsuItems.STRAW_DOLL instanceof ProjectJjkStrawDollItem doll) {
+			doll.triggerImpact(caster, caster.getOffhandItem());
+		}
 	}
 
 	private static void showFailure(ServerPlayer caster, ProjectJjkRitualPolicy.Validation validation) {
