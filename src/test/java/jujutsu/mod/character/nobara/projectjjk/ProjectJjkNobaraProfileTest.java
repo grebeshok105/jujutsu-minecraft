@@ -21,6 +21,8 @@ public final class ProjectJjkNobaraProfileTest {
 		assertHairpinExplosionCanSeeCloseAnchors();
 		assertLoadoutTopsUpNails();
 		assertDamageScaling();
+		assertCombatExpansionBalanceIsCentralized();
+		assertActionTimelinesExposeImpactAndBlackFlashWindow();
 		System.out.println("ProjectJjkNobaraProfileTest passed");
 	}
 
@@ -106,10 +108,28 @@ public final class ProjectJjkNobaraProfileTest {
 	private static void assertDamageScaling() {
 		assert ProjectJjkNobaraProfile.detonateDamage(0) == ProjectJjkNobaraProfile.DETONATE_DAMAGE_BASE : "zero marks detonate for the base amount";
 		assert ProjectJjkNobaraProfile.detonateDamage(4) == ProjectJjkNobaraProfile.detonateDamage(1) : "Hairpin Explosion damage stays fixed per detonation";
-		assert ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DAMAGE >= 16.0f : "Hairpin Enlarge should comfortably kill a cow";
-		assert ProjectJjkNobaraProfile.DETONATE_DAMAGE_BASE >= 12.0f : "Hairpin Explosion should comfortably kill a cow";
+		assert ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DAMAGE == 4.0f : "Hairpin Enlarge damage is applied independently per nail";
+		assert ProjectJjkNobaraProfile.DETONATE_DAMAGE_BASE == 3.0f : "Hairpin Explosion damage is applied independently per nail";
 		assert ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_RANGE == 20.0 : "ProjectJJK Hairpin Enlarge player range is 20 blocks";
-		assert ProjectJjkNobaraProfile.RESONANCE_DAMAGE == 20.0f : "physical-remnant Resonance keeps its full fixed strike damage";
-		assert ProjectJjkNobaraProfile.RESONANCE_WEAKNESS_AMPLIFIER == 2 : "physical-remnant Resonance applies the approved fixed Weakness tier";
+		assert ProjectJjkNobaraProfile.RESONANCE_DAMAGE == 28.0f : "physical-remnant Resonance uses the initial heavy balance value";
+	}
+
+	private static void assertCombatExpansionBalanceIsCentralized() {
+		assert ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DAMAGE_PER_NAIL == 4.0f;
+		assert ProjectJjkNobaraProfile.HAIRPIN_BOOM_DAMAGE_PER_NAIL == 3.0f;
+		assert ProjectJjkNobaraProfile.RESONANCE_DAMAGE == 28.0f;
+		assert ProjectJjkNobaraProfile.SELF_RESONANCE_SELF_DAMAGE == 6.0f;
+		assert ProjectJjkNobaraProfile.SELF_RESONANCE_LINKED_DAMAGE == 18.0f;
+		assert ProjectJjkNobaraProfile.BLACK_FLASH_DAMAGE_MULTIPLIER == 1.75f;
+	}
+
+	private static void assertActionTimelinesExposeImpactAndBlackFlashWindow() {
+		NobaraActionTimeline overhead = NobaraActionTimeline.OVERHEAD;
+		assert overhead.impactTick() > 0;
+		assert overhead.recoveryTicks() > overhead.impactTick();
+		assert overhead.blackFlashStartTick() <= overhead.blackFlashEndTick();
+		assert overhead.acceptsBlackFlashInput(overhead.blackFlashStartTick());
+		assert overhead.acceptsBlackFlashInput(overhead.blackFlashEndTick());
+		assert !overhead.acceptsBlackFlashInput(overhead.blackFlashStartTick() - 1);
 	}
 }

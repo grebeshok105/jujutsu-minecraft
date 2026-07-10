@@ -29,7 +29,8 @@ public final class ProjectJjkNobaraProfile {
 
 	// Hairpin mark detonation.
 	public static final double DETONATE_RANGE = 24.0;
-	public static final float DETONATE_DAMAGE_BASE = 12.0f;
+	public static final float HAIRPIN_BOOM_DAMAGE_PER_NAIL = 3.0f;
+	public static final float DETONATE_DAMAGE_BASE = HAIRPIN_BOOM_DAMAGE_PER_NAIL;
 	public static final float DETONATE_DAMAGE_PER_MARK = 0.0f;
 	public static final int HAIRPIN_EXPLOSION_START_DELAY_TICKS = 10;
 	public static final double HAIRPIN_EXPLOSION_RADIUS = 1.5;
@@ -42,12 +43,24 @@ public final class ProjectJjkNobaraProfile {
 	public static final double HAIRPIN_ENLARGE_RANGE = 20.0;
 	public static final int HAIRPIN_ENLARGE_DELAY_TICKS = 20;
 	public static final int HAIRPIN_ENLARGE_STUN_TICKS = 50;
-	public static final float HAIRPIN_ENLARGE_DAMAGE = 16.0f;
+	public static final float HAIRPIN_ENLARGE_DAMAGE_PER_NAIL = 4.0f;
+	public static final float HAIRPIN_ENLARGE_DAMAGE = HAIRPIN_ENLARGE_DAMAGE_PER_NAIL;
 
 	// Resonance (straw doll remote strike).
-	public static final float RESONANCE_DAMAGE = 20.0f;
+	public static final float RESONANCE_DAMAGE = 28.0f;
 	public static final int RESONANCE_WEAKNESS_TICKS = 80;
 	public static final int RESONANCE_WEAKNESS_AMPLIFIER = 2;
+	public static final float SELF_RESONANCE_SELF_DAMAGE = 6.0f;
+	public static final float SELF_RESONANCE_LINKED_DAMAGE = 18.0f;
+	public static final float BLACK_FLASH_DAMAGE_MULTIPLIER = 1.75f;
+	public static final int HORIZONTAL_IMPACT_TICK = 3;
+	public static final int HORIZONTAL_RECOVERY_TICKS = 8;
+	public static final int OVERHEAD_IMPACT_TICK = 8;
+	public static final int OVERHEAD_RECOVERY_TICKS = 16;
+	public static final int BLACK_FLASH_WINDOW_EARLY_TICKS = 0;
+	public static final int BLACK_FLASH_WINDOW_LATE_TICKS = 2;
+	public static final int LIGHT_STAGGER_TICKS = 5;
+	public static final int HEAVY_STAGGER_TICKS = 14;
 
 	private ProjectJjkNobaraProfile() {}
 
