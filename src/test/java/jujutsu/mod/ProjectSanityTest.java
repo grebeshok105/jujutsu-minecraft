@@ -503,7 +503,9 @@ public final class ProjectSanityTest {
 		Path itemDefinition = JUJUTSU_ASSETS.resolve("items/straw_doll.json");
 		Path itemModel = JUJUTSU_ASSETS.resolve("models/item/straw_doll.json");
 		Path sourceModel = MAIN_RESOURCES.resolve("source-assets/blockbench/straw_doll.bbmodel");
-		for (Path required : new Path[] {geo, animations, texture, itemDefinition, itemModel, sourceModel}) {
+		Path textureGenerator = MAIN_RESOURCES.resolve("source-assets/blockbench/generate_straw_doll_textures.ps1");
+		Path previewRenderer = MAIN_RESOURCES.resolve("source-assets/blockbench/render_straw_doll_preview.py");
+		for (Path required : new Path[] {geo, animations, texture, itemDefinition, itemModel, sourceModel, textureGenerator, previewRenderer}) {
 			assert Files.exists(required) : "Missing original straw doll asset: " + required;
 		}
 
@@ -511,6 +513,17 @@ public final class ProjectSanityTest {
 		assert geoJson.contains("geometry.jujutsumod.straw_doll") : "Straw doll geometry must use the jujutsumod namespace";
 		for (String bone : new String[] {"root", "body", "head", "arm_left", "arm_right", "leg_left", "leg_right"}) {
 			assert geoJson.contains("\"name\": \"" + bone + "\"") : "Straw doll is missing animated bone " + bone;
+		}
+		for (String line : geoJson.lines().toList()) {
+			Matcher boxUv = Pattern.compile("\"size\": \\[([\\d.]+), ([\\d.]+), ([\\d.]+)](?:.*)\"uv\": \\[([\\d.]+), ([\\d.]+)]").matcher(line);
+			if (boxUv.find()) {
+				double sizeX = Double.parseDouble(boxUv.group(1));
+				double sizeY = Double.parseDouble(boxUv.group(2));
+				double sizeZ = Double.parseDouble(boxUv.group(3));
+				double maxU = Double.parseDouble(boxUv.group(4)) + 2.0 * (sizeX + sizeZ);
+				double maxV = Double.parseDouble(boxUv.group(5)) + sizeZ + sizeY;
+				assert maxU <= 64.001 && maxV <= 64.001 : "Straw doll box UV exceeds the 64x64 texture: " + line.trim();
+			}
 		}
 
 		String animationJson = Files.readString(animations);
@@ -524,8 +537,27 @@ public final class ProjectSanityTest {
 				: "Minecraft 1.21.8 item definition must delegate to GeckoLib 5 special rendering";
 		assert Files.readString(itemModel).contains("\"parent\": \"builtin/entity\"")
 				: "Straw doll display model must use builtin/entity";
-		assert Files.readString(sourceModel).contains("\"model_identifier\": \"geometry.jujutsumod.straw_doll\"")
+		String sourceModelJson = Files.readString(sourceModel);
+		assert sourceModelJson.contains("\"model_identifier\": \"geometry.jujutsumod.straw_doll\"")
 				: "Blockbench source must retain the exported geometry identity";
+		assert !sourceModelJson.contains("\"animators\":{}")
+				: "Blockbench source must retain editable keyframes for every Straw Doll animation";
+		assert sourceModelJson.split("\\\"type\\\":\\\"cube\\\"", -1).length - 1 >= 25
+				: "Blockbench source must retain every detailed runtime cube, not a reduced blockout";
+		assert sourceModelJson.split("\\\"type\\\":\\\"bone\\\"", -1).length - 1 >= 14
+				: "Blockbench source must retain all runtime animation bone tracks";
+		String previewSource = Files.readString(previewRenderer);
+		assert previewSource.contains("Image.open(TEXTURE)") && previewSource.contains("texture_color")
+				: "Headless asset previews must sample the actual runtime texture instead of heuristic colors";
+
+		for (String forbiddenCopy : new String[] {
+				"geo/projectjjk/doll.geo.json",
+				"animations/projectjjk/doll.animation.json",
+				"textures/projectjjk/entity/doll.png"
+		}) {
+			assert !Files.exists(JUJUTSU_ASSETS.resolve(forbiddenCopy))
+					: "ProjectJJK research doll asset must not be packaged in the runtime namespace: " + forbiddenCopy;
+		}
 
 		Path itemClass = MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkStrawDollItem.java");
 		Path renderer = CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/doll/ProjectJjkStrawDollRenderer.java");

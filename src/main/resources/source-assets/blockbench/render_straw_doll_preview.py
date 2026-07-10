@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[5]
 GEOMETRY = ROOT / "src/main/resources/assets/jujutsumod/geo/straw_doll.geo.json"
+TEXTURE = ROOT / "src/main/resources/assets/jujutsumod/textures/item/straw_doll.png"
 OUTPUT = ROOT / "build/asset-previews"
 
 
@@ -21,7 +22,16 @@ def rotate(point: tuple[float, float, float], pivot: list[float], degrees: list[
     return x + pivot[0], y + pivot[1], z + pivot[2]
 
 
-def cube_faces(cube: dict, bone: dict) -> list[tuple[list[tuple[float, float, float]], tuple[int, int, int]]]:
+def texture_color(texture: Image.Image, uv: list[float]) -> tuple[int, int, int]:
+    left = max(0, min(texture.width - 1, int(uv[0])))
+    top = max(0, min(texture.height - 1, int(uv[1])))
+    right = min(texture.width, left + 4)
+    bottom = min(texture.height, top + 4)
+    pixels = list(texture.crop((left, top, right, bottom)).convert("RGB").get_flattened_data())
+    return tuple(round(sum(pixel[channel] for pixel in pixels) / len(pixels)) for channel in range(3))
+
+
+def cube_faces(cube: dict, bone: dict, texture: Image.Image) -> list[tuple[list[tuple[float, float, float]], tuple[int, int, int]]]:
     ox, oy, oz = cube["origin"]
     sx, sy, sz = cube["size"]
     corners = [
@@ -33,17 +43,18 @@ def cube_faces(cube: dict, bone: dict) -> list[tuple[list[tuple[float, float, fl
         corners = [rotate(point, pivot, cube["rotation"]) for point in corners]
     if "rotation" in bone:
         corners = [rotate(point, bone["pivot"], bone["rotation"]) for point in corners]
-    base = (45, 57, 49) if cube.get("uv", [0])[0] >= 48 else (181, 153, 76)
+    base = texture_color(texture, cube.get("uv", [0, 0]))
     faces = ((0, 1, 2, 3), (4, 7, 6, 5), (0, 4, 5, 1), (3, 2, 6, 7), (1, 5, 6, 2), (0, 3, 7, 4))
     return [([corners[index] for index in face], base) for face in faces]
 
 
 def render(name: str, yaw: float, pitch: float) -> None:
     data = json.loads(GEOMETRY.read_text(encoding="utf-8"))["minecraft:geometry"][0]
+    texture = Image.open(TEXTURE).convert("RGBA")
     faces = []
     for bone in data["bones"]:
         for cube in bone.get("cubes", []):
-            faces.extend(cube_faces(cube, bone))
+            faces.extend(cube_faces(cube, bone, texture))
 
     yaw_radians = math.radians(yaw)
     pitch_radians = math.radians(pitch)
