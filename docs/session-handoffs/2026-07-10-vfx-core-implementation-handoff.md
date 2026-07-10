@@ -184,6 +184,58 @@ The SDD report is intentionally ignored scratch and may disappear if the worktre
 
 Для нового персонажа агенту достаточно прочитать `AGENTS.md` и `Jujutsu Kaizen/jujutsumod-codebase-codex/04-client-vfx/VFX-core.md`. Manual gameplay/two-client QA остаётся в прежнем статусе и не проверялось этой документационной правкой.
 
+## 2026-07-10 Addendum — Entity Anchor Offset Fix
+
+### Почему работа была открыта снова
+
+После передачи архива внешний агент попросил проверить entity-anchored VFX: живой entity anchor мог полностью заменить исходный `VfxCue.origin()` и тем самым потерять смещение эффекта относительно ног сущности. Пользователь передал скриншоты этого замечания и приказал исправлять без дополнительных вопросов.
+
+Проверка подтвердила реальный дефект. Старый `VfxAnchorResolver` возвращал `anchor` вместо исходного origin, поэтому cue, созданный в `caster.getEyePosition()`, при живом caster разрешался в `entity.position()` на уровне ног. Временный минимальный probe воспроизвёл симптом сообщением `AssertionError: live anchor lost eye offset`.
+
+### Как находили и проверяли
+
+1. Работа продолжалась только в linked worktree `D:\WorkFlow\Jujutsu Minecraft\.worktrees\nobara-cinematic-slice` на `codex/nobara-cinematic-slice`; dirty main checkout не редактировался.
+2. Были прочитаны `AGENTS.md`, этот handoff, design `docs/superpowers/specs/2026-07-10-vfx-anchor-offset-design.md` и plan `docs/superpowers/plans/2026-07-10-vfx-anchor-offset.md`.
+3. Через `mcpvault` read-only прочитаны `grok-projectjjk-codex/00-MOC.md`, `01-meta/Citation-standard.md` и текущие VFX/codebase notes. Live vault по-прежнему указывает на main checkout, поэтому versioned codex менялся только в worktree.
+4. Через codebase-memory project `D-WorkFlow-Jujutsu-Minecraft-.worktrees-nobara-cinematic-slice` были найдены `VfxCue`, `VfxCuePayload`, `VfxAnchorResolver` и оба server cue helper. Точные constructor census и line anchors затем проверены scoped `rg`; cached graph signature одного helper оставалась старой, поэтому source snippet и реальные файлы считались authoritative.
+5. Корневая причина была сведена к одной строке: live anchor заменял origin целиком. Выбран минимальный world-space offset, без attachment enum, yaw/pose rotation, bones или channel refactor.
+
+### Что изменено
+
+- `VfxCue` теперь имеет семь полей и переносит `Vec3 anchorOffset` сразу после `anchorEntityId`.
+- `VfxCuePayload` читает и пишет `anchorOffset` в том же месте codec order.
+- `VfxAnchorResolver` возвращает `cue.origin()` для `NO_ANCHOR` или отсутствующего entity; для живого anchor возвращает `anchor.position() + cue.anchorOffset()`.
+- Оба server helper создают unanchored cue с `Vec3.ZERO`. Anchored helper теперь принимает `Entity` и сохраняет `origin.subtract(anchor.position())` в authoritative server point.
+- Четыре anchored call site передают entity, а не сырой ID: hammer, resonance channel, detonate и first-person snap.
+- `VfxAnchorResolverTest`, `VfxCueTest` и `VfxTimelineTest` обновлены для zero offset, eye-height offset при движении, missing-anchor fallback, shared fields и payload round-trip.
+- Versioned codex обновлён в `04-client-vfx/VFX-core.md`, `05-reference/Public-api-surface.md`, `05-reference/Claim-Source-Index.md` и `06-maintenance/How-to-add-next-character.md`.
+
+### Commit ledger
+
+- `ff48e17 docs(vfx): design anchor offset fix`
+- `ce46bfb docs(vfx): plan anchor offset fix`
+- `a2cf61c fix(vfx): preserve entity anchor offsets`
+- `7091fc2 docs(vfx): document entity anchor offsets`
+- `3b41fcd docs(vfx): record anchor offset verification`
+- Handoff update: commit containing this addendum.
+
+### TDD, build, review и JAR evidence
+
+- Pre-plan probe: `AssertionError: live anchor lost eye offset`.
+- Настоящий RED: `.\gradlew.bat testVfxAnchor testVfxCore --no-daemon` не скомпилировался, потому что production `VfxCue` ещё не имел seven-field constructor и `anchorOffset()`.
+- Focused GREEN: `.\gradlew.bat testVfxAnchor testVfxCore testVfxTimeline --no-daemon` — `VfxAnchorResolverTest passed`, `VfxCueTest passed`, `VfxTimelineTest passed`, `BUILD SUCCESSFUL in 13s`. Дополнительный отдельный `testVfxAnchor` также прошёл.
+- Fresh full verification после code + codex: `.\gradlew.bat check --no-daemon` — `BUILD SUCCESSFUL in 11s`; все семь assertion tasks прошли.
+- Fresh runtime package: `.\gradlew.bat build --no-daemon -x test` — `BUILD SUCCESSFUL in 13s`; все семь assertion tasks также прошли через project build wiring.
+- `git diff --check` не нашёл whitespace errors.
+- Built JAR: `build/libs/jujutsumod-1.0.0.jar`, 2,102,352 bytes, SHA-256 `49D9FE8619EB9A3E457908FCCFC8C19F22AE326571B85BF488375E1D9C050EE6`.
+- Installed JAR: `D:\Games\instances\Jujutsu\mods\jujutsumod-1.0.0.jar`, те же 2,102,352 bytes и тот же SHA-256; `HashesEqual = true`.
+- Один независимый read-only reviewer на унаследованной конфигурации `gpt-5.6-sol / medium` проверил `ff48e17..7091fc2`: Critical none, Important none, Minor none, `Findings: none / Ready: Yes`.
+- Computer Use, UI automation и новый `runClient` не использовались.
+
+### Что всё ещё не доказано автоматически
+
+Compilation/tests доказывают transport/resolver contract, но не визуальное ощущение в игре. Manual gameplay и two-client QA не выполнялись и остаются **UNVERIFIED**. Следующая ручная проверка должна отдельно посмотреть eye-level caster effects при движении, detonate/resonance/first-person snap, а также fallback после death/despawn anchor. Остальные hammer/launch, Enlarge/Boom, reduced-particle и observer-view сценарии сохраняют прежний ручной статус.
+
 ## Suggested Skills
 
 - `using-git-worktrees`
