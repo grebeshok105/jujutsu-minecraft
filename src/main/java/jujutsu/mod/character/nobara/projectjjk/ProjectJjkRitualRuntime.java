@@ -105,14 +105,16 @@ public final class ProjectJjkRitualRuntime {
 			playCasterSnap(level, caster, 1, gameTime);
 			return true;
 		}
-		int marks = ProjectJjkNailMarks.marks(target.getUUID(), gameTime);
-		if (marks <= 0) {
+		List<UUID> nails = level.getEntitiesOfClass(ProjectJjkNailEntity.class, target.getBoundingBox().inflate(2.0), nail ->
+				nail.isEmbedded() && nail.isOwnedBy(caster.getUUID()) && target.getUUID().equals(nail.anchor().stableId()))
+				.stream().map(Entity::getUUID).toList();
+		if (nails.isEmpty()) {
 			playCasterSnap(level, caster, 1, gameTime);
 			return true;
 		}
 
-		playCasterSnap(level, caster, Math.max(1, marks), gameTime);
-		PENDING_ENLARGES.add(new PendingEnlarge(level, caster.getUUID(), target.getUUID(), target.getId(), gameTime + ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DELAY_TICKS, marks));
+		playCasterSnap(level, caster, nails.size(), gameTime);
+		PENDING_ENLARGES.add(new PendingEnlarge(level, caster.getUUID(), target.getUUID(), target.getId(), gameTime + ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DELAY_TICKS, nails));
 		return true;
 	}
 
@@ -157,30 +159,11 @@ public final class ProjectJjkRitualRuntime {
 				}
 				anchoredEntities.add(nail.getId());
 				UUID targetId = nail.embeddedTargetUuid();
-				int marks = targetId == null ? 1 : Math.max(1, ProjectJjkNailMarks.marks(targetId, gameTime));
 				if (targetId != null) {
 					anchoredTargets.add(targetId);
 				}
-				anchors.add(ExplosionAnchor.nail(nail.getId(), marks, targetId, nail.embeddedTargetEntityId()));
+				anchors.add(ExplosionAnchor.nail(nail.getId(), 1, targetId, nail.embeddedTargetEntityId()));
 			}
-		}
-		for (Entity entity : level.getEntities(caster, area, e -> e instanceof LivingEntity living && living.isAlive())) {
-			if (!(entity instanceof LivingEntity living)) {
-				continue;
-			}
-			if (!isInsideSearchCapsule(living.position().add(0.0, living.getBbHeight() * 0.5, 0.0), searchStart, searchEnd, searchRadius)) {
-				continue;
-			}
-			if (anchoredTargets.contains(living.getUUID())) {
-				continue;
-			}
-			int marks = ProjectJjkNailMarks.marks(living.getUUID(), gameTime);
-			if (marks <= 0) {
-				continue;
-			}
-			anchoredTargets.add(living.getUUID());
-			anchoredEntities.add(living.getId());
-			anchors.add(ExplosionAnchor.target(living.getId(), marks, living.getUUID(), living.getId()));
 		}
 		if (anchors.isEmpty()) {
 			collectNearbyExplosionAnchors(level, caster, gameTime, anchors, anchoredTargets, anchoredEntities);
@@ -196,23 +179,10 @@ public final class ProjectJjkRitualRuntime {
 				continue;
 			}
 			UUID targetId = nail.embeddedTargetUuid();
-			int marks = targetId == null ? 1 : Math.max(1, ProjectJjkNailMarks.marks(targetId, gameTime));
 			if (targetId != null) {
 				anchoredTargets.add(targetId);
 			}
-			anchors.add(ExplosionAnchor.nail(nail.getId(), marks, targetId, nail.embeddedTargetEntityId()));
-		}
-		for (Entity entity : level.getEntities(caster, fallbackArea, e -> e instanceof LivingEntity living && living.isAlive())) {
-			if (!(entity instanceof LivingEntity living) || anchoredEntities.contains(living.getId()) || anchoredTargets.contains(living.getUUID())) {
-				continue;
-			}
-			int marks = ProjectJjkNailMarks.marks(living.getUUID(), gameTime);
-			if (marks <= 0) {
-				continue;
-			}
-			anchoredTargets.add(living.getUUID());
-			anchoredEntities.add(living.getId());
-			anchors.add(ExplosionAnchor.target(living.getId(), marks, living.getUUID(), living.getId()));
+			anchors.add(ExplosionAnchor.nail(nail.getId(), 1, targetId, nail.embeddedTargetEntityId()));
 		}
 	}
 
@@ -256,19 +226,30 @@ public final class ProjectJjkRitualRuntime {
 			}
 			target = living;
 		}
-		DamageSource source = caster == null ? level.damageSources().magic() : level.damageSources().indirectMagic(caster, caster);
-		target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_STUN_TICKS, 2));
-		target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_STUN_TICKS, 1));
-		target.hurtServer(level, source, ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DAMAGE);
+		DamageSource source = NobaraDamageSources.hairpin(level, caster);
+		int activated = 0;
+		for (UUID nailId : pending.nailIds()) {
+			Entity entityNail = level.getEntity(nailId);
+			if (!(entityNail instanceof ProjectJjkNailEntity nail) || !nail.isOwnedBy(pending.casterId())
+					|| !target.getUUID().equals(nail.anchor().stableId())) {
+				continue;
+			}
+			target.hurtServer(level, source, ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DAMAGE_PER_NAIL);
+			activated++;
+			Vec3 nailAt = nail.position();
+			broadcast(level, nailAt, NobaraVfxIds.ENLARGE, 1, nailAt, gameTime);
+			nail.discard();
+		}
+		if (activated == 0) {
+			return;
+		}
 		ProjectJjkNailMarks.consume(target.getUUID(), gameTime);
-		discardOwnedEmbeddedNails(level, pending.casterId(), target);
 		Vec3 at = target.position().add(0.0, target.getBbHeight() * 0.56, 0.0);
-		spawnProjectJjkEnlarge(level, at, pending.marks());
+		spawnProjectJjkEnlarge(level, at, activated);
 		level.playSound(null, at.x, at.y, at.z, SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 0.25f, 2.0f);
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, SoundSource.PLAYERS, 2.0f, 2.0f);
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_GOO_FOLEY, SoundSource.PLAYERS, 0.25f, 1.5f);
 		clearGlowingMark(target);
-		broadcast(level, at, NobaraVfxIds.ENLARGE, pending.marks(), at, gameTime);
 	}
 
 	private static void explodeAnchor(ServerLevel level, ServerPlayer caster, ExplosionAnchor anchor, long gameTime) {
@@ -282,7 +263,7 @@ public final class ProjectJjkRitualRuntime {
 		if (sourceEntity instanceof ProjectJjkNailEntity nail) {
 			nail.discard();
 		}
-		DamageSource source = caster == null ? level.damageSources().magic() : level.damageSources().indirectMagic(caster, caster);
+		DamageSource source = NobaraDamageSources.hairpin(level, caster);
 		float damage = ProjectJjkNobaraProfile.detonateDamage(anchor.marks());
 		AABB blast = new AABB(at, at).inflate(ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_RADIUS);
 		for (Entity entity : level.getEntitiesOfClass(Entity.class, blast, e -> e instanceof LivingEntity living && living.isAlive())) {
@@ -498,7 +479,7 @@ public final class ProjectJjkRitualRuntime {
 		return vector.lengthSqr() < 1.0E-5 ? new Vec3(0.0, 0.0, 1.0) : vector.normalize();
 	}
 
-	private record PendingEnlarge(ServerLevel level, UUID casterId, UUID targetId, int targetEntityId, long dueGameTime, int marks) {}
+	private record PendingEnlarge(ServerLevel level, UUID casterId, UUID targetId, int targetEntityId, long dueGameTime, List<UUID> nailIds) {}
 
 	private record MarkGlowState(String scoreboardName, String previousTeamName) {}
 

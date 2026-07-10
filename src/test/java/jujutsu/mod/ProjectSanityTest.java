@@ -31,6 +31,7 @@ public final class ProjectSanityTest {
 	private ProjectSanityTest() {}
 
 	public static void main(String[] args) throws IOException {
+		assertPerNailHairpinDamageContract();
 		assertParticleJsonTexturesExist();
 		assertItemDefinitionsResolveToTextures();
 		assertDefaultNobaraItemsUseProjectJjkModels();
@@ -63,6 +64,17 @@ public final class ProjectSanityTest {
 		assertSoundReferencesAreLocalAndPresent();
 		assertNoForbiddenImports();
 		System.out.println("ProjectSanityTest passed");
+	}
+
+	private static void assertPerNailHairpinDamageContract() throws IOException {
+		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
+		String damage = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/NobaraDamageSources.java"));
+		String bypassTag = Files.readString(MAIN_RESOURCES.resolve("data/minecraft/tags/damage_type/bypasses_cooldown.json"));
+		assert ritual.contains("nail.anchor().stableId()") : "Enlarge must select concrete embedded nails";
+		assert ritual.contains("HAIRPIN_ENLARGE_DAMAGE_PER_NAIL") : "Enlarge must damage once per concrete nail";
+		assert !ritual.contains("ProjectJjkNailMarks.marks(living.getUUID(), gameTime)") : "Boom must not synthesize aggregate anchors from marks";
+		assert damage.contains("HAIRPIN") : "Hairpin needs a dedicated damage type";
+		assert bypassTag.contains("jujutsumod:hairpin") : "Hairpin damage must bypass vanilla hurt cooldown";
 	}
 
 	private static void assertParticleJsonTexturesExist() throws IOException {
@@ -273,8 +285,8 @@ public final class ProjectSanityTest {
 	private static void assertProjectJjkHairpinFinisherNumbers() throws IOException {
 		String profile = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraProfile.java"));
 		assert profile.contains("HAIRPIN_ENLARGE_RANGE = 20.0") : "Hairpin Enlarge range should match ProjectJJK player ability registry";
-		assert profile.contains("HAIRPIN_ENLARGE_DAMAGE = 16.0f") : "Hairpin Enlarge should be tuned high enough to kill a cow";
-		assert profile.contains("DETONATE_DAMAGE_BASE = 12.0f") : "Hairpin Explosion should be tuned high enough to kill a cow";
+		assert profile.contains("HAIRPIN_ENLARGE_DAMAGE_PER_NAIL = 4.0f") : "Hairpin Enlarge should use the approved initial per-nail balance";
+		assert profile.contains("HAIRPIN_BOOM_DAMAGE_PER_NAIL = 3.0f") : "Hairpin Explosion should use the approved initial per-nail balance";
 		assert profile.contains("DETONATE_DAMAGE_PER_MARK = 0.0f") : "Hairpin Explosion must not scale from old jujutsumod mark damage";
 	}
 
@@ -289,8 +301,8 @@ public final class ProjectSanityTest {
 		assert nailEntity.contains("ProjectJjkNailEmbedding.bodyEmbedPoint") : "Embedded nails must use body-space attachment math, not AABB clamp-only placement";
 		assert !nailEntity.contains("setOldPosAndRot(next") : "Embedded nails must not reset old position each tick; that creates visible chase/teleporting";
 		assert nailEntity.contains("embeddedLocalOffset()") : "Embedded nail renderer needs synced local body offset for render-attaching to the host";
-		assert nailEntity.contains("level().isClientSide() ? entityData.get(DATA_EMBEDDED_TARGET_ID) : embeddedTargetId") : "Client embedded nail rendering must read the synced target id, not the stale server-only field";
-		assert nailEntity.contains("target.yBodyRot") : "Embedded nails must anchor to body rotation, not head/look yaw";
+		assert nailEntity.contains("level().isClientSide() ? entityData.get(DATA_EMBEDDED_TARGET_ID) : anchor.cachedEntityId()") : "Client embedded nail rendering must read the synced target id while the server uses the UUID-backed anchor cache";
+		assert nailEntity.contains("living.yBodyRot") : "Embedded living-target nails must anchor to body rotation, not head/look yaw";
 		String nailRenderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/ProjectJjkNailRenderer.java"));
 		assert !nailRenderer.contains("renderEmbeddedMark(") : "Embedded nails must not restore the removed broad translucent mark envelope";
 		assert nailRenderer.contains("renderEmbeddedMarkPulse") : "Embedded nails must keep only the approved faint readable mark pulse";
