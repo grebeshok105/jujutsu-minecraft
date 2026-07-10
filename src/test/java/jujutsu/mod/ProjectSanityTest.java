@@ -520,6 +520,9 @@ public final class ProjectSanityTest {
 		for (Path required : new Path[] {geo, animations, texture, itemDefinition, itemModel, sourceModel, textureGenerator, previewRenderer}) {
 			assert Files.exists(required) : "Missing original straw doll asset: " + required;
 		}
+		String buildScript = Files.readString(ROOT.resolve("build.gradle"));
+		assert Pattern.compile("exclude\\s+[\\\"']source-assets/\\*\\*[\\\"']").matcher(buildScript).find()
+				: "Editable source assets and generators must not be packaged into the runtime JAR";
 
 		String geoJson = Files.readString(geo);
 		assert geoJson.contains("geometry.jujutsumod.straw_doll") : "Straw doll geometry must use the jujutsumod namespace";
