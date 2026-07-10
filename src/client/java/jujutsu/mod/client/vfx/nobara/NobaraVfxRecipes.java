@@ -209,6 +209,7 @@ public final class NobaraVfxRecipes {
 				context.burst(JujutsuParticles.HAIRPIN_SNAP_CRACK, origin, 12, 0.24, 0.12, random);
 				context.burst(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, origin, 7, 0.32, 0.24, random);
 				context.playNoFalloff(SoundEvents.ANVIL_USE, 0.9f * proximity, 1.34f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_CLAP, 0.9f * proximity, 0.9f, origin, random);
 			}
 			if (proximity > 0.01f) {
 				context.camera().triggerHeavyImpact(intensity(cue), proximity * 0.72f, initialAgeTicks);
@@ -224,7 +225,9 @@ public final class NobaraVfxRecipes {
 			int marks = intensity(cue);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				Vec3 origin = context.resolveOrigin(cue);
-				spawnResonanceBurst(context, origin, marks, random(cue, 0x5A17E0L));
+				RandomSource random = random(cue, 0x5A17E0L);
+				spawnResonanceBurst(context, origin, marks, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, 1.0f, 0.78f, origin, random);
 			}
 			float proximity = context.proximity(cue, 64.0);
 			if (proximity > 0.01f) {

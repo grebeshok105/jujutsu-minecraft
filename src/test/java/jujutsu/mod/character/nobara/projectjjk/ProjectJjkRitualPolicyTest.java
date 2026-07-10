@@ -7,6 +7,7 @@ public final class ProjectJjkRitualPolicyTest {
 		assertValidationOrder();
 		assertRangeBoundary();
 		assertConsumptionDecision();
+		assertSuccessfulOrdinaryHitDecision();
 		System.out.println("ProjectJjkRitualPolicyTest passed");
 	}
 
@@ -29,6 +30,16 @@ public final class ProjectJjkRitualPolicyTest {
 		for (ProjectJjkRitualPolicy.Validation validation : ProjectJjkRitualPolicy.Validation.values()) {
 			assert ProjectJjkRitualPolicy.shouldConsume(validation) == (validation == ProjectJjkRitualPolicy.Validation.OK);
 		}
+	}
+
+	private static void assertSuccessfulOrdinaryHitDecision() {
+		assert ProjectJjkRitualPolicy.isSuccessfulOrdinaryHit(true, false, false);
+		assert !ProjectJjkRitualPolicy.isSuccessfulOrdinaryHit(false, false, false)
+				: "rejected damage must not advance marks or remnant progress";
+		assert !ProjectJjkRitualPolicy.isSuccessfulOrdinaryHit(true, true, false)
+				: "explosive impacts must not advance ordinary-hit progression";
+		assert !ProjectJjkRitualPolicy.isSuccessfulOrdinaryHit(true, false, true)
+				: "self hits must not advance ordinary-hit progression";
 	}
 
 	private static ProjectJjkRitualPolicy.Validation validate(

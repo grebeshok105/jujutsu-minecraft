@@ -42,6 +42,10 @@ public final class ProjectJjkRitualPolicy {
 		return validation == Validation.OK;
 	}
 
+	public static boolean isSuccessfulOrdinaryHit(boolean damageAccepted, boolean explosiveImpact, boolean selfHit) {
+		return damageAccepted && !explosiveImpact && !selfHit;
+	}
+
 	public enum Validation {
 		OK,
 		NO_DOLL,

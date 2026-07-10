@@ -478,6 +478,10 @@ public final class ProjectSanityTest {
 		assert ritual.contains("RITUAL_WINDUP_TICKS = 14") : "Resonance must keep the approved readable wind-up";
 		assert ritual.contains("consumeResources(caster, remnant)") : "Resonance must consume one remnant and one nail only at impact";
 		assert ritual.contains("ProjectJjkRitualPolicy.validate") : "Runtime validation must use the tested ritual policy";
+		assert ritual.contains("ServerEntityEvents.ENTITY_UNLOAD")
+				: "Partial remnant progress must clear when a living target unloads";
+		assert !ritual.contains("sendParticles(") && !ritual.contains("playSound(") && !ritual.contains("spawnResonanceStrike")
+				: "Transient Straw Doll ritual feedback must travel only through VFX Core cues";
 
 		String hammer = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkHammerItem.java"));
 		assert hammer.contains("ProjectJjkStrawDollRuntime.tryStart") : "Shift-hammer must start the physical remnant ritual";

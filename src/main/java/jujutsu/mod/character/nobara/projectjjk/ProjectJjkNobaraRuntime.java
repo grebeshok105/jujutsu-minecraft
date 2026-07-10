@@ -145,9 +145,10 @@ public final class ProjectJjkNobaraRuntime {
 		LivingEntity directTarget = null;
 		if (hit instanceof EntityHitResult entityHit && entityHit.getEntity() instanceof LivingEntity livingTarget) {
 			directTarget = livingTarget;
-			hurtTarget(level, owner, directTarget, source, ProjectJjkNobaraProfile.NAIL_DAMAGE, point, 0.9f);
-			// Direct hits preserve Hairpin marks and independently advance remnant acquisition.
-			if (!explosiveImpact && !(owner != null && directTarget.getUUID().equals(owner.getUUID()))) {
+			boolean damageAccepted = hurtTarget(level, owner, directTarget, source, ProjectJjkNobaraProfile.NAIL_DAMAGE, point, 0.9f);
+			boolean selfHit = owner != null && directTarget.getUUID().equals(owner.getUUID());
+			// Accepted ordinary hits preserve Hairpin marks and independently advance remnant acquisition.
+			if (ProjectJjkRitualPolicy.isSuccessfulOrdinaryHit(damageAccepted, explosiveImpact, selfHit)) {
 				ProjectJjkRitualRuntime.markTarget(level, directTarget, owner, point);
 				ProjectJjkStrawDollRuntime.onOrdinaryNailHit(level, owner, directTarget, point);
 			}
@@ -276,17 +277,20 @@ public final class ProjectJjkNobaraRuntime {
 				.toList();
 	}
 
-	private static void hurtTarget(ServerLevel level, ServerPlayer owner, LivingEntity target, DamageSource source, float damage, Vec3 impact, float knockback) {
+	private static boolean hurtTarget(ServerLevel level, ServerPlayer owner, LivingEntity target, DamageSource source, float damage, Vec3 impact, float knockback) {
 		if (owner != null && target.getUUID().equals(owner.getUUID())) {
-			return;
+			return false;
 		}
-		target.hurtServer(level, source, damage);
+		if (!target.hurtServer(level, source, damage)) {
+			return false;
+		}
 		Vec3 direction = target.position().subtract(impact);
 		if (direction.lengthSqr() < 1.0E-5 && owner != null) {
 			direction = owner.getLookAngle();
 		}
 		direction = safeDirection(direction);
 		target.knockback(knockback, -direction.x, -direction.z);
+		return true;
 	}
 
 	private static ServerPlayer owner(ServerLevel level, UUID ownerUuid) {

@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -16,7 +17,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -28,8 +28,6 @@ import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuDataComponents;
 import jujutsu.mod.registry.JujutsuItems;
-import jujutsu.mod.registry.JujutsuParticles;
-import jujutsu.mod.registry.JujutsuSounds;
 import jujutsu.mod.vfx.NobaraVfxIds;
 import jujutsu.mod.vfx.VfxCue;
 
@@ -46,6 +44,11 @@ public final class ProjectJjkStrawDollRuntime {
 		ServerTickEvents.END_SERVER_TICK.register(ProjectJjkStrawDollRuntime::onServerTick);
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> clearAll());
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> clearCaster(handler.player.getUUID()));
+		ServerEntityEvents.ENTITY_UNLOAD.register((entity, level) -> {
+			if (entity instanceof LivingEntity) {
+				REMNANT_PROGRESS.clearTarget(entity.getUUID());
+			}
+		});
 		ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
 			REMNANT_PROGRESS.clearTarget(entity.getUUID());
 			if (entity instanceof ServerPlayer player) {
@@ -79,8 +82,6 @@ public final class ProjectJjkStrawDollRuntime {
 		ItemEntity dropped = new ItemEntity(level, dropAt.x, dropAt.y, dropAt.z, stack);
 		dropped.setDefaultPickUpDelay();
 		level.addFreshEntity(dropped);
-		level.sendParticles(JujutsuParticles.HAIRPIN_MARK_STAIN, dropAt.x, dropAt.y, dropAt.z, 8, 0.16, 0.14, 0.16, 0.01);
-		level.playSound(null, dropAt.x, dropAt.y, dropAt.z, JujutsuSounds.PROJECTJJK_CHIME, SoundSource.PLAYERS, 0.72f, 1.24f);
 		JujutsuNetworking.broadcastVfxCue(level, dropAt, VFX_RADIUS,
 				cue(level, NobaraVfxIds.REMNANT_DROP, 1, dropAt, level.getGameTime(), target));
 	}
@@ -102,7 +103,6 @@ public final class ProjectJjkStrawDollRuntime {
 		PENDING_RITUALS.put(caster.getUUID(), pending);
 		triggerDollRitual(caster);
 		Vec3 origin = caster.getEyePosition().add(caster.getLookAngle().scale(0.45));
-		caster.level().playSound(null, caster.getX(), caster.getY(), caster.getZ(), JujutsuSounds.PROJECTJJK_MAGIC, SoundSource.PLAYERS, 0.82f, 0.72f);
 		JujutsuNetworking.broadcastVfxCue(caster.level(), caster.position(), VFX_RADIUS,
 				cue(caster.level(), NobaraVfxIds.RITUAL_BIND, 1, origin, caster.level().getGameTime(), caster));
 		caster.displayClientMessage(Component.translatable(
@@ -229,9 +229,6 @@ public final class ProjectJjkStrawDollRuntime {
 		ProjectJjkRitualRuntime.clearGlowingMark(target);
 
 		Vec3 targetOrigin = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
-		ProjectJjkRitualRuntime.spawnResonanceStrike(level, targetOrigin, marks);
-		level.playSound(null, targetOrigin.x, targetOrigin.y, targetOrigin.z, JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, SoundSource.PLAYERS, 1.0f, 0.78f);
-		level.playSound(null, caster.getX(), caster.getY(), caster.getZ(), JujutsuSounds.PROJECTJJK_CLAP, SoundSource.PLAYERS, 0.9f, 0.9f);
 		Vec3 dollOrigin = caster.getEyePosition().add(caster.getLookAngle().scale(0.45));
 		JujutsuNetworking.broadcastVfxCue(level, caster.position(), VFX_RADIUS,
 				cue(level, NobaraVfxIds.DOLL_STRIKE, Math.max(1, marks), dollOrigin, gameTime, caster));
