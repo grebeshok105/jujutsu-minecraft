@@ -18,6 +18,7 @@ public record VfxCuePayload(VfxCue cue) implements CustomPacketPayload {
 				buffer.readResourceLocation(),
 				buffer.readVec3(),
 				buffer.readVarInt(),
+				buffer.readVec3(),
 				buffer.readVarInt(),
 				buffer.readLong(),
 				buffer.readLong()
@@ -28,6 +29,7 @@ public record VfxCuePayload(VfxCue cue) implements CustomPacketPayload {
 		buffer.writeResourceLocation(cue.effectId());
 		buffer.writeVec3(cue.origin());
 		buffer.writeVarInt(cue.anchorEntityId());
+		buffer.writeVec3(cue.anchorOffset());
 		buffer.writeVarInt(cue.intensity());
 		buffer.writeLong(cue.startGameTime());
 		buffer.writeLong(cue.seed());

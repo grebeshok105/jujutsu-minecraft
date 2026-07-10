@@ -11,6 +11,6 @@ public final class VfxAnchorResolver {
 			return cue.origin();
 		}
 		Vec3 anchor = anchorPosition.apply(cue.anchorEntityId());
-		return anchor == null ? cue.origin() : anchor;
+		return anchor == null ? cue.origin() : anchor.add(cue.anchorOffset());
 	}
 }

@@ -150,7 +150,7 @@ public final class ProjectJjkRitualRuntime {
 		discardOwnedEmbeddedNails(level, casterId, target);
 		clearGlowingMark(target);
 		broadcast(level, at, NobaraVfxIds.RESONANCE_STRIKE, marks, at, gameTime);
-		JujutsuNetworking.sendVfxCue(caster, cue(level, NobaraVfxIds.RESONANCE_CHANNEL, marks, caster.getEyePosition(), gameTime, caster.getId()));
+		JujutsuNetworking.sendVfxCue(caster, cue(level, NobaraVfxIds.RESONANCE_CHANNEL, marks, caster.getEyePosition(), gameTime, caster));
 		ProjectJjkResonanceLink.clear(casterId);
 	}
 
@@ -200,7 +200,7 @@ public final class ProjectJjkRitualRuntime {
 		}
 		playCasterSnap(level, caster, anchors.size(), gameTime);
 		JujutsuNetworking.sendVfxCue(caster,
-				cue(level, NobaraVfxIds.DETONATE, anchors.size(), caster.getEyePosition(), gameTime, caster.getId()));
+				cue(level, NobaraVfxIds.DETONATE, anchors.size(), caster.getEyePosition(), gameTime, caster));
 		consumeAnchorMarks(level, anchors, gameTime);
 		PENDING_EXPLOSIONS.add(new PendingExplosion(level, caster.getUUID(), anchors, gameTime + ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_START_DELAY_TICKS));
 		return true;
@@ -599,17 +599,17 @@ public final class ProjectJjkRitualRuntime {
 	}
 
 	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 at, long gameTime) {
-		return cue(level, effectId, intensity, at, gameTime, VfxCue.NO_ANCHOR);
+		return new VfxCue(effectId, at, VfxCue.NO_ANCHOR, Vec3.ZERO, Math.max(1, intensity), gameTime, level.random.nextLong());
 	}
 
-	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 at, long gameTime, int anchorEntityId) {
-		return new VfxCue(effectId, at, anchorEntityId, Math.max(1, intensity), gameTime, level.random.nextLong());
+	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 at, long gameTime, Entity anchor) {
+		return new VfxCue(effectId, at, anchor.getId(), at.subtract(anchor.position()), Math.max(1, intensity), gameTime, level.random.nextLong());
 	}
 
 	private static void playCasterSnap(ServerLevel level, ServerPlayer caster, int marks, long gameTime) {
 		level.playSound(null, caster.getX(), caster.getY(), caster.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 2.0f, 1.0f);
 		JujutsuNetworking.sendVfxCue(caster,
-				cue(level, NobaraVfxIds.FIRST_PERSON_SNAP, Math.max(1, marks), caster.getEyePosition(), gameTime, caster.getId()));
+				cue(level, NobaraVfxIds.FIRST_PERSON_SNAP, Math.max(1, marks), caster.getEyePosition(), gameTime, caster));
 	}
 
 	private static Vec3 safeDirection(Vec3 vector) {

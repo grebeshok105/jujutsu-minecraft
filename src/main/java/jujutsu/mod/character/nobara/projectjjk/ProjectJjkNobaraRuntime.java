@@ -109,7 +109,7 @@ public final class ProjectJjkNobaraRuntime {
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_CINEMATIC_WHOOSH, SoundSource.PLAYERS, 0.88f, 0.86f);
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SPELL_SHOT, SoundSource.PLAYERS, 0.72f, 0.74f);
 		JujutsuNetworking.broadcastVfxCue(level, player.position(), IMPULSE_BROADCAST_RADIUS,
-				cue(level, NobaraVfxIds.HAMMER, nails.size(), player.position(), level.getGameTime(), player.getId()));
+				cue(level, NobaraVfxIds.HAMMER, nails.size(), player.position(), level.getGameTime(), player));
 		damageHammer(player, hammerStack, hand);
 		return true;
 	}
@@ -231,11 +231,11 @@ public final class ProjectJjkNobaraRuntime {
 	}
 
 	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 point, long gameTime) {
-		return cue(level, effectId, intensity, point, gameTime, VfxCue.NO_ANCHOR);
+		return new VfxCue(effectId, point, VfxCue.NO_ANCHOR, Vec3.ZERO, Math.max(1, intensity), gameTime, level.random.nextLong());
 	}
 
-	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 point, long gameTime, int anchorEntityId) {
-		return new VfxCue(effectId, point, anchorEntityId, Math.max(1, intensity), gameTime, level.random.nextLong());
+	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 point, long gameTime, Entity anchor) {
+		return new VfxCue(effectId, point, anchor.getId(), point.subtract(anchor.position()), Math.max(1, intensity), gameTime, level.random.nextLong());
 	}
 
 	private static List<ProjectJjkNailEntity> findPreparedNails(ServerLevel level, ServerPlayer player) {

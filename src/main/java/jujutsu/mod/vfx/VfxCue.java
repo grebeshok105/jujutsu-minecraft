@@ -7,6 +7,7 @@ public record VfxCue(
 		ResourceLocation effectId,
 		Vec3 origin,
 		int anchorEntityId,
+		Vec3 anchorOffset,
 		int intensity,
 		long startGameTime,
 		long seed
