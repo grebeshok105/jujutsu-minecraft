@@ -12,12 +12,13 @@ These are safe **product extension points**, not merely Java-public symbols.
 | `JujutsuCharacter` enum | new characters | enum file |
 | `CharacterSelectionManager.select` | selection side effects | manager |
 | `ProjectJjkNobaraProfile` constants | balance tuning | profile file |
-| `ProjectJjkNobaraRuntime` / `ProjectJjkRitualRuntime` | server combat flow | runtime files |
+| `ProjectJjkNobaraRuntime` / `ProjectJjkRitualRuntime` | server nail/Hairpin combat flow | runtime files |
+| `ProjectJjkStrawDollRuntime` + `ProjectJjkRitualPolicy` | server Resonance acquisition/ritual flow and pure validation boundary | ritual files |
 | `TargetResolver` | aiming | combat |
-| `NobaraVfxIds` (or future character `*VfxIds`) | stable visual event vocabulary | `vfx/NobaraVfxIds.java:6-15` |
+| `NobaraVfxIds` (or future character `*VfxIds`) | stable visual event vocabulary | `vfx/NobaraVfxIds.java:6-20` |
 | `JujutsuNetworking.broadcastVfxCue` / `sendVfxCue` | only generic server-to-client VFX sends | `network/JujutsuNetworking.java:38-59` |
 | `VfxDirector.register` + `VfxRecipe` + `VfxInstance` | typed client composition point | `client/vfx/VfxDirector.java:50-54` |
-| `VfxContext` | world/particles/sound/HUD/camera/first-person channels | `client/vfx/VfxContext.java` |
+| `VfxContext` | world/particles/sound/HUD/camera/first-person/internal post-process channels | `client/vfx/VfxContext.java` |
 | `VfxPalette` | shared cursed-energy colors for compatible persistent renderers | `client/vfx/VfxPalette.java` |
 
 **Status:** VERIFIED as current extension hubs.
@@ -58,6 +59,8 @@ Then add tests and update the character/VFX docs. Do not touch client networking
 
 `ProjectJjkNobaraLoadout.ensureStarterTools` — called on selecting Nobara.
 **Status:** VERIFIED
+
+The starter loadout grants one reusable Straw Doll but never grants a target-bound remnant. Remnants remain earned server gameplay state.
 
 ## Commands
 

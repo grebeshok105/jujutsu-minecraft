@@ -17,9 +17,10 @@
 
 | Topic | Status | Verify via |
 |---|---|---|
-| Full combat loop feel after legacy removal | UNKNOWN | `runClient` + nails/hammer/R/B/shift |
+| Full combat loop feel after Straw Doll expansion | UNKNOWN | manual nails/hammer/R/B/shift loop |
 | Multiplayer mark/glow sync | UNKNOWN | 2 clients, Glowing/team cleanup |
-| Hammer/launch, resonance/link, and Enlarge/Boom VFX composition | UNKNOWN | manual in-game observation |
+| Hammer/launch, Straw Doll acquisition/ritual, and Enlarge/Boom VFX composition | UNKNOWN | manual in-game observation |
+| Vanilla blur availability/comfort in all heavy scenes | UNKNOWN | manual scene pass across graphics settings; confirm shaderless fallback remains readable |
 | Death/despawn anchor fallback in a live scene | UNKNOWN | remove/kill anchor during an active cue |
 | Reduced/minimal particle setting readability | UNKNOWN | repeat scenes with DECREASED/MINIMAL particles |
 | Character select perf | INFERRED risk | open V screen, watch FPS |
@@ -32,7 +33,8 @@ Manual and two-client scenarios were not performed because the user explicitly p
 
 | Topic | Status | Source |
 |---|---|---|
-| ProjectJJK items are default for all Nobara item ids | VERIFIED | `JujutsuItems.java:12-15` |
+| ProjectJJK nail/hammer behavior remains default; original Straw Doll/remnant are registered separately | VERIFIED | `JujutsuItems.java:14-19` |
+| Mark-only remote Resonance is still active | RESOLVED false | removed; [[../03-systems/Straw-Doll-resonance]] |
 | Legacy Hairpin runtime still in tree | RESOLVED false | removed; guard `ProjectSanityTest.java:159-188` |
 | Old post-shader bind active | RESOLVED false | old Hairpin post-shaders removed; guard `ProjectSanityTest.java:173-174` |
 | No cursed energy in profile | VERIFIED | no CE constants in `ProjectJjkNobaraProfile` |

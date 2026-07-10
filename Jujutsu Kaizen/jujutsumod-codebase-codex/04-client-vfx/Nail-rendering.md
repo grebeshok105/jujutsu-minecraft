@@ -27,11 +27,11 @@ Prepared/flying nails use a local blue force-field envelope in the real entity r
 
 | Claim | Status | Source |
 |---|---|---|
-| Non-embedded nails render `renderBlueForceFieldEnvelope`. | VERIFIED | `ProjectJjkNailRenderer.java:85-90` |
-| The envelope is local to the entity pose stack. | VERIFIED | `ProjectJjkNailRenderer.java:115-183` |
+| Non-embedded nails render `renderCompressedEnergyAura`. | VERIFIED | `ProjectJjkNailRenderer.java:85-92` |
+| The rim/tip/bands/slivers/tail envelope is local to the entity pose stack. | VERIFIED | `ProjectJjkNailRenderer.java:117-183` |
 | Embedded nails keep only opaque item model and body-space anchor. | VERIFIED | `ProjectJjkNailRenderer.java:82-95` |
 | Aura colors share VFX Core’s cursed-energy palette. | VERIFIED | `ProjectJjkNailRenderer.java:23,31-42`; `VfxPalette.java` |
-| Aura does not use `ParticleTypes.SOUL_FIRE_FLAME`. | VERIFIED | `ProjectSanityTest.java:317-322` |
+| Aura and runtime do not use `ParticleTypes.SOUL_FIRE_FLAME` or the ignition-tick composition. | VERIFIED | `ProjectSanityTest.java:543-552` |
 
 ## Particles around nails
 

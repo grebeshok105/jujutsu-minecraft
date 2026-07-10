@@ -1,6 +1,6 @@
 # Target Marks & Resonance
 
-← [[00-MOC]] · [[Nobara-runtime-flow]]
+← [[00-MOC]] · [[Nobara-runtime-flow]] · [[Straw-Doll-resonance]]
 
 ## Marks manager
 
@@ -34,24 +34,11 @@ Target marks are no longer a custom client shell/payload. Current implementation
 
 Removed old path: `ProjectJjkTargetMarkPayload` / `TargetMarkRenderManager` is not the current mark-render architecture.
 
-## Resonance link
+## Resonance boundary
 
-**Source:** `ProjectJjkResonanceLink.java`  
-**Status:** VERIFIED
+The old in-memory `ProjectJjkResonanceLink` and mark-only `ProjectJjkRitualRuntime.performResonance` path are removed. Marks do not establish full Straw Doll Resonance by themselves.
 
-| Method | Role |
-|---|---|
-| `bind` | remember target UUID/game time |
-| `get` | retrieve current link |
-| `isValid` | validate link age/range |
-| `clear` | remove link |
-
-`performResonance` in `ProjectJjkRitualRuntime`:
-
-- if no valid link → find marked target / bind
-- if linked → remote damage `resonanceDamage(marks)`, weakness ticks, clear link/marks, typed `resonance_strike` and caster `resonance_channel` cues
-
-Ranges: `RESONANCE_RANGE=96`, `LINK_RANGE=32` in `ProjectJjkNobaraProfile`.
+The current link is a physical `resonance_remnant` carrying the target UUID, dimension, and display name through the `resonance_target` item component. It is earned from ordinary nail hits, then consumed with a nail only after a valid doll/hammer ritual resolves. See [[Straw-Doll-resonance]].
 
 ## When marks clear
 
@@ -70,10 +57,9 @@ Embedded nails are discarded when their linked mark/finisher path consumes them.
 flowchart TD
   hit[Nail direct hit] --> apply[NailMarks.apply]
   apply --> glow[Vanilla Glowing + cyan scoreboard team]
-  shift[Shift hammer] --> res[performResonance]
-  res --> bind{link?}
-  bind -->|no| bindT[bind marked target]
-  bind -->|yes| strike[remote damage + clear marks]
+  hit --> remnant[second ordinary hit may drop bound remnant]
+  remnant --> ritual[Shift hammer + doll + nail]
+  ritual --> strike[remote Resonance + clear marks]
   keyR[R Enlarge] --> enlarge[consume marks + delayed hit]
   keyB[B Boom] --> boom[consume marks + explosions]
 ```

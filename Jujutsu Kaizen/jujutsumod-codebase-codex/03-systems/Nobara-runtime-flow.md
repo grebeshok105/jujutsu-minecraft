@@ -1,6 +1,6 @@
 # Nobara Runtime Flow
 
-← [[00-MOC]] · [[Nobara-overview]] · [[Target-marks-and-resonance]]
+← [[00-MOC]] · [[Nobara-overview]] · [[Target-marks-and-resonance]] · [[Straw-Doll-resonance]]
 
 Prefix: `.worktrees/nobara-cinematic-slice/src/main/java/jujutsu/mod/character/nobara/projectjjk/`
 
@@ -10,7 +10,7 @@ Prefix: `.worktrees/nobara-cinematic-slice/src/main/java/jujutsu/mod/character/n
 |---|---:|---|---|
 | `prepareNails` | 39-66 | count nails by hold ticks; consume; spawn prepared entities; particles/sounds | VERIFIED |
 | `launchHairpin` | 84-115 | find prepared nails; target resolve; stagger launch delays; hammer SFX; typed `hammer` cue | VERIFIED |
-| `resolveNailImpact` | 141-189 | server damage/mark resolution plus typed `impact` / direct `impact_sound` cues | VERIFIED |
+| `resolveNailImpact` | 141-189 | server damage/mark resolution, ordinary-hit remnant progress, plus typed `impact` / direct `impact_sound` cues | VERIFIED |
 | helpers | 191+ | server particles, prepared-nail lookup, inventory use, hammer damage | VERIFIED |
 
 ### prepareNails logic
@@ -19,7 +19,7 @@ Prefix: `.worktrees/nobara-cinematic-slice/src/main/java/jujutsu/mod/character/n
 2. Creative versus inventory availability is resolved at `ProjectJjkNobaraRuntime.java:42-44`.
 3. Survival nails are consumed at `ProjectJjkNobaraRuntime.java:49-51`.
 4. `preparedRow` supplies entity positions at `ProjectJjkNobaraRuntime.java:54-55`.
-5. Each real nail entity receives warn/ignition particles at `ProjectJjkNobaraRuntime.java:56-62`.
+5. Each real nail entity receives compressed-energy pressure feedback; old blue-fire/ignition composition is absent.
 
 ### launchHairpin logic
 
@@ -37,7 +37,7 @@ The hammer no longer hides Hairpin Enlarge/Boom fallback behavior.
 | Input | Runtime call | Source | Status |
 |---|---|---|---|
 | right click | `ProjectJjkNobaraRuntime.launchHairpin` | `ProjectJjkHammerItem.java:17-27` | VERIFIED |
-| shift + right click | `ProjectJjkRitualRuntime.performResonance` | `ProjectJjkHammerItem.java:20-24` | VERIFIED |
+| shift + right click | `ProjectJjkStrawDollRuntime.tryStart` | `ProjectJjkHammerItem.java:20-24` | VERIFIED |
 
 ## `ProjectJjkRitualRuntime`
 
@@ -45,11 +45,12 @@ The hammer no longer hides Hairpin Enlarge/Boom fallback behavior.
 |---|---:|---|---|
 | `register` | 57-68 | server tick + stopping/disconnect cleanup | VERIFIED |
 | `markTarget` | 87-96 | marks, vanilla Glowing/cyan team, server particles/sound; no mark payload | VERIFIED |
-| `performResonance` | 105-155 | bind if unbound; else remote strike and typed cues | VERIFIED |
 | `tryEnlargeMarkedTarget` | 160-182 | explicit Enlarge action schedules delayed marked-target hit | VERIFIED |
 | `detonateMarks` | 185-207 | explicit Boom action schedules explosions and a direct `detonate` cue | VERIFIED |
 | `tickHairpinTasks` | 286-310 | resolves pending enlarge/explosions on server game time | VERIFIED |
 | `explodeAnchor` | 339-369 | server damage/knockback plus typed `explosion` cue | VERIFIED |
+
+`ProjectJjkRitualRuntime` no longer owns the former mark-only `performResonance` shortcut. Full Resonance is isolated in `ProjectJjkStrawDollRuntime`; [[Straw-Doll-resonance]] records its server validation and resource contract.
 
 ## Mermaid — launch
 

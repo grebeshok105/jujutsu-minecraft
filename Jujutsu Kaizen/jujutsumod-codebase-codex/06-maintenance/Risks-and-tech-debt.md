@@ -14,18 +14,18 @@ Only code-backed or process-backed risks.
 | R6 | No automated in-game or two-client smoke in CI | **P2** | Java assertion tests/build only | VERIFIED |
 | R7 | Custom particle classes still have boilerplate even though burst/ring spawning is centralized | **P2** | particle package + `VfxParticleChannel` | MITIGATED |
 | R8 | A future agent could bypass VFX Core, drop late-cue age from a recipe, or reintroduce legacy static managers | **P1** | `ProjectSanityTest.java:303-393` + [[VFX-core]] | MITIGATED |
-| R9 | No compatible Fabric 1.21.8 shader/post-process backend is proven | **P2** | VFX Core V1 boundary | OPEN |
+| R9 | Vanilla blur call compiles but its availability/feel across live client state and graphics settings is not manually verified | **P2** | `VfxPostProcessChannel.java:23-36` | MITIGATED |
 
 ## VFX-specific guardrails
 
 - The server can decide cue timing and seed; the client may only draw.
 - Unknown or expired cues are safe to ignore, but a missing ID is still a visual regression and must get a test.
-- Every current Nobara HUD/camera/first-person recipe call must preserve `initialAgeTicks`; the exact 15-call guard intentionally fails when one silently falls back to a fresh overload.
+- Every current Nobara HUD/camera/first-person/post-process recipe call must preserve `initialAgeTicks`; the exact 23-call guard intentionally fails when one silently falls back to a fresh overload.
 - `ClientLevel` cleanup is identity-based, not dimension-name based. The guard requires `clear()` inside the identity-change branch, and null/disconnect must reset the tracked level.
 - World impacts must retain `VfxCue` and resolve the entity anchor on every render; caching the first resolved position would reintroduce stale geometry after movement/despawn.
 - `VfxDirector` caps active instances at 64. High-frequency scenes need a measured budget, not an unbounded new manager.
 - Vanilla particle settings reduce local density. Verify spectacle at ALL, DECREASED, and MINIMAL before declaring an effect tuned.
-- A post-process spike may happen later behind the director; do not add a fake abstraction or dependency until a 1.21.8-compatible route is tested.
+- Blur remains internal to the director. If the public vanilla call throws a runtime/linkage error, it disables only blur for that client session; world/HUD/camera/particle fallbacks must remain sufficient.
 
 ## Resolved on 2026-07-10
 
@@ -37,6 +37,8 @@ Only code-backed or process-backed risks.
 | World impacts captured a one-time origin instead of following a live entity | each render resolves the retained cue through `VfxAnchorResolver`, with `cue.origin()` fallback | `VfxWorldChannel.java:34-69` | VERIFIED |
 | First-person snap phase scale did not traverse its documented range | 0.75-second snap now traverses the complete `0..15` scale | `VfxFirstPersonChannel.java:14-59`, `ProjectSanityTest.java:380-393` | VERIFIED |
 | Persistent nail aura could be lost in a generic timeline migration | it remains state-driven and shares `VfxPalette` | `ProjectJjkNailRenderer.java:23,31-42` | VERIFIED |
+| Post-process had no proven internal route | director-owned `VfxPostProcessChannel` calls the public vanilla blur method and disables itself safely on runtime/linkage failure | `VfxPostProcessChannel.java:7-46` | MITIGATED |
+| Mark-only remote hit omitted the canon-defining physical link/effigy ritual | target-bound remnant, reusable doll, nail, hammer, wind-up, and server revalidation now gate Resonance | [[../03-systems/Straw-Doll-resonance]] | VERIFIED |
 
 ## P0 action
 

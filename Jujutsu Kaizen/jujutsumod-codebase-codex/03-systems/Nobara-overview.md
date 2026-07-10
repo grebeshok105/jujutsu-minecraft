@@ -1,10 +1,10 @@
 # Nobara Overview
 
-← [[00-MOC]] · detail: [[Nobara-runtime-flow]] · [[Nail-entity-lifecycle]] · [[Target-marks-and-resonance]]
+← [[00-MOC]] · detail: [[Nobara-runtime-flow]] · [[Nail-entity-lifecycle]] · [[Target-marks-and-resonance]] · [[Straw-Doll-resonance]]
 
 ## One-line fantasy
 
-ProjectJJK-style Straw Doll kit: charge real nail entities → strike with hammer → embed marks → detonate / enlarge / remote resonance.
+Canon-forward Straw Doll kit: charge real nail entities → strike with hammer → embed/detonate nails, or earn a target remnant and complete a doll ritual for remote Resonance.
 
 ## Canonical implementation
 
@@ -13,8 +13,9 @@ The old jujutsumod cinematic Nobara stack has been removed. ProjectJJK Nobara is
 | Area | Current source | Status |
 |---|---|---|
 | Runtime package | `src/main/java/jujutsu/mod/character/nobara/projectjjk/` | VERIFIED |
-| Main item ids | `hairpin_nail`, `straw_doll_hammer` | VERIFIED |
-| Item classes | `ProjectJjkNailItem`, `ProjectJjkHammerItem` | VERIFIED |
+| Main item ids | `hairpin_nail`, `straw_doll_hammer`, `straw_doll`, `resonance_remnant` | VERIFIED |
+| Item classes | `ProjectJjkNailItem`, `ProjectJjkHammerItem`, `ProjectJjkStrawDollItem` | VERIFIED |
+| Resonance runtime | `ProjectJjkStrawDollRuntime` + `ProjectJjkRitualPolicy` | VERIFIED |
 | Network payloads | `VfxCuePayload`, `NobaraActionPayload`, character selection sync/select | VERIFIED |
 | Removed legacy classes | `NobaraHairpinRuntime`, `NobaraCombatStateManager`, `HairpinGameplayService`, legacy Hairpin payloads/playback | VERIFIED |
 
@@ -31,19 +32,31 @@ flowchart LR
   D -->|LMB action| F[explosive nails]
   E --> G[impact embed + mark]
   F --> H[impact boom + disappear]
-  G --> I[R Enlarge / B Boom / Shift resonance]
+  G --> I[R Enlarge / B Boom]
+  E --> J{2nd ordinary hit<br/>same caster + target}
+  J --> K[target-bound remnant drops]
+  K --> L[pick up remnant]
+  L --> M[hammer main hand + doll offhand + nail]
+  M --> N[Shift + RMB: 14-tick ritual]
+  N --> O[remote Resonance<br/>same dimension, loaded, <=64 blocks]
 ```
+
+Hairpin and Resonance are separate mechanics. Marks still feed Hairpin/target pressure; they no longer substitute for the canon-defining remnant/effigy ritual. See [[Straw-Doll-resonance]].
 
 ## Items
 
 | Item id | Behavior class | Source | Status |
 |---|---|---|---|
-| `hairpin_nail` | `ProjectJjkNailItem` | `JujutsuItems.java:12` | VERIFIED |
-| `straw_doll_hammer` | `ProjectJjkHammerItem` | `JujutsuItems.java:13` | VERIFIED |
-| `projectjjk_hairpin_nail` | alias to same ProjectJJK item class | `JujutsuItems.java:14` | VERIFIED |
-| `projectjjk_straw_doll_hammer` | alias to same ProjectJJK item class | `JujutsuItems.java:15` | VERIFIED |
+| `hairpin_nail` | `ProjectJjkNailItem` | `JujutsuItems.java:14` | VERIFIED |
+| `straw_doll_hammer` | `ProjectJjkHammerItem` | `JujutsuItems.java:15` | VERIFIED |
+| `projectjjk_hairpin_nail` | alias to same ProjectJJK item class | `JujutsuItems.java:16` | VERIFIED |
+| `projectjjk_straw_doll_hammer` | alias to same ProjectJJK item class | `JujutsuItems.java:17` | VERIFIED |
+| `resonance_remnant` | target-bound ritual resource | `JujutsuItems.java:18`; `ProjectJjkResonanceRemnant.java:14-28` | VERIFIED |
+| `straw_doll` | reusable animated ritual effigy | `JujutsuItems.java:19`; `ProjectJjkStrawDollItem.java:19-69` | VERIFIED |
 
 Default item definitions render with the ProjectJJK models, not the removed legacy item models. Source: `ProjectSanityTest.java:195-199`.
+
+The Nobara starter loadout now includes the reusable straw doll. Remnants are earned through combat and are not granted as starter inventory.
 
 ## Current balance note
 

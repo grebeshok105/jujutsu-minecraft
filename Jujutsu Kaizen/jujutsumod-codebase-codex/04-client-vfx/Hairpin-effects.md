@@ -16,19 +16,20 @@ The legacy integer impulse/static-manager path is gone. All transient Nobara com
 
 ## Nobara recipes
 
-The ten central IDs live in `vfx/NobaraVfxIds.java:6-15` and are all registered by `client/vfx/nobara/NobaraVfxRecipes.java:23-33`.
+The 14 central IDs live in `vfx/NobaraVfxIds.java:6-20` and are all registered by `client/vfx/nobara/NobaraVfxRecipes.java:25-38`.
 
 | Scene | IDs | Composition |
 |---|---|---|
 | Hammer / launch | `hammer`, `impact`, `impact_sound` | anvil/netherite/snap rhythm, camera, HUD |
 | Resonance / link | `resonance_channel`, `resonance_strike`, `link_bind`, `detonate` | cursed-energy pulse, ring, local particle burst, chime |
 | Enlarge / Boom | `enlarge`, `explosion`, `first_person_snap` | expanding ring/ribbon/blade geometry, shards, sound stack, HUD/camera, hand snap |
+| Straw Doll | `remnant_drop`, `ritual_bind`, `doll_strike`, `resonance_release` | trace burst, binding geometry, doll-local puncture, dark-center/cyan-fracture target release |
 
 The world layer is registered once in `VfxDirector.java:44` on `WorldRenderEvents.AFTER_ENTITIES`; recipes only call its channel. The existing narrow camera and first-person mixins read state from `VfxDirector` rather than owning VFX timelines.
 
 ## Real nail aura
 
-`ProjectJjkNailRenderer` remains a state-driven entity renderer, so prepared/flying nails stay attached to their actual entity state. It now consumes the core cursed-energy palette (`ProjectJjkNailRenderer.java:23,31-42`; `VfxPalette.java`) rather than duplicating cyan/white values. It is not a director recipe.
+`ProjectJjkNailRenderer` remains a state-driven entity renderer, so prepared/flying nails stay attached to their actual entity state. Its compressed-energy envelope uses a narrow rim, tip core, pressure bands, orbiting slivers, and a directional tail (`ProjectJjkNailRenderer.java:91,117-183`). Embedded nails keep only their readable physical state and do not receive the broad envelope. Vanilla soul-fire and the old ignition-tick composition are absent by guard.
 
 ## Removed paths
 
@@ -45,7 +46,7 @@ The following old transient paths must not come back:
 
 ## Constraint
 
-This is Fabric-native composition, not a copied ProjectJJK/Specter/GeckoLib effect system. No external shader library, JSON/DSL, preview scene, or generic bone-effect authoring belongs to V1.
+This is Fabric-native composition, not a copied ProjectJJK/Specter/GeckoLib effect system. No external shader library, JSON/DSL, preview scene, or generic bone-effect authoring belongs to V1. The director may invoke its narrow vanilla blur channel, but each scene remains complete when blur is unavailable.
 
 ---
 tags: #jujutsumod #vfx #hairpin #nobara #verified

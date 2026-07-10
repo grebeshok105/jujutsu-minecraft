@@ -21,8 +21,9 @@
 3. [[01-meta/Sources-and-method]]
 4. [[05-reference/Claim-Source-Index]]
 5. [[03-systems/Nobara-overview]]
-6. [[04-client-vfx/VFX-core]]
-7. [[05-reference/ProjectJJK-parity-map]]
+6. [[03-systems/Straw-Doll-resonance]]
+7. [[04-client-vfx/VFX-core]]
+8. [[05-reference/ProjectJJK-parity-map]]
 
 ## 01 · Meta
 
@@ -47,6 +48,7 @@
 - [[03-systems/Nobara-runtime-flow]]
 - [[03-systems/Nail-entity-lifecycle]]
 - [[03-systems/Target-marks-and-resonance]]
+- [[03-systems/Straw-Doll-resonance]]
 
 ## 04 · Client / VFX
 
@@ -75,7 +77,9 @@
 | mod id | jujutsumod | VERIFIED |
 | MC | 1.21.8 | VERIFIED |
 | Java | 21 | VERIFIED |
-| Default kit | ProjectJJK-style items (nail/hammer) | VERIFIED |
+| Default kit | ProjectJJK-style nail, hammer, animated straw doll | VERIFIED |
+| Resonance gate | target-bound remnant + doll + nail + hammer ritual | VERIFIED |
+| Resonance remnant identity | persistent/network-synced `resonance_target` item component | VERIFIED |
 | Canonical Nobara runtime | `character/nobara/projectjjk` only | VERIFIED |
 | Legacy Nobara runtime | removed | VERIFIED |
 | Transient VFX path | `VfxCuePayload → VfxDirector → Java recipe` | VERIFIED |
@@ -84,6 +88,8 @@
 | Network payloads | 4 custom typed payloads | VERIFIED |
 | Entity types | 1 (`projectjjk_nail`) | VERIFIED |
 | Target mark visual | vanilla `MobEffects.GLOWING`, cyan scoreboard team | VERIFIED |
+| Nobara VFX recipes | 14 stable cue IDs through one director | VERIFIED |
+| Optional post-process | director-owned vanilla blur; session-safe fallback on failure | VERIFIED |
 
 ## Связь с ProjectJJK Vault
 
@@ -93,8 +99,9 @@
 
 ## Recent Updates
 
+- [[03-systems/Straw-Doll-resonance]] — canonical remnant/effigy/nail ritual, server validation, balance adaptations, and original animated doll asset, 2026-07-10.
 - [[04-client-vfx/VFX-core]] — reusable Fabric-native cue/director/recipe library; Nobara is the first reference consumer; old integer payload/static VFX paths removed, 2026-07-10.
-- [[06-maintenance/Risks-and-tech-debt]] — VFX ownership, quality/culling, shader deferral, and migration risks updated, 2026-07-10.
+- [[06-maintenance/Risks-and-tech-debt]] — VFX ownership, quality/culling, blur fallback, and migration risks updated, 2026-07-10.
 
 ---
 tags: #jujutsumod #moc #knowledge-base
