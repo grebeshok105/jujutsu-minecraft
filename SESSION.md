@@ -1,5 +1,7 @@
 # Session Handoff — Jujutsu Minecraft
 
+> **SUPERSEDED 2026-07-10:** do not resume from the commit/hash/state below. The canonical current handoff is `docs/session-handoffs/2026-07-10-vfx-core-implementation-handoff.md` in this worktree. It contains the completed VFX Core migration, final reviews, current JAR hash, remaining manual QA, and the exact next-chat resume protocol.
+
 Дата: 2026-07-09
 
 ## Где мы сейчас
