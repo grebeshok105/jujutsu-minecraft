@@ -69,7 +69,7 @@ public final class ProjectJjkStrawDollRuntime {
 		ProjectJjkResonanceRemnant binding = new ProjectJjkResonanceRemnant(
 				target.getUUID(),
 				level.dimension().location(),
-				target.getDisplayName().getString()
+				target.getDisplayName()
 		);
 		ItemStack stack = new ItemStack(JujutsuItems.RESONANCE_REMNANT);
 		stack.set(JujutsuDataComponents.RESONANCE_TARGET, binding);

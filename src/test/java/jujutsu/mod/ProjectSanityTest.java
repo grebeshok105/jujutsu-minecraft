@@ -494,6 +494,13 @@ public final class ProjectSanityTest {
 				&& !ritual.contains("discardOwnedEmbeddedNails")
 				&& !ritual.contains("clearGlowingMark")
 				: "Physical-remnant Resonance must not read or consume Hairpin marks and embedded nails";
+		assert !ritual.contains("getDisplayName().getString()")
+				: "Bound target names must retain their translatable Component instead of server-rendered text";
+		String remnant = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkResonanceRemnant.java"));
+		assert remnant.contains("Component targetName")
+				&& remnant.contains("ComponentSerialization.CODEC")
+				&& remnant.contains("ComponentSerialization.STREAM_CODEC")
+				: "Typed remnants must persist and network-sync the localized target Component";
 
 		String hammer = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkHammerItem.java"));
 		assert hammer.contains("ProjectJjkStrawDollRuntime.tryStart") : "Shift-hammer must start the physical remnant ritual";
