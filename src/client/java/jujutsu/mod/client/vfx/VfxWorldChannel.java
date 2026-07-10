@@ -67,38 +67,107 @@ public final class VfxWorldChannel {
 				return anchor == null ? null : anchor.position();
 			});
 			Vec3 center = origin.subtract(cameraPosition);
-			if (flash.style() == ImpactStyle.ENLARGE) {
-				renderEnlargeImpact(consumer, center, Math.max(1, flash.cue().intensity()), progress, fade);
-			} else {
-				renderExplosionImpact(consumer, center, Math.max(1, flash.cue().intensity()), progress, fade);
+			int intensity = Math.max(1, flash.cue().intensity());
+			switch (flash.style()) {
+				case HAMMER_SEND -> renderHammerSend(consumer, center, intensity, progress, fade);
+				case ENLARGE -> renderEnlargeImpact(consumer, center, intensity, progress, fade);
+				case EXPLOSION -> renderExplosionImpact(consumer, center, intensity, progress, fade);
+				case RITUAL_BIND -> renderRitualBind(consumer, center, intensity, progress, fade);
+				case DOLL_STRIKE -> renderDollStrike(consumer, center, intensity, progress, fade);
+				case RESONANCE_RELEASE -> renderResonanceRelease(consumer, center, intensity, progress, fade);
 			}
+		}
+	}
+
+	private static void renderHammerSend(VertexConsumer consumer, Vec3 center, int intensity, float progress, float fade) {
+		int alpha = Math.min(230, Math.round(220.0f * fade));
+		float spread = 0.16f + Math.min(4, intensity) * 0.025f;
+		renderCyanRing(consumer, center, 0.42f + progress * 0.55f, 0.68f, Math.round(alpha * 0.72f), progress * 2.4f);
+		for (int index = 0; index < 4; index++) {
+			double centered = index - 1.5;
+			Vec3 start = center.add(EAST.scale(centered * spread)).add(UP.scale(0.08 - Math.abs(centered) * 0.025));
+			Vec3 end = start.add(new Vec3(0.0, 0.16 - index * 0.035, 1.1 + progress * 1.25));
+			addFlashBlade(consumer, start, end, 0.022f, alpha);
 		}
 	}
 
 	private static void renderEnlargeImpact(VertexConsumer consumer, Vec3 center, int intensity, float progress, float fade) {
 		float scale = 1.0f + Math.min(4, intensity) * 0.16f;
 		int alpha = Math.min(235, Math.round(225.0f * fade));
-		Vec3 side = EAST.scale(1.9f * scale + progress * 0.8f);
-		Vec3 up = UP.scale(1.55f * scale + progress * 0.6f);
+		if (progress < 0.42f) {
+			float compression = progress < 0.32f ? progress / 0.32f : 1.0f;
+			float radius = (1.75f - compression * 1.08f) * scale;
+			renderCyanRing(consumer, center, radius, 0.42f, Math.round(alpha * 0.88f), -compression * 2.8f);
+			renderCyanRing(consumer, center.add(UP.scale(0.38f)), radius * 0.72f, 0.34f, Math.round(alpha * 0.58f), compression * 2.1f);
+			return;
+		}
+		float release = (progress - 0.42f) / 0.58f;
+		Vec3 side = EAST.scale(1.9f * scale + release * 0.8f);
+		Vec3 up = UP.scale(1.55f * scale + release * 0.6f);
 		Vec3 diagA = side.add(up);
 		Vec3 diagB = side.subtract(up);
 		addFlashBlade(consumer, center.subtract(diagA), center.add(diagA), 0.075f, alpha);
 		addFlashBlade(consumer, center.subtract(diagB), center.add(diagB), 0.055f, alpha);
-		renderCyanRing(consumer, center, 1.0f * scale + progress * 0.72f, 0.42f, Math.round(alpha * 0.72f), progress * 2.2f);
-		renderCyanRing(consumer, center.add(UP.scale(0.45f)), 0.72f * scale + progress * 0.38f, 0.34f, Math.round(alpha * 0.48f), -progress * 1.8f);
+		renderCyanRing(consumer, center, 0.72f * scale + release * 1.0f, 0.42f, Math.round(alpha * 0.72f), release * 2.2f);
+		renderCyanRing(consumer, center.add(UP.scale(0.45f)), 0.54f * scale + release * 0.64f, 0.34f, Math.round(alpha * 0.48f), -release * 1.8f);
 	}
 
 	private static void renderExplosionImpact(VertexConsumer consumer, Vec3 center, int intensity, float progress, float fade) {
 		float scale = 0.86f + Math.min(4, intensity) * 0.11f;
 		int alpha = Math.min(230, Math.round(210.0f * fade));
-		renderCyanRing(consumer, center, scale + progress * 1.0f, 0.62f, alpha, progress * 2.6f);
-		renderCyanRing(consumer, center, scale * 0.74f + progress * 0.52f, 0.44f, Math.round(alpha * 0.7f), -progress * 3.1f);
+		if (progress < 0.2f) {
+			float implosion = progress / 0.2f;
+			renderDarkRing(consumer, center, (1.1f - implosion * 0.8f) * scale, 0.72f, alpha, -implosion * 3.6f);
+			renderCyanRing(consumer, center, (0.82f - implosion * 0.52f) * scale, 0.54f, Math.round(alpha * 0.64f), implosion * 3.0f);
+			return;
+		}
+		float shell = (progress - 0.2f) / 0.8f;
+		float innerShell = Math.max(0.0f, (shell - 0.12f) / 0.88f);
+		renderCyanRing(consumer, center, scale * 0.32f + shell * 1.72f, 0.62f, alpha, shell * 2.6f);
+		renderCyanRing(consumer, center, scale * 0.24f + innerShell * 1.28f, 0.44f, Math.round(alpha * 0.7f), -innerShell * 3.1f);
 		for (int index = 0; index < 8; index++) {
-			double angle = index * Math.PI * 2.0 / 8.0 + progress * 0.45;
+			double angle = index * Math.PI * 2.0 / 8.0 + shell * 0.45;
 			Vec3 direction = new Vec3(Math.cos(angle), (index % 2 == 0 ? 0.22 : -0.16), Math.sin(angle)).normalize();
 			Vec3 start = center.add(direction.scale(0.1));
-			Vec3 end = center.add(direction.scale(0.72f * scale + progress * 0.75f));
+			float stagger = Math.max(0.0f, (shell - index * 0.025f) / (1.0f - index * 0.025f));
+			Vec3 end = center.add(direction.scale(0.38f * scale + stagger * 1.22f));
 			addFlashBlade(consumer, start, end, 0.026f, Math.round(alpha * 0.7f));
+		}
+	}
+
+	private static void renderRitualBind(VertexConsumer consumer, Vec3 center, int intensity, float progress, float fade) {
+		int alpha = Math.min(220, Math.round(205.0f * fade));
+		float compression = 1.35f - progress * 0.72f;
+		for (int ring = 0; ring < 3; ring++) {
+			float radius = compression + ring * 0.22f;
+			renderCyanRing(consumer, center.add(UP.scale(ring * 0.16f - 0.18f)), radius, 0.36f, Math.round(alpha * (0.9f - ring * 0.2f)), -progress * (2.0f + ring));
+		}
+		for (int index = 0; index < 6; index++) {
+			double angle = index * Math.PI * 2.0 / 6.0 + progress * 0.4;
+			Vec3 start = center.add(EAST.scale(Math.cos(angle) * compression)).add(UP.scale(Math.sin(angle) * compression * 0.36f));
+			addFlashBlade(consumer, start, center, 0.012f, Math.round(alpha * 0.58f));
+		}
+	}
+
+	private static void renderDollStrike(VertexConsumer consumer, Vec3 center, int intensity, float progress, float fade) {
+		int alpha = Math.min(245, Math.round(240.0f * fade));
+		float length = 0.9f + Math.min(4, intensity) * 0.08f + progress * 0.35f;
+		addFlashBlade(consumer, center.add(UP.scale(0.62f)), center.subtract(UP.scale(length)), 0.058f, alpha);
+		addFlashBlade(consumer, center.subtract(EAST.scale(0.48f)), center.add(EAST.scale(0.48f)), 0.028f, Math.round(alpha * 0.72f));
+		renderCyanRing(consumer, center, 0.28f + progress * 0.62f, 0.56f, Math.round(alpha * 0.64f), progress * 3.4f);
+	}
+
+	private static void renderResonanceRelease(VertexConsumer consumer, Vec3 center, int intensity, float progress, float fade) {
+		int alpha = Math.min(238, Math.round(225.0f * fade));
+		float scale = 0.85f + Math.min(4, intensity) * 0.14f;
+		renderDarkRing(consumer, center, 0.34f * scale + progress * 0.42f, 0.74f, Math.round(alpha * 0.92f), -progress * 2.8f);
+		renderCyanRing(consumer, center, 0.82f * scale + progress * 1.15f, 0.58f, Math.round(alpha * 0.7f), progress * 3.2f);
+		for (int index = 0; index < 10; index++) {
+			double angle = index * Math.PI * 2.0 / 10.0 + ((index & 1) == 0 ? 0.12 : -0.08);
+			Vec3 direction = new Vec3(Math.cos(angle), (index % 3 - 1) * 0.22, Math.sin(angle)).normalize();
+			Vec3 start = center.add(direction.scale(0.16f));
+			Vec3 end = center.add(direction.scale(0.82f * scale + progress * (0.7f + (index % 3) * 0.16f)));
+			addFlashBlade(consumer, start, end, 0.026f, Math.round(alpha * (0.62f + (index & 1) * 0.18f)));
 		}
 	}
 
@@ -115,6 +184,21 @@ public final class VfxWorldChannel {
 			Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), 0.024f);
 			addRibbon(consumer, start, end, side.scale(2.4), CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, Math.round(alpha * 0.48f));
 			addRibbon(consumer, start, end, side, CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, alpha);
+		}
+	}
+
+	private static void renderDarkRing(VertexConsumer consumer, Vec3 center, float radius, float depthScale, int alpha, float phase) {
+		if (alpha <= 0) {
+			return;
+		}
+		int segments = 18;
+		for (int segment = 0; segment < segments; segment++) {
+			double a0 = phase + segment * Math.PI * 2.0 / segments;
+			double a1 = phase + (segment + 0.78) * Math.PI * 2.0 / segments;
+			Vec3 start = center.add(EAST.scale(Math.cos(a0) * radius)).add(UP.scale(Math.sin(a0) * radius * depthScale));
+			Vec3 end = center.add(EAST.scale(Math.cos(a1) * radius)).add(UP.scale(Math.sin(a1) * radius * depthScale));
+			Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), 0.042f);
+			addRibbon(consumer, start, end, side, CURSED_BLUE_DARK_R / 2, CURSED_BLUE_DARK_G / 2, CURSED_BLUE_DARK_B / 2, alpha);
 		}
 	}
 
@@ -153,8 +237,12 @@ public final class VfxWorldChannel {
 	}
 
 	public enum ImpactStyle {
+		HAMMER_SEND,
 		ENLARGE,
-		EXPLOSION
+		EXPLOSION,
+		RITUAL_BIND,
+		DOLL_STRIKE,
+		RESONANCE_RELEASE
 	}
 
 	private record ImpactFlash(VfxCue cue, ImpactStyle style, int durationTicks) {}

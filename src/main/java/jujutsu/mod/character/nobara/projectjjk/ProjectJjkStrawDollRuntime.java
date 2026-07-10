@@ -82,7 +82,7 @@ public final class ProjectJjkStrawDollRuntime {
 		level.sendParticles(JujutsuParticles.HAIRPIN_MARK_STAIN, dropAt.x, dropAt.y, dropAt.z, 8, 0.16, 0.14, 0.16, 0.01);
 		level.playSound(null, dropAt.x, dropAt.y, dropAt.z, JujutsuSounds.PROJECTJJK_CHIME, SoundSource.PLAYERS, 0.72f, 1.24f);
 		JujutsuNetworking.broadcastVfxCue(level, dropAt, VFX_RADIUS,
-				cue(level, NobaraVfxIds.LINK_BIND, 1, dropAt, level.getGameTime(), target));
+				cue(level, NobaraVfxIds.REMNANT_DROP, 1, dropAt, level.getGameTime(), target));
 	}
 
 	public static boolean tryStart(ServerPlayer caster, ItemStack hammer, InteractionHand hand) {
@@ -104,7 +104,7 @@ public final class ProjectJjkStrawDollRuntime {
 		Vec3 origin = caster.getEyePosition().add(caster.getLookAngle().scale(0.45));
 		caster.level().playSound(null, caster.getX(), caster.getY(), caster.getZ(), JujutsuSounds.PROJECTJJK_MAGIC, SoundSource.PLAYERS, 0.82f, 0.72f);
 		JujutsuNetworking.broadcastVfxCue(caster.level(), caster.position(), VFX_RADIUS,
-				cue(caster.level(), NobaraVfxIds.RESONANCE_CHANNEL, 1, origin, caster.level().getGameTime(), caster));
+				cue(caster.level(), NobaraVfxIds.RITUAL_BIND, 1, origin, caster.level().getGameTime(), caster));
 		caster.displayClientMessage(Component.translatable(
 				"message.jujutsumod.projectjjk.resonance.casting",
 				selection.remnant().targetName()
@@ -232,10 +232,11 @@ public final class ProjectJjkStrawDollRuntime {
 		ProjectJjkRitualRuntime.spawnResonanceStrike(level, targetOrigin, marks);
 		level.playSound(null, targetOrigin.x, targetOrigin.y, targetOrigin.z, JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, SoundSource.PLAYERS, 1.0f, 0.78f);
 		level.playSound(null, caster.getX(), caster.getY(), caster.getZ(), JujutsuSounds.PROJECTJJK_CLAP, SoundSource.PLAYERS, 0.9f, 0.9f);
+		Vec3 dollOrigin = caster.getEyePosition().add(caster.getLookAngle().scale(0.45));
+		JujutsuNetworking.broadcastVfxCue(level, caster.position(), VFX_RADIUS,
+				cue(level, NobaraVfxIds.DOLL_STRIKE, Math.max(1, marks), dollOrigin, gameTime, caster));
 		JujutsuNetworking.broadcastVfxCue(level, targetOrigin, VFX_RADIUS,
-				cue(level, NobaraVfxIds.RESONANCE_STRIKE, Math.max(1, marks), targetOrigin, gameTime, target));
-		JujutsuNetworking.sendVfxCue(caster,
-				cue(level, NobaraVfxIds.RESONANCE_CHANNEL, Math.max(1, marks), caster.getEyePosition(), gameTime, caster));
+				cue(level, NobaraVfxIds.RESONANCE_RELEASE, Math.max(1, marks), targetOrigin, gameTime, target));
 		caster.displayClientMessage(Component.translatable(
 				"message.jujutsumod.projectjjk.resonance.complete",
 				remnant.targetName()

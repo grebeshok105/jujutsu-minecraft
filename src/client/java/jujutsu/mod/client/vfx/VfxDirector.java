@@ -33,6 +33,7 @@ public final class VfxDirector {
 	private static final VfxFirstPersonChannel FIRST_PERSON = new VfxFirstPersonChannel();
 	private static final VfxParticleChannel PARTICLES = new VfxParticleChannel();
 	private static final VfxSoundChannel SOUND = new VfxSoundChannel();
+	private static final VfxPostProcessChannel POST_PROCESS = new VfxPostProcessChannel();
 	private static ClientLevel activeLevel;
 	private static boolean initialized;
 
@@ -100,6 +101,7 @@ public final class VfxDirector {
 
 	private static void renderWorld(WorldRenderContext context) {
 		WORLD.render(context);
+		POST_PROCESS.render(Minecraft.getInstance());
 	}
 
 	private static void renderHud(GuiGraphics graphics, DeltaTracker tickCounter) {
@@ -122,7 +124,7 @@ public final class VfxDirector {
 	}
 
 	private static VfxContext context(Minecraft client) {
-		return new VfxContext(client, VfxQuality.from(client.options.particles().get()), WORLD, HUD, CAMERA, FIRST_PERSON, PARTICLES, SOUND);
+		return new VfxContext(client, VfxQuality.from(client.options.particles().get()), WORLD, HUD, CAMERA, FIRST_PERSON, PARTICLES, SOUND, POST_PROCESS);
 	}
 
 	private static void bindLevel(Minecraft client) {
@@ -134,6 +136,7 @@ public final class VfxDirector {
 
 	private static void reset() {
 		clear();
+		POST_PROCESS.resetSession();
 		activeLevel = null;
 	}
 
@@ -145,6 +148,7 @@ public final class VfxDirector {
 		FIRST_PERSON.clear();
 		PARTICLES.clear();
 		SOUND.clear();
+		POST_PROCESS.clear();
 	}
 
 	private record ActiveInstance(VfxCue cue, VfxInstance instance) {}

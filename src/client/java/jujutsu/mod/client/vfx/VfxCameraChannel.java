@@ -9,37 +9,51 @@ public final class VfxCameraChannel {
 	private final List<Impulse> impulses = new ArrayList<>();
 	private final List<FovImpulse> fovImpulses = new ArrayList<>();
 
-	public void triggerSwing(int intensity, float proximity) {
-		triggerSwing(intensity, proximity, 0.0f);
-	}
-
-	public void triggerSwing(int intensity, float proximity, float initialAgeTicks) {
+	public void triggerLaunch(int intensity, float proximity, float initialAgeTicks) {
 		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
 		float strength = strength(intensity, proximity, 0.92f);
-		addImpulse(startedAtMillis, 190, -2.9f * strength, 1.72f * strength, 72.0f);
-		addImpulse(startedAtMillis, 95, 1.18f * strength, -0.86f * strength, 126.0f);
-		addFovImpulse(startedAtMillis, 430, -7.5f * strength, 0.16f);
+		addImpulse(startedAtMillis, 170, -2.6f * strength, 1.25f * strength, 76.0f);
+		addImpulse(startedAtMillis + 70L, 110, 1.15f * strength, -0.72f * strength, 128.0f);
+		addFovImpulse(startedAtMillis, 250, -8.0f * strength, 0.12f);
+		addFovImpulse(startedAtMillis + 130L, 330, 3.6f * strength, 0.18f);
 	}
 
-	public void triggerImpact(int intensity, float proximity) {
-		triggerImpact(intensity, proximity, 0.0f);
-	}
-
-	public void triggerImpact(int intensity, float proximity, float initialAgeTicks) {
+	public void triggerHeavyImpact(int intensity, float proximity, float initialAgeTicks) {
 		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
 		float strength = strength(intensity, proximity, 1.08f);
-		addImpulse(startedAtMillis, 270, 3.3f * strength, -2.1f * strength, 58.0f);
-		addImpulse(startedAtMillis, 130, -1.52f * strength, 1.18f * strength, 118.0f);
-		addFovImpulse(startedAtMillis, 520, 9.0f * strength, 0.10f);
-		addFovImpulse(startedAtMillis, 950, -2.6f * strength, 0.34f);
+		addImpulse(startedAtMillis, 245, 3.7f * strength, -2.35f * strength, 62.0f);
+		addImpulse(startedAtMillis + 85L, 150, -1.7f * strength, 1.25f * strength, 122.0f);
+		addFovImpulse(startedAtMillis, 175, -4.8f * strength, 0.08f);
+		addFovImpulse(startedAtMillis + 75L, 510, 10.5f * strength, 0.12f);
+	}
+
+	public void triggerExplosion(int intensity, float proximity, float initialAgeTicks) {
+		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
+		float strength = strength(intensity, proximity, 1.0f);
+		for (int index = 0; index < 3; index++) {
+			long offset = index * 58L;
+			float direction = (index & 1) == 0 ? 1.0f : -1.0f;
+			addImpulse(startedAtMillis + offset, 105, 2.3f * strength * direction, -1.55f * strength, 148.0f + index * 24.0f);
+		}
+		addFovImpulse(startedAtMillis, 145, -5.5f * strength, 0.08f);
+		addFovImpulse(startedAtMillis + 65L, 420, 8.2f * strength, 0.14f);
+	}
+
+	public void triggerRitual(int intensity, float proximity, float initialAgeTicks) {
+		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
+		float strength = strength(intensity, proximity, 0.98f);
+		addImpulse(startedAtMillis, 310, -1.4f * strength, 1.05f * strength, 48.0f);
+		addImpulse(startedAtMillis + 110L, 150, 2.4f * strength, -1.65f * strength, 116.0f);
+		addFovImpulse(startedAtMillis, 230, -9.5f * strength, 0.18f);
+		addFovImpulse(startedAtMillis + 150L, 430, 5.4f * strength, 0.12f);
 	}
 
 	public float yawOffset() {
-		return sample(true);
+		return clamp(sample(true), -9.0f, 9.0f);
 	}
 
 	public float pitchOffset() {
-		return sample(false);
+		return clamp(sample(false), -7.0f, 7.0f);
 	}
 
 	public float fovOffset() {
@@ -67,7 +81,10 @@ public final class VfxCameraChannel {
 		while (iterator.hasNext()) {
 			FovImpulse impulse = iterator.next();
 			long elapsed = now - impulse.startedAtMillis();
-			if (elapsed < 0L || elapsed >= impulse.durationMillis()) {
+			if (elapsed < 0L) {
+				continue;
+			}
+			if (elapsed >= impulse.durationMillis()) {
 				iterator.remove();
 				continue;
 			}
@@ -83,6 +100,10 @@ public final class VfxCameraChannel {
 	private static float strength(int intensity, float proximity, float multiplier) {
 		float intensityScale = 0.84f + Math.min(8, Math.max(1, intensity)) * 0.055f;
 		return Math.max(0.0f, Math.min(1.65f, proximity * intensityScale * multiplier));
+	}
+
+	private static float clamp(float value, float minimum, float maximum) {
+		return Math.max(minimum, Math.min(maximum, value));
 	}
 
 	private float sample(boolean yaw) {

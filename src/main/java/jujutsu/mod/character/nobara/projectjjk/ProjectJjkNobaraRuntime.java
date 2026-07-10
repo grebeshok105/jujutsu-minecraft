@@ -57,7 +57,7 @@ public final class ProjectJjkNobaraRuntime {
 			nail.prepare(player, position, look);
 			level.addFreshEntity(nail);
 			level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, position.x, position.y, position.z, 3, 0.05, 0.05, 0.05, 0.03);
-			level.sendParticles(JujutsuParticles.HAIRPIN_IGNITION_TICK, position.x, position.y, position.z, 4, 0.07, 0.09, 0.07, 0.035);
+			level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, position.x, position.y, position.z, 2, 0.045, 0.055, 0.045, 0.018);
 		}
 
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 0.82f, 1.16f);
@@ -200,7 +200,7 @@ public final class ProjectJjkNobaraRuntime {
 	static void spawnNailLaunchParticles(ServerLevel level, Vec3 point, Vec3 direction) {
 		Vec3 forward = safeDirection(direction);
 		Vec3 anchor = point.add(forward.scale(0.16));
-		level.sendParticles(JujutsuParticles.HAIRPIN_IGNITION_TICK, anchor.x, anchor.y, anchor.z, 13, 0.12, 0.14, 0.12, 0.07);
+		level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, anchor.x, anchor.y, anchor.z, 9, 0.09, 0.11, 0.09, 0.055);
 		level.sendParticles(ParticleTypes.ELECTRIC_SPARK, anchor.x, anchor.y, anchor.z, 6, 0.10, 0.10, 0.10, 0.16);
 		level.sendParticles(JujutsuParticles.HAIRPIN_SPARK, anchor.x, anchor.y, anchor.z, 8, 0.16, 0.12, 0.16, 0.18);
 	}
@@ -208,7 +208,7 @@ public final class ProjectJjkNobaraRuntime {
 	private static void spawnCustomImpactParticles(ServerLevel level, Vec3 point, Vec3 direction) {
 		Vec3 forward = safeDirection(direction);
 		Vec3 core = point.add(forward.scale(-0.08));
-		level.sendParticles(JujutsuParticles.HAIRPIN_IGNITION_TICK, point.x, point.y, point.z, 6, 0.08, 0.08, 0.08, 0.05);
+		level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, point.x, point.y, point.z, 5, 0.07, 0.07, 0.07, 0.035);
 		level.sendParticles(JujutsuParticles.HAIRPIN_SPARK, point.x, point.y, point.z, 30, 0.38, 0.30, 0.38, 0.28);
 		level.sendParticles(JujutsuParticles.HAIRPIN_SNAP_CRACK, core.x, core.y, core.z, 5, 0.18, 0.12, 0.18, 0.07);
 		level.sendParticles(JujutsuParticles.HAIRPIN_BURST_RESIDUE, core.x, core.y, core.z, 20, 0.46, 0.34, 0.46, 0.20);
@@ -221,14 +221,14 @@ public final class ProjectJjkNobaraRuntime {
 	static void spawnNailFlightTrail(ServerLevel level, Vec3 point, Vec3 direction) {
 		Vec3 forward = safeDirection(direction);
 		Vec3 tail = point.subtract(forward.scale(0.35));
-		level.sendParticles(JujutsuParticles.HAIRPIN_IGNITION_TICK, tail.x, tail.y, tail.z, 4, 0.045, 0.055, 0.045, 0.035);
-		level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, tail.x, tail.y, tail.z, 1, 0.025, 0.025, 0.025, 0.018);
+		level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, tail.x, tail.y, tail.z, 2, 0.025, 0.025, 0.025, 0.024);
+		level.sendParticles(JujutsuParticles.HAIRPIN_SPARK, tail.x, tail.y, tail.z, 1, 0.02, 0.02, 0.02, 0.04);
 	}
 
-	static void spawnPreparedNailFlame(ServerLevel level, Vec3 point, Vec3 direction) {
+	static void spawnPreparedNailPressure(ServerLevel level, Vec3 point, Vec3 direction) {
 		Vec3 forward = safeDirection(direction);
 		Vec3 center = point.add(forward.scale(0.05));
-		level.sendParticles(JujutsuParticles.HAIRPIN_IGNITION_TICK, center.x, center.y, center.z, 1, 0.05, 0.06, 0.05, 0.018);
+		level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, center.x, center.y, center.z, 1, 0.035, 0.045, 0.035, 0.012);
 	}
 
 	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 point, long gameTime) {

@@ -305,15 +305,14 @@ public final class ProjectJjkRitualRuntime {
 
 	private static void spawnProjectJjkPrime(ServerLevel level, Vec3 at) {
 		level.sendParticles(PROJECTJJK_CYAN, at.x, at.y + 0.1, at.z, 8, 0.18, 0.18, 0.18, 0.02);
-		level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, at.x, at.y, at.z, 1, 0.05, 0.05, 0.05, 0.05);
 		level.sendParticles(ParticleTypes.SMOKE, at.x, at.y, at.z, 5, 0.16, 0.16, 0.16, 0.25);
-		level.sendParticles(JujutsuParticles.HAIRPIN_IGNITION_TICK, at.x, at.y, at.z, 3, 0.07, 0.07, 0.07, 0.04);
+		level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, at.x, at.y, at.z, 4, 0.07, 0.07, 0.07, 0.04);
 	}
 
 	private static void spawnProjectJjkExplosion(ServerLevel level, Vec3 at, int marks) {
 		level.sendParticles(ParticleTypes.FLASH, at.x, at.y + 0.2, at.z, 1, 0.0, 0.0, 0.0, 0.0);
 		level.sendParticles(PROJECTJJK_CYAN, at.x, at.y + 0.1, at.z, 18 + marks * 4, 0.52, 0.34, 0.52, 0.16);
-		level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, at.x, at.y, at.z, 10 + marks * 2, 0.28, 0.22, 0.28, 0.08);
+		level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, at.x, at.y, at.z, 10 + marks * 2, 0.28, 0.22, 0.28, 0.08);
 		level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, at.x, at.y, at.z, 4 + marks, 0.18, 0.16, 0.18, 0.02);
 		level.sendParticles(JujutsuParticles.HAIRPIN_SPARK, at.x, at.y, at.z, 12 + marks * 3, 0.34, 0.26, 0.34, 0.18);
 		level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, at.x, at.y + 0.1, at.z, 6, 0.28, 0.14, 0.28, 0.04);
@@ -323,7 +322,7 @@ public final class ProjectJjkRitualRuntime {
 		level.sendParticles(ParticleTypes.FLASH, at.x, at.y, at.z, 3, 0.12, 0.12, 0.12, 0.0);
 		level.sendParticles(PROJECTJJK_CYAN, at.x, at.y + 0.15, at.z, 28 + marks * 7, 0.7, 0.58, 0.7, 0.18);
 		level.sendParticles(ParticleTypes.DAMAGE_INDICATOR, at.x, at.y, at.z, 10, 0.18, 0.24, 0.18, 0.04);
-		level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, at.x, at.y, at.z, 12 + marks * 2, 0.22, 0.3, 0.22, 0.06);
+		level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, at.x, at.y, at.z, 12 + marks * 2, 0.22, 0.3, 0.22, 0.06);
 		level.sendParticles(JujutsuParticles.HAIRPIN_SNAP_CRACK, at.x, at.y, at.z, 8, 0.18, 0.18, 0.18, 0.06);
 		level.sendParticles(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, at.x, at.y, at.z, 16, 0.34, 0.28, 0.34, 0.24);
 		level.sendParticles(JujutsuParticles.HAIRPIN_BURST_RESIDUE, at.x, at.y, at.z, 18, 0.38, 0.34, 0.38, 0.16);
@@ -335,7 +334,7 @@ public final class ProjectJjkRitualRuntime {
 		level.sendParticles(JujutsuParticles.HAIRPIN_BURST_RESIDUE, at.x, at.y, at.z, intensity, 0.5, 0.6, 0.5, 0.22);
 		level.sendParticles(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, at.x, at.y, at.z, 10 + marks * 4, 0.5, 0.4, 0.5, 0.35);
 		level.sendParticles(JujutsuParticles.HAIRPIN_MARK_STAIN, at.x, at.y, at.z, 6 + marks * 2, 0.3, 0.4, 0.3, 0.01);
-		level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, at.x, at.y, at.z, intensity, 0.6, 0.7, 0.6, 0.1);
+		level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, at.x, at.y, at.z, intensity, 0.6, 0.7, 0.6, 0.1);
 		level.sendParticles(ParticleTypes.CRIT, at.x, at.y, at.z, intensity, 0.5, 0.6, 0.5, 0.2);
 		level.sendParticles(ParticleTypes.FLASH, at.x, at.y, at.z, 2, 0.0, 0.0, 0.0, 0.0);
 	}

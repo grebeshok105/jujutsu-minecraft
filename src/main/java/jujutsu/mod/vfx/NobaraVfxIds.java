@@ -14,6 +14,10 @@ public final class NobaraVfxIds {
 	public static final ResourceLocation ENLARGE = id("enlarge");
 	public static final ResourceLocation EXPLOSION = id("explosion");
 	public static final ResourceLocation FIRST_PERSON_SNAP = id("first_person_snap");
+	public static final ResourceLocation REMNANT_DROP = id("remnant_drop");
+	public static final ResourceLocation RITUAL_BIND = id("ritual_bind");
+	public static final ResourceLocation DOLL_STRIKE = id("doll_strike");
+	public static final ResourceLocation RESONANCE_RELEASE = id("resonance_release");
 
 	private NobaraVfxIds() {}
 

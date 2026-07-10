@@ -32,10 +32,15 @@ public final class NobaraVfxRecipes {
 		VfxDirector.register(NobaraVfxIds.ENLARGE, NobaraVfxRecipes::enlarge);
 		VfxDirector.register(NobaraVfxIds.EXPLOSION, NobaraVfxRecipes::explosion);
 		VfxDirector.register(NobaraVfxIds.FIRST_PERSON_SNAP, NobaraVfxRecipes::firstPersonSnap);
+		VfxDirector.register(NobaraVfxIds.REMNANT_DROP, NobaraVfxRecipes::remnantDrop);
+		VfxDirector.register(NobaraVfxIds.RITUAL_BIND, NobaraVfxRecipes::ritualBind);
+		VfxDirector.register(NobaraVfxIds.DOLL_STRIKE, NobaraVfxRecipes::dollStrike);
+		VfxDirector.register(NobaraVfxIds.RESONANCE_RELEASE, NobaraVfxRecipes::resonanceRelease);
 	}
 
 	private static VfxInstance hammer(VfxCue cue) {
 		return VfxInstance.of(10, (context, initialAgeTicks) -> {
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.HAMMER_SEND, 10);
 			float proximity = context.proximity(cue, 48.0);
 			if (proximity <= 0.01f) {
 				return;
@@ -47,7 +52,7 @@ public final class NobaraVfxRecipes {
 				context.playNoFalloff(SoundEvents.NETHERITE_BLOCK_HIT, 0.55f * proximity, 0.72f, origin, random);
 				context.playNoFalloff(JujutsuSounds.HAIRPIN_HAMMER_SNAP, 0.75f * proximity, 1.0f, origin, random);
 			}
-			context.camera().triggerSwing(intensity(cue), proximity, initialAgeTicks);
+			context.camera().triggerLaunch(intensity(cue), proximity, initialAgeTicks);
 			context.hud().triggerSwing(proximity, initialAgeTicks);
 		});
 	}
@@ -62,8 +67,9 @@ public final class NobaraVfxRecipes {
 				Vec3 origin = context.resolveOrigin(cue);
 				playImpactSound(context, origin, proximity, random(cue, 0x17711L));
 			}
-			context.camera().triggerImpact(intensity(cue), proximity, initialAgeTicks);
+			context.camera().triggerHeavyImpact(intensity(cue), proximity, initialAgeTicks);
 			context.hud().triggerImpact(proximity, initialAgeTicks);
+			context.postProcess().triggerBlur(Math.round(135.0f * proximity), initialAgeTicks);
 		});
 	}
 
@@ -76,42 +82,15 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance resonanceChannel(VfxCue cue) {
-		return VfxInstance.of(12, (context, initialAgeTicks) -> {
-			float proximity = context.proximity(cue, 48.0);
-			if (proximity > 0.01f) {
-				context.camera().triggerImpact(intensity(cue), proximity, initialAgeTicks);
-				context.hud().triggerImpact(proximity * 0.55f, initialAgeTicks);
-			}
-		});
+		return ritualBind(cue);
 	}
 
 	private static VfxInstance resonanceStrike(VfxCue cue) {
-		return VfxInstance.of(24, (context, initialAgeTicks) -> {
-			int marks = intensity(cue);
-			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
-				Vec3 origin = context.resolveOrigin(cue);
-				RandomSource random = random(cue, 0x5A17E0L);
-				spawnResonanceBurst(context, origin, marks, random);
-			}
-			float proximity = context.proximity(cue, 64.0);
-			if (proximity > 0.01f) {
-				context.camera().triggerImpact(marks, proximity, initialAgeTicks);
-				context.hud().triggerImpact(proximity, initialAgeTicks);
-			}
-		});
+		return resonanceRelease(cue);
 	}
 
 	private static VfxInstance linkBind(VfxCue cue) {
-		return VfxInstance.of(14, (context, initialAgeTicks) -> {
-			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
-				return;
-			}
-			Vec3 origin = context.resolveOrigin(cue);
-			RandomSource random = random(cue, 0xB1ADL);
-			context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 20, 0.9, 0.0, -0.05, random);
-			context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 12, 0.5, 0.08, random);
-			context.playNoFalloff(JujutsuSounds.PROJECTJJK_CHIME, 0.7f, 1.15f, origin, random);
-		});
+		return remnantDrop(cue);
 	}
 
 	private static VfxInstance detonate(VfxCue cue) {
@@ -125,7 +104,7 @@ public final class NobaraVfxRecipes {
 			}
 			float proximity = context.proximity(cue, 40.0);
 			if (proximity > 0.01f) {
-				context.camera().triggerSwing(marks, proximity * 0.7f, initialAgeTicks);
+				context.camera().triggerLaunch(marks, proximity * 0.7f, initialAgeTicks);
 				context.hud().triggerSwing(proximity * 0.65f, initialAgeTicks);
 			}
 		});
@@ -142,7 +121,7 @@ public final class NobaraVfxRecipes {
 				context.burst(ParticleTypes.FLASH, origin.add(0.0, 0.18, 0.0), 2, 0.18, 0.0, random);
 				context.burst(PROJECTJJK_CYAN, origin.add(0.0, 0.2, 0.0), 34 + marks * 7, 1.15, 0.18, random);
 				context.burst(ParticleTypes.DAMAGE_INDICATOR, origin, 12, 0.22, 0.04, random);
-				context.burst(ParticleTypes.SOUL_FIRE_FLAME, origin, 18 + marks * 4, 0.36, 0.08, random);
+				context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 18 + marks * 4, 0.36, 0.08, random);
 				context.burst(JujutsuParticles.HAIRPIN_SNAP_CRACK, origin, 12 + marks, 0.3, 0.08, random);
 				context.burst(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, origin, 18, 0.44, 0.3, random);
 				context.burst(JujutsuParticles.HAIRPIN_BURST_RESIDUE, origin, 24, 0.48, 0.18, random);
@@ -153,8 +132,9 @@ public final class NobaraVfxRecipes {
 				}
 			}
 			if (proximity > 0.01f) {
-				context.camera().triggerImpact(marks + 2, Math.min(1.0f, proximity * 1.15f), initialAgeTicks);
+				context.camera().triggerHeavyImpact(marks + 2, Math.min(1.0f, proximity * 1.15f), initialAgeTicks);
 				context.hud().triggerImpact(Math.min(1.0f, proximity * 1.1f), initialAgeTicks);
+				context.postProcess().triggerBlur(Math.round(260.0f * proximity), initialAgeTicks);
 			}
 		});
 	}
@@ -169,18 +149,88 @@ public final class NobaraVfxRecipes {
 				RandomSource random = random(cue, 0xE0B00FL);
 				context.burst(ParticleTypes.FLASH, origin.add(0.0, 0.18, 0.0), 1, 0.0, 0.0, random);
 				context.burst(PROJECTJJK_CYAN, origin, 24 + marks * 5, 0.85, 0.2, random);
-				context.burst(ParticleTypes.SOUL_FIRE_FLAME, origin, 10 + marks * 3, 0.38, 0.09, random);
+				context.burst(JujutsuParticles.HAIRPIN_BURST_RESIDUE, origin, 10 + marks * 3, 0.38, 0.09, random);
 				context.burst(JujutsuParticles.HAIRPIN_SPARK, origin, 22 + marks * 5, 0.52, 0.28, random);
 				context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 6 + marks, 0.28, 0.08, random);
-				context.ring(JujutsuParticles.HAIRPIN_IGNITION_TICK, origin, 20 + marks * 3, 1.1 + Math.min(4, marks) * 0.12, 0.08, 0.04, random);
+				context.ring(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 20 + marks * 3, 1.1 + Math.min(4, marks) * 0.12, 0.08, 0.04, random);
 				if (proximity > 0.01f) {
 					context.playNoFalloff(JujutsuSounds.PROJECTJJK_EXPLODE, 0.42f * proximity, 1.96f, origin, random);
 					context.playNoFalloff(JujutsuSounds.PROJECTJJK_IMPLODE, 0.24f * proximity, 1.22f, origin, random);
 				}
 			}
 			if (proximity > 0.01f) {
-				context.camera().triggerImpact(marks, Math.min(1.0f, proximity * 0.82f), initialAgeTicks);
+				context.camera().triggerExplosion(marks, Math.min(1.0f, proximity * 0.82f), initialAgeTicks);
 				context.hud().triggerImpact(Math.min(1.0f, proximity * 0.74f), initialAgeTicks);
+				context.postProcess().triggerBlur(Math.round(210.0f * proximity), initialAgeTicks);
+			}
+		});
+	}
+
+	private static VfxInstance remnantDrop(VfxCue cue) {
+		return VfxInstance.of(16, (context, initialAgeTicks) -> {
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.RITUAL_BIND, 16);
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 origin = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0xB1ADL);
+			context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 16, 0.72, 0.0, -0.04, random);
+			context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 10, 0.34, 0.06, random);
+			context.playNoFalloff(JujutsuSounds.PROJECTJJK_CHIME, 0.62f, 1.22f, origin, random);
+		});
+	}
+
+	private static VfxInstance ritualBind(VfxCue cue) {
+		return VfxInstance.of(18, (context, initialAgeTicks) -> {
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.RITUAL_BIND, 18);
+			float proximity = context.proximity(cue, 48.0);
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				Vec3 origin = context.resolveOrigin(cue);
+				RandomSource random = random(cue, 0x7117A1L);
+				context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 24, 1.05, -0.2, -0.08, random);
+				context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 18, 0.46, 0.075, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_MAGIC, 0.82f * proximity, 0.76f, origin, random);
+			}
+			if (proximity > 0.01f) {
+				context.camera().triggerRitual(intensity(cue), proximity, initialAgeTicks);
+				context.hud().triggerSwing(proximity * 0.56f, initialAgeTicks);
+				context.postProcess().triggerBlur(Math.round(185.0f * proximity), initialAgeTicks);
+			}
+		});
+	}
+
+	private static VfxInstance dollStrike(VfxCue cue) {
+		return VfxInstance.of(10, (context, initialAgeTicks) -> {
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.DOLL_STRIKE, 10);
+			float proximity = context.proximity(cue, 44.0);
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				Vec3 origin = context.resolveOrigin(cue);
+				RandomSource random = random(cue, 0xD01157L);
+				context.burst(JujutsuParticles.HAIRPIN_SNAP_CRACK, origin, 12, 0.24, 0.12, random);
+				context.burst(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, origin, 7, 0.32, 0.24, random);
+				context.playNoFalloff(SoundEvents.ANVIL_USE, 0.9f * proximity, 1.34f, origin, random);
+			}
+			if (proximity > 0.01f) {
+				context.camera().triggerHeavyImpact(intensity(cue), proximity * 0.72f, initialAgeTicks);
+				context.hud().triggerImpact(proximity * 0.72f, initialAgeTicks);
+				context.postProcess().triggerBlur(Math.round(150.0f * proximity), initialAgeTicks);
+			}
+		});
+	}
+
+	private static VfxInstance resonanceRelease(VfxCue cue) {
+		return VfxInstance.of(26, (context, initialAgeTicks) -> {
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.RESONANCE_RELEASE, 26);
+			int marks = intensity(cue);
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				Vec3 origin = context.resolveOrigin(cue);
+				spawnResonanceBurst(context, origin, marks, random(cue, 0x5A17E0L));
+			}
+			float proximity = context.proximity(cue, 64.0);
+			if (proximity > 0.01f) {
+				context.camera().triggerHeavyImpact(marks + 2, proximity, initialAgeTicks);
+				context.hud().triggerImpact(proximity, initialAgeTicks);
+				context.postProcess().triggerBlur(Math.round(280.0f * proximity), initialAgeTicks);
 			}
 		});
 	}
@@ -191,7 +241,7 @@ public final class NobaraVfxRecipes {
 
 	private static void spawnResonanceBurst(VfxContext context, Vec3 origin, int marks, RandomSource random) {
 		int intensity = 26 + marks * 14;
-		context.burst(ParticleTypes.SOUL_FIRE_FLAME, origin, intensity, 0.5, 0.22, random);
+		context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, intensity, 0.5, 0.22, random);
 		context.burst(JujutsuParticles.HAIRPIN_MARK_STAIN, origin, 6 + marks * 2, 0.5, 0.02, random);
 		context.burst(JujutsuParticles.HAIRPIN_SPARK, origin, intensity, 0.6, 0.24, random);
 		context.burst(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, origin, 8 + marks * 4, 0.6, 0.34, random);

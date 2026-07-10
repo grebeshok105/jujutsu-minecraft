@@ -84,11 +84,12 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 			matrices.translate(state.embeddedAnchorOffset.x, state.embeddedAnchorOffset.y, state.embeddedAnchorOffset.z);
 		}
 		if (!state.embedded) {
-			float alpha = state.launched ? 1.0f : 0.82f;
-			float length = state.launched ? 1.06f : 0.86f;
-			float width = state.launched ? 0.32f : 0.24f;
-			int bands = state.launched ? 4 : 3;
-			renderBlueForceFieldEnvelope(consumers.getBuffer(RenderType.lightning()), matrices, Vec3.ZERO, direction, state.age + state.seed * 0.37f, alpha, length, width, bands);
+			float alpha = state.launched ? 0.96f : 0.68f;
+			float length = state.launched ? 1.28f : 0.76f;
+			float width = state.launched ? 0.115f : 0.078f;
+			int bands = state.launched ? 3 : 2;
+			renderCompressedEnergyAura(consumers.getBuffer(RenderType.lightning()), matrices, Vec3.ZERO, direction,
+					state.age + state.seed * 0.37f, alpha, length, width, bands, state.launched);
 		}
 		matrices.mulPose(new Quaternionf().rotationTo(MODEL_UP, toVector3f(direction)));
 		if (state.embedded) {
@@ -113,13 +114,14 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		super.render(state, matrices, consumers, packedLight);
 	}
 
-	private static void renderBlueForceFieldEnvelope(VertexConsumer consumer, PoseStack matrices, Vec3 center, Vec3 direction, float age, float alpha, float length, float width, int bands) {
+	private static void renderCompressedEnergyAura(VertexConsumer consumer, PoseStack matrices, Vec3 center, Vec3 direction,
+			float age, float alpha, float length, float width, int bands, boolean launched) {
 		if (alpha <= 0.01f) {
 			return;
 		}
 		Vec3 line = safeDirection(direction);
-		Vec3 tail = center.subtract(line.scale(length * 0.5f));
-		Vec3 head = center.add(line.scale(length * 0.5f));
+		Vec3 tail = center.subtract(line.scale(launched ? length * 0.72f : length * 0.46f));
+		Vec3 head = center.add(line.scale(launched ? length * 0.28f : length * 0.54f));
 		Vec3 side = axisSide(line, width);
 		Vec3 cross = line.cross(side);
 		if (cross.lengthSqr() < 1.0E-5) {
@@ -128,22 +130,36 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 			cross = cross.normalize().scale(width * 0.78f);
 		}
 
-		float pulse = 0.86f + 0.14f * (float) Math.sin(age * 0.42f);
-		addRibbon(consumer, matrices, tail, head, side.scale(1.9 * pulse), CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, Math.round(116.0f * alpha));
-		addRibbon(consumer, matrices, tail, head, cross.scale(1.62 * pulse), CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, Math.round(88.0f * alpha));
-		addRibbon(consumer, matrices, tail.add(line.scale(length * 0.08f)), head.subtract(line.scale(length * 0.04f)), side.scale(0.84), CURSED_BLUE_R, CURSED_BLUE_G, CURSED_BLUE_B, Math.round(190.0f * alpha));
-		addRibbon(consumer, matrices, tail.add(line.scale(length * 0.12f)), head, cross.scale(0.62), CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, Math.round(150.0f * alpha));
-		addRibbon(consumer, matrices, center.subtract(line.scale(length * 0.22f)), head.add(line.scale(length * 0.06f)), side.scale(0.18), CURSED_BLUE_WHITE_R, CURSED_BLUE_WHITE_G, CURSED_BLUE_WHITE_B, Math.round(48.0f * alpha));
+		float pulse = 0.9f + 0.1f * (float) Math.sin(age * 0.38f);
+		addRibbon(consumer, matrices, tail, head, side.scale(1.65 * pulse), CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, Math.round(88.0f * alpha));
+		addRibbon(consumer, matrices, tail, head, cross.scale(1.38 * pulse), CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, Math.round(64.0f * alpha));
+		addRibbon(consumer, matrices, tail.add(line.scale(length * 0.08f)), head, side.scale(0.68), CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, Math.round(178.0f * alpha));
+		addRibbon(consumer, matrices, center.subtract(line.scale(length * 0.06f)), head.add(line.scale(length * 0.1f)), cross.scale(0.26), CURSED_BLUE_WHITE_R, CURSED_BLUE_WHITE_G, CURSED_BLUE_WHITE_B, Math.round(118.0f * alpha));
+
+		Vec3 tipStart = head.subtract(line.scale(0.18f));
+		Vec3 tipEnd = head.add(line.scale(launched ? 0.17f : 0.08f));
+		addRibbon(consumer, matrices, tipStart, tipEnd, side.scale(0.46), CURSED_BLUE_WHITE_R, CURSED_BLUE_WHITE_G, CURSED_BLUE_WHITE_B, Math.round(205.0f * alpha));
 		for (int index = 0; index < bands; index++) {
 			double offset = (index + 0.5) / bands;
-			double wave = Math.sin(age * 0.35f + index * 1.7) * 0.5 + 0.5;
+			double wave = Math.sin(age * 0.31f + index * 1.7) * 0.5 + 0.5;
 			Vec3 ringCenter = tail.lerp(head, offset);
-			float ringRadius = width * (0.74f + (float) wave * 0.22f);
-			renderForceFieldBand(consumer, matrices, ringCenter, side.normalize(), cross.normalize(), ringRadius, Math.round(92.0f * alpha));
+			float ringRadius = width * (0.82f + (float) wave * 0.16f);
+			renderPressureBand(consumer, matrices, ringCenter, side.normalize(), cross.normalize(), ringRadius, Math.round(78.0f * alpha));
+		}
+		int slivers = launched ? 3 : 2;
+		for (int index = 0; index < slivers; index++) {
+			double angle = age * 0.18 + index * Math.PI * 2.0 / slivers;
+			Vec3 orbit = side.normalize().scale(Math.cos(angle) * width * 1.45)
+					.add(cross.normalize().scale(Math.sin(angle) * width * 1.45));
+			Vec3 sliverCenter = tail.lerp(head, 0.28 + index * 0.22).add(orbit);
+			Vec3 sliverStart = sliverCenter.subtract(line.scale(launched ? 0.16f : 0.08f));
+			Vec3 sliverEnd = sliverCenter.add(line.scale(launched ? 0.13f : 0.07f));
+			addRibbon(consumer, matrices, sliverStart, sliverEnd, side.normalize().scale(0.012f),
+					CURSED_BLUE_WHITE_R, CURSED_BLUE_WHITE_G, CURSED_BLUE_WHITE_B, Math.round(132.0f * alpha));
 		}
 	}
 
-	private static void renderForceFieldBand(VertexConsumer consumer, PoseStack matrices, Vec3 center, Vec3 side, Vec3 cross, float radius, int alpha) {
+	private static void renderPressureBand(VertexConsumer consumer, PoseStack matrices, Vec3 center, Vec3 side, Vec3 cross, float radius, int alpha) {
 		if (alpha <= 0) {
 			return;
 		}

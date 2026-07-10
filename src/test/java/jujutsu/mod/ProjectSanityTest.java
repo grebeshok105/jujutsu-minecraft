@@ -42,6 +42,7 @@ public final class ProjectSanityTest {
 		assertVfxDirectorOwnsClientLifecycle();
 		assertVfxCoreProvidesReusableChannels();
 		assertNobaraUsesVfxCoreRecipes();
+		assertNobaraVfxExpansionContract();
 		assertDefaultNobaraEntrypointSkipsLegacyRuntime();
 		assertLegacyNobaraRuntimeIsRemoved();
 		assertNobaraNailsEmbedLikeOpaqueBodyAnchors();
@@ -359,7 +360,9 @@ public final class ProjectSanityTest {
 		assert hud.contains("triggerImpact") && hud.contains("renderSmoothEdgeVignette") : "VFX HUD channel must own impact overlay primitives";
 		assert hud.contains("VfxTimeline.startedAtMillis") : "HUD effects must enter the correct phase for late cues";
 		String camera = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxCameraChannel.java"));
-		assert camera.contains("triggerImpact") && camera.contains("triggerSwing") : "VFX camera channel must expose impact and swing impulses";
+		assert camera.contains("triggerLaunch") && camera.contains("triggerHeavyImpact")
+				&& camera.contains("triggerExplosion") && camera.contains("triggerRitual")
+				: "VFX camera channel must expose named cinematic profiles";
 		assert camera.contains("VfxTimeline.startedAtMillis") : "Camera effects must enter the correct phase for late cues";
 		String firstPerson = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxFirstPersonChannel.java"));
 		assert firstPerson.contains("triggerSnap") && firstPerson.contains("DURATION_SECONDS") : "VFX first-person channel must own the snap animation";
@@ -380,8 +383,9 @@ public final class ProjectSanityTest {
 		assert recipes.contains("NobaraVfxIds.FIRST_PERSON_SNAP") : "Missing Nobara first-person snap recipe";
 		long openingBeatGuards = Pattern.compile("VfxTimeline\\.isOpeningBeat\\(initialAgeTicks\\)").matcher(recipes).results().count();
 		assert openingBeatGuards >= 8 : "Every non-seekable Nobara sound/particle opening beat must reject late playback";
-		long ageAwareChannelCalls = Pattern.compile("trigger(?:Swing|Impact|Snap)\\([^\\n]*initialAgeTicks\\)").matcher(recipes).results().count();
-		assert ageAwareChannelCalls == 15 : "All 15 Nobara timed channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
+		long ageAwareChannelCalls = Pattern.compile("trigger(?:Launch|HeavyImpact|Explosion|Ritual|Swing|Impact|Snap|Blur)\\([^\\n]*initialAgeTicks\\)")
+				.matcher(recipes).results().count();
+		assert ageAwareChannelCalls == 23 : "All 23 Nobara realtime channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
 		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/network/ProjectJjkNobaraImpulsePayload.java")) : "Legacy integer VFX payload must be removed after migration";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java")) : "Legacy Hairpin world renderer must be replaced by VFX Core";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinCinematicCamera.java")) : "Legacy Hairpin camera manager must be replaced by VFX Core";
@@ -424,6 +428,46 @@ public final class ProjectSanityTest {
 		assert nail.contains("explosiveImpact") : "Nail entity must remember whether this launched nail should explode on impact";
 		assert nail.contains("resolveNailImpact(serverLevel, this, hit, explosiveImpact)") : "Impact resolution must branch on explosive vs piercing launch mode";
 		assert nail.contains("explodeAtTargetIfPassed") : "Explosive nails must detonate and disappear after reaching their target even when they miss collision";
+	}
+
+	private static void assertNobaraVfxExpansionContract() throws IOException {
+		String ids = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/vfx/NobaraVfxIds.java"));
+		String recipes = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/nobara/NobaraVfxRecipes.java"));
+		for (String id : new String[] {"REMNANT_DROP", "RITUAL_BIND", "DOLL_STRIKE", "RESONANCE_RELEASE"}) {
+			assert ids.contains(id) : "Missing Straw Doll VFX id " + id;
+			assert recipes.contains("VfxDirector.register(NobaraVfxIds." + id)
+					: "Missing Straw Doll VFX recipe registration " + id;
+		}
+
+		Path postProcessPath = CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxPostProcessChannel.java");
+		assert Files.exists(postProcessPath) : "VfxDirector needs one internal bounded post-process channel";
+		String postProcess = Files.readString(postProcessPath);
+		assert postProcess.contains("processBlurEffect()") : "Post-process channel must use Minecraft 1.21.8 public blur processing";
+		assert !postProcess.contains("WorldRenderEvents") : "Post-process channel must not register a parallel world callback";
+
+		String director = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxDirector.java"));
+		assert director.contains("VfxPostProcessChannel POST_PROCESS") : "Director must own the post-process channel";
+		assert director.contains("POST_PROCESS.render") && director.contains("POST_PROCESS.clear()")
+				: "Director must render and clear the post-process channel";
+		String context = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxContext.java"));
+		assert context.contains("VfxPostProcessChannel postProcess") && context.contains("postProcess()")
+				: "Recipes must reach blur only through VfxContext";
+
+		String camera = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxCameraChannel.java"));
+		for (String profile : new String[] {"triggerLaunch", "triggerHeavyImpact", "triggerExplosion", "triggerRitual"}) {
+			assert camera.contains(profile) : "Missing named camera profile " + profile;
+		}
+		assert camera.contains("clamp(sample(true)") && camera.contains("clamp(sample(false)")
+				: "Stacked camera impulses must be clamped after sampling";
+		assert !recipes.contains("ParticleTypes.SOUL_FIRE_FLAME") : "Nobara recipes must not read as blue fire";
+		assert !recipes.contains("HAIRPIN_IGNITION_TICK") : "Nobara recipes must use compressed-energy particles, not ignition composition";
+		long blurCalls = Pattern.compile("triggerBlur\\([^\\n]*initialAgeTicks\\)").matcher(recipes).results().count();
+		assert blurCalls >= 4 : "Heavy Nobara scenes must use age-aware proximity-gated blur; found " + blurCalls;
+
+		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkStrawDollRuntime.java"));
+		for (String id : new String[] {"REMNANT_DROP", "RITUAL_BIND", "DOLL_STRIKE", "RESONANCE_RELEASE"}) {
+			assert ritual.contains("NobaraVfxIds." + id) : "Server ritual must emit " + id;
+		}
 	}
 
 	private static void assertStrawDollRitualUsesPhysicalRemnants() throws IOException {
@@ -497,9 +541,13 @@ public final class ProjectSanityTest {
 	private static void assertNobaraNailAuraAvoidsSoulFire() throws IOException {
 		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraRuntime.java"));
 		assert !runtime.contains("ParticleTypes.SOUL_FIRE_FLAME") : "Nobara nail aura must not use vanilla soul-fire particles";
+		assert !runtime.contains("HAIRPIN_IGNITION_TICK") && runtime.contains("spawnPreparedNailPressure")
+				: "Prepared and flying nails must use compressed-energy motes instead of ignition particles";
 		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/ProjectJjkNailRenderer.java"));
-		assert renderer.contains("renderBlueForceFieldEnvelope") : "Real ProjectJJK nail entities must render the blue force-field envelope";
+		assert renderer.contains("renderCompressedEnergyAura") && renderer.contains("renderPressureBand")
+				: "Real nail entities must render a narrow rim, pressure bands, and orbiting slivers";
 		assert renderer.contains("VfxPalette") : "Persistent nail aura must reuse the VFX Core cursed-energy palette";
+		assert !renderer.contains("renderBlueForceFieldEnvelope") : "The rejected broad nail envelope must stay removed";
 		assert !renderer.contains("renderCyanNailFireAura") : "Blue nail aura must not use the rejected cyan flame ribbon geometry";
 		assert !renderer.contains("ParticleTypes.SOUL_FIRE_FLAME") : "Blue nail aura must be rendered geometry, not vanilla particles";
 	}

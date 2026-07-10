@@ -11,6 +11,7 @@ public final class VfxTimelineTest {
 		assertExpiredCueIsSkipped();
 		assertOpeningBeatWindow();
 		assertLateCueOffsetsRealtimeChannels();
+		assertStrawDollCueIdsStayStable();
 		System.out.println("VfxTimelineTest passed");
 	}
 
@@ -40,5 +41,12 @@ public final class VfxTimelineTest {
 		assert VfxTimeline.startedAtMillis(1_000L, 4.5f) == 775L : "4.5 ticks must offset realtime channels by 225 ms";
 		assert VfxTimeline.startedAtNanos(1_000_000_000L, 4.5f) == 775_000_000L : "4.5 ticks must offset first-person timing by 225 ms";
 		assert VfxTimeline.startedAtMillis(1_000L, -2.0f) == 1_000L : "future cues must not start before now";
+	}
+
+	private static void assertStrawDollCueIdsStayStable() {
+		assert NobaraVfxIds.REMNANT_DROP.getPath().equals("nobara/remnant_drop");
+		assert NobaraVfxIds.RITUAL_BIND.getPath().equals("nobara/ritual_bind");
+		assert NobaraVfxIds.DOLL_STRIKE.getPath().equals("nobara/doll_strike");
+		assert NobaraVfxIds.RESONANCE_RELEASE.getPath().equals("nobara/resonance_release");
 	}
 }
