@@ -6,6 +6,7 @@ import net.minecraft.resources.ResourceLocation;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkRitualRuntime;
 import jujutsu.mod.command.JujutsuCommands;
 import jujutsu.mod.network.JujutsuNetworking;
+import jujutsu.mod.registry.JujutsuDataComponents;
 import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.registry.JujutsuParticles;
@@ -21,6 +22,7 @@ public class JujutsuMod implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		JujutsuEntities.register();
+		JujutsuDataComponents.register();
 		JujutsuItems.register();
 		JujutsuParticles.register();
 		JujutsuSounds.register();

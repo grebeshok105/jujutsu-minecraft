@@ -68,6 +68,16 @@ tasks.register('testProjectJjkNobaraProfile', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testNobaraRemnant', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for Nobara remnant progression'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.nobara.projectjjk.ProjectJjkRemnantProgressTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.register('testVfxCore', JavaExec) {
 	group = 'verification'
 	description = 'Runs assertion-based tests for shared VFX cue contracts'
@@ -112,6 +122,7 @@ tasks.named('check') {
 	dependsOn tasks.named('testProjectSanity')
 	dependsOn tasks.named('testTargetResolver')
 	dependsOn tasks.named('testProjectJjkNobaraProfile')
+	dependsOn tasks.named('testNobaraRemnant')
 	dependsOn tasks.named('testVfxCore')
 	dependsOn tasks.named('testVfxTimeline')
 	dependsOn tasks.named('testVfxQuality')
