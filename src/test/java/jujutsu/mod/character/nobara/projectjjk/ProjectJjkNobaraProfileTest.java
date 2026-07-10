@@ -9,6 +9,7 @@ public final class ProjectJjkNobaraProfileTest {
 	public static void main(String[] args) {
 		assertTapPreparesOneNail();
 		assertHoldAddsOneNailEveryHalfSecond();
+		assertPreparedNailsAppearIndividually();
 		assertWorldNailsPersistLikeProjectJjkReference();
 		assertNailsLaunchWithTwoTickStagger();
 		assertPreparedLaunchRequiresCloseNails();
@@ -37,6 +38,12 @@ public final class ProjectJjkNobaraProfileTest {
 		assert ProjectJjkNobaraProfile.nailCountForUseTicks(20) == 3 : "1.0s should prepare three nails";
 		assert ProjectJjkNobaraProfile.nailCountForUseTicks(70) == ProjectJjkNobaraProfile.BARRAGE_NAILS : "3.5s should reach the barrage cap";
 		assert ProjectJjkNobaraProfile.nailCountForUseTicks(120) == ProjectJjkNobaraProfile.BARRAGE_NAILS : "long holds should clamp to barrage nails";
+	}
+
+	private static void assertPreparedNailsAppearIndividually() {
+		assert ProjectJjkNobaraProfile.preparationDelayForIndex(0) == 0;
+		assert ProjectJjkNobaraProfile.preparationDelayForIndex(1) == 10;
+		assert ProjectJjkNobaraProfile.preparationDelayForIndex(7) == 70;
 	}
 
 	private static void assertWorldNailsPersistLikeProjectJjkReference() {

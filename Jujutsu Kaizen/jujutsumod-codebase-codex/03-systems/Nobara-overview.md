@@ -2,6 +2,8 @@
 
 ← [[00-MOC]] · detail: [[Nobara-runtime-flow]] · [[Nail-entity-lifecycle]] · [[Target-marks-and-resonance]] · [[Straw-Doll-resonance]]
 
+Current expansion: [[Nobara-combat-expansion]].
+
 ## One-line fantasy
 
 Canon-forward Straw Doll kit: charge real nail entities → strike with hammer → embed/detonate nails, or earn a target remnant and complete a doll ritual for remote Resonance.

@@ -49,6 +49,7 @@
 - [[03-systems/Nail-entity-lifecycle]]
 - [[03-systems/Target-marks-and-resonance]]
 - [[03-systems/Straw-Doll-resonance]]
+- [[03-systems/Nobara-combat-expansion]]
 
 ## 04 · Client / VFX
 

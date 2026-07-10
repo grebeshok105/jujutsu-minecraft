@@ -80,4 +80,8 @@ public final class ProjectJjkNobaraProfile {
 	public static int launchDelayForIndex(int index) {
 		return Math.max(0, index) * PREPARED_LAUNCH_DELAY_TICKS;
 	}
+
+	public static int preparationDelayForIndex(int index) {
+		return Math.max(0, index) * EXTRA_NAIL_HOLD_TICKS;
+	}
 }

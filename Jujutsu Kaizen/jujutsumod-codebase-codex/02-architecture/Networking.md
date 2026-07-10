@@ -65,6 +65,8 @@ sequenceDiagram
 
 ## Risks
 
+Nobara combat adds `CurseLinkOptionsPayload` (S2C) and `SelectCurseLinkPayload` (C2S). The server revalidates selected link membership before self resonance; the menu carries identity only and never authorizes damage.
+
 | Risk | Status | Source |
 |---|---|---|
 | A client outside the broadcast radius sees no local composition | VERIFIED design constraint | `broadcastVfxCue` callers + radius filter |

@@ -33,8 +33,23 @@ import jujutsu.mod.vfx.VfxCue;
 public final class ProjectJjkNobaraRuntime {
 	private static final double IMPULSE_BROADCAST_RADIUS = 56.0;
 	private static final Map<UUID, Integer> ACTIVE_EXPLOSIVE_NAILS = new ConcurrentHashMap<>();
+	private static final Map<UUID, PreparationSession> PREPARATIONS = new ConcurrentHashMap<>();
 
 	private ProjectJjkNobaraRuntime() {}
+
+	public static void beginPreparing(ServerPlayer player, ItemStack stack) {
+		PREPARATIONS.put(player.getUUID(), new PreparationSession());
+	}
+
+	public static void tickPreparing(ServerPlayer player, ItemStack stack, int useTicks) {
+		PreparationSession session = PREPARATIONS.computeIfAbsent(player.getUUID(), id -> new PreparationSession());
+		int desired = ProjectJjkNobaraProfile.nailCountForUseTicks(useTicks);
+		if (session.count < desired) spawnNextPreparedNail(player, stack, session);
+	}
+
+	public static void finishPreparing(ServerPlayer player) {
+		PREPARATIONS.remove(player.getUUID());
+	}
 
 	public static void prepareNails(ServerPlayer player, ItemStack usedStack, int useTicks) {
 		ServerLevel level = player.level();
@@ -51,18 +66,28 @@ public final class ProjectJjkNobaraRuntime {
 		}
 
 		Vec3 look = safeDirection(player.getLookAngle());
-		List<Vec3> row = preparedRow(player.getEyePosition(), look, nailCount);
-		for (Vec3 position : row) {
-			ProjectJjkNailEntity nail = new ProjectJjkNailEntity(JujutsuEntities.PROJECTJJK_NAIL, level);
-			nail.prepare(player, position, look);
-			level.addFreshEntity(nail);
-			level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, position.x, position.y, position.z, 3, 0.05, 0.05, 0.05, 0.03);
-			level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, position.x, position.y, position.z, 2, 0.045, 0.055, 0.045, 0.018);
-		}
+		PreparationSession session = new PreparationSession();
+		for (int i = 0; i < nailCount; i++) spawnNextPreparedNail(player, usedStack, session);
+	}
 
-		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 0.82f, 1.16f);
-		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SPELL_SHOT, SoundSource.PLAYERS, 0.34f, 1.42f);
-		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.HAIRPIN_PREP, SoundSource.PLAYERS, 0.62f, 1.0f);
+	private static void spawnNextPreparedNail(ServerPlayer player, ItemStack usedStack, PreparationSession session) {
+		if (session.count >= ProjectJjkNobaraProfile.BARRAGE_NAILS) return;
+		boolean creative = player.getAbilities().instabuild;
+		if (!creative && countNails(player) <= 0) return;
+		if (!creative) consumeNails(player, usedStack, 1);
+		ServerLevel level = player.level();
+		Vec3 look = safeDirection(player.getLookAngle());
+		Vec3 right = rightOf(look);
+		int index = session.count++;
+		double lateral = index == 0 ? 0.0 : ((index + 1) / 2) * 0.22 * (index % 2 == 1 ? -1.0 : 1.0);
+		Vec3 position = player.getEyePosition().add(look.scale(ProjectJjkNobaraProfile.PREPARED_FORWARD_OFFSET)).add(right.scale(lateral)).add(0.0, ProjectJjkNobaraProfile.PREPARED_VERTICAL_OFFSET, 0.0);
+		ProjectJjkNailEntity nail = new ProjectJjkNailEntity(JujutsuEntities.PROJECTJJK_NAIL, level);
+		nail.prepare(player, position, look);
+		level.addFreshEntity(nail);
+		level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, position.x, position.y, position.z, 3, 0.05, 0.05, 0.05, 0.03);
+		level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, position.x, position.y, position.z, 2, 0.045, 0.055, 0.045, 0.018);
+		level.playSound(null, position.x, position.y, position.z, JujutsuSounds.HAIRPIN_PREP, SoundSource.PLAYERS, 0.62f, 1.0f + index * 0.025f);
+		if (index == 0) level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 0.82f, 1.16f);
 	}
 
 	public static boolean launchHairpin(ServerPlayer player, ItemStack hammerStack, InteractionHand hand) {
@@ -356,4 +381,6 @@ public final class ProjectJjkNobaraRuntime {
 	private static Vec3 safeDirection(Vec3 vector) {
 		return vector.lengthSqr() < 1.0E-5 ? new Vec3(0.0, 0.0, 1.0) : vector.normalize();
 	}
+
+	private static final class PreparationSession { private int count; }
 }

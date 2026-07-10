@@ -19,17 +19,22 @@ public final class ProjectJjkNailItem extends Item {
 
 	@Override
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
+		if (player instanceof ServerPlayer serverPlayer) ProjectJjkNobaraRuntime.beginPreparing(serverPlayer, player.getItemInHand(hand));
 		player.startUsingItem(hand);
 		return InteractionResult.CONSUME;
 	}
 
 	@Override
 	public boolean releaseUsing(ItemStack stack, Level level, LivingEntity livingEntity, int timeLeft) {
-		if (level instanceof net.minecraft.server.level.ServerLevel && livingEntity instanceof ServerPlayer serverPlayer) {
-			int useTicks = getUseDuration(stack, livingEntity) - timeLeft;
-			ProjectJjkNobaraRuntime.prepareNails(serverPlayer, stack, useTicks);
-		}
+		if (livingEntity instanceof ServerPlayer serverPlayer) ProjectJjkNobaraRuntime.finishPreparing(serverPlayer);
 		return true;
+	}
+
+	@Override
+	public void onUseTick(Level level, LivingEntity livingEntity, ItemStack stack, int remainingUseDuration) {
+		if (livingEntity instanceof ServerPlayer serverPlayer) {
+			ProjectJjkNobaraRuntime.tickPreparing(serverPlayer, stack, getUseDuration(stack, livingEntity) - remainingUseDuration);
+		}
 	}
 
 	@Override

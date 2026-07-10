@@ -66,5 +66,11 @@ The starter loadout grants one reusable Straw Doll but never grants a target-bou
 
 `JujutsuCommands` — debug/give/hairpin probes. Not a player-progression API.
 
+## Combat extension contracts
+
+- `CurseLinkRegistry.createLink/removeLink/removeLinksOwnedBy/linksForParticipant` — explicit server-owned cursed-technique relationships.
+- `NailRuntimeAnchorRegistry.register` — extension point for entity-independent runtime objects with stable UUID identity.
+- `BlackFlashFocus.hasFocus` — reusable read API for later character systems; this slice grants focus but invents no extra passive bonus.
+
 ---
 tags: #jujutsumod #api #vfx #verified
