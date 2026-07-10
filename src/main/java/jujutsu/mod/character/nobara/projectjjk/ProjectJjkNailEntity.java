@@ -14,6 +14,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.level.ClipContext;
@@ -57,6 +58,8 @@ public final class ProjectJjkNailEntity extends Entity {
 	private static final String ANCHOR_BLOCK_STATE_TAG = "AnchorBlockState";
 	private static final String ANCHOR_STABLE_ID_TAG = "AnchorStableId";
 	private static final String ANCHOR_RUNTIME_TYPE_TAG = "AnchorRuntimeType";
+	private static final String ANCHOR_DIMENSION_TAG = "AnchorDimension";
+	private static final String ANCHOR_FACE_TAG = "AnchorFace";
 
 	private UUID ownerUuid;
 	private int ownerEntityId = -1;
@@ -171,7 +174,7 @@ public final class ProjectJjkNailEntity extends Entity {
 		embeddedLocalOffset = embeddedLocalOffset.add(embeddedLocalForward.scale(depth));
 		anchor = switch (anchor.kind()) {
 			case ENTITY -> NailAnchor.entity(anchor.stableId(), anchor.cachedEntityId(), embeddedLocalOffset, embeddedLocalForward);
-			case BLOCK -> NailAnchor.block(anchor.blockPos(), anchor.blockStateSignature(), embeddedLocalOffset, embeddedLocalForward);
+			case BLOCK -> NailAnchor.block(anchor.blockPos(), anchor.dimension(), anchor.face(), anchor.blockStateSignature(), embeddedLocalOffset, embeddedLocalForward);
 			case RUNTIME_OBJECT -> NailAnchor.runtime(anchor.runtimeType(), anchor.stableId(), embeddedLocalOffset, embeddedLocalForward);
 			default -> anchor;
 		};
@@ -313,6 +316,8 @@ public final class ProjectJjkNailEntity extends Entity {
 			output.putInt(ANCHOR_BLOCK_Y_TAG, anchor.blockPos().getY());
 			output.putInt(ANCHOR_BLOCK_Z_TAG, anchor.blockPos().getZ());
 			output.putString(ANCHOR_BLOCK_STATE_TAG, anchor.blockStateSignature());
+			output.putString(ANCHOR_DIMENSION_TAG, anchor.dimension().toString());
+			output.putString(ANCHOR_FACE_TAG, anchor.face().getName());
 		}
 		if (anchor.stableId() != null) {
 			output.putString(ANCHOR_STABLE_ID_TAG, anchor.stableId().toString());
@@ -350,6 +355,8 @@ public final class ProjectJjkNailEntity extends Entity {
 			case ENTITY -> embeddedTargetUuid == null ? NailAnchor.none() : NailAnchor.entity(embeddedTargetUuid, embeddedTargetId, embeddedLocalOffset, embeddedLocalForward);
 			case BLOCK -> NailAnchor.block(
 					new BlockPos(input.getIntOr(ANCHOR_BLOCK_X_TAG, 0), input.getIntOr(ANCHOR_BLOCK_Y_TAG, 0), input.getIntOr(ANCHOR_BLOCK_Z_TAG, 0)),
+					ResourceLocation.parse(input.getStringOr(ANCHOR_DIMENSION_TAG, level().dimension().location().toString())),
+					Direction.byName(input.getStringOr(ANCHOR_FACE_TAG, "up")) == null ? Direction.UP : Direction.byName(input.getStringOr(ANCHOR_FACE_TAG, "up")),
 					input.getStringOr(ANCHOR_BLOCK_STATE_TAG, ""), embeddedLocalOffset, embeddedLocalForward);
 			case RUNTIME_OBJECT -> {
 				String stableId = input.getStringOr(ANCHOR_STABLE_ID_TAG, "");
@@ -415,7 +422,7 @@ public final class ProjectJjkNailEntity extends Entity {
 		embeddedTargetId = -1;
 		embeddedLocalOffset = local;
 		embeddedLocalForward = forwardDirection();
-		anchor = NailAnchor.block(pos, level.getBlockState(pos).toString(), local, embeddedLocalForward);
+		anchor = NailAnchor.block(pos, level.dimension().location(), hit.getDirection(), level.getBlockState(pos).toString(), local, embeddedLocalForward);
 		setPos(hit.getLocation().add(embeddedLocalForward.scale(0.04)));
 		setEmbedded(true);
 		hasImpulse = false;
@@ -430,6 +437,7 @@ public final class ProjectJjkNailEntity extends Entity {
 		}
 		if (!level().isClientSide() && anchor.kind() == NailAnchor.Kind.BLOCK && level() instanceof ServerLevel serverLevel) {
 			BlockPos pos = anchor.blockPos();
+			if (!serverLevel.dimension().location().equals(anchor.dimension())) return;
 			if (!serverLevel.hasChunkAt(pos)) {
 				return;
 			}
@@ -491,7 +499,7 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	private boolean canHitEntity(Entity entity) {
 		return entity.isAlive()
-				&& entity.isPickable()
+				&& (entity.isPickable() || entity instanceof ItemEntity)
 				&& entity.getId() != ownerEntityId
 				&& !entity.getUUID().equals(ownerUuid)
 				&& !(entity instanceof ProjectJjkNailEntity);

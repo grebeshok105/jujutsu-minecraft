@@ -58,6 +58,10 @@ public final class ProjectJjkNobaraProfile {
 	public static final double HAMMER_SWEEP_RADIUS = 3.25;
 	public static final double NAIL_CONTEXT_RANGE = 4.5;
 	public static final double EMBEDDED_NAIL_DRIVE_DEPTH = 0.10;
+	public static final double HAMMER_RANGE_TOLERANCE = 0.75;
+	public static final double NAIL_CONTEXT_SCAN_INFLATE = 1.0;
+	public static final double HAMMER_SWEEP_REAR_DOT = -0.15;
+	public static final double PREPARED_NAIL_LATERAL_SPACING = 0.22;
 	public static final int HORIZONTAL_IMPACT_TICK = 3;
 	public static final int HORIZONTAL_RECOVERY_TICKS = 8;
 	public static final int OVERHEAD_IMPACT_TICK = 8;
@@ -66,6 +70,9 @@ public final class ProjectJjkNobaraProfile {
 	public static final int BLACK_FLASH_WINDOW_LATE_TICKS = 2;
 	public static final int LIGHT_STAGGER_TICKS = 5;
 	public static final int HEAVY_STAGGER_TICKS = 14;
+	public static final int SELF_RESONANCE_WINDUP_TICKS = 14;
+	public static final int RITUAL_RECOVERY_TICKS = 20;
+	public static final int NAIL_LAUNCH_RECOVERY_TICKS = 10;
 
 	private ProjectJjkNobaraProfile() {}
 

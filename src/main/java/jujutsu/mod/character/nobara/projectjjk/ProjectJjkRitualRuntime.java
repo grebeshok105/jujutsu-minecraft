@@ -162,7 +162,7 @@ public final class ProjectJjkRitualRuntime {
 				if (targetId != null) {
 					anchoredTargets.add(targetId);
 				}
-				anchors.add(ExplosionAnchor.nail(nail.getId(), 1, targetId, nail.embeddedTargetEntityId()));
+				anchors.add(ExplosionAnchor.nail(nail, 1, targetId, nail.embeddedTargetEntityId()));
 			}
 		}
 		if (anchors.isEmpty()) {
@@ -182,7 +182,7 @@ public final class ProjectJjkRitualRuntime {
 			if (targetId != null) {
 				anchoredTargets.add(targetId);
 			}
-			anchors.add(ExplosionAnchor.nail(nail.getId(), 1, targetId, nail.embeddedTargetEntityId()));
+			anchors.add(ExplosionAnchor.nail(nail, 1, targetId, nail.embeddedTargetEntityId()));
 		}
 	}
 
@@ -194,8 +194,7 @@ public final class ProjectJjkRitualRuntime {
 			if (pending.dueGameTime() > gameTime) {
 				continue;
 			}
-			resolvePendingEnlarge(pending, gameTime);
-			iterator.remove();
+			if (resolvePendingEnlarge(pending, gameTime) != EnlargeOutcome.RETRY) iterator.remove();
 		}
 		for (Iterator<PendingExplosion> iterator = PENDING_EXPLOSIONS.iterator(); iterator.hasNext();) {
 			PendingExplosion pending = iterator.next();
@@ -205,44 +204,42 @@ public final class ProjectJjkRitualRuntime {
 			ServerPlayer caster = owner(pending.level(), pending.casterId());
 			int count = 1 + RANDOM.nextInt(2);
 			for (int index = 0; index < count && pending.hasNext(); index++) {
-				explodeAnchor(pending.level(), caster, pending.next(), gameTime);
+				ExplosionOutcome outcome = explodeAnchor(pending.level(), caster, pending.current(), gameTime);
+				if (outcome == ExplosionOutcome.RETRY) break;
+				pending.advance();
 			}
 			if (!pending.hasNext()) {
-				discardExplosionTargetNails(pending);
 				iterator.remove();
 			}
 		}
 	}
 
-	private static void resolvePendingEnlarge(PendingEnlarge pending, long gameTime) {
+	private static EnlargeOutcome resolvePendingEnlarge(PendingEnlarge pending, long gameTime) {
 		ServerLevel level = pending.level();
 		ServerPlayer caster = owner(level, pending.casterId());
 		Entity entity = level.getEntity(pending.targetEntityId());
 		LivingEntity target = entity instanceof LivingEntity candidate && candidate.isAlive() && candidate.getUUID().equals(pending.targetId()) ? candidate : null;
 		if (target == null) {
 			Entity byUuid = level.getEntity(pending.targetId());
-			if (!(byUuid instanceof LivingEntity living) || !living.isAlive()) {
-				return;
-			}
+			if (!(byUuid instanceof LivingEntity living) || !living.isAlive()) return NailAnchorLifecycle.isConfirmedRemoved(pending.targetId()) ? EnlargeOutcome.TERMINAL : EnlargeOutcome.RETRY;
 			target = living;
 		}
 		DamageSource source = NobaraDamageSources.hairpin(level, caster);
 		int activated = 0;
-		for (UUID nailId : pending.nailIds()) {
+		for (Iterator<UUID> iterator = pending.nailIds().iterator(); iterator.hasNext();) {
+			UUID nailId = iterator.next();
 			Entity entityNail = level.getEntity(nailId);
-			if (!(entityNail instanceof ProjectJjkNailEntity nail) || !nail.isOwnedBy(pending.casterId())
-					|| !target.getUUID().equals(nail.anchor().stableId())) {
-				continue;
-			}
+			if (!(entityNail instanceof ProjectJjkNailEntity nail)) { if (NailAnchorLifecycle.isConfirmedRemoved(nailId)) iterator.remove(); continue; }
+			if (!nail.isOwnedBy(pending.casterId()) || !target.getUUID().equals(nail.anchor().stableId())) { iterator.remove(); continue; }
 			target.hurtServer(level, source, ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DAMAGE_PER_NAIL);
 			activated++;
 			Vec3 nailAt = nail.position();
 			broadcast(level, nailAt, NobaraVfxIds.ENLARGE, 1, nailAt, gameTime);
 			nail.discard();
+			iterator.remove();
 		}
-		if (activated == 0) {
-			return;
-		}
+		if (!pending.nailIds().isEmpty()) return EnlargeOutcome.RETRY;
+		if (activated == 0) return EnlargeOutcome.TERMINAL;
 		ProjectJjkNailMarks.consume(target.getUUID(), gameTime);
 		Vec3 at = target.position().add(0.0, target.getBbHeight() * 0.56, 0.0);
 		spawnProjectJjkEnlarge(level, at, activated);
@@ -250,19 +247,20 @@ public final class ProjectJjkRitualRuntime {
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, SoundSource.PLAYERS, 2.0f, 2.0f);
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_GOO_FOLEY, SoundSource.PLAYERS, 0.25f, 1.5f);
 		clearGlowingMark(target);
+		return EnlargeOutcome.SUCCESS;
 	}
 
-	private static void explodeAnchor(ServerLevel level, ServerPlayer caster, ExplosionAnchor anchor, long gameTime) {
+	private static ExplosionOutcome explodeAnchor(ServerLevel level, ServerPlayer caster, ExplosionAnchor anchor, long gameTime) {
 		Entity sourceEntity = level.getEntity(anchor.entityId());
+		if (sourceEntity == null && anchor.nailId() != null) sourceEntity = level.getEntity(anchor.nailId());
 		if (sourceEntity == null) {
-			return;
+			return NailAnchorLifecycle.isConfirmedRemoved(anchor.nailId()) ? ExplosionOutcome.TERMINAL : ExplosionOutcome.RETRY;
 		}
+		if (!(sourceEntity instanceof ProjectJjkNailEntity nail) || !nail.isOwnedBy(anchor.ownerId())) return ExplosionOutcome.TERMINAL;
 		Vec3 at = sourceEntity instanceof LivingEntity living
 				? living.position().add(0.0, living.getBbHeight() * 0.5, 0.0)
 				: sourceEntity.position();
-		if (sourceEntity instanceof ProjectJjkNailEntity nail) {
-			nail.discard();
-		}
+		nail.discard();
 		DamageSource source = NobaraDamageSources.hairpin(level, caster);
 		float damage = ProjectJjkNobaraProfile.detonateDamage(anchor.marks());
 		AABB blast = new AABB(at, at).inflate(ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_RADIUS);
@@ -279,9 +277,7 @@ public final class ProjectJjkRitualRuntime {
 		spawnProjectJjkExplosion(level, at, anchor.marks());
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_EXPLODE, SoundSource.PLAYERS, 0.2f, 2.0f);
 		broadcast(level, at, NobaraVfxIds.EXPLOSION, anchor.marks(), at, gameTime);
-		if (!anchor.nail() && anchor.targetId() != null && caster != null && sourceEntity instanceof LivingEntity living) {
-			discardOwnedEmbeddedNails(level, caster.getUUID(), living);
-		}
+		return ExplosionOutcome.SUCCESS;
 	}
 
 	private static void spawnProjectJjkPrime(ServerLevel level, Vec3 at) {
@@ -329,17 +325,6 @@ public final class ProjectJjkRitualRuntime {
 			if (target instanceof LivingEntity living) {
 				clearGlowingMark(living);
 			}
-		}
-	}
-
-	private static void discardExplosionTargetNails(PendingExplosion pending) {
-		Set<UUID> targets = new HashSet<>();
-		for (ExplosionAnchor anchor : pending.anchors) {
-			UUID targetId = anchor.targetId();
-			if (targetId == null || !targets.add(targetId)) {
-				continue;
-			}
-			discardOwnedEmbeddedNails(pending.level(), pending.casterId(), targetId, anchor.targetEntityId());
 		}
 	}
 
@@ -479,7 +464,10 @@ public final class ProjectJjkRitualRuntime {
 		return vector.lengthSqr() < 1.0E-5 ? new Vec3(0.0, 0.0, 1.0) : vector.normalize();
 	}
 
-	private record PendingEnlarge(ServerLevel level, UUID casterId, UUID targetId, int targetEntityId, long dueGameTime, List<UUID> nailIds) {}
+	private enum EnlargeOutcome { SUCCESS, RETRY, TERMINAL }
+	private record PendingEnlarge(ServerLevel level, UUID casterId, UUID targetId, int targetEntityId, long dueGameTime, List<UUID> nailIds) {
+		private PendingEnlarge { nailIds = new ArrayList<>(nailIds); }
+	}
 
 	private record MarkGlowState(String scoreboardName, String previousTeamName) {}
 
@@ -513,18 +501,18 @@ public final class ProjectJjkRitualRuntime {
 			return index < anchors.size();
 		}
 
-		private ExplosionAnchor next() {
-			return anchors.get(index++);
+		private ExplosionAnchor current() {
+			return anchors.get(index);
 		}
+
+		private void advance() { index++; }
 	}
 
-	private record ExplosionAnchor(int entityId, int marks, boolean nail, UUID targetId, int targetEntityId) {
-		private static ExplosionAnchor nail(int entityId, int marks, UUID targetId, int targetEntityId) {
-			return new ExplosionAnchor(entityId, marks, true, targetId, targetEntityId);
-		}
+	private enum ExplosionOutcome { SUCCESS, RETRY, TERMINAL }
 
-		private static ExplosionAnchor target(int entityId, int marks, UUID targetId, int targetEntityId) {
-			return new ExplosionAnchor(entityId, marks, false, targetId, targetEntityId);
+	private record ExplosionAnchor(int entityId, UUID nailId, UUID ownerId, int marks, UUID targetId, int targetEntityId) {
+		private static ExplosionAnchor nail(ProjectJjkNailEntity nail, int marks, UUID targetId, int targetEntityId) {
+			return new ExplosionAnchor(nail.getId(), nail.getUUID(), nail.ownerUuid(), marks, targetId, targetEntityId);
 		}
 	}
 }

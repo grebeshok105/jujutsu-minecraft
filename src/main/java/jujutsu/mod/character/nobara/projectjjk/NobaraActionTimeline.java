@@ -14,6 +14,10 @@ public record NobaraActionTimeline(
 			ProjectJjkNobaraProfile.OVERHEAD_IMPACT_TICK,
 			ProjectJjkNobaraProfile.OVERHEAD_RECOVERY_TICKS
 	);
+	public static final NobaraActionTimeline NAIL_LAUNCH = aroundImpact(0, ProjectJjkNobaraProfile.NAIL_LAUNCH_RECOVERY_TICKS);
+	public static final NobaraActionTimeline EMBEDDED_NAIL_DRIVE = HORIZONTAL;
+	public static final NobaraActionTimeline DOLL_STRIKE = aroundImpact(ProjectJjkNobaraProfile.SELF_RESONANCE_WINDUP_TICKS, ProjectJjkNobaraProfile.RITUAL_RECOVERY_TICKS);
+	public static final NobaraActionTimeline SELF_RESONANCE = DOLL_STRIKE;
 
 	public NobaraActionTimeline {
 		if (impactTick < 0 || recoveryTicks < impactTick || blackFlashStartTick > blackFlashEndTick) {

@@ -32,7 +32,6 @@ import jujutsu.mod.combat.CombatStagger;
 
 public final class ProjectJjkStrawDollRuntime {
 	private static final int REMNANT_HIT_THRESHOLD = 2;
-	private static final int RITUAL_WINDUP_TICKS = 14;
 	private static final int RITUAL_VFX_INTENSITY = 2;
 	private static final double VFX_RADIUS = 64.0;
 	private static final ProjectJjkRemnantProgress REMNANT_PROGRESS = new ProjectJjkRemnantProgress(REMNANT_HIT_THRESHOLD);
@@ -98,7 +97,7 @@ public final class ProjectJjkStrawDollRuntime {
 			return false;
 		}
 
-		long dueGameTime = caster.level().getGameTime() + RITUAL_WINDUP_TICKS;
+		long dueGameTime = caster.level().getGameTime() + NobaraActionTimeline.DOLL_STRIKE.impactTick();
 		PendingRitual pending = new PendingRitual(caster.getUUID(), selection.remnant(), dueGameTime);
 		PENDING_RITUALS.put(caster.getUUID(), pending);
 		triggerDollRitual(caster);

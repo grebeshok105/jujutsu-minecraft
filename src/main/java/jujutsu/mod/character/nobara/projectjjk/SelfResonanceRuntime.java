@@ -4,6 +4,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.minecraft.server.MinecraftServer;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -20,9 +23,15 @@ import jujutsu.mod.vfx.VfxCue;
 
 public final class SelfResonanceRuntime {
 	private static final Map<UUID, UUID> SELECTED = new HashMap<>();
+	private static final Map<UUID, Pending> PENDING = new HashMap<>();
 	private SelfResonanceRuntime() {}
+	public static void register() {
+		ServerTickEvents.END_SERVER_TICK.register(SelfResonanceRuntime::tick);
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> { SELECTED.clear(); PENDING.clear(); });
+	}
 
 	public static boolean tryCast(ServerPlayer player) {
+		if (PENDING.containsKey(player.getUUID())) return false;
 		List<CurseLink> links = CurseLinkRegistry.GLOBAL.linksForParticipant(player.getUUID());
 		CurseLinkSelection selection = CurseLinkSelection.resolve(links, SELECTED.get(player.getUUID()));
 		if (selection.status() == CurseLinkSelection.Status.NEEDS_SELECTION || selection.status() == CurseLinkSelection.Status.INVALID_SELECTION) {
@@ -39,17 +48,33 @@ public final class SelfResonanceRuntime {
 		CurseLink link = selection.link();
 		if (!link.participants().contains(player.getUUID())) { SELECTED.remove(player.getUUID()); return false; }
 		Vec3Cue.emitCaster(player);
-		player.hurtServer(player.level(), player.level().damageSources().magic(), ProjectJjkNobaraProfile.SELF_RESONANCE_SELF_DAMAGE);
+		PENDING.put(player.getUUID(), new Pending(link.id(), player.level().getGameTime() + NobaraActionTimeline.SELF_RESONANCE.impactTick()));
+		SELECTED.remove(player.getUUID());
+		return true;
+	}
+
+	private static void tick(MinecraftServer server) {
+		for (var entry : List.copyOf(PENDING.entrySet())) {
+			ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
+			if (player == null || !player.isAlive()) { PENDING.remove(entry.getKey()); continue; }
+			if (player.level().getGameTime() < entry.getValue().dueGameTime()) continue;
+			CurseLink link = CurseLinkRegistry.GLOBAL.get(entry.getValue().linkId());
+			if (link != null && link.participants().contains(player.getUUID())) resolveImpact(player, link);
+			PENDING.remove(entry.getKey());
+		}
+	}
+
+	private static boolean resolveImpact(ServerPlayer player, CurseLink link) {
+		if (!player.hurtServer(player.level(), NobaraDamageSources.selfResonance(player.level(), player), ProjectJjkNobaraProfile.SELF_RESONANCE_SELF_DAMAGE)) return false;
 		for (UUID participant : link.participants()) {
 			if (participant.equals(player.getUUID())) continue;
 			Entity entity = player.level().getEntity(participant);
 			if (entity instanceof LivingEntity living && living.isAlive()) {
-				living.hurtServer(player.level(), NobaraDamageSources.hairpin(player.level(), player), ProjectJjkNobaraProfile.SELF_RESONANCE_LINKED_DAMAGE);
+				living.hurtServer(player.level(), NobaraDamageSources.selfResonance(player.level(), player), ProjectJjkNobaraProfile.SELF_RESONANCE_LINKED_DAMAGE);
 				CombatStagger.GLOBAL.apply(living, player.level().getGameTime(), ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
 				Vec3Cue.emitTarget(player, living);
 			}
 		}
-		SELECTED.remove(player.getUUID());
 		return true;
 	}
 
@@ -71,4 +96,5 @@ public final class SelfResonanceRuntime {
 			JujutsuNetworking.broadcastVfxCue(caster.level(), at, 64.0, new VfxCue(NobaraVfxIds.RESONANCE_RELEASE, at, target.getId(), at.subtract(target.position()), 2, caster.level().getGameTime(), caster.getRandom().nextLong()));
 		}
 	}
+	private record Pending(UUID linkId, long dueGameTime) {}
 }

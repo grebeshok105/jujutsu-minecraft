@@ -10,11 +10,17 @@ import jujutsu.mod.JujutsuMod;
 
 public final class NobaraDamageSources {
 	public static final ResourceKey<DamageType> HAIRPIN = ResourceKey.create(Registries.DAMAGE_TYPE, JujutsuMod.id("hairpin"));
+	public static final ResourceKey<DamageType> SELF_RESONANCE = ResourceKey.create(Registries.DAMAGE_TYPE, JujutsuMod.id("self_resonance"));
 
 	private NobaraDamageSources() {}
 
 	public static DamageSource hairpin(Level level, Entity attacker) {
 		var type = level.registryAccess().lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(HAIRPIN);
+		return attacker == null ? new DamageSource(type) : new DamageSource(type, attacker);
+	}
+
+	public static DamageSource selfResonance(Level level, Entity attacker) {
+		var type = level.registryAccess().lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(SELF_RESONANCE);
 		return attacker == null ? new DamageSource(type) : new DamageSource(type, attacker);
 	}
 }

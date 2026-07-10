@@ -19,6 +19,7 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 	public static final NobaraPlayerGeoAnimatable INSTANCE = new NobaraPlayerGeoAnimatable();
 	private static final String BASE_CONTROLLER = "nobara_player_base";
+	private static final String ACTION_CONTROLLER = "nobara_combat_actions";
 	private static final float WALK_ANIMATION_THRESHOLD = 0.035f;
 	private static final double WALK_VELOCITY_THRESHOLD_SQR = 0.0016;
 	private static final double RUN_VELOCITY_THRESHOLD_SQR = 0.018;
@@ -38,6 +39,13 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 	private static final RawAnimation SPELL_4 = play("animation.player_model.spell4");
 	private static final RawAnimation SPELL_5 = play("animation.player_model.spell5");
 	private static final RawAnimation SWIPE_1 = play("animation.player_model.swipe1");
+	private static final RawAnimation HAMMER_HORIZONTAL = play("animation.player_model.hammer_horizontal");
+	private static final RawAnimation HAMMER_OVERHEAD = play("animation.player_model.hammer_overhead");
+	private static final RawAnimation HAMMER_NAIL_LAUNCH = play("animation.player_model.hammer_nail_launch");
+	private static final RawAnimation HAMMER_EMBEDDED_DRIVE = play("animation.player_model.hammer_embedded_drive");
+	private static final RawAnimation HAMMER_DOLL_STRIKE = play("animation.player_model.hammer_doll_strike");
+	private static final RawAnimation SELF_RESONANCE = play("animation.player_model.self_resonance");
+	private static final RawAnimation BLACK_FLASH = play("animation.player_model.black_flash");
 	private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
 	private NobaraPlayerGeoAnimatable() {
@@ -45,7 +53,7 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 	}
 
 	public void triggerAction(net.minecraft.world.entity.Entity player, String animation) {
-		triggerAnim(player, BASE_CONTROLLER, animation);
+		triggerAnim(player, ACTION_CONTROLLER, animation);
 	}
 
 	@Override
@@ -69,6 +77,14 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 				.triggerableAnim("spell4", SPELL_4)
 				.triggerableAnim("spell5", SPELL_5)
 				.triggerableAnim("swipe1", SWIPE_1));
+		controllers.add(new AnimationController<NobaraPlayerGeoAnimatable>(ACTION_CONTROLLER, 1, state -> PlayState.STOP)
+				.triggerableAnim("hammer_horizontal", HAMMER_HORIZONTAL)
+				.triggerableAnim("hammer_overhead", HAMMER_OVERHEAD)
+				.triggerableAnim("hammer_nail_launch", HAMMER_NAIL_LAUNCH)
+				.triggerableAnim("hammer_embedded_drive", HAMMER_EMBEDDED_DRIVE)
+				.triggerableAnim("hammer_doll_strike", HAMMER_DOLL_STRIKE)
+				.triggerableAnim("self_resonance", SELF_RESONANCE)
+				.triggerableAnim("black_flash", BLACK_FLASH));
 	}
 
 	@Override
@@ -129,14 +145,17 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 
 	static boolean headKeyframedActionIsPlaying(AnimationState<NobaraPlayerGeoAnimatable> state) {
 		AnimationController<NobaraPlayerGeoAnimatable> controller = state.manager().getAnimationControllers().get(BASE_CONTROLLER);
-		return controller != null && (headKeyframedAction(controller.getTriggeredAnimation())
-				|| headKeyframedAction(controller.getCurrentRawAnimation()));
+		AnimationController<NobaraPlayerGeoAnimatable> actionController = state.manager().getAnimationControllers().get(ACTION_CONTROLLER);
+		return controller != null && (headKeyframedAction(controller.getTriggeredAnimation()) || headKeyframedAction(controller.getCurrentRawAnimation()))
+				|| actionController != null && (headKeyframedAction(actionController.getTriggeredAnimation()) || headKeyframedAction(actionController.getCurrentRawAnimation()));
 	}
 
 	private static boolean headKeyframedAction(RawAnimation animation) {
 		return animation == ONE_TWO || animation == ATTACK_1 || animation == ATTACK_2 || animation == ATTACK_3
 				|| animation == SNAP || animation == SPELL_1 || animation == SPELL_2 || animation == SPELL_3
-				|| animation == SPELL_4 || animation == SPELL_5 || animation == SWIPE_1;
+				|| animation == SPELL_4 || animation == SPELL_5 || animation == SWIPE_1
+				|| animation == HAMMER_HORIZONTAL || animation == HAMMER_OVERHEAD || animation == HAMMER_NAIL_LAUNCH
+				|| animation == HAMMER_EMBEDDED_DRIVE || animation == HAMMER_DOLL_STRIKE || animation == SELF_RESONANCE || animation == BLACK_FLASH;
 	}
 
 	private record Movement(boolean moving, boolean running) {}

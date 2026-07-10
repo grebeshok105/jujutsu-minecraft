@@ -22,7 +22,7 @@ public final class NailRuntimeAnchorRegistry {
 			return Result.invalid(lastKnownPosition);
 		}
 		Resolver resolver = resolvers.get(anchor.runtimeType());
-		return resolver == null ? Result.invalid(lastKnownPosition) : resolver.resolve(anchor.stableId(), lastKnownPosition);
+		return resolver == null ? Result.unavailable(lastKnownPosition) : resolver.resolve(anchor.stableId(), lastKnownPosition);
 	}
 
 	@FunctionalInterface

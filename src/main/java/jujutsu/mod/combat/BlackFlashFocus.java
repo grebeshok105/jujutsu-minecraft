@@ -1,14 +1,16 @@
 package jujutsu.mod.combat;
 
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.server.level.ServerPlayer;
+import jujutsu.mod.network.BlackFlashFocusPayload;
 
 public final class BlackFlashFocus {
-	private static final Set<UUID> FOCUSED = ConcurrentHashMap.newKeySet();
+	private static final String TAG = "jujutsumod.black_flash_focus";
 	private BlackFlashFocus() {}
-	public static boolean hasFocus(UUID entityId) { return FOCUSED.contains(entityId); }
-	public static void grant(UUID entityId) { if (entityId != null) FOCUSED.add(entityId); }
-	public static void clear(UUID entityId) { FOCUSED.remove(entityId); }
-	public static void clearAll() { FOCUSED.clear(); }
+	public static boolean hasFocus(ServerPlayer player) { return player.getTags().contains(TAG); }
+	public static void grant(ServerPlayer player) { player.addTag(TAG); sync(player); }
+	public static void sync(ServerPlayer player) {
+		if (ServerPlayNetworking.canSend(player, BlackFlashFocusPayload.TYPE)) ServerPlayNetworking.send(player, new BlackFlashFocusPayload(hasFocus(player)));
+	}
 }

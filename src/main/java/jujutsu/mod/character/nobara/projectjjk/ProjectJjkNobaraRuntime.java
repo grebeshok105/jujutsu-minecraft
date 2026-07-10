@@ -52,7 +52,6 @@ public final class ProjectJjkNobaraRuntime {
 	}
 
 	public static void prepareNails(ServerPlayer player, ItemStack usedStack, int useTicks) {
-		ServerLevel level = player.level();
 		int desiredCount = ProjectJjkNobaraProfile.nailCountForUseTicks(useTicks);
 		boolean creative = player.getAbilities().instabuild;
 		int available = creative ? desiredCount : countNails(player);
@@ -61,11 +60,6 @@ public final class ProjectJjkNobaraRuntime {
 			return;
 		}
 
-		if (!creative) {
-			consumeNails(player, usedStack, nailCount);
-		}
-
-		Vec3 look = safeDirection(player.getLookAngle());
 		PreparationSession session = new PreparationSession();
 		for (int i = 0; i < nailCount; i++) spawnNextPreparedNail(player, usedStack, session);
 	}
@@ -79,7 +73,7 @@ public final class ProjectJjkNobaraRuntime {
 		Vec3 look = safeDirection(player.getLookAngle());
 		Vec3 right = rightOf(look);
 		int index = session.count++;
-		double lateral = index == 0 ? 0.0 : ((index + 1) / 2) * 0.22 * (index % 2 == 1 ? -1.0 : 1.0);
+		double lateral = index == 0 ? 0.0 : ((index + 1) / 2) * ProjectJjkNobaraProfile.PREPARED_NAIL_LATERAL_SPACING * (index % 2 == 1 ? -1.0 : 1.0);
 		Vec3 position = player.getEyePosition().add(look.scale(ProjectJjkNobaraProfile.PREPARED_FORWARD_OFFSET)).add(right.scale(lateral)).add(0.0, ProjectJjkNobaraProfile.PREPARED_VERTICAL_OFFSET, 0.0);
 		ProjectJjkNailEntity nail = new ProjectJjkNailEntity(JujutsuEntities.PROJECTJJK_NAIL, level);
 		nail.prepare(player, position, look);

@@ -66,6 +66,7 @@ sequenceDiagram
 ## Risks
 
 Nobara combat adds `CurseLinkOptionsPayload` (S2C) and `SelectCurseLinkPayload` (C2S). The server revalidates selected link membership before self resonance; the menu carries identity only and never authorizes damage.
+`BlackFlashFocusPayload` synchronizes the persistent server player-tag state on grant and join; it does not let the client grant focus.
 
 | Risk | Status | Source |
 |---|---|---|

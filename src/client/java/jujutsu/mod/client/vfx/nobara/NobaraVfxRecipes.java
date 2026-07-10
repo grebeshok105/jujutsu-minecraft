@@ -37,11 +37,12 @@ public final class NobaraVfxRecipes {
 		VfxDirector.register(NobaraVfxIds.RITUAL_BIND, NobaraVfxRecipes::ritualBind);
 		VfxDirector.register(NobaraVfxIds.DOLL_STRIKE, NobaraVfxRecipes::dollStrike);
 		VfxDirector.register(NobaraVfxIds.RESONANCE_RELEASE, NobaraVfxRecipes::resonanceRelease);
-		VfxDirector.register(NobaraVfxIds.HAMMER_HORIZONTAL, cue -> hammerAction(cue, "attack1", false));
-		VfxDirector.register(NobaraVfxIds.HAMMER_OVERHEAD, cue -> hammerAction(cue, "attack2", true));
-		VfxDirector.register(NobaraVfxIds.EMBEDDED_NAIL_DRIVE, cue -> hammerAction(cue, "attack3", true));
+		VfxDirector.register(NobaraVfxIds.HAMMER_HORIZONTAL, cue -> hammerAction(cue, "hammer_horizontal", false));
+		VfxDirector.register(NobaraVfxIds.HAMMER_OVERHEAD, cue -> hammerAction(cue, "hammer_overhead", true));
+		VfxDirector.register(NobaraVfxIds.HAMMER_NAIL_LAUNCH, cue -> hammerAction(cue, "hammer_nail_launch", true));
+		VfxDirector.register(NobaraVfxIds.EMBEDDED_NAIL_DRIVE, cue -> hammerAction(cue, "hammer_embedded_drive", true));
 		VfxDirector.register(NobaraVfxIds.BLACK_FLASH, NobaraVfxRecipes::blackFlash);
-		VfxDirector.register(NobaraVfxIds.SELF_RESONANCE, cue -> hammerAction(cue, "spell5", true));
+		VfxDirector.register(NobaraVfxIds.SELF_RESONANCE, cue -> hammerAction(cue, "self_resonance", true));
 	}
 
 	private static VfxInstance hammerAction(VfxCue cue, String animation, boolean heavy) {
@@ -67,6 +68,10 @@ public final class NobaraVfxRecipes {
 				context.burst(new DustParticleOptions(0x8F0018, 1.2f), origin, 28, 0.55, 0.31, random);
 				context.playNoFalloff(JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, 1.2f * proximity, 0.72f, origin, random);
 				context.playNoFalloff(JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT_2, 1.0f * proximity, 0.86f, origin, random);
+				if (context.client().level != null && cue.anchorEntityId() != VfxCue.NO_ANCHOR) {
+					var entity = context.client().level.getEntity(cue.anchorEntityId());
+					if (entity != null) NobaraPlayerGeoAnimatable.INSTANCE.triggerAction(entity, "black_flash");
+				}
 			}
 			if (proximity > 0.01f) {
 				context.camera().triggerHeavyImpact(5, proximity, initialAgeTicks);
@@ -229,6 +234,10 @@ public final class NobaraVfxRecipes {
 				context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 24, 1.05, -0.2, -0.08, random);
 				context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 18, 0.46, 0.075, random);
 				context.playNoFalloff(JujutsuSounds.PROJECTJJK_MAGIC, 0.82f * proximity, 0.76f, origin, random);
+				if (context.client().level != null && cue.anchorEntityId() != VfxCue.NO_ANCHOR) {
+					var entity = context.client().level.getEntity(cue.anchorEntityId());
+					if (entity != null) NobaraPlayerGeoAnimatable.INSTANCE.triggerAction(entity, "hammer_doll_strike");
+				}
 			}
 			if (proximity > 0.01f) {
 				context.camera().triggerRitual(intensity(cue), proximity, initialAgeTicks);
@@ -251,10 +260,6 @@ public final class NobaraVfxRecipes {
 				context.playNoFalloff(SoundEvents.ANVIL_USE, 1.2f * proximity, 0.72f, origin, random);
 				context.playNoFalloff(JujutsuSounds.PROJECTJJK_CLAP, 1.1f * proximity, 0.68f, origin, random);
 				context.playNoFalloff(JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, 0.72f * proximity, 0.62f, origin, random);
-				if (context.client().level != null && cue.anchorEntityId() != VfxCue.NO_ANCHOR) {
-					var entity = context.client().level.getEntity(cue.anchorEntityId());
-					if (entity != null) NobaraPlayerGeoAnimatable.INSTANCE.triggerAction(entity, "attack3");
-				}
 			}
 			if (proximity > 0.01f) {
 				context.camera().triggerHeavyImpact(intensity(cue) + 4, proximity, initialAgeTicks);

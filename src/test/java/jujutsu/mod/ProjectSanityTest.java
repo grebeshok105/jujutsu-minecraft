@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -33,6 +34,7 @@ public final class ProjectSanityTest {
 	public static void main(String[] args) throws IOException {
 		assertPerNailHairpinDamageContract();
 		assertResonanceUsesInternalDamageAndStagger();
+		assertCombatExpansionReviewFixes();
 		assertParticleJsonTexturesExist();
 		assertItemDefinitionsResolveToTextures();
 		assertDefaultNobaraItemsUseProjectJjkModels();
@@ -82,6 +84,21 @@ public final class ProjectSanityTest {
 		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkStrawDollRuntime.java"));
 		assert !runtime.contains("MobEffects.WEAKNESS") : "Resonance must not use vanilla Weakness";
 		assert runtime.contains("CombatStagger.GLOBAL.apply") : "Resonance must use the explicit action-interrupt stagger";
+	}
+
+	private static void assertCombatExpansionReviewFixes() throws IOException {
+		String guard = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/NobaraActionGuard.java"));
+		assert guard.contains("AttackEntityCallback") && guard.contains("isHammer(player.getItemInHand(hand))") : "Hammer LMB must suppress vanilla entity damage";
+		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
+		assert ritual.contains("UUID nailId") && ritual.contains("ExplosionOutcome.RETRY") : "Delayed Boom must retry temporarily unloaded nail UUIDs";
+		String focus = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/combat/BlackFlashFocus.java"));
+		assert focus.contains("addTag(TAG)") && focus.contains("BlackFlashFocusPayload") : "Black Flash focus must persist and synchronize";
+		String self = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/SelfResonanceRuntime.java"));
+		assert self.contains("NobaraDamageSources.selfResonance") && self.contains("NobaraActionTimeline.SELF_RESONANCE") : "Self resonance needs true damage and shared windup";
+		String animation = Files.readString(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/animations/projectjjk/npc.animation.json"));
+		for (String clip : List.of("hammer_horizontal", "hammer_overhead", "hammer_nail_launch", "hammer_embedded_drive", "hammer_doll_strike", "self_resonance", "black_flash")) {
+			assert animation.contains("animation.player_model." + clip) : "Missing dedicated Nobara animation: " + clip;
+		}
 	}
 
 	private static void assertParticleJsonTexturesExist() throws IOException {
@@ -500,7 +517,7 @@ public final class ProjectSanityTest {
 		assert Files.exists(ritualPath) : "Nobara Resonance needs a dedicated server straw-doll runtime";
 		String ritual = Files.readString(ritualPath);
 		assert ritual.contains("RESONANCE_TARGET") : "Resonance must resolve a typed target-bound remnant";
-		assert ritual.contains("RITUAL_WINDUP_TICKS = 14") : "Resonance must keep the approved readable wind-up";
+		assert ritual.contains("NobaraActionTimeline.DOLL_STRIKE.impactTick()") : "Resonance must use the shared readable wind-up";
 		assert ritual.contains("consumeResources(caster, remnant)") : "Resonance must consume one remnant and one nail only at impact";
 		assert ritual.contains("ProjectJjkRitualPolicy.validate") : "Runtime validation must use the tested ritual policy";
 		assert ritual.contains("ServerEntityEvents.ENTITY_UNLOAD")

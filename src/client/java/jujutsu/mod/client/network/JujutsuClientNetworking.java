@@ -8,6 +8,8 @@ import jujutsu.mod.network.CharacterSelectionSyncPayload;
 import jujutsu.mod.network.VfxCuePayload;
 import jujutsu.mod.network.CurseLinkOptionsPayload;
 import jujutsu.mod.client.gui.CurseLinkSelectionScreen;
+import jujutsu.mod.network.BlackFlashFocusPayload;
+import jujutsu.mod.client.character.ClientBlackFlashFocus;
 
 public final class JujutsuClientNetworking {
 	private JujutsuClientNetworking() {}
@@ -19,6 +21,8 @@ public final class JujutsuClientNetworking {
 				context.client().execute(() -> ClientCharacterSelectionManager.apply(payload)));
 		ClientPlayNetworking.registerGlobalReceiver(CurseLinkOptionsPayload.TYPE, (payload, context) ->
 				context.client().execute(() -> context.client().setScreen(new CurseLinkSelectionScreen(payload.entries()))));
-		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ClientCharacterSelectionManager.clear());
+		ClientPlayNetworking.registerGlobalReceiver(BlackFlashFocusPayload.TYPE, (payload, context) ->
+				context.client().execute(() -> ClientBlackFlashFocus.apply(payload.focused())));
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> { ClientCharacterSelectionManager.clear(); ClientBlackFlashFocus.clear(); });
 	}
 }
