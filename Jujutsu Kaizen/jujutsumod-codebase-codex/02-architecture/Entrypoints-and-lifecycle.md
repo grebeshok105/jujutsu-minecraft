@@ -27,7 +27,7 @@ Register order in `onInitialize()`:
 
 1. Register the real ProjectJJK nail entity renderer.
 2. Register particle factories.
-3. `VfxDirector.initialize()` — one world callback, one HUD callback, client tick, disconnect cleanup.
+3. `VfxDirector.initialize()` — one world callback, one HUD callback, client tick, `ClientLevel` identity tracking, and disconnect/null-level cleanup (`VfxDirector.java:25-148`).
 4. `NobaraVfxRecipes.register()` — all current Nobara typed IDs.
 5. Register keybinds and client payload receivers.
 
@@ -48,10 +48,13 @@ The order ensures recipes exist before `VfxCuePayload` can be received.
 |---|---|---|
 | VFX world geometry | `VfxDirector.initialize` → `WorldRenderEvents.AFTER_ENTITIES` | VERIFIED |
 | VFX HUD | `VfxDirector.initialize` → `HudElementRegistry` | VERIFIED |
-| VFX lifetime/world-unavailable cleanup | `VfxDirector.initialize` → end client tick | VERIFIED |
-| VFX disconnect cleanup | `VfxDirector.initialize` → client disconnect | VERIFIED |
+| VFX level-identity transition cleanup | receive/end client tick → compare `activeLevel` identity → clear all active instances/channels → bind current level | VERIFIED |
+| VFX lifetime/null-level cleanup | end client tick → expire by server game time; `level == null` → clear and reset `activeLevel` | VERIFIED |
+| VFX disconnect cleanup | client disconnect → clear and reset `activeLevel` | VERIFIED |
 | Keybinds | `JujutsuKeybinds.register` | VERIFIED |
 | Camera/game renderer/first-person mixins | existing mixins consume director state | VERIFIED |
+
+Non-expired late cues begin at their actual server-timeline age. Realtime HUD, camera/FOV, and first-person channel timestamps are offset by that age; non-seekable opening beats only run below two ticks. World impacts keep the whole cue and resolve the live entity anchor on every render, falling back to `cue.origin()` if the entity disappears (`VfxTimeline.java:10-27`; `VfxDirector.java:59-82`; `VfxWorldChannel.java:34-69`; `NobaraVfxRecipes.java:37-189`).
 
 ## Mermaid — boot
 

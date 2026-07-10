@@ -13,13 +13,16 @@ Only code-backed or process-backed risks.
 | R5 | ProjectJJK-named assets/legal comparison materials | **P1** | assets `projectjjk/**`, ARR research | VERIFIED |
 | R6 | No automated in-game or two-client smoke in CI | **P2** | Java assertion tests/build only | VERIFIED |
 | R7 | Custom particle classes still have boilerplate even though burst/ring spawning is centralized | **P2** | particle package + `VfxParticleChannel` | MITIGATED |
-| R8 | A future agent could bypass VFX Core or reintroduce legacy static managers | **P1** | `ProjectSanityTest.java:305-362` + [[VFX-core]] | MITIGATED |
+| R8 | A future agent could bypass VFX Core, drop late-cue age from a recipe, or reintroduce legacy static managers | **P1** | `ProjectSanityTest.java:303-393` + [[VFX-core]] | MITIGATED |
 | R9 | No compatible Fabric 1.21.8 shader/post-process backend is proven | **P2** | VFX Core V1 boundary | OPEN |
 
 ## VFX-specific guardrails
 
 - The server can decide cue timing and seed; the client may only draw.
 - Unknown or expired cues are safe to ignore, but a missing ID is still a visual regression and must get a test.
+- Every current Nobara HUD/camera/first-person recipe call must preserve `initialAgeTicks`; the exact 15-call guard intentionally fails when one silently falls back to a fresh overload.
+- `ClientLevel` cleanup is identity-based, not dimension-name based. The guard requires `clear()` inside the identity-change branch, and null/disconnect must reset the tracked level.
+- World impacts must retain `VfxCue` and resolve the entity anchor on every render; caching the first resolved position would reintroduce stale geometry after movement/despawn.
 - `VfxDirector` caps active instances at 64. High-frequency scenes need a measured budget, not an unbounded new manager.
 - Vanilla particle settings reduce local density. Verify spectacle at ALL, DECREASED, and MINIMAL before declaring an effect tuned.
 - A post-process spike may happen later behind the director; do not add a fake abstraction or dependency until a 1.21.8-compatible route is tested.
@@ -29,7 +32,10 @@ Only code-backed or process-backed risks.
 | Former risk | Resolution | Source | Status |
 |---|---|---|---|
 | Integer impulse switch drifted client/server | one shared `VfxCue` payload and recipe registry replace the switch | `VfxCuePayload.java`, `JujutsuClientNetworking.java:14-15` | VERIFIED |
-| Separate Hairpin world/HUD/camera/particle/FP managers duplicated lifecycle | `VfxDirector` owns generic channels and cleanup | `VfxDirector.java:24-125` | VERIFIED |
+| Separate Hairpin world/HUD/camera/particle/FP managers duplicated lifecycle | `VfxDirector` owns generic channels, level-identity cleanup, and null/disconnect reset | `VfxDirector.java:25-148` | VERIFIED |
+| Late packets replayed one-shot beats and restarted realtime channel clocks | opening beats are `< 2` ticks; non-expired cues pass actual age into offset channel timestamps | `VfxTimeline.java:10-27`, `NobaraVfxRecipes.java:37-189` | VERIFIED |
+| World impacts captured a one-time origin instead of following a live entity | each render resolves the retained cue through `VfxAnchorResolver`, with `cue.origin()` fallback | `VfxWorldChannel.java:34-69` | VERIFIED |
+| First-person snap phase scale did not traverse its documented range | 0.75-second snap now traverses the complete `0..15` scale | `VfxFirstPersonChannel.java:14-59`, `ProjectSanityTest.java:380-393` | VERIFIED |
 | Persistent nail aura could be lost in a generic timeline migration | it remains state-driven and shares `VfxPalette` | `ProjectJjkNailRenderer.java:23,31-42` | VERIFIED |
 
 ## P0 action

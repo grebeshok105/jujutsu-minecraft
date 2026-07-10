@@ -53,7 +53,7 @@ All sources relative to that worktree unless noted.
 | C2S Nobara action registered | `JujutsuNetworking.java:21` | VERIFIED |
 | server handles Nobara action through `ProjectJjkNobaraActions.tryCast` | `JujutsuNetworking.java:29-36` | VERIFIED |
 | client receives only typed VFX cues and character selection sync | `JujutsuClientNetworking.java:13-19` | VERIFIED |
-| removed legacy S2C VFX payloads are guarded against re-registration | `ProjectSanityTest.java:163-220,349-363` | VERIFIED |
+| removed legacy S2C VFX payloads are guarded against re-registration | `ProjectSanityTest.java:163-220,372-377` | VERIFIED |
 | VFX cue broadcast uses radius filtering and `canSend` | `JujutsuNetworking.java:38-60` | VERIFIED |
 
 ## Character selection
@@ -73,7 +73,7 @@ All sources relative to that worktree unless noted.
 | old runtime classes removed | `ProjectSanityTest.java:159-164` | VERIFIED |
 | old legacy payload/playback classes removed | `ProjectSanityTest.java:165-170` | VERIFIED |
 | ProjectJJK prepared/flying nail aura is rendered by the real entity renderer | `ProjectJjkNailRenderer.java:85-90`, `:115-183` | VERIFIED |
-| transient Nobara scenes use registered VFX recipes; removed `HairpinWorldRenderer` is not a live path | `NobaraVfxRecipes.java:23-34`, guard `ProjectSanityTest.java:349-363` | VERIFIED |
+| transient Nobara scenes use registered VFX recipes; removed `HairpinWorldRenderer` is not a live path | `NobaraVfxRecipes.java:23-34,37-189`, guard `ProjectSanityTest.java:360-377` | VERIFIED |
 
 ## Nobara profile numbers
 
@@ -101,10 +101,13 @@ All sources relative to that worktree unless noted.
 |---|---|---|
 | one `VfxCuePayload` receiver delegates to `VfxDirector`; it has no effect-ID switch | `JujutsuClientNetworking.java:13-19` | VERIFIED |
 | all ten Nobara IDs register Java recipes | `NobaraVfxRecipes.java:23-34` | VERIFIED |
-| director owns world/HUD callbacks, tick, disconnect cleanup, unknown-ID safety, and a 64-instance bound | `VfxDirector.java:24-132` | VERIFIED |
+| director owns world/HUD callbacks, tick, unknown-ID safety, a 64-instance bound, `ClientLevel` identity cleanup, and null/disconnect reset | `VfxDirector.java:25-148`, guard `ProjectSanityTest.java:321-337` | VERIFIED |
+| non-expired late cues receive actual `initialAgeTicks`; one-shot opening beats run only below two ticks; all 15 timed Nobara channel calls preserve age | `VfxTimeline.java:10-27`, `NobaraVfxRecipes.java:37-189`, guard `ProjectSanityTest.java:360-371` | VERIFIED |
+| HUD, camera/FOV, and first-person realtime starts are offset to the late cue phase | `VfxTimeline.java:22-27`, `NobaraVfxRecipes.java:37-189`, `VfxFirstPersonChannel.java:14-27` | VERIFIED |
+| world impact rendering resolves the current entity anchor every frame and falls back to `cue.origin()` after despawn | `VfxWorldChannel.java:34-69`, guard `ProjectSanityTest.java:339-344` | VERIFIED |
 | no-falloff SFX is a director channel | `VfxSoundChannel.java:12-27`, `VfxContext.java:92-94` | VERIFIED |
-| removed overlay/world/camera/playback managers are guarded as absent | `ProjectSanityTest.java:349-363` | VERIFIED |
-| first-person snap uses `VfxFirstPersonChannel`; the narrow hand mixin only reads director state | `NobaraVfxRecipes.java:164-166`, `NobaraFirstPersonSnapMixin.java:24` | VERIFIED |
+| removed overlay/world/camera/playback managers are guarded as absent | `ProjectSanityTest.java:372-377` | VERIFIED |
+| first-person snap uses an age-aware `VfxFirstPersonChannel` start, lasts 0.75 seconds, and traverses the full `0..15` phase; the narrow hand mixin only reads director state | `NobaraVfxRecipes.java:188-189`, `VfxFirstPersonChannel.java:14-59`, `ProjectSanityTest.java:380-393`, `NobaraFirstPersonSnapMixin.java:24` | VERIFIED |
 
 ## Assets
 

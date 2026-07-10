@@ -39,7 +39,7 @@ public record VfxCue(
 - `origin` is always present and is the fallback when an entity anchor disappears.
 - `anchorEntityId` is an optional client-resolved entity ID; `NO_ANCHOR` means static world anchoring.
 - `intensity` carries the small, bounded effect magnitude already represented by Nobara nail/mark counts.
-- `startGameTime` makes late packets enter the correct timeline phase; expired scenes are ignored.
+- `startGameTime` makes late packets enter the correct timeline phase. Opening beats are valid only while cue age is `< 2` ticks, non-expired cues receive their actual `initialAgeTicks`, and expired scenes are ignored (`VfxTimeline.java:10-27`; `VfxDirector.java:59-82`).
 - `seed` is server-created and drives deterministic recipe variation. It does not promise pixel-identical output across different quality settings or frame rates.
 
 `VfxCuePayload` serializes exactly the fields above. `JujutsuNetworking.broadcastVfxCue(ServerLevel, Vec3, double, VfxCue)` and `sendVfxCue(ServerPlayer, VfxCue)` are the only generic S2C VFX helpers.
@@ -64,7 +64,9 @@ public final class VfxDirector {
 
 - `VfxInstance.start` receives a `VfxContext` exposing only director channels: world primitives, local particles, local sound, HUD, camera/FOV, and first-person motion.
 - Recipes do not register render callbacks, send packets, mutate gameplay, or call the old Hairpin static managers.
-- The director owns active instance lifetime, world/disconnect cleanup, quality selection, anchor resolution, and unknown-ID logging once per effect ID.
+- The director owns active instance lifetime, quality selection, anchor resolution, and unknown-ID logging once per effect ID. It clears all instances/channels before rebinding when the `ClientLevel` object changes and clears plus resets the tracked level on null/disconnect (`VfxDirector.java:25-148`).
+- HUD, camera/FOV, and first-person realtime start timestamps are offset by `initialAgeTicks`, so a late cue enters its remaining phase. Nobara's 15 current timed channel calls are guarded against falling back to fresh overloads (`NobaraVfxRecipes.java:37-189`; `ProjectSanityTest.java:360-371`).
+- World impacts retain the full cue, resolve a live entity anchor on every render, and fall back to `cue.origin()` after despawn (`VfxWorldChannel.java:34-69`). First-person snap lasts 0.75 seconds and traverses the full `0..15` phase scale (`NobaraVfxRecipes.java:188-189`; `VfxFirstPersonChannel.java:14-59`).
 - Internal post-process integration is deliberately unavailable to recipes in v1. A later compatible shader spike may add a backend behind the director without changing cue transport.
 
 ### Nobara IDs and scenes
@@ -139,18 +141,31 @@ The three reference scenes are:
 - [x] Document the agent authoring path: ID → cue → recipe → verification. Explicitly forbid direct ability-to-renderer coupling and client gameplay mutation.
 - [x] Update old documentation that still claims removed `HairpinTimeline`, `HairpinVisualProfile`, or playback classes are live; every remaining mention is explicitly removed/historical.
 - [x] Run `gradlew.bat check --no-daemon` and `gradlew.bat build --no-daemon -x test`; both were `BUILD SUCCESSFUL` on 2026-07-10 and all seven assertion tasks passed.
-- [x] Run `gradlew.bat runClient --no-daemon` as startup/log smoke: Fabric loaded Minecraft 1.21.8, `jujutsumod` initialized, and LWJGL/OpenAL/resource atlases loaded without a fatal/error before an intentional terminal stop.
+- [x] Attempt standard `gradlew.bat runClient --no-daemon`; Windows system commit limit `errno=1455` blocked it. Then run the same generated Loom client config directly from the terminal, without a Gradle daemon and with `-Xms128m -Xmx1024m`: it reached `JujutsuMod initialized`, LWJGL, OpenAL, resource reload, and atlas creation; `logs/2026-07-10-1.log.gz` contained no `ERROR`/`FATAL`; the process was intentionally stopped with Ctrl+C. This proves startup only, not gameplay.
 - [ ] Manual gameplay QA for hammer/launch, resonance/link, Enlarge/Boom, death/despawn anchor fallback, and reduced particle settings was not performed because the user explicitly prohibited Computer Use/UI automation. These scenarios remain unverified.
 - [ ] Two-client manual smoke was not performed for the same explicit no-UI-automation constraint; spectator rendering and client-authority observation remain unverified.
-- [x] Copy `build/libs/jujutsumod-1.0.0.jar` to `D:\Games\instances\Jujutsu\mods\jujutsumod-1.0.0.jar`; source and destination SHA-256 are `F3FA1CF29B70A72233D2BE27EC949935D497AF0201C0C88594EFAB80C28C2BCE`.
-- [x] Commit documentation-only changes: `docs(vfx): document nobara core migration`.
+- [x] Copy `build/libs/jujutsumod-1.0.0.jar` to `D:\Games\instances\Jujutsu\mods\jujutsumod-1.0.0.jar`; source and destination are 2,102,209 bytes with SHA-256 `19A943FFEAED46D55EBBD7F775828499E5DDFA44485339B2ED8802B33F87EE15`.
+- [x] Commit documentation-only changes: `docs(vfx): document nobara core migration` (`b6ac0e7`).
+
+## Task 6: Final Review Corrections (TDD)
+
+**Files:** VFX timeline/director/channels/recipes, focused tests/guards, this plan, handoff, and directly affected codex notes.
+
+- [x] Add failing focused tests for the `< 2`-tick opening window and realtime timestamp offsets, then implement the smallest shared timing helpers.
+- [x] Pass actual `initialAgeTicks` into every current Nobara HUD, camera/FOV, and first-person timed call; keep non-expired world geometry in its server-time phase.
+- [x] Track `ClientLevel` identity and clear before rebinding; clear and reset on null/disconnect.
+- [x] Retain the full cue in world impacts and resolve the live entity anchor on every render with `cue.origin()` fallback.
+- [x] Correct first-person snap to 0.75 seconds over the complete `0..15` phase scale.
+- [x] Focused timeline and lifecycle tests passed; `check` was `BUILD SUCCESSFUL in 11s` and `build --no-daemon -x test` was `BUILD SUCCESSFUL in 14s`.
+- [x] Commit behavior and tests: `fix(vfx): honor cue timeline and world lifecycle` (`4aa7274`).
+- [x] Tighten the regression guards so all 15 age-aware calls and `clear()` inside the level-identity branch are protected; commit `test(vfx): tighten timeline regression guards` (`c79c4cb`).
 
 ## Acceptance Criteria
 
 - A future character can add a VFX event by defining a resource ID, emitting `VfxCue`, registering one Java recipe, and documenting the recipe—without editing a packet switch, renderer event registration, or mixin.
 - Every current Nobara visual impulse travels through `VfxCuePayload` and `VfxDirector`; no legacy integer impulse payload or old Hairpin static manager remains.
 - Server-only combat state remains server-authoritative; cue packets produce visuals only.
-- Late, unknown, expired, disconnected, and missing-anchor cues fail safely without a crash or persistent ghost effect.
+- Late, unknown, expired, disconnected, level-switched, and missing-anchor cues fail safely without a crash, replayed opening beat, restarted realtime phase, or persistent ghost effect.
 - `check` and runtime-jar build pass; the installed instance receives the exact built jar.
 
 ## Deferred Work
