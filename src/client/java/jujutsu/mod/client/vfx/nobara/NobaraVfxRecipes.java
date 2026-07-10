@@ -169,14 +169,15 @@ public final class NobaraVfxRecipes {
 	private static VfxInstance remnantDrop(VfxCue cue) {
 		return VfxInstance.of(16, (context, initialAgeTicks) -> {
 			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.RITUAL_BIND, 16);
-			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+			float proximity = context.proximity(cue, 64.0);
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks) || proximity <= 0.01f) {
 				return;
 			}
 			Vec3 origin = context.resolveOrigin(cue);
 			RandomSource random = random(cue, 0xB1ADL);
 			context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 16, 0.72, 0.0, -0.04, random);
 			context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 10, 0.34, 0.06, random);
-			context.playNoFalloff(JujutsuSounds.PROJECTJJK_CHIME, 0.62f, 1.22f, origin, random);
+			context.playNoFalloff(JujutsuSounds.PROJECTJJK_CHIME, 0.62f * proximity, 1.22f, origin, random);
 		});
 	}
 
