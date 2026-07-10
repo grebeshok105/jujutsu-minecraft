@@ -83,9 +83,11 @@ All ten IDs are registered in `NobaraVfxRecipes.java:23-34`. `ProjectJjkNailRend
 
 - Pure assertion tasks cover cue codec/seed/anchor offset, timeline age/expiry/opening-window/realtime offsets, zero/non-zero live-anchor resolution, immutable-origin fallback, quality scaling, registration, transport guards, lifecycle cleanup, all 15 age-aware timed-channel calls, and legacy-path absence.
 - `ProjectSanityTest.java:303-393` prevents an accidental return to the old payload/static-manager path and checks the current timeline, lifecycle, live-anchor, and first-person wiring; legacy absence assertions are at `ProjectSanityTest.java:372-377`.
-- On 2026-07-10, `check` and `build --no-daemon -x test` were successful and all seven assertion tasks passed.
+- Anchor-offset TDD reproduced the eye-height loss, then produced the expected RED because the seven-field constructor and `anchorOffset()` did not yet exist. Focused GREEN `testVfxAnchor testVfxCore testVfxTimeline --no-daemon` passed after `a2cf61c`.
+- Fresh closure on 2026-07-10: `check --no-daemon` was `BUILD SUCCESSFUL in 11s`; `build --no-daemon -x test` was `BUILD SUCCESSFUL in 13s`; all seven assertion tasks passed.
+- Read-only review of `ff48e17..7091fc2` found no Critical, Important, or Minor issues and returned `Findings: none / Ready: Yes`.
 - Standard Gradle `runClient` was blocked by Windows system commit limit `errno=1455`. A terminal-only direct launch of the same generated Loom client config, without a Gradle daemon and with `-Xms128m -Xmx1024m`, reached `JujutsuMod initialized`, LWJGL, OpenAL, resource reload, and atlas creation. `logs/2026-07-10-1.log.gz` contained no `ERROR`/`FATAL`; the process was intentionally stopped with Ctrl+C. This was startup smoke, not gameplay QA.
-- Built and installed runtime jars are both 2,102,209 bytes with SHA-256 `19A943FFEAED46D55EBBD7F775828499E5DDFA44485339B2ED8802B33F87EE15`.
+- Built and installed runtime jars are both 2,102,352 bytes with SHA-256 `49D9FE8619EB9A3E457908FCCFC8C19F22AE326571B85BF488375E1D9C050EE6`.
 - Hammer/launch, resonance/link, Enlarge/Boom, live anchor death/despawn, reduced particles, and two-client observation remain **UNKNOWN** because UI automation was explicitly prohibited. A startup log is not gameplay verification.
 
 ---
