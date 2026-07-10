@@ -291,7 +291,8 @@ public final class ProjectSanityTest {
 		assert nailEntity.contains("level().isClientSide() ? entityData.get(DATA_EMBEDDED_TARGET_ID) : embeddedTargetId") : "Client embedded nail rendering must read the synced target id, not the stale server-only field";
 		assert nailEntity.contains("target.yBodyRot") : "Embedded nails must anchor to body rotation, not head/look yaw";
 		String nailRenderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/ProjectJjkNailRenderer.java"));
-		assert !nailRenderer.contains("renderEmbeddedMark") : "Embedded nail renderer must not draw translucent lightning ribbons on the nail mesh";
+		assert !nailRenderer.contains("renderEmbeddedMark(") : "Embedded nails must not restore the removed broad translucent mark envelope";
+		assert nailRenderer.contains("renderEmbeddedMarkPulse") : "Embedded nails must keep only the approved faint readable mark pulse";
 		assert !nailRenderer.contains("state.hostOffset") : "Embedded nails must not use the old follower offset that visually chases target position";
 		assert nailRenderer.contains("state.embeddedAnchorOffset") : "Embedded nails must render from the target body anchor, relative to the dispatcher render origin";
 		assert nailRenderer.contains("living.yBodyRot") : "Embedded nail renderer must use interpolated body rotation for the host attachment";
@@ -594,9 +595,15 @@ public final class ProjectSanityTest {
 		assert !runtime.contains("ParticleTypes.SOUL_FIRE_FLAME") : "Nobara nail aura must not use vanilla soul-fire particles";
 		assert !runtime.contains("HAIRPIN_IGNITION_TICK") && runtime.contains("spawnPreparedNailPressure")
 				: "Prepared and flying nails must use compressed-energy motes instead of ignition particles";
+		int impactCue = runtime.indexOf("emitImpactCue(level, point, owner);");
+		int ordinaryImpactBranch = runtime.indexOf("if (!explosiveImpact)");
+		assert impactCue >= 0 && impactCue < ordinaryImpactBranch
+				: "Every ordinary or explosive nail impact must emit the named impact camera/HUD cue before branching";
 		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/ProjectJjkNailRenderer.java"));
 		assert renderer.contains("renderCompressedEnergyAura") && renderer.contains("renderPressureBand")
 				: "Real nail entities must render a narrow rim, pressure bands, and orbiting slivers";
+		assert renderer.contains("renderEmbeddedMarkPulse")
+				: "Embedded nails must retain a faint state-driven mark pulse after the flight aura ends";
 		assert renderer.contains("VfxPalette") : "Persistent nail aura must reuse the VFX Core cursed-energy palette";
 		assert !renderer.contains("renderBlueForceFieldEnvelope") : "The rejected broad nail envelope must stay removed";
 		assert !renderer.contains("renderCyanNailFireAura") : "Blue nail aura must not use the rejected cyan flame ribbon geometry";

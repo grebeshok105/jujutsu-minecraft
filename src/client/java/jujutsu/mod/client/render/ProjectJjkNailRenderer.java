@@ -90,6 +90,9 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 			int bands = state.launched ? 3 : 2;
 			renderCompressedEnergyAura(consumers.getBuffer(RenderType.lightning()), matrices, Vec3.ZERO, direction,
 					state.age + state.seed * 0.37f, alpha, length, width, bands, state.launched);
+		} else {
+			renderEmbeddedMarkPulse(consumers.getBuffer(RenderType.lightning()), matrices, Vec3.ZERO, direction,
+					state.age + state.seed * 0.37f);
 		}
 		matrices.mulPose(new Quaternionf().rotationTo(MODEL_UP, toVector3f(direction)));
 		if (state.embedded) {
@@ -112,6 +115,16 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		matrices.popPose();
 		matrices.popPose();
 		super.render(state, matrices, consumers, packedLight);
+	}
+
+	private static void renderEmbeddedMarkPulse(VertexConsumer consumer, PoseStack matrices, Vec3 center, Vec3 direction, float age) {
+		Vec3 line = safeDirection(direction);
+		Vec3 side = axisSide(line, 1.0f).normalize();
+		Vec3 cross = line.cross(side).normalize();
+		float pulse = 0.5f + 0.5f * (float) Math.sin(age * 0.18f);
+		float radius = 0.095f + pulse * 0.018f;
+		int alpha = Math.round(34.0f + pulse * 24.0f);
+		renderPressureBand(consumer, matrices, center.subtract(line.scale(0.08)), side, cross, radius, alpha);
 	}
 
 	private static void renderCompressedEnergyAura(VertexConsumer consumer, PoseStack matrices, Vec3 center, Vec3 direction,

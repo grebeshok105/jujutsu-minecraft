@@ -154,6 +154,7 @@ public final class ProjectJjkNobaraRuntime {
 			}
 		}
 
+		emitImpactCue(level, point, owner);
 		if (!explosiveImpact) {
 			spawnPiercingImpactFeedback(level, point, nail.forwardDirection());
 			return;
@@ -183,10 +184,14 @@ public final class ProjectJjkNobaraRuntime {
 		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_IMPLODE, SoundSource.PLAYERS, 0.42f, 0.9f);
 		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, SoundSource.PLAYERS, 0.56f, 1.08f);
 		level.playSound(null, point.x, point.y, point.z, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT_2, SoundSource.PLAYERS, 0.42f, 0.96f);
+	}
+
+	private static void emitImpactCue(ServerLevel level, Vec3 point, ServerPlayer owner) {
+		long gameTime = level.getGameTime();
 		JujutsuNetworking.broadcastVfxCue(level, point, IMPULSE_BROADCAST_RADIUS,
-				cue(level, NobaraVfxIds.IMPACT, 1, point, level.getGameTime()));
+				cue(level, NobaraVfxIds.IMPACT, 1, point, gameTime));
 		if (owner != null) {
-			JujutsuNetworking.sendVfxCue(owner, cue(level, NobaraVfxIds.IMPACT_SOUND, 1, point, level.getGameTime()));
+			JujutsuNetworking.sendVfxCue(owner, cue(level, NobaraVfxIds.IMPACT_SOUND, 1, point, gameTime));
 		}
 	}
 
