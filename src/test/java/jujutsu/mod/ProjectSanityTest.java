@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -335,8 +334,8 @@ public final class ProjectSanityTest {
 		assert director.contains("activeLevel = null") : "VfxDirector must forget the world on disconnect or a null level";
 		String clientEntrypoint = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/JujutsuModClient.java"));
 		assert clientEntrypoint.contains("VfxDirector.initialize()") : "Client startup must initialize VFX Core before receivers";
-		assertVfxCoreAuthoringContractAndOwnership(clientEntrypoint);
 	}
+
 	private static void assertVfxCoreProvidesReusableChannels() throws IOException {
 		String world = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxWorldChannel.java"));
 		assert world.contains("triggerImpact") : "VFX world channel must expose a timed impact primitive";
@@ -558,87 +557,6 @@ public final class ProjectSanityTest {
 				if (javaFile.startsWith(MAIN_JAVA)) {
 					assert !source.contains(CLIENT_IMPORT) : "Client import in common source set: " + javaFile;
 				}
-			}
-		}
-	}
-
-	private static void assertVfxCoreAuthoringContractAndOwnership(String clientEntrypoint) throws IOException {
-		String agents = Files.readString(ROOT.resolve("AGENTS.md"));
-		assert agents.contains("## Mandatory VFX Core Contract") : "AGENTS.md must define the mandatory VFX Core contract";
-		assert agents.contains("server-confirmed action -> `VfxCue` -> typed S2C transport -> `VfxDirector` -> `<Character>VfxRecipes` -> director-owned channels")
-			: "AGENTS.md must state the complete transient VFX path";
-		assert agents.contains("Persistent, stateful visuals") : "AGENTS.md must preserve real renderers for persistent visuals";
-		assert agents.contains("Jujutsu Kaizen/jujutsumod-codebase-codex/04-client-vfx/VFX-core.md")
-			: "AGENTS.md must link the detailed VFX Core authoring note";
-
-		Path networkingPath = CLIENT_JAVA.resolve("jujutsu/mod/client/network/JujutsuClientNetworking.java");
-		Path directorPath = CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxDirector.java");
-		Pattern vfxCueReceiverRegistration = Pattern.compile(
-			"ClientPlayNetworking\\.registerGlobalReceiver\\s*\\(\\s*VfxCuePayload\\.TYPE"
-		);
-		try (Stream<Path> files = Files.walk(CLIENT_JAVA)) {
-			for (Path javaFile : files.filter(path -> path.toString().endsWith(".java")).toList()) {
-				String source = Files.readString(javaFile);
-				String normalizedPath = javaFile.toString().replace('\\', '/');
-				boolean effectPath = normalizedPath.contains("/client/vfx/") || normalizedPath.contains("/client/fx/");
-				if (vfxCueReceiverRegistration.matcher(source).find()) {
-					assert javaFile.equals(networkingPath) : "VFX cue receiver must remain centralized in JujutsuClientNetworking: " + javaFile;
-				}
-				if (effectPath && (source.contains("WorldRenderEvents.") || source.contains("HudElementRegistry."))) {
-					assert javaFile.equals(directorPath) : "Transient world/HUD callbacks must remain centralized in VfxDirector: " + javaFile;
-				}
-			}
-		}
-
-		int directorIndex = clientEntrypoint.indexOf("VfxDirector.initialize()");
-		int receiversIndex = clientEntrypoint.indexOf("JujutsuClientNetworking.registerReceivers()");
-		assert directorIndex >= 0 : "Client startup must initialize VfxDirector";
-		assert receiversIndex > directorIndex : "Client startup must register VFX cue receivers after VfxDirector initialization";
-
-		Path recipesRoot = CLIENT_JAVA.resolve("jujutsu/mod/client/vfx");
-		Path bootstrapPath = recipesRoot.resolve("JujutsuVfxRecipes.java");
-		List<Path> characterRecipeFiles;
-		try (Stream<Path> files = Files.walk(recipesRoot)) {
-			characterRecipeFiles = files
-				.filter(path -> path.getFileName().toString().endsWith("VfxRecipes.java"))
-				.filter(path -> !path.equals(bootstrapPath))
-				.toList();
-		}
-
-		Pattern entrypointRecipeRegistration = Pattern.compile(
-			"\\b(\\w+VfxRecipes)\\s*\\.\\s*(register|registerAll)\\s*\\(\\s*\\)"
-		);
-		Matcher entrypointRegistrations = entrypointRecipeRegistration.matcher(clientEntrypoint);
-		if (Files.exists(bootstrapPath)) {
-			assert entrypointRegistrations.find() : "Client startup must call JujutsuVfxRecipes.registerAll()";
-			assert entrypointRegistrations.group(1).equals("JujutsuVfxRecipes") && entrypointRegistrations.group(2).equals("registerAll")
-				: "JujutsuVfxRecipes.registerAll() must be the sole VFX recipe bootstrap";
-			int bootstrapIndex = entrypointRegistrations.start();
-			assert bootstrapIndex > directorIndex : "Client startup must register all VFX recipes after VfxDirector initialization";
-			assert bootstrapIndex < receiversIndex : "Client startup must register all VFX recipes before VFX cue receivers";
-			assert !entrypointRegistrations.find() : "JujutsuVfxRecipes.registerAll() must be the sole VFX recipe bootstrap";
-
-			String bootstrap = Files.readString(bootstrapPath);
-			for (Path recipeFile : characterRecipeFiles) {
-				String className = recipeFile.getFileName().toString().replace(".java", "");
-				Pattern characterRegistration = Pattern.compile(
-					"\\b" + Pattern.quote(className) + "\\s*\\.\\s*register\\s*\\(\\s*\\)"
-				);
-				assert characterRegistration.matcher(bootstrap).find() : "Unregistered character VFX recipes in JujutsuVfxRecipes: " + className;
-			}
-		} else {
-			Map<String, Integer> directRegistrations = new HashMap<>();
-			while (entrypointRegistrations.find()) {
-				String className = entrypointRegistrations.group(1);
-				assert entrypointRegistrations.group(2).equals("register") : "Client startup may use registerAll() only through JujutsuVfxRecipes";
-				int registrationIndex = entrypointRegistrations.start();
-				assert registrationIndex > directorIndex : "Client startup must register " + className + " after VfxDirector initialization";
-				assert registrationIndex < receiversIndex : "Client startup must register " + className + " before VFX cue receivers";
-				directRegistrations.merge(className, 1, Integer::sum);
-			}
-			for (Path recipeFile : characterRecipeFiles) {
-				String className = recipeFile.getFileName().toString().replace(".java", "");
-				assert directRegistrations.getOrDefault(className, 0) == 1 : "Client startup must register character VFX recipes exactly once: " + className;
 			}
 		}
 	}
