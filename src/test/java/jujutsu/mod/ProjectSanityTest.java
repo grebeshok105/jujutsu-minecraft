@@ -328,6 +328,8 @@ public final class ProjectSanityTest {
 		assert director.contains("VfxTimeline.isExpired") : "VfxDirector must discard expired late cues";
 		assert director.contains("private static ClientLevel activeLevel") : "VfxDirector must track the active client world identity";
 		assert director.contains("if (activeLevel != client.level)") : "VfxDirector must clear scenes when the ClientLevel object changes";
+		assert Pattern.compile("if\\s*\\(activeLevel\\s*!=\\s*client\\.level\\)\\s*\\{\\s*clear\\s*\\(\\s*\\)\\s*;").matcher(director).find()
+			: "VfxDirector must clear active scenes inside the ClientLevel identity-change branch";
 		assert director.contains("activeLevel = client.level") : "VfxDirector must bind lifecycle state to the current ClientLevel";
 		assert director.contains("activeLevel = null") : "VfxDirector must forget the world on disconnect or a null level";
 		String clientEntrypoint = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/JujutsuModClient.java"));
@@ -366,7 +368,7 @@ public final class ProjectSanityTest {
 		long openingBeatGuards = Pattern.compile("VfxTimeline\\.isOpeningBeat\\(initialAgeTicks\\)").matcher(recipes).results().count();
 		assert openingBeatGuards >= 8 : "Every non-seekable Nobara sound/particle opening beat must reject late playback";
 		long ageAwareChannelCalls = Pattern.compile("trigger(?:Swing|Impact|Snap)\\([^\\n]*initialAgeTicks\\)").matcher(recipes).results().count();
-		assert ageAwareChannelCalls >= 8 : "Nobara timed channels must receive initialAgeTicks";
+		assert ageAwareChannelCalls == 15 : "All 15 Nobara timed channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
 		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/network/ProjectJjkNobaraImpulsePayload.java")) : "Legacy integer VFX payload must be removed after migration";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java")) : "Legacy Hairpin world renderer must be replaced by VFX Core";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinCinematicCamera.java")) : "Legacy Hairpin camera manager must be replaced by VFX Core";
