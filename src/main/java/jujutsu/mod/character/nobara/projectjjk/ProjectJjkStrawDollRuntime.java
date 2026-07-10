@@ -1,7 +1,7 @@
 package jujutsu.mod.character.nobara.projectjjk;
 
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -113,18 +113,20 @@ public final class ProjectJjkStrawDollRuntime {
 	}
 
 	private static void onServerTick(MinecraftServer server) {
-		for (Iterator<PendingRitual> iterator = PENDING_RITUALS.values().iterator(); iterator.hasNext();) {
-			PendingRitual pending = iterator.next();
+		for (PendingRitual pending : List.copyOf(PENDING_RITUALS.values())) {
+			if (PENDING_RITUALS.get(pending.casterId()) != pending) {
+				continue;
+			}
 			ServerPlayer caster = server.getPlayerList().getPlayer(pending.casterId());
 			if (caster == null || !caster.isAlive()) {
-				iterator.remove();
+				PENDING_RITUALS.remove(pending.casterId(), pending);
 				continue;
 			}
 
 			ResolvedPending resolved = resolvePending(caster, pending);
 			if (resolved.validation() != ProjectJjkRitualPolicy.Validation.OK || resolved.target() == null) {
 				showFailure(caster, resolved.validation());
-				iterator.remove();
+				PENDING_RITUALS.remove(pending.casterId(), pending);
 				continue;
 			}
 			if (caster.level().getGameTime() < pending.dueGameTime()) {
@@ -132,7 +134,7 @@ public final class ProjectJjkStrawDollRuntime {
 			}
 
 			resolveImpact(caster, resolved.target(), pending.remnant());
-			iterator.remove();
+			PENDING_RITUALS.remove(pending.casterId(), pending);
 		}
 	}
 

@@ -480,6 +480,9 @@ public final class ProjectSanityTest {
 		assert ritual.contains("ProjectJjkRitualPolicy.validate") : "Runtime validation must use the tested ritual policy";
 		assert ritual.contains("ServerEntityEvents.ENTITY_UNLOAD")
 				: "Partial remnant progress must clear when a living target unloads";
+		assert ritual.contains("List.copyOf(PENDING_RITUALS.values())")
+				&& ritual.contains("PENDING_RITUALS.remove(pending.casterId(), pending)")
+				: "Pending rituals must tolerate synchronous death callbacks mutating the map during impact";
 		assert !ritual.contains("sendParticles(") && !ritual.contains("playSound(") && !ritual.contains("spawnResonanceStrike")
 				: "Transient Straw Doll ritual feedback must travel only through VFX Core cues";
 
