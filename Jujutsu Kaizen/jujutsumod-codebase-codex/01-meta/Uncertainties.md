@@ -6,26 +6,36 @@
 
 | Topic | Status | Notes |
 |---|---|---|
-| Checkout lag vs full kit | VERIFIED | 28 vs 77 Java files; cite cinematic worktree |
-| Which branch is “release” | UNKNOWN product | Document cinematic as feature SoT |
+| Checkout lag vs full kit | VERIFIED | cite cinematic worktree as source of truth |
+| Which branch is release | UNKNOWN product | document cinematic worktree until merged/released |
 
-## Runtime (not smoke-tested this pass)
+## Startup smoke completed
+
+`gradlew.bat runClient --no-daemon` reached `JujutsuMod initialized`, LWJGL/OpenAL initialization, resource reload, and atlas creation on 2026-07-10. `run/logs/latest.log` contained no fatal/error before the intentional terminal stop. This proves startup only.
+
+## Gameplay scenarios not performed in this pass
 
 | Topic | Status | Verify via |
 |---|---|---|
-| Full combat loop feel | UNKNOWN | `runClient` + nails/hammer/shift |
-| Multiplayer mark sync | UNKNOWN | 2 clients, mark payload radius |
-| Character select perf | INFERRED risk | open screen, watch FPS |
-| Post-shader bind active | UNKNOWN | resource reload + render path |
+| Full combat loop feel after legacy removal | UNKNOWN | `runClient` + nails/hammer/R/B/shift |
+| Multiplayer mark/glow sync | UNKNOWN | 2 clients, Glowing/team cleanup |
+| Hammer/launch, resonance/link, and Enlarge/Boom VFX composition | UNKNOWN | manual in-game observation |
+| Death/despawn anchor fallback in a live scene | UNKNOWN | remove/kill anchor during an active cue |
+| Reduced/minimal particle setting readability | UNKNOWN | repeat scenes with DECREASED/MINIMAL particles |
+| Character select perf | INFERRED risk | open V screen, watch FPS |
 | No-falloff SFX comfort | UNKNOWN | ear test |
+| Real nail aura visual after migration to entity renderer | UNKNOWN | in-game view of prepared/flying/embedded nails |
 
-## Dual / legacy code
+Manual and two-client scenarios were not performed because the user explicitly prohibited Computer Use/UI automation for this task.
+
+## Resolved / no longer uncertain
 
 | Topic | Status | Source |
 |---|---|---|
-| ProjectJJK items are default for all 4 ids | VERIFIED | `JujutsuItems.java:12-15,26-34` |
-| Legacy Hairpin runtime still in tree | VERIFIED path exists | `character/nobara/NobaraHairpinRuntime.java` |
+| ProjectJJK items are default for all Nobara item ids | VERIFIED | `JujutsuItems.java:12-15` |
+| Legacy Hairpin runtime still in tree | RESOLVED false | removed; guard `ProjectSanityTest.java:159-188` |
+| Old post-shader bind active | RESOLVED false | old Hairpin post-shaders removed; guard `ProjectSanityTest.java:173-174` |
 | No cursed energy in profile | VERIFIED | no CE constants in `ProjectJjkNobaraProfile` |
 
 ---
-tags: #jujutsumod #uncertainties
+tags: #jujutsumod #uncertainties #verified

@@ -4,17 +4,17 @@
 
 ## Goal
 
-Каждый actionable claim проверяется за ≤30 секунд по ile:line.
+Каждый actionable claim проверяется за ≤30 секунд по `file:line`.
 
 ## Format
 
-`
+```text
 **Source:** .worktrees/nobara-cinematic-slice/src/.../File.java:LINE — факт / symbol
 **Resource:** src/main/resources/... (если asset)
 **Status:** VERIFIED | INFERRED | UNKNOWN
-`
+```
 
-Опционально: Symbol: ClassName.methodName если lines могут сдвинуться.
+Опционально: `Symbol: ClassName.methodName`, если lines могут сдвинуться.
 
 ## Status
 
@@ -28,21 +28,21 @@
 
 | Root | Path |
 |---|---|
-| Full product (default cite) | D:/WorkFlow/Jujutsu Minecraft/.worktrees/nobara-cinematic-slice/ |
-| Thin checkout | D:/WorkFlow/Jujutsu Minecraft/ (может отставать) |
-| Repo-relative cite prefix | .worktrees/nobara-cinematic-slice/ |
+| Full product (default cite) | `D:/WorkFlow/Jujutsu Minecraft/.worktrees/nobara-cinematic-slice/` |
+| Thin checkout | `D:/WorkFlow/Jujutsu Minecraft/` (может отставать) |
+| Repo-relative cite prefix | `.worktrees/nobara-cinematic-slice/` |
 
 ## Required anchors
 
 | Claim type | Must cite |
 |---|---|
-| identity/version | abric.mod.json / gradle.properties |
-| register order | JujutsuMod.onInitialize |
+| identity/version | `fabric.mod.json` / `gradle.properties` |
+| register order | `JujutsuMod.onInitialize` |
 | item/entity id | registry class field line |
-| balance number | ProjectJjkNobaraProfile constant |
-| network payload | record class + JujutsuNetworking.registerPayloads |
-| client-only | src/client/... path |
-| test command | uild.gradle task |
+| balance number | `ProjectJjkNobaraProfile` constant |
+| network payload | record class + `JujutsuNetworking.registerPayloads` |
+| client-only | `src/client/...` path |
+| test command | `build.gradle` task |
 
 ## Master index
 
@@ -50,10 +50,10 @@
 
 ## Before changing behavior
 
-1. Open cited file:line
-2. Confirm method still matches
-3. Check [[05-reference/ProjectJJK-parity-map]] if parity-related
-4. Only then edit code (отдельная задача — не эта база)
+1. Open cited `file:line`.
+2. Confirm method still matches.
+3. Check [[05-reference/ProjectJJK-parity-map]] if parity-related.
+4. Only then edit code (отдельная задача — не эта база).
 
 ---
 tags: #jujutsumod #citation

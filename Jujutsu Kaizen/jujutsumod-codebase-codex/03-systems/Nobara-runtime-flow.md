@@ -1,6 +1,6 @@
 # Nobara Runtime Flow
 
-← [[00-MOC]] · [[Nobara-overview]]
+← [[00-MOC]] · [[Nobara-overview]] · [[Target-marks-and-resonance]]
 
 Prefix: `.worktrees/nobara-cinematic-slice/src/main/java/jujutsu/mod/character/nobara/projectjjk/`
 
@@ -8,53 +8,48 @@ Prefix: `.worktrees/nobara-cinematic-slice/src/main/java/jujutsu/mod/character/n
 
 | Method | Line | Role | Status |
 |---|---:|---|---|
-| `prepareNails` | 34 | count nails by hold ticks; consume; spawn prepared entities; particles/sounds | VERIFIED |
-| `launchHairpin` | 65 | find prepared nails; target resolve; stagger launch delays; hammer SFX; impulse broadcast | VERIFIED |
-| `resolveNailImpact` | 97 | damage, area, embed mark, impact particles/impulse | VERIFIED |
-| helpers | 151+ | particles, find prepared, consume, hammer damage | VERIFIED |
+| `prepareNails` | 39-66 | count nails by hold ticks; consume; spawn prepared entities; particles/sounds | VERIFIED |
+| `launchHairpin` | 84-115 | find prepared nails; target resolve; stagger launch delays; hammer SFX; typed `hammer` cue | VERIFIED |
+| `resolveNailImpact` | 141-189 | server damage/mark resolution plus typed `impact` / direct `impact_sound` cues | VERIFIED |
+| helpers | 191+ | server particles, prepared-nail lookup, inventory use, hammer damage | VERIFIED |
 
-### prepareNails logic (verified)
+### prepareNails logic
 
-1. `nailCountForUseTicks(useTicks)` → 1 / 3 / 8 (`Profile:63-71`)
-2. creative vs inventory count (`:37-39`)
-3. consume nails if survival (`:44-46`)
-4. row positions `preparedRow` (`:202`)
-5. each: `nail.prepare(player, pos, look)` + warn/ignition/soul flame particles (`:50-58`)
+1. `nailCountForUseTicks(useTicks)` grows from 1 to a cap of 8 (`ProjectJjkNobaraProfile.java:64-66`).
+2. Creative versus inventory availability is resolved at `ProjectJjkNobaraRuntime.java:42-44`.
+3. Survival nails are consumed at `ProjectJjkNobaraRuntime.java:49-51`.
+4. `preparedRow` supplies entity positions at `ProjectJjkNobaraRuntime.java:54-55`.
+5. Each real nail entity receives warn/ignition particles at `ProjectJjkNobaraRuntime.java:56-62`.
 
-### launchHairpin logic (verified)
+### launchHairpin logic
 
-1. `findPreparedNails` — empty → false (`:67-70`)
-2. `TargetResolver.resolve(..., TARGET_RANGE 36)` (`:72`)
-3. staggered `nail.launchAt(targetPoint, launchDelayForIndex)` (`:76-82`)
-4. multi-sound forge/snap (`:85-91`)
-5. `broadcastProjectJjkImpulse` HAMMER kind (`:92`)
-6. damage hammer durability (`:93`)
+1. `findPreparedNails` empty returns false (`ProjectJjkNobaraRuntime.java:86-89`).
+2. Target resolution uses the 36-block profile range (`ProjectJjkNobaraRuntime.java:91`, `ProjectJjkNobaraProfile.java:14`).
+3. `nail.launchAt(..., launchDelayForIndex, explosiveImpact)` staggers real nail entities (`ProjectJjkNobaraRuntime.java:95-103`).
+4. Forge/anvil/snap SFX remain server-authoritative (`ProjectJjkNobaraRuntime.java:106-111`).
+5. The server broadcasts `NobaraVfxIds.HAMMER` with a player anchor (`ProjectJjkNobaraRuntime.java:112-113`).
+6. Hammer durability is applied after the cue (`ProjectJjkNobaraRuntime.java:114`).
+
+## `ProjectJjkHammerItem`
+
+The hammer no longer hides Hairpin Enlarge/Boom fallback behavior.
+
+| Input | Runtime call | Source | Status |
+|---|---|---|---|
+| right click | `ProjectJjkNobaraRuntime.launchHairpin` | `ProjectJjkHammerItem.java:17-27` | VERIFIED |
+| shift + right click | `ProjectJjkRitualRuntime.performResonance` | `ProjectJjkHammerItem.java:20-24` | VERIFIED |
 
 ## `ProjectJjkRitualRuntime`
 
 | Method | Line | Role | Status |
 |---|---:|---|---|
-| `register` | 46 | server tick + cleanup + disconnect | VERIFIED |
-| `markTarget` | 69/74 | marks apply + target mark payload + particles | VERIFIED |
-| `performResonance` | 92 | bind if unbound; else remote strike | VERIFIED |
-| `tryEnlargeMarkedTarget` | 147 | schedule enlarge | VERIFIED |
-| `detonateMarks` | 170 | schedule explosions from anchors | VERIFIED |
-| `tickHairpinTasks` | 234 | resolve pending enlarge/explosions | VERIFIED |
-| `explodeAnchor` | 287 | damage + VFX impulse | VERIFIED |
-
-### Pending queues
-
-**Source:** `:40-41`  
-- `PENDING_EXPLOSIONS`  
-- `PENDING_ENLARGES`  
-
-Cleared on server stop; processed each tick via `tickHairpinTasks`.
-
-## Target resolve
-
-**Source:** `combat/TargetResolver.java`  
-Used for launch aim and marked target search helpers.  
-Tests: `TargetResolverTest`.
+| `register` | 57-68 | server tick + stopping/disconnect cleanup | VERIFIED |
+| `markTarget` | 87-96 | marks, vanilla Glowing/cyan team, server particles/sound; no mark payload | VERIFIED |
+| `performResonance` | 105-155 | bind if unbound; else remote strike and typed cues | VERIFIED |
+| `tryEnlargeMarkedTarget` | 160-182 | explicit Enlarge action schedules delayed marked-target hit | VERIFIED |
+| `detonateMarks` | 185-207 | explicit Boom action schedules explosions and a direct `detonate` cue | VERIFIED |
+| `tickHairpinTasks` | 286-310 | resolves pending enlarge/explosions on server game time | VERIFIED |
+| `explodeAnchor` | 339-369 | server damage/knockback plus typed `explosion` cue | VERIFIED |
 
 ## Mermaid — launch
 
@@ -62,25 +57,25 @@ Tests: `TargetResolverTest`.
 flowchart TD
   hold[Nail releaseUsing] --> prep[prepareNails]
   prep --> entities[ProjectJjkNailEntity prepared]
-  hammer[Hammer use] --> launch[launchHairpin]
+  hammer[Hammer right click] --> launch[launchHairpin]
   launch --> fly[nail.launchAt delayed]
   fly --> hit[resolveNailImpact]
   hit --> mark[RitualRuntime.markTarget]
   hit --> dmg[hurtTarget]
 ```
 
-## Mermaid — hammer fallback
+## Mermaid — explicit actions
 
 ```mermaid
 flowchart TD
-  h[Hammer use] --> s{shift?}
-  s -->|yes| r[performResonance]
-  s -->|no| l{launchHairpin}
-  l -->|true| d1[detonateMarks]
-  l -->|false| e{tryEnlarge}
-  e -->|true| done[scheduled enlarge]
-  e -->|false| d2[detonateMarks]
+  keyR[Enlarge keybind R] --> payload[NobaraActionPayload HAIRPIN_ENLARGE]
+  keyB[Boom keybind B] --> payload2[NobaraActionPayload HAIRPIN_EXPLOSION]
+  payload --> gate{selected Nobara?}
+  payload2 --> gate
+  gate -->|yes| enlarge[tryEnlargeMarkedTarget]
+  gate -->|yes| boom[detonateMarks]
+  gate -->|no| ignore[ignore]
 ```
 
 ---
-tags: #jujutsumod #runtime
+tags: #jujutsumod #runtime #verified

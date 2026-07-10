@@ -1,65 +1,51 @@
 # Hairpin / Combat Client Effects
 
-← [[00-MOC]]
+← [[00-MOC]] · [[VFX-core]] · [[../03-systems/Nobara-overview]] · [[../03-systems/Nobara-runtime-flow]]
 
-## Two pipelines
+## Current pipeline
+
+The legacy integer impulse/static-manager path is gone. All transient Nobara combat effects travel through the shared [[VFX-core]] route:
+
+`server ability → VfxCue → VfxCuePayload → VfxDirector → NobaraVfxRecipes → director channels`.
 
 | Pipeline | Trigger | Core classes | Status |
 |---|---|---|---|
-| Cinematic Hairpin FX | `HairpinFxPayload` / commands | `HairpinPlayback`, `HairpinTimeline`, `HairpinVisualProfile`, particles, world renderer, screen overlay | VERIFIED exists |
-| ProjectJJK combat impulses | `ProjectJjkNobaraImpulsePayload` | `JujutsuClientNetworking` handlers | VERIFIED |
+| Shared transient combat VFX | typed server cue | `VfxCue`, `VfxCuePayload`, `VfxDirector`, `NobaraVfxRecipes` | VERIFIED |
+| Persistent real nail aura | nail entity render state | `ProjectJjkNailRenderer` + `VfxPalette` | VERIFIED |
+| Server combat feedback | authoritative runtime/ritual event | existing server particle families | VERIFIED |
 
-## Timeline model (shared)
+## Nobara recipes
 
-**Source:** `src/main/java/jujutsu/mod/fx/HairpinTimeline.java`  
-Phases via `phaseAt` / game-time helpers (`:21-93`).  
-Tests: `HairpinTimelineTest` task `testHairpinTimeline`.  
-**Status:** VERIFIED
+The ten central IDs live in `vfx/NobaraVfxIds.java:6-15` and are all registered by `client/vfx/nobara/NobaraVfxRecipes.java:23-33`.
 
-Visual budgets: `HairpinVisualProfile` + `testHairpinVisualProfile`.
+| Scene | IDs | Composition |
+|---|---|---|
+| Hammer / launch | `hammer`, `impact`, `impact_sound` | anvil/netherite/snap rhythm, camera, HUD |
+| Resonance / link | `resonance_channel`, `resonance_strike`, `link_bind`, `detonate` | cursed-energy pulse, ring, local particle burst, chime |
+| Enlarge / Boom | `enlarge`, `explosion`, `first_person_snap` | expanding ring/ribbon/blade geometry, shards, sound stack, HUD/camera, hand snap |
 
-## Screen overlay
+The world layer is registered once in `VfxDirector.java:44` on `WorldRenderEvents.AFTER_ENTITIES`; recipes only call its channel. The existing narrow camera and first-person mixins read state from `VfxDirector` rather than owning VFX timelines.
 
-**Source:** `HairpinScreenOverlay.register`  
-Flash on snap/bloom phases (Fabric HudElementRegistry — design notes).  
-**Status:** VERIFIED register site
+## Real nail aura
 
-## World renderer
+`ProjectJjkNailRenderer` remains a state-driven entity renderer, so prepared/flying nails stay attached to their actual entity state. It now consumes the core cursed-energy palette (`ProjectJjkNailRenderer.java:23,31-42`; `VfxPalette.java`) rather than duplicating cyan/white values. It is not a director recipe.
 
-**Source:** `HairpinWorldRenderer.register` `:52`  
-Fracture/ribbon geometry after entities.  
-**Status:** VERIFIED register
+## Removed paths
 
-## Camera
+The following old transient paths must not come back:
 
-Mixins: `HairpinCameraMixin`, `HairpinGameRendererMixin` + `HairpinCinematicCamera`.  
-**Source:** `jujutsumod.client.mixins.json`  
-**Status:** VERIFIED listed
+- `ProjectJjkNobaraImpulsePayload`
+- `HairpinWorldRenderer`
+- `HairpinCinematicCamera`
+- `HairpinScreenOverlay`
+- `ResonanceEffects`
+- `FpSnapAnimator`
 
-## Impulse handling (combat)
+`ProjectSanityTest.java:357-362` guards their absence. Older legacy classes such as `HairpinTimeline`, `HairpinVisualProfile`, `HairpinPlaybackManager`, and fake nail-flight playback remain removed too.
 
-**Source:** `JujutsuClientNetworking.java`
+## Constraint
 
-| Handler | Line | Role |
-|---|---:|---|
-| `handleProjectJjkImpulse` | 64 | dispatch by kind |
-| `handleProjectJjkImpact` | 116 | impact VFX/SFX |
-| `handleResonanceStrike` | 127 | resonance |
-| `handleHairpinEnlarge` | 139 | enlarge |
-| `handleHairpinExplosion` | 153 | explosion |
-| `playNoFalloff` | 176 | distance-independent SFX helper |
-
-**Status:** VERIFIED method map
-
-## Sounds
-
-Hairpin + projectjjk sound events in `JujutsuSounds` + `sounds.json`.  
-**Status:** VERIFIED registry
-
-## Shaders
-
-Assets: `shaders/include/hairpin_*.glsl`, `shaders/post/hairpin_*.fsh/vsh`.  
-Whether always bound in pipeline: **UNKNOWN** (see Uncertainties).
+This is Fabric-native composition, not a copied ProjectJJK/Specter/GeckoLib effect system. No external shader library, JSON/DSL, preview scene, or generic bone-effect authoring belongs to V1.
 
 ---
-tags: #jujutsumod #vfx #hairpin
+tags: #jujutsumod #vfx #hairpin #nobara #verified

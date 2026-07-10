@@ -48,7 +48,12 @@ public record VfxCue(
 
 ```java
 public interface VfxRecipe {
-    VfxInstance create(VfxCue cue, VfxContext context);
+    VfxInstance create(VfxCue cue);
+}
+
+public interface VfxInstance {
+    int durationTicks();
+    void start(VfxContext context, float initialAgeTicks);
 }
 
 public final class VfxDirector {
@@ -57,7 +62,7 @@ public final class VfxDirector {
 }
 ```
 
-- `VfxContext` exposes only director channels: world primitives, local particles, local sound, HUD, camera/FOV, and first-person motion.
+- `VfxInstance.start` receives a `VfxContext` exposing only director channels: world primitives, local particles, local sound, HUD, camera/FOV, and first-person motion.
 - Recipes do not register render callbacks, send packets, mutate gameplay, or call the old Hairpin static managers.
 - The director owns active instance lifetime, world/disconnect cleanup, quality selection, anchor resolution, and unknown-ID logging once per effect ID.
 - Internal post-process integration is deliberately unavailable to recipes in v1. A later compatible shader spike may add a backend behind the director without changing cue transport.
@@ -89,55 +94,56 @@ The three reference scenes are:
 
 **Files:** this plan and `docs/session-handoffs/2026-07-10-vfx-core-implementation-handoff.md`.
 
-- [ ] Record the approved scope, source-of-truth worktree, rejected dependencies, public contract, test/QA rules, and suggested skills for a new session.
-- [ ] Confirm both documents contain no secrets and point to the current branch/worktree.
-- [ ] Commit: `docs(vfx): add core implementation plan`.
+- [x] Record the approved scope, source-of-truth worktree, rejected dependencies, public contract, test/QA rules, and suggested skills for a new session.
+- [x] Confirm both documents contain no secrets and point to the current branch/worktree.
+- [x] Commit: `docs(vfx): add core implementation plan` (`c375d12`).
 
 ## Task 2: Shared Cue Transport (TDD)
 
 **Files:** `VfxCue.java`, `NobaraVfxIds.java`, `VfxCuePayload.java`, `JujutsuNetworking.java`, `build.gradle`, `VfxCueTest.java`.
 
-- [ ] Write failing assertion tests for cue field preservation, `NO_ANCHOR`, stable Nobara IDs, and binary payload round-trip.
-- [ ] Register and run `testVfxCore`; verify the failure is caused by missing VFX types, not test setup.
-- [ ] Implement the smallest shared cue, payload codec, payload registration, and canSend-gated direct/radius sends needed to make those tests pass.
-- [ ] Replace only server-side `ProjectJjkNobaraImpulsePayload` construction sites with named cues. Keep gameplay timing, damage, particles, and sound authority unchanged.
-- [ ] Run `gradlew.bat testVfxCore --no-daemon` and `gradlew.bat check --no-daemon`.
-- [ ] Commit: `feat(vfx): add synchronized effect cues`.
+- [x] Write failing assertion tests for cue field preservation, `NO_ANCHOR`, stable Nobara IDs, and binary payload round-trip.
+- [x] Register and run `testVfxCore`; verify the failure is caused by missing VFX types, not test setup.
+- [x] Implement the smallest shared cue, payload codec, payload registration, and canSend-gated direct/radius sends needed to make those tests pass.
+- [x] Keep the legacy emitter live during this transport-only commit, then switch every server emitter atomically in Task 4 after the director and recipes exist. This safe staging avoids a commit that sends cues a client cannot yet draw.
+- [x] Run `gradlew.bat testVfxCore --no-daemon` and `gradlew.bat check --no-daemon`.
+- [x] Commit: `feat(vfx): add synchronized effect cues` (`01f94dd`).
 
 ## Task 3: Client Director and Rendering Channels (TDD)
 
 **Files:** new `client/vfx/**`, client initialization, existing camera/HUD/first-person integration, `VfxTimelineTest.java`.
 
-- [ ] Write failing pure timeline tests for age calculation, late cues, expiry, and no-anchor fallback before director code.
-- [ ] Implement an active-instance director with bounded queue, per-cue distance/particle quality, world/disconnect cleanup, and safe ignore-on-unknown-ID behavior.
-- [ ] Implement reusable world ring/ribbon/blade rendering at `AFTER_ENTITIES`; reuse the current camera-relative geometry approach instead of introducing a shader or renderer mixin.
-- [ ] Implement client channels for local particle bursts, sound, HUD, camera/FOV, and first-person motion. Retarget existing narrow mixins to the new generic channels; add no mixins.
-- [ ] Run the VFX tests and `gradlew.bat compileClientJava --no-daemon` after every red-green slice.
-- [ ] Commit: `feat(vfx): add client effect director`.
+- [x] Write failing pure timeline tests for age calculation, late cues, expiry, and no-anchor fallback before director code.
+- [x] Implement an active-instance director with bounded queue, per-cue distance/particle quality, world/disconnect cleanup, and safe ignore-on-unknown-ID behavior.
+- [x] Implement reusable world ring/ribbon/blade rendering at `AFTER_ENTITIES`; reuse the current camera-relative geometry approach instead of introducing a shader or renderer mixin.
+- [x] Implement client channels for local particle bursts, sound, HUD, camera/FOV, and first-person motion. Retarget existing narrow mixins to the new generic channels; add no mixins.
+- [x] Run the VFX tests and `gradlew.bat compileClientJava --no-daemon` after every red-green slice.
+- [x] Commit: `feat(vfx): add client effect director` (`6ef5585`).
 
 ## Task 4: Nobara Recipe Migration and Polish (TDD)
 
 **Files:** `client/vfx/nobara/**`, Nobara runtime/ritual emitters, client networking, old VFX managers, nail renderer, `ProjectSanityTest`.
 
-- [ ] Write/adjust failing guards proving every Nobara cue ID has a registered recipe and that the client network receiver delegates cues to the director rather than branching on legacy integers.
-- [ ] Register all ten Nobara recipes and compose each through director channels.
-- [ ] Preserve the real nail entity renderer and server particles; extract shared cyan/white palette or primitive helpers only where it removes VFX duplication.
-- [ ] Migrate `FP_SNAP` to a direct caster cue, preserving the non-cancelling first-person hand mixin behavior.
-- [ ] Remove `ProjectJjkNobaraImpulsePayload`, `HairpinWorldRenderer`, `HairpinCinematicCamera`, `HairpinScreenOverlay`, `ResonanceEffects`, and `FpSnapAnimator` only after no references remain; do not remove character-selection networking.
-- [ ] Run `gradlew.bat testVfxCore testProjectSanity --no-daemon`, then `gradlew.bat check --no-daemon`.
-- [ ] Commit: `refactor(nobara): route combat effects through vfx core`.
+- [x] Write/adjust failing guards proving every Nobara cue ID has a registered recipe and that the client network receiver delegates cues to the director rather than branching on legacy integers.
+- [x] Atomically switch server emitters and client receiver after recipes are registered; register all ten Nobara recipes and compose each through director channels.
+- [x] Preserve the real nail entity renderer and server particles; extract `VfxPalette` for shared cyan/white colors.
+- [x] Migrate `FP_SNAP` to a direct caster cue, preserving the non-cancelling first-person hand mixin behavior.
+- [x] Remove `ProjectJjkNobaraImpulsePayload`, `HairpinWorldRenderer`, `HairpinCinematicCamera`, `HairpinScreenOverlay`, `ResonanceEffects`, and `FpSnapAnimator` only after no references remain; do not remove character-selection networking.
+- [x] Run `gradlew.bat testVfxCore testProjectSanity --no-daemon`, then `gradlew.bat check --no-daemon`.
+- [x] Commit: `refactor(nobara): route combat effects through vfx core` (`3626618`).
 
 ## Task 5: Documentation, Build, and Real-Game QA
 
 **Files:** Obsidian VFX notes/MOC and source-backed architecture notes; no unrelated docs.
 
-- [ ] Document the agent authoring path: ID → cue → recipe → verification. Explicitly forbid direct ability-to-renderer coupling and client gameplay mutation.
-- [ ] Update old documentation that still claims removed `HairpinTimeline`, `HairpinVisualProfile`, or playback classes are live.
-- [ ] Run `gradlew.bat check --no-daemon` and `gradlew.bat build --no-daemon -x test`.
-- [ ] Run `gradlew.bat runClient --no-daemon`; test the real Nobara hammer/launch, resonance/link, Enlarge/Boom, death/despawn anchor fallback, and reduced particle settings.
-- [ ] Perform a two-client manual smoke when the local instance setup allows it: one player casts and one observes a single server-confirmed scene with no client gameplay authority.
-- [ ] Copy the final non-dev/non-sources jar from `build/libs` to `D:\Games\instances\Jujutsu\mods`, replacing the installed `jujutsumod` jar; verify the copied file exists and matches the built artifact.
-- [ ] Commit documentation-only changes: `docs(vfx): document nobara core migration`.
+- [x] Document the agent authoring path: ID → cue → recipe → verification. Explicitly forbid direct ability-to-renderer coupling and client gameplay mutation.
+- [x] Update old documentation that still claims removed `HairpinTimeline`, `HairpinVisualProfile`, or playback classes are live; every remaining mention is explicitly removed/historical.
+- [x] Run `gradlew.bat check --no-daemon` and `gradlew.bat build --no-daemon -x test`; both were `BUILD SUCCESSFUL` on 2026-07-10 and all seven assertion tasks passed.
+- [x] Run `gradlew.bat runClient --no-daemon` as startup/log smoke: Fabric loaded Minecraft 1.21.8, `jujutsumod` initialized, and LWJGL/OpenAL/resource atlases loaded without a fatal/error before an intentional terminal stop.
+- [ ] Manual gameplay QA for hammer/launch, resonance/link, Enlarge/Boom, death/despawn anchor fallback, and reduced particle settings was not performed because the user explicitly prohibited Computer Use/UI automation. These scenarios remain unverified.
+- [ ] Two-client manual smoke was not performed for the same explicit no-UI-automation constraint; spectator rendering and client-authority observation remain unverified.
+- [x] Copy `build/libs/jujutsumod-1.0.0.jar` to `D:\Games\instances\Jujutsu\mods\jujutsumod-1.0.0.jar`; source and destination SHA-256 are `F3FA1CF29B70A72233D2BE27EC949935D497AF0201C0C88594EFAB80C28C2BCE`.
+- [x] Commit documentation-only changes: `docs(vfx): document nobara core migration`.
 
 ## Acceptance Criteria
 

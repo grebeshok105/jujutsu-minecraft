@@ -1,6 +1,6 @@
 # Entrypoints & Lifecycle
 
-← [[00-MOC]] · [[Registries]] · [[Networking]]
+← [[00-MOC]] · [[Registries]] · [[Networking]] · [[../04-client-vfx/VFX-core]]
 
 Prefix: `.worktrees/nobara-cinematic-slice/`
 
@@ -18,40 +18,40 @@ Register order in `onInitialize()`:
 5. `JujutsuNetworking.registerPayloads()`
 6. `ProjectJjkRitualRuntime.register()`
 7. `JujutsuCommands.register()`
-8. log `"JujutsuMod initialized"`
-
-Helper: `JujutsuMod.id(path)` → `ResourceLocation.fromNamespaceAndPath(MOD_ID, path)` (`:33-35`).
+8. log initialization
 
 ## Client (`JujutsuModClient`)
 
-**Source:** `src/client/java/jujutsu/mod/client/JujutsuModClient.java:17-`  
-**Status:** VERIFIED (header + call order)
+**Source:** `src/client/java/jujutsu/mod/client/JujutsuModClient.java:14-22`
+**Status:** VERIFIED
 
-1. `EntityRendererRegistry.register(PROJECTJJK_NAIL, ProjectJjkNailRenderer::new)` (`:18`)
-2. `JujutsuClientParticles.registerFactories()`
-3. `HairpinScreenOverlay.register()`
-4. further: world renderer, playback, keybinds, client networking (same method body)
+1. Register the real ProjectJJK nail entity renderer.
+2. Register particle factories.
+3. `VfxDirector.initialize()` — one world callback, one HUD callback, client tick, disconnect cleanup.
+4. `NobaraVfxRecipes.register()` — all current Nobara typed IDs.
+5. Register keybinds and client payload receivers.
+
+The order ensures recipes exist before `VfxCuePayload` can be received.
 
 ## Server tick hooks
 
-**Source:** `ProjectJjkRitualRuntime.register` `:46-56`  
+**Source:** `ProjectJjkRitualRuntime.java:57-68`
 **Status:** VERIFIED
 
-- `ServerTickEvents.END_SERVER_TICK` → `onServerTick` (`:58`)
-  - `tickHairpinTasks(gameTime)` (`:234`)
-  - every 64 ticks: `ProjectJjkNailMarks.pruneExpired`
-- `ServerLifecycleEvents.SERVER_STOPPING` clears pending queues
-- `ServerPlayConnectionEvents.DISCONNECT` clears resonance link
+- `ServerTickEvents.END_SERVER_TICK` resolves ritual pending work and mark expiry.
+- Server gameplay resolves first; cue emission is a consequence of confirmed combat, not a client prediction.
+- Server lifecycle/disconnect handlers clear gameplay queues and resonance state.
 
-## Client tick / render hooks (symbols)
+## Client tick / render hooks
 
 | System | Register site | Status |
 |---|---|---|
-| Hairpin playback tick | `HairpinPlaybackManager` via client init | VERIFIED path |
-| Screen overlay HUD | `HairpinScreenOverlay.register` `:21` | VERIFIED |
-| World render after entities | `HairpinWorldRenderer.register` `:52` | VERIFIED |
-| Keybinds end client tick | `JujutsuKeybinds.register` `:14` | VERIFIED |
-| Camera/render mixins | `jujutsumod.client.mixins.json` | VERIFIED |
+| VFX world geometry | `VfxDirector.initialize` → `WorldRenderEvents.AFTER_ENTITIES` | VERIFIED |
+| VFX HUD | `VfxDirector.initialize` → `HudElementRegistry` | VERIFIED |
+| VFX lifetime/world-unavailable cleanup | `VfxDirector.initialize` → end client tick | VERIFIED |
+| VFX disconnect cleanup | `VfxDirector.initialize` → client disconnect | VERIFIED |
+| Keybinds | `JujutsuKeybinds.register` | VERIFIED |
+| Camera/game renderer/first-person mixins | existing mixins consume director state | VERIFIED |
 
 ## Mermaid — boot
 
@@ -63,15 +63,16 @@ flowchart TD
   B --> P[Particles]
   B --> S[Sounds]
   B --> N[Networking payloads]
-  B --> R[RitualRuntime.register]
+  B --> R[RitualRuntime]
   B --> C[Commands]
   A --> CL[JujutsuModClient.onInitializeClient]
-  CL --> ER[EntityRenderer nail]
+  CL --> ER[Entity renderer nail]
   CL --> PF[Particle factories]
-  CL --> FX[HUD/World/Playback]
+  CL --> VD[VfxDirector initialize]
+  CL --> NR[Nobara recipes]
   CL --> KB[Keybinds]
   CL --> CN[Client receivers]
 ```
 
 ---
-tags: #jujutsumod #architecture #lifecycle
+tags: #jujutsumod #architecture #lifecycle #vfx #verified

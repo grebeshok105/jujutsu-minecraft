@@ -27,7 +27,7 @@
 
 ## Fully / deeply read
 
-`JujutsuMod`, `JujutsuModClient`, `fabric.mod.json`, `gradle.properties`, `build.gradle`, all registries, `JujutsuNetworking` + payload records, full `ProjectJjkNobaraProfile`, method maps for `ProjectJjkNobaraRuntime`, `ProjectJjkRitualRuntime`, `ProjectJjkNailEntity`, marks/link managers, selection manager, client impulse handlers, mixins json, `en_us.json`.
+`JujutsuMod`, `JujutsuModClient`, `fabric.mod.json`, `gradle.properties`, `build.gradle`, all registries, `JujutsuNetworking` + payload records, full `ProjectJjkNobaraProfile`, method maps for `ProjectJjkNobaraRuntime`, `ProjectJjkRitualRuntime`, `ProjectJjkNailEntity`, marks/link managers, selection manager, client VFX cue receiver/director, mixins json, `en_us.json`.
 
 ## Not verified this pass
 

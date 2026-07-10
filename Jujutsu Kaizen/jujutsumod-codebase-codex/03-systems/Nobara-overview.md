@@ -4,78 +4,66 @@
 
 ## One-line fantasy
 
-Item-driven Straw Doll kit: charge nails → launch with hammer → marks → detonate / enlarge / remote resonance.
+ProjectJJK-style Straw Doll kit: charge real nail entities → strike with hammer → embed marks → detonate / enlarge / remote resonance.
+
+## Canonical implementation
+
+The old jujutsumod cinematic Nobara stack has been removed. ProjectJJK Nobara is now the only runtime path.
+
+| Area | Current source | Status |
+|---|---|---|
+| Runtime package | `src/main/java/jujutsu/mod/character/nobara/projectjjk/` | VERIFIED |
+| Main item ids | `hairpin_nail`, `straw_doll_hammer` | VERIFIED |
+| Item classes | `ProjectJjkNailItem`, `ProjectJjkHammerItem` | VERIFIED |
+| Network payloads | `VfxCuePayload`, `NobaraActionPayload`, character selection sync/select | VERIFIED |
+| Removed legacy classes | `NobaraHairpinRuntime`, `NobaraCombatStateManager`, `HairpinGameplayService`, legacy Hairpin payloads/playback | VERIFIED |
+
+Source: `src/test/java/jujutsu/mod/ProjectSanityTest.java:159-188`.
 
 ## Combat loop
 
 ```mermaid
 flowchart LR
-  A[Hold nail item] --> B[prepareNails 1/3/8]
+  A[Hold nail item] --> B[prepareNails entities]
   B --> C[Use hammer]
-  C --> D{prepared?}
-  D -->|yes| E[launchHairpin]
-  E --> F[impact embed + mark]
-  D -->|no| G{shift?}
-  G -->|yes| H[performResonance]
-  G -->|no| I[tryEnlarge else detonateMarks]
+  C --> D{launch mode}
+  D -->|RMB| E[piercing nails]
+  D -->|LMB action| F[explosive nails]
+  E --> G[impact embed + mark]
+  F --> H[impact boom + disappear]
+  G --> I[R Enlarge / B Boom / Shift resonance]
 ```
 
-## Items (default = ProjectJJK classes)
+## Items
 
 | Item id | Behavior class | Source | Status |
 |---|---|---|---|
-| hairpin_nail / projectjjk_hairpin_nail | `ProjectJjkNailItem` | `JujutsuItems.java:12-14` | VERIFIED |
-| straw_doll_hammer / projectjjk_straw_doll_hammer | `ProjectJjkHammerItem` | `:13-15` | VERIFIED |
+| `hairpin_nail` | `ProjectJjkNailItem` | `JujutsuItems.java:12` | VERIFIED |
+| `straw_doll_hammer` | `ProjectJjkHammerItem` | `JujutsuItems.java:13` | VERIFIED |
+| `projectjjk_hairpin_nail` | alias to same ProjectJJK item class | `JujutsuItems.java:14` | VERIFIED |
+| `projectjjk_straw_doll_hammer` | alias to same ProjectJJK item class | `JujutsuItems.java:15` | VERIFIED |
 
-### Nail use
+Default item definitions render with the ProjectJJK models, not the removed legacy item models. Source: `ProjectSanityTest.java:195-199`.
 
-**Source:** `ProjectJjkNailItem.java`  
-- `use` → start using (bow anim)  
-- `releaseUsing` → `ProjectJjkNobaraRuntime.prepareNails(player, stack, useTicks)`  
-**Status:** VERIFIED
+## Current balance note
 
-### Hammer use
+Current R/B finisher damage is tuned for vanilla smoke testing rather than strict ProjectJJK parity:
 
-**Source:** `ProjectJjkHammerItem.java`  
-- Shift → `performResonance`  
-- Else → `launchHairpin`; if launched → `detonateMarks`; else → `tryEnlarge` then `detonateMarks`  
-**Status:** VERIFIED
+- Hairpin Enlarge: `16.0f`
+- Hairpin Explosion / Boom: `12.0f` fixed, no mark scaling
 
-## Balance constants
+Source: `ProjectSanityTest.java:229-234`; implementation source `ProjectJjkNobaraProfile.java`.
 
-**Source:** full file `ProjectJjkNobaraProfile.java:4-75`  
-**Status:** VERIFIED  
+## Removed legacy stack
 
-Highlights:
+The following were removed in the cleanup pass:
 
-| Constant | Value |
-|---|---|
-| TRIPLE_HOLD_TICKS / BARRAGE | 6 / 16 |
-| nails 1/3/8 | SINGLE/TRIPLE/BARRAGE |
-| NAIL_DAMAGE / HAIRPIN_DAMAGE | 2 / 18 |
-| MARK_MAX / DURATION | 4 / 900 ticks |
-| DETONATE base+per mark | 4 + 5*marks |
-| ENLARGE delay/stun/dmg | 20t / 50t / 18 |
-| RESONANCE range/link | 96 / 32 |
-| RESONANCE dmg | 8 + 3*marks |
+- Legacy runtime/items: `NobaraHairpinRuntime`, `NobaraCombatStateManager`, `HairpinGameplayService`, `HairpinNailItem`, `StrawDollHammerItem`
+- Legacy networking: removed `ProjectJjkNobaraImpulsePayload`, `HairpinFxPayload`, `HairpinNailFlightPayload`, and `PreparedNailsPayload`
+- Removed legacy client playback: `HairpinPlayback`, `HairpinPlaybackManager`, `NobaraNailFlightManager`, `HairpinTimeline`, `HairpinVisualProfile`
+- Legacy assets: old item models/textures and old unused Hairpin post-shaders
 
-## Deviations from ProjectJJK (high level)
-
-| Topic | Ours | ProjectJJK | Parity |
-|---|---|---|---|
-| Delivery | items + entity | ability hotbar + CE | DIFFERENT |
-| Cursed energy | none in kit | full CE economy | MISSING/DIFFERENT |
-| Body part remains | not present | ResonantRemains passive | MISSING |
-| Nail barrage count | 8 | 10 in piercing_nail hold | DIFFERENT |
-| Marks | UUID stack server map | ITE glow + ability marks | INSPIRED |
-
-See [[05-reference/ProjectJJK-parity-map]].
-
-## Dual stack note
-
-Legacy cinematic Hairpin path (`NobaraHairpinRuntime`, `HairpinFxPayload` timeline) coexists for VFX showcase/commands. Default gameplay items route through **projectjjk** package.
-
-**Status:** INFERRED architecture / VERIFIED item class wiring.
+Regression guard: `ProjectSanityTest.java:159-188`.
 
 ---
-tags: #jujutsumod #nobara
+tags: #jujutsumod #nobara #projectjjk #verified

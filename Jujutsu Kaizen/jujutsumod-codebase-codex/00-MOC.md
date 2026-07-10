@@ -1,18 +1,18 @@
 # jujutsumod Codebase Codex — Map of Content
 
 > База знаний **нашего** мода jujutsumod (Fabric 1.21.8)  
-> Собрано: **Grok** · 2026-07-08 · quality target **10/10**  
-> Эталон формата: [[../grok-projectjjk-codex/00-MOC|ProjectJJK Codex]]  
+> Собрано/обновлено: **Grok/Codex** · 2026-07-10 · quality target **10/10**
+> Эталон формата: Obsidian note `grok-projectjjk-codex/00-MOC.md` (vault source, not committed on this branch).
 > **Каждый важный факт →** [[05-reference/Claim-Source-Index]]
 
-## Source of truth (важно)
+## Source of Truth (важно)
 
 | Срез | Java files | Роль |
 |---|---:|---|
-| Checkout (ветка docs/agents) | ~28 | часто **без** full Nobara kit |
-| **Worktree** .worktrees/nobara-cinematic-slice · branch codex/nobara-cinematic-slice | **77** | **полный product slice** Nobara+UI+VFX |
+| Checkout (ветка docs/agents) | partial | часто **без** full Nobara kit |
+| **Worktree** `.worktrees/nobara-cinematic-slice` · branch `codex/nobara-cinematic-slice` | product slice | **актуальная ProjectJJK Nobara+UI+VFX реализация** |
 
-Все ile:line в этой базе цитируют **cinematic worktree**, если не сказано иначе.
+Все `file:line` в этой базе цитируют **cinematic worktree**, если не сказано иначе.
 
 ## С чего начать
 
@@ -21,7 +21,8 @@
 3. [[01-meta/Sources-and-method]]
 4. [[05-reference/Claim-Source-Index]]
 5. [[03-systems/Nobara-overview]]
-6. [[05-reference/ProjectJJK-parity-map]]
+6. [[04-client-vfx/VFX-core]]
+7. [[05-reference/ProjectJJK-parity-map]]
 
 ## 01 · Meta
 
@@ -49,6 +50,7 @@
 
 ## 04 · Client / VFX
 
+- [[04-client-vfx/VFX-core]] — **start here for transient effect authoring**
 - [[04-client-vfx/Nail-rendering]]
 - [[04-client-vfx/Hairpin-effects]]
 - [[04-client-vfx/GUI-character-select]]
@@ -74,16 +76,25 @@
 | MC | 1.21.8 | VERIFIED |
 | Java | 21 | VERIFIED |
 | Default kit | ProjectJJK-style items (nail/hammer) | VERIFIED |
+| Canonical Nobara runtime | `character/nobara/projectjjk` only | VERIFIED |
+| Legacy Nobara runtime | removed | VERIFIED |
+| Transient VFX path | `VfxCuePayload → VfxDirector → Java recipe` | VERIFIED |
 | Cursed energy resource | **нет** в текущем kit (убрали) | VERIFIED |
-| Client mixins | 3 (skin, camera, gamerenderer) | VERIFIED |
-| Network payloads | 7 custom typed | VERIFIED |
-| Entity types | 1 (projectjjk_nail) | VERIFIED |
+| Client mixins | 6 (skin, camera/game renderer, Nobara player/living renderer, FP snap) | VERIFIED |
+| Network payloads | 4 custom typed payloads | VERIFIED |
+| Entity types | 1 (`projectjjk_nail`) | VERIFIED |
+| Target mark visual | vanilla `MobEffects.GLOWING`, cyan scoreboard team | VERIFIED |
 
-## Связь с ProjectJJK vault
+## Связь с ProjectJJK Vault
 
-- Research index: Jujutsu Kaizen/grok-projectjjk-codex/
+- Research index: `Jujutsu Kaizen/grok-projectjjk-codex/`
 - Porting: [[05-reference/ProjectJJK-parity-map]] + [[05-reference/One-to-one-checklist]]
-- Не копировать decompiled ProjectJJK код
+- Не копировать decompiled ProjectJJK код байт-в-байт; переносить verified behavior/contracts.
+
+## Recent Updates
+
+- [[04-client-vfx/VFX-core]] — reusable Fabric-native cue/director/recipe library; Nobara is the first reference consumer; old integer payload/static VFX paths removed, 2026-07-10.
+- [[06-maintenance/Risks-and-tech-debt]] — VFX ownership, quality/culling, shader deferral, and migration risks updated, 2026-07-10.
 
 ---
 tags: #jujutsumod #moc #knowledge-base

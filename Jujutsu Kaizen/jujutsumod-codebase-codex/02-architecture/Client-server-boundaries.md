@@ -1,43 +1,46 @@
 # Client–Server Boundaries
 
-← [[00-MOC]]
+← [[00-MOC]] · [[Networking]] · [[../04-client-vfx/VFX-core]]
 
 ## Server-authoritative (do not move to client)
 
 | Concern | Where | Status |
 |---|---|---|
 | Nail prepare/launch/impact damage | `ProjectJjkNobaraRuntime` | VERIFIED |
-| Marks apply/consume | `ProjectJjkNailMarks` + `RitualRuntime.markTarget` | VERIFIED |
-| Detonate / enlarge / resonance | `ProjectJjkRitualRuntime` | VERIFIED |
+| Marks apply/consume | `ProjectJjkNailMarks` + `ProjectJjkRitualRuntime.markTarget` | VERIFIED |
+| Detonate / Enlarge / resonance resolution | `ProjectJjkRitualRuntime` | VERIFIED |
 | Pending explosion/enlarge queues | `PENDING_*` + server tick | VERIFIED |
 | Character selection state | `CharacterSelectionManager` | VERIFIED |
+| VFX cue creation, server time, and seed | Nobara runtime / ritual server methods | VERIFIED |
 | Commands | `JujutsuCommands` | VERIFIED |
 
 ## Client-only
 
 | Concern | Where | Status |
 |---|---|---|
-| Particle factories | `client/particle/*` | VERIFIED |
-| Nail entity renderer | `ProjectJjkNailRenderer` | VERIFIED |
-| HUD flash / world ribbons | `HairpinScreenOverlay`, `HairpinWorldRenderer` | VERIFIED |
-| Cinematic camera mixins | `HairpinCameraMixin`, `HairpinGameRendererMixin` | VERIFIED |
-| Character select UI | `gui/CharacterSelectScreen`, `ui/*` | VERIFIED |
-| Skin mixin | `CharacterSkinMixin` | VERIFIED |
-| Impulse→SFX/VFX mapping | `JujutsuClientNetworking` | VERIFIED |
+| Recipe lookup, instance lifetime, unknown-ID safety | `client/vfx/VfxDirector` | VERIFIED |
+| Ring/ribbon/blade geometry | `VfxWorldChannel` via one `AFTER_ENTITIES` callback | VERIFIED |
+| Local particles, sound, HUD, camera/FOV, first-person motion | director channels | VERIFIED |
+| Nail entity renderer and persistent aura | `ProjectJjkNailRenderer` + `VfxPalette` | VERIFIED |
+| Existing narrow camera and first-person mixins | read `VfxDirector` state only | VERIFIED |
+| Character select UI / skin mixin | existing client UI/render code | VERIFIED |
 
 ## Shared / both
 
 | Concern | Notes | Status |
 |---|---|---|
-| Payload records | main sourceset, used both sides | VERIFIED |
-| `HairpinTimeline` / `HairpinVisualProfile` | main; used by client playback | VERIFIED |
-| Entity synced data on nail | server sets, client interpolates | VERIFIED entity data accessors |
+| `VfxCue` | main-source immutable visual event; origin is fallback for a gone anchor | VERIFIED |
+| `VfxCuePayload` | main-source typed S2C codec | VERIFIED |
+| Effect IDs | `NobaraVfxIds` is main-source shared vocabulary | VERIFIED |
+| Nail synced entity data | server sets; client interpolates and renders | VERIFIED |
 
-## Rules (AGENTS.md + code)
+## Boundary rules
 
-- No gameplay authority on client.
-- Client under `src/client` only for render/input/HUD.
-- Public Fabric API only; mixins only where listed.
+- Client recipes are visual-only: they do not damage, consume marks, modify cooldowns, spawn authoritative entities, or send gameplay packets.
+- Server remains the only source of cue timing, seed, target state, and combat result.
+- Recipes use `VfxContext` channels; they do not create packet handlers, global render callbacks, HUD registrations, or mixins.
+- Client rendering stays under `src/client`; shared cue/codec types stay under `src/main`.
+- Public Fabric API only; no new broad mixins.
 
 ---
-tags: #jujutsumod #boundaries
+tags: #jujutsumod #boundaries #vfx #verified
