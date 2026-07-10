@@ -520,6 +520,8 @@ public final class ProjectSanityTest {
 				double sizeX = Double.parseDouble(boxUv.group(1));
 				double sizeY = Double.parseDouble(boxUv.group(2));
 				double sizeZ = Double.parseDouble(boxUv.group(3));
+				assert sizeX >= 0.999 && sizeY >= 0.999 && sizeZ >= 0.999
+						: "Straw doll Box UV cube has a sub-unit face that Blockbench may render incorrectly: " + line.trim();
 				double maxU = Double.parseDouble(boxUv.group(4)) + 2.0 * (sizeX + sizeZ);
 				double maxV = Double.parseDouble(boxUv.group(5)) + sizeZ + sizeY;
 				assert maxU <= 64.001 && maxV <= 64.001 : "Straw doll box UV exceeds the 64x64 texture: " + line.trim();
@@ -540,6 +542,8 @@ public final class ProjectSanityTest {
 		String sourceModelJson = Files.readString(sourceModel);
 		assert sourceModelJson.contains("\"model_identifier\": \"geometry.jujutsumod.straw_doll\"")
 				: "Blockbench source must retain the exported geometry identity";
+		assert sourceModelJson.contains("\"relative_path\": \"../../assets/jujutsumod/textures/item/straw_doll.png\"")
+				: "Blockbench source must resolve the portable runtime texture when opened directly";
 		assert !sourceModelJson.contains("\"animators\":{}")
 				: "Blockbench source must retain editable keyframes for every Straw Doll animation";
 		assert sourceModelJson.split("\\\"type\\\":\\\"cube\\\"", -1).length - 1 >= 25
