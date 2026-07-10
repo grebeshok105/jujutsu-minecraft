@@ -14,7 +14,7 @@ public final class ProjectJjkNobaraProfileTest {
 		assertPreparedLaunchRequiresCloseNails();
 		assertPreparedLaunchRangeUsesPlayerBounds();
 		assertGroundImpactsStayTighterThanDirectHits();
-		assertEmbeddedNailsLastAsLongAsMarks();
+		assertEmbeddedNailsDoNotExpireByAge();
 		assertTargetMarksFollowCurseMarkDuration();
 		assertBodyEmbedPointStaysInsideBodyHeight();
 		assertBodyEmbedPointPiercesIntoBody();
@@ -68,8 +68,8 @@ public final class ProjectJjkNobaraProfileTest {
 		assert ProjectJjkNobaraProfile.GROUND_IMPACT_RADIUS >= 2.0 : "ground impact should still read visually";
 	}
 
-	private static void assertEmbeddedNailsLastAsLongAsMarks() {
-		assert ProjectJjkNobaraProfile.EMBEDDED_NAIL_AGE_TICKS == ProjectJjkNobaraProfile.MARK_DURATION_TICKS : "visible stuck nails should match cursed mark duration";
+	private static void assertEmbeddedNailsDoNotExpireByAge() {
+		assert ProjectJjkNobaraProfile.EMBEDDED_NAIL_AGE_TICKS == 0 : "persistent nails must not disappear because their anchor was unloaded for a long time";
 	}
 
 	private static void assertTargetMarksFollowCurseMarkDuration() {

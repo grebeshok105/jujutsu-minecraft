@@ -6,6 +6,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
@@ -49,6 +50,13 @@ public final class ProjectJjkNailEntity extends Entity {
 	private static final String DIRECTION_X_TAG = "DirectionX";
 	private static final String DIRECTION_Y_TAG = "DirectionY";
 	private static final String DIRECTION_Z_TAG = "DirectionZ";
+	private static final String ANCHOR_KIND_TAG = "AnchorKind";
+	private static final String ANCHOR_BLOCK_X_TAG = "AnchorBlockX";
+	private static final String ANCHOR_BLOCK_Y_TAG = "AnchorBlockY";
+	private static final String ANCHOR_BLOCK_Z_TAG = "AnchorBlockZ";
+	private static final String ANCHOR_BLOCK_STATE_TAG = "AnchorBlockState";
+	private static final String ANCHOR_STABLE_ID_TAG = "AnchorStableId";
+	private static final String ANCHOR_RUNTIME_TYPE_TAG = "AnchorRuntimeType";
 
 	private UUID ownerUuid;
 	private int ownerEntityId = -1;
@@ -65,6 +73,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	private Vec3 embeddedOffset = Vec3.ZERO;
 	private Vec3 embeddedLocalOffset = Vec3.ZERO;
 	private Vec3 embeddedLocalForward = new Vec3(0.0, 0.0, 1.0);
+	private NailAnchor anchor = NailAnchor.none();
 
 	public ProjectJjkNailEntity(EntityType<? extends ProjectJjkNailEntity> entityType, Level level) {
 		super(entityType, level);
@@ -144,6 +153,19 @@ public final class ProjectJjkNailEntity extends Entity {
 		return level().isClientSide() ? fromVector(entityData.get(DATA_EMBEDDED_LOCAL_FORWARD)) : embeddedLocalForward;
 	}
 
+	public NailAnchor anchor() {
+		return anchor;
+	}
+
+	public void attachToRuntimeObject(ResourceLocation type, UUID objectId, Vec3 localOffset, Vec3 localForward) {
+		anchor = NailAnchor.runtime(type, objectId, localOffset, localForward);
+		embeddedTargetUuid = objectId;
+		embeddedTargetId = -1;
+		embeddedLocalOffset = localOffset;
+		embeddedLocalForward = localForward;
+		setEmbedded(true);
+	}
+
 	public Vec3 forwardDirection() {
 		Vector3f forward = entityData.get(DATA_FORWARD);
 		return safeDirection(new Vec3(forward.x(), forward.y(), forward.z()));
@@ -193,8 +215,10 @@ public final class ProjectJjkNailEntity extends Entity {
 				discard();
 				return;
 			}
-			if (hit instanceof net.minecraft.world.phys.EntityHitResult entityHit && entityHit.getEntity() instanceof LivingEntity living) {
-				embedIn(living, hit.getLocation());
+			if (hit instanceof net.minecraft.world.phys.EntityHitResult entityHit) {
+				embedInEntity(entityHit.getEntity(), hit.getLocation());
+			} else if (hit instanceof BlockHitResult blockHit) {
+				embedInBlock(serverLevel, blockHit);
 			} else {
 				discard();
 			}
@@ -264,6 +288,19 @@ public final class ProjectJjkNailEntity extends Entity {
 		output.putDouble(DIRECTION_X_TAG, forward.x);
 		output.putDouble(DIRECTION_Y_TAG, forward.y);
 		output.putDouble(DIRECTION_Z_TAG, forward.z);
+		output.putString(ANCHOR_KIND_TAG, anchor.kind().name());
+		if (anchor.blockPos() != null) {
+			output.putInt(ANCHOR_BLOCK_X_TAG, anchor.blockPos().getX());
+			output.putInt(ANCHOR_BLOCK_Y_TAG, anchor.blockPos().getY());
+			output.putInt(ANCHOR_BLOCK_Z_TAG, anchor.blockPos().getZ());
+			output.putString(ANCHOR_BLOCK_STATE_TAG, anchor.blockStateSignature());
+		}
+		if (anchor.stableId() != null) {
+			output.putString(ANCHOR_STABLE_ID_TAG, anchor.stableId().toString());
+		}
+		if (anchor.runtimeType() != null) {
+			output.putString(ANCHOR_RUNTIME_TYPE_TAG, anchor.runtimeType().toString());
+		}
 	}
 
 	@Override
@@ -284,6 +321,24 @@ public final class ProjectJjkNailEntity extends Entity {
 		target = new Vec3(input.getDoubleOr(TARGET_X_TAG, getX()), input.getDoubleOr(TARGET_Y_TAG, getY()), input.getDoubleOr(TARGET_Z_TAG, getZ()));
 		pendingLaunchDirection = safeDirection(target.subtract(position()));
 		embeddedLocalForward = safeDirection(new Vec3(input.getDoubleOr(DIRECTION_X_TAG, pendingLaunchDirection.x), input.getDoubleOr(DIRECTION_Y_TAG, pendingLaunchDirection.y), input.getDoubleOr(DIRECTION_Z_TAG, pendingLaunchDirection.z)));
+		NailAnchor.Kind anchorKind;
+		try {
+			anchorKind = NailAnchor.Kind.valueOf(input.getStringOr(ANCHOR_KIND_TAG, embeddedTargetUuid == null ? "NONE" : "ENTITY"));
+		} catch (IllegalArgumentException ignored) {
+			anchorKind = NailAnchor.Kind.NONE;
+		}
+		anchor = switch (anchorKind) {
+			case ENTITY -> embeddedTargetUuid == null ? NailAnchor.none() : NailAnchor.entity(embeddedTargetUuid, embeddedTargetId, embeddedLocalOffset, embeddedLocalForward);
+			case BLOCK -> NailAnchor.block(
+					new BlockPos(input.getIntOr(ANCHOR_BLOCK_X_TAG, 0), input.getIntOr(ANCHOR_BLOCK_Y_TAG, 0), input.getIntOr(ANCHOR_BLOCK_Z_TAG, 0)),
+					input.getStringOr(ANCHOR_BLOCK_STATE_TAG, ""), embeddedLocalOffset, embeddedLocalForward);
+			case RUNTIME_OBJECT -> {
+				String stableId = input.getStringOr(ANCHOR_STABLE_ID_TAG, "");
+				String runtimeType = input.getStringOr(ANCHOR_RUNTIME_TYPE_TAG, "");
+				yield stableId.isBlank() || runtimeType.isBlank() ? NailAnchor.none() : NailAnchor.runtime(ResourceLocation.parse(runtimeType), UUID.fromString(stableId), embeddedLocalOffset, embeddedLocalForward);
+			}
+			default -> NailAnchor.none();
+		};
 		face(embeddedLocalForward);
 		syncEmbeddedAttachment();
 		setFlightSynced(launched && launchDelayTicks <= 0);
@@ -312,17 +367,21 @@ public final class ProjectJjkNailEntity extends Entity {
 		}
 	}
 
-	private void embedIn(LivingEntity target, Vec3 hitPoint) {
+	private void embedInEntity(Entity target, Vec3 hitPoint) {
 		Vec3 direction = forwardDirection();
-		Vec3 embedPoint = ProjectJjkNailEmbedding.bodyEmbedPoint(target.position(), target.getBbWidth(), target.getBbHeight(), hitPoint, direction, getId());
-		Vec3 localOffset = rotateY(embedPoint.subtract(target.position()), -target.yBodyRot);
-		Vec3 localForward = safeDirection(rotateY(direction, -target.yBodyRot));
+		Vec3 embedPoint = target instanceof LivingEntity living
+				? ProjectJjkNailEmbedding.bodyEmbedPoint(target.position(), target.getBbWidth(), target.getBbHeight(), hitPoint, direction, getId())
+				: hitPoint.add(direction.scale(0.08));
+		float bodyYaw = target instanceof LivingEntity living ? living.yBodyRot : target.getYRot();
+		Vec3 localOffset = rotateY(embedPoint.subtract(target.position()), -bodyYaw);
+		Vec3 localForward = safeDirection(rotateY(direction, -bodyYaw));
 		embeddedTargetUuid = target.getUUID();
 		embeddedTargetId = target.getId();
 		embeddedAgeTicks = 0;
 		embeddedOffset = embedPoint.subtract(target.position());
 		embeddedLocalOffset = localOffset;
 		embeddedLocalForward = localForward;
+		anchor = NailAnchor.entity(embeddedTargetUuid, embeddedTargetId, localOffset, localForward);
 		syncEmbeddedAttachment();
 		setPos(embedPoint);
 		setEmbedded(true);
@@ -330,24 +389,71 @@ public final class ProjectJjkNailEntity extends Entity {
 		updateEmbeddedPosition(target);
 	}
 
+	private void embedInBlock(ServerLevel level, BlockHitResult hit) {
+		BlockPos pos = hit.getBlockPos();
+		Vec3 local = hit.getLocation().subtract(Vec3.atLowerCornerOf(pos));
+		embeddedTargetUuid = null;
+		embeddedTargetId = -1;
+		embeddedLocalOffset = local;
+		embeddedLocalForward = forwardDirection();
+		anchor = NailAnchor.block(pos, level.getBlockState(pos).toString(), local, embeddedLocalForward);
+		setPos(hit.getLocation().add(embeddedLocalForward.scale(0.04)));
+		setEmbedded(true);
+		hasImpulse = false;
+	}
+
 	private void tickEmbedded() {
 		setDeltaMovement(Vec3.ZERO);
-		if (!level().isClientSide() && embeddedAgeTicks++ >= ProjectJjkNobaraProfile.EMBEDDED_NAIL_AGE_TICKS) {
+		if (!level().isClientSide() && ProjectJjkNobaraProfile.EMBEDDED_NAIL_AGE_TICKS > 0
+				&& embeddedAgeTicks++ >= ProjectJjkNobaraProfile.EMBEDDED_NAIL_AGE_TICKS) {
 			discard();
 			return;
 		}
-		int targetId = level().isClientSide() ? entityData.get(DATA_EMBEDDED_TARGET_ID) : embeddedTargetId;
+		if (!level().isClientSide() && anchor.kind() == NailAnchor.Kind.BLOCK && level() instanceof ServerLevel serverLevel) {
+			BlockPos pos = anchor.blockPos();
+			if (!serverLevel.hasChunkAt(pos)) {
+				return;
+			}
+			if (!serverLevel.getBlockState(pos).toString().equals(anchor.blockStateSignature())) {
+				discard();
+				return;
+			}
+			setPos(Vec3.atLowerCornerOf(pos).add(anchor.localOffset()).add(anchor.localForward().scale(0.04)));
+			face(anchor.localForward());
+			return;
+		}
+		if (!level().isClientSide() && anchor.kind() == NailAnchor.Kind.RUNTIME_OBJECT) {
+			NailRuntimeAnchorRegistry.Result result = NailRuntimeAnchorRegistry.GLOBAL.resolve(anchor, position());
+			if (result.resolution() == NailAnchorResolution.CONFIRMED_REMOVED || result.resolution() == NailAnchorResolution.INVALID) {
+				discard();
+			} else if (result.resolution() == NailAnchorResolution.RESOLVED) {
+				setPos(result.position().add(anchor.localOffset()));
+				face(result.forward());
+			}
+			return;
+		}
+		int targetId = level().isClientSide() ? entityData.get(DATA_EMBEDDED_TARGET_ID) : anchor.cachedEntityId();
 		Entity target = targetId < 0 ? null : level().getEntity(targetId);
-		if (!(target instanceof LivingEntity living) || !living.isAlive() || (embeddedTargetUuid != null && !living.getUUID().equals(embeddedTargetUuid))) {
+		if (target == null || (embeddedTargetUuid != null && !target.getUUID().equals(embeddedTargetUuid))) {
 			target = embeddedTargetUuid == null || !(level() instanceof ServerLevel serverLevel) ? null : serverLevel.getEntity(embeddedTargetUuid);
 		}
-		if (!(target instanceof LivingEntity living) || !living.isAlive()) {
+		if (target instanceof LivingEntity living && !living.isAlive()) {
 			if (!level().isClientSide()) {
 				discard();
 			}
 			return;
 		}
-		updateEmbeddedPosition(living);
+		if (target == null) {
+			if (!level().isClientSide() && NailAnchorLifecycle.isConfirmedRemoved(embeddedTargetUuid)) {
+				discard();
+			}
+			return;
+		}
+		NailAnchorLifecycle.observeLoaded(target.getUUID());
+		embeddedTargetId = target.getId();
+		anchor = anchor.withCachedEntityId(embeddedTargetId);
+		syncEmbeddedAttachment();
+		updateEmbeddedPosition(target);
 	}
 
 	private void startFlight(Vec3 direction) {
@@ -365,8 +471,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	}
 
 	private boolean canHitEntity(Entity entity) {
-		return entity instanceof LivingEntity
-				&& entity.isAlive()
+		return entity.isAlive()
 				&& entity.isPickable()
 				&& entity.getId() != ownerEntityId
 				&& !entity.getUUID().equals(ownerUuid)
@@ -415,9 +520,10 @@ public final class ProjectJjkNailEntity extends Entity {
 		return safeDirection(direction).scale(ProjectJjkNobaraProfile.LAUNCH_SPEED_BLOCKS_PER_TICK);
 	}
 
-	private void updateEmbeddedPosition(LivingEntity target) {
-		Vec3 worldOffset = ProjectJjkNailEmbedding.worldOffset(embeddedLocalOffset(), target.yBodyRot);
-		Vec3 worldForward = ProjectJjkNailEmbedding.worldForward(embeddedLocalForward(), target.yBodyRot);
+	private void updateEmbeddedPosition(Entity target) {
+		float bodyYaw = target instanceof LivingEntity living ? living.yBodyRot : target.getYRot();
+		Vec3 worldOffset = ProjectJjkNailEmbedding.worldOffset(embeddedLocalOffset(), bodyYaw);
+		Vec3 worldForward = ProjectJjkNailEmbedding.worldForward(embeddedLocalForward(), bodyYaw);
 		Vec3 next = target.position().add(worldOffset);
 		setPos(next);
 		face(worldForward);
