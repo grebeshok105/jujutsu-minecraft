@@ -13,6 +13,9 @@ public final class ProjectJjkNobaraLoadout {
 		if (!hasHammer(player)) {
 			giveOrDrop(player, new ItemStack(JujutsuItems.STRAW_DOLL_HAMMER));
 		}
+		if (!hasDoll(player)) {
+			giveOrDrop(player, new ItemStack(JujutsuItems.STRAW_DOLL));
+		}
 		int missingNails = missingNails(countNails(player));
 		if (missingNails > 0) {
 			giveOrDrop(player, new ItemStack(JujutsuItems.HAIRPIN_NAIL, missingNails));
@@ -27,6 +30,15 @@ public final class ProjectJjkNobaraLoadout {
 		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
 			ItemStack stack = player.getInventory().getItem(slot);
 			if (stack.is(JujutsuItems.STRAW_DOLL_HAMMER) || stack.is(JujutsuItems.PROJECTJJK_STRAW_DOLL_HAMMER)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean hasDoll(ServerPlayer player) {
+		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+			if (player.getInventory().getItem(slot).is(JujutsuItems.STRAW_DOLL)) {
 				return true;
 			}
 		}

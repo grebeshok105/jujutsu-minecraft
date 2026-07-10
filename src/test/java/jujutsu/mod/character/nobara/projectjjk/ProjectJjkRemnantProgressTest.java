@@ -21,6 +21,9 @@ public final class ProjectJjkRemnantProgressTest {
 		progress.clearCaster(casterA);
 		assert !progress.recordHit(casterA, targetA) : "clearCaster should remove every target for that caster";
 
+		progress.clearTarget(targetA);
+		assert !progress.recordHit(casterB, targetA) : "clearTarget should remove every caster for that target";
+
 		progress.clear();
 		assert !progress.recordHit(casterA, targetA) : "clear should remove caster A progress";
 		assert !progress.recordHit(casterB, targetA) : "clear should remove caster B progress";

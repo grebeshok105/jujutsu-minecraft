@@ -45,8 +45,6 @@ public final class ProjectJjkNobaraProfile {
 	public static final float HAIRPIN_ENLARGE_DAMAGE = 16.0f;
 
 	// Resonance (straw doll remote strike).
-	public static final double RESONANCE_RANGE = 96.0;
-	public static final double LINK_RANGE = 32.0;
 	public static final float RESONANCE_DAMAGE_BASE = 8.0f;
 	public static final float RESONANCE_DAMAGE_PER_MARK = 3.0f;
 	public static final int RESONANCE_WEAKNESS_TICKS = 80;

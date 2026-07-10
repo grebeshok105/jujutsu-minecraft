@@ -146,9 +146,10 @@ public final class ProjectJjkNobaraRuntime {
 		if (hit instanceof EntityHitResult entityHit && entityHit.getEntity() instanceof LivingEntity livingTarget) {
 			directTarget = livingTarget;
 			hurtTarget(level, owner, directTarget, source, ProjectJjkNobaraProfile.NAIL_DAMAGE, point, 0.9f);
-			// Direct hit embeds a cursed nail mark — the connective tissue for detonation + resonance.
+			// Direct hits preserve Hairpin marks and independently advance remnant acquisition.
 			if (!explosiveImpact && !(owner != null && directTarget.getUUID().equals(owner.getUUID()))) {
 				ProjectJjkRitualRuntime.markTarget(level, directTarget, owner, point);
+				ProjectJjkStrawDollRuntime.onOrdinaryNailHit(level, owner, directTarget, point);
 			}
 		}
 

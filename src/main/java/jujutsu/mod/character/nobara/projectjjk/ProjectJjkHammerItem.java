@@ -18,8 +18,7 @@ public final class ProjectJjkHammerItem extends Item {
 		ItemStack stack = player.getItemInHand(hand);
 		if (level instanceof net.minecraft.server.level.ServerLevel && player instanceof ServerPlayer serverPlayer) {
 			if (player.isShiftKeyDown()) {
-				// Straw-doll ritual: bind to a marked target, then transmit the resonant strike.
-				ProjectJjkRitualRuntime.performResonance(serverPlayer, stack, hand);
+				ProjectJjkStrawDollRuntime.tryStart(serverPlayer, stack, hand);
 			} else {
 				ProjectJjkNobaraRuntime.launchHairpin(serverPlayer, stack, hand, false);
 			}

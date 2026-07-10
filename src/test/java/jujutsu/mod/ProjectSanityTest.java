@@ -48,6 +48,7 @@ public final class ProjectSanityTest {
 		assertHairpinFinishersUseSnapImpulse();
 		assertFirstPersonSnapPipelineWired();
 		assertNobaraHammerHasExplosiveAndPiercingLaunchModes();
+		assertStrawDollRitualUsesPhysicalRemnants();
 		assertNobaraNailAuraAvoidsSoulFire();
 		assertHairpinScreenOverlayUsesSmoothGradientVignette();
 		assertCharacterSelectUsesCheapUiPrimitives();
@@ -411,6 +412,28 @@ public final class ProjectSanityTest {
 		assert nail.contains("explosiveImpact") : "Nail entity must remember whether this launched nail should explode on impact";
 		assert nail.contains("resolveNailImpact(serverLevel, this, hit, explosiveImpact)") : "Impact resolution must branch on explosive vs piercing launch mode";
 		assert nail.contains("explodeAtTargetIfPassed") : "Explosive nails must detonate and disappear after reaching their target even when they miss collision";
+	}
+
+	private static void assertStrawDollRitualUsesPhysicalRemnants() throws IOException {
+		Path ritualPath = MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkStrawDollRuntime.java");
+		assert Files.exists(ritualPath) : "Nobara Resonance needs a dedicated server straw-doll runtime";
+		String ritual = Files.readString(ritualPath);
+		assert ritual.contains("RESONANCE_TARGET") : "Resonance must resolve a typed target-bound remnant";
+		assert ritual.contains("RITUAL_WINDUP_TICKS = 14") : "Resonance must keep the approved readable wind-up";
+		assert ritual.contains("consumeResources(caster, remnant)") : "Resonance must consume one remnant and one nail only at impact";
+		assert ritual.contains("ProjectJjkRitualPolicy.validate") : "Runtime validation must use the tested ritual policy";
+
+		String hammer = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkHammerItem.java"));
+		assert hammer.contains("ProjectJjkStrawDollRuntime.tryStart") : "Shift-hammer must start the physical remnant ritual";
+		assert !hammer.contains("performResonance") : "Shift-hammer must not use the removed mark-only Resonance path";
+		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkResonanceLink.java"))
+				: "The old mark-only two-step Resonance link must stay removed";
+
+		String loadout = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraLoadout.java"));
+		assert loadout.contains("JujutsuItems.STRAW_DOLL") : "Nobara's loadout must include one reusable straw doll";
+		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraRuntime.java"));
+		assert runtime.contains("onOrdinaryNailHit(level, owner, directTarget, point)")
+				: "Ordinary nail hits must advance remnant acquisition";
 	}
 
 	private static void assertNobaraNailAuraAvoidsSoulFire() throws IOException {

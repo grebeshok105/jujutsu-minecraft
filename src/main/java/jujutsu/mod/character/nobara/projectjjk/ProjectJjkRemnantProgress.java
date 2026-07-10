@@ -27,6 +27,10 @@ public final class ProjectJjkRemnantProgress {
 		hits.keySet().removeIf(key -> key.casterId().equals(casterId));
 	}
 
+	public void clearTarget(UUID targetId) {
+		hits.keySet().removeIf(key -> key.targetId().equals(targetId));
+	}
+
 	public void clear() {
 		hits.clear();
 	}
