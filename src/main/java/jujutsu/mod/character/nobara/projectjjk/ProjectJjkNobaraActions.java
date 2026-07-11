@@ -31,6 +31,7 @@ public final class ProjectJjkNobaraActions {
 			case HAIRPIN_MASS -> ProjectJjkNobaraRuntime.canCastMarkedHairpin(player) && ProjectJjkRitualRuntime.startMassHairpin(player);
 			case HAMMER_CONTEXT -> NobaraHammerCombatRuntime.handleInput(player);
 			case SELF_RESONANCE -> SelfResonanceRuntime.tryCast(player);
+			case NAIL_TRAP -> NailTrapRuntime.tryPlace(player);
 			default -> false;
 		};
 		if (!cast && notify) {

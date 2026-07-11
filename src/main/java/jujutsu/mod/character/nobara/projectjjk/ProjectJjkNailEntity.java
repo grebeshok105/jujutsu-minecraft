@@ -44,6 +44,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	private static final String EMBEDDED_TARGET_ID_TAG = "EmbeddedTargetId";
 	private static final String EMBEDDED_AGE_TAG = "EmbeddedAge";
 	private static final String EMBED_DEPTH_TAG = "EmbedDepth";
+	private static final String TRAP_NAIL_TAG = "TrapNail";
 	private static final String EMBEDDED_OFFSET_X_TAG = "EmbeddedOffsetX";
 	private static final String EMBEDDED_OFFSET_Y_TAG = "EmbeddedOffsetY";
 	private static final String EMBEDDED_OFFSET_Z_TAG = "EmbeddedOffsetZ";
@@ -79,6 +80,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	private Vec3 embeddedLocalOffset = Vec3.ZERO;
 	private Vec3 embeddedLocalForward = new Vec3(0.0, 0.0, 1.0);
 	private NailAnchor anchor = NailAnchor.none();
+	private boolean trapNail;
 
 	public ProjectJjkNailEntity(EntityType<? extends ProjectJjkNailEntity> entityType, Level level) {
 		super(entityType, level);
@@ -180,6 +182,9 @@ public final class ProjectJjkNailEntity extends Entity {
 		return embeddedAgeTicks;
 	}
 
+	public void markAsTrapNail() { trapNail = true; }
+	public boolean isTrapNail() { return trapNail; }
+
 	public void attachToRuntimeObject(ResourceLocation type, UUID objectId, Vec3 localOffset, Vec3 localForward) {
 		anchor = NailAnchor.runtime(type, objectId, localOffset, localForward);
 		embeddedTargetUuid = objectId;
@@ -187,6 +192,18 @@ public final class ProjectJjkNailEntity extends Entity {
 		embeddedLocalOffset = localOffset;
 		embeddedLocalForward = localForward;
 		setEmbedded(true);
+	}
+
+	/** Attaches a server-created nail through the same entity-anchor path as a projectile impact. */
+	public void attachToEntity(Entity target, Vec3 hitPoint) {
+		if (level().isClientSide() || target == null || hitPoint == null) return;
+		embedInEntity(target, hitPoint);
+	}
+
+	/** Attaches a server-created nail to a validated support block. */
+	public void attachToBlock(ServerLevel level, BlockPos support, Vec3 hitPoint, Direction face) {
+		if (level == null || support == null || hitPoint == null || face == null) return;
+		embedInBlock(level, new BlockHitResult(hitPoint, face, support, false));
 	}
 
 	public void driveDeeper(double depth) {
@@ -216,6 +233,10 @@ public final class ProjectJjkNailEntity extends Entity {
 	@Override
 	public void tick() {
 		super.tick();
+		if (!level().isClientSide() && trapNail && !NailTrapRuntime.isTrapNail(getUUID())) {
+			discard();
+			return;
+		}
 		if (isEmbedded()) {
 			tickEmbedded();
 			return;
@@ -322,6 +343,7 @@ public final class ProjectJjkNailEntity extends Entity {
 		output.putInt(EMBEDDED_TARGET_ID_TAG, embeddedTargetId);
 		output.putInt(EMBEDDED_AGE_TAG, embeddedAgeTicks);
 		output.putInt(EMBED_DEPTH_TAG, embedDepthLevel());
+		output.putBoolean(TRAP_NAIL_TAG, trapNail);
 		output.putDouble(EMBEDDED_OFFSET_X_TAG, embeddedLocalOffset.x);
 		output.putDouble(EMBEDDED_OFFSET_Y_TAG, embeddedLocalOffset.y);
 		output.putDouble(EMBEDDED_OFFSET_Z_TAG, embeddedLocalOffset.z);
@@ -363,6 +385,7 @@ public final class ProjectJjkNailEntity extends Entity {
 		embeddedTargetId = input.getIntOr(EMBEDDED_TARGET_ID_TAG, -1);
 		embeddedAgeTicks = input.getIntOr(EMBEDDED_AGE_TAG, 0);
 		entityData.set(DATA_EMBED_DEPTH, Mth.clamp(input.getIntOr(EMBED_DEPTH_TAG, 1), 1, 3));
+		trapNail = input.getBooleanOr(TRAP_NAIL_TAG, false);
 		embeddedLocalOffset = new Vec3(input.getDoubleOr(EMBEDDED_OFFSET_X_TAG, 0.0), input.getDoubleOr(EMBEDDED_OFFSET_Y_TAG, 0.0), input.getDoubleOr(EMBEDDED_OFFSET_Z_TAG, 0.0));
 		embeddedOffset = embeddedLocalOffset;
 		target = new Vec3(input.getDoubleOr(TARGET_X_TAG, getX()), input.getDoubleOr(TARGET_Y_TAG, getY()), input.getDoubleOr(TARGET_Z_TAG, getZ()));

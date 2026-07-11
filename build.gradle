@@ -188,6 +188,16 @@ tasks.register('testHairpinChain', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testNailTrap', JavaExec) {
+	group = 'verification'
+	description = 'Runs deterministic Nobara triangular nail trap tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.nobara.projectjjk.NailTrapTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.named('check') {
 	dependsOn tasks.named('testProjectSanity')
 	dependsOn tasks.named('testTargetResolver')
@@ -204,6 +214,7 @@ tasks.named('check') {
 	dependsOn tasks.named('testVfxTime')
 	dependsOn tasks.named('testServerTimeDilation')
 	dependsOn tasks.named('testHairpinChain')
+	dependsOn tasks.named('testNailTrap')
 }
 
 processResources {

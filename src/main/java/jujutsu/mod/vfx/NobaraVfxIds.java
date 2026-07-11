@@ -25,6 +25,10 @@ public final class NobaraVfxIds {
 	public static final ResourceLocation BLACK_FLASH = id("black_flash");
 	public static final ResourceLocation SELF_RESONANCE = id("self_resonance");
 	public static final ResourceLocation NAIL_DEEPEN = id("nail_deepen");
+	public static final ResourceLocation NAIL_TRAP_PLACED = id("nail_trap_placed");
+	public static final ResourceLocation NAIL_TRAP_ARMED = id("nail_trap_armed");
+	public static final ResourceLocation NAIL_TRAP_COLLAPSE = id("nail_trap_collapse");
+	public static final ResourceLocation NAIL_TRAP_IMPACT = id("nail_trap_impact");
 	private static final int HAIRPIN_FINALE_FLAG = 8;
 
 	private NobaraVfxIds() {}

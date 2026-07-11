@@ -16,4 +16,9 @@
   "screen.jujutsumod.curse_link.title": "Выберите проклятую связь",
   "message.jujutsumod.nobara.self_resonance.no_link": "Нет активной явной проклятой связи.",
   "message.jujutsumod.nobara.self_resonance.selected": "Выбрана техника %s. Нажмите Shift+R ещё раз для Self Resonance."
+  ,"message.jujutsumod.nobara.trap.no_ground": "Цельтесь в землю не дальше 8 блоков."
+  ,"message.jujutsumod.nobara.trap.unsupported": "Для всего треугольника нужна твёрдая и свободная поверхность."
+  ,"message.jujutsumod.nobara.trap.no_nails": "Для ловушки нужны три проклятых гвоздя."
+  ,"message.jujutsumod.nobara.trap.failed": "Не удалось установить гвоздевую ловушку."
+  ,"message.jujutsumod.nobara.trap.armed": "Гвоздевая ловушка установлена."
 }

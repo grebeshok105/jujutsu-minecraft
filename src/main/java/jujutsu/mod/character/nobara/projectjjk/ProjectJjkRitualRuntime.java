@@ -181,7 +181,8 @@ public final class ProjectJjkRitualRuntime {
 	private static List<ExplosionAnchor> collectAllLoadedOwnedNails(ServerLevel level, ServerPlayer caster) {
 		List<ExplosionAnchor> anchors = new ArrayList<>();
 		for (Entity entity : level.getAllEntities()) {
-			if (entity instanceof ProjectJjkNailEntity nail && nail.isEmbedded() && nail.isOwnedBy(caster.getUUID())) {
+			if (entity instanceof ProjectJjkNailEntity nail && nail.isEmbedded() && nail.isOwnedBy(caster.getUUID())
+					&& !nail.isTrapNail()) {
 				anchors.add(ExplosionAnchor.nail(nail));
 			}
 		}

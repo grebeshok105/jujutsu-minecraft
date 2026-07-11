@@ -39,6 +39,8 @@ public final class ProjectJjkNobaraProfile {
 	public static final float NAIL_DEPTH_2_MULTIPLIER = 1.35f;
 	public static final float NAIL_DEPTH_3_MULTIPLIER = 1.75f;
 	public static final double NAIL_TRAP_RADIUS = 6.0;
+	public static final int NAIL_TRAP_NAIL_COUNT = 3;
+	public static final double NAIL_TRAP_PRISM_HEIGHT = 3.0;
 	public static final double NAIL_TRAP_PLACEMENT_RANGE = 8.0;
 	public static final int NAIL_TRAP_LIFETIME_TICKS = 600;
 	public static final float NAIL_TRAP_DAMAGE = 15.0f;

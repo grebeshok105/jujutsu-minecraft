@@ -9,6 +9,7 @@ import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollRuntime;
 import jujutsu.mod.character.nobara.projectjjk.NailAnchorLifecycle;
 import jujutsu.mod.character.nobara.projectjjk.NobaraHammerCombatRuntime;
 import jujutsu.mod.character.nobara.projectjjk.NobaraActionGuard;
+import jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime;
 import jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime;
 import jujutsu.mod.command.JujutsuCommands;
 import jujutsu.mod.network.JujutsuNetworking;
@@ -41,6 +42,7 @@ public class JujutsuMod implements ModInitializer {
 		NobaraHammerCombatRuntime.register();
 		NobaraActionGuard.register();
 		SelfResonanceRuntime.register();
+		NailTrapRuntime.register();
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> CurseLinkRegistry.GLOBAL.clear());
 		JujutsuCommands.register();
 		ForcedBlackFlash.register();
