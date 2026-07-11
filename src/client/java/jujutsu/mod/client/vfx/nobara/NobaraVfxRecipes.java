@@ -248,8 +248,8 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance dollStrike(VfxCue cue) {
-		return VfxInstance.of(16, (context, initialAgeTicks) -> {
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.DOLL_STRIKE, 16);
+		return VfxInstance.of(24, (context, initialAgeTicks) -> {
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.DOLL_STRIKE, 24);
 			float proximity = context.proximity(cue, 44.0);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				Vec3 origin = context.resolveOrigin(cue);
@@ -262,13 +262,15 @@ public final class NobaraVfxRecipes {
 				context.playNoFalloff(JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, 0.72f * proximity, 0.62f, origin, random);
 			}
 			if (proximity > 0.01f) {
-				context.camera().triggerResonanceImpact(intensity(cue) + 4, proximity, initialAgeTicks);
+				context.camera().triggerResonanceImpact(intensity(cue) + 7, Math.min(1.0f, proximity * 1.15f), initialAgeTicks);
 				context.hud().triggerImpact(proximity, initialAgeTicks);
-				context.postProcess().triggerBlur(Math.round(410.0f * proximity), initialAgeTicks);
+				context.postProcess().triggerBlur(Math.round(520.0f * proximity), initialAgeTicks);
 				context.firstPerson().triggerSnap(initialAgeTicks);
 			}
 			if (isLocalAnchor(context, cue)) {
-				context.time().triggerSlowMotion(0.78f, 220, initialAgeTicks);
+				context.time().triggerSlowMotion(0.45f, 450, initialAgeTicks);
+				context.hud().triggerNausea(0.85f, initialAgeTicks);
+				context.postProcess().triggerBlur(700, initialAgeTicks);
 			}
 		});
 	}

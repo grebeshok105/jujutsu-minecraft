@@ -47,6 +47,7 @@ public final class ProjectSanityTest {
 		assertVfxCoreProvidesReusableChannels();
 		assertNobaraUsesVfxCoreRecipes();
 		assertNobaraVfxExpansionContract();
+		assertStrawDollImpactOwnsCasterScreenFeedback();
 		assertDefaultNobaraEntrypointSkipsLegacyRuntime();
 		assertLegacyNobaraRuntimeIsRemoved();
 		assertNobaraNailsEmbedLikeOpaqueBodyAnchors();
@@ -435,7 +436,7 @@ public final class ProjectSanityTest {
 		assert openingBeatGuards >= 8 : "Every non-seekable Nobara sound/particle opening beat must reject late playback";
 		long ageAwareChannelCalls = Pattern.compile("trigger(?:Launch|HeavyImpact|Explosion|Ritual|Swing|Impact|Snap|Blur|ResonanceImpact|SlowMotion|Nausea)\\([^\\n]*initialAgeTicks\\)")
 				.matcher(recipes).results().count();
-		assert ageAwareChannelCalls == 33 : "All 33 Nobara realtime channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
+		assert ageAwareChannelCalls == 35 : "All 35 Nobara realtime channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
 		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/network/ProjectJjkNobaraImpulsePayload.java")) : "Legacy integer VFX payload must be removed after migration";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java")) : "Legacy Hairpin world renderer must be replaced by VFX Core";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinCinematicCamera.java")) : "Legacy Hairpin camera manager must be replaced by VFX Core";
@@ -524,6 +525,21 @@ public final class ProjectSanityTest {
 		for (String id : new String[] {"REMNANT_DROP", "RITUAL_BIND", "DOLL_STRIKE", "RESONANCE_RELEASE"}) {
 			assert ritual.contains("NobaraVfxIds." + id) : "Server ritual must emit " + id;
 		}
+	}
+
+	private static void assertStrawDollImpactOwnsCasterScreenFeedback() throws IOException {
+		String recipes = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/nobara/NobaraVfxRecipes.java"));
+		int start = recipes.indexOf("private static VfxInstance dollStrike");
+		int end = recipes.indexOf("private static VfxInstance resonanceRelease", start);
+		assert start >= 0 && end > start : "Straw Doll recipes must keep distinct caster and target impact phases";
+		String dollStrike = recipes.substring(start, end);
+		assert dollStrike.contains("context.time().triggerSlowMotion(0.45f, 450, initialAgeTicks)")
+				: "A local Nobara caster must receive visible slow-motion even when the target is a mob";
+		assert dollStrike.contains("context.hud().triggerNausea(0.85f, initialAgeTicks)")
+				: "A local Nobara caster must receive the heavy Resonance screen impact";
+		String hud = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxHudChannel.java"));
+		assert hud.contains("graphics.fill(0, 0, width, height, (washAlpha << 24) | 0x00120A18)")
+				: "The Resonance nausea overlay must include a visible full-screen wash";
 	}
 
 	private static void assertStrawDollRitualUsesPhysicalRemnants() throws IOException {

@@ -154,6 +154,8 @@ public final class VfxHudChannel {
 		}
 		int width = graphics.guiWidth();
 		int height = graphics.guiHeight();
+		int washAlpha = Math.min(54, Math.round(alpha * 0.56f));
+		graphics.fill(0, 0, width, height, (washAlpha << 24) | 0x00120A18);
 		int layers = 18;
 		for (int layer = 0; layer < layers; layer++) {
 			float t = layer / (float) (layers - 1);

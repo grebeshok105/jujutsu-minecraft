@@ -78,13 +78,13 @@ Post-process is intentionally a narrow internal channel, not an authoring framew
 | Hammer / launch | `hammer`, `impact`, `impact_sound` | forged-metal beat, cyan-white hit, camera/HUD response | VERIFIED |
 | Resonance / link | `resonance_channel`, `resonance_strike`, `link_bind`, `detonate` | cursed-energy pulse, binding ring, particle burst, target-origin timing | VERIFIED |
 | Enlarge / Boom | `enlarge`, `explosion`, `first_person_snap` | cyan rings, ribbons/blades, shards, sound stack, HUD/camera, caster hand snap | VERIFIED |
-| Straw Doll ritual | `remnant_drop`, `ritual_bind`, `doll_strike`, `resonance_release` | trace pickup, constricting bind, heavy effigy puncture, target-local slow/zoom/nausea, dark-center/cyan-fracture remote release | VERIFIED |
+| Straw Doll ritual | `remnant_drop`, `ritual_bind`, `doll_strike`, `resonance_release` | trace pickup, constricting bind, caster-visible slow/zoom/nausea, optional target-player reaction, dark-center/cyan-fracture remote release | VERIFIED |
 
 Nobara registers the complete recipe set, including horizontal/overhead hammer, prepared launch, embedded drive, Black Flash, self resonance, Straw Doll, and Hairpin scenes. Enlarge stages compression, a held frame, then blades/rings; Explosion stages implosion then staggered shell breaks. `ProjectJjkNailRenderer` remains state-driven for persistent real nail aura, renders a compressed-energy envelope around prepared/flying nails, and shares `VfxPalette`; embedded nails deliberately have no broad aura. Gameplay ownership for these cues is documented in [[../03-systems/Nobara-runtime-flow]].
 
 ## Verification
 
-- Pure assertion tasks cover cue codec/seed/anchor offset, timeline age/expiry/opening-window/realtime offsets, zero/non-zero live-anchor resolution, immutable-origin fallback, quality scaling, registration, transport guards, lifecycle cleanup, all 33 age-aware timed-channel calls, blur fallback wiring, target-local time/HUD wiring, straw-doll resource completeness, and legacy-path absence.
+- Pure assertion tasks cover cue codec/seed/anchor offset, timeline age/expiry/opening-window/realtime offsets, zero/non-zero live-anchor resolution, immutable-origin fallback, quality scaling, registration, transport guards, lifecycle cleanup, all 35 age-aware timed-channel calls, blur fallback wiring, caster-visible and target-local time/HUD wiring, straw-doll resource completeness, and legacy-path absence.
 - `ProjectSanityTest.java:303-393` prevents an accidental return to the old payload/static-manager path and checks the current timeline, lifecycle, live-anchor, and first-person wiring; legacy absence assertions are at `ProjectSanityTest.java:372-377`.
 - Anchor-offset TDD reproduced the eye-height loss, then produced the expected RED because the seven-field constructor and `anchorOffset()` did not yet exist. Focused GREEN `testVfxAnchor testVfxCore testVfxTimeline --no-daemon` passed after `a2cf61c`.
 - The prior VFX Core baseline closed with seven assertion tasks. The Straw Doll expansion adds two assertion tasks; fresh full verification and independent review are recorded in the current session handoff.

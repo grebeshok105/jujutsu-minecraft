@@ -131,7 +131,7 @@ All sources relative to that worktree unless noted.
 | one `VfxCuePayload` receiver delegates to `VfxDirector`; it has no effect-ID switch | `JujutsuClientNetworking.java:13-19` | VERIFIED |
 | all 20 Nobara IDs register Java recipes | `NobaraVfxIds.java:6-25`; `NobaraVfxRecipes.java:26-45` | VERIFIED |
 | director owns world/HUD callbacks, tick, unknown-ID safety, a 64-instance bound, `ClientLevel` identity cleanup, and null/disconnect reset | `VfxDirector.java:25-148`, guard `ProjectSanityTest.java:321-337` | VERIFIED |
-| non-expired late cues receive actual `initialAgeTicks`; one-shot opening beats run only below two ticks; all 33 timed Nobara channel calls preserve age | `VfxTimeline.java:10-27`, `NobaraVfxRecipes.java:41-305`, guard `ProjectSanityTest.java:388` | VERIFIED |
+| non-expired late cues receive actual `initialAgeTicks`; one-shot opening beats run only below two ticks; all 35 timed Nobara channel calls preserve age | `VfxTimeline.java:10-27`, `NobaraVfxRecipes.java:41-305`, guard `ProjectSanityTest.java` | VERIFIED |
 | HUD, camera/FOV, first-person, post-process, and client-time realtime starts are offset to the late cue phase | `VfxTimeline.java:22-27`, `NobaraVfxRecipes.java:41-305`, `VfxFirstPersonChannel.java:14-27`, `VfxPostProcessChannel.java:11-20`, `VfxTimeChannel.java` | VERIFIED |
 | live world anchors resolve as `anchor.position() + anchorOffset`; missing anchors fall back to immutable `cue.origin()` | `VfxAnchorResolver.java:9-15`, `VfxWorldChannel.java:34-69`, test `VfxAnchorResolverTest.java:16-40` | VERIFIED |
 | unanchored server cues use `Vec3.ZERO`; anchored Nobara cues store `origin.subtract(anchor.position())` | `ProjectJjkNobaraRuntime.java:233-238`, `ProjectJjkRitualRuntime.java:601-606` | VERIFIED |
@@ -142,6 +142,7 @@ All sources relative to that worktree unless noted.
 | hammer context, Black Flash, and self resonance emit registered transient Nobara VFX through the generic cue path | `NobaraHammerCombatRuntime.java:36-180`; `SelfResonanceRuntime.java:89-99`; `NobaraVfxIds.java`; `NobaraVfxRecipes.java` | VERIFIED |
 | named camera profiles cover launch, heavy impact, explosion, ritual, and extended Resonance with clamped cumulative yaw/pitch/FOV | `VfxCameraChannel.java:12-73` | VERIFIED |
 | target-local Resonance screen feedback uses a bounded render-time pulse and nausea HUD overlay; it never changes server time or potion state | `NobaraVfxRecipes.java:250-305`, `VfxTimeChannel.java`, `VfxHudChannel.java`, `VfxDeltaTrackerMixin.java` | VERIFIED wiring; manual feel UNKNOWN |
+| Doll Strike always gives local Nobara the heavy screen feedback even when the remote target is a non-player entity | `NobaraVfxRecipes.java`; guard `ProjectSanityTest.java` | VERIFIED wiring; manual feel UNKNOWN |
 | director-owned post-process calls public vanilla `processBlurEffect()` and disables only blur for the session on runtime/linkage failure | `VfxPostProcessChannel.java:7-46`, guard `ProjectSanityTest.java:445` | VERIFIED wiring; in-game feel UNKNOWN |
 
 ## Assets
