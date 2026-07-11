@@ -2,6 +2,7 @@ package jujutsu.mod.character.nobara.projectjjk;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -128,7 +129,7 @@ public final class ProjectJjkRitualRuntime {
 			return true;
 		}
 
-		Collections.shuffle(anchors);
+		anchors = nearestNeighborOrder(level, caster.position(), anchors);
 		for (ExplosionAnchor anchor : anchors) {
 			Entity entity = level.getEntity(anchor.entityId());
 			if (entity != null) {
@@ -139,8 +140,29 @@ public final class ProjectJjkRitualRuntime {
 		JujutsuNetworking.sendVfxCue(caster,
 				cue(level, NobaraVfxIds.DETONATE, anchors.size(), caster.getEyePosition(), gameTime, caster));
 		consumeAnchorMarks(level, anchors, gameTime);
-		PENDING_EXPLOSIONS.add(new PendingExplosion(level, caster.getUUID(), anchors, gameTime + ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_START_DELAY_TICKS));
+		PENDING_EXPLOSIONS.add(new PendingExplosion(level, caster.getUUID(), anchors, gameTime + ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_START_DELAY_TICKS, ProjectJjkNobaraProfile.HAIRPIN_MASS_CHAIN_DELAY_TICKS));
 		return true;
+	}
+
+	private static List<ExplosionAnchor> nearestNeighborOrder(ServerLevel level, Vec3 start, List<ExplosionAnchor> input) {
+		List<ExplosionAnchor> remaining = new ArrayList<>(input);
+		List<ExplosionAnchor> ordered = new ArrayList<>(input.size());
+		Vec3 cursor = start;
+		while (!remaining.isEmpty()) {
+			Vec3 from = cursor;
+			ExplosionAnchor next = remaining.stream().min(Comparator
+					.comparingDouble((ExplosionAnchor anchor) -> anchorPosition(level, anchor).distanceToSqr(from))
+					.thenComparing(ExplosionAnchor::nailId)).orElseThrow();
+			remaining.remove(next);
+			ordered.add(next);
+			cursor = anchorPosition(level, next);
+		}
+		return ordered;
+	}
+
+	private static Vec3 anchorPosition(ServerLevel level, ExplosionAnchor anchor) {
+		Entity entity = level.getEntity(anchor.nailId());
+		return entity == null ? Vec3.ZERO : entity.position();
 	}
 
 	private static List<ExplosionAnchor> collectExplosionAnchors(ServerLevel level, ServerPlayer caster, long gameTime) {
@@ -202,12 +224,9 @@ public final class ProjectJjkRitualRuntime {
 				continue;
 			}
 			ServerPlayer caster = owner(pending.level(), pending.casterId());
-			int count = 1 + RANDOM.nextInt(2);
-			for (int index = 0; index < count && pending.hasNext(); index++) {
-				ExplosionOutcome outcome = explodeAnchor(pending.level(), caster, pending.current(), gameTime);
-				if (outcome == ExplosionOutcome.RETRY) break;
-				pending.advance();
-			}
+			if (!pending.isDue(gameTime)) continue;
+			ExplosionOutcome outcome = explodeAnchor(pending.level(), caster, pending.current(), gameTime, pending.index == pending.anchors.size() - 1);
+			if (outcome != ExplosionOutcome.RETRY) pending.advance(gameTime);
 			if (!pending.hasNext()) {
 				iterator.remove();
 			}
@@ -250,7 +269,7 @@ public final class ProjectJjkRitualRuntime {
 		return EnlargeOutcome.SUCCESS;
 	}
 
-	private static ExplosionOutcome explodeAnchor(ServerLevel level, ServerPlayer caster, ExplosionAnchor anchor, long gameTime) {
+	private static ExplosionOutcome explodeAnchor(ServerLevel level, ServerPlayer caster, ExplosionAnchor anchor, long gameTime, boolean finale) {
 		Entity sourceEntity = level.getEntity(anchor.entityId());
 		if (sourceEntity == null && anchor.nailId() != null) sourceEntity = level.getEntity(anchor.nailId());
 		if (sourceEntity == null) {
@@ -260,9 +279,10 @@ public final class ProjectJjkRitualRuntime {
 		Vec3 at = sourceEntity instanceof LivingEntity living
 				? living.position().add(0.0, living.getBbHeight() * 0.5, 0.0)
 				: sourceEntity.position();
+		float depthMultiplier = nail.depthDamageMultiplier();
 		nail.discard();
 		DamageSource source = NobaraDamageSources.hairpin(level, caster);
-		float damage = ProjectJjkNobaraProfile.detonateDamage(anchor.marks());
+		float damage = ProjectJjkNobaraProfile.HAIRPIN_BOOM_DAMAGE_PER_NAIL * depthMultiplier;
 		AABB blast = new AABB(at, at).inflate(ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_RADIUS);
 		for (Entity entity : level.getEntitiesOfClass(Entity.class, blast, e -> e instanceof LivingEntity living && living.isAlive())) {
 			if (caster != null && entity.getUUID().equals(caster.getUUID())) {
@@ -276,7 +296,7 @@ public final class ProjectJjkRitualRuntime {
 		}
 		spawnProjectJjkExplosion(level, at, anchor.marks());
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_EXPLODE, SoundSource.PLAYERS, 0.2f, 2.0f);
-		broadcast(level, at, NobaraVfxIds.EXPLOSION, anchor.marks(), at, gameTime);
+		broadcast(level, at, NobaraVfxIds.EXPLOSION, nail.embedDepthLevel() + (finale ? 8 : 0), at, gameTime);
 		return ExplosionOutcome.SUCCESS;
 	}
 
@@ -476,13 +496,17 @@ public final class ProjectJjkRitualRuntime {
 		private final UUID casterId;
 		private final List<ExplosionAnchor> anchors;
 		private final long startGameTime;
+		private final int cadenceTicks;
+		private long nextDueGameTime;
 		private int index;
 
-		private PendingExplosion(ServerLevel level, UUID casterId, List<ExplosionAnchor> anchors, long startGameTime) {
+		private PendingExplosion(ServerLevel level, UUID casterId, List<ExplosionAnchor> anchors, long startGameTime, int cadenceTicks) {
 			this.level = level;
 			this.casterId = casterId;
 			this.anchors = anchors;
 			this.startGameTime = startGameTime;
+			this.nextDueGameTime = startGameTime;
+			this.cadenceTicks = cadenceTicks;
 		}
 
 		private ServerLevel level() {
@@ -505,7 +529,8 @@ public final class ProjectJjkRitualRuntime {
 			return anchors.get(index);
 		}
 
-		private void advance() { index++; }
+		private boolean isDue(long gameTime) { return gameTime >= nextDueGameTime; }
+		private void advance(long gameTime) { index++; nextDueGameTime = gameTime + cadenceTicks; }
 	}
 
 	private enum ExplosionOutcome { SUCCESS, RETRY, TERMINAL }
