@@ -103,20 +103,22 @@ public final class NobaraHammerCombatRuntime {
 	private static void resolveImpact(ServerPlayer player, PendingAttack pending, long now) {
 		ServerLevel level = player.level();
 		if (pending.kind() == AttackKind.HORIZONTAL) {
+			float damage = ProjectJjkNobaraProfile.HAMMER_HORIZONTAL_DAMAGE * ResonantMomentum.damageMultiplier(player);
 			List<LivingEntity> targets = sweepTargets(player);
 			for (LivingEntity target : targets) {
-				if (target.hurtServer(level, level.damageSources().playerAttack(player), ProjectJjkNobaraProfile.HAMMER_HORIZONTAL_DAMAGE)) deepenOneNail(player, target);
+				if (target.hurtServer(level, level.damageSources().playerAttack(player), damage)) deepenOneNail(player, target);
 				CombatStagger.GLOBAL.apply(target, now, ProjectJjkNobaraProfile.LIGHT_STAGGER_TICKS);
 			}
-			if (!targets.isEmpty()) openWindow(player, targets.getFirst(), BlackFlashImpact.HAMMER, ProjectJjkNobaraProfile.HAMMER_HORIZONTAL_DAMAGE, now);
+			if (!targets.isEmpty()) openWindow(player, targets.getFirst(), BlackFlashImpact.HAMMER, damage, now);
 			return;
 		}
 		Entity entity = pending.targetId() == null ? null : level.getEntity(pending.targetId());
 		if (!(entity instanceof LivingEntity target) || !target.isAlive() || player.distanceTo(target) > ProjectJjkNobaraProfile.HAMMER_MELEE_RANGE + ProjectJjkNobaraProfile.HAMMER_RANGE_TOLERANCE) return;
 		if (pending.kind() == AttackKind.OVERHEAD) {
-			if (target.hurtServer(level, level.damageSources().playerAttack(player), ProjectJjkNobaraProfile.HAMMER_OVERHEAD_DAMAGE)) deepenOneNail(player, target);
+			float damage = ProjectJjkNobaraProfile.HAMMER_OVERHEAD_DAMAGE * ResonantMomentum.damageMultiplier(player);
+			if (target.hurtServer(level, level.damageSources().playerAttack(player), damage)) deepenOneNail(player, target);
 			CombatStagger.GLOBAL.apply(target, now, ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
-			openWindow(player, target, BlackFlashImpact.HAMMER, ProjectJjkNobaraProfile.HAMMER_OVERHEAD_DAMAGE, now);
+			openWindow(player, target, BlackFlashImpact.HAMMER, damage, now);
 		}
 	}
 

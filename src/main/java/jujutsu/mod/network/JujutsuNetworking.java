@@ -22,6 +22,7 @@ public final class JujutsuNetworking {
 		PayloadTypeRegistry.playS2C().register(CurseLinkOptionsPayload.TYPE, CurseLinkOptionsPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(SelectCurseLinkPayload.TYPE, SelectCurseLinkPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(BlackFlashFocusPayload.TYPE, BlackFlashFocusPayload.STREAM_CODEC);
+		PayloadTypeRegistry.playS2C().register(ResonantMomentumPayload.TYPE, ResonantMomentumPayload.STREAM_CODEC);
 		registerServerReceivers();
 	}
 
@@ -32,7 +33,7 @@ public final class JujutsuNetworking {
 				context.server().execute(() -> handleNobaraAction(context.player(), payload)));
 		ServerPlayNetworking.registerGlobalReceiver(SelectCurseLinkPayload.TYPE, (payload, context) ->
 				context.server().execute(() -> jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime.select(context.player(), payload.linkId())));
-		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> { CharacterSelectionManager.syncTo(handler.player); jujutsu.mod.combat.BlackFlashFocus.sync(handler.player); });
+		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> { CharacterSelectionManager.syncTo(handler.player); jujutsu.mod.combat.BlackFlashFocus.sync(handler.player); jujutsu.mod.character.nobara.projectjjk.ResonantMomentum.sync(handler.player); });
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> CharacterSelectionManager.clear(handler.player));
 	}
 

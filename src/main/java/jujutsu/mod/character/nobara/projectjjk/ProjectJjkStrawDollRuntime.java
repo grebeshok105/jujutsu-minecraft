@@ -233,7 +233,10 @@ public final class ProjectJjkStrawDollRuntime {
 		ServerLevel level = caster.level();
 		triggerDollImpact(caster);
 		long gameTime = level.getGameTime();
-		target.hurtServer(level, level.damageSources().indirectMagic(caster, caster), ProjectJjkNobaraProfile.RESONANCE_DAMAGE);
+		if (!target.hurtServer(level, level.damageSources().indirectMagic(caster, caster), ProjectJjkNobaraProfile.RESONANCE_DAMAGE)) {
+			return;
+		}
+		ResonantMomentum.grant(caster);
 		CombatStagger.GLOBAL.apply(target, gameTime, ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
 		RESONANCE_TIME.trigger(tickRateAccess(level.getServer()),
 				ProjectJjkNobaraProfile.RESONANCE_SERVER_TICK_RATE,

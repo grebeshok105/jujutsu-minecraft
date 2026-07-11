@@ -43,7 +43,7 @@ public final class ProjectJjkNobaraRuntime {
 
 	public static void tickPreparing(ServerPlayer player, ItemStack stack, int useTicks) {
 		PreparationSession session = PREPARATIONS.computeIfAbsent(player.getUUID(), id -> new PreparationSession());
-		int desired = ProjectJjkNobaraProfile.nailCountForUseTicks(useTicks);
+		int desired = ProjectJjkNobaraProfile.nailCountForUseTicks(ResonantMomentum.accelerateElapsedTicks(player, useTicks));
 		if (session.count < desired) spawnNextPreparedNail(player, stack, session);
 	}
 
@@ -52,7 +52,7 @@ public final class ProjectJjkNobaraRuntime {
 	}
 
 	public static void prepareNails(ServerPlayer player, ItemStack usedStack, int useTicks) {
-		int desiredCount = ProjectJjkNobaraProfile.nailCountForUseTicks(useTicks);
+		int desiredCount = ProjectJjkNobaraProfile.nailCountForUseTicks(ResonantMomentum.accelerateElapsedTicks(player, useTicks));
 		boolean creative = player.getAbilities().instabuild;
 		int available = creative ? desiredCount : countNails(player);
 		int nailCount = Math.min(desiredCount, available);
@@ -117,7 +117,7 @@ public final class ProjectJjkNobaraRuntime {
 			Vec3 targetPoint = target.point()
 					.add(right.scale(centered * 0.11))
 					.add(up.scale(((index & 1) == 0 ? 0.06 : -0.06)));
-			nail.launchAt(targetPoint, ProjectJjkNobaraProfile.launchDelayForIndex(index), explosiveImpact);
+			nail.launchAt(targetPoint, ResonantMomentum.scaleTicks(player, ProjectJjkNobaraProfile.launchDelayForIndex(index)), explosiveImpact);
 		}
 
 		// Forging anvil clang: the hammer strike must read like smithing on an anvil.

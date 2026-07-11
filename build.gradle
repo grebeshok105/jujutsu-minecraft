@@ -208,6 +208,16 @@ tasks.register('testNailTrap', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testResonantMomentum', JavaExec) {
+	group = 'verification'
+	description = 'Runs deterministic Resonant Momentum state and scaling tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.nobara.projectjjk.ResonantMomentumTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.named('check') {
 	dependsOn tasks.named('testProjectSanity')
 	dependsOn tasks.named('testTargetResolver')
@@ -226,6 +236,7 @@ tasks.named('check') {
 	dependsOn tasks.named('testServerTimeDilation')
 	dependsOn tasks.named('testHairpinChain')
 	dependsOn tasks.named('testNailTrap')
+	dependsOn tasks.named('testResonantMomentum')
 }
 
 processResources {

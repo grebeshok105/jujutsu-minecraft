@@ -26,6 +26,7 @@
   "message.jujutsumod.projectjjk.resonance.already_casting": "The Resonance ritual is already in progress.",
   "message.jujutsumod.projectjjk.resonance.casting": "Binding %s to the straw doll...",
   "message.jujutsumod.projectjjk.resonance.complete": "Resonance struck %s.",
+  "hud.jujutsumod.resonant_momentum": "Resonant Momentum",
   "message.jujutsumod.projectjjk.resonance.no_doll": "Hold the straw doll in your off hand and the hammer in your main hand.",
   "message.jujutsumod.projectjjk.resonance.no_nail": "Resonance requires one cursed nail.",
   "message.jujutsumod.projectjjk.resonance.no_remnant": "No bound target remnant is available.",

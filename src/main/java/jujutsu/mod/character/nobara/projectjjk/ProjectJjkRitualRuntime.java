@@ -287,7 +287,7 @@ public final class ProjectJjkRitualRuntime {
 		float baseDamage = mode == HairpinChain.Mode.DIRECTED
 				? ProjectJjkNobaraProfile.HAIRPIN_DIRECTED_DAMAGE_PER_NAIL
 				: ProjectJjkNobaraProfile.HAIRPIN_BOOM_DAMAGE_PER_NAIL;
-		float damage = baseDamage * depthMultiplier;
+		float damage = baseDamage * depthMultiplier * ResonantMomentum.damageMultiplier(caster);
 		AABB blast = new AABB(at, at).inflate(ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_RADIUS);
 		for (Entity victim : level.getEntitiesOfClass(Entity.class, blast, e -> e instanceof LivingEntity living && living.isAlive())) {
 			if (caster != null && victim.getUUID().equals(caster.getUUID())) {
