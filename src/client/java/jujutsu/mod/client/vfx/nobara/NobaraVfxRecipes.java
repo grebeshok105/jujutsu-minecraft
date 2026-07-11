@@ -248,8 +248,8 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance dollStrike(VfxCue cue) {
-		return VfxInstance.of(10, (context, initialAgeTicks) -> {
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.DOLL_STRIKE, 10);
+		return VfxInstance.of(16, (context, initialAgeTicks) -> {
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.DOLL_STRIKE, 16);
 			float proximity = context.proximity(cue, 44.0);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				Vec3 origin = context.resolveOrigin(cue);
@@ -262,17 +262,20 @@ public final class NobaraVfxRecipes {
 				context.playNoFalloff(JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, 0.72f * proximity, 0.62f, origin, random);
 			}
 			if (proximity > 0.01f) {
-				context.camera().triggerHeavyImpact(intensity(cue) + 4, proximity, initialAgeTicks);
+				context.camera().triggerResonanceImpact(intensity(cue) + 4, proximity, initialAgeTicks);
 				context.hud().triggerImpact(proximity, initialAgeTicks);
-				context.postProcess().triggerBlur(Math.round(340.0f * proximity), initialAgeTicks);
+				context.postProcess().triggerBlur(Math.round(410.0f * proximity), initialAgeTicks);
 				context.firstPerson().triggerSnap(initialAgeTicks);
+			}
+			if (isLocalAnchor(context, cue)) {
+				context.time().triggerSlowMotion(0.78f, 220, initialAgeTicks);
 			}
 		});
 	}
 
 	private static VfxInstance resonanceRelease(VfxCue cue) {
-		return VfxInstance.of(26, (context, initialAgeTicks) -> {
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.RESONANCE_RELEASE, 26);
+		return VfxInstance.of(38, (context, initialAgeTicks) -> {
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.RESONANCE_RELEASE, 38);
 			int marks = intensity(cue);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				Vec3 origin = context.resolveOrigin(cue);
@@ -282,9 +285,14 @@ public final class NobaraVfxRecipes {
 			}
 			float proximity = context.proximity(cue, 64.0);
 			if (proximity > 0.01f) {
-				context.camera().triggerHeavyImpact(marks + 2, proximity, initialAgeTicks);
+				context.camera().triggerResonanceImpact(marks + 2, proximity, initialAgeTicks);
 				context.hud().triggerImpact(proximity, initialAgeTicks);
-				context.postProcess().triggerBlur(Math.round(280.0f * proximity), initialAgeTicks);
+				context.postProcess().triggerBlur(Math.round(360.0f * proximity), initialAgeTicks);
+			}
+			if (isLocalAnchor(context, cue)) {
+				context.time().triggerSlowMotion(0.65f, 300, initialAgeTicks);
+				context.hud().triggerNausea(1.0f, initialAgeTicks);
+				context.postProcess().triggerBlur(520, initialAgeTicks);
 			}
 		});
 	}
@@ -311,6 +319,12 @@ public final class NobaraVfxRecipes {
 
 	private static int intensity(VfxCue cue) {
 		return Math.max(1, cue.intensity());
+	}
+
+	private static boolean isLocalAnchor(VfxContext context, VfxCue cue) {
+		return context.client().player != null
+				&& cue.anchorEntityId() != VfxCue.NO_ANCHOR
+				&& cue.anchorEntityId() == context.client().player.getId();
 	}
 
 	private static RandomSource random(VfxCue cue, long salt) {

@@ -49,6 +49,16 @@ public final class VfxCameraChannel {
 		addFovImpulse(startedAtMillis + 150L, 430, 5.4f * strength, 0.12f);
 	}
 
+	public void triggerResonanceImpact(int intensity, float proximity, float initialAgeTicks) {
+		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
+		float strength = strength(intensity, proximity, 1.16f);
+		addImpulse(startedAtMillis, 360, 5.2f * strength, -3.35f * strength, 54.0f);
+		addImpulse(startedAtMillis + 92L, 230, -2.8f * strength, 1.9f * strength, 98.0f);
+		addImpulse(startedAtMillis + 188L, 150, 1.35f * strength, -0.92f * strength, 136.0f);
+		addFovImpulse(startedAtMillis, 190, -10.8f * strength, 0.08f);
+		addFovImpulse(startedAtMillis + 118L, 560, 6.9f * strength, 0.16f);
+	}
+
 	public float yawOffset() {
 		return clamp(sample(true), -9.0f, 9.0f);
 	}

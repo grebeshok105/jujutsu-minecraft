@@ -23,7 +23,8 @@ Only code-backed or process-backed risks.
 
 - The server can decide cue timing and seed; the client may only draw.
 - Unknown or expired cues are safe to ignore, but a missing ID is still a visual regression and must get a test.
-- Every current Nobara HUD/camera/first-person/post-process recipe call must preserve `initialAgeTicks`; the exact 23-call guard intentionally fails when one silently falls back to a fresh overload.
+- Every current Nobara HUD/camera/first-person/post-process/time recipe call must preserve `initialAgeTicks`; the exact 33-call guard intentionally fails when one silently falls back to a fresh overload.
+- The target-local render-time pulse is intentionally a visual approximation, not a gameplay clock. Manual QA must verify that `VfxDeltaTrackerMixin` feels like a brief slow hit without input or observer desynchronization.
 - `ClientLevel` cleanup is identity-based, not dimension-name based. The guard requires `clear()` inside the identity-change branch, and null/disconnect must reset the tracked level.
 - World impacts must retain `VfxCue` and resolve the entity anchor on every render; caching the first resolved position would reintroduce stale geometry after movement/despawn.
 - `VfxDirector` caps active instances at 64. High-frequency scenes need a measured budget, not an unbounded new manager.

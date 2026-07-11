@@ -12,6 +12,9 @@ public final class VfxHudChannel {
 	private int cinematicDurationMillis;
 	private int vignetteMaxAlpha;
 	private int speedLineAlpha;
+	private long nauseaStartedAtMillis;
+	private int nauseaDurationMillis;
+	private int nauseaMaxAlpha;
 
 	public void triggerSwing(float proximity) {
 		triggerSwing(proximity, 0.0f);
@@ -31,6 +34,23 @@ public final class VfxHudChannel {
 		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
 		triggerCinematic(startedAtMillis, 380, scaledAlpha(170, proximity), scaledAlpha(130, proximity));
 		triggerFlash(startedAtMillis, 150, scaledAlpha(160, proximity));
+	}
+
+	public void triggerNausea(float strength, float initialAgeTicks) {
+		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
+		int boundedDurationMillis = 760;
+		if (!VfxTimeline.shouldExtendRealtimeWindow(
+				nauseaStartedAtMillis,
+				nauseaDurationMillis,
+				startedAtMillis,
+				boundedDurationMillis,
+				System.currentTimeMillis()
+		)) {
+			return;
+		}
+		nauseaStartedAtMillis = startedAtMillis;
+		nauseaDurationMillis = boundedDurationMillis;
+		nauseaMaxAlpha = Math.max(0, Math.min(84, Math.round(84.0f * Math.max(0.0f, Math.min(1.0f, strength)))));
 	}
 
 	public void triggerFlash(int durationMillis, int maxAlpha) {
@@ -59,6 +79,7 @@ public final class VfxHudChannel {
 
 	void render(GuiGraphics graphics, DeltaTracker tickCounter) {
 		renderCinematic(graphics);
+		renderNausea(graphics);
 		renderFlash(graphics);
 	}
 
@@ -70,6 +91,9 @@ public final class VfxHudChannel {
 		cinematicDurationMillis = 0;
 		vignetteMaxAlpha = 0;
 		speedLineAlpha = 0;
+		nauseaStartedAtMillis = 0L;
+		nauseaDurationMillis = 0;
+		nauseaMaxAlpha = 0;
 	}
 
 	private void triggerCinematic(long startedAtMillis, int durationMillis, int vignetteAlpha, int lineAlpha) {
@@ -112,6 +136,39 @@ public final class VfxHudChannel {
 		float ease = remaining * remaining;
 		int vignetteAlpha = Math.round((vignetteMaxAlpha + speedLineAlpha * 0.2f) * ease);
 		renderSmoothEdgeVignette(graphics, graphics.guiWidth(), graphics.guiHeight(), vignetteAlpha, ease);
+	}
+
+	private void renderNausea(GuiGraphics graphics) {
+		long elapsed = System.currentTimeMillis() - nauseaStartedAtMillis;
+		if (elapsed < 0L || elapsed >= nauseaDurationMillis) {
+			return;
+		}
+		float progress = elapsed / (float) nauseaDurationMillis;
+		float fade = progress < 0.22f
+				? progress / 0.22f
+				: (1.0f - progress) / 0.78f;
+		float pulse = 0.72f + 0.28f * (float) Math.sin(elapsed * 0.024f);
+		int alpha = Math.round(nauseaMaxAlpha * Math.max(0.0f, fade) * pulse);
+		if (alpha <= 0) {
+			return;
+		}
+		int width = graphics.guiWidth();
+		int height = graphics.guiHeight();
+		int layers = 18;
+		for (int layer = 0; layer < layers; layer++) {
+			float t = layer / (float) (layers - 1);
+			float falloff = 1.0f - t;
+			int layerAlpha = Math.min(42, Math.round(alpha * falloff * falloff * 0.62f));
+			int wobble = Math.round((float) Math.sin(elapsed * 0.016f + layer * 0.7f) * (2.0f + 5.0f * falloff));
+			int x = Math.max(1, Math.round(width * (0.018f + falloff * 0.075f)));
+			int y = Math.max(1, Math.round(height * (0.016f + falloff * 0.07f)));
+			int greenTint = (layerAlpha << 24) | 0x00142C23;
+			int violetTint = (Math.max(0, layerAlpha / 2) << 24) | 0x0028132C;
+			graphics.fill(0, Math.max(0, y + wobble), width, y + wobble + 1, greenTint);
+			graphics.fill(0, Math.max(0, height - y + wobble - 1), width, height - y + wobble, violetTint);
+			graphics.fill(Math.max(0, x + wobble), 0, x + wobble + 1, height, greenTint);
+			graphics.fill(Math.max(0, width - x + wobble - 1), 0, width - x + wobble, height, violetTint);
+		}
 	}
 
 	private static void renderSmoothEdgeVignette(GuiGraphics graphics, int width, int height, int alpha, float ease) {

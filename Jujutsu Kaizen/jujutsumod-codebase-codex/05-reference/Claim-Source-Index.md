@@ -97,7 +97,7 @@ All sources relative to that worktree unless noted.
 | Resonance start requires main-hand hammer, offhand doll, matching remnant, nail, alive loaded target, same dimension, finite distance <=64, and no duplicate cast | `ProjectJjkStrawDollRuntime.java:88-112,139-203`; `ProjectJjkRitualPolicy.java:3-54` | VERIFIED implementation; range/timing are adaptations |
 | the 14-tick ritual revalidates requirements every server tick and does not require line of sight | `ProjectJjkStrawDollRuntime.java:100-136,167-203` | VERIFIED |
 | nail and exact remnant are both located before either shrinks; only successful impact consumes them | `ProjectJjkStrawDollRuntime.java:211-215,246-275` | VERIFIED |
-| successful Resonance damages/weakens target, consumes marks, discards owned embedded nails, clears glow, and emits caster/target cues | `ProjectJjkStrawDollRuntime.java:217-243` | VERIFIED |
+| successful Resonance damages/staggers target, consumes marks, discards owned embedded nails, clears glow, and emits caster/target cues | `ProjectJjkStrawDollRuntime.java:217-243` | VERIFIED |
 | disconnect/caster death/target death-or-unload/server stop clear relevant pending/progress state | `ProjectJjkStrawDollRuntime.java:45-57,315-323` | VERIFIED |
 | all new Straw Doll transient particles/sounds use VFX Core cues; common ritual runtime has no direct particle/sound composition | `ProjectJjkStrawDollRuntime.java`; guard `ProjectSanityTest.java:481-484` | VERIFIED |
 | canonical invariant is meaningful link + effigy/proxy + hammer-driven nail; Hairpin is separate | `docs/research/2026-07-10-nobara-straw-doll-canon.md:24-50,127-152` | VERIFIED research |
@@ -131,8 +131,8 @@ All sources relative to that worktree unless noted.
 | one `VfxCuePayload` receiver delegates to `VfxDirector`; it has no effect-ID switch | `JujutsuClientNetworking.java:13-19` | VERIFIED |
 | all 20 Nobara IDs register Java recipes | `NobaraVfxIds.java:6-25`; `NobaraVfxRecipes.java:26-45` | VERIFIED |
 | director owns world/HUD callbacks, tick, unknown-ID safety, a 64-instance bound, `ClientLevel` identity cleanup, and null/disconnect reset | `VfxDirector.java:25-148`, guard `ProjectSanityTest.java:321-337` | VERIFIED |
-| non-expired late cues receive actual `initialAgeTicks`; one-shot opening beats run only below two ticks; all 23 timed Nobara channel calls preserve age | `VfxTimeline.java:10-27`, `NobaraVfxRecipes.java:41-234`, guard `ProjectSanityTest.java:388` | VERIFIED |
-| HUD, camera/FOV, first-person, and post-process realtime starts are offset to the late cue phase | `VfxTimeline.java:22-27`, `NobaraVfxRecipes.java:41-234`, `VfxFirstPersonChannel.java:14-27`, `VfxPostProcessChannel.java:11-20` | VERIFIED |
+| non-expired late cues receive actual `initialAgeTicks`; one-shot opening beats run only below two ticks; all 33 timed Nobara channel calls preserve age | `VfxTimeline.java:10-27`, `NobaraVfxRecipes.java:41-305`, guard `ProjectSanityTest.java:388` | VERIFIED |
+| HUD, camera/FOV, first-person, post-process, and client-time realtime starts are offset to the late cue phase | `VfxTimeline.java:22-27`, `NobaraVfxRecipes.java:41-305`, `VfxFirstPersonChannel.java:14-27`, `VfxPostProcessChannel.java:11-20`, `VfxTimeChannel.java` | VERIFIED |
 | live world anchors resolve as `anchor.position() + anchorOffset`; missing anchors fall back to immutable `cue.origin()` | `VfxAnchorResolver.java:9-15`, `VfxWorldChannel.java:34-69`, test `VfxAnchorResolverTest.java:16-40` | VERIFIED |
 | unanchored server cues use `Vec3.ZERO`; anchored Nobara cues store `origin.subtract(anchor.position())` | `ProjectJjkNobaraRuntime.java:233-238`, `ProjectJjkRitualRuntime.java:601-606` | VERIFIED |
 | no-falloff SFX is a director channel | `VfxSoundChannel.java:12-27`, `VfxContext.java:92-94` | VERIFIED |
@@ -140,7 +140,8 @@ All sources relative to that worktree unless noted.
 | first-person snap uses an age-aware `VfxFirstPersonChannel` start, lasts 0.75 seconds, and traverses the full `0..15` phase; the narrow hand mixin only reads director state | `NobaraVfxRecipes.java:188-189`, `VfxFirstPersonChannel.java:14-59`, `ProjectSanityTest.java:380-393`, `NobaraFirstPersonSnapMixin.java:24` | VERIFIED |
 | `REMNANT_DROP`, `RITUAL_BIND`, `DOLL_STRIKE`, and `RESONANCE_RELEASE` have stable IDs, server-authoritative emitters, and registered recipes | `NobaraVfxIds.java:17-20`; `ProjectJjkStrawDollRuntime.java:84-85,106-107,236-239`; `NobaraVfxRecipes.java:35-38` | VERIFIED |
 | hammer context, Black Flash, and self resonance emit registered transient Nobara VFX through the generic cue path | `NobaraHammerCombatRuntime.java:36-180`; `SelfResonanceRuntime.java:89-99`; `NobaraVfxIds.java`; `NobaraVfxRecipes.java` | VERIFIED |
-| named camera profiles cover launch, heavy impact, explosion, and ritual with clamped cumulative yaw/pitch/FOV | `VfxCameraChannel.java:12-61` | VERIFIED |
+| named camera profiles cover launch, heavy impact, explosion, ritual, and extended Resonance with clamped cumulative yaw/pitch/FOV | `VfxCameraChannel.java:12-73` | VERIFIED |
+| target-local Resonance screen feedback uses a bounded render-time pulse and nausea HUD overlay; it never changes server time or potion state | `NobaraVfxRecipes.java:250-305`, `VfxTimeChannel.java`, `VfxHudChannel.java`, `VfxDeltaTrackerMixin.java` | VERIFIED wiring; manual feel UNKNOWN |
 | director-owned post-process calls public vanilla `processBlurEffect()` and disables only blur for the session on runtime/linkage failure | `VfxPostProcessChannel.java:7-46`, guard `ProjectSanityTest.java:445` | VERIFIED wiring; in-game feel UNKNOWN |
 
 ## Assets

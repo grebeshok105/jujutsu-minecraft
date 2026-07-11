@@ -53,6 +53,8 @@ On successful impact the server:
 
 Remnant acquisition and ritual binding have their own `REMNANT_DROP` and `RITUAL_BIND` cues. These four cues carry every transient ritual particle/sound/world/HUD/camera/blur composition through VFX Core; the common runtime contains no direct ritual `sendParticles`, `playSound`, or old `spawnResonanceStrike` call. Gameplay remains on the server (`ProjectJjkStrawDollRuntime.java:208-240`; `ProjectJjkNobaraProfile.java:40`; `NobaraVfxIds.java:17-20`; guard `ProjectSanityTest.java:481-484`).
 
+The impact presentation is deliberately target-local where it would otherwise be disruptive. `DOLL_STRIKE` now keeps a 16-tick effigy/hammer phase and gives the caster a stronger resonance camera profile. `RESONANCE_RELEASE` keeps a 38-tick dark-center/cyan-fracture phase with an extended zoom and shake. Only the client whose player is the release cue's entity anchor receives the short `0.65x` render-time pulse, nausea-like HUD overlay, and extended blur; observers retain the shared world impact and proximity-scaled camera response. `VfxTimeChannel` scales render partial ticks only, never server ticks or gameplay authority (`NobaraVfxRecipes.java:250-305`; `VfxCameraChannel.java`; `VfxHudChannel.java`; `VfxDeltaTrackerMixin.java`).
+
 ## Original doll asset
 
 The reusable item is a compact asymmetric bundled-straw effigy with dark bindings, a readable torso strike area, and tapered/split limbs. It is original project work, not a copied ProjectJJK/anime asset.

@@ -158,16 +158,16 @@ public final class VfxWorldChannel {
 	}
 
 	private static void renderResonanceRelease(VertexConsumer consumer, Vec3 center, int intensity, float progress, float fade) {
-		int alpha = Math.min(238, Math.round(225.0f * fade));
-		float scale = 0.85f + Math.min(4, intensity) * 0.14f;
-		renderDarkRing(consumer, center, 0.34f * scale + progress * 0.42f, 0.74f, Math.round(alpha * 0.92f), -progress * 2.8f);
-		renderCyanRing(consumer, center, 0.82f * scale + progress * 1.15f, 0.58f, Math.round(alpha * 0.7f), progress * 3.2f);
-		for (int index = 0; index < 10; index++) {
-			double angle = index * Math.PI * 2.0 / 10.0 + ((index & 1) == 0 ? 0.12 : -0.08);
+		int alpha = Math.min(248, Math.round(242.0f * fade));
+		float scale = 1.02f + Math.min(4, intensity) * 0.18f;
+		renderDarkRing(consumer, center, 0.38f * scale + progress * 0.52f, 0.82f, Math.round(alpha * 0.96f), -progress * 3.2f);
+		renderCyanRing(consumer, center, 0.96f * scale + progress * 1.42f, 0.64f, Math.round(alpha * 0.78f), progress * 3.7f);
+		for (int index = 0; index < 12; index++) {
+			double angle = index * Math.PI * 2.0 / 12.0 + ((index & 1) == 0 ? 0.12 : -0.08);
 			Vec3 direction = new Vec3(Math.cos(angle), (index % 3 - 1) * 0.22, Math.sin(angle)).normalize();
 			Vec3 start = center.add(direction.scale(0.16f));
-			Vec3 end = center.add(direction.scale(0.82f * scale + progress * (0.7f + (index % 3) * 0.16f)));
-			addFlashBlade(consumer, start, end, 0.026f, Math.round(alpha * (0.62f + (index & 1) * 0.18f)));
+			Vec3 end = center.add(direction.scale(0.94f * scale + progress * (0.82f + (index % 3) * 0.18f)));
+			addFlashBlade(consumer, start, end, 0.032f, Math.round(alpha * (0.62f + (index & 1) * 0.2f)));
 		}
 	}
 

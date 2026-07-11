@@ -107,6 +107,7 @@
 
 - [[03-systems/Straw-Doll-resonance]] — canonical remnant/effigy/nail ritual, server validation, balance adaptations, and original animated doll asset, 2026-07-10.
 - [[04-client-vfx/VFX-core]] — reusable Fabric-native cue/director/recipe library; Nobara is the first reference consumer; old integer payload/static VFX paths removed, 2026-07-10.
+- [[04-client-vfx/VFX-core]] — target-local Resonance slow/zoom/nausea polish remains inside director-owned channels; no server-time mutation, 2026-07-11.
 - [[06-maintenance/Risks-and-tech-debt]] — VFX ownership, quality/culling, blur fallback, and migration risks updated, 2026-07-10.
 - [[03-systems/Nobara-combat-expansion]] — persistent anchors, per-nail Hairpin, hammer routing, Black Flash, curse links, and self resonance documented against the 2026-07-11 combat expansion.
 

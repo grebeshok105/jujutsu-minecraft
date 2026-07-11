@@ -42,12 +42,13 @@ For every non-expired late cue, the director computes and passes the actual `ini
 | World | transient rings, ribbons, blades with per-render live-anchor resolution | `client/vfx/VfxWorldChannel.java:34-69` via `VfxDirector.java:101-103` | VERIFIED |
 | Particles | density-scaled local burst/ring helpers | `VfxParticleChannel.java`, `VfxContext.java:76-83` | VERIFIED |
 | Sound | local no-falloff SFX | `VfxSoundChannel.java`, `VfxContext.java:92-94` | VERIFIED |
-| HUD | impact/swing flash and vignette | `VfxHudChannel.java`, `VfxDirector.java:47,105-107` | VERIFIED |
+| HUD | impact/swing flash, vignette, and target-local nausea overlay | `VfxHudChannel.java`, `VfxDirector.java:47,105-107` | VERIFIED |
 | Camera/FOV | narrow existing camera/game renderer mixins read director offsets | `HairpinCameraMixin.java:26-27`, `HairpinGameRendererMixin.java:15` | VERIFIED |
+| Time | bounded client render partial-tick dilation for confirmed cinematic hit-stop | `VfxTimeChannel.java`, `VfxDeltaTrackerMixin.java`, `VfxDirector.java` | VERIFIED |
 | First person | 0.75-second snap over the full `0..15` phase; narrow existing hand mixin reads the director pose | `VfxFirstPersonChannel.java:14-59`, `NobaraFirstPersonSnapMixin.java:24` | VERIFIED |
 | Post-process | age-aware vanilla blur requested only by recipes and rendered by the director; runtime/linkage failure disables blur for the client session while all shaderless channels continue | `VfxPostProcessChannel.java:7-46`, `VfxDirector.java` | VERIFIED |
 
-`VfxQuality` maps the vanilla particle setting to full, reduced (0.58), and minimal (0.28) density. Individual recipes use proximity to omit local spectacle at distance. Quality and culling only change client rendering, never cue delivery or gameplay.
+`VfxQuality` maps the vanilla particle setting to full, reduced (0.58), and minimal (0.28) density. Individual recipes use proximity to omit local spectacle at distance. Quality and culling only change client rendering, never cue delivery or gameplay. `VfxTimeChannel` follows the same boundary: it scales only client render partial ticks for a bounded cue-local pulse and resets on level/disconnect cleanup.
 
 ## Agent authoring contract
 
@@ -77,13 +78,13 @@ Post-process is intentionally a narrow internal channel, not an authoring framew
 | Hammer / launch | `hammer`, `impact`, `impact_sound` | forged-metal beat, cyan-white hit, camera/HUD response | VERIFIED |
 | Resonance / link | `resonance_channel`, `resonance_strike`, `link_bind`, `detonate` | cursed-energy pulse, binding ring, particle burst, target-origin timing | VERIFIED |
 | Enlarge / Boom | `enlarge`, `explosion`, `first_person_snap` | cyan rings, ribbons/blades, shards, sound stack, HUD/camera, caster hand snap | VERIFIED |
-| Straw Doll ritual | `remnant_drop`, `ritual_bind`, `doll_strike`, `resonance_release` | trace pickup, constricting bind, effigy puncture, dark-center/cyan-fracture remote release | VERIFIED |
+| Straw Doll ritual | `remnant_drop`, `ritual_bind`, `doll_strike`, `resonance_release` | trace pickup, constricting bind, heavy effigy puncture, target-local slow/zoom/nausea, dark-center/cyan-fracture remote release | VERIFIED |
 
 Nobara registers the complete recipe set, including horizontal/overhead hammer, prepared launch, embedded drive, Black Flash, self resonance, Straw Doll, and Hairpin scenes. Enlarge stages compression, a held frame, then blades/rings; Explosion stages implosion then staggered shell breaks. `ProjectJjkNailRenderer` remains state-driven for persistent real nail aura, renders a compressed-energy envelope around prepared/flying nails, and shares `VfxPalette`; embedded nails deliberately have no broad aura. Gameplay ownership for these cues is documented in [[../03-systems/Nobara-runtime-flow]].
 
 ## Verification
 
-- Pure assertion tasks cover cue codec/seed/anchor offset, timeline age/expiry/opening-window/realtime offsets, zero/non-zero live-anchor resolution, immutable-origin fallback, quality scaling, registration, transport guards, lifecycle cleanup, all 23 age-aware timed-channel calls, blur fallback wiring, straw-doll resource completeness, and legacy-path absence.
+- Pure assertion tasks cover cue codec/seed/anchor offset, timeline age/expiry/opening-window/realtime offsets, zero/non-zero live-anchor resolution, immutable-origin fallback, quality scaling, registration, transport guards, lifecycle cleanup, all 33 age-aware timed-channel calls, blur fallback wiring, target-local time/HUD wiring, straw-doll resource completeness, and legacy-path absence.
 - `ProjectSanityTest.java:303-393` prevents an accidental return to the old payload/static-manager path and checks the current timeline, lifecycle, live-anchor, and first-person wiring; legacy absence assertions are at `ProjectSanityTest.java:372-377`.
 - Anchor-offset TDD reproduced the eye-height loss, then produced the expected RED because the seven-field constructor and `anchorOffset()` did not yet exist. Focused GREEN `testVfxAnchor testVfxCore testVfxTimeline --no-daemon` passed after `a2cf61c`.
 - The prior VFX Core baseline closed with seven assertion tasks. The Straw Doll expansion adds two assertion tasks; fresh full verification and independent review are recorded in the current session handoff.

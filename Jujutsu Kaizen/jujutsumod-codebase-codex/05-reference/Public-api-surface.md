@@ -18,7 +18,7 @@ These are safe **product extension points**, not merely Java-public symbols.
 | `NobaraVfxIds` (or future character `*VfxIds`) | stable visual event vocabulary | `vfx/NobaraVfxIds.java:6-20` |
 | `JujutsuNetworking.broadcastVfxCue` / `sendVfxCue` | only generic server-to-client VFX sends | `network/JujutsuNetworking.java:38-59` |
 | `VfxDirector.register` + `VfxRecipe` + `VfxInstance` | typed client composition point | `client/vfx/VfxDirector.java:50-54` |
-| `VfxContext` | world/particles/sound/HUD/camera/first-person/internal post-process channels | `client/vfx/VfxContext.java` |
+| `VfxContext` | world/particles/sound/HUD/camera/first-person/internal post-process/time channels | `client/vfx/VfxContext.java` |
 | `VfxPalette` | shared cursed-energy colors for compatible persistent renderers | `client/vfx/VfxPalette.java` |
 | `NailRuntimeAnchorRegistry.register` | attach a nail to a stable non-entity runtime object | `projectjjk/NailRuntimeAnchorRegistry.java` |
 | `CurseLinkRegistry` | source-owned explicit curse-link lifecycle | `curse/CurseLinkRegistry.java` |
