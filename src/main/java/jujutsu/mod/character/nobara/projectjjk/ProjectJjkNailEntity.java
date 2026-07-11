@@ -33,6 +33,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	private static final EntityDataAccessor<Integer> DATA_EMBEDDED_TARGET_ID = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.INT);
 	private static final EntityDataAccessor<Vector3f> DATA_EMBEDDED_LOCAL_OFFSET = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.VECTOR3);
 	private static final EntityDataAccessor<Vector3f> DATA_EMBEDDED_LOCAL_FORWARD = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.VECTOR3);
+	private static final EntityDataAccessor<Integer> DATA_EMBED_DEPTH = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.INT);
 	private static final String OWNER_UUID_TAG = "OwnerUuid";
 	private static final String OWNER_ENTITY_ID_TAG = "OwnerEntityId";
 	private static final String LAUNCHED_TAG = "Launched";
@@ -42,6 +43,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	private static final String EMBEDDED_TARGET_UUID_TAG = "EmbeddedTargetUuid";
 	private static final String EMBEDDED_TARGET_ID_TAG = "EmbeddedTargetId";
 	private static final String EMBEDDED_AGE_TAG = "EmbeddedAge";
+	private static final String EMBED_DEPTH_TAG = "EmbedDepth";
 	private static final String EMBEDDED_OFFSET_X_TAG = "EmbeddedOffsetX";
 	private static final String EMBEDDED_OFFSET_Y_TAG = "EmbeddedOffsetY";
 	private static final String EMBEDDED_OFFSET_Z_TAG = "EmbeddedOffsetZ";
@@ -158,6 +160,24 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	public NailAnchor anchor() {
 		return anchor;
+	}
+
+	public int embedDepthLevel() {
+		return Mth.clamp(entityData.get(DATA_EMBED_DEPTH), 1, 3);
+	}
+
+	public float depthDamageMultiplier() {
+		return ProjectJjkNobaraProfile.nailDepthMultiplier(embedDepthLevel());
+	}
+
+	public boolean deepen() {
+		if (!isEmbedded() || embedDepthLevel() >= 3) return false;
+		entityData.set(DATA_EMBED_DEPTH, embedDepthLevel() + 1);
+		return true;
+	}
+
+	public int embeddedAgeTicks() {
+		return embeddedAgeTicks;
 	}
 
 	public void attachToRuntimeObject(ResourceLocation type, UUID objectId, Vec3 localOffset, Vec3 localForward) {
@@ -283,6 +303,7 @@ public final class ProjectJjkNailEntity extends Entity {
 		builder.define(DATA_EMBEDDED_TARGET_ID, -1);
 		builder.define(DATA_EMBEDDED_LOCAL_OFFSET, new Vector3f(0.0f, 0.0f, 0.0f));
 		builder.define(DATA_EMBEDDED_LOCAL_FORWARD, new Vector3f(0.0f, 0.0f, 1.0f));
+		builder.define(DATA_EMBED_DEPTH, 1);
 	}
 
 	@Override
@@ -300,6 +321,7 @@ public final class ProjectJjkNailEntity extends Entity {
 		}
 		output.putInt(EMBEDDED_TARGET_ID_TAG, embeddedTargetId);
 		output.putInt(EMBEDDED_AGE_TAG, embeddedAgeTicks);
+		output.putInt(EMBED_DEPTH_TAG, embedDepthLevel());
 		output.putDouble(EMBEDDED_OFFSET_X_TAG, embeddedLocalOffset.x);
 		output.putDouble(EMBEDDED_OFFSET_Y_TAG, embeddedLocalOffset.y);
 		output.putDouble(EMBEDDED_OFFSET_Z_TAG, embeddedLocalOffset.z);
@@ -340,6 +362,7 @@ public final class ProjectJjkNailEntity extends Entity {
 		embeddedTargetUuid = embeddedTarget.isBlank() ? null : UUID.fromString(embeddedTarget);
 		embeddedTargetId = input.getIntOr(EMBEDDED_TARGET_ID_TAG, -1);
 		embeddedAgeTicks = input.getIntOr(EMBEDDED_AGE_TAG, 0);
+		entityData.set(DATA_EMBED_DEPTH, Mth.clamp(input.getIntOr(EMBED_DEPTH_TAG, 1), 1, 3));
 		embeddedLocalOffset = new Vec3(input.getDoubleOr(EMBEDDED_OFFSET_X_TAG, 0.0), input.getDoubleOr(EMBEDDED_OFFSET_Y_TAG, 0.0), input.getDoubleOr(EMBEDDED_OFFSET_Z_TAG, 0.0));
 		embeddedOffset = embeddedLocalOffset;
 		target = new Vec3(input.getDoubleOr(TARGET_X_TAG, getX()), input.getDoubleOr(TARGET_Y_TAG, getY()), input.getDoubleOr(TARGET_Z_TAG, getZ()));

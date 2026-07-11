@@ -56,15 +56,10 @@ public final class NobaraHammerCombatRuntime {
 		}
 
 		LivingEntity looked = lookedTarget(player);
-		ProjectJjkNailEntity embedded = looked == null ? null : findEmbeddedNail(player, looked);
 		AttackKind kind;
 		NobaraActionTimeline timeline;
 		UUID targetId = looked == null ? null : looked.getUUID();
-		UUID nailId = embedded == null ? null : embedded.getUUID();
-		if (embedded != null) {
-			kind = AttackKind.EMBEDDED_NAIL;
-			timeline = NobaraActionTimeline.HORIZONTAL;
-		} else if (OVERHEAD_NEXT.getOrDefault(player.getUUID(), false)) {
+		if (OVERHEAD_NEXT.getOrDefault(player.getUUID(), false)) {
 			kind = AttackKind.OVERHEAD;
 			timeline = NobaraActionTimeline.OVERHEAD;
 			OVERHEAD_NEXT.put(player.getUUID(), false);
@@ -73,8 +68,8 @@ public final class NobaraHammerCombatRuntime {
 			timeline = NobaraActionTimeline.HORIZONTAL;
 			OVERHEAD_NEXT.put(player.getUUID(), true);
 		}
-		PENDING.put(player.getUUID(), new PendingAttack(kind, now + timeline.impactTick(), now + timeline.recoveryTicks(), targetId, nailId));
-		emit(player, kind == AttackKind.HORIZONTAL ? NobaraVfxIds.HAMMER_HORIZONTAL : kind == AttackKind.OVERHEAD ? NobaraVfxIds.HAMMER_OVERHEAD : NobaraVfxIds.EMBEDDED_NAIL_DRIVE, player.getEyePosition(), 1);
+		PENDING.put(player.getUUID(), new PendingAttack(kind, now + timeline.impactTick(), now + timeline.recoveryTicks(), targetId, null));
+		emit(player, kind == AttackKind.HORIZONTAL ? NobaraVfxIds.HAMMER_HORIZONTAL : NobaraVfxIds.HAMMER_OVERHEAD, player.getEyePosition(), 1);
 		player.swing(hammerHand, true);
 		return true;
 	}
@@ -108,7 +103,7 @@ public final class NobaraHammerCombatRuntime {
 		if (pending.kind() == AttackKind.HORIZONTAL) {
 			List<LivingEntity> targets = sweepTargets(player);
 			for (LivingEntity target : targets) {
-				target.hurtServer(level, level.damageSources().playerAttack(player), ProjectJjkNobaraProfile.HAMMER_HORIZONTAL_DAMAGE);
+				if (target.hurtServer(level, level.damageSources().playerAttack(player), ProjectJjkNobaraProfile.HAMMER_HORIZONTAL_DAMAGE)) deepenOneNail(player, target);
 				CombatStagger.GLOBAL.apply(target, now, ProjectJjkNobaraProfile.LIGHT_STAGGER_TICKS);
 			}
 			if (!targets.isEmpty()) openWindow(player, targets.getFirst(), BlackFlashImpact.HAMMER, ProjectJjkNobaraProfile.HAMMER_HORIZONTAL_DAMAGE, now);
@@ -116,18 +111,20 @@ public final class NobaraHammerCombatRuntime {
 		}
 		Entity entity = pending.targetId() == null ? null : level.getEntity(pending.targetId());
 		if (!(entity instanceof LivingEntity target) || !target.isAlive() || player.distanceTo(target) > ProjectJjkNobaraProfile.HAMMER_MELEE_RANGE + ProjectJjkNobaraProfile.HAMMER_RANGE_TOLERANCE) return;
-		if (pending.kind() == AttackKind.EMBEDDED_NAIL) {
-			Entity nailEntity = pending.nailId() == null ? null : level.getEntity(pending.nailId());
-			if (!(nailEntity instanceof ProjectJjkNailEntity nail) || !nail.isOwnedBy(player.getUUID()) || !target.getUUID().equals(nail.anchor().stableId())) return;
-			target.hurtServer(level, level.damageSources().playerAttack(player), ProjectJjkNobaraProfile.EMBEDDED_NAIL_DRIVE_DAMAGE);
-			nail.driveDeeper(ProjectJjkNobaraProfile.EMBEDDED_NAIL_DRIVE_DEPTH);
-			CombatStagger.GLOBAL.apply(target, now, ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
-			openWindow(player, target, BlackFlashImpact.EMBEDDED_NAIL, ProjectJjkNobaraProfile.EMBEDDED_NAIL_DRIVE_DAMAGE, now);
-		} else {
-			target.hurtServer(level, level.damageSources().playerAttack(player), ProjectJjkNobaraProfile.HAMMER_OVERHEAD_DAMAGE);
+		if (pending.kind() == AttackKind.OVERHEAD) {
+			if (target.hurtServer(level, level.damageSources().playerAttack(player), ProjectJjkNobaraProfile.HAMMER_OVERHEAD_DAMAGE)) deepenOneNail(player, target);
 			CombatStagger.GLOBAL.apply(target, now, ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
 			openWindow(player, target, BlackFlashImpact.HAMMER, ProjectJjkNobaraProfile.HAMMER_OVERHEAD_DAMAGE, now);
 		}
+	}
+
+	private static void deepenOneNail(ServerPlayer player, LivingEntity target) {
+		findEmbeddedNails(player, target).stream()
+				.filter(nail -> nail.embedDepthLevel() < 3)
+				.min(Comparator.comparingInt(ProjectJjkNailEntity::embedDepthLevel).reversed()
+						.thenComparing(Comparator.comparingInt(ProjectJjkNailEntity::embeddedAgeTicks).reversed())
+						.thenComparing(Entity::getUUID))
+				.ifPresent(ProjectJjkNailEntity::deepen);
 	}
 
 	private static void openWindow(ServerPlayer player, LivingEntity target, BlackFlashImpact impact, float damage, long now) {
@@ -166,7 +163,11 @@ public final class NobaraHammerCombatRuntime {
 	}
 
 	private static ProjectJjkNailEntity findEmbeddedNail(ServerPlayer player, LivingEntity target) {
-		return player.level().getEntitiesOfClass(ProjectJjkNailEntity.class, target.getBoundingBox().inflate(ProjectJjkNobaraProfile.NAIL_CONTEXT_SCAN_INFLATE), nail -> nail.isEmbedded() && nail.isOwnedBy(player.getUUID()) && target.getUUID().equals(nail.anchor().stableId())).stream().findFirst().orElse(null);
+		return findEmbeddedNails(player, target).stream().findFirst().orElse(null);
+	}
+
+	private static List<ProjectJjkNailEntity> findEmbeddedNails(ServerPlayer player, LivingEntity target) {
+		return player.level().getEntitiesOfClass(ProjectJjkNailEntity.class, target.getBoundingBox().inflate(ProjectJjkNobaraProfile.NAIL_CONTEXT_SCAN_INFLATE), nail -> nail.isEmbedded() && nail.isOwnedBy(player.getUUID()) && target.getUUID().equals(nail.anchor().stableId()));
 	}
 
 	private static List<LivingEntity> sweepTargets(ServerPlayer player) {
@@ -202,7 +203,7 @@ public final class NobaraHammerCombatRuntime {
 	}
 
 	private static void clear() { PENDING.clear(); WINDOWS.clear(); OVERHEAD_NEXT.clear(); }
-	private enum AttackKind { HORIZONTAL, OVERHEAD, EMBEDDED_NAIL }
+	private enum AttackKind { HORIZONTAL, OVERHEAD }
 	private record PendingAttack(AttackKind kind, long impactAt, long recoveryAt, UUID targetId, UUID nailId, boolean resolved) {
 		private PendingAttack(AttackKind kind, long impactAt, long recoveryAt, UUID targetId, UUID nailId) { this(kind, impactAt, recoveryAt, targetId, nailId, false); }
 		private PendingAttack resolvedCopy() { return new PendingAttack(kind, impactAt, recoveryAt, targetId, nailId, true); }
