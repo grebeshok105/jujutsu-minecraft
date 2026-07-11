@@ -178,6 +178,16 @@ tasks.register('testServerTimeDilation', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testHairpinChain', JavaExec) {
+	group = 'verification'
+	description = 'Runs deterministic Nobara Hairpin chain tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.nobara.projectjjk.HairpinChainTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.named('check') {
 	dependsOn tasks.named('testProjectSanity')
 	dependsOn tasks.named('testTargetResolver')
@@ -193,6 +203,7 @@ tasks.named('check') {
 	dependsOn tasks.named('testVfxAnchor')
 	dependsOn tasks.named('testVfxTime')
 	dependsOn tasks.named('testServerTimeDilation')
+	dependsOn tasks.named('testHairpinChain')
 }
 
 processResources {

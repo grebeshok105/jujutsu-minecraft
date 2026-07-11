@@ -91,7 +91,8 @@ public final class ProjectSanityTest {
 		String guard = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/NobaraActionGuard.java"));
 		assert guard.contains("AttackEntityCallback") && guard.contains("isHammer(player.getItemInHand(hand))") : "Hammer LMB must suppress vanilla entity damage";
 		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
-		assert ritual.contains("UUID nailId") && ritual.contains("ExplosionOutcome.RETRY") : "Delayed Boom must retry temporarily unloaded nail UUIDs";
+		assert ritual.contains("HairpinChain.Resolution.TEMPORARILY_UNAVAILABLE") && ritual.contains("HairpinChainScheduler")
+				: "Hairpin chains must preserve temporarily unloaded nails without blocking later steps";
 		String focus = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/combat/BlackFlashFocus.java"));
 		assert focus.contains("addTag(TAG)") && focus.contains("BlackFlashFocusPayload") : "Black Flash focus must persist and synchronize";
 		String self = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/SelfResonanceRuntime.java"));
@@ -298,8 +299,8 @@ public final class ProjectSanityTest {
 		assert commands.contains("ProjectJjkNobaraActions.tryCast") : "Hairpin commands must use the shared Nobara selection gate";
 		String actionRuntime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraActions.java"));
 		assert actionRuntime.contains("CharacterSelectionManager.selected(player) != JujutsuCharacter.NOBARA") : "Nobara actions must reject non-Nobara players";
-		assert actionRuntime.contains("tryEnlargeMarkedTarget(player)") : "Hairpin Enlarge action must call the runtime cast";
-		assert actionRuntime.contains("detonateMarks(player)") : "Hairpin Explosion action must call the runtime cast";
+		assert actionRuntime.contains("startDirectedHairpin(player)") : "R must call the directed Hairpin runtime";
+		assert actionRuntime.contains("startMassHairpin(player)") : "B must call the mass Hairpin runtime";
 		String hammer = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkHammerItem.java"));
 		assert !hammer.contains("tryEnlargeMarkedTarget") : "Hammer must not hide Hairpin Enlarge as a fallback action";
 		assert !hammer.contains("detonateMarks") : "Hammer must not hide Hairpin Explosion as a fallback action";
@@ -436,7 +437,7 @@ public final class ProjectSanityTest {
 		assert openingBeatGuards >= 8 : "Every non-seekable Nobara sound/particle opening beat must reject late playback";
 		long ageAwareChannelCalls = Pattern.compile("trigger(?:Launch|HeavyImpact|Explosion|Ritual|Swing|Impact|Snap|Blur|ResonanceImpact|SlowMotion|Nausea)\\([^\\n]*initialAgeTicks\\)")
 				.matcher(recipes).results().count();
-		assert ageAwareChannelCalls == 35 : "All 35 Nobara realtime channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
+		assert ageAwareChannelCalls == 36 : "All 36 Nobara realtime channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
 		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/network/ProjectJjkNobaraImpulsePayload.java")) : "Legacy integer VFX payload must be removed after migration";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java")) : "Legacy Hairpin world renderer must be replaced by VFX Core";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinCinematicCamera.java")) : "Legacy Hairpin camera manager must be replaced by VFX Core";

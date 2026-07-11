@@ -24,8 +24,17 @@ public final class NobaraVfxIds {
 	public static final ResourceLocation EMBEDDED_NAIL_DRIVE = id("embedded_nail_drive");
 	public static final ResourceLocation BLACK_FLASH = id("black_flash");
 	public static final ResourceLocation SELF_RESONANCE = id("self_resonance");
+	public static final ResourceLocation NAIL_DEEPEN = id("nail_deepen");
+	private static final int HAIRPIN_FINALE_FLAG = 8;
 
 	private NobaraVfxIds() {}
+
+	public static int hairpinExplosionIntensity(int depth, boolean finale) {
+		return Math.max(1, Math.min(3, depth)) | (finale ? HAIRPIN_FINALE_FLAG : 0);
+	}
+
+	public static int hairpinExplosionDepth(int intensity) { return Math.max(1, Math.min(3, intensity & 7)); }
+	public static boolean isHairpinFinale(int intensity) { return (intensity & HAIRPIN_FINALE_FLAG) != 0; }
 
 	private static ResourceLocation id(String path) {
 		return JujutsuMod.id("nobara/" + path);

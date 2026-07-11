@@ -43,6 +43,24 @@ public final class NobaraVfxRecipes {
 		VfxDirector.register(NobaraVfxIds.EMBEDDED_NAIL_DRIVE, cue -> hammerAction(cue, "hammer_embedded_drive", true));
 		VfxDirector.register(NobaraVfxIds.BLACK_FLASH, NobaraVfxRecipes::blackFlash);
 		VfxDirector.register(NobaraVfxIds.SELF_RESONANCE, cue -> hammerAction(cue, "self_resonance", true));
+		VfxDirector.register(NobaraVfxIds.NAIL_DEEPEN, NobaraVfxRecipes::nailDeepen);
+	}
+
+	private static VfxInstance nailDeepen(VfxCue cue) {
+		return VfxInstance.of(16, (context, initialAgeTicks) -> {
+			Vec3 origin = context.resolveOrigin(cue);
+			int depth = Math.max(2, Math.min(3, intensity(cue)));
+			float proximity = context.proximity(cue, 48.0);
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				RandomSource random = random(cue, 0xDEE9EEL);
+				context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, depth == 3 ? 26 : 18, depth == 3 ? 0.78 : 0.54, -0.24, -0.1, random);
+				context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, depth == 3 ? 28 : 16, 0.42, 0.04, random);
+				context.burst(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, origin, depth == 3 ? 18 : 9, 0.32, 0.24, random);
+				context.burst(new DustParticleOptions(0x2A0008, depth == 3 ? 1.5f : 1.0f), origin, depth == 3 ? 22 : 10, 0.38, 0.12, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_IMPLODE, 0.46f * proximity, depth == 3 ? 0.7f : 1.05f, origin, random);
+			}
+			if (proximity > 0.01f) context.camera().triggerHeavyImpact(depth, proximity * (depth == 3 ? 0.72f : 0.38f), initialAgeTicks);
+		});
 	}
 
 	private static VfxInstance hammerAction(VfxCue cue, String animation, boolean heavy) {
@@ -184,7 +202,9 @@ public final class NobaraVfxRecipes {
 
 	private static VfxInstance explosion(VfxCue cue) {
 		return VfxInstance.of(18, (context, initialAgeTicks) -> {
-			int marks = intensity(cue);
+			int depth = NobaraVfxIds.hairpinExplosionDepth(intensity(cue));
+			boolean finale = NobaraVfxIds.isHairpinFinale(intensity(cue));
+			int marks = depth;
 			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.EXPLOSION, 18);
 			float proximity = context.proximity(cue, 64.0);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
@@ -196,13 +216,25 @@ public final class NobaraVfxRecipes {
 				context.burst(JujutsuParticles.HAIRPIN_SPARK, origin, 22 + marks * 5, 0.52, 0.28, random);
 				context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 6 + marks, 0.28, 0.08, random);
 				context.ring(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 20 + marks * 3, 1.1 + Math.min(4, marks) * 0.12, 0.08, 0.04, random);
+				if (depth == 3) {
+					context.burst(new DustParticleOptions(0x1A0006, 1.8f), origin, 34, 0.62, 0.22, random);
+					context.burst(JujutsuParticles.HAIRPIN_SNAP_CRACK, origin, 24, 0.5, 0.22, random);
+					context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 34, 1.55, 0.2, -0.16, random);
+				}
+				if (finale) {
+					context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 42, 2.05, 0.42, 0.14, random);
+					context.ring(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 34, 2.65, -0.12, 0.08, random);
+					context.burst(ParticleTypes.FLASH, origin, 2, 0.12, 0.0, random);
+				}
 				if (proximity > 0.01f) {
 					context.playNoFalloff(JujutsuSounds.PROJECTJJK_EXPLODE, 0.42f * proximity, 1.96f, origin, random);
 					context.playNoFalloff(JujutsuSounds.PROJECTJJK_IMPLODE, 0.24f * proximity, 1.22f, origin, random);
+					if (depth == 3) context.playNoFalloff(JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, 0.68f * proximity, 0.76f, origin, random);
+					if (finale) context.playNoFalloff(JujutsuSounds.PROJECTJJK_LONG_WHOOSH, 0.86f * proximity, 0.58f, origin, random);
 				}
 			}
 			if (proximity > 0.01f) {
-				context.camera().triggerExplosion(marks, Math.min(1.0f, proximity * 0.82f), initialAgeTicks);
+				context.camera().triggerExplosion(depth + (finale ? 3 : 0), Math.min(1.0f, proximity * (finale ? 1.0f : 0.82f)), initialAgeTicks);
 				context.hud().triggerImpact(Math.min(1.0f, proximity * 0.74f), initialAgeTicks);
 				context.postProcess().triggerBlur(Math.round(210.0f * proximity), initialAgeTicks);
 			}

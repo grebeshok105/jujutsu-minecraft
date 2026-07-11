@@ -7,14 +7,14 @@ import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.combat.CombatStagger;
 
 public final class ProjectJjkNobaraActions {
-	public static final int HAIRPIN_ENLARGE = 0;
-	public static final int HAIRPIN_EXPLOSION = 1;
+	public static final int HAIRPIN_DIRECTED = 0;
+	public static final int HAIRPIN_MASS = 1;
 	public static final int HAMMER_CONTEXT = 2;
 	public static final int NAIL_LAUNCH_EXPLOSIVE = HAMMER_CONTEXT;
 	public static final int SELF_RESONANCE = 3;
 	public static final int NAIL_TRAP = 4;
-	public static final int HAIRPIN_DIRECTED = HAIRPIN_ENLARGE;
-	public static final int HAIRPIN_MASS = HAIRPIN_EXPLOSION;
+	@Deprecated public static final int HAIRPIN_ENLARGE = HAIRPIN_DIRECTED;
+	@Deprecated public static final int HAIRPIN_EXPLOSION = HAIRPIN_MASS;
 
 	private ProjectJjkNobaraActions() {}
 
@@ -27,8 +27,8 @@ public final class ProjectJjkNobaraActions {
 		}
 		if (CombatStagger.GLOBAL.isStaggered(player.getUUID(), player.level().getGameTime())) return false;
 		boolean cast = switch (action) {
-			case HAIRPIN_ENLARGE -> ProjectJjkNobaraRuntime.canCastMarkedHairpin(player) && ProjectJjkRitualRuntime.tryEnlargeMarkedTarget(player);
-			case HAIRPIN_EXPLOSION -> ProjectJjkNobaraRuntime.canCastMarkedHairpin(player) && ProjectJjkRitualRuntime.detonateMarks(player);
+			case HAIRPIN_DIRECTED -> ProjectJjkNobaraRuntime.canCastMarkedHairpin(player) && ProjectJjkRitualRuntime.startDirectedHairpin(player);
+			case HAIRPIN_MASS -> ProjectJjkNobaraRuntime.canCastMarkedHairpin(player) && ProjectJjkRitualRuntime.startMassHairpin(player);
 			case HAMMER_CONTEXT -> NobaraHammerCombatRuntime.handleInput(player);
 			case SELF_RESONANCE -> SelfResonanceRuntime.tryCast(player);
 			default -> false;
