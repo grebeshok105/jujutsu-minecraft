@@ -78,6 +78,16 @@ tasks.register('testNobaraRemnant', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testRemnantVisualType', JavaExec) {
+	group = 'verification'
+	description = 'Runs Bound Remnant classification and legacy-codec tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.nobara.projectjjk.RemnantVisualTypeTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.register('testNobaraRitual', JavaExec) {
 	group = 'verification'
 	description = 'Runs assertion-based tests for Nobara straw doll ritual policy'
@@ -203,6 +213,7 @@ tasks.named('check') {
 	dependsOn tasks.named('testTargetResolver')
 	dependsOn tasks.named('testProjectJjkNobaraProfile')
 	dependsOn tasks.named('testNobaraRemnant')
+	dependsOn tasks.named('testRemnantVisualType')
 	dependsOn tasks.named('testNobaraRitual')
 	dependsOn tasks.named('testNailAnchor')
 	dependsOn tasks.named('testBlackFlash')

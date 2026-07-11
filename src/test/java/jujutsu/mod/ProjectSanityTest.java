@@ -57,6 +57,7 @@ public final class ProjectSanityTest {
 		assertNobaraHammerHasExplosiveAndPiercingLaunchModes();
 		assertStrawDollRitualUsesPhysicalRemnants();
 		assertOriginalStrawDollAssetWired();
+		assertBoundRemnantVisualVariants();
 		assertNobaraNailAuraAvoidsSoulFire();
 		assertHairpinScreenOverlayUsesSmoothGradientVignette();
 		assertCharacterSelectUsesCheapUiPrimitives();
@@ -68,6 +69,35 @@ public final class ProjectSanityTest {
 		assertSoundReferencesAreLocalAndPresent();
 		assertNoForbiddenImports();
 		System.out.println("ProjectSanityTest passed");
+	}
+
+	private static void assertBoundRemnantVisualVariants() throws IOException {
+		Path definition = JUJUTSU_ASSETS.resolve("items/resonance_remnant.json");
+		String json = Files.readString(definition);
+		assert json.contains("\"property\": \"minecraft:component\"")
+				: "Bound Remnant variants must use the native 1.21.8 component model property";
+		assert json.contains("\"component\": \"jujutsumod:resonance_remnant_visual\"")
+				: "Bound Remnant model must read its synchronized visual component";
+		for (String type : List.of("flesh", "token", "curse")) {
+			Path model = JUJUTSU_ASSETS.resolve("models/item/resonance_remnant_" + type + ".json");
+			Path texture = JUJUTSU_ASSETS.resolve("textures/item/resonance_remnant_" + type + ".png");
+			assert Files.exists(model) : "Missing Bound Remnant model: " + model;
+			assert Files.readString(model).contains("jujutsumod:item/resonance_remnant_" + type)
+					: "Bound Remnant model does not route to its texture: " + model;
+			BufferedImage image = ImageIO.read(texture.toFile());
+			assert image != null : "Unreadable Bound Remnant texture: " + texture;
+			assert image.getWidth() == 64 && image.getHeight() == 64
+					: "Bound Remnant texture must be exactly 64x64: " + texture;
+			assert ((image.getRGB(0, 0) >>> 24) & 0xff) == 0
+					: "Bound Remnant texture must retain a transparent background: " + texture;
+			for (int y = 0; y < image.getHeight(); y++) {
+				for (int x = 0; x < image.getWidth(); x++) {
+					int alpha = (image.getRGB(x, y) >>> 24) & 0xff;
+					assert alpha == 0 || alpha == 255
+							: "Bound Remnant pixel art must not contain translucent fringe: " + texture;
+				}
+			}
+		}
 	}
 
 	private static void assertPerNailHairpinDamageContract() throws IOException {

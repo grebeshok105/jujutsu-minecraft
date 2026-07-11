@@ -21,6 +21,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.network.JujutsuNetworking;
@@ -71,10 +72,12 @@ public final class ProjectJjkStrawDollRuntime {
 		ProjectJjkResonanceRemnant binding = new ProjectJjkResonanceRemnant(
 				target.getUUID(),
 				level.dimension().location(),
-				target.getDisplayName()
+				target.getDisplayName(),
+				remnantVisualType(target)
 		);
 		ItemStack stack = new ItemStack(JujutsuItems.RESONANCE_REMNANT);
 		stack.set(JujutsuDataComponents.RESONANCE_TARGET, binding);
+		stack.set(JujutsuDataComponents.RESONANCE_REMNANT_VISUAL, binding.visualType());
 		stack.set(DataComponents.CUSTOM_NAME, Component.translatable(
 				"item.jujutsumod.resonance_remnant.bound",
 				binding.targetName()
@@ -87,6 +90,13 @@ public final class ProjectJjkStrawDollRuntime {
 		level.addFreshEntity(dropped);
 		JujutsuNetworking.broadcastVfxCue(level, dropAt, VFX_RADIUS,
 				cue(level, NobaraVfxIds.REMNANT_DROP, 1, dropAt, level.getGameTime(), target));
+	}
+
+	private static RemnantVisualType remnantVisualType(LivingEntity target) {
+		return RemnantVisualType.classify(
+				target.getType().is(ProjectJjkTags.RESONANCE_REMNANT_CURSE),
+				target instanceof Animal
+		);
 	}
 
 	public static boolean tryStart(ServerPlayer caster, ItemStack hammer, InteractionHand hand) {

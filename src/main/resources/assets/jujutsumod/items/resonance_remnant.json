@@ -1,6 +1,27 @@
 {
   "model": {
-    "type": "minecraft:model",
-    "model": "jujutsumod:item/resonance_remnant"
+    "type": "minecraft:select",
+    "property": "minecraft:component",
+    "component": "jujutsumod:resonance_remnant_visual",
+    "cases": [
+      {
+        "when": "flesh",
+        "model": {
+          "type": "minecraft:model",
+          "model": "jujutsumod:item/resonance_remnant_flesh"
+        }
+      },
+      {
+        "when": "curse",
+        "model": {
+          "type": "minecraft:model",
+          "model": "jujutsumod:item/resonance_remnant_curse"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "jujutsumod:item/resonance_remnant_token"
+    }
   }
 }
