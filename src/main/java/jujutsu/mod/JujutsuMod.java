@@ -17,6 +17,7 @@ import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.registry.JujutsuParticles;
 import jujutsu.mod.registry.JujutsuSounds;
+import jujutsu.mod.combat.ForcedBlackFlash;
 import jujutsu.mod.curse.CurseLinkRegistry;
 
 import org.slf4j.Logger;
@@ -42,6 +43,7 @@ public class JujutsuMod implements ModInitializer {
 		SelfResonanceRuntime.register();
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> CurseLinkRegistry.GLOBAL.clear());
 		JujutsuCommands.register();
+		ForcedBlackFlash.register();
 		LOGGER.info("JujutsuMod initialized");
 	}
 

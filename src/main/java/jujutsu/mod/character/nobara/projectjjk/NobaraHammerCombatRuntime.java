@@ -20,6 +20,7 @@ import jujutsu.mod.combat.BlackFlashFocus;
 import jujutsu.mod.combat.BlackFlashImpact;
 import jujutsu.mod.combat.BlackFlashWindow;
 import jujutsu.mod.combat.CombatStagger;
+import jujutsu.mod.combat.ForcedBlackFlash;
 import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.network.JujutsuNetworking;
@@ -51,6 +52,7 @@ public final class NobaraHammerCombatRuntime {
 			prepared.launchAt(player.getEyePosition().add(player.getLookAngle().scale(ProjectJjkNobaraProfile.TARGET_RANGE)), 0, false);
 			emit(player, NobaraVfxIds.HAMMER_NAIL_LAUNCH, player.getEyePosition(), 1);
 			WINDOWS.put(player.getUUID(), new BlackFlashWindow(prepared.getUUID(), BlackFlashImpact.PREPARED_NAIL, now, now + ProjectJjkNobaraProfile.BLACK_FLASH_WINDOW_LATE_TICKS, 0.0f));
+			if (ForcedBlackFlash.isEnabled(player)) resolveBlackFlash(player, WINDOWS.remove(player.getUUID()));
 			player.swing(hammerHand, true);
 			return true;
 		}
@@ -128,7 +130,9 @@ public final class NobaraHammerCombatRuntime {
 	}
 
 	private static void openWindow(ServerPlayer player, LivingEntity target, BlackFlashImpact impact, float damage, long now) {
-		WINDOWS.put(player.getUUID(), new BlackFlashWindow(target.getUUID(), impact, now, now + ProjectJjkNobaraProfile.BLACK_FLASH_WINDOW_LATE_TICKS, damage));
+		BlackFlashWindow window = new BlackFlashWindow(target.getUUID(), impact, now, now + ProjectJjkNobaraProfile.BLACK_FLASH_WINDOW_LATE_TICKS, damage);
+		if (ForcedBlackFlash.isEnabled(player)) resolveBlackFlash(player, window);
+		else WINDOWS.put(player.getUUID(), window);
 	}
 
 	private static boolean resolveBlackFlash(ServerPlayer player, BlackFlashWindow window) {

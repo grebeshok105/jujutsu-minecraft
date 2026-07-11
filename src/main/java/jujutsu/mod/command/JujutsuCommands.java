@@ -1,6 +1,7 @@
 package jujutsu.mod.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
@@ -16,6 +17,7 @@ import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.registry.JujutsuParticles;
 import jujutsu.mod.curse.CurseLinkRegistry;
 import java.util.Set;
+import jujutsu.mod.combat.ForcedBlackFlash;
 
 public final class JujutsuCommands {
 	private JujutsuCommands() {}
@@ -58,7 +60,17 @@ public final class JujutsuCommands {
 								.then(Commands.argument("target", EntityArgument.player())
 										.executes(ctx -> createTestCurseLink(ctx.getSource(), EntityArgument.getPlayer(ctx, "target")))))
 						.then(Commands.literal("clear").executes(ctx -> clearTestCurseLinks(ctx.getSource())))
-						.then(Commands.literal("list").executes(ctx -> listCurseLinks(ctx.getSource())))));
+						.then(Commands.literal("list").executes(ctx -> listCurseLinks(ctx.getSource()))))
+				.then(Commands.literal("debug")
+						.then(Commands.literal("black_flash_force")
+								.then(Commands.argument("enabled", BoolArgumentType.bool())
+										.executes(ctx -> setForcedBlackFlash(ctx.getSource(), BoolArgumentType.getBool(ctx, "enabled")))))));
+	}
+
+	private static int setForcedBlackFlash(CommandSourceStack source, boolean enabled) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		ForcedBlackFlash.set(source.getPlayerOrException(), enabled);
+		source.sendSuccess(() -> Component.literal("Forced Black Flash: " + enabled), false);
+		return 1;
 	}
 
 	private static int createTestCurseLink(CommandSourceStack source, ServerPlayer target) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
