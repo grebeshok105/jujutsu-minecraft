@@ -248,27 +248,31 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance dollStrike(VfxCue cue) {
-		return VfxInstance.of(24, (context, initialAgeTicks) -> {
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.DOLL_STRIKE, 24);
+		return VfxInstance.of(36, (context, initialAgeTicks) -> {
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.DOLL_STRIKE, 36);
 			float proximity = context.proximity(cue, 44.0);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				Vec3 origin = context.resolveOrigin(cue);
 				RandomSource random = random(cue, 0xD01157L);
-				context.burst(JujutsuParticles.HAIRPIN_SNAP_CRACK, origin, 22, 0.34, 0.18, random);
-				context.burst(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, origin, 13, 0.42, 0.31, random);
-				context.burst(PROJECTJJK_CYAN, origin, 28, 0.42, 0.22, random);
-				context.playNoFalloff(SoundEvents.ANVIL_USE, 1.2f * proximity, 0.72f, origin, random);
-				context.playNoFalloff(JujutsuSounds.PROJECTJJK_CLAP, 1.1f * proximity, 0.68f, origin, random);
-				context.playNoFalloff(JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, 0.72f * proximity, 0.62f, origin, random);
+				context.burst(JujutsuParticles.HAIRPIN_SNAP_CRACK, origin, 42, 0.52, 0.28, random);
+				context.burst(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, origin, 28, 0.64, 0.45, random);
+				context.burst(PROJECTJJK_CYAN, origin, 56, 0.68, 0.34, random);
+				context.burst(ParticleTypes.EXPLOSION_EMITTER, origin, 3, 0.18, 0.02, random);
+				context.burst(ParticleTypes.FLASH, origin, 3, 0.12, 0.0, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_IMPLODE, 1.15f * proximity, 0.52f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, 1.5f * proximity, 0.58f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, 1.1f * proximity, 0.68f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_LONG_WHOOSH, 0.9f * proximity, 0.55f, origin, random);
 			}
 			if (proximity > 0.01f) {
 				context.camera().triggerResonanceImpact(intensity(cue) + 7, Math.min(1.0f, proximity * 1.15f), initialAgeTicks);
+				context.camera().triggerExplosion(intensity(cue) + 5, proximity, initialAgeTicks);
 				context.hud().triggerImpact(proximity, initialAgeTicks);
+				context.hud().triggerFlash(420, Math.round(210.0f * proximity), initialAgeTicks);
 				context.postProcess().triggerBlur(Math.round(520.0f * proximity), initialAgeTicks);
 				context.firstPerson().triggerSnap(initialAgeTicks);
 			}
 			if (isLocalAnchor(context, cue)) {
-				context.time().triggerSlowMotion(0.45f, 450, initialAgeTicks);
 				context.hud().triggerNausea(0.85f, initialAgeTicks);
 				context.postProcess().triggerBlur(700, initialAgeTicks);
 			}
@@ -283,16 +287,21 @@ public final class NobaraVfxRecipes {
 				Vec3 origin = context.resolveOrigin(cue);
 				RandomSource random = random(cue, 0x5A17E0L);
 				spawnResonanceBurst(context, origin, marks, random);
-				context.playNoFalloff(JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, 1.0f, 0.78f, origin, random);
+				context.burst(ParticleTypes.EXPLOSION_EMITTER, origin, 4, 0.3, 0.04, random);
+				context.burst(ParticleTypes.FLASH, origin, 3, 0.18, 0.0, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_IMPLODE, 1.1f, 0.48f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, 1.5f, 0.66f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT_2, 1.15f, 0.72f, origin, random);
 			}
 			float proximity = context.proximity(cue, 64.0);
 			if (proximity > 0.01f) {
 				context.camera().triggerResonanceImpact(marks + 2, proximity, initialAgeTicks);
+				context.camera().triggerExplosion(marks + 5, proximity, initialAgeTicks);
 				context.hud().triggerImpact(proximity, initialAgeTicks);
+				context.hud().triggerFlash(520, Math.round(225.0f * proximity), initialAgeTicks);
 				context.postProcess().triggerBlur(Math.round(360.0f * proximity), initialAgeTicks);
 			}
 			if (isLocalAnchor(context, cue)) {
-				context.time().triggerSlowMotion(0.65f, 300, initialAgeTicks);
 				context.hud().triggerNausea(1.0f, initialAgeTicks);
 				context.postProcess().triggerBlur(520, initialAgeTicks);
 			}

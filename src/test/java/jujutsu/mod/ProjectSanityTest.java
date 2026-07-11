@@ -533,8 +533,16 @@ public final class ProjectSanityTest {
 		int end = recipes.indexOf("private static VfxInstance resonanceRelease", start);
 		assert start >= 0 && end > start : "Straw Doll recipes must keep distinct caster and target impact phases";
 		String dollStrike = recipes.substring(start, end);
-		assert dollStrike.contains("context.time().triggerSlowMotion(0.45f, 450, initialAgeTicks)")
-				: "A local Nobara caster must receive visible slow-motion even when the target is a mob";
+		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkStrawDollRuntime.java"));
+		assert ritual.contains("RESONANCE_TIME.trigger") && ritual.contains("RESONANCE_SERVER_TICK_RATE")
+				: "Resonance must apply authoritative server time dilation even when the target is a mob";
+		assert !dollStrike.contains("SoundEvents.ANVIL_USE") : "The doll strike must not sound like an anvil";
+		for (String sound : new String[] {"PROJECTJJK_IMPLODE", "PROJECTJJK_DEEP_EXPLOSION", "PROJECTJJK_BLACK_FLASH_IMPACT", "PROJECTJJK_LONG_WHOOSH"}) {
+			assert dollStrike.contains(sound) : "The doll strike is missing sound layer " + sound;
+		}
+		assert dollStrike.contains("ParticleTypes.EXPLOSION_EMITTER")
+				&& dollStrike.contains("triggerExplosion") && dollStrike.contains("triggerFlash")
+				: "The doll strike must stack explosions, camera impulse, and a long flash";
 		assert dollStrike.contains("context.hud().triggerNausea(0.85f, initialAgeTicks)")
 				: "A local Nobara caster must receive the heavy Resonance screen impact";
 		String hud = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxHudChannel.java"));

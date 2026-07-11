@@ -168,6 +168,16 @@ tasks.register('testVfxTime', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testServerTimeDilation', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for server-authoritative Resonance time dilation'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.nobara.projectjjk.ServerTimeDilationTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.named('check') {
 	dependsOn tasks.named('testProjectSanity')
 	dependsOn tasks.named('testTargetResolver')
@@ -182,6 +192,7 @@ tasks.named('check') {
 	dependsOn tasks.named('testVfxQuality')
 	dependsOn tasks.named('testVfxAnchor')
 	dependsOn tasks.named('testVfxTime')
+	dependsOn tasks.named('testServerTimeDilation')
 }
 
 processResources {

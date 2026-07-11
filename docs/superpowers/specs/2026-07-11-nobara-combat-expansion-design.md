@@ -4,6 +4,8 @@
 
 Deepen the existing ProjectJJK Nobara vertical slice without replacing its canonical runtime or VFX Core. Nails become durable gameplay objects, hammer attacks become a real aggressive melee loop, Resonance gains weight without potion-effect shortcuts, and Black Flash/curse links establish small reusable contracts for later characters.
 
+The amplified doll impact briefly lowers the authoritative server tick rate to `6 TPS` for four server ticks, then restores the exact prior rate. This is intentionally a global multiplayer beat because Minecraft has no entity-local authoritative clock. Repeated impacts extend the window, shutdown restores the rate, and an external tick-rate change made during the beat is never overwritten. The doll no longer uses the vanilla anvil sound; its impact stack is cursed implosion, deep explosion, Black Flash crack, and a long low whoosh, paired with layered explosion emitters, flashes, and camera impulses at both the doll and target.
+
 ## Nail ownership and anchors
 
 Every placed nail remains a `ProjectJjkNailEntity` owned by a player UUID. Its anchor is one of `NONE`, `ENTITY`, `BLOCK`, or `RUNTIME_OBJECT`. Entity anchors persist a target UUID plus cached entity id and body-local hit transform. Block anchors persist dimension, block position, state signature, local hit point, and face. Runtime-object anchors persist a resolver type id and stable object id.
