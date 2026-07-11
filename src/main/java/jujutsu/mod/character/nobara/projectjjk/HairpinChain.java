@@ -9,14 +9,16 @@ import java.util.function.Function;
 public final class HairpinChain {
 	private final Mode mode;
 	private final List<UUID> nailIds;
+	private final List<UUID> pending;
 	private final int cadenceTicks;
 	private final List<UUID> skippedTemporary = new ArrayList<>();
 	private long nextDueGameTime;
-	private int cursor;
+	private UUID lastSuccessful;
 
 	private HairpinChain(Mode mode, List<UUID> nailIds, long nextDueGameTime, int cadenceTicks) {
 		this.mode = Objects.requireNonNull(mode, "mode");
 		this.nailIds = List.copyOf(nailIds);
+		this.pending = new ArrayList<>(nailIds);
 		this.nextDueGameTime = nextDueGameTime;
 		if (cadenceTicks < 1) throw new IllegalArgumentException("cadenceTicks must be positive");
 		this.cadenceTicks = cadenceTicks;
@@ -28,26 +30,25 @@ public final class HairpinChain {
 
 	public Step poll(long gameTime, Function<UUID, Resolution> resolver) {
 		if (gameTime < nextDueGameTime) return Step.waiting();
-		while (cursor < nailIds.size()) {
-			UUID nailId = nailIds.get(cursor++);
+		int attempts = pending.size();
+		while (attempts-- > 0 && !pending.isEmpty()) {
+			UUID nailId = pending.removeFirst();
 			Resolution resolution = Objects.requireNonNull(resolver.apply(nailId), "resolution");
 			if (resolution == Resolution.TEMPORARILY_UNAVAILABLE) {
-				skippedTemporary.add(nailId);
+				if (!skippedTemporary.contains(nailId)) skippedTemporary.add(nailId);
+				pending.add(nailId);
 				continue;
 			}
 			if (resolution == Resolution.CONFIRMED_REMOVED || resolution == Resolution.INVALID) continue;
-			boolean finale = !hasFutureResolvable(resolver);
+			lastSuccessful = nailId;
 			nextDueGameTime = gameTime + cadenceTicks;
-			return Step.explode(nailId, finale);
+			return Step.explode(nailId, false);
 		}
-		return Step.complete();
-	}
-
-	private boolean hasFutureResolvable(Function<UUID, Resolution> resolver) {
-		for (int index = cursor; index < nailIds.size(); index++) {
-			if (resolver.apply(nailIds.get(index)) == Resolution.RESOLVED) return true;
+		if (!pending.isEmpty()) {
+			nextDueGameTime = gameTime + cadenceTicks;
+			return Step.waiting();
 		}
-		return false;
+		return Step.complete(lastSuccessful);
 	}
 
 	public Mode mode() { return mode; }
@@ -61,6 +62,6 @@ public final class HairpinChain {
 	public record Step(StepKind kind, UUID nailId, boolean finale) {
 		private static Step waiting() { return new Step(StepKind.WAIT, null, false); }
 		private static Step explode(UUID nailId, boolean finale) { return new Step(StepKind.EXPLODE, nailId, finale); }
-		private static Step complete() { return new Step(StepKind.COMPLETE, null, false); }
+		private static Step complete(UUID lastSuccessful) { return new Step(StepKind.COMPLETE, lastSuccessful, lastSuccessful != null); }
 	}
 }

@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.UUID;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
@@ -51,6 +52,7 @@ public final class NailTrapRuntime {
 	public static void register() {
 		ServerTickEvents.END_SERVER_TICK.register(NailTrapRuntime::tick);
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> clear(server, true));
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> removeOwned(server, handler.player.getUUID()));
 	}
 
 	public static boolean tryPlace(ServerPlayer owner) {
@@ -116,9 +118,10 @@ public final class NailTrapRuntime {
 
 	private static void tickTrap(MinecraftServer server, NailTrap trap) {
 		ServerLevel level = serverLevel(server, trap);
-		if (level == null || !available(level, trap)) return;
+		if (level == null) { TRAPS.remove(trap.ownerId(), trap); COLLAPSES.remove(trap.ownerId()); return; }
+		if (!available(level, trap)) return;
 		ServerPlayer owner = server.getPlayerList().getPlayer(trap.ownerId());
-		if (owner == null || owner.level() != level) return;
+		if (owner == null || owner.level() != level) { remove(level, trap); return; }
 
 		CollapseState collapse = COLLAPSES.get(trap.ownerId());
 		if (collapse != null) {
@@ -165,14 +168,16 @@ public final class NailTrapRuntime {
 
 	private static void impact(ServerLevel level, ServerPlayer owner, NailTrap trap, LivingEntity target) {
 		Vec3 at = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
-		target.hurtServer(level, NobaraDamageSources.hairpin(level, owner), ProjectJjkNobaraProfile.NAIL_TRAP_DAMAGE);
-		CombatStagger.GLOBAL.apply(target, level.getGameTime(), ProjectJjkNobaraProfile.NAIL_TRAP_INTERRUPT_TICKS);
-
 		ProjectJjkNailEntity embedded = new ProjectJjkNailEntity(JujutsuEntities.PROJECTJJK_NAIL, level);
 		Vec3 direction = target.position().subtract(owner.position()).normalize();
 		embedded.prepare(owner, at, direction);
 		embedded.attachToEntity(target, at);
-		level.addFreshEntity(embedded);
+		if (!level.addFreshEntity(embedded)) {
+			remove(level, trap);
+			return;
+		}
+		target.hurtServer(level, NobaraDamageSources.hairpin(level, owner), ProjectJjkNobaraProfile.NAIL_TRAP_DAMAGE);
+		CombatStagger.GLOBAL.apply(target, level.getGameTime(), ProjectJjkNobaraProfile.NAIL_TRAP_INTERRUPT_TICKS);
 		ProjectJjkRitualRuntime.markTarget(level, target, owner, at);
 
 		for (UUID nailId : trap.nailIds()) {
@@ -307,6 +312,14 @@ public final class NailTrapRuntime {
 		if (discardNails) for (NailTrap trap : TRAPS.values()) cleanupTrap(serverLevel(server, trap), trap);
 		TRAPS.clear();
 		COLLAPSES.clear();
+	}
+
+	private static void removeOwned(MinecraftServer server, UUID ownerId) {
+		TRAPS.get(ownerId).ifPresent(trap -> {
+			ServerLevel level = serverLevel(server, trap);
+			if (level != null) remove(level, trap);
+			else { TRAPS.remove(ownerId, trap); COLLAPSES.remove(ownerId); }
+		});
 	}
 
 	private static ServerLevel serverLevel(MinecraftServer server, NailTrap trap) {

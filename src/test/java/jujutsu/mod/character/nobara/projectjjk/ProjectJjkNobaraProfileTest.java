@@ -42,6 +42,7 @@ public final class ProjectJjkNobaraProfileTest {
 		assert ProjectJjkNobaraProfile.NAIL_TRAP_DAMAGE == 15.0f;
 		assert ProjectJjkNobaraProfile.RESONANT_MOMENTUM_DURATION_TICKS == 1200;
 		assert ProjectJjkNobaraProfile.RESONANT_MOMENTUM_MULTIPLIER == 1.15f;
+		assert ProjectJjkNobaraProfile.EMBEDDED_NAIL_RENDER_DEPTH_OFFSET == 0.075;
 	}
 
 	private static void assertTapPreparesOneNail() {

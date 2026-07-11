@@ -43,6 +43,9 @@ public final class NailTrapTest {
 			assert nail.contains("TRAP_NAIL_TAG") && nail.contains("markAsTrapNail") : "trap nail identity must survive chunk save/load";
 			assert nail.contains("!NailTrapRuntime.isTrapNail(getUUID())") : "orphaned trap nails must clean themselves after final runtime removal";
 			assert ritual.contains("!nail.isTrapNail()") : "armed trap nails must not enter R/B chains";
+			assert runtime.contains("ServerPlayConnectionEvents.DISCONNECT") : "disconnect must remove trap state and entities";
+			assert runtime.contains("if (!level.addFreshEntity(embedded))") : "failed embed spawn must not create a phantom mark";
+			assert runtime.indexOf("if (!level.addFreshEntity(embedded))") < runtime.indexOf("markTarget(level, target") : "mark only after successful spawn";
 		} catch (Exception exception) {
 			throw new AssertionError("Unable to inspect nail trap integration", exception);
 		}

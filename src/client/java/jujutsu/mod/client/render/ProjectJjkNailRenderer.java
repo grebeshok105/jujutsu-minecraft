@@ -20,6 +20,7 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEmbedding;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEntity;
+import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraProfile;
 import jujutsu.mod.client.vfx.VfxPalette;
 import jujutsu.mod.registry.JujutsuItems;
 
@@ -83,7 +84,9 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		matrices.pushPose();
 		if (state.embedded && state.hasEmbeddedAnchor) {
 			matrices.translate(state.embeddedAnchorOffset.x, state.embeddedAnchorOffset.y, state.embeddedAnchorOffset.z);
-			matrices.translate(direction.x * (state.embedDepth - 1) * 0.075, direction.y * (state.embedDepth - 1) * 0.075, direction.z * (state.embedDepth - 1) * 0.075);
+			matrices.translate(direction.x * (state.embedDepth - 1) * ProjectJjkNobaraProfile.EMBEDDED_NAIL_RENDER_DEPTH_OFFSET,
+					direction.y * (state.embedDepth - 1) * ProjectJjkNobaraProfile.EMBEDDED_NAIL_RENDER_DEPTH_OFFSET,
+					direction.z * (state.embedDepth - 1) * ProjectJjkNobaraProfile.EMBEDDED_NAIL_RENDER_DEPTH_OFFSET);
 		}
 		if (!state.embedded) {
 			float alpha = state.launched ? 0.96f : 0.68f;

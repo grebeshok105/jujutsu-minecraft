@@ -105,20 +105,26 @@ public final class NobaraHammerCombatRuntime {
 		if (pending.kind() == AttackKind.HORIZONTAL) {
 			float damage = ProjectJjkNobaraProfile.HAMMER_HORIZONTAL_DAMAGE * ResonantMomentum.damageMultiplier(player);
 			List<LivingEntity> targets = sweepTargets(player);
+			LivingEntity firstSuccessful = null;
 			for (LivingEntity target : targets) {
-				if (target.hurtServer(level, level.damageSources().playerAttack(player), damage)) deepenOneNail(player, target);
-				CombatStagger.GLOBAL.apply(target, now, ProjectJjkNobaraProfile.LIGHT_STAGGER_TICKS);
+				if (target.hurtServer(level, level.damageSources().playerAttack(player), damage)) {
+					if (firstSuccessful == null) firstSuccessful = target;
+					deepenOneNail(player, target);
+					CombatStagger.GLOBAL.apply(target, now, ProjectJjkNobaraProfile.LIGHT_STAGGER_TICKS);
+				}
 			}
-			if (!targets.isEmpty()) openWindow(player, targets.getFirst(), BlackFlashImpact.HAMMER, damage, now);
+			if (firstSuccessful != null) openWindow(player, firstSuccessful, BlackFlashImpact.HAMMER, damage, now);
 			return;
 		}
 		Entity entity = pending.targetId() == null ? null : level.getEntity(pending.targetId());
 		if (!(entity instanceof LivingEntity target) || !target.isAlive() || player.distanceTo(target) > ProjectJjkNobaraProfile.HAMMER_MELEE_RANGE + ProjectJjkNobaraProfile.HAMMER_RANGE_TOLERANCE) return;
 		if (pending.kind() == AttackKind.OVERHEAD) {
 			float damage = ProjectJjkNobaraProfile.HAMMER_OVERHEAD_DAMAGE * ResonantMomentum.damageMultiplier(player);
-			if (target.hurtServer(level, level.damageSources().playerAttack(player), damage)) deepenOneNail(player, target);
-			CombatStagger.GLOBAL.apply(target, now, ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
-			openWindow(player, target, BlackFlashImpact.HAMMER, damage, now);
+			if (target.hurtServer(level, level.damageSources().playerAttack(player), damage)) {
+				deepenOneNail(player, target);
+				CombatStagger.GLOBAL.apply(target, now, ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
+				openWindow(player, target, BlackFlashImpact.HAMMER, damage, now);
+			}
 		}
 	}
 

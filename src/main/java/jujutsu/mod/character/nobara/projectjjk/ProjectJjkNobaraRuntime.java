@@ -165,10 +165,10 @@ public final class ProjectJjkNobaraRuntime {
 		if (hit instanceof EntityHitResult entityHit && entityHit.getEntity() instanceof LivingEntity livingTarget) {
 			directTarget = livingTarget;
 			boolean damageAccepted = hurtTarget(level, owner, directTarget, source, ProjectJjkNobaraProfile.NAIL_DAMAGE, point, 0.9f);
-			NobaraHammerCombatRuntime.openNailEmbedWindow(owner, directTarget, ProjectJjkNobaraProfile.NAIL_DAMAGE);
 			boolean selfHit = owner != null && directTarget.getUUID().equals(owner.getUUID());
 			// Accepted ordinary hits preserve Hairpin marks and independently advance remnant acquisition.
 			if (ProjectJjkRitualPolicy.isSuccessfulOrdinaryHit(damageAccepted, explosiveImpact, selfHit)) {
+				NobaraHammerCombatRuntime.openNailEmbedWindow(owner, directTarget, ProjectJjkNobaraProfile.NAIL_DAMAGE);
 				ProjectJjkRitualRuntime.markTarget(level, directTarget, owner, point);
 				ProjectJjkStrawDollRuntime.onOrdinaryNailHit(level, owner, directTarget, point);
 			}

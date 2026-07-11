@@ -19,6 +19,8 @@ public final class HairpinChainTest {
 		directedAndMassUseExactCadence();
 		temporaryEntryDoesNotBlockOrConsumeLaterEntries();
 		finaleMovesToLastSuccessfulResolvableEntry();
+		temporaryEntryRotatesAndRetriesAfterOtherEntries();
+		directedOrderKeepsSelectedSeedFirst();
 		runtimeUsesDistinctDirectedAndMassChains();
 		depthAndFinaleHaveDedicatedPresentation();
 	}
@@ -85,8 +87,8 @@ public final class HairpinChainTest {
 		HairpinChain.Step first = chain.poll(0L, state::get);
 		HairpinChain.Step second = chain.poll(3L, state::get);
 		assert first.nailId().equals(A) && !first.finale();
-		assert second.nailId().equals(C) && second.finale();
-		assert chain.poll(6L, state::get).kind() == HairpinChain.StepKind.COMPLETE;
+		assert second.nailId().equals(C) && !second.finale();
+		assert chain.poll(6L, state::get).kind() == HairpinChain.StepKind.WAIT;
 		assert chain.skippedTemporary().equals(List.of(B)) : "Temporary nail must remain identifiable and unconsumed";
 	}
 
@@ -97,6 +99,24 @@ public final class HairpinChainTest {
 				B, HairpinChain.Resolution.CONFIRMED_REMOVED,
 				C, HairpinChain.Resolution.TEMPORARILY_UNAVAILABLE);
 		HairpinChain.Step step = chain.poll(0L, state::get);
-		assert step.nailId().equals(A) && step.finale() : "Last successful resolvable entry owns finale";
+		assert step.nailId().equals(A) && !step.finale();
+		assert chain.poll(2L, state::get).kind() == HairpinChain.StepKind.WAIT : "temporary anchors keep the chain alive";
+	}
+
+	private static void temporaryEntryRotatesAndRetriesAfterOtherEntries() {
+		HairpinChain chain = HairpinChain.start(HairpinChain.Mode.MASS, List.of(A, B), 0L, 3);
+		Map<UUID, HairpinChain.Resolution> unavailable = Map.of(A, HairpinChain.Resolution.TEMPORARILY_UNAVAILABLE, B, HairpinChain.Resolution.RESOLVED);
+		assert chain.poll(0L, unavailable::get).nailId().equals(B);
+		Map<UUID, HairpinChain.Resolution> restored = Map.of(A, HairpinChain.Resolution.RESOLVED, B, HairpinChain.Resolution.CONFIRMED_REMOVED);
+		assert chain.poll(3L, restored::get).nailId().equals(A) : "rotated temporary nail must retry";
+		HairpinChain.Step complete = chain.poll(6L, restored::get);
+		assert complete.kind() == HairpinChain.StepKind.COMPLETE && complete.nailId().equals(A) : "completion identifies the last actual success for finale presentation";
+	}
+
+	private static void directedOrderKeepsSelectedSeedFirst() {
+		List<HairpinChainOrder.Candidate> ordered = HairpinChainOrder.directed(A, new Vec3(9, 0, 0), List.of(
+				new HairpinChainOrder.Candidate(B, Vec3.ZERO), new HairpinChainOrder.Candidate(A, new Vec3(9, 0, 0)),
+				new HairpinChainOrder.Candidate(C, new Vec3(8, 0, 0))));
+		assert ordered.stream().map(HairpinChainOrder.Candidate::nailId).toList().equals(List.of(A, C, B));
 	}
 }

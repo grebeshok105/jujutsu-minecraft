@@ -26,6 +26,16 @@ public final class HairpinChainOrder {
 		return List.copyOf(ordered);
 	}
 
+	public static List<Candidate> directed(UUID seedId, Vec3 seedPosition, List<Candidate> input) {
+		Candidate seed = input.stream().filter(candidate -> candidate.nailId().equals(seedId)).findFirst()
+				.orElseThrow(() -> new IllegalArgumentException("directed seed missing"));
+		List<Candidate> rest = input.stream().filter(candidate -> !candidate.nailId().equals(seedId)).toList();
+		List<Candidate> result = new ArrayList<>(input.size());
+		result.add(seed);
+		result.addAll(nearestNeighbor(seedPosition, rest));
+		return List.copyOf(result);
+	}
+
 	public record Candidate(UUID nailId, Vec3 position) {
 		public Candidate {
 			Objects.requireNonNull(nailId, "nailId");

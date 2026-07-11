@@ -39,6 +39,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	private static final String LAUNCHED_TAG = "Launched";
 	private static final String EXPLOSIVE_IMPACT_TAG = "ExplosiveImpact";
 	private static final String LAUNCH_DELAY_TAG = "LaunchDelay";
+	private static final String FLIGHT_MULTIPLIER_TAG = "FlightMultiplier";
 	private static final String EMBEDDED_TAG = "Embedded";
 	private static final String EMBEDDED_TARGET_UUID_TAG = "EmbeddedTargetUuid";
 	private static final String EMBEDDED_TARGET_ID_TAG = "EmbeddedTargetId";
@@ -72,6 +73,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	private int launchDelayTicks;
 	private Vec3 target = Vec3.ZERO;
 	private Vec3 pendingLaunchDirection = Vec3.ZERO;
+	private double flightMultiplier = 1.0;
 	private boolean embedded;
 	private UUID embeddedTargetUuid;
 	private int embeddedTargetId = -1;
@@ -219,7 +221,9 @@ public final class ProjectJjkNailEntity extends Entity {
 	}
 
 	public void amplifyFlight(double multiplier) {
-		if (isFlying() && multiplier > 1.0) {
+		if (!isLaunched() || multiplier <= 1.0) return;
+		flightMultiplier *= multiplier;
+		if (isFlying()) {
 			setDeltaMovement(getDeltaMovement().scale(multiplier));
 			hasImpulse = true;
 		}
@@ -336,6 +340,7 @@ public final class ProjectJjkNailEntity extends Entity {
 		output.putBoolean(LAUNCHED_TAG, isLaunched());
 		output.putBoolean(EXPLOSIVE_IMPACT_TAG, explosiveImpact);
 		output.putInt(LAUNCH_DELAY_TAG, launchDelayTicks);
+		output.putDouble(FLIGHT_MULTIPLIER_TAG, flightMultiplier);
 		output.putBoolean(EMBEDDED_TAG, isEmbedded());
 		if (embeddedTargetUuid != null) {
 			output.putString(EMBEDDED_TARGET_UUID_TAG, embeddedTargetUuid.toString());
@@ -379,6 +384,7 @@ public final class ProjectJjkNailEntity extends Entity {
 		setLaunched(input.getBooleanOr(LAUNCHED_TAG, false));
 		explosiveImpact = input.getBooleanOr(EXPLOSIVE_IMPACT_TAG, false);
 		launchDelayTicks = input.getIntOr(LAUNCH_DELAY_TAG, 0);
+		flightMultiplier = Math.max(1.0, input.getDoubleOr(FLIGHT_MULTIPLIER_TAG, 1.0));
 		setEmbedded(input.getBooleanOr(EMBEDDED_TAG, false));
 		String embeddedTarget = input.getStringOr(EMBEDDED_TARGET_UUID_TAG, "");
 		embeddedTargetUuid = embeddedTarget.isBlank() ? null : UUID.fromString(embeddedTarget);
@@ -531,7 +537,7 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	private void startFlight(Vec3 direction) {
 		trackActiveExplosiveNail();
-		setDeltaMovement(launchVelocity(direction));
+		setDeltaMovement(launchVelocity(direction).scale(flightMultiplier));
 		setFlightSynced(true);
 		hasImpulse = true;
 		if (level() instanceof ServerLevel serverLevel) {
