@@ -1,6 +1,6 @@
 # Session Handoff — Jujutsu Minecraft
 
-> **CURRENT 2026-07-11:** resume from `docs/session-handoffs/2026-07-11-nobara-hairpin-depth-chain-trap-handoff.md`. The approved design is `docs/superpowers/specs/2026-07-11-nobara-hairpin-depth-chain-trap-design.md`, and the executable plan is `docs/superpowers/plans/2026-07-11-nobara-hairpin-depth-chain-trap.md`. Implement it without another design pause: R/B chains, depth, Shift+B trap, forced Black Flash, three remnant variants, and Resonant Momentum.
+> **CURRENT 2026-07-11:** resume from `docs/session-handoffs/2026-07-11-nobara-hairpin-depth-chain-trap-handoff.md`. The R/B chains, depth, Shift+B trap, forced Black Flash, three remnant variants, and Resonant Momentum are complete through `d1461cc`. Final installed JAR SHA-256: `472D7CECD157C89CF66A39D113B8837BEFA72CAB7F1C6A4C6A5F242FDCF257C1`. Do not reimplement the plan; reproduce only new user-reported gameplay defects.
 
 > **SUPERSEDED 2026-07-11:** do not resume from the commit/hash/state below. The canonical current handoff is `docs/session-handoffs/2026-07-11-nobara-straw-doll-vfx-handoff.md` in this worktree. It contains the Straw Doll/VFX expansion, held-item renderer fix, current JAR hash, remaining manual QA, and the exact next-chat resume protocol.
 

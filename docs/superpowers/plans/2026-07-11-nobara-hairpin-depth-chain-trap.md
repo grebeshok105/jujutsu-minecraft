@@ -1,5 +1,7 @@
 # Nobara Hairpin Depth, Chain, Trap, Remnants, and Momentum Implementation Plan
 
+> **Status: COMPLETE 2026-07-11.** Implemented through `d1461cc`; two final reviews completed and fixed in one pass. Runtime JAR installed with SHA-256 `472D7CECD157C89CF66A39D113B8837BEFA72CAB7F1C6A4C6A5F242FDCF257C1`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build distinct directed/mass Hairpin chains, persistent nail depth, a Shift+B territory trap, forced Black Flash debugging, three polished Bound Remnant variants, and Resonant Momentum.
@@ -250,4 +252,3 @@ int interval = ResonantMomentum.scalePreparationTicks(caster, baseInterval, game
 - Confirm forced Black Flash covers hammer and nail physical impacts but not Hairpin technique explosions.
 - Inspect all three remnant icons in inventory, hand, ground, and GUI scaling.
 - Confirm Resonant Momentum HUD and 60-second feel.
-

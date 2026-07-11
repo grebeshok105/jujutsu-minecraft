@@ -1,4 +1,4 @@
-# Session Handoff — Nobara Hairpin Depth/Chains/Trap Planning
+# Session Handoff — Nobara Hairpin Depth/Chains/Trap Complete
 
 Date: 2026-07-11
 
@@ -8,6 +8,28 @@ Date: 2026-07-11
 - Branch: `codex/nobara-cinematic-slice`
 - Starting implementation commit: `fbf1de2 feat(nobara): amplify straw doll resonance impact`
 - Remote branch already exists and matched local HEAD before this planning session.
+
+## Completion status
+
+Implementation is complete through `d1461cc fix(nobara): harden combat edge cases`.
+
+- R/B deterministic chains, block-only R terrain explosion, depth I-III and finale VFX are implemented.
+- Shift+B triangular trap is implemented.
+- Forced Black Flash debug toggle is implemented.
+- FLESH/TOKEN/CURSE Bound Remnant variants are implemented as 64x64 component-selected textures.
+- Resonant Momentum is implemented with server lifecycle, synchronization, explicit multipliers, and HUD.
+- Two final read-only reviews (spec and code quality) were run once. All ten confirmed findings were fixed in one pass; no repeated review loop followed.
+
+Final verification on 2026-07-11:
+
+- `gradlew.bat check --no-daemon` — success, 24 verification tasks.
+- `gradlew.bat build --no-daemon -x test` — success.
+- `git diff --check` — success.
+- Runtime JAR required-entry inspection — success.
+- Built and installed SHA-256: `472D7CECD157C89CF66A39D113B8837BEFA72CAB7F1C6A4C6A5F242FDCF257C1`.
+- Installed: `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar`.
+
+Manual gameplay/VFX feel remains user-owned QA; automated/build evidence does not prove feel.
 
 ## Approved scope
 
@@ -25,7 +47,7 @@ Key locked decisions:
 - Remnants use FLESH/TOKEN/CURSE 64x64 icons with shared straw binding; players use TOKEN.
 - Straw Doll Resonance grants non-stacking Resonant Momentum for 60 seconds: 15% faster nail prep/launch and 15% hammer/Hairpin damage.
 
-## Current implementation facts
+## Historical pre-implementation facts
 
 - `ProjectJjkNailEntity` is canonical and already persists typed anchors/local offsets.
 - `ProjectJjkRitualRuntime` still owns shuffled/variable-count mass explosions and delayed Enlarge; replace only the relevant detonation path.
@@ -40,6 +62,5 @@ Key locked decisions:
 1. Read root `AGENTS.md`, this handoff, the design, the plan, and `SESSION.md`.
 2. Confirm clean status and current HEAD in the isolated worktree.
 3. Consult Obsidian ProjectJJK/Nobara notes before gameplay edits.
-4. Execute task-by-task with failing tests first and conventional commits.
-5. Do one global review only after all tasks, fix findings once, rebuild/install/hash.
-
+4. Treat the implementation as complete; reproduce only reported gameplay defects.
+5. After any fix, rebuild/install/hash using the project verification policy.
