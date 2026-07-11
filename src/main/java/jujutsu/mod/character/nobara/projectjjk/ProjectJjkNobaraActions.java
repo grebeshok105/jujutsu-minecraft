@@ -12,6 +12,9 @@ public final class ProjectJjkNobaraActions {
 	public static final int HAMMER_CONTEXT = 2;
 	public static final int NAIL_LAUNCH_EXPLOSIVE = HAMMER_CONTEXT;
 	public static final int SELF_RESONANCE = 3;
+	public static final int NAIL_TRAP = 4;
+	public static final int HAIRPIN_DIRECTED = HAIRPIN_ENLARGE;
+	public static final int HAIRPIN_MASS = HAIRPIN_EXPLOSION;
 
 	private ProjectJjkNobaraActions() {}
 

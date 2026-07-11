@@ -44,10 +44,10 @@ public final class JujutsuKeybinds {
 				}
 			}
 			while (nobaraEnlarge.consumeClick()) {
-				sendNobaraAction(client.player != null && client.player.isShiftKeyDown() ? NobaraActionPayload.SELF_RESONANCE : NobaraActionPayload.HAIRPIN_ENLARGE);
+				sendNobaraAction(client.player != null && client.player.isShiftKeyDown() ? NobaraActionPayload.SELF_RESONANCE : NobaraActionPayload.HAIRPIN_DIRECTED);
 			}
 			while (nobaraExplosion.consumeClick()) {
-				sendNobaraAction(NobaraActionPayload.HAIRPIN_EXPLOSION);
+				sendNobaraAction(client.player != null && client.player.isShiftKeyDown() ? NobaraActionPayload.NAIL_TRAP : NobaraActionPayload.HAIRPIN_MASS);
 			}
 			boolean attackDown = client.options.keyAttack.isDown();
 			if (attackDown && !attackWasDown && client.player != null && client.screen == null && isHoldingNobaraHammer(client.player.getMainHandItem(), client.player.getOffhandItem())) {

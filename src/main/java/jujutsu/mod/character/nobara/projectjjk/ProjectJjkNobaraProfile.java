@@ -30,6 +30,22 @@ public final class ProjectJjkNobaraProfile {
 	// Hairpin mark detonation.
 	public static final double DETONATE_RANGE = 24.0;
 	public static final float HAIRPIN_BOOM_DAMAGE_PER_NAIL = 3.0f;
+	public static final float HAIRPIN_DIRECTED_DAMAGE_PER_NAIL = 5.0f;
+	public static final double HAIRPIN_DIRECTED_CHAIN_RADIUS = 10.0;
+	public static final int HAIRPIN_DIRECTED_CHAIN_DELAY_TICKS = 2;
+	public static final int HAIRPIN_MASS_CHAIN_DELAY_TICKS = 3;
+	public static final float HAIRPIN_BLOCK_EXPLOSION_POWER = 1.5f;
+	public static final float NAIL_DEPTH_1_MULTIPLIER = 1.0f;
+	public static final float NAIL_DEPTH_2_MULTIPLIER = 1.35f;
+	public static final float NAIL_DEPTH_3_MULTIPLIER = 1.75f;
+	public static final double NAIL_TRAP_RADIUS = 6.0;
+	public static final double NAIL_TRAP_PLACEMENT_RANGE = 8.0;
+	public static final int NAIL_TRAP_LIFETIME_TICKS = 600;
+	public static final float NAIL_TRAP_DAMAGE = 15.0f;
+	public static final int NAIL_TRAP_INTERRUPT_TICKS = 12;
+	public static final int NAIL_TRAP_COLLAPSE_TICKS = 6;
+	public static final int RESONANT_MOMENTUM_DURATION_TICKS = 1200;
+	public static final float RESONANT_MOMENTUM_MULTIPLIER = 1.15f;
 	public static final float DETONATE_DAMAGE_BASE = HAIRPIN_BOOM_DAMAGE_PER_NAIL;
 	public static final float DETONATE_DAMAGE_PER_MARK = 0.0f;
 	public static final int HAIRPIN_EXPLOSION_START_DELAY_TICKS = 10;
@@ -92,5 +108,13 @@ public final class ProjectJjkNobaraProfile {
 
 	public static int preparationDelayForIndex(int index) {
 		return Math.max(0, index) * EXTRA_NAIL_HOLD_TICKS;
+	}
+
+	public static float nailDepthMultiplier(int depth) {
+		return switch (Math.clamp(depth, 1, 3)) {
+			case 2 -> NAIL_DEPTH_2_MULTIPLIER;
+			case 3 -> NAIL_DEPTH_3_MULTIPLIER;
+			default -> NAIL_DEPTH_1_MULTIPLIER;
+		};
 	}
 }

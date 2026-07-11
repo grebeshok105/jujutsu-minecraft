@@ -12,6 +12,9 @@ public record NobaraActionPayload(int action) implements CustomPacketPayload {
 	public static final int NAIL_LAUNCH_EXPLOSIVE = ProjectJjkNobaraActions.NAIL_LAUNCH_EXPLOSIVE;
 	public static final int HAMMER_CONTEXT = ProjectJjkNobaraActions.HAMMER_CONTEXT;
 	public static final int SELF_RESONANCE = ProjectJjkNobaraActions.SELF_RESONANCE;
+	public static final int HAIRPIN_DIRECTED = ProjectJjkNobaraActions.HAIRPIN_DIRECTED;
+	public static final int HAIRPIN_MASS = ProjectJjkNobaraActions.HAIRPIN_MASS;
+	public static final int NAIL_TRAP = ProjectJjkNobaraActions.NAIL_TRAP;
 	public static final Type<NobaraActionPayload> TYPE = new Type<>(JujutsuMod.id("nobara_action"));
 	public static final StreamCodec<RegistryFriendlyByteBuf, NobaraActionPayload> STREAM_CODEC = CustomPacketPayload.codec(
 			NobaraActionPayload::write,
