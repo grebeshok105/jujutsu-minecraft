@@ -1,33 +1,12 @@
 package jujutsu.mod.character.nobara.projectjjk;
 
-import java.util.UUID;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class ResonantMomentumTest {
-	private static final UUID PLAYER = UUID.fromString("00000000-0000-0000-0000-000000000010");
-
 	private ResonantMomentumTest() {}
 
 	public static void main(String[] args) {
-		ResonantMomentum state = new ResonantMomentum(1200, 1.15f);
-		assert !state.isActive(PLAYER, 99L);
-		assert state.grant(PLAYER, 100L) == 1300L;
-		assert state.remainingTicks(PLAYER, 100L) == 1200;
-		assert state.damageMultiplier(PLAYER, 1299L) == 1.15f;
-		assert state.damageMultiplier(PLAYER, 1300L) == 1.0f;
-		assert state.remainingTicks(PLAYER, 1300L) == 0;
-
-		state.grant(PLAYER, 2000L);
-		assert state.grant(PLAYER, 2100L) == 3300L : "grant refreshes from now instead of stacking";
-		assert state.remainingTicks(PLAYER, 2100L) == 1200;
-		state.clear(PLAYER);
-		assert !state.isActive(PLAYER, 2100L);
-
-		state.grant(PLAYER, 3000L);
-		state.clearAll();
-		assert !state.isActive(PLAYER, 3000L);
-
 		assert ResonantMomentum.scaleTicks(10, 1.0f) == 10;
 		assert ResonantMomentum.scaleTicks(10, 1.15f) == 9 : "15% faster rounds 10 / 1.15 up";
 		assert ResonantMomentum.scaleTicks(4, 1.15f) == 3 : "four-tick launch cadence must become observably faster";
@@ -41,14 +20,22 @@ public final class ResonantMomentumTest {
 		String hammer = read(root + "/src/main/java/jujutsu/mod/character/nobara/projectjjk/NobaraHammerCombatRuntime.java");
 		String ritual = read(root + "/src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java");
 		String networking = read(root + "/src/main/java/jujutsu/mod/network/JujutsuNetworking.java");
-		assert straw.contains("ResonantMomentum.grant(caster)") : "successful doll impact must grant and sync Momentum";
+		String effects = read(root + "/src/main/java/jujutsu/mod/registry/JujutsuEffects.java");
+		String initializer = read(root + "/src/main/java/jujutsu/mod/JujutsuMod.java");
+		assert effects.contains("resonant_momentum") : "Momentum must be a registered native effect";
+		assert effects.contains("MobEffectCategory.BENEFICIAL") : "Momentum must appear as a beneficial effect";
+		assert initializer.contains("JujutsuEffects.register()") : "custom effects must be registered during mod initialization";
+		assert straw.contains("ResonantMomentum.grant(caster)") : "successful doll impact must grant Momentum";
 		assert straw.contains("if (!target.hurtServer") : "failed damage must not grant Momentum";
+		assert read(root + "/src/main/java/jujutsu/mod/character/nobara/projectjjk/ResonantMomentum.java").contains("hasEffect(JujutsuEffects.RESONANT_MOMENTUM)") : "server multipliers must read native effect presence";
 		assert nails.contains("ResonantMomentum.scaleTicks(player") : "preparation and launch cadence must be accelerated";
 		assert hammer.contains("* ResonantMomentum.damageMultiplier(player)") : "hammer damage must be amplified explicitly";
 		assert ritual.contains("* ResonantMomentum.damageMultiplier(caster)") : "R/B Hairpin damage must be amplified explicitly";
-		assert networking.contains("ResonantMomentumPayload.TYPE") : "Momentum payload must be registered and synced";
-		assert Files.exists(Path.of(root, "src/client/java/jujutsu/mod/client/character/ClientResonantMomentum.java"));
-		assert Files.exists(Path.of(root, "src/client/java/jujutsu/mod/client/hud/ResonantMomentumHud.java"));
+		assert !networking.contains("ResonantMomentumPayload") : "native effect synchronization replaces custom payload";
+		assert !Files.exists(Path.of(root, "src/client/java/jujutsu/mod/client/character/ClientResonantMomentum.java"));
+		assert !Files.exists(Path.of(root, "src/client/java/jujutsu/mod/client/hud/ResonantMomentumHud.java"));
+		assert !Files.exists(Path.of(root, "src/main/java/jujutsu/mod/network/ResonantMomentumPayload.java"));
+		assert Files.exists(Path.of(root, "src/main/resources/assets/jujutsumod/textures/mob_effect/resonant_momentum.png")) : "native effect needs its own icon";
 	}
 
 	private static String read(String path) {

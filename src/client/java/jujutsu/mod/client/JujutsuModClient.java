@@ -11,7 +11,6 @@ import jujutsu.mod.client.render.ProjectJjkNailRenderer;
 import jujutsu.mod.client.render.nobara.doll.ProjectJjkStrawDollRenderer;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollItem;
 import jujutsu.mod.registry.JujutsuEntities;
-import jujutsu.mod.client.hud.ResonantMomentumHud;
 
 public class JujutsuModClient implements ClientModInitializer {
 	@Override
@@ -22,7 +21,6 @@ public class JujutsuModClient implements ClientModInitializer {
 		VfxDirector.initialize();
 		NobaraVfxRecipes.register();
 		JujutsuClientNetworking.registerReceivers();
-		ResonantMomentumHud.initialize();
 		JujutsuKeybinds.register();
 	}
 }

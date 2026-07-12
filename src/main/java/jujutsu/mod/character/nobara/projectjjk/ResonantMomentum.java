@@ -1,90 +1,28 @@
 package jujutsu.mod.character.nobara.projectjjk;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.MinecraftServer;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import jujutsu.mod.network.ResonantMomentumPayload;
+import net.minecraft.world.effect.MobEffectInstance;
+import jujutsu.mod.registry.JujutsuEffects;
 
-/** Server-owned, non-stacking duration state granted by a successful Straw Doll Resonance. */
+/** Native-effect-backed Momentum helpers for explicit Nobara gameplay scaling. */
 public final class ResonantMomentum {
-	public static final ResonantMomentum GLOBAL = new ResonantMomentum(
-			ProjectJjkNobaraProfile.RESONANT_MOMENTUM_DURATION_TICKS,
-			ProjectJjkNobaraProfile.RESONANT_MOMENTUM_MULTIPLIER);
-
-	private final int durationTicks;
-	private final float multiplier;
-	private final Map<UUID, Long> expiresAt = new HashMap<>();
-
-	public ResonantMomentum(int durationTicks, float multiplier) {
-		if (durationTicks <= 0 || multiplier < 1.0f) throw new IllegalArgumentException("Invalid Momentum tuning");
-		this.durationTicks = durationTicks;
-		this.multiplier = multiplier;
-	}
-
-	public long grant(UUID playerId, long gameTime) {
-		long expiry = gameTime + durationTicks;
-		expiresAt.put(playerId, expiry);
-		return expiry;
-	}
-
-	public boolean isActive(UUID playerId, long gameTime) {
-		return remainingTicks(playerId, gameTime) > 0;
-	}
-
-	public int remainingTicks(UUID playerId, long gameTime) {
-		Long expiry = expiresAt.get(playerId);
-		if (expiry == null) return 0;
-		long remaining = expiry - gameTime;
-		if (remaining <= 0) {
-			expiresAt.remove(playerId);
-			return 0;
-		}
-		return (int)Math.min(Integer.MAX_VALUE, remaining);
-	}
-
-	public float damageMultiplier(UUID playerId, long gameTime) {
-		return isActive(playerId, gameTime) ? multiplier : 1.0f;
-	}
-
-	public void clear(UUID playerId) { expiresAt.remove(playerId); }
-	public void clearAll() { expiresAt.clear(); }
-
-	public static void register() {
-		ServerTickEvents.END_SERVER_TICK.register(GLOBAL::tick);
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> GLOBAL.clear(handler.player.getUUID()));
-		ServerLifecycleEvents.SERVER_STOPPING.register(server -> GLOBAL.clearAll());
-	}
+	private ResonantMomentum() {}
 
 	public static void grant(ServerPlayer player) {
-		GLOBAL.grant(player.getUUID(), player.level().getGameTime());
-		sync(player);
-	}
-
-	public static void sync(ServerPlayer player) {
-		if (ServerPlayNetworking.canSend(player, ResonantMomentumPayload.TYPE)) {
-			ServerPlayNetworking.send(player, new ResonantMomentumPayload(
-					GLOBAL.remainingTicks(player.getUUID(), player.level().getGameTime())));
-		}
-	}
-
-	private void tick(MinecraftServer server) {
-		long gameTime = server.overworld().getGameTime();
-		for (UUID playerId : java.util.List.copyOf(expiresAt.keySet())) {
-			if (remainingTicks(playerId, gameTime) > 0) continue;
-			ServerPlayer player = server.getPlayerList().getPlayer(playerId);
-			if (player != null) sync(player);
-		}
+		player.addEffect(new MobEffectInstance(
+				JujutsuEffects.RESONANT_MOMENTUM,
+				ProjectJjkNobaraProfile.RESONANT_MOMENTUM_DURATION_TICKS,
+				0,
+				false,
+				false,
+				true));
 	}
 
 	public static float damageMultiplier(ServerPlayer player) {
-		return player == null ? 1.0f : GLOBAL.damageMultiplier(player.getUUID(), player.level().getGameTime());
+		if (player == null || !player.hasEffect(JujutsuEffects.RESONANT_MOMENTUM)) return 1.0f;
+		MobEffectInstance effect = player.getEffect(JujutsuEffects.RESONANT_MOMENTUM);
+		int level = effect == null ? 1 : effect.getAmplifier() + 1;
+		return 1.0f + (ProjectJjkNobaraProfile.RESONANT_MOMENTUM_MULTIPLIER - 1.0f) * level;
 	}
 
 	public static int scaleTicks(int baseTicks, float speedMultiplier) {

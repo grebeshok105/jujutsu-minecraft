@@ -7,7 +7,7 @@
   "message.jujutsumod.projectjjk.resonance.already_casting": "Ритуал Резонанса уже начат.",
   "message.jujutsumod.projectjjk.resonance.casting": "Привязка цели %s к соломенной кукле...",
   "message.jujutsumod.projectjjk.resonance.complete": "Резонанс поразил цель %s.",
-  "hud.jujutsumod.resonant_momentum": "Резонансный импульс",
+  "effect.jujutsumod.resonant_momentum": "Резонансный импульс",
   "message.jujutsumod.projectjjk.resonance.no_doll": "Держите соломенную куклу во второй руке, а молот — в основной.",
   "message.jujutsumod.projectjjk.resonance.no_nail": "Для Резонанса нужен один проклятый гвоздь.",
   "message.jujutsumod.projectjjk.resonance.no_remnant": "В инвентаре нет связанного останка цели.",

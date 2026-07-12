@@ -11,7 +11,6 @@ import jujutsu.mod.character.nobara.projectjjk.NobaraHammerCombatRuntime;
 import jujutsu.mod.character.nobara.projectjjk.NobaraActionGuard;
 import jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime;
 import jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime;
-import jujutsu.mod.character.nobara.projectjjk.ResonantMomentum;
 import jujutsu.mod.command.JujutsuCommands;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuDataComponents;
@@ -19,6 +18,7 @@ import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.registry.JujutsuParticles;
 import jujutsu.mod.registry.JujutsuSounds;
+import jujutsu.mod.registry.JujutsuEffects;
 import jujutsu.mod.combat.ForcedBlackFlash;
 import jujutsu.mod.curse.CurseLinkRegistry;
 
@@ -36,6 +36,7 @@ public class JujutsuMod implements ModInitializer {
 		JujutsuItems.register();
 		JujutsuParticles.register();
 		JujutsuSounds.register();
+		JujutsuEffects.register();
 		JujutsuNetworking.registerPayloads();
 		ProjectJjkRitualRuntime.register();
 		ProjectJjkStrawDollRuntime.register();
@@ -44,7 +45,6 @@ public class JujutsuMod implements ModInitializer {
 		NobaraActionGuard.register();
 		SelfResonanceRuntime.register();
 		NailTrapRuntime.register();
-		ResonantMomentum.register();
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> CurseLinkRegistry.GLOBAL.clear());
 		JujutsuCommands.register();
 		ForcedBlackFlash.register();
