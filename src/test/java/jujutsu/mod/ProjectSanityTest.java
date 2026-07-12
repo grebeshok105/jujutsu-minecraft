@@ -311,6 +311,13 @@ public final class ProjectSanityTest {
 		Path defaultHammer = JUJUTSU_ASSETS.resolve("items/straw_doll_hammer.json");
 		assert Files.readString(defaultNail).contains("\"model\": \"jujutsumod:item/projectjjk_hairpin_nail\"") : "hairpin_nail must render with the ProjectJJK nail model";
 		assert Files.readString(defaultHammer).contains("\"model\": \"jujutsumod:item/projectjjk_straw_doll_hammer\"") : "straw_doll_hammer must render with the ProjectJJK hammer model";
+		String hammerModel = Files.readString(JUJUTSU_ASSETS.resolve("models/item/projectjjk_straw_doll_hammer.json"));
+		assert hammerModel.contains("\"round_face\"") && hammerModel.contains("\"claw_upper\"") && hammerModel.contains("\"claw_lower\"")
+				: "Nobara hammer must read as a compact nail-driving claw hammer";
+		assert !hammerModel.contains("oxblood") && hammerModel.contains("\"silver\"")
+				: "Nobara hammer must use the approved silver/wood palette";
+		assert Files.exists(MAIN_RESOURCES.resolve("source-assets/blockbench/nobara_compact_silver_hammer.bbmodel"))
+				: "The compact hammer must retain its Blockbench source";
 	}
 
 	private static void assertExplicitNobaraActionsAreVisible() throws IOException {
