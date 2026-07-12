@@ -20,7 +20,6 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEmbedding;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEntity;
-import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraProfile;
 import jujutsu.mod.client.vfx.VfxPalette;
 import jujutsu.mod.registry.JujutsuItems;
 
@@ -60,7 +59,6 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		state.direction = safeDirection(entity.forwardDirection());
 		state.launched = entity.isFlying();
 		state.embedded = entity.isEmbedded();
-		state.embedDepth = entity.embedDepthLevel();
 		state.seed = entity.getId();
 		state.age = entity.tickCount + partialTick;
 		state.embeddedAnchorOffset = Vec3.ZERO;
@@ -84,9 +82,6 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		matrices.pushPose();
 		if (state.embedded && state.hasEmbeddedAnchor) {
 			matrices.translate(state.embeddedAnchorOffset.x, state.embeddedAnchorOffset.y, state.embeddedAnchorOffset.z);
-			matrices.translate(direction.x * (state.embedDepth - 1) * ProjectJjkNobaraProfile.EMBEDDED_NAIL_RENDER_DEPTH_OFFSET,
-					direction.y * (state.embedDepth - 1) * ProjectJjkNobaraProfile.EMBEDDED_NAIL_RENDER_DEPTH_OFFSET,
-					direction.z * (state.embedDepth - 1) * ProjectJjkNobaraProfile.EMBEDDED_NAIL_RENDER_DEPTH_OFFSET);
 		}
 		if (!state.embedded) {
 			float alpha = state.launched ? 0.96f : 0.68f;
@@ -230,7 +225,6 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		private Vec3 direction = new Vec3(0.0, 0.0, 1.0);
 		private boolean launched;
 		private boolean embedded;
-		private int embedDepth = 1;
 		private int seed;
 		private float age;
 		private boolean hasEmbeddedAnchor;

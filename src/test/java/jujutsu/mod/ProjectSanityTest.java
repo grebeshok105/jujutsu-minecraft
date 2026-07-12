@@ -360,6 +360,8 @@ public final class ProjectSanityTest {
 		assert nailEntity.contains("level().isClientSide() ? entityData.get(DATA_EMBEDDED_TARGET_ID) : anchor.cachedEntityId()") : "Client embedded nail rendering must read the synced target id while the server uses the UUID-backed anchor cache";
 		assert nailEntity.contains("living.yBodyRot") : "Embedded living-target nails must anchor to body rotation, not head/look yaw";
 		String nailRenderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/ProjectJjkNailRenderer.java"));
+		assert !nailRenderer.contains("EMBEDDED_NAIL_RENDER_DEPTH_OFFSET")
+				: "Depth must not drag embedded nails down the victim hitbox; keep the original body anchor";
 		assert !nailRenderer.contains("renderEmbeddedMark(") : "Embedded nails must not restore the removed broad translucent mark envelope";
 		assert nailRenderer.contains("renderEmbeddedMarkPulse") : "Embedded nails must keep only the approved faint readable mark pulse";
 		assert !nailRenderer.contains("state.hostOffset") : "Embedded nails must not use the old follower offset that visually chases target position";

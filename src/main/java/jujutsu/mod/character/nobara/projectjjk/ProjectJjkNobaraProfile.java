@@ -78,7 +78,6 @@ public final class ProjectJjkNobaraProfile {
 	public static final double HAMMER_SWEEP_RADIUS = 3.25;
 	public static final double NAIL_CONTEXT_RANGE = 4.5;
 	public static final double EMBEDDED_NAIL_DRIVE_DEPTH = 0.10;
-	public static final double EMBEDDED_NAIL_RENDER_DEPTH_OFFSET = 0.075;
 	public static final double HAMMER_RANGE_TOLERANCE = 0.75;
 	public static final double NAIL_CONTEXT_SCAN_INFLATE = 1.0;
 	public static final double HAMMER_SWEEP_REAR_DOT = -0.15;
