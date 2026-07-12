@@ -1,5 +1,7 @@
 # Session Handoff — Nobara Hairpin Depth/Chains/Trap Complete
 
+> **2026-07-12 follow-up:** `86edbe7` replaced the custom Momentum HUD/payload with native `jujutsumod:resonant_momentum`; `ea3ff37` restored the original embedded-nail body anchor; `572d82e` replaced the sledgehammer asset with a compact silver Blockbench claw hammer. Final installed JAR SHA-256: `A93302AE6F7924C340D2D1DF6DCEC5523FFE8A555E11EF724A0E3367E1084116`.
+
 Date: 2026-07-11
 
 ## Canonical workspace

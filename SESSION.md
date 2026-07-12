@@ -1,5 +1,7 @@
 # Session Handoff — Jujutsu Minecraft
 
+> **CURRENT 2026-07-12:** Resonant Momentum now uses the native beneficial-effect list; the custom teal HUD is deleted. Embedded nail rendering was restored to the original body anchor in `ea3ff37`. The hammer was rebuilt through Blockbench MCP as a compact silver claw hammer in `572d82e`. Installed JAR SHA-256: `A93302AE6F7924C340D2D1DF6DCEC5523FFE8A555E11EF724A0E3367E1084116`. Restart the instance before QA because Java held the previous JAR open during replacement.
+
 > **CURRENT 2026-07-11:** resume from `docs/session-handoffs/2026-07-11-nobara-hairpin-depth-chain-trap-handoff.md`. The R/B chains, depth, Shift+B trap, forced Black Flash, three remnant variants, and Resonant Momentum are complete through `d1461cc`. Final installed JAR SHA-256: `472D7CECD157C89CF66A39D113B8837BEFA72CAB7F1C6A4C6A5F242FDCF257C1`. Do not reimplement the plan; reproduce only new user-reported gameplay defects.
 
 > **SUPERSEDED 2026-07-11:** do not resume from the commit/hash/state below. The canonical current handoff is `docs/session-handoffs/2026-07-11-nobara-straw-doll-vfx-handoff.md` in this worktree. It contains the Straw Doll/VFX expansion, held-item renderer fix, current JAR hash, remaining manual QA, and the exact next-chat resume protocol.
