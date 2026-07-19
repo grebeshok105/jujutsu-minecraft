@@ -457,11 +457,10 @@ public final class ProjectSanityTest {
 		assert sound.contains("playNoFalloff") : "VFX sound channel must own local cinematic sound playback";
 		String time = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxTimeChannel.java"));
 		assert time.contains("triggerSlowMotion") && time.contains("activeScale") : "VFX time channel must own bounded client slow-motion";
-		String timeMixin = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/VfxDeltaTrackerMixin.java"));
-		assert timeMixin.contains("DeltaTracker.Timer") && timeMixin.contains("VfxDirector.timeScale")
-				: "VFX time mixin must scale render deltas only through the director";
+		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/VfxDeltaTrackerMixin.java"))
+				: "Global DeltaTracker mixin must not exist - it corrupts game time for all consumers";
 		String mixins = Files.readString(ROOT.resolve("src/client/resources/jujutsumod.client.mixins.json"));
-		assert mixins.contains("VfxDeltaTrackerMixin") : "Client mixin config must wire the bounded VFX time channel";
+		assert !mixins.contains("VfxDeltaTrackerMixin") : "Client mixin config must not wire a global time-scaling mixin";
 	}
 
 	private static void assertNobaraUsesVfxCoreRecipes() throws IOException {

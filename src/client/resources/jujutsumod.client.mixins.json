@@ -6,7 +6,6 @@
     "CharacterSkinMixin",
     "HairpinCameraMixin",
     "HairpinGameRendererMixin",
-    "VfxDeltaTrackerMixin",
     "NobaraFirstPersonSnapMixin",
     "NobaraLivingEntityRendererMixin",
     "NobaraPlayerRendererMixin"
