@@ -316,3 +316,41 @@
 **Код:** 65 server-side .java, 52 client-side .java, 18 test .java, build.gradle, gradle.properties, fabric.mod.json, jujutsumod.client.mixins.json, все resource JSON.
 
 **Команда верификации:** `gradlew.bat build --no-daemon -x test` → BUILD SUCCESSFUL (39s).
+
+---
+
+## Review Corrections (peer review 2026-07-19)
+
+Ревьюер проверил аудит по коду (коммит аудита: 054a9a5). Вердикт: аудит по фактам в основном честный, но severity раздут, часть CRITICAL — док-дрифт или latent-риск, C2 ошибочен.
+
+### Скорректированные severity
+
+| # | Было | Стало | Причина |
+|---|------|-------|---------|
+| C1 VfxDeltaTrackerMixin | CRITICAL | **HIGH (latent)** | `triggerSlowMotion()` нигде не вызывается, `timeScale()` всегда 1.0. Landmine, не живой баг. Чинить если/когда slow-mo включат. |
+| C2 VfxWorldChannel matrix | CRITICAL | **UNVERIFIED / снять** | `addVertex(x,y,z)` без PoseStack — стандартный camera-relative паттерн. «Двойное смещение через PoseStack» технически неверно. Нужен визуальный чек, не слепой фикс. |
+| C3 tryPlace → true | CRITICAL | **HIGH** | API-баг реальный, но сейчас cooldown/resource по return value не жрёт, `fail()` пишет сообщения. Не «горит прод». |
+| C4 noSave + NBT | CRITICAL | **MEDIUM** | Inconsistency / dead code, не crash. Решить: убрать `.noSave()` или удалить NBT-методы. |
+| C5 ServerTimeDilation | CRITICAL | **CRITICAL (подтверждён)** | Глобальный tick rate сервера — реальный гриф/лаг-вектор в мультиплеере. |
+| C6-C9 docs | CRITICAL | **MEDIUM (docs)** | Док-долг, не runtime. Уже закрыты коммитом 0c5cc0f. |
+| C10 ARR | CRITICAL | **CRITICAL (подтверждён)** | Юрриск при публикации. Не публиковать без замены/лицензии. |
+| H1 HashSet | HIGH | **LOW** | Minecraft server thread, cleanup на DISCONNECT/STOPPING есть. ConcurrentHashMap «для красоты». |
+| H2 static maps | HIGH | **MEDIUM** | NailAnchorLifecycle чистит на STOPPING. CharacterSelectionManager чистится на DISCONNECT. CombatStagger/NailMarks — слабее, но не «без cleanup». |
+| H9 LivingEntityRenderer mixin | HIGH | **MEDIUM** | Heavy path только для PlayerRenderState + Nobara. Per-frame cost — cheap early-return. |
+
+### Итоговый практический приоритет
+
+**P0 (реально чинить в коде):**
+1. C5: ServerTimeDilation — не глобальный tick rate
+2. C3: tryPlace → false на failure
+3. C1: не трогать DeltaTracker глобально (даже если сейчас idle) — удалить или scope-ить
+4. C10: не публиковать jar с ARR ProjectJJK без замены/лицензии
+
+**Не срочно / не слепо:**
+- C2: сначала визуально посмотреть impact flash в игре
+- C6-C9: закрыты (docs sync 0c5cc0f)
+- H1: можно игнорить
+
+### Вывод
+
+Аудит — честное review с завышенным CRITICAL и парой ошибочных/раздутых claims (C2, C1 как «активная поломка»). Не «102 критических дыры». Живой риск: global server tick dilation, tryPlace boolean, ARR assets, latent global client time mixin.
