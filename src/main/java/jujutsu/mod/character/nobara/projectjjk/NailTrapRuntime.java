@@ -61,16 +61,16 @@ public final class NailTrapRuntime {
 				owner.getEyePosition().add(owner.getLookAngle().scale(ProjectJjkNobaraProfile.NAIL_TRAP_PLACEMENT_RANGE)));
 		if (centerHit == null || owner.getEyePosition().distanceTo(centerHit.getLocation()) > ProjectJjkNobaraProfile.NAIL_TRAP_PLACEMENT_RANGE) {
 			fail(owner, "message.jujutsumod.nobara.trap.no_ground");
-			return true;
+			return false;
 		}
 		List<Placement> placements = findPlacements(level, owner, centerHit.getLocation());
 		if (placements.size() != ProjectJjkNobaraProfile.NAIL_TRAP_NAIL_COUNT) {
 			fail(owner, "message.jujutsumod.nobara.trap.unsupported");
-			return true;
+			return false;
 		}
 		if (countNails(owner) < ProjectJjkNobaraProfile.NAIL_TRAP_NAIL_COUNT) {
 			fail(owner, "message.jujutsumod.nobara.trap.no_nails");
-			return true;
+			return false;
 		}
 
 		consumeNails(owner, ProjectJjkNobaraProfile.NAIL_TRAP_NAIL_COUNT);
@@ -85,7 +85,7 @@ public final class NailTrapRuntime {
 				entities.forEach(Entity::discard);
 				refundNails(owner, ProjectJjkNobaraProfile.NAIL_TRAP_NAIL_COUNT);
 				fail(owner, "message.jujutsumod.nobara.trap.failed");
-				return true;
+				return false;
 			}
 			entities.add(nail);
 		}
