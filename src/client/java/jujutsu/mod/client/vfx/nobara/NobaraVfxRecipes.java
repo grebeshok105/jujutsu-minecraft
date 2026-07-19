@@ -144,14 +144,14 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance blackFlash(VfxCue cue) {
-		return VfxInstance.of(28, (context, initialAgeTicks) -> {
+		return VfxInstance.of(48, (context, initialAgeTicks) -> {
 			Vec3 origin = context.resolveOrigin(cue);
 			float proximity = context.proximity(cue, 64.0);
 			RandomSource random = random(cue, 0xB1ACF1A5L);
 			Vec3 dir = cue.direction();
 
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
-				context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.BLACK_FLASH, 14);
+				context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.BLACK_FLASH, 28);
 				context.burst(ParticleTypes.FLASH, origin, 4, 0.1, 0.0, random);
 				context.burst(ParticleTypes.CRIT, origin, 8, 0.4, 0.6, random);
 				context.burst(JujutsuParticles.BF_IMPACT, origin, 7, 0.35, 0.12, random);

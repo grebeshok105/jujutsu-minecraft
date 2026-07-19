@@ -94,7 +94,10 @@ public final class VfxWorldChannel {
 				case RITUAL_BIND -> renderRitualBind(consumer, center, intensity, progress, fade);
 				case DOLL_STRIKE -> renderDollStrike(consumer, center, intensity, progress, fade);
 				case RESONANCE_RELEASE -> renderResonanceRelease(consumer, center, intensity, progress, fade);
-				case BLACK_FLASH -> renderBlackFlash(consumer, center, intensity, progress, fade, flash.cue());
+				case BLACK_FLASH -> {
+					Vec3 fixedCenter = flash.cue().origin().subtract(cameraPosition);
+					renderBlackFlash(consumer, fixedCenter, intensity, progress, fade, flash.cue());
+				}
 			}
 		}
 	}

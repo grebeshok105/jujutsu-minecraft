@@ -62,11 +62,12 @@ public final class VfxCameraChannel {
 	public void triggerBlackFlash(int intensity, float proximity, float initialAgeTicks) {
 		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
 		float strength = strength(intensity, proximity, 1.15f);
-		addImpulse(startedAtMillis, 90, 6.5f * strength, -4.0f * strength, 120.0f);
-		addImpulse(startedAtMillis + 30L, 110, 2.2f * strength, 1.6f * strength, 135.0f);
-		addImpulse(startedAtMillis + 60L, 70, -2.8f * strength, 1.1f * strength, 90.0f);
-		addFovImpulse(startedAtMillis, 160, -12.0f * strength, 0.22f);
-		addFovImpulse(startedAtMillis + 100L, 200, 8.0f * strength, 0.35f);
+		addImpulse(startedAtMillis, 200, 6.5f * strength, -4.0f * strength, 120.0f);
+		addImpulse(startedAtMillis + 80L, 240, 2.4f * strength, 1.8f * strength, 135.0f);
+		addImpulse(startedAtMillis + 200L, 180, -2.8f * strength, 1.2f * strength, 90.0f);
+		addImpulse(startedAtMillis + 400L, 160, 1.5f * strength, -0.9f * strength, 70.0f);
+		addFovImpulse(startedAtMillis, 350, -12.0f * strength, 0.22f);
+		addFovImpulse(startedAtMillis + 250L, 450, 8.0f * strength, 0.35f);
 	}
 
 	public float yawOffset() {

@@ -14,9 +14,9 @@ public final class VfxPalette {
 	public static final int CURSED_BLUE_WHITE_G = 255;
 	public static final int CURSED_BLUE_WHITE_B = 255;
 
-	public static final int BLACK_FLASH_CORE_R = 255;
-	public static final int BLACK_FLASH_CORE_G = 210;
-	public static final int BLACK_FLASH_CORE_B = 210;
+	public static final int BLACK_FLASH_CORE_R = 80;
+	public static final int BLACK_FLASH_CORE_G = 30;
+	public static final int BLACK_FLASH_CORE_B = 30;
 	public static final int BLACK_FLASH_RED_R = 120;
 	public static final int BLACK_FLASH_RED_G = 0;
 	public static final int BLACK_FLASH_RED_B = 8;
