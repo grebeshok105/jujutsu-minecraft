@@ -15,5 +15,8 @@ public final class JujutsuClientParticles {
 		ParticleFactoryRegistry.getInstance().register(JujutsuParticles.HAIRPIN_BURST_RESIDUE, HairpinBurstResidueParticle.Provider::new);
 		ParticleFactoryRegistry.getInstance().register(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, HairpinMetalShardParticle.Provider::new);
 		ParticleFactoryRegistry.getInstance().register(JujutsuParticles.HAIRPIN_IGNITION_TICK, HairpinIgnitionTickParticle.Provider::new);
+		ParticleFactoryRegistry.getInstance().register(JujutsuParticles.BF_LIGHTNING, BfLightningParticle.Provider::new);
+		ParticleFactoryRegistry.getInstance().register(JujutsuParticles.BF_SPARK, BfSparkParticle.Provider::new);
+		ParticleFactoryRegistry.getInstance().register(JujutsuParticles.BF_IMPACT, BfImpactParticle.Provider::new);
 	}
 }

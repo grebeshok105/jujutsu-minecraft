@@ -15,6 +15,9 @@ public final class JujutsuParticles {
 	public static final SimpleParticleType HAIRPIN_BURST_RESIDUE = FabricParticleTypes.simple();
 	public static final SimpleParticleType HAIRPIN_BURST_METAL_SHARD = FabricParticleTypes.simple();
 	public static final SimpleParticleType HAIRPIN_IGNITION_TICK = FabricParticleTypes.simple();
+	public static final SimpleParticleType BF_LIGHTNING = FabricParticleTypes.simple();
+	public static final SimpleParticleType BF_SPARK = FabricParticleTypes.simple();
+	public static final SimpleParticleType BF_IMPACT = FabricParticleTypes.simple();
 
 	private JujutsuParticles() {}
 
@@ -27,5 +30,8 @@ public final class JujutsuParticles {
 		Registry.register(BuiltInRegistries.PARTICLE_TYPE, JujutsuMod.id("hairpin_burst_residue"), HAIRPIN_BURST_RESIDUE);
 		Registry.register(BuiltInRegistries.PARTICLE_TYPE, JujutsuMod.id("hairpin_burst_metal_shard"), HAIRPIN_BURST_METAL_SHARD);
 		Registry.register(BuiltInRegistries.PARTICLE_TYPE, JujutsuMod.id("hairpin_ignition_tick"), HAIRPIN_IGNITION_TICK);
+		Registry.register(BuiltInRegistries.PARTICLE_TYPE, JujutsuMod.id("bf_lightning"), BF_LIGHTNING);
+		Registry.register(BuiltInRegistries.PARTICLE_TYPE, JujutsuMod.id("bf_spark"), BF_SPARK);
+		Registry.register(BuiltInRegistries.PARTICLE_TYPE, JujutsuMod.id("bf_impact"), BF_IMPACT);
 	}
 }
