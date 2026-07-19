@@ -15,20 +15,23 @@ public final class VfxPalette {
 	public static final int CURSED_BLUE_WHITE_B = 255;
 
 	public static final int BLACK_FLASH_CORE_R = 255;
-	public static final int BLACK_FLASH_CORE_G = 255;
-	public static final int BLACK_FLASH_CORE_B = 255;
-	public static final int BLACK_FLASH_RED_R = 180;
+	public static final int BLACK_FLASH_CORE_G = 210;
+	public static final int BLACK_FLASH_CORE_B = 210;
+	public static final int BLACK_FLASH_RED_R = 120;
 	public static final int BLACK_FLASH_RED_G = 0;
-	public static final int BLACK_FLASH_RED_B = 20;
-	public static final int BLACK_FLASH_CRIMSON_R = 255;
-	public static final int BLACK_FLASH_CRIMSON_G = 30;
-	public static final int BLACK_FLASH_CRIMSON_B = 60;
-	public static final int BLACK_FLASH_VOID_R = 10;
+	public static final int BLACK_FLASH_RED_B = 8;
+	public static final int BLACK_FLASH_CRIMSON_R = 160;
+	public static final int BLACK_FLASH_CRIMSON_G = 10;
+	public static final int BLACK_FLASH_CRIMSON_B = 25;
+	public static final int BLACK_FLASH_VOID_R = 8;
 	public static final int BLACK_FLASH_VOID_G = 0;
-	public static final int BLACK_FLASH_VOID_B = 4;
-	public static final int BLACK_FLASH_SPARK_R = 255;
-	public static final int BLACK_FLASH_SPARK_G = 80;
-	public static final int BLACK_FLASH_SPARK_B = 80;
+	public static final int BLACK_FLASH_VOID_B = 2;
+	public static final int BLACK_FLASH_SPARK_R = 180;
+	public static final int BLACK_FLASH_SPARK_G = 20;
+	public static final int BLACK_FLASH_SPARK_B = 30;
+	public static final int BLACK_FLASH_BLOOD_R = 90;
+	public static final int BLACK_FLASH_BLOOD_G = 0;
+	public static final int BLACK_FLASH_BLOOD_B = 12;
 
 	private VfxPalette() {}
 }

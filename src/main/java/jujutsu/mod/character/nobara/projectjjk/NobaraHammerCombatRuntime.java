@@ -158,8 +158,10 @@ public final class NobaraHammerCombatRuntime {
 		if (!(entity instanceof LivingEntity target) || !target.isAlive()) return false;
 		target.hurtServer(player.level(), NobaraDamageSources.hairpin(player.level(), player), window.bonusDamage(ProjectJjkNobaraProfile.BLACK_FLASH_DAMAGE_MULTIPLIER));
 		CombatStagger.GLOBAL.apply(target, player.level().getGameTime(), ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
+		Vec3 look = player.getLookAngle();
+		target.knockback(2.0, -look.x, -look.z);
 		BlackFlashFocus.grant(player);
-		emitDirected(player, NobaraVfxIds.BLACK_FLASH, target.position().add(0.0, target.getBbHeight() * 0.55, 0.0), 2, player.getLookAngle());
+		emitDirected(player, NobaraVfxIds.BLACK_FLASH, target.position().add(0.0, target.getBbHeight() * 0.55, 0.0), 2, look);
 		return true;
 	}
 
