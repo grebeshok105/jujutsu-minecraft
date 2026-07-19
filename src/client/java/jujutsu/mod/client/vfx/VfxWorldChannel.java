@@ -29,6 +29,19 @@ public final class VfxWorldChannel {
 	private static final int CURSED_BLUE_WHITE_R = VfxPalette.CURSED_BLUE_WHITE_R;
 	private static final int CURSED_BLUE_WHITE_G = VfxPalette.CURSED_BLUE_WHITE_G;
 	private static final int CURSED_BLUE_WHITE_B = VfxPalette.CURSED_BLUE_WHITE_B;
+	private static final int BF_CORE_R = VfxPalette.BLACK_FLASH_CORE_R;
+	private static final int BF_CORE_G = VfxPalette.BLACK_FLASH_CORE_G;
+	private static final int BF_CORE_B = VfxPalette.BLACK_FLASH_CORE_B;
+	private static final int BF_RED_R = VfxPalette.BLACK_FLASH_RED_R;
+	private static final int BF_RED_G = VfxPalette.BLACK_FLASH_RED_G;
+	private static final int BF_RED_B = VfxPalette.BLACK_FLASH_RED_B;
+	private static final int BF_CRIMSON_R = VfxPalette.BLACK_FLASH_CRIMSON_R;
+	private static final int BF_CRIMSON_G = VfxPalette.BLACK_FLASH_CRIMSON_G;
+	private static final int BF_CRIMSON_B = VfxPalette.BLACK_FLASH_CRIMSON_B;
+	private static final int BF_VOID_R = VfxPalette.BLACK_FLASH_VOID_R;
+	private static final int BF_VOID_G = VfxPalette.BLACK_FLASH_VOID_G;
+	private static final int BF_VOID_B = VfxPalette.BLACK_FLASH_VOID_B;
+	private static final Vec3 NORTH = new Vec3(0.0, 0.0, -1.0);
 	private final List<ImpactFlash> impactFlashes = new ArrayList<>();
 
 	public void triggerImpact(VfxCue cue, ImpactStyle style, int durationTicks) {
@@ -75,6 +88,7 @@ public final class VfxWorldChannel {
 				case RITUAL_BIND -> renderRitualBind(consumer, center, intensity, progress, fade);
 				case DOLL_STRIKE -> renderDollStrike(consumer, center, intensity, progress, fade);
 				case RESONANCE_RELEASE -> renderResonanceRelease(consumer, center, intensity, progress, fade);
+				case BLACK_FLASH -> renderBlackFlash(consumer, center, intensity, progress, fade, flash.cue());
 			}
 		}
 	}
@@ -171,6 +185,124 @@ public final class VfxWorldChannel {
 		}
 	}
 
+	private static void renderBlackFlash(VertexConsumer consumer, Vec3 center, int intensity, float progress, float fade, VfxCue cue) {
+		int alpha = Math.min(250, Math.round(245.0f * fade));
+		float scale = 1.0f + Math.min(4, intensity) * 0.14f;
+		Vec3 forward = cue.direction();
+		Vec3[] basis = directionalBasis(forward);
+		Vec3 right = basis[0];
+		Vec3 up = basis[1];
+
+		// Phase A (0-0.35): Compression — dark ring collapses inward
+		if (progress < 0.35f) {
+			float compression = progress / 0.35f;
+			float radius = (1.8f - compression * 1.4f) * scale;
+			renderDirectionalRing(consumer, center, right, up, radius, 0.72f, Math.round(alpha * 0.9f * (1.0f - compression * 0.4f)),
+					-compression * 3.0f, BF_VOID_R, BF_VOID_G, BF_VOID_B, BF_RED_R, BF_RED_G, BF_RED_B);
+		}
+
+		// Phase B (0.15-0.65): Directional slash blades fanning along forward
+		if (progress > 0.15f && progress < 0.65f) {
+			float bladeProgress = (progress - 0.15f) / 0.5f;
+			int bladeAlpha = Math.round(alpha * (1.0f - bladeProgress * 0.6f));
+			for (int index = 0; index < 4; index++) {
+				double spreadAngle = (index - 1.5) * 0.44; // ~25 deg spread
+				Vec3 bladeDir = forward.scale(Math.cos(spreadAngle)).add(right.scale(Math.sin(spreadAngle))).normalize();
+				float length = (2.5f + bladeProgress * 1.5f) * scale;
+				Vec3 start = center.add(bladeDir.scale(0.12f));
+				Vec3 end = center.add(bladeDir.scale(length));
+				addBlackFlashBlade(consumer, start, end, 0.18f, bladeAlpha);
+			}
+		}
+
+		// Phase C (0.3-0.9): Lightning discharge — seeded zigzag ribbons
+		if (progress > 0.3f && progress < 0.9f) {
+			float lightningProgress = (progress - 0.3f) / 0.6f;
+			int lightningAlpha = (int) Math.round(alpha * Math.pow(1.0f - lightningProgress, 1.5));
+			long seed = cue.seed();
+			for (int bolt = 0; bolt < 7; bolt++) {
+				long boltSeed = seed ^ (bolt * 0x9E3779B97F4A7C15L);
+				double baseAngle = (bolt < 5)
+						? (pseudoRandom(boltSeed) - 0.5) * 1.2 // biased hemisphere along forward
+						: pseudoRandom(boltSeed) * Math.PI * 2.0; // random
+				int segments = 4 + (int) (pseudoRandom(boltSeed ^ 0x1234L) * 2.0);
+				float totalLength = (1.5f + (float) pseudoRandom(boltSeed ^ 0x5678L) * 1.5f) * scale;
+				Vec3 boltDir = (bolt < 5)
+						? forward.scale(0.7).add(right.scale(Math.cos(baseAngle) * 0.5)).add(up.scale(Math.sin(baseAngle) * 0.5)).normalize()
+						: right.scale(Math.cos(baseAngle)).add(up.scale(Math.sin(baseAngle))).normalize();
+				Vec3 point = center;
+				for (int seg = 0; seg < segments; seg++) {
+					float segLength = totalLength / segments;
+					double lateralOffset = (pseudoRandom(boltSeed ^ (seg * 0xABCDL)) - 0.5) * 0.6;
+					Vec3 nextPoint = point.add(boltDir.scale(segLength)).add(right.scale(lateralOffset));
+					int segR = (seg & 1) == 0 ? BF_CRIMSON_R : BF_CORE_R;
+					int segG = (seg & 1) == 0 ? BF_CRIMSON_G : BF_CORE_G;
+					int segB = (seg & 1) == 0 ? BF_CRIMSON_B : BF_CORE_B;
+					Vec3 side = sideVector(nextPoint.subtract(point), point.add(nextPoint).scale(0.5), 0.035f);
+					addRibbon(consumer, point, nextPoint, side.scale(2.8f), BF_VOID_R, BF_VOID_G, BF_VOID_B, Math.round(lightningAlpha * 0.5f));
+					addRibbon(consumer, point, nextPoint, side, segR, segG, segB, lightningAlpha);
+					point = nextPoint;
+				}
+			}
+		}
+
+		// Phase D (0.4-1.0): Shockwave ring perpendicular to direction
+		if (progress > 0.4f) {
+			float ringProgress = (progress - 0.4f) / 0.6f;
+			int ringAlpha = (int) Math.round(alpha * Math.pow(1.0f - ringProgress, 2.0));
+			float radius = (0.5f + ringProgress * 3.5f) * scale;
+			renderDirectionalRing(consumer, center, right, up, radius, 0.82f, ringAlpha,
+					ringProgress * 2.4f, BF_VOID_R, BF_VOID_G, BF_VOID_B, BF_CRIMSON_R, BF_CRIMSON_G, BF_CRIMSON_B);
+		}
+	}
+
+	private static void addBlackFlashBlade(VertexConsumer consumer, Vec3 start, Vec3 end, float width, int alpha) {
+		if (alpha <= 0) {
+			return;
+		}
+		Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), width);
+		addRibbon(consumer, start, end, side.scale(3.5f), BF_VOID_R, BF_VOID_G, BF_VOID_B, Math.round(alpha * 0.45f));
+		addRibbon(consumer, start, end, side.scale(1.4f), BF_CRIMSON_R, BF_CRIMSON_G, BF_CRIMSON_B, alpha);
+		addRibbon(consumer, start.lerp(end, 0.2), end, side.scale(0.45f), BF_CORE_R, BF_CORE_G, BF_CORE_B, Math.round(alpha * 0.5f));
+	}
+
+	private static void renderDirectionalRing(VertexConsumer consumer, Vec3 center, Vec3 right, Vec3 up,
+			float radius, float depthScale, int alpha, float phase,
+			int darkR, int darkG, int darkB, int edgeR, int edgeG, int edgeB) {
+		if (alpha <= 0) {
+			return;
+		}
+		int segments = 20;
+		for (int segment = 0; segment < segments; segment++) {
+			double a0 = phase + segment * Math.PI * 2.0 / segments;
+			double a1 = phase + (segment + 0.7) * Math.PI * 2.0 / segments;
+			Vec3 start = center.add(right.scale(Math.cos(a0) * radius)).add(up.scale(Math.sin(a0) * radius * depthScale));
+			Vec3 end = center.add(right.scale(Math.cos(a1) * radius)).add(up.scale(Math.sin(a1) * radius * depthScale));
+			Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), 0.028f);
+			addRibbon(consumer, start, end, side.scale(2.4f), darkR, darkG, darkB, Math.round(alpha * 0.48f));
+			addRibbon(consumer, start, end, side, edgeR, edgeG, edgeB, alpha);
+		}
+	}
+
+	private static Vec3[] directionalBasis(Vec3 forward) {
+		if (forward.lengthSqr() < 1e-6) {
+			return new Vec3[]{EAST, UP};
+		}
+		Vec3 up = Math.abs(forward.dot(UP)) > 0.98 ? NORTH : UP;
+		Vec3 right = forward.cross(up).normalize();
+		Vec3 realUp = right.cross(forward).normalize();
+		return new Vec3[]{right, realUp};
+	}
+
+	private static double pseudoRandom(long seed) {
+		long x = seed ^ (seed >>> 33);
+		x *= 0xFF51AFD7ED558CCDL;
+		x ^= (x >>> 33);
+		x *= 0xC4CEB9FE1A85EC53L;
+		x ^= (x >>> 33);
+		return (x & 0x7FFFFFFFFFFFFFFFL) / (double) 0x7FFFFFFFFFFFFFFFL;
+	}
+
 	private static void renderCyanRing(VertexConsumer consumer, Vec3 center, float radius, float depthScale, int alpha, float phase) {
 		if (alpha <= 0) {
 			return;
@@ -242,7 +374,8 @@ public final class VfxWorldChannel {
 		EXPLOSION,
 		RITUAL_BIND,
 		DOLL_STRIKE,
-		RESONANCE_RELEASE
+		RESONANCE_RELEASE,
+		BLACK_FLASH
 	}
 
 	private record ImpactFlash(VfxCue cue, ImpactStyle style, int durationTicks) {}
