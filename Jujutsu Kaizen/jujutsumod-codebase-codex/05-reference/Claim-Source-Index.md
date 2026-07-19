@@ -64,7 +64,7 @@ All sources relative to project root unless noted.
 | client disconnect clears selection and focus caches | `JujutsuClientNetworking.java:26` | VERIFIED |
 | removed legacy S2C VFX payloads are guarded against re-registration | `ProjectSanityTest` | VERIFIED |
 | VFX cue broadcast uses radius filtering and `canSend` | `JujutsuNetworking.java:43-57` | VERIFIED |
-| `VfxCue` carries immutable origin fallback, optional anchor ID, and world-space `anchorOffset` | `VfxCue.java`; test `VfxCueTest` | VERIFIED |
+| `VfxCue` carries immutable origin fallback, optional anchor ID, world-space `anchorOffset`, and normalized `direction` (8-field record) | `VfxCue.java`; test `VfxCueTest` | VERIFIED |
 
 ## Character selection
 
