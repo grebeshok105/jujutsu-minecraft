@@ -29,6 +29,26 @@ Successful Black Flash grants `jujutsumod.black_flash_focus` as a server player 
 
 **Source:** `BlackFlashFocus.java:7-14`, `JujutsuNetworking.java:27-29`, `JujutsuClientNetworking.java:25-30`. **Status:** VERIFIED.
 
+## Black Flash VFX composition
+
+The `black_flash` cue carries `direction` (normalized attack vector: nail velocity for prepared-nail BF, player lookAngle for hammer BF). The client recipe (28 ticks) composes:
+
+**Opening beat (one-shot):**
+- World: `ImpactStyle.BLACK_FLASH` (14 ticks) - compression ring, 4 directional blades fanning along direction, 7 seeded lightning zigzag ribbons, expanding shockwave ring perpendicular to direction
+- Particles: BF_IMPACT x5, BF_LIGHTNING x8, BF_SPARK x12, dust red x20, dust crimson x14, vanilla FLASH x3 (all density-scaled)
+- Sound: BLACK_FLASH_IMPACT (0.68 pitch), BLACK_FLASH_IMPACT_2 (0.82), SNAP (1.3), DEEP_EXPLOSION (0.55)
+- GeckoLib: `triggerAction(entity, "black_flash")`
+
+**On start (age-aware, proximity > 0.01):**
+- Camera: `triggerBlackFlash(6, proximity)` - 270ms total, high-freq 120-135 Hz vibration, FOV punch -12/+8
+- HUD: `triggerImpact` + `triggerFlash(180ms, 200*proximity alpha)` + `triggerNausea(0.6)`
+- Post-process: vanilla blur 260ms * proximity
+- First-person: `triggerSnap` only if anchor == local player (caster-only hand snap)
+
+World geometry uses `directionalBasis(cue.direction())` with degeneracy fallback when looking straight up/down. Lightning angles are deterministic via `pseudoRandom(cue.seed())`. Colors use Black Flash palette (void/crimson/white), not cursed blue.
+
+**Source:** `NobaraVfxRecipes.java` (blackFlash method), `VfxWorldChannel.java` (renderBlackFlash), `VfxCameraChannel.java` (triggerBlackFlash). **Status:** VERIFIED.
+
 ## Verification
 
 `BlackFlashWindowTest` covers early/on-time/late input and one-shot consumption. Manual QA remains required for perceptible timing, multiplayer observation, and animation alignment.

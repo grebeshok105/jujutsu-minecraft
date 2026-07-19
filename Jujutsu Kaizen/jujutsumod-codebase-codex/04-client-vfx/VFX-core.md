@@ -21,7 +21,7 @@ flowchart LR
 
 | Type | Responsibility | Source | Status |
 |---|---|---|---|
-| `VfxCue` | effect ID, immutable world-origin fallback, optional entity ID anchor, world-space anchor offset, intensity, server game time, seed | `vfx/VfxCue.java` | VERIFIED |
+| `VfxCue` | effect ID, immutable world-origin fallback, optional entity ID anchor, world-space anchor offset, intensity, server game time, seed, direction (normalized attack vector or ZERO) | `vfx/VfxCue.java` | VERIFIED |
 | `VfxCuePayload` | typed S2C serialization of exactly one cue | `network/VfxCuePayload.java` | VERIFIED |
 | `JujutsuNetworking.broadcastVfxCue` / `sendVfxCue` | radius-filtered or direct server send, both capability-gated | `network/JujutsuNetworking.java:43-65` | VERIFIED |
 | `VfxAnchorResolver` | resolve a live anchor as `anchor position + anchorOffset`, otherwise use the immutable cue origin | `vfx/VfxAnchorResolver.java` | VERIFIED |
@@ -35,7 +35,7 @@ Anchor semantics are explicit. Unanchored cues use `VfxCue.NO_ANCHOR` with `Vec3
 
 `VfxDirector` is initialized once from `JujutsuModClient`, then Nobara registers recipes before client packet receivers. It owns a 64-instance bound, unknown-ID warning-once behavior, expiry cleanup, the one `AFTER_ENTITIES` world callback, and the HUD callback. It tracks `ClientLevel` by object identity: a changed level clears every active instance/channel before rebinding, while `level == null` and disconnect both clear and reset the tracked level to `null`.
 
-For every non-expired late cue, the director computes and passes the actual `initialAgeTicks` into the recipe. Nobara recipes suppress elapsed one-shot sound/particle opening beats at age >= 2 ticks but pass the age into all 39 HUD, camera/FOV, first-person, and post-process starts, whose realtime timestamps are offset instead of restarting from zero. World impact geometry remains active for the cue's remaining server-time phase. Each render resolves the retained cue's current entity anchor plus its world-space offset and falls back to `cue.origin()` after despawn. The first-person snap lasts 0.75s and traverses the complete 0..15 phase scale.
+For every non-expired late cue, the director computes and passes the actual `initialAgeTicks` into the recipe. Nobara recipes suppress elapsed one-shot sound/particle opening beats at age >= 2 ticks but pass the age into all 40 HUD, camera/FOV, first-person, and post-process starts, whose realtime timestamps are offset instead of restarting from zero. World impact geometry remains active for the cue's remaining server-time phase. Each render resolves the retained cue's current entity anchor plus its world-space offset and falls back to `cue.origin()` after despawn. The first-person snap lasts 0.75s and traverses the complete 0..15 phase scale.
 
 | Channel | Role | Status |
 |---|---|---|
@@ -92,7 +92,7 @@ All 25 IDs have registered Java recipes in `NobaraVfxRecipes`.
 | Resonance / link | `resonance_channel`, `resonance_strike`, `link_bind`, `detonate` | cursed-energy pulse, binding ring, particle burst, target-origin timing | VERIFIED |
 | Enlarge / Boom | `enlarge`, `explosion`, `first_person_snap` | cyan rings, ribbons/blades, shards, sound stack, HUD/camera, caster hand snap | VERIFIED |
 | Straw Doll ritual | `remnant_drop`, `ritual_bind`, `doll_strike`, `resonance_release` | trace pickup, constricting bind, caster-visible slow/zoom/nausea, dark-center/cyan-fracture remote release | VERIFIED |
-| Black Flash | `black_flash` | lightning flash, heavy HUD/camera impact, GeckoLib animation trigger | VERIFIED |
+| Black Flash | `black_flash` | directional slash blades + seeded lightning discharge + shockwave ring (world), BF custom particles, 4-layer sound stack, aggressive camera shake (270ms), white HUD flash + nausea, blur, first-person snap (caster only), GeckoLib animation trigger | VERIFIED |
 | Self Resonance | `self_resonance` | cursed pulse, self-damage vignette, linked target burst | VERIFIED |
 | Nail depth | `nail_deepen` | drive-in particle burst, depth ring | VERIFIED |
 | Nail Trap | `nail_trap_placed`, `nail_trap_armed`, `nail_trap_collapse`, `nail_trap_impact` | placement marker, arm glow, collapse ring, impact burst | VERIFIED |
@@ -122,7 +122,7 @@ Post-process is intentionally a narrow internal channel, not an authoring framew
 
 ## Verification
 
-- Pure assertion tasks cover cue codec/seed/anchor offset, timeline age/expiry/opening-window/realtime offsets, zero/non-zero live-anchor resolution, immutable-origin fallback, quality scaling, registration, transport guards, lifecycle cleanup, all 39 age-aware timed-channel calls, blur fallback wiring, caster-visible and target-local time/HUD wiring, straw-doll resource completeness, and legacy-path absence.
+- Pure assertion tasks cover cue codec/seed/anchor offset/direction, timeline age/expiry/opening-window/realtime offsets, zero/non-zero live-anchor resolution, immutable-origin fallback, quality scaling, registration, transport guards, lifecycle cleanup, all 40 age-aware timed-channel calls, blur fallback wiring, caster-visible and target-local time/HUD wiring, straw-doll resource completeness, and legacy-path absence.
 - `ProjectSanityTest` prevents an accidental return to the old payload/static-manager path and checks the current timeline, lifecycle, live-anchor, and first-person wiring.
 - Hammer/launch, Straw Doll acquisition/ritual, Enlarge/Boom, live anchor death/despawn, blur availability, reduced particles, and two-client observation remain **UNKNOWN** because UI automation is prohibited. Compilation and startup logs are not gameplay verification.
 

@@ -24,7 +24,7 @@ The 25 IDs live in `vfx/NobaraVfxIds.java:7-31` and are all registered by `clien
 | Resonance / link | `resonance_channel`, `resonance_strike`, `link_bind`, `detonate` | cursed-energy pulse, ring, local particle burst, chime |
 | Enlarge / Boom | `enlarge`, `explosion`, `first_person_snap` | expanding ring/ribbon/blade geometry, shards, sound stack, HUD/camera, hand snap |
 | Straw Doll | `remnant_drop`, `ritual_bind`, `doll_strike`, `resonance_release` | trace burst, binding geometry, doll-local puncture, dark-center/cyan-fracture target release |
-| Black Flash | `black_flash` | lightning flash, heavy HUD/camera impact, GeckoLib animation trigger |
+| Black Flash | `black_flash` | directional slash blades + seeded lightning + shockwave ring (world channel), BF_IMPACT/LIGHTNING/SPARK custom particles, 4-layer sound (impact x2 + snap + deep explosion), aggressive 270ms camera shake, white HUD flash + nausea, blur, first-person snap (caster only), GeckoLib animation |
 | Self Resonance | `self_resonance` | cursed pulse, self-damage vignette, linked target burst |
 | Nail depth | `nail_deepen` | drive-in particle burst, depth ring |
 | Nail Trap | `nail_trap_placed`, `nail_trap_armed`, `nail_trap_collapse`, `nail_trap_impact` | placement marker, arm glow, collapse ring, impact burst |
