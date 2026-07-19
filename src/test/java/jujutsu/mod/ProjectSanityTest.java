@@ -574,8 +574,7 @@ public final class ProjectSanityTest {
 		assert start >= 0 && end > start : "Straw Doll recipes must keep distinct caster and target impact phases";
 		String dollStrike = recipes.substring(start, end);
 		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkStrawDollRuntime.java"));
-		assert ritual.contains("RESONANCE_TIME.trigger") && ritual.contains("RESONANCE_SERVER_TICK_RATE")
-				: "Resonance must apply authoritative server time dilation even when the target is a mob";
+		assert !ritual.contains("tickRateManager") : "Resonance must not manipulate the global server tick rate";
 		assert !dollStrike.contains("SoundEvents.ANVIL_USE") : "The doll strike must not sound like an anvil";
 		for (String sound : new String[] {"PROJECTJJK_IMPLODE", "PROJECTJJK_DEEP_EXPLOSION", "PROJECTJJK_BLACK_FLASH_IMPACT", "PROJECTJJK_LONG_WHOOSH"}) {
 			assert dollStrike.contains(sound) : "The doll strike is missing sound layer " + sound;

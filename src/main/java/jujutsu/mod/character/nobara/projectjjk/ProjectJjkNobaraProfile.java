@@ -66,8 +66,6 @@ public final class ProjectJjkNobaraProfile {
 
 	// Resonance (straw doll remote strike).
 	public static final float RESONANCE_DAMAGE = 28.0f;
-	public static final float RESONANCE_SERVER_TICK_RATE = 6.0f;
-	public static final int RESONANCE_SERVER_SLOW_TICKS = 4;
 	public static final float SELF_RESONANCE_SELF_DAMAGE = 6.0f;
 	public static final float SELF_RESONANCE_LINKED_DAMAGE = 18.0f;
 	public static final float BLACK_FLASH_DAMAGE_MULTIPLIER = 1.75f;

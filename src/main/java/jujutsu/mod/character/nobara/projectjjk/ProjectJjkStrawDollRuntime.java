@@ -37,14 +37,12 @@ public final class ProjectJjkStrawDollRuntime {
 	private static final double VFX_RADIUS = 64.0;
 	private static final ProjectJjkRemnantProgress REMNANT_PROGRESS = new ProjectJjkRemnantProgress(REMNANT_HIT_THRESHOLD);
 	private static final Map<UUID, PendingRitual> PENDING_RITUALS = new HashMap<>();
-	private static final ServerTimeDilation RESONANCE_TIME = new ServerTimeDilation();
 
 	private ProjectJjkStrawDollRuntime() {}
 
 	public static void register() {
 		ServerTickEvents.END_SERVER_TICK.register(ProjectJjkStrawDollRuntime::onServerTick);
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
-			RESONANCE_TIME.clear(tickRateAccess(server));
 			clearAll();
 		});
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> clearCaster(handler.player.getUUID()));
@@ -126,7 +124,6 @@ public final class ProjectJjkStrawDollRuntime {
 	}
 
 	private static void onServerTick(MinecraftServer server) {
-		RESONANCE_TIME.tick(tickRateAccess(server));
 		for (PendingRitual pending : List.copyOf(PENDING_RITUALS.values())) {
 			if (PENDING_RITUALS.get(pending.casterId()) != pending) {
 				continue;
@@ -238,9 +235,6 @@ public final class ProjectJjkStrawDollRuntime {
 		}
 		ResonantMomentum.grant(caster);
 		CombatStagger.GLOBAL.apply(target, gameTime, ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
-		RESONANCE_TIME.trigger(tickRateAccess(level.getServer()),
-				ProjectJjkNobaraProfile.RESONANCE_SERVER_TICK_RATE,
-				ProjectJjkNobaraProfile.RESONANCE_SERVER_SLOW_TICKS);
 
 		Vec3 targetOrigin = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
 		Vec3 dollOrigin = caster.getEyePosition().add(caster.getLookAngle().scale(0.45));
@@ -334,20 +328,6 @@ public final class ProjectJjkStrawDollRuntime {
 	private static void clearAll() {
 		PENDING_RITUALS.clear();
 		REMNANT_PROGRESS.clear();
-	}
-
-	private static ServerTimeDilation.TickRateAccess tickRateAccess(MinecraftServer server) {
-		return new ServerTimeDilation.TickRateAccess() {
-			@Override
-			public float tickRate() {
-				return server.tickRateManager().tickrate();
-			}
-
-			@Override
-			public void setTickRate(float tickRate) {
-				server.tickRateManager().setTickRate(tickRate);
-			}
-		};
 	}
 
 	private static VfxCue cue(
