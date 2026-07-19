@@ -1,9 +1,9 @@
-# Claim → Source Index (jujutsumod)
+# Claim -> Source Index (jujutsumod)
 
-← [[00-MOC]] · standard: [[01-meta/Citation-standard]]
+<- [[00-MOC]] | standard: [[01-meta/Citation-standard]]
 
-**Default path prefix:** `.worktrees/nobara-cinematic-slice/`  
-All sources relative to that worktree unless noted.
+**Default path prefix:** repository root (main branch).
+All sources relative to project root unless noted.
 
 ---
 
@@ -11,172 +11,154 @@ All sources relative to that worktree unless noted.
 
 | Claim | Source | Status |
 |---|---|---|
-| mod id `jujutsumod` | `src/main/java/jujutsu/mod/JujutsuMod.java:18` | VERIFIED |
+| mod id `jujutsumod` | `src/main/java/jujutsu/mod/JujutsuMod.java:29` | VERIFIED |
 | MC 1.21.8 | `gradle.properties:10` | VERIFIED |
-| Java >=21 | `src/main/resources/fabric.mod.json:30` | VERIFIED |
+| Java >=21 | `src/main/resources/fabric.mod.json` | VERIFIED |
 | mod version 1.0.0 | `gradle.properties:15` | VERIFIED |
 
 ## Entrypoints
 
 | Claim | Source | Status |
 |---|---|---|
-| main entry | `fabric.mod.json:14-16` | VERIFIED |
-| client entry | `fabric.mod.json:17-19` | VERIFIED |
-| init order entities→data components→items→particles→sounds→networking→Nobara server runtimes→commands | `JujutsuMod.java:23-43` | VERIFIED |
-| client registers Straw Doll renderer factory, real ProjectJJK nail renderer, and current VFX/networking/input | `JujutsuModClient.java:15-24` | VERIFIED |
-| removed legacy `HairpinPlaybackManager` / `NobaraNailFlightManager` are not initialized | `JujutsuModClient.java:14-22`, guard `ProjectSanityTest.java:163-220` | VERIFIED |
+| main entry | `fabric.mod.json` entrypoints.main | VERIFIED |
+| client entry | `fabric.mod.json` entrypoints.client | VERIFIED |
+| init order: entities -> data components -> items -> particles -> sounds -> effects -> networking -> ritual -> straw doll -> anchor lifecycle -> hammer -> action guard -> self resonance -> nail trap -> curse link cleanup -> commands -> forced black flash | `JujutsuMod.java:33-51` | VERIFIED |
+| client registers Straw Doll renderer factory, nail renderer, particle factories, VfxDirector, Nobara recipes (25 IDs), client receivers, keybinds | `JujutsuModClient.java:17-25` | VERIFIED |
+| removed legacy `HairpinPlaybackManager` / `NobaraNailFlightManager` are not initialized | guard `ProjectSanityTest` | VERIFIED |
 
-## Registries — items
-
-| Claim | Source | Status |
-|---|---|---|
-| default `hairpin_nail` uses `ProjectJjkNailItem` | `JujutsuItems.java:14` | VERIFIED |
-| default `straw_doll_hammer` uses `ProjectJjkHammerItem` | `JujutsuItems.java:15` | VERIFIED |
-| ProjectJJK alias items use the same ProjectJJK classes | `JujutsuItems.java:16-17` | VERIFIED |
-| `resonance_remnant` is a non-stackable typed target-link item | `JujutsuItems.java:18,42-45`; `ProjectJjkResonanceRemnant.java:14-28` | VERIFIED |
-| `straw_doll` is a non-stackable reusable GeckoLib item | `JujutsuItems.java:19,47-50`; `ProjectJjkStrawDollItem.java:19-69` | VERIFIED |
-| Nobara starter tools include hammer, doll, and up to 16 nails but no remnant | `ProjectJjkNobaraLoadout.java:8-23` | VERIFIED |
-| `resonance_target` persists and network-syncs remnant target UUID/dimension/name | `JujutsuDataComponents.java:10-20`; `ProjectJjkResonanceRemnant.java:14-28` | VERIFIED |
-| old default item models were removed; default item definitions point to ProjectJJK models | `ProjectSanityTest.java:171-174`, `ProjectSanityTest.java:195-199` | VERIFIED |
-
-## Registries — entities / particles / sounds
+## Registries - items
 
 | Claim | Source | Status |
 |---|---|---|
-| entity `projectjjk_nail` | `JujutsuEntities.java:13` | VERIFIED |
-| 8 Hairpin particle types remain for ProjectJJK runtime/VFX | `JujutsuParticles.java:10-17` | VERIFIED |
-| hairpin + projectjjk sound events remain | `JujutsuSounds.java:9-29` | VERIFIED |
+| default `hairpin_nail` uses `ProjectJjkNailItem` | `JujutsuItems.java:19` | VERIFIED |
+| default `straw_doll_hammer` uses `ProjectJjkHammerItem` | `JujutsuItems.java:20` | VERIFIED |
+| ProjectJJK alias items use the same ProjectJJK classes | `JujutsuItems.java:21-22` | VERIFIED |
+| `resonance_remnant` is a non-stackable typed target-link item | `JujutsuItems.java:23` | VERIFIED |
+| `straw_doll` is a non-stackable reusable GeckoLib item | `JujutsuItems.java:24` | VERIFIED |
+| Nobara starter tools include hammer, doll, and up to 16 nails but no remnant | `ProjectJjkNobaraLoadout.java` | VERIFIED |
+| `resonance_target` and `resonance_remnant_visual` persist and network-sync | `JujutsuDataComponents.java:11-20` | VERIFIED |
+
+## Registries - entities / particles / sounds / effects
+
+| Claim | Source | Status |
+|---|---|---|
+| entity `projectjjk_nail` | `JujutsuEntities.java` | VERIFIED |
+| 8 Hairpin particle types remain for ProjectJJK runtime/VFX | `JujutsuParticles.java` | VERIFIED |
+| hairpin + projectjjk sound events remain | `JujutsuSounds.java` | VERIFIED |
+| mob effect `resonant_momentum` (BENEFICIAL, 0x55D6DC) | `JujutsuEffects.java:11-14` | VERIFIED |
 
 ## Networking payloads
 
 | Claim | Source | Status |
 |---|---|---|
-| S2C typed VFX cue registered | `JujutsuNetworking.java:15` | VERIFIED |
-| S2C character selection sync registered | `JujutsuNetworking.java:16` | VERIFIED |
-| C2S character select registered | `JujutsuNetworking.java:17` | VERIFIED |
-| C2S Nobara action registered | `JujutsuNetworking.java:18` | VERIFIED |
-| S2C CurseLink options / C2S selection / S2C Black Flash focus registered | `JujutsuNetworking.java:19-21` | VERIFIED |
-| server handles Nobara action through `ProjectJjkNobaraActions.tryCast` | `JujutsuNetworking.java:31-35` | VERIFIED |
-| selected CurseLink is revalidated by `SelfResonanceRuntime.select` | `JujutsuNetworking.java:24-26`; `SelfResonanceRuntime.java:81-87` | VERIFIED |
-| client receives VFX, character selection, CurseLink menu options, and focus mirror | `JujutsuClientNetworking.java:17-30` | VERIFIED |
-| removed legacy S2C VFX payloads are guarded against re-registration | `ProjectSanityTest.java:163-220,372-377` | VERIFIED |
-| VFX cue broadcast uses radius filtering and `canSend` | `JujutsuNetworking.java:38-60` | VERIFIED |
-| `VfxCue` carries immutable origin fallback, optional anchor ID, and world-space `anchorOffset` | `VfxCue.java:6-15`; test `VfxCueTest.java:19-47` | VERIFIED |
-| typed payload writes and reads `anchorOffset` immediately after `anchorEntityId` | `VfxCuePayload.java:16-37`; test `VfxCueTest.java:38-47` | VERIFIED |
+| S2C typed VFX cue registered | `JujutsuNetworking.java:18` | VERIFIED |
+| S2C character selection sync registered | `JujutsuNetworking.java:19` | VERIFIED |
+| C2S character select registered | `JujutsuNetworking.java:20` | VERIFIED |
+| C2S Nobara action registered | `JujutsuNetworking.java:21` | VERIFIED |
+| S2C CurseLink options registered | `JujutsuNetworking.java:22` | VERIFIED |
+| C2S CurseLink selection registered | `JujutsuNetworking.java:23` | VERIFIED |
+| S2C Black Flash focus registered | `JujutsuNetworking.java:24` | VERIFIED |
+| server handles Nobara action through `ProjectJjkNobaraActions.tryCast` | `JujutsuNetworking.java:31-32` | VERIFIED |
+| selected CurseLink is revalidated by `SelfResonanceRuntime.select` | `JujutsuNetworking.java:33-34` | VERIFIED |
+| client receives VFX, character selection, CurseLink menu options, and focus mirror | `JujutsuClientNetworking.java:17-27` | VERIFIED |
+| client disconnect clears selection and focus caches | `JujutsuClientNetworking.java:26` | VERIFIED |
+| removed legacy S2C VFX payloads are guarded against re-registration | `ProjectSanityTest` | VERIFIED |
+| VFX cue broadcast uses radius filtering and `canSend` | `JujutsuNetworking.java:43-57` | VERIFIED |
+| `VfxCue` carries immutable origin fallback, optional anchor ID, and world-space `anchorOffset` | `VfxCue.java`; test `VfxCueTest` | VERIFIED |
 
 ## Character selection
 
 | Claim | Source | Status |
 |---|---|---|
 | NONE/NOBARA enum | `JujutsuCharacter.java` | VERIFIED |
-| select + loadout | `CharacterSelectionManager.java:17-25` | VERIFIED |
-| keybind register | `JujutsuKeybinds.java:14` | VERIFIED |
-| client mixins skin/camera/renderer | `jujutsumod.client.mixins.json` | VERIFIED |
+| select + loadout | `CharacterSelectionManager.java` | VERIFIED |
+| keybind register | `JujutsuKeybinds.java` | VERIFIED |
+| 7 client mixins: skin/camera/game renderer/delta tracker/first-person/living entity renderer/player renderer | `jujutsumod.client.mixins.json` | VERIFIED |
 
 ## Nobara runtime
 
 | Claim | Source | Status |
 |---|---|---|
 | canonical runtime package is `character/nobara/projectjjk` | `src/main/java/jujutsu/mod/character/nobara/projectjjk/` | VERIFIED |
-| old runtime classes removed | `ProjectSanityTest.java:159-164` | VERIFIED |
-| old legacy payload/playback classes removed | `ProjectSanityTest.java:165-170` | VERIFIED |
-| prepared nails are persistent typed-anchor entities with entity/block/runtime-object save data | `ProjectJjkNailEntity.java:79,289-366,396-484`; `NailAnchor.java:9-45` | VERIFIED |
-| entity anchors preserve UUID identity through temporary unload and discard only after confirmed removal | `NailAnchorLifecycle.java:14-36`; `ProjectJjkNailEntity.java:462-484`; `NailAnchorTest.java` | VERIFIED |
-| runtime-anchor registry exposes stable UUID resolver extension and distinguishes unavailable/removed/invalid | `NailRuntimeAnchorRegistry.java:10-53`; `NailAnchorTest.java` | VERIFIED |
-| contextual hammer is server-routed and suppresses the vanilla second hit | `NobaraHammerCombatRuntime.java:36-180`; `NobaraActionGuard.java:17-30` | VERIFIED |
-| Black Flash is a server-window second input, applies only bonus/amplification, and grants synced focus | `BlackFlashWindow.java:5-31`; `NobaraHammerCombatRuntime.java:36-180`; `BlackFlashFocus.java:7-14` | VERIFIED |
-| CurseLinks are explicit source-owned server records; self resonance revalidates selection and self-hit before propagation | `CurseLink.java:7`; `CurseLinkRegistry.java:12-36`; `SelfResonanceRuntime.java:33-87` | VERIFIED |
-| ProjectJJK prepared/flying nail aura is rendered by the real entity renderer | `ProjectJjkNailRenderer.java:85-90`, `:115-183` | VERIFIED |
-| transient Nobara scenes use registered VFX recipes; removed `HairpinWorldRenderer` is not a live path | `NobaraVfxRecipes.java:23-34,37-189`, guard `ProjectSanityTest.java:360-377` | VERIFIED |
+| old runtime classes removed | `ProjectSanityTest` | VERIFIED |
+| old legacy payload/playback classes removed | `ProjectSanityTest` | VERIFIED |
+| prepared nails are persistent typed-anchor entities with entity/block/runtime-object save data | `ProjectJjkNailEntity.java`; `NailAnchor.java` | VERIFIED |
+| entity anchors preserve UUID identity through temporary unload and discard only after confirmed removal | `NailAnchorLifecycle.java`; `NailAnchorTest.java` | VERIFIED |
+| contextual hammer is server-routed and suppresses the vanilla second hit | `NobaraHammerCombatRuntime.java`; `NobaraActionGuard.java` | VERIFIED |
+| Black Flash is a server-window second input, applies only bonus/amplification, and grants synced focus | `BlackFlashWindow.java`; `NobaraHammerCombatRuntime.java`; `BlackFlashFocus.java` | VERIFIED |
+| CurseLinks are explicit source-owned server records; self resonance revalidates selection and self-hit before propagation | `CurseLink.java`; `CurseLinkRegistry.java`; `SelfResonanceRuntime.java` | VERIFIED |
+| nail trap places 3 nails in a triangle, arms, collapses on proximity, deals 15 damage | `NailTrapRuntime.java`; `NailTrap.java`; `ProjectJjkNobaraProfile.java:41-48` | VERIFIED |
+| ProjectJJK prepared/flying nail aura is rendered by the real entity renderer | `ProjectJjkNailRenderer.java` | VERIFIED |
+| transient Nobara scenes use registered VFX recipes; removed `HairpinWorldRenderer` is not a live path | `NobaraVfxRecipes.java`; guard `ProjectSanityTest` | VERIFIED |
 
 ## Straw Doll Resonance
 
 | Claim | Source | Status |
 |---|---|---|
-| every second accepted ordinary nail damage hit for one caster/target pair drops a target-bound remnant at the wound; rejected/explosive/self hits do not advance | `ProjectJjkNobaraRuntime.java:148-153`; `ProjectJjkRitualPolicy.java:45-47`; `ProjectJjkStrawDollRuntime.java:36-40,60-86`; `ProjectJjkRemnantProgress.java:7-24` | VERIFIED implementation; Minecraft adaptation |
-| Resonance start requires main-hand hammer, offhand doll, matching remnant, nail, alive loaded target, same dimension, finite distance <=64, and no duplicate cast | `ProjectJjkStrawDollRuntime.java:88-112,139-203`; `ProjectJjkRitualPolicy.java:3-54` | VERIFIED implementation; range/timing are adaptations |
-| the 14-tick ritual revalidates requirements every server tick and does not require line of sight | `ProjectJjkStrawDollRuntime.java:100-136,167-203` | VERIFIED |
-| nail and exact remnant are both located before either shrinks; only successful impact consumes them | `ProjectJjkStrawDollRuntime.java:211-215,246-275` | VERIFIED |
-| successful Resonance damages/staggers target, consumes marks, discards owned embedded nails, clears glow, and emits caster/target cues | `ProjectJjkStrawDollRuntime.java:217-243` | VERIFIED |
-| disconnect/caster death/target death-or-unload/server stop clear relevant pending/progress state | `ProjectJjkStrawDollRuntime.java:45-57,315-323` | VERIFIED |
-| all new Straw Doll transient particles/sounds use VFX Core cues; common ritual runtime has no direct particle/sound composition | `ProjectJjkStrawDollRuntime.java`; guard `ProjectSanityTest.java:481-484` | VERIFIED |
-| canonical invariant is meaningful link + effigy/proxy + hammer-driven nail; Hairpin is separate | `docs/research/2026-07-10-nobara-straw-doll-canon.md:24-50,127-152` | VERIFIED research |
-| hit threshold, wind-up, resource consumption, and 64-block/same-dimension/loaded-target policy are Minecraft rules, not universal canon claims | `docs/research/2026-07-10-nobara-straw-doll-canon.md:45,50-51,139-152,208-216`; [[../03-systems/Straw-Doll-resonance]] | VERIFIED classification |
+| every second accepted ordinary nail damage hit for one caster/target pair drops a target-bound remnant at the wound | `ProjectJjkNobaraRuntime.java`; `ProjectJjkRitualPolicy.java`; `ProjectJjkStrawDollRuntime.java`; `ProjectJjkRemnantProgress.java` | VERIFIED |
+| Resonance start requires main-hand hammer, offhand doll, matching remnant, nail, alive loaded target, same dimension, finite distance <=64, and no duplicate cast | `ProjectJjkStrawDollRuntime.java`; `ProjectJjkRitualPolicy.java` | VERIFIED |
+| the 14-tick ritual revalidates requirements every server tick and does not require line of sight | `ProjectJjkStrawDollRuntime.java` | VERIFIED |
+| successful Resonance damages/staggers target, consumes marks, discards owned embedded nails, clears glow, and emits caster/target cues | `ProjectJjkStrawDollRuntime.java` | VERIFIED |
+| disconnect/caster death/target-death-or-unload/server stop clear relevant pending/progress state | `ProjectJjkStrawDollRuntime.java` | VERIFIED |
+| all Straw Doll transient particles/sounds use VFX Core cues | `ProjectJjkStrawDollRuntime.java`; guard `ProjectSanityTest` | VERIFIED |
 
 ## Nobara profile numbers
 
 | Claim | Source | Status |
 |---|---|---|
-| hold timing adds one nail per 10 ticks after first nail | `ProjectJjkNobaraProfile.java`, test `ProjectJjkNobaraProfileTest.java:28-37` | VERIFIED |
-| max nail age 1200 | `ProjectJjkNobaraProfile.java`, test `ProjectJjkNobaraProfileTest.java:40-43` | VERIFIED |
-| launch delay 4 ticks per nail index | `ProjectJjkNobaraProfile.java`, test `ProjectJjkNobaraProfileTest.java:47-50` | VERIFIED |
-| launch range around prepared nails is 2 blocks | `ProjectJjkNobaraProfile.java`, test `ProjectJjkNobaraProfileTest.java:54-61` | VERIFIED |
-| Enlarge damage 4 per nail / Boom base damage 3 per nail; no mark scaling | `ProjectJjkNobaraProfile.java:27-38`; `ProjectJjkNobaraProfileTest.java` | VERIFIED |
-| doll Resonance 28, self resonance 6/18, Black Flash multiplier 1.75 | `ProjectJjkNobaraProfile.java:40-58`; `ProjectJjkNobaraProfileTest.java` | VERIFIED |
-
-## Nail entity lifecycle
-
-| Claim | Source | Status |
-|---|---|---|
-| prepare creates non-launched real nail entity | `ProjectJjkNailEntity.java:69-76` | VERIFIED |
-| launchAt stores target/delay/explosive flag | `ProjectJjkNailEntity.java:78-95` | VERIFIED |
-| tick handles prepared, delayed launch, hit, embed, explosion pass-through | `ProjectJjkNailEntity.java:132-204` | VERIFIED |
-| embed uses body-space offset and body yaw | `ProjectJjkNailEntity.java:280-299` | VERIFIED |
-| renderer uses synced body anchor for embedded nails | `ProjectJjkNailRenderer.java:65-74`, `:82-95` | VERIFIED |
+| hold timing adds one nail per 10 ticks after first nail | `ProjectJjkNobaraProfile.java:6`; test `ProjectJjkNobaraProfileTest` | VERIFIED |
+| max nail age 1200 | `ProjectJjkNobaraProfile.java:10` | VERIFIED |
+| launch delay 4 ticks per nail index | `ProjectJjkNobaraProfile.java:11` | VERIFIED |
+| launch range around prepared nails is 2 blocks | `ProjectJjkNobaraProfile.java:17` | VERIFIED |
+| Enlarge damage 4 per nail | `ProjectJjkNobaraProfile.java:64` | VERIFIED |
+| Boom base damage 3 per nail | `ProjectJjkNobaraProfile.java:32` | VERIFIED |
+| Directed damage 5 per nail, chain radius 10 | `ProjectJjkNobaraProfile.java:33-34` | VERIFIED |
+| Nail trap damage 15, radius 6, placement range 8, lifetime 600 | `ProjectJjkNobaraProfile.java:41-48` | VERIFIED |
+| Nail depth multipliers 1.0/1.35/1.75 | `ProjectJjkNobaraProfile.java:38-40` | VERIFIED |
+| doll Resonance 28 | `ProjectJjkNobaraProfile.java:68` | VERIFIED |
+| self resonance 6/18 | `ProjectJjkNobaraProfile.java:71-72` | VERIFIED |
+| Black Flash multiplier 1.75 | `ProjectJjkNobaraProfile.java:73` | VERIFIED |
+| horizontal hammer 5, overhead hammer 8, embedded drive 4 | `ProjectJjkNobaraProfile.java:74-76` | VERIFIED |
+| resonant momentum 1.15x for 1200 ticks | `ProjectJjkNobaraProfile.java:49-50` | VERIFIED |
 
 ## Client VFX
 
 | Claim | Source | Status |
 |---|---|---|
-| one `VfxCuePayload` receiver delegates to `VfxDirector`; it has no effect-ID switch | `JujutsuClientNetworking.java:13-19` | VERIFIED |
-| all 20 Nobara IDs register Java recipes | `NobaraVfxIds.java:6-25`; `NobaraVfxRecipes.java:26-45` | VERIFIED |
-| director owns world/HUD callbacks, tick, unknown-ID safety, a 64-instance bound, `ClientLevel` identity cleanup, and null/disconnect reset | `VfxDirector.java:25-148`, guard `ProjectSanityTest.java:321-337` | VERIFIED |
-| non-expired late cues receive actual `initialAgeTicks`; one-shot opening beats run only below two ticks; all 35 timed Nobara channel calls preserve age | `VfxTimeline.java:10-27`, `NobaraVfxRecipes.java:41-305`, guard `ProjectSanityTest.java` | VERIFIED |
-| HUD, camera/FOV, first-person, post-process, and client-time realtime starts are offset to the late cue phase | `VfxTimeline.java:22-27`, `NobaraVfxRecipes.java:41-305`, `VfxFirstPersonChannel.java:14-27`, `VfxPostProcessChannel.java:11-20`, `VfxTimeChannel.java` | VERIFIED |
-| live world anchors resolve as `anchor.position() + anchorOffset`; missing anchors fall back to immutable `cue.origin()` | `VfxAnchorResolver.java:9-15`, `VfxWorldChannel.java:34-69`, test `VfxAnchorResolverTest.java:16-40` | VERIFIED |
-| unanchored server cues use `Vec3.ZERO`; anchored Nobara cues store `origin.subtract(anchor.position())` | `ProjectJjkNobaraRuntime.java:233-238`, `ProjectJjkRitualRuntime.java:601-606` | VERIFIED |
-| no-falloff SFX is a director channel | `VfxSoundChannel.java:12-27`, `VfxContext.java:92-94` | VERIFIED |
-| removed overlay/world/camera/playback managers are guarded as absent | `ProjectSanityTest.java:372-377` | VERIFIED |
-| first-person snap uses an age-aware `VfxFirstPersonChannel` start, lasts 0.75 seconds, and traverses the full `0..15` phase; the narrow hand mixin only reads director state | `NobaraVfxRecipes.java:188-189`, `VfxFirstPersonChannel.java:14-59`, `ProjectSanityTest.java:380-393`, `NobaraFirstPersonSnapMixin.java:24` | VERIFIED |
-| `REMNANT_DROP`, `RITUAL_BIND`, `DOLL_STRIKE`, and `RESONANCE_RELEASE` have stable IDs, server-authoritative emitters, and registered recipes | `NobaraVfxIds.java:17-20`; `ProjectJjkStrawDollRuntime.java:84-85,106-107,236-239`; `NobaraVfxRecipes.java:35-38` | VERIFIED |
-| hammer context, Black Flash, and self resonance emit registered transient Nobara VFX through the generic cue path | `NobaraHammerCombatRuntime.java:36-180`; `SelfResonanceRuntime.java:89-99`; `NobaraVfxIds.java`; `NobaraVfxRecipes.java` | VERIFIED |
-| named camera profiles cover launch, heavy impact, explosion, ritual, and extended Resonance with clamped cumulative yaw/pitch/FOV | `VfxCameraChannel.java:12-73` | VERIFIED |
-| target-local Resonance screen feedback uses a bounded render-time pulse and nausea HUD overlay; it never changes server time or potion state | `NobaraVfxRecipes.java:250-305`, `VfxTimeChannel.java`, `VfxHudChannel.java`, `VfxDeltaTrackerMixin.java` | VERIFIED wiring; manual feel UNKNOWN |
-| Doll Strike always gives local Nobara the heavy screen feedback even when the remote target is a non-player entity | `NobaraVfxRecipes.java`; guard `ProjectSanityTest.java` | VERIFIED wiring; manual feel UNKNOWN |
-| director-owned post-process calls public vanilla `processBlurEffect()` and disables only blur for the session on runtime/linkage failure | `VfxPostProcessChannel.java:7-46`, guard `ProjectSanityTest.java:445` | VERIFIED wiring; in-game feel UNKNOWN |
+| one `VfxCuePayload` receiver delegates to `VfxDirector`; it has no effect-ID switch | `JujutsuClientNetworking.java:18-19` | VERIFIED |
+| all 25 Nobara IDs register Java recipes | `NobaraVfxIds.java:7-31`; `NobaraVfxRecipes.java` | VERIFIED |
+| director owns world/HUD callbacks, tick, unknown-ID safety, a 64-instance bound, `ClientLevel` identity cleanup, and null/disconnect reset | `VfxDirector.java` | VERIFIED |
+| non-expired late cues receive actual `initialAgeTicks`; one-shot opening beats run only below two ticks; all 39 timed Nobara channel calls preserve age | `VfxTimeline.java`; `NobaraVfxRecipes.java`; guard `ProjectSanityTest` | VERIFIED |
+| live world anchors resolve as `anchor.position() + anchorOffset`; missing anchors fall back to immutable `cue.origin()` | `VfxAnchorResolver.java`; test `VfxAnchorResolverTest` | VERIFIED |
+| no-falloff SFX is a director channel | `VfxSoundChannel.java` | VERIFIED |
+| removed overlay/world/camera/playback managers are guarded as absent | `ProjectSanityTest` | VERIFIED |
+| first-person snap uses an age-aware `VfxFirstPersonChannel` start, lasts 0.75 seconds, and traverses the full 0..15 phase | `VfxFirstPersonChannel.java`; `NobaraFirstPersonSnapMixin.java` | VERIFIED |
+| director-owned post-process calls public vanilla blur and disables only blur for the session on runtime/linkage failure | `VfxPostProcessChannel.java` | VERIFIED |
 
 ## Assets
 
 | Claim | Source | Status |
 |---|---|---|
 | 8 particle json | `assets/jujutsumod/particles/` | VERIFIED |
-| runtime item models include ProjectJJK nail/hammer and original Straw Doll/remnant resources | `ProjectSanityTest.java:195-199,480-534` | VERIFIED |
-| original Straw Doll source/runtime set includes 25 matching source/runtime cubes, 14 source animator tracks/four runtime clips, portable texture path, bounded 64x64 Box UVs, deterministic texture source, and texture-backed previews | `source-assets/blockbench/straw_doll.bbmodel:11-202`; `assets/jujutsumod/geckolib/models/straw_doll.geo.json`; `assets/jujutsumod/geckolib/animations/straw_doll.animation.json`; guard `ProjectSanityTest.java:495-563` | VERIFIED resource completeness + native Blockbench MCP inspection; in-game presentation UNKNOWN |
-| copied ProjectJJK doll geometry/animation/texture are absent from runtime assets | guard `ProjectSanityTest.java:557-563`; deleted `assets/jujutsumod/{geo,animations,textures}/projectjjk/doll*` | VERIFIED |
-| old unused Hairpin post-shaders removed | `ProjectSanityTest.java:173-174` | VERIFIED |
+| runtime item models include ProjectJJK nail/hammer and original Straw Doll/remnant resources | `ProjectSanityTest` | VERIFIED |
+| original Straw Doll source/runtime set includes matching cubes, animation tracks, portable texture path, bounded 64x64 Box UVs | `source-assets/blockbench/straw_doll.bbmodel`; `geckolib/models/straw_doll.geo.json`; `geckolib/animations/straw_doll.animation.json` | VERIFIED |
+| old unused Hairpin post-shaders removed | `ProjectSanityTest` | VERIFIED |
 
 ## Tests / build
 
 | Claim | Source | Status |
 |---|---|---|
-| testProjectSanity | `build.gradle:41-48` | VERIFIED |
-| testTargetResolver | `build.gradle:50-57` | VERIFIED |
-| testProjectJjkNobaraProfile | `build.gradle:59-66` | VERIFIED |
-| testNobaraRemnant | `build.gradle:71-79` | VERIFIED |
-| testNobaraRitual | `build.gradle:81-89` | VERIFIED |
-| testVfxCore | `build.gradle:91-99` | VERIFIED |
-| testVfxTimeline | `build.gradle:101-109` | VERIFIED |
-| testVfxQuality | `build.gradle:111-119` | VERIFIED |
-| testVfxAnchor | `build.gradle:121-129` | VERIFIED |
-| Nail-anchor, Black Flash-window, and CurseLink-registry assertions are wired into `check` | `build.gradle`; `NailAnchorTest.java`; `BlackFlashWindowTest.java`; `CurseLinkRegistryTest.java` | VERIFIED |
-| removed legacy test tasks are absent from `check` | `build.gradle:41-141` | VERIFIED |
+| 18 custom test tasks wired into `check` | `build.gradle` | VERIFIED |
+| testProjectSanity covers legacy absence, registration, VFX wiring, assets | `ProjectSanityTest.java` | VERIFIED |
+| Nail-anchor, Black Flash-window, CurseLink-registry, HairpinChain, NailTrap, ResonantMomentum, ServerTimeDilation, VfxTime, RemnantVisualType assertions are wired | `build.gradle` | VERIFIED |
+| removed legacy test tasks are absent from `check` | `build.gradle` | VERIFIED |
 
 ## Risks
 
 | Claim | Source | Status |
 |---|---|---|
-| worktree/checkout divergence can still mislead agents | [[../06-maintenance/Risks-and-tech-debt]] | VERIFIED |
-| dual runtime stack risk resolved by deletion | `ProjectSanityTest.java:159-188` | VERIFIED |
+| worktree/checkout divergence resolved: main now contains cinematic branch | git log main | VERIFIED (resolved 2026-07-19) |
+| dual runtime stack risk resolved by deletion | `ProjectSanityTest` | VERIFIED |
 | no automated in-game smoke in CI | [[../06-maintenance/Risks-and-tech-debt]] | VERIFIED |
 
 ---

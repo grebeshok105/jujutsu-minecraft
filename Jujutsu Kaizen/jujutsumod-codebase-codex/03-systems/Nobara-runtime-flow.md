@@ -1,8 +1,8 @@
 # Nobara Runtime Flow
 
-← [[00-MOC]] · [[Nobara-overview]] · [[Nail-entity-lifecycle]] · [[Combat-timing-and-black-flash]] · [[Curse-links]] · [[Straw-Doll-resonance]]
+<- [[00-MOC]] | [[Nobara-overview]] | [[Nail-entity-lifecycle]] | [[Combat-timing-and-black-flash]] | [[Curse-links]] | [[Straw-Doll-resonance]]
 
-**Source prefix:** `.worktrees/nobara-cinematic-slice/src/main/java/jujutsu/mod/character/nobara/projectjjk/`
+**Source:** `src/main/java/jujutsu/mod/character/nobara/projectjjk/`
 
 ## Authority boundary
 
@@ -12,13 +12,13 @@ The client only sends a compact `NobaraActionPayload` or an explicit link select
 flowchart LR
   C[Keybind or LMB] --> P[NobaraActionPayload]
   P --> S[ProjectJjkNobaraActions server gate]
-  S --> H[Hammer / Hairpin / Self Resonance]
+  S --> H[Hammer / Hairpin / Self Resonance / Nail Trap]
   H --> G[Damage, anchors, links, stagger]
   H --> V[VfxCue]
   V --> D[Client VfxDirector recipe]
 ```
 
-**Source:** `JujutsuNetworking.java:15-35`, `ProjectJjkNobaraActions.java:11-37`, `JujutsuClientNetworking.java:17-30`. **Status:** VERIFIED.
+**Source:** `JujutsuNetworking.java:28-37`, `ProjectJjkNobaraActions.java:21-41`, `JujutsuClientNetworking.java:17-27`. **Status:** VERIFIED.
 
 ## Nail preparation and impact
 
@@ -28,12 +28,20 @@ The ordinary impact path can create a target mark/remnant progression, but explo
 
 ## Hairpin
 
-`ProjectJjkRitualRuntime.tryEnlargeMarkedTarget` requires a valid marked looked-at target and queues the selected owned embedded nails. Its tick path retries a temporarily unavailable anchor and drops only terminal entries. `detonateMarks` gathers concrete owned nails, consumes their marks, and resolves Boom in small batches after the configured delay. Both routes emit semantic VFX cues and apply independent `hairpin` damage per nail.
+`ProjectJjkRitualRuntime.tryEnlargeMarkedTarget` requires a valid marked looked-at target and queues the selected owned embedded nails. Its tick path retries a temporarily unavailable anchor and drops only terminal entries.
+
+`ProjectJjkRitualRuntime.startMassHairpin` gathers concrete owned nails, consumes their marks, and resolves Boom in staggered batches via `HairpinChainScheduler` after the configured delay. Both routes emit semantic VFX cues and apply independent `hairpin` damage per nail.
 
 | Action | Initial damage | Timing | Source |
 |---|---:|---|---|
-| Enlarge | 4 per nail | 20-tick delay | `ProjectJjkNobaraProfile.java:33-38`; `ProjectJjkRitualRuntime.java:95-120,191-251` |
-| Boom | 3 per nail | starts after 10 ticks, staged batches | `ProjectJjkNobaraProfile.java:28-32`; `ProjectJjkRitualRuntime.java:122-142,191-279` |
+| Enlarge (Directed) | 4 per nail | 20-tick delay | `ProjectJjkNobaraProfile.java:61-65`; `ProjectJjkRitualRuntime.java` (tryEnlargeMarkedTarget) |
+| Boom (Mass) | 3 per nail | starts after 10 ticks, staged chain batches | `ProjectJjkNobaraProfile.java:32,53`; `ProjectJjkRitualRuntime.java` (startMassHairpin + HairpinChainScheduler) |
+
+## Nail Trap
+
+`NailTrapRuntime.tryPlace` validates placement range (8 blocks), requires 3 nails, and creates a triangular `NailTrap` at the aimed ground position. The trap arms after a delay, then collapses when a hostile entity enters the prism radius (6 blocks, 3 height). Collapse deals 15 damage and interrupts for 12 ticks. Traps expire after 600 ticks.
+
+**Source:** `NailTrapRuntime.java`, `NailTrap.java`, `ProjectJjkNobaraProfile.java:41-48`. **Status:** VERIFIED.
 
 ## Hammer and Black Flash
 
@@ -47,9 +55,9 @@ Shift+R routes through `SelfResonanceRuntime`. It reads explicit `CurseLinkRegis
 
 ## Runtime registration
 
-`JujutsuMod.onInitialize` registers the ritual, doll, anchor lifecycle, hammer runtime, action guard, self resonance, networking, and command entrypoints. Server stop clears curse links; each stateful runtime has its own server-stop cleanup.
+`JujutsuMod.onInitialize` registers (in order): entities, data components, items, particles, sounds, effects, networking payloads, ritual runtime, straw doll runtime, nail anchor lifecycle, hammer combat runtime, action guard, self resonance runtime, nail trap runtime, server-stop curse link cleanup, commands, and forced black flash.
 
-**Source:** `JujutsuMod.java:23-43`, `NobaraHammerCombatRuntime.java:30-34`, `SelfResonanceRuntime.java:27-31`. **Status:** VERIFIED.
+**Source:** `JujutsuMod.java:33-51`. **Status:** VERIFIED.
 
 ---
 tags: #jujutsumod #runtime #nobara #verified

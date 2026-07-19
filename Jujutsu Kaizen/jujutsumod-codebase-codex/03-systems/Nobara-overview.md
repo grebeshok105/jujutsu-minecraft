@@ -1,6 +1,6 @@
 # Nobara Overview
 
-← [[00-MOC]] · [[Nobara-runtime-flow]] · [[Nail-entity-lifecycle]] · [[Nobara-combat-expansion]] · [[Combat-timing-and-black-flash]] · [[Curse-links]] · [[Straw-Doll-resonance]]
+<- [[00-MOC]] | [[Nobara-runtime-flow]] | [[Nail-entity-lifecycle]] | [[Nobara-combat-expansion]] | [[Combat-timing-and-black-flash]] | [[Curse-links]] | [[Straw-Doll-resonance]]
 
 ## One-line fantasy
 
@@ -8,13 +8,14 @@ An aggressive Straw Doll kit: prepare durable nails, control their placement wit
 
 ## Canonical runtime
 
-ProjectJJK Nobara is the only active Nobara path. The runtime package is `character/nobara/projectjjk`; removed legacy item/runtime/payload/playback classes are guarded by `ProjectSanityTest.java:159-188`.
+ProjectJJK Nobara is the only active Nobara path. The runtime package is `character/nobara/projectjjk`; removed legacy item/runtime/payload/playback classes are guarded by `ProjectSanityTest`.
 
 | Area | Current contract |
 |---|---|
 | Nails | persistent `ProjectJjkNailEntity` with typed anchors |
 | Hammer | server-routed prepared launch, embedded drive, alternating horizontal/overhead attacks |
-| Hairpin | R Enlarge and B Boom operate on concrete owned nails |
+| Hairpin | R Directed (Enlarge) and B Mass (Boom) operate on concrete owned nails |
+| Nail Trap | Shift+B places a triangular 3-nail trap that arms and collapses on proximity |
 | Black Flash | second hammer input during the server window amplifies the eligible impact and grants synced focus |
 | Curse links | explicit server-owned links gate self resonance; no status effect creates one |
 | Doll Resonance | remnant + hammer + doll + nail ritual remains a separate remote attack |
@@ -25,19 +26,37 @@ ProjectJJK Nobara is the only active Nobara path. The runtime package is `charac
 | Input | Client request | Server result |
 |---|---|---|
 | Hold nail item | vanilla item use | prepares one nail per 10 ticks, cap eight |
-| LMB with Nobara hammer | `HAMMER_CONTEXT` | consume Black Flash window or choose prepared launch, embedded drive, horizontal, or overhead attack |
-| R | `HAIRPIN_ENLARGE` | delayed per-nail Enlarge against the looked-at marked target |
-| B | `HAIRPIN_EXPLOSION` | staged per-nail Boom across valid owned nails |
-| Shift+R | `SELF_RESONANCE` | use the sole link or request selection when multiple links exist |
-| Shift+R after selection | same action | starts self-resonance windup if the selected link remains valid |
+| LMB with Nobara hammer | `HAMMER_CONTEXT` (action 2) | consume Black Flash window or choose prepared launch, embedded drive, horizontal, or overhead attack |
+| R | `HAIRPIN_DIRECTED` (action 0) | delayed per-nail Enlarge against the looked-at marked target |
+| B | `HAIRPIN_MASS` (action 1) | staged per-nail Boom across valid owned nails via `HairpinChainScheduler` |
+| Shift+R | `SELF_RESONANCE` (action 3) | use the sole link or request selection when multiple links exist |
+| Shift+B | `NAIL_TRAP` (action 4) | place a triangular nail trap at the aimed ground position |
 
-All requests are revalidated on the logical server. **Source:** `JujutsuKeybinds.java:21-70`, `ProjectJjkNobaraActions.java:11-37`, `NobaraHammerCombatRuntime.java:36-93`. **Status:** VERIFIED.
+Deprecated aliases: `HAIRPIN_ENLARGE = HAIRPIN_DIRECTED`, `HAIRPIN_EXPLOSION = HAIRPIN_MASS` (`ProjectJjkNobaraActions.java:16-17`).
 
-## Initial balance constants
+All requests are revalidated on the logical server. **Source:** `JujutsuKeybinds.java`, `ProjectJjkNobaraActions.java:21-41`, `NobaraHammerCombatRuntime.java`. **Status:** VERIFIED.
 
-These are implementation tuning values, not canon claims: Enlarge `4` per nail, Boom `3` per nail, Straw Doll Resonance `28`, self resonance `6/18`, Black Flash multiplier `1.75`, horizontal hammer `5`, overhead hammer `8`, and embedded drive `4`.
+## Balance constants
 
-**Source:** `ProjectJjkNobaraProfile.java:27-58`. **Status:** VERIFIED; manual balance quality remains UNKNOWN.
+These are implementation tuning values, not canon claims.
+
+| Parameter | Value | Source line |
+|---|---|---|
+| Enlarge damage per nail | 4.0 | `:64` |
+| Boom damage per nail | 3.0 | `:32` |
+| Directed damage per nail | 5.0 | `:33` |
+| Directed chain radius | 10.0 | `:34` |
+| Nail trap damage | 15.0 | `:46` |
+| Nail depth multipliers | 1.0 / 1.35 / 1.75 | `:38-40` |
+| Straw Doll Resonance | 28.0 | `:68` |
+| Self resonance (self / linked) | 6.0 / 18.0 | `:71-72` |
+| Black Flash multiplier | 1.75 | `:73` |
+| Horizontal hammer | 5.0 | `:74` |
+| Overhead hammer | 8.0 | `:75` |
+| Embedded nail drive | 4.0 | `:76` |
+| Resonant momentum (multiplier / duration) | 1.15x / 1200 ticks | `:49-50` |
+
+**Source:** `ProjectJjkNobaraProfile.java:4-96`. **Status:** VERIFIED; manual balance quality remains UNKNOWN.
 
 ## Items and visual ownership
 

@@ -1,6 +1,6 @@
-# Client–Server Boundaries
+# Client-Server Boundaries
 
-← [[00-MOC]] · [[Networking]] · [[../04-client-vfx/VFX-core]]
+<- [[00-MOC]] | [[Networking]] | [[../04-client-vfx/VFX-core]]
 
 ## Server-authoritative (do not move to client)
 
