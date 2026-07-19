@@ -477,7 +477,7 @@ public final class ProjectSanityTest {
 		assert openingBeatGuards >= 8 : "Every non-seekable Nobara sound/particle opening beat must reject late playback";
 		long ageAwareChannelCalls = Pattern.compile("trigger(?:Launch|HeavyImpact|Explosion|Ritual|Swing|Impact|Snap|Blur|ResonanceImpact|SlowMotion|Nausea)\\([^\\n]*initialAgeTicks\\)")
 				.matcher(recipes).results().count();
-		assert ageAwareChannelCalls == 39 : "All 39 Nobara realtime channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
+		assert ageAwareChannelCalls == 40 : "All 40 Nobara realtime channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
 		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/network/ProjectJjkNobaraImpulsePayload.java")) : "Legacy integer VFX payload must be removed after migration";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java")) : "Legacy Hairpin world renderer must be replaced by VFX Core";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinCinematicCamera.java")) : "Legacy Hairpin camera manager must be replaced by VFX Core";

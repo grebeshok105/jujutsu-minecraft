@@ -144,25 +144,40 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance blackFlash(VfxCue cue) {
-		return VfxInstance.of(22, (context, initialAgeTicks) -> {
+		return VfxInstance.of(28, (context, initialAgeTicks) -> {
 			Vec3 origin = context.resolveOrigin(cue);
 			float proximity = context.proximity(cue, 64.0);
+			RandomSource random = random(cue, 0xB1ACF1A5L);
+
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
-				RandomSource random = random(cue, 0xB1ACF1A5L);
-				context.burst(ParticleTypes.FLASH, origin, 2, 0.05, 0.0, random);
-				context.burst(new DustParticleOptions(0x170006, 1.8f), origin, 34, 0.72, 0.24, random);
-				context.burst(new DustParticleOptions(0x8F0018, 1.2f), origin, 28, 0.55, 0.31, random);
-				context.playNoFalloff(JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, 1.2f * proximity, 0.72f, origin, random);
-				context.playNoFalloff(JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT_2, 1.0f * proximity, 0.86f, origin, random);
+				context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.BLACK_FLASH, 14);
+				context.burst(ParticleTypes.FLASH, origin, 3, 0.08, 0.0, random);
+				context.burst(JujutsuParticles.BF_IMPACT, origin, 5, 0.3, 0.1, random);
+				context.burst(JujutsuParticles.BF_LIGHTNING, origin, 8, 1.0, 0.15, random);
+				context.burst(JujutsuParticles.BF_SPARK, origin, 12, 0.8, 1.2, random);
+				context.burst(new DustParticleOptions(0xB40014, 2.0f), origin, 20, 0.75, 0.3, random);
+				context.burst(new DustParticleOptions(0xFF1E3C, 1.2f), origin, 14, 0.55, 0.45, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, 1.4f * proximity, 0.68f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT_2, 1.1f * proximity, 0.82f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_SNAP, 0.9f * proximity, 1.3f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, 0.7f * proximity, 0.55f, origin, random);
 				if (context.client().level != null && cue.anchorEntityId() != VfxCue.NO_ANCHOR) {
 					var entity = context.client().level.getEntity(cue.anchorEntityId());
 					if (entity != null) NobaraPlayerGeoAnimatable.INSTANCE.triggerAction(entity, "black_flash");
 				}
 			}
+
 			if (proximity > 0.01f) {
-				context.camera().triggerHeavyImpact(5, proximity, initialAgeTicks);
+				context.camera().triggerBlackFlash(6, proximity, initialAgeTicks);
 				context.hud().triggerImpact(proximity, initialAgeTicks);
-				context.postProcess().triggerBlur(Math.round(320.0f * proximity), initialAgeTicks);
+				context.hud().triggerFlash(180, Math.round(200 * proximity), initialAgeTicks);
+				context.hud().triggerNausea(0.6f, initialAgeTicks);
+				context.postProcess().triggerBlur(Math.round(260.0f * proximity), initialAgeTicks);
+				if (cue.anchorEntityId() != VfxCue.NO_ANCHOR
+						&& context.client().player != null
+						&& context.client().player.getId() == cue.anchorEntityId()) {
+					context.firstPerson().triggerSnap(initialAgeTicks);
+				}
 			}
 		});
 	}

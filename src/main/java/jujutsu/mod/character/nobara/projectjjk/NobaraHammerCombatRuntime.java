@@ -151,14 +151,15 @@ public final class NobaraHammerCombatRuntime {
 		if (window.impact() == BlackFlashImpact.PREPARED_NAIL && entity instanceof ProjectJjkNailEntity nail) {
 			nail.amplifyFlight(ProjectJjkNobaraProfile.BLACK_FLASH_DAMAGE_MULTIPLIER);
 			BlackFlashFocus.grant(player);
-			emit(player, NobaraVfxIds.BLACK_FLASH, nail.position(), 2);
+			Vec3 direction = nail.getDeltaMovement().lengthSqr() > 1e-6 ? nail.getDeltaMovement().normalize() : player.getLookAngle();
+			emitDirected(player, NobaraVfxIds.BLACK_FLASH, nail.position(), 2, direction);
 			return true;
 		}
 		if (!(entity instanceof LivingEntity target) || !target.isAlive()) return false;
 		target.hurtServer(player.level(), NobaraDamageSources.hairpin(player.level(), player), window.bonusDamage(ProjectJjkNobaraProfile.BLACK_FLASH_DAMAGE_MULTIPLIER));
 		CombatStagger.GLOBAL.apply(target, player.level().getGameTime(), ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
 		BlackFlashFocus.grant(player);
-		emit(player, NobaraVfxIds.BLACK_FLASH, target.position().add(0.0, target.getBbHeight() * 0.55, 0.0), 2);
+		emitDirected(player, NobaraVfxIds.BLACK_FLASH, target.position().add(0.0, target.getBbHeight() * 0.55, 0.0), 2, player.getLookAngle());
 		return true;
 	}
 
@@ -217,6 +218,12 @@ public final class NobaraHammerCombatRuntime {
 		long gameTime = player.level().getGameTime();
 		JujutsuNetworking.broadcastVfxCue(player.level(), origin, 64.0,
 				new VfxCue(id, origin, VfxCue.NO_ANCHOR, Vec3.ZERO, intensity, gameTime, player.getRandom().nextLong(), Vec3.ZERO));
+	}
+
+	private static void emitDirected(ServerPlayer player, net.minecraft.resources.ResourceLocation id, Vec3 origin, int intensity, Vec3 direction) {
+		long gameTime = player.level().getGameTime();
+		JujutsuNetworking.broadcastVfxCue(player.level(), player.position(), 64.0,
+				new VfxCue(id, origin, player.getId(), origin.subtract(player.position()), intensity, gameTime, player.getRandom().nextLong(), direction));
 	}
 
 	private static void clear() { PENDING.clear(); WINDOWS.clear(); OVERHEAD_NEXT.clear(); }
