@@ -12,6 +12,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.curse.CurseLink;
 import jujutsu.mod.curse.CurseLinkRegistry;
@@ -89,11 +90,11 @@ public final class SelfResonanceRuntime {
 	private static final class Vec3Cue {
 		private static void emitCaster(ServerPlayer caster) {
 			var at = caster.getEyePosition();
-			JujutsuNetworking.broadcastVfxCue(caster.level(), caster.position(), 64.0, new VfxCue(NobaraVfxIds.SELF_RESONANCE, at, caster.getId(), at.subtract(caster.position()), 2, caster.level().getGameTime(), caster.getRandom().nextLong()));
+			JujutsuNetworking.broadcastVfxCue(caster.level(), caster.position(), 64.0, new VfxCue(NobaraVfxIds.SELF_RESONANCE, at, caster.getId(), at.subtract(caster.position()), 2, caster.level().getGameTime(), caster.getRandom().nextLong(), Vec3.ZERO));
 		}
 		private static void emitTarget(ServerPlayer caster, LivingEntity target) {
 			var at = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
-			JujutsuNetworking.broadcastVfxCue(caster.level(), at, 64.0, new VfxCue(NobaraVfxIds.RESONANCE_RELEASE, at, target.getId(), at.subtract(target.position()), 2, caster.level().getGameTime(), caster.getRandom().nextLong()));
+			JujutsuNetworking.broadcastVfxCue(caster.level(), at, 64.0, new VfxCue(NobaraVfxIds.RESONANCE_RELEASE, at, target.getId(), at.subtract(target.position()), 2, caster.level().getGameTime(), caster.getRandom().nextLong(), Vec3.ZERO));
 		}
 	}
 	private record Pending(UUID linkId, long dueGameTime) {}

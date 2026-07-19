@@ -465,11 +465,11 @@ public final class ProjectJjkRitualRuntime {
 	}
 
 	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 at, long gameTime) {
-		return new VfxCue(effectId, at, VfxCue.NO_ANCHOR, Vec3.ZERO, Math.max(1, intensity), gameTime, level.random.nextLong());
+		return new VfxCue(effectId, at, VfxCue.NO_ANCHOR, Vec3.ZERO, Math.max(1, intensity), gameTime, level.random.nextLong(), Vec3.ZERO);
 	}
 
 	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 at, long gameTime, Entity anchor) {
-		return new VfxCue(effectId, at, anchor.getId(), at.subtract(anchor.position()), Math.max(1, intensity), gameTime, level.random.nextLong());
+		return new VfxCue(effectId, at, anchor.getId(), at.subtract(anchor.position()), Math.max(1, intensity), gameTime, level.random.nextLong(), Vec3.ZERO);
 	}
 
 	private static void playCasterSnap(ServerLevel level, ServerPlayer caster, int marks, long gameTime) {

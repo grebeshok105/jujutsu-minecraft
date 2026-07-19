@@ -291,7 +291,7 @@ public final class NailTrapRuntime {
 
 	private static void emit(ServerLevel level, Vec3 at, ResourceLocation id, int intensity, Vec3 direction) {
 		JujutsuNetworking.broadcastVfxCue(level, at, VFX_RADIUS,
-				new VfxCue(id, at, VfxCue.NO_ANCHOR, direction, intensity, level.getGameTime(), level.random.nextLong()));
+				new VfxCue(id, at, VfxCue.NO_ANCHOR, Vec3.ZERO, intensity, level.getGameTime(), level.random.nextLong(), direction));
 	}
 
 	private static void remove(ServerLevel level, NailTrap trap) {

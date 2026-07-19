@@ -258,11 +258,11 @@ public final class ProjectJjkNobaraRuntime {
 	}
 
 	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 point, long gameTime) {
-		return new VfxCue(effectId, point, VfxCue.NO_ANCHOR, Vec3.ZERO, Math.max(1, intensity), gameTime, level.random.nextLong());
+		return new VfxCue(effectId, point, VfxCue.NO_ANCHOR, Vec3.ZERO, Math.max(1, intensity), gameTime, level.random.nextLong(), Vec3.ZERO);
 	}
 
 	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 point, long gameTime, Entity anchor) {
-		return new VfxCue(effectId, point, anchor.getId(), point.subtract(anchor.position()), Math.max(1, intensity), gameTime, level.random.nextLong());
+		return new VfxCue(effectId, point, anchor.getId(), point.subtract(anchor.position()), Math.max(1, intensity), gameTime, level.random.nextLong(), Vec3.ZERO);
 	}
 
 	private static List<ProjectJjkNailEntity> findPreparedNails(ServerLevel level, ServerPlayer player) {

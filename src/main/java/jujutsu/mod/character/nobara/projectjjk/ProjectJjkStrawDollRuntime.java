@@ -345,7 +345,8 @@ public final class ProjectJjkStrawDollRuntime {
 				origin.subtract(anchor.position()),
 				Math.max(1, intensity),
 				gameTime,
-				level.random.nextLong()
+				level.random.nextLong(),
+				Vec3.ZERO
 		);
 	}
 

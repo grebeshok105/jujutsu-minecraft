@@ -210,13 +210,13 @@ public final class NobaraHammerCombatRuntime {
 	private static void emit(ServerPlayer player, net.minecraft.resources.ResourceLocation id, Vec3 origin, int intensity) {
 		long gameTime = player.level().getGameTime();
 		JujutsuNetworking.broadcastVfxCue(player.level(), player.position(), 64.0,
-				new VfxCue(id, origin, player.getId(), origin.subtract(player.position()), intensity, gameTime, player.getRandom().nextLong()));
+				new VfxCue(id, origin, player.getId(), origin.subtract(player.position()), intensity, gameTime, player.getRandom().nextLong(), Vec3.ZERO));
 	}
 
 	private static void emitAt(ServerPlayer player, net.minecraft.resources.ResourceLocation id, Vec3 origin, int intensity) {
 		long gameTime = player.level().getGameTime();
 		JujutsuNetworking.broadcastVfxCue(player.level(), origin, 64.0,
-				new VfxCue(id, origin, VfxCue.NO_ANCHOR, Vec3.ZERO, intensity, gameTime, player.getRandom().nextLong()));
+				new VfxCue(id, origin, VfxCue.NO_ANCHOR, Vec3.ZERO, intensity, gameTime, player.getRandom().nextLong(), Vec3.ZERO));
 	}
 
 	private static void clear() { PENDING.clear(); WINDOWS.clear(); OVERHEAD_NEXT.clear(); }

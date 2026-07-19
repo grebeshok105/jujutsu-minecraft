@@ -10,7 +10,12 @@ public record VfxCue(
 		Vec3 anchorOffset,
 		int intensity,
 		long startGameTime,
-		long seed
+		long seed,
+		Vec3 direction
 ) {
 	public static final int NO_ANCHOR = -1;
+
+	public VfxCue {
+		direction = direction.lengthSqr() > 1e-8 ? direction.normalize() : Vec3.ZERO;
+	}
 }
