@@ -531,7 +531,9 @@ public final class ProjectJjkNailEntity extends Entity {
 		NailAnchorLifecycle.observeLoaded(target.getUUID());
 		embeddedTargetId = target.getId();
 		anchor = anchor.withCachedEntityId(embeddedTargetId);
-		syncEmbeddedAttachment();
+		if (!level().isClientSide()) {
+			syncEmbeddedAttachment();
+		}
 		updateEmbeddedPosition(target);
 	}
 

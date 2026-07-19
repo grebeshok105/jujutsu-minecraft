@@ -366,6 +366,8 @@ public final class ProjectSanityTest {
 		assert nailEntity.contains("embeddedLocalOffset()") : "Embedded nail renderer needs synced local body offset for render-attaching to the host";
 		assert nailEntity.contains("level().isClientSide() ? entityData.get(DATA_EMBEDDED_TARGET_ID) : anchor.cachedEntityId()") : "Client embedded nail rendering must read the synced target id while the server uses the UUID-backed anchor cache";
 		assert nailEntity.contains("living.yBodyRot") : "Embedded living-target nails must anchor to body rotation, not head/look yaw";
+		assert nailEntity.contains("if (!level().isClientSide()) {\n\t\t\tsyncEmbeddedAttachment();")
+				: "tickEmbedded must not push client-default ZERO local offsets into synched data (collapses nails to host feet)";
 		String nailRenderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/ProjectJjkNailRenderer.java"));
 		assert !nailRenderer.contains("EMBEDDED_NAIL_RENDER_DEPTH_OFFSET")
 				: "Depth must not drag embedded nails down the victim hitbox; keep the original body anchor";
