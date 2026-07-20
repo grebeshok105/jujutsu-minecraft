@@ -6,8 +6,7 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.world.item.ItemStack;
-import jujutsu.mod.client.gui.CharacterSelectScreen;
-import jujutsu.mod.client.gui.SdfProbeScreen;
+import jujutsu.mod.client.gui.NeonDashboardScreen;
 import jujutsu.mod.network.NobaraActionPayload;
 import jujutsu.mod.registry.JujutsuItems;
 
@@ -40,10 +39,11 @@ public final class JujutsuKeybinds {
 		));
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			while (characterSelect.consumeClick()) {
-				if (client.player != null && client.screen == null) {
-					// TEMPORARY (Stage 2): opens the SDF shader probe. Replaced by the real
-					// neon dashboard in Stage 3.
-					client.setScreen(new SdfProbeScreen());
+				if (client.player == null) continue;
+				if (client.screen instanceof NeonDashboardScreen) {
+					client.screen.onClose();
+				} else if (client.screen == null) {
+					client.setScreen(new NeonDashboardScreen());
 				}
 			}
 			while (nobaraEnlarge.consumeClick()) {
