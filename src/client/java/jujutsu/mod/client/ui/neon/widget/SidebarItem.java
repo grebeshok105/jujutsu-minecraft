@@ -48,8 +48,8 @@ public final class SidebarItem extends UiComponent {
         if (!isVisible() || selectAnim < 0.01f) return;
         NeonTheme t = ctx.theme();
         float ax = absX(), ay = absY();
-        int borderA = applyAlpha(t.borderStrong(), 0.3f * selectAnim);
-        int glowA = applyAlpha(t.glow(), 0.55f * selectAnim);
+        int borderA = applyAlpha(t.borderStrong(), 0.35f * selectAnim);
+        int glowA = applyAlpha(t.glow(), 0.5f * selectAnim);
         int fillA = applyAlpha(t.accentArgb(), 0.14f * selectAnim);
 
         ctx.sdf().add(SdfShape.builder()
@@ -57,8 +57,19 @@ public final class SidebarItem extends UiComponent {
                 .radius(6)
                 .border(1, borderA)
                 .glow(10 * selectAnim, glowA)
-                .highlight(0.5f * selectAnim)
-                .fill(fillA, applyAlpha(t.accentArgb(), 0.04f * selectAnim))
+                .highlight(0.4f * selectAnim)
+                .fill(fillA, applyAlpha(t.accentArgb(), 0.03f * selectAnim))
+                .build());
+
+        // Left accent bar (grows from center when active).
+        float barH = height * 0.6f * selectAnim;
+        float barY = ay + (height - barH) / 2f;
+        ctx.sdf().add(SdfShape.builder()
+                .rect(ax - 1, barY, 2, barH)
+                .radius(1).border(0, 0)
+                .glow(6 * selectAnim, applyAlpha(t.glow(), 0.6f * selectAnim))
+                .highlight(0f)
+                .fill(t.accentArgb(), t.accentArgb())
                 .build());
     }
 
@@ -67,9 +78,9 @@ public final class SidebarItem extends UiComponent {
         if (!isVisible()) return;
         GuiGraphics g = ctx.graphics();
         float ax = absX(), ay = absY();
-        int textColor = selected ? NeonTheme.text() : NeonTheme.textDim();
-        g.drawString(ctx.font(), glyph, (int) (ax + 10), (int) (ay + 12), textColor, false);
-        g.drawString(ctx.font(), label, (int) (ax + 28), (int) (ay + 12), textColor, false);
+        int textColor = selected ? NeonTheme.text() : NeonTheme.textMuted();
+        g.drawString(ctx.font(), glyph, (int) (ax + 10), (int) (ay + 13), textColor, false);
+        g.drawString(ctx.font(), label, (int) (ax + 28), (int) (ay + 13), textColor, false);
     }
 
     @Override

@@ -5,7 +5,7 @@ import jujutsu.mod.client.ui.UiEase;
 public record NeonTheme(int accentArgb, int deepArgb) {
 
     public static final NeonTheme NOBARA = new NeonTheme(0xFFE48A36, 0xFF8B3F1C);
-    public static final NeonTheme NONE = new NeonTheme(0xFF505760, 0xFF181C24);
+    public static final NeonTheme NONE = new NeonTheme(0xFF505760, 0xFF2E333A);
 
     public int glow() { return withAlpha(accentArgb, 0x8C); }
     public int border() { return withAlpha(accentArgb, 0x38); }
@@ -17,15 +17,16 @@ public record NeonTheme(int accentArgb, int deepArgb) {
     public int panelBottom() { return 0xF0110C0A; }
     public int raised() { return 0xD9211914; }
     public int raisedBottom() { return 0xD9181210; }
+    public int panelInset() { return 0xCC0D0907; }
     public int scrimTop() { return 0xB8090605; }
     public int scrimBottom() { return 0xC7090605; }
     public int sidebarTop() { return 0x80131009; }
     public int sidebarBottom() { return 0x4D0F0A08; }
 
     public static int text() { return 0xFFF4EFE8; }
-    public static int textMuted() { return 0xFFC8C0B8; }
+    public static int textMuted() { return 0xFFA89E97; }
     public static int textDim() { return 0xFF635850; }
-    public static int textOnAccent() { return 0xFF1A0410; }
+    public static int textOnAccent() { return 0xFF1A0D02; }
 
     public NeonTheme lerp(NeonTheme other, float t) {
         t = UiEase.clamp01(t);
