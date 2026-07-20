@@ -177,6 +177,7 @@ public final class NeonDashboardScreen extends Screen {
         float anim = UiEase.outCubic(openAnim);
         NeonContext ctx = new NeonContext(sdf, g, font, theme, mouseX, mouseY, deltaTicks, anim);
 
+        sdf.setGlobalAlpha(anim);
         sdf.begin();
         renderSidebarBackground(ctx);
         root.renderSurface(ctx);

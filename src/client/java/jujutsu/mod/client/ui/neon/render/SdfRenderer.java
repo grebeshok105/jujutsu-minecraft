@@ -33,9 +33,14 @@ public final class SdfRenderer implements AutoCloseable {
     private final List<SdfShape> shapes = new ArrayList<>();
     private final CachedOrthoProjectionMatrixBuffer projection =
             new CachedOrthoProjectionMatrixBuffer("jujutsumod_sdf", 1000.0f, 11000.0f, true);
+    private float globalAlpha = 1f;
 
     public void begin() {
         shapes.clear();
+    }
+
+    public void setGlobalAlpha(float alpha) {
+        this.globalAlpha = alpha;
     }
 
     public void add(SdfShape shape) {
@@ -96,7 +101,7 @@ public final class SdfRenderer implements AutoCloseable {
         }
     }
 
-    private static void putVertex(ByteBuffer b, float px, float py, SdfShape s) {
+    private void putVertex(ByteBuffer b, float px, float py, SdfShape s) {
         b.putFloat(px).putFloat(py).putFloat(0.0f);                                  // Position
         b.putFloat(s.x()).putFloat(s.y()).putFloat(s.w()).putFloat(s.h());           // ShapeRect
         b.putFloat(s.radius()).putFloat(s.borderWidth()).putFloat(s.glowRadius()).putFloat(s.highlight()); // ShapeParams
@@ -106,11 +111,11 @@ public final class SdfRenderer implements AutoCloseable {
         putColor(b, s.glowArgb());
     }
 
-    private static void putColor(ByteBuffer b, int argb) {
+    private void putColor(ByteBuffer b, int argb) {
         b.putFloat(((argb >> 16) & 0xFF) / 255.0f);
         b.putFloat(((argb >> 8) & 0xFF) / 255.0f);
         b.putFloat((argb & 0xFF) / 255.0f);
-        b.putFloat(((argb >>> 24) & 0xFF) / 255.0f);
+        b.putFloat(((argb >>> 24) & 0xFF) / 255.0f * globalAlpha);
     }
 
     @Override
