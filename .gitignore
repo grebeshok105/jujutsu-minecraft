@@ -39,3 +39,6 @@ hs_err_*.log
 replay_*.log
 *.hprof
 *.jfr
+
+# gui mockup assets (large binaries, download separately)
+docs/gui/AppleColorEmoji-Windows.ttf
