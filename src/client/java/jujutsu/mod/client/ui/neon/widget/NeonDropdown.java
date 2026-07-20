@@ -101,6 +101,8 @@ public final class NeonDropdown extends UiComponent {
 
         if (open) {
             float py = ay + height + 2;
+            float ph = options.size() * ITEM_H;
+            g.fill((int) ax, (int) py, (int) (ax + width), (int) (py + ph), 0xF51A1410);
             for (int i = 0; i < options.size(); i++) {
                 int color = i == selectedIndex ? NeonTheme.text() : NeonTheme.textMuted();
                 g.drawString(ctx.font(), options.get(i), (int) (ax + 8), (int) (py + i * ITEM_H + 6), color, false);
@@ -125,6 +127,15 @@ public final class NeonDropdown extends UiComponent {
             return true;
         }
         if (open) {
+            open = false;
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (open && keyCode == 256) {
             open = false;
             return true;
         }

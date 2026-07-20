@@ -160,6 +160,7 @@ public final class NeonDashboardScreen extends Screen {
         lastFrameNanos = now;
 
         updateAnimation();
+        if (disposed) return;
         root.drag(mouseX, mouseY, width, height);
         layoutInternal();
 
@@ -257,6 +258,10 @@ public final class NeonDashboardScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_V) {
+            animateClose();
+            return true;
+        }
         if (root.keyPressed(keyCode, scanCode, modifiers)) return true;
         return super.keyPressed(keyCode, scanCode, modifiers);
     }

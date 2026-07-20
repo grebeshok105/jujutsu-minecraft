@@ -48,9 +48,8 @@ public final class SdfRenderer implements AutoCloseable {
         }
         Minecraft mc = Minecraft.getInstance();
         var window = mc.getWindow();
-        double scale = window.getGuiScale();
-        float guiW = (float) (window.getWidth() / scale);
-        float guiH = (float) (window.getHeight() / scale);
+        float guiW = window.getGuiScaledWidth();
+        float guiH = window.getGuiScaledHeight();
 
         GpuBufferSlice projSlice = projection.getBuffer(guiW, guiH);
         RenderSystem.setProjectionMatrix(projSlice, ProjectionType.ORTHOGRAPHIC);

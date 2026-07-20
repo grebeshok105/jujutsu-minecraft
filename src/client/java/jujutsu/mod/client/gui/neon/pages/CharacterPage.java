@@ -114,9 +114,10 @@ public final class CharacterPage extends NeonPage {
         int headSize = 48;
         int headX = (int) (ax + (nobaraCard.width() - headSize) / 2f);
         int headY = (int) (ay + 16);
-        // Face region of 64x64 skin: u=8, v=8, 8x8 pixels scaled to headSize
         g.blit(RenderPipelines.GUI_TEXTURED, NOBARA_SKIN, headX, headY,
-                8f / 64f, 8f / 64f, headSize, headSize, 8, 8, 64, 64);
+                8.0f, 8.0f, headSize, headSize, 8, 8, 64, 64);
+        g.blit(RenderPipelines.GUI_TEXTURED, NOBARA_SKIN, headX, headY,
+                40.0f, 8.0f, headSize, headSize, 8, 8, 64, 64);
     }
 
     private void drawAbilityStripSurface(NeonContext ctx) {
