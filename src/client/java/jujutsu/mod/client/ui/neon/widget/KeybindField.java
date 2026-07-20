@@ -85,12 +85,12 @@ public final class KeybindField extends UiComponent {
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (listening) {
-            if (keyCode == 256) {
-                keyName = "NONE";
+            if (keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_ESCAPE) {
+                listening = false;
             } else {
                 keyName = com.mojang.blaze3d.platform.InputConstants.getKey(keyCode, scanCode).getDisplayName().getString();
+                listening = false;
             }
-            listening = false;
             return true;
         }
         return false;

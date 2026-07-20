@@ -2,7 +2,7 @@ package jujutsu.mod.client.ui.neon.render;
 
 /**
  * Immutable description of one SDF rounded-rect shape. Colors are ARGB ints (matching the
- * existing UiRender/UiTheme convention); the renderer converts them to float RGBA for the GPU.
+ * existing UiRender ARGB convention); the renderer converts them to float RGBA for the GPU.
  *
  * <p>Geometry is in GUI screen pixels. {@code glowRadius} extends the shape's draw quad outward
  * so the halo has room; the shape itself stays at (x, y, w, h).
