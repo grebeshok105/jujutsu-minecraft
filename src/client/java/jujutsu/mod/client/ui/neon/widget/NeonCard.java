@@ -90,6 +90,18 @@ public final class NeonCard extends UiComponent {
                 .highlight(0.15f)
                 .fill(0xE61E1611, 0xE6100B09)
                 .build());
+
+        // Selected badge: accent-filled circle at top-right.
+        if (selected) {
+            ctx.sdf().add(SdfShape.builder()
+                    .rect(ax + width - 24, ay + 6, 17, 17)
+                    .radius(8.5f)
+                    .border(0, 0)
+                    .glow(8, applyAlpha(accentRgb, 0.5f))
+                    .highlight(0.4f)
+                    .fill(accentRgb | 0xFF000000, accentRgb | 0xFF000000)
+                    .build());
+        }
     }
 
     @Override
@@ -120,9 +132,9 @@ public final class NeonCard extends UiComponent {
         g.drawString(ctx.font(), tech, (int) metaX, (int) (ay + 25), unlocked ? accentRgb | 0xFF000000 : NeonTheme.textDim(), false);
         g.drawString(ctx.font(), grade, (int) metaX, (int) (ay + 38), NeonTheme.textDim(), false);
 
-        // Selected badge (✓) or locked SOON tag, top-right.
+        // Selected badge check (dark on accent circle).
         if (selected) {
-            g.drawString(ctx.font(), "\u2713", (int) (ax + width - 16), (int) (ay + 6), 0xFF4ADE80, false);
+            g.drawString(ctx.font(), "\u2713", (int) (ax + width - 19), (int) (ay + 10), NeonTheme.textOnAccent(), false);
         } else if (!unlocked) {
             g.drawString(ctx.font(), "SOON", (int) (ax + width - 30), (int) (ay + 7), NeonTheme.textDim(), false);
         }

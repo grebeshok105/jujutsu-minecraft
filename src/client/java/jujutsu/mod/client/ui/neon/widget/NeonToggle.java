@@ -53,26 +53,26 @@ public final class NeonToggle extends UiComponent {
         float trackX = ax + width - TRACK_W - 4;
         float trackY = ay + (height - TRACK_H) / 2f;
 
-        int trackFill = state ? applyAlpha(t.accentArgb(), 0.5f + 0.2f * hover) : 0x40303030;
-        int trackBorder = state ? t.borderStrong() : 0x30505050;
+        int trackFill = state ? (t.deepArgb() | 0xFF000000) : 0x80403026;
+        int trackBorder = state ? t.accentArgb() : 0x2EE48A36;
 
         ctx.sdf().add(SdfShape.builder()
                 .rect(trackX, trackY, TRACK_W, TRACK_H)
                 .radius(TRACK_H / 2f)
                 .border(1, trackBorder)
-                .glow(state ? 6 : 0, applyAlpha(t.glow(), 0.3f))
+                .glow(state ? 6 : 0, applyAlpha(t.glow(), 0.35f))
                 .highlight(0.3f)
                 .fill(trackFill, trackFill)
                 .build());
 
         float knobX = trackX + 3 + knobAnim * (TRACK_W - 2 * KNOB_R - 6);
         float knobY = trackY + (TRACK_H - 2 * KNOB_R) / 2f;
-        int knobColor = state ? t.accentArgb() : 0xFF808080;
+        int knobColor = state ? 0xFFFFE9D2 : 0xFF635850;
         ctx.sdf().add(SdfShape.builder()
                 .rect(knobX, knobY, KNOB_R * 2, KNOB_R * 2)
                 .radius(KNOB_R)
                 .border(0, 0)
-                .glow(0, 0)
+                .glow(state ? 5 : 0, applyAlpha(t.glow(), 0.4f))
                 .highlight(0.5f)
                 .fill(knobColor, knobColor)
                 .build());

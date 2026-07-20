@@ -42,7 +42,7 @@ public final class VisualsPage extends NeonPage {
         particle.setBounds(0, y, pageW, 46); add(particle); y += 52;
 
         CtrlRow glowIntensity = new CtrlRow(Component.literal("Neon halo strength"),
-                new NeonSlider(Component.literal("Glow intensity"), 0.7f));
+                new NeonSlider(Component.literal("Glow intensity"), 0, 100, 70));
         glowIntensity.setBounds(0, y, pageW, 46); add(glowIntensity);
     }
 }

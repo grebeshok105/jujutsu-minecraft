@@ -64,45 +64,27 @@ public final class NeonDropdown extends UiComponent {
                 .highlight(0.2f)
                 .fill(t.raised(), t.raisedBottom())
                 .build());
-
-        if (open) {
-            float py = ay + height + 2;
-            float ph = options.size() * ITEM_H;
-            ctx.sdf().add(SdfShape.builder()
-                    .rect(ax, py, width, ph)
-                    .radius(6)
-                    .border(1, t.border())
-                    .glow(8, applyAlpha(t.glow(), 0.25f))
-                    .highlight(0.1f)
-                    .fill(0xF51A1410, 0xF5141008)
-                    .build());
-
-            for (int i = 0; i < options.size(); i++) {
-                if (i == selectedIndex) {
-                    ctx.sdf().add(SdfShape.builder()
-                            .rect(ax + 2, py + i * ITEM_H + 1, width - 4, ITEM_H - 2)
-                            .radius(4)
-                            .border(0, 0).glow(0, 0).highlight(0.3f)
-                            .fill(applyAlpha(t.accentArgb(), 0.15f), applyAlpha(t.accentArgb(), 0.08f))
-                            .build());
-                }
-            }
-        }
     }
 
     @Override
     public void renderText(NeonContext ctx) {
         if (!isVisible()) return;
         GuiGraphics g = ctx.graphics();
+        NeonTheme t = ctx.theme();
         float ax = absX(), ay = absY();
-        g.drawString(ctx.font(), label, (int) ax, (int) (ay - 12), NeonTheme.textDim(), false);
-        g.drawString(ctx.font(), options.get(selectedIndex), (int) (ax + 8), (int) (ay + 7), NeonTheme.text(), false);
-        g.drawString(ctx.font(), open ? "\u25B2" : "\u25BC", (int) (ax + width - 16), (int) (ay + 7), NeonTheme.textDim(), false);
+        g.drawString(ctx.font(), label, (int) ax, (int) (ay + 7), NeonTheme.textMuted(), false);
+
+        Component current = options.get(selectedIndex);
+        int curW = ctx.font().width(current);
+        g.drawString(ctx.font(), current, (int) (ax + width - 16 - curW - 6), (int) (ay + 7), NeonTheme.text(), false);
+        g.drawString(ctx.font(), open ? "\u25B2" : "\u25BC", (int) (ax + width - 16), (int) (ay + 7), t.accentArgb(), false);
 
         if (open) {
             float py = ay + height + 2;
-            float ph = options.size() * ITEM_H;
-            g.fill((int) ax, (int) py, (int) (ax + width), (int) (py + ph), 0xF51A1410);
+            g.fill((int) ax, (int) py, (int) (ax + width), (int) (py + options.size() * ITEM_H), 0xF51A1410);
+            g.fill((int) (ax + 2), (int) (py + selectedIndex * ITEM_H + 1),
+                    (int) (ax + width - 2), (int) (py + selectedIndex * ITEM_H + ITEM_H - 1),
+                    applyAlpha(t.accentArgb(), 0.18f));
             for (int i = 0; i < options.size(); i++) {
                 int color = i == selectedIndex ? NeonTheme.text() : NeonTheme.textMuted();
                 g.drawString(ctx.font(), options.get(i), (int) (ax + 8), (int) (py + i * ITEM_H + 6), color, false);

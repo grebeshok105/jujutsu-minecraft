@@ -103,14 +103,15 @@ public final class CharacterPage extends NeonPage {
             add(card);
         }
 
-        float btnW = 120f, btnH = 30f;
-        float btnY = pageH - btnH - 4;
+        float btnH = 36f;
+        float btnW = (pageW - 10) / 2f;
+        float btnY = pageH - btnH - 2;
         cancelBtn = new NeonButton(Component.literal("Cancel"), btnW, btnH, false, closeAction);
-        cancelBtn.setBounds(pageW - (btnW * 2 + 10), btnY, btnW, btnH);
+        cancelBtn.setBounds(0, btnY, btnW, btnH);
         add(cancelBtn);
 
         confirmBtn = new NeonButton(Component.translatable("screen.jujutsumod.character_select.confirm"), btnW, btnH, true, this::confirm);
-        confirmBtn.setBounds(pageW - btnW, btnY, btnW, btnH);
+        confirmBtn.setBounds(btnW + 10, btnY, btnW, btnH);
         add(confirmBtn);
     }
 

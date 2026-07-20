@@ -35,11 +35,11 @@ public final class CombatPage extends NeonPage {
         balance.setBounds(0, y, pageW, 12); add(balance); y += 18;
 
         CtrlRow chargeSpeed = new CtrlRow(Component.literal("Ticks per prepared nail"),
-                new NeonSlider(Component.literal("Nail charge speed"), 0.5f));
+                new NeonSlider(Component.literal("Nail charge speed"), 4, 20, 10));
         chargeSpeed.setBounds(0, y, pageW, 46); add(chargeSpeed); y += 52;
 
         CtrlRow chainRadius = new CtrlRow(Component.literal("Blocks between detonation links"),
-                new NeonSlider(Component.literal("Hairpin chain radius"), 0.5f));
+                new NeonSlider(Component.literal("Hairpin chain radius"), 2, 16, 10));
         chainRadius.setBounds(0, y, pageW, 46); add(chainRadius);
     }
 }
