@@ -22,4 +22,9 @@
   ,"message.jujutsumod.nobara.trap.no_nails": "Для ловушки нужны три проклятых гвоздя."
   ,"message.jujutsumod.nobara.trap.failed": "Не удалось установить гвоздевую ловушку."
   ,"message.jujutsumod.nobara.trap.armed": "Гвоздевая ловушка установлена."
+  ,"screen.jujutsumod.dashboard.title": "JUJUTSU // DASHBOARD"
+  ,"screen.jujutsumod.dashboard.page.character": "Персонаж"
+  ,"screen.jujutsumod.dashboard.page.combat": "Бой"
+  ,"screen.jujutsumod.dashboard.page.visuals": "Визуал"
+  ,"screen.jujutsumod.dashboard.page.misc": "Разное"
 }

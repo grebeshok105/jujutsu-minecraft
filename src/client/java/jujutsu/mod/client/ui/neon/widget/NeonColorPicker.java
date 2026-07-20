@@ -8,27 +8,23 @@ import jujutsu.mod.client.ui.neon.render.SdfShape;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
-public final class NeonToggle extends UiComponent {
+public final class NeonColorPicker extends UiComponent {
     private final Component label;
-    private boolean state;
-    private float knobAnim;
+    private int colorArgb;
     private boolean hoveredThisFrame;
     private double lastMouseX = -1, lastMouseY = -1;
 
-    private static final float TRACK_W = 36;
-    private static final float TRACK_H = 18;
-    private static final float KNOB_R = 7;
+    private static final float SWATCH_SIZE = 18;
 
-    public NeonToggle(Component label, boolean initial) {
+    public NeonColorPicker(Component label, int initialColor) {
         this.label = label;
-        this.state = initial;
-        this.knobAnim = initial ? 1f : 0f;
+        this.colorArgb = initialColor | 0xFF000000;
         this.height = 24;
         this.width = 200;
     }
 
-    public boolean state() { return state; }
-    public void setState(boolean s) { this.state = s; }
+    public int color() { return colorArgb; }
+    public void setColor(int argb) { this.colorArgb = argb | 0xFF000000; }
 
     public void updateMouse(double mx, double my) {
         this.lastMouseX = mx;
@@ -41,7 +37,6 @@ public final class NeonToggle extends UiComponent {
     @Override
     public void tick(float deltaTicks) {
         hoveredThisFrame = contains(lastMouseX, lastMouseY);
-        knobAnim = UiEase.approach(knobAnim, state ? 1f : 0f, 0.35f, deltaTicks);
         super.tick(deltaTicks);
     }
 
@@ -50,31 +45,16 @@ public final class NeonToggle extends UiComponent {
         if (!isVisible()) return;
         NeonTheme t = ctx.theme();
         float ax = absX(), ay = absY();
-        float trackX = ax + width - TRACK_W - 4;
-        float trackY = ay + (height - TRACK_H) / 2f;
-
-        int trackFill = state ? applyAlpha(t.accentArgb(), 0.5f + 0.2f * hover) : 0x40303030;
-        int trackBorder = state ? t.borderStrong() : 0x30505050;
+        float swatchX = ax + width - SWATCH_SIZE - 4;
+        float swatchY = ay + (height - SWATCH_SIZE) / 2f;
 
         ctx.sdf().add(SdfShape.builder()
-                .rect(trackX, trackY, TRACK_W, TRACK_H)
-                .radius(TRACK_H / 2f)
-                .border(1, trackBorder)
-                .glow(state ? 6 : 0, applyAlpha(t.glow(), 0.3f))
+                .rect(swatchX, swatchY, SWATCH_SIZE, SWATCH_SIZE)
+                .radius(4)
+                .border(1, hoveredThisFrame ? t.borderStrong() : t.border())
+                .glow(hoveredThisFrame ? 6 : 0, applyAlpha(t.glow(), 0.3f))
                 .highlight(0.3f)
-                .fill(trackFill, trackFill)
-                .build());
-
-        float knobX = trackX + 3 + knobAnim * (TRACK_W - 2 * KNOB_R - 6);
-        float knobY = trackY + (TRACK_H - 2 * KNOB_R) / 2f;
-        int knobColor = state ? t.accentArgb() : 0xFF808080;
-        ctx.sdf().add(SdfShape.builder()
-                .rect(knobX, knobY, KNOB_R * 2, KNOB_R * 2)
-                .radius(KNOB_R)
-                .border(0, 0)
-                .glow(0, 0)
-                .highlight(0.5f)
-                .fill(knobColor, knobColor)
+                .fill(colorArgb, colorArgb)
                 .build());
     }
 
@@ -83,15 +63,22 @@ public final class NeonToggle extends UiComponent {
         if (!isVisible()) return;
         GuiGraphics g = ctx.graphics();
         g.drawString(ctx.font(), label, (int) absX(), (int) (absY() + 7), NeonTheme.textMuted(), false);
+
+        String hex = String.format("#%06X", colorArgb & 0x00FFFFFF);
+        float hexX = absX() + width - SWATCH_SIZE - 4 - ctx.font().width(hex) - 8;
+        g.drawString(ctx.font(), hex, (int) hexX, (int) (absY() + 7), NeonTheme.textDim(), false);
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0 && contains(mouseX, mouseY)) {
-            state = !state;
-            net.minecraft.client.Minecraft.getInstance().getSoundManager().play(
-                    net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
-                            net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK.value(), 1.0f, 0.5f));
+            // Shell only: cycle through a few preset colors
+            int[] presets = {0xFFE48A36, 0xFFDC2743, 0xFF4ADE80, 0xFF60A5FA, 0xFFA78BFA, 0xFF505760};
+            int current = -1;
+            for (int i = 0; i < presets.length; i++) {
+                if ((presets[i] | 0xFF000000) == colorArgb) { current = i; break; }
+            }
+            colorArgb = presets[(current + 1) % presets.length] | 0xFF000000;
             return true;
         }
         return false;

@@ -65,5 +65,10 @@
   "subtitles.jujutsumod.projectjjk.whoosh_hit": "ProjectJJK nail hits",
   "screen.jujutsumod.curse_link.title": "Choose cursed technique link",
   "message.jujutsumod.nobara.self_resonance.no_link": "No explicit cursed link is active.",
-  "message.jujutsumod.nobara.self_resonance.selected": "Selected %s. Press Shift+R again to use Self Resonance."
+  "message.jujutsumod.nobara.self_resonance.selected": "Selected %s. Press Shift+R again to use Self Resonance.",
+  "screen.jujutsumod.dashboard.title": "JUJUTSU // DASHBOARD",
+  "screen.jujutsumod.dashboard.page.character": "Character",
+  "screen.jujutsumod.dashboard.page.combat": "Combat",
+  "screen.jujutsumod.dashboard.page.visuals": "Visuals",
+  "screen.jujutsumod.dashboard.page.misc": "Misc"
 }

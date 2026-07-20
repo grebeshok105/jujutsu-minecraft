@@ -2,6 +2,8 @@ package jujutsu.mod.client.gui.neon.pages;
 
 import java.util.List;
 import jujutsu.mod.client.gui.neon.NeonPage;
+import jujutsu.mod.client.ui.neon.widget.KeybindField;
+import jujutsu.mod.client.ui.neon.widget.NeonColorPicker;
 import jujutsu.mod.client.ui.neon.widget.NeonDropdown;
 import jujutsu.mod.client.ui.neon.widget.NeonToggle;
 import net.minecraft.network.chat.Component;
@@ -25,5 +27,13 @@ public final class MiscPage extends NeonPage {
         NeonToggle debugOverlay = new NeonToggle(Component.literal("Debug Overlay"), false);
         debugOverlay.setBounds(0, 108, pageW, 24);
         add(debugOverlay);
+
+        KeybindField openKey = new KeybindField(Component.literal("Open Dashboard"), "V");
+        openKey.setBounds(0, 150, pageW, 24);
+        add(openKey);
+
+        NeonColorPicker accentColor = new NeonColorPicker(Component.literal("Accent Color"), 0xFFE48A36);
+        accentColor.setBounds(0, 192, pageW, 24);
+        add(accentColor);
     }
 }

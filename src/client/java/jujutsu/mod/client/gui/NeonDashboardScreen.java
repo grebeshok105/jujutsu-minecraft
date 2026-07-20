@@ -206,6 +206,9 @@ public final class NeonDashboardScreen extends Screen {
             if (child instanceof NeonToggle t) t.updateMouse(mx, my);
             else if (child instanceof NeonSlider s) s.updateMouse(mx, my);
             else if (child instanceof NeonDropdown d) d.updateMouse(mx, my);
+            else if (child instanceof jujutsu.mod.client.ui.neon.widget.KeybindField k) k.updateMouse(mx, my);
+            else if (child instanceof jujutsu.mod.client.ui.neon.widget.NeonColorPicker c) c.updateMouse(mx, my);
+            else if (child instanceof jujutsu.mod.client.ui.neon.widget.NeonCard card) card.updateMouse(mx, my);
             else if (child instanceof jujutsu.mod.client.ui.neon.UiContainer c) updatePageMouseTrackers(c, mx, my);
         }
     }
