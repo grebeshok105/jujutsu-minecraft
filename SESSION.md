@@ -1,9 +1,9 @@
 # Session Handoff — Jujutsu Minecraft
 
-> **CURRENT 2026-07-20 — NEON GUI COMPLETE (Stages 2-7 done).**
+> **CURRENT 2026-07-20 — NEON GUI COMPLETE + REWORK-TO-MOCKUP DONE.**
 > Worktree `.qoder/worktrees/neon-gui`, ветка `worktree-neon-gui`.
-> Все стейджи закоммичены. `gradlew check` зелёный. Jar скопирован в инстанс.
-> **In-game рендер-проверка НЕ выполнена** (пользователь пропустил). Первое действие — запустить клиент и нажать V.
+> Все стейджи + переработка под макет закоммичены. `gradlew check` зелёный. Jar в инстансе.
+> **In-game: SDF рисует** (после фикса endianness). Клики/прицел/иконки исправлены.
 
 ---
 
@@ -12,10 +12,10 @@
 - Проект: `D:\WorkFlow\Jujutsu Minecraft`
 - Активный worktree: `D:\WorkFlow\Jujutsu Minecraft\.qoder\worktrees\neon-gui`
 - Ветка: `worktree-neon-gui` (main = `72f36a3`)
-- Последний коммит: `3faef61 refactor(gui): delete legacy UI, update sanity tests (Stage 7)`
+- Последний коммит: `f0d55ff feat(gui): Apple emoji icons (Phase 4)`
 - Инстанс: `D:\Games\instances\Jujutsu\mods\jujutsumod-1.0.0.jar` (обновлён)
 
-## Коммиты (Stages 3-7)
+## Коммиты (Stages 3-7 + Rework)
 
 | Commit | Stage | Содержание |
 |---|---|---|
@@ -24,17 +24,20 @@
 | `70ea937` | 5 | Functional CharacterPage (SelectCharacterPayload) |
 | `3b14ca9` | 6 | KeybindField, ColorPicker, sounds, lang |
 | `3faef61` | 7 | Cleanup: delete legacy, update tests |
+| `0ca1fd3` | fix | SDF nativeOrder endianness + projection backup/restore |
+| `e1922c0` | P0 | page click bounds, crosshair dim, real page dims, button hover |
+| `5d085af` | P1 | header chrome (sigil/title/version) + sidebar (MODULES/footer/accent bar) |
+| `a21db5a` | P2 | 6-card roster grid, page headers, ability strip, Cancel/Confirm |
+| `e6b52bf` | P3 | ctrl-row shell pages (Combat/Visuals/Misc) |
+| `f0d55ff` | P4 | Apple emoji icons (96px PNG) для sidebar/portraits/abilities |
 
 ## Статус стейджей
 
 | Stage | Статус |
 |---|---|
 | 0-2 | DONE (ранее) |
-| 3 | DONE ✅ |
-| 4 | DONE ✅ |
-| 5 | DONE ✅ |
-| 6 | DONE ✅ |
-| 7 | DONE ✅ |
+| 3-7 | DONE ✅ |
+| Rework P0-P4 | DONE ✅ (приведение к макету + фикс багов) |
 
 ## ПЕРВОЕ ДЕЙСТВИЕ: in-game проверка
 
