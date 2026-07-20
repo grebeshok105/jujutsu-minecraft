@@ -13,6 +13,8 @@ import net.minecraft.client.renderer.CachedOrthoProjectionMatrixBuffer;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -27,13 +29,15 @@ import java.util.OptionalInt;
  * shapes act as background surfaces - exactly what the dashboard panels need.
  */
 public final class SdfRenderer implements AutoCloseable {
+    private static final Logger LOG = LoggerFactory.getLogger("jujutsumod/sdf");
     // Extra quad padding beyond the shape bounds so the glow + shadow + AA have room.
     private static final float PAD = 6f;
 
     private final List<SdfShape> shapes = new ArrayList<>();
     private final CachedOrthoProjectionMatrixBuffer projection =
-            new CachedOrthoProjectionMatrixBuffer("jujutsumod_sdf", 1000.0f, 11000.0f, true);
+            new CachedOrthoProjectionMatrixBuffer("jujutsumod_sdf", 1000.0f, 12000.0f, true);
     private float globalAlpha = 1f;
+    private boolean diagLogged;
 
     public void begin() {
         shapes.clear();
@@ -88,6 +92,11 @@ public final class SdfRenderer implements AutoCloseable {
 
         RenderTarget target = mc.getMainRenderTarget();
         CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
+        if (!diagLogged) {
+            diagLogged = true;
+            LOG.info("SDF flush: shapes={} gui={}x{} alpha={} indexCount={}",
+                    shapes.size(), guiW, guiH, globalAlpha, indexCount);
+        }
         try (RenderPass pass = encoder.createRenderPass(
                 () -> "jujutsumod:sdf_shapes",
                 target.getColorTextureView(), OptionalInt.empty(),
@@ -98,6 +107,8 @@ public final class SdfRenderer implements AutoCloseable {
             pass.setVertexBuffer(0, vertexBuffer);
             pass.setIndexBuffer(indexBuffer, sequential.type());
             pass.drawIndexed(0, 0, indexCount, 1);
+        } catch (RuntimeException | LinkageError error) {
+            LOG.error("SDF draw failed", error);
         }
     }
 
