@@ -127,9 +127,9 @@ body.open #window{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-even
   background:linear-gradient(180deg, var(--panel) 0%, var(--panel-bottom) 100%);
   border:1px solid var(--border);
   box-shadow:
-    0 0 0 1px rgba(228,138,54,.06),
-    0 0 26px -4px var(--accent-glow),
-    0 18px 48px -12px rgba(0,0,0,.85),
+    0 0 0 1px rgba(228,138,54,.05),
+    0 0 12px -5px var(--accent-glow),
+    0 14px 36px -14px rgba(0,0,0,.8),
     inset 0 1px 0 var(--highlight);
   transition:box-shadow var(--t-theme) ease, border-color var(--t-theme) ease;
 }
@@ -225,13 +225,17 @@ body.open #window{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-even
   box-shadow:0 0 8px var(--accent-glow);
 }
 .nav-item.active::before{transform:scaleY(1);}
-#sidebar .foot{margin-top:auto;padding:8px 8px 0;font-size:9.5px;color:var(--text-dim);letter-spacing:.06em;line-height:1.5;}
+#sidebar .foot{
+  margin-top:auto;padding:18px 8px 0;font-size:9.5px;color:var(--text-dim);
+  letter-spacing:.06em;line-height:1.5;
+  border-top:1px solid rgba(228,138,54,.08);
+}
 #sidebar .foot b{color:var(--accent);font-weight:600;transition:color var(--t-theme) ease;}
 
 /* ================= PAGE CONTAINER ================= */
 #pages{position:relative;flex:1;overflow:hidden;}
 .page{
-  position:absolute;inset:0;padding:16px 18px;overflow-y:auto;overflow-x:hidden;
+  position:absolute;inset:0;padding:16px 18px 28px;overflow-y:auto;overflow-x:hidden;
   opacity:0;transform:translateX(10px);pointer-events:none;
   transition:opacity var(--t-page) ease, transform var(--t-page) cubic-bezier(.22,1,.36,1);
   scrollbar-width:thin;scrollbar-color:var(--accent-deep) transparent;
@@ -284,14 +288,14 @@ body.open #window{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-even
 .char-card .portrait .emo{font-size:30px;filter:drop-shadow(0 2px 6px var(--card-glow,var(--accent-glow)));}
 .char-card.locked .portrait .emo{filter:grayscale(.5) drop-shadow(0 2px 5px rgba(0,0,0,.6));opacity:.85;}
 /* Nobara real head skin (base + hat layers, pixelated) */
-.head-skin{position:relative;width:40px;height:40px;image-rendering:pixelated;}
+.head-skin{position:relative;width:48px;height:48px;image-rendering:pixelated;}
 .head-skin .layer{
   position:absolute;inset:0;
   background-image:url('../../src/main/resources/assets/jujutsumod/textures/entity/character/nobara.png');
-  background-size:512px 512px;image-rendering:pixelated;
+  background-size:384px 384px;image-rendering:pixelated;
 }
-.head-skin .base{background-position:-64px -64px;}  /* head front (8,8) */
-.head-skin .hat{background-position:-320px -64px;}  /* hat front (40,8) */
+.head-skin .base{background-position:-48px -48px;}  /* head front (8,8) @6x */
+.head-skin .hat{background-position:-240px -48px;}  /* hat front (40,8) @6x */
 /* meta */
 .char-card .meta{flex:1;min-width:0;}
 .char-card .name{
@@ -419,7 +423,7 @@ body.open #window{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-even
 @keyframes pulse{0%,100%{box-shadow:0 0 12px -2px var(--accent-glow);}50%{box-shadow:0 0 18px 0 var(--accent-glow);}}
 
 /* ================= BUTTONS ================= */
-.btn-row{display:flex;gap:10px;margin-top:6px;}
+.btn-row{display:flex;gap:10px;margin-top:16px;}
 .btn{
   position:relative;flex:1;height:36px;border-radius:18px;cursor:pointer;
   font-family:var(--font-display);font-weight:700;font-size:12.5px;
@@ -573,6 +577,10 @@ const CHARACTERS=[
       {e:'🔗', g:'rgba(10,132,255,.45)', key:'⇧R',  name:'Resonance',     d:'Strike through a bound remnant at range.'},
       {e:'⚡', g:'rgba(255,214,10,.55)', key:'LMB', name:'Black Flash',   d:'Land a second strike inside the window.'},
     ]},
+  { id:'none', name:'None', tech:'No Technique', grade:'Default',
+    accent:'#505760', deep:'#2E333A', glow:'rgba(80,87,96,.45)', soft:'rgba(80,87,96,.12)',
+    unlocked:true, head:'emo', emo:'👤',
+    abilities:[]},
   { id:'gojo', name:'Gojo Satoru', tech:'Limitless', grade:'Special Grade',
     accent:'#4CC9F0', deep:'#1B5F8C', glow:'rgba(76,201,240,.55)', soft:'rgba(76,201,240,.16)',
     unlocked:false, head:'emo', emo:'🔵',
@@ -670,6 +678,12 @@ function renderAbilities(c){
   $('#abilityLabel').textContent=`Innate · ${c.tech}`;
   const strip=$('#abilityStrip');
   strip.innerHTML='';
+  if(!c.abilities.length){
+    strip.innerHTML=`<div class="ability" style="flex:1;justify-content:center;cursor:default;">
+      <span class="label" style="color:var(--text-dim);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;">No abilities equipped</span>
+    </div>`;
+    return;
+  }
   for(const a of c.abilities){
     const el=document.createElement('div');
     el.className='ability';
