@@ -59,12 +59,10 @@ void main() {
     float hlT = inside * (1.0 - smoothstep(0.5, 2.5, fragPos.y - shapeRect.y)) * highlight;
 
     // --- composite ---
-    // Surface (inside): gradient fill with border ring and top highlight overlaid.
     vec3  surface     = mix(fill.rgb, borderColor.rgb, borderT);
     surface           = mix(surface, vec3(1.0), hlT * 0.35);
     float surfaceA    = fill.a * inside;
 
-    // Outside: glow tints toward the glow color, shadow darkens toward black.
     vec3  outsideRgb  = glowColor.rgb * (glowT * glowColor.a);
     float outsideA    = max(glowT * glowColor.a, shadowT);
 

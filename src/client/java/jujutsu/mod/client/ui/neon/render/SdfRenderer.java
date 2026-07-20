@@ -61,6 +61,7 @@ public final class SdfRenderer implements AutoCloseable {
         float guiH = window.getGuiScaledHeight();
 
         GpuBufferSlice projSlice = projection.getBuffer(guiW, guiH);
+        RenderSystem.backupProjectionMatrix();
         RenderSystem.setProjectionMatrix(projSlice, ProjectionType.ORTHOGRAPHIC);
 
         GpuBufferSlice transform = RenderSystem.getDynamicUniforms().writeTransform(
@@ -71,7 +72,8 @@ public final class SdfRenderer implements AutoCloseable {
                 0.0f);
 
         int stride = SdfPipelines.VERTEX_STRIDE;
-        ByteBuffer bytes = ByteBuffer.allocateDirect(shapes.size() * 4 * stride);
+        ByteBuffer bytes = ByteBuffer.allocateDirect(shapes.size() * 4 * stride)
+                .order(java.nio.ByteOrder.nativeOrder());
         for (SdfShape s : shapes) {
             float margin = s.glowRadius() + PAD;
             float x0 = s.x() - margin, x1 = s.x() + s.w() + margin;
@@ -109,6 +111,8 @@ public final class SdfRenderer implements AutoCloseable {
             pass.drawIndexed(0, 0, indexCount, 1);
         } catch (RuntimeException | LinkageError error) {
             LOG.error("SDF draw failed", error);
+        } finally {
+            RenderSystem.restoreProjectionMatrix();
         }
     }
 
