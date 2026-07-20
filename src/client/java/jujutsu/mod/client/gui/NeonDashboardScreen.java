@@ -39,6 +39,8 @@ public final class NeonDashboardScreen extends Screen {
     private final List<SidebarItem> sidebarItems = new ArrayList<>();
     private PageContainer pageContainer;
     private NeonButton closeBtn;
+    private CharacterPage charPage;
+    private NeonTheme targetTheme = NeonTheme.NOBARA;
 
     private float openAnim;
     private boolean closing;
@@ -112,7 +114,8 @@ public final class NeonDashboardScreen extends Screen {
         closeBtn = new NeonButton(Component.literal("\u2715"), 24, 24, false, this::animateClose);
         r.add(closeBtn);
 
-        CharacterPage charPage = new CharacterPage();
+        CharacterPage charPage = new CharacterPage(this::animateClose);
+        this.charPage = charPage;
         CombatPage combatPage = new CombatPage();
         VisualsPage visualsPage = new VisualsPage();
         MiscPage miscPage = new MiscPage();
@@ -162,6 +165,13 @@ public final class NeonDashboardScreen extends Screen {
 
         updateMouseTrackers(mouseX, mouseY);
         root.tick(deltaTicks);
+
+        if (charPage != null) {
+            targetTheme = charPage.selection() == jujutsu.mod.character.JujutsuCharacter.NOBARA
+                    ? NeonTheme.NOBARA : NeonTheme.NONE;
+        }
+        theme = theme.lerp(targetTheme, 0.12f * deltaTicks);
+        root.setTheme(theme);
 
         float anim = UiEase.outCubic(openAnim);
         NeonContext ctx = new NeonContext(sdf, g, font, theme, mouseX, mouseY, deltaTicks, anim);

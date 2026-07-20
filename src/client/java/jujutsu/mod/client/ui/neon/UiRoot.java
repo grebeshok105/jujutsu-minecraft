@@ -9,7 +9,7 @@ public final class UiRoot extends UiContainer {
     private float windowX, windowY, windowW, windowH;
     private boolean dragging;
     private float dragOffX, dragOffY;
-    private final NeonTheme theme;
+    private NeonTheme theme;
     private final Runnable closeAction;
 
     public UiRoot(NeonTheme theme, Runnable closeAction) {
@@ -30,6 +30,7 @@ public final class UiRoot extends UiContainer {
     public float windowW() { return windowW; }
     public float windowH() { return windowH; }
     public NeonTheme theme() { return theme; }
+    public void setTheme(NeonTheme t) { this.theme = t; }
 
     public boolean isInHeader(double mx, double my) {
         return mx >= windowX && mx < windowX + windowW && my >= windowY && my < windowY + HEADER_HEIGHT;
