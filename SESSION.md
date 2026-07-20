@@ -12,7 +12,7 @@
 - Проект: `D:\WorkFlow\Jujutsu Minecraft`
 - Активный worktree: `D:\WorkFlow\Jujutsu Minecraft\.qoder\worktrees\neon-gui`
 - Ветка: `worktree-neon-gui` (main = `72f36a3`)
-- Последний коммит: `f0d55ff feat(gui): Apple emoji icons (Phase 4)`
+- Последний коммит: `aa87078 fix(gui): chrome above panel + exception-safe projection restore`
 - Инстанс: `D:\Games\instances\Jujutsu\mods\jujutsumod-1.0.0.jar` (обновлён)
 
 ## Коммиты (Stages 3-7 + Rework)
@@ -30,6 +30,8 @@
 | `a21db5a` | P2 | 6-card roster grid, page headers, ability strip, Cancel/Confirm |
 | `e6b52bf` | P3 | ctrl-row shell pages (Combat/Visuals/Misc) |
 | `f0d55ff` | P4 | Apple emoji icons (96px PNG) для sidebar/portraits/abilities |
+| `77d94c7` | review | V-while-listening, dropdown popup/label, toggle/slider/badge styling, half-width buttons |
+| `aa87078` | review | chrome above panel (hook) + exception-safe projection restore |
 
 ## Статус стейджей
 
