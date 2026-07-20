@@ -23,10 +23,10 @@ import jujutsu.mod.network.SelectCharacterPayload;
 public final class CharacterPage extends NeonPage {
     private static final ResourceLocation NOBARA_SKIN = JujutsuMod.id("textures/entity/character/nobara.png");
     private static final ResourceLocation[] ABILITY_ICONS = {
-            JujutsuMod.id("textures/gui/abilities/piercing_nail.png"),
-            JujutsuMod.id("textures/gui/abilities/hairpin_enlargement.png"),
-            JujutsuMod.id("textures/gui/abilities/hairpin_explosion.png"),
-            JujutsuMod.id("textures/gui/abilities/resonance.png"),
+            JujutsuMod.id("textures/gui/dashboard/emoji_pin.png"),
+            JujutsuMod.id("textures/gui/dashboard/emoji_boom.png"),
+            JujutsuMod.id("textures/gui/dashboard/emoji_link.png"),
+            JujutsuMod.id("textures/gui/dashboard/emoji_bolt.png"),
     };
     private static final Component[] ABILITY_LABELS = {
             Component.translatable("screen.jujutsumod.character_select.ability.piercing_nail"),
@@ -37,16 +37,20 @@ public final class CharacterPage extends NeonPage {
     private static final String[] ABILITY_KEYS = {"R", "B", "\u21E7R", "LMB"};
 
     private record Roster(String name, String tech, String grade, int accent, int deep,
-                          boolean unlocked, boolean skin, String glyph, JujutsuCharacter character) {}
+                          boolean unlocked, boolean skin, ResourceLocation emoji, JujutsuCharacter character) {}
 
     private static final Roster[] ROSTER = {
             new Roster("Nobara Kugisaki", "Straw Doll Technique", "Grade 3", 0xFFE48A36, 0xFF8B3F1C, true, true, null, JujutsuCharacter.NOBARA),
-            new Roster("None", "No Technique", "Default", 0xFF505760, 0xFF2E333A, true, false, "\u25CF", JujutsuCharacter.NONE),
-            new Roster("Gojo Satoru", "Limitless", "Special Grade", 0xFF4CC9F0, 0xFF1B5F8C, false, false, "\u25CF", null),
-            new Roster("Ryomen Sukuna", "Shrine", "Special Grade", 0xFFDC2743, 0xFF7A1030, false, false, "\u25CF", null),
-            new Roster("Megumi Fushiguro", "Ten Shadows", "Grade 2", 0xFF2EC4B6, 0xFF14655D, false, false, "\u25CF", null),
-            new Roster("Yuji Itadori", "Sukuna's Vessel", "Grade 1", 0xFFFF4D6D, 0xFF8C1D33, false, false, "\u25CF", null),
+            new Roster("None", "No Technique", "Default", 0xFF505760, 0xFF2E333A, true, false, dash("bust"), JujutsuCharacter.NONE),
+            new Roster("Gojo Satoru", "Limitless", "Special Grade", 0xFF4CC9F0, 0xFF1B5F8C, false, false, dash("blue_circle"), null),
+            new Roster("Ryomen Sukuna", "Shrine", "Special Grade", 0xFFDC2743, 0xFF7A1030, false, false, dash("ogre"), null),
+            new Roster("Megumi Fushiguro", "Ten Shadows", "Grade 2", 0xFF2EC4B6, 0xFF14655D, false, false, dash("wolf"), null),
+            new Roster("Yuji Itadori", "Sukuna's Vessel", "Grade 1", 0xFFFF4D6D, 0xFF8C1D33, false, false, dash("fist"), null),
     };
+
+    private static ResourceLocation dash(String name) {
+        return JujutsuMod.id("textures/gui/dashboard/emoji_" + name + ".png");
+    }
 
     private JujutsuCharacter selection;
     private final List<NeonCard> cards = new ArrayList<>();
@@ -91,7 +95,7 @@ public final class CharacterPage extends NeonPage {
                     Component.literal(r.grade()),
                     r.accent(),
                     r.skin() ? NOBARA_SKIN : null,
-                    r.glyph(),
+                    r.emoji(),
                     r.unlocked(),
                     () -> { if (r.character() != null) selection = r.character(); });
             card.setBounds(col * (cardW + gap), top + row * (card.height() + 10), cardW, card.height());
@@ -214,7 +218,7 @@ public final class CharacterPage extends NeonPage {
             int iconSize = 18;
             int iconX = (int) (cx + 8);
             int iconY = (int) (stripY + (stripH - iconSize) / 2f);
-            g.blit(RenderPipelines.GUI_TEXTURED, ABILITY_ICONS[i], iconX, iconY, 0f, 0f, iconSize, iconSize, 16, 16, 16, 16);
+            g.blit(RenderPipelines.GUI_TEXTURED, ABILITY_ICONS[i], iconX, iconY, 0f, 0f, iconSize, iconSize, 96, 96, 96, 96);
 
             int textX = iconX + iconSize + 6;
             g.drawString(ctx.font(), ABILITY_LABELS[i], textX, (int) (stripY + (stripH - 8) / 2f), NeonTheme.textMuted(), false);

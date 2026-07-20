@@ -130,10 +130,10 @@ public final class NeonDashboardScreen extends Screen {
         pageContainer = new PageContainer();
         r.add(pageContainer);
 
-        SidebarItem charItem = new SidebarItem("\u2694", Component.literal("Character"), () -> selectPage(charPage, 0));
-        SidebarItem combatItem = new SidebarItem("\u2620", Component.literal("Combat"), () -> selectPage(combatPage, 1));
-        SidebarItem visualsItem = new SidebarItem("\u2726", Component.literal("Visuals"), () -> selectPage(visualsPage, 2));
-        SidebarItem miscItem = new SidebarItem("\u2699", Component.literal("Misc"), () -> selectPage(miscPage, 3));
+        SidebarItem charItem = new SidebarItem(dashIcon("bust"), Component.literal("Character"), () -> selectPage(charPage, 0));
+        SidebarItem combatItem = new SidebarItem(dashIcon("swords"), Component.literal("Combat"), () -> selectPage(combatPage, 1));
+        SidebarItem visualsItem = new SidebarItem(dashIcon("sparkles"), Component.literal("Visuals"), () -> selectPage(visualsPage, 2));
+        SidebarItem miscItem = new SidebarItem(dashIcon("gear"), Component.literal("Misc"), () -> selectPage(miscPage, 3));
 
         sidebarItems.add(charItem);
         sidebarItems.add(combatItem);
@@ -145,6 +145,10 @@ public final class NeonDashboardScreen extends Screen {
         pageContainer.setPage(charPage);
 
         return r;
+    }
+
+    private static net.minecraft.resources.ResourceLocation dashIcon(String name) {
+        return jujutsu.mod.JujutsuMod.id("textures/gui/dashboard/emoji_" + name + ".png");
     }
 
     private void selectPage(NeonPage page, int index) {

@@ -6,19 +6,21 @@ import jujutsu.mod.client.ui.neon.NeonTheme;
 import jujutsu.mod.client.ui.neon.UiComponent;
 import jujutsu.mod.client.ui.neon.render.SdfShape;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
 public final class SidebarItem extends UiComponent {
     private final Component label;
-    private final String glyph;
+    private final ResourceLocation icon;
     private final Runnable onSelect;
     private boolean selected;
     private float selectAnim;
     private boolean hoveredThisFrame;
     private double lastMouseX = -1, lastMouseY = -1;
 
-    public SidebarItem(String glyph, Component label, Runnable onSelect) {
-        this.glyph = glyph;
+    public SidebarItem(ResourceLocation icon, Component label, Runnable onSelect) {
+        this.icon = icon;
         this.label = label;
         this.onSelect = onSelect;
         this.height = 34;
@@ -79,8 +81,11 @@ public final class SidebarItem extends UiComponent {
         GuiGraphics g = ctx.graphics();
         float ax = absX(), ay = absY();
         int textColor = selected ? NeonTheme.text() : NeonTheme.textMuted();
-        g.drawString(ctx.font(), glyph, (int) (ax + 10), (int) (ay + 13), textColor, false);
-        g.drawString(ctx.font(), label, (int) (ax + 28), (int) (ay + 13), textColor, false);
+        if (icon != null) {
+            g.blit(RenderPipelines.GUI_TEXTURED, icon, (int) (ax + 9), (int) (ay + 9),
+                    0f, 0f, 16, 16, 96, 96, 96, 96);
+        }
+        g.drawString(ctx.font(), label, (int) (ax + 30), (int) (ay + 13), textColor, false);
     }
 
     @Override

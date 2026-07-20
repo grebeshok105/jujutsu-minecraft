@@ -20,7 +20,7 @@ public final class NeonCard extends UiComponent {
     private final Component grade;
     private final int accentRgb;
     private final ResourceLocation skinPortrait;
-    private final String emojiGlyph;
+    private final ResourceLocation emojiPortrait;
     private final boolean unlocked;
     private final Runnable onSelect;
     private boolean selected;
@@ -29,13 +29,13 @@ public final class NeonCard extends UiComponent {
     private double lastMouseX = -1, lastMouseY = -1;
 
     public NeonCard(Component name, Component tech, Component grade, int accentRgb,
-                    ResourceLocation skinPortrait, String emojiGlyph, boolean unlocked, Runnable onSelect) {
+                    ResourceLocation skinPortrait, ResourceLocation emojiPortrait, boolean unlocked, Runnable onSelect) {
         this.name = name;
         this.tech = tech;
         this.grade = grade;
         this.accentRgb = accentRgb;
         this.skinPortrait = skinPortrait;
-        this.emojiGlyph = emojiGlyph;
+        this.emojiPortrait = emojiPortrait;
         this.unlocked = unlocked;
         this.onSelect = onSelect;
         this.height = PORTRAIT + PAD * 2;
@@ -106,11 +106,11 @@ public final class NeonCard extends UiComponent {
             int hy = (int) (wellY + (PORTRAIT - head) / 2f);
             g.blit(RenderPipelines.GUI_TEXTURED, skinPortrait, hx, hy, 8.0f, 8.0f, head, head, 8, 8, 64, 64);
             g.blit(RenderPipelines.GUI_TEXTURED, skinPortrait, hx, hy, 40.0f, 8.0f, head, head, 8, 8, 64, 64);
-        } else if (emojiGlyph != null) {
-            int gw = ctx.font().width(emojiGlyph);
-            int glyphColor = unlocked ? (accentRgb | 0xFF000000) : NeonTheme.textDim();
-            g.drawString(ctx.font(), emojiGlyph, (int) (wellX + (PORTRAIT - gw) / 2f), (int) (wellY + PORTRAIT / 2f - 4),
-                    glyphColor, false);
+        } else if (emojiPortrait != null) {
+            int size = 36;
+            int ex = (int) (wellX + (PORTRAIT - size) / 2f);
+            int ey = (int) (wellY + (PORTRAIT - size) / 2f);
+            g.blit(RenderPipelines.GUI_TEXTURED, emojiPortrait, ex, ey, 0f, 0f, size, size, 96, 96, 96, 96);
         }
 
         // Meta column.
