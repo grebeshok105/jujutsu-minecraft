@@ -62,53 +62,55 @@ public final class SdfRenderer implements AutoCloseable {
 
         GpuBufferSlice projSlice = projection.getBuffer(guiW, guiH);
         RenderSystem.backupProjectionMatrix();
-        RenderSystem.setProjectionMatrix(projSlice, ProjectionType.ORTHOGRAPHIC);
+        try {
+            RenderSystem.setProjectionMatrix(projSlice, ProjectionType.ORTHOGRAPHIC);
 
-        GpuBufferSlice transform = RenderSystem.getDynamicUniforms().writeTransform(
-                new Matrix4f().setTranslation(0.0f, 0.0f, -11000.0f),
-                new Vector4f(1.0f, 1.0f, 1.0f, 1.0f),
-                new Vector3f(),
-                new Matrix4f(),
-                0.0f);
+            GpuBufferSlice transform = RenderSystem.getDynamicUniforms().writeTransform(
+                    new Matrix4f().setTranslation(0.0f, 0.0f, -11000.0f),
+                    new Vector4f(1.0f, 1.0f, 1.0f, 1.0f),
+                    new Vector3f(),
+                    new Matrix4f(),
+                    0.0f);
 
-        int stride = SdfPipelines.VERTEX_STRIDE;
-        ByteBuffer bytes = ByteBuffer.allocateDirect(shapes.size() * 4 * stride)
-                .order(java.nio.ByteOrder.nativeOrder());
-        for (SdfShape s : shapes) {
-            float margin = s.glowRadius() + PAD;
-            float x0 = s.x() - margin, x1 = s.x() + s.w() + margin;
-            float y0 = s.y() - margin, y1 = s.y() + s.h() + margin;
-            putVertex(bytes, x0, y0, s);
-            putVertex(bytes, x0, y1, s);
-            putVertex(bytes, x1, y1, s);
-            putVertex(bytes, x1, y0, s);
-        }
-        bytes.flip();
+            int stride = SdfPipelines.VERTEX_STRIDE;
+            ByteBuffer bytes = ByteBuffer.allocateDirect(shapes.size() * 4 * stride)
+                    .order(java.nio.ByteOrder.nativeOrder());
+            for (SdfShape s : shapes) {
+                float margin = s.glowRadius() + PAD;
+                float x0 = s.x() - margin, x1 = s.x() + s.w() + margin;
+                float y0 = s.y() - margin, y1 = s.y() + s.h() + margin;
+                putVertex(bytes, x0, y0, s);
+                putVertex(bytes, x0, y1, s);
+                putVertex(bytes, x1, y1, s);
+                putVertex(bytes, x1, y0, s);
+            }
+            bytes.flip();
 
-        // Cached inside the VertexFormat - do NOT close the returned buffer.
-        GpuBuffer vertexBuffer = SdfPipelines.SDF_SHAPE_FORMAT.uploadImmediateVertexBuffer(bytes);
+            // Cached inside the VertexFormat - do NOT close the returned buffer.
+            GpuBuffer vertexBuffer = SdfPipelines.SDF_SHAPE_FORMAT.uploadImmediateVertexBuffer(bytes);
 
-        RenderSystem.AutoStorageIndexBuffer sequential = RenderSystem.getSequentialBuffer(VertexFormat.Mode.QUADS);
-        int indexCount = shapes.size() * 6;
-        GpuBuffer indexBuffer = sequential.getBuffer(indexCount);
+            RenderSystem.AutoStorageIndexBuffer sequential = RenderSystem.getSequentialBuffer(VertexFormat.Mode.QUADS);
+            int indexCount = shapes.size() * 6;
+            GpuBuffer indexBuffer = sequential.getBuffer(indexCount);
 
-        RenderTarget target = mc.getMainRenderTarget();
-        CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
-        if (!diagLogged) {
-            diagLogged = true;
-            LOG.info("SDF flush: shapes={} gui={}x{} alpha={} indexCount={}",
-                    shapes.size(), guiW, guiH, globalAlpha, indexCount);
-        }
-        try (RenderPass pass = encoder.createRenderPass(
-                () -> "jujutsumod:sdf_shapes",
-                target.getColorTextureView(), OptionalInt.empty(),
-                target.getDepthTextureView(), OptionalDouble.empty())) {
-            RenderSystem.bindDefaultUniforms(pass);
-            pass.setUniform("DynamicTransforms", transform);
-            pass.setPipeline(SdfPipelines.SDF_SHAPE);
-            pass.setVertexBuffer(0, vertexBuffer);
-            pass.setIndexBuffer(indexBuffer, sequential.type());
-            pass.drawIndexed(0, 0, indexCount, 1);
+            RenderTarget target = mc.getMainRenderTarget();
+            CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
+            if (!diagLogged) {
+                diagLogged = true;
+                LOG.info("SDF flush: shapes={} gui={}x{} alpha={} indexCount={}",
+                        shapes.size(), guiW, guiH, globalAlpha, indexCount);
+            }
+            try (RenderPass pass = encoder.createRenderPass(
+                    () -> "jujutsumod:sdf_shapes",
+                    target.getColorTextureView(), OptionalInt.empty(),
+                    target.getDepthTextureView(), OptionalDouble.empty())) {
+                RenderSystem.bindDefaultUniforms(pass);
+                pass.setUniform("DynamicTransforms", transform);
+                pass.setPipeline(SdfPipelines.SDF_SHAPE);
+                pass.setVertexBuffer(0, vertexBuffer);
+                pass.setIndexBuffer(indexBuffer, sequential.type());
+                pass.drawIndexed(0, 0, indexCount, 1);
+            }
         } catch (RuntimeException | LinkageError error) {
             LOG.error("SDF draw failed", error);
         } finally {

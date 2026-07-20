@@ -117,6 +117,10 @@ public final class NeonDashboardScreen extends Screen {
 
     private UiRoot buildRoot() {
         UiRoot r = new UiRoot(theme, this::animateClose);
+        r.setChromeRenderer(c -> {
+            renderSidebarBackground(c);
+            renderHeaderChrome(c);
+        });
 
         closeBtn = new NeonButton(Component.literal("\u2715"), 24, 24, false, this::animateClose);
         r.add(closeBtn);
@@ -185,8 +189,6 @@ public final class NeonDashboardScreen extends Screen {
 
         sdf.setGlobalAlpha(anim);
         sdf.begin();
-        renderSidebarBackground(ctx);
-        renderHeaderChrome(ctx);
         root.renderSurface(ctx);
         sdf.flush();
 

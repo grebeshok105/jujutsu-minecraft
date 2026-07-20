@@ -1,5 +1,6 @@
 package jujutsu.mod.client.ui.neon;
 
+import java.util.function.Consumer;
 import jujutsu.mod.client.ui.neon.render.SdfRenderer;
 import jujutsu.mod.client.ui.neon.render.SdfShape;
 
@@ -11,10 +12,16 @@ public final class UiRoot extends UiContainer {
     private float dragOffX, dragOffY;
     private NeonTheme theme;
     private final Runnable closeAction;
+    private Consumer<NeonContext> chromeRenderer;
 
     public UiRoot(NeonTheme theme, Runnable closeAction) {
         this.theme = theme;
         this.closeAction = closeAction;
+    }
+
+    /** Chrome (header/sidebar surfaces) is drawn after the window panel, before the children. */
+    public void setChromeRenderer(Consumer<NeonContext> chromeRenderer) {
+        this.chromeRenderer = chromeRenderer;
     }
 
     public void setWindow(float x, float y, float w, float h) {
@@ -78,6 +85,10 @@ public final class UiRoot extends UiContainer {
         sdf.add(SdfShape.builder().rect(sx, sy, sw, sh)
                 .radius(10).border(1, t.border()).glow(12, t.glow()).highlight(1f)
                 .fill(t.panelTop(), t.panelBottom()).build());
+
+        if (chromeRenderer != null) {
+            chromeRenderer.accept(ctx);
+        }
 
         super.renderSurface(ctx);
     }
