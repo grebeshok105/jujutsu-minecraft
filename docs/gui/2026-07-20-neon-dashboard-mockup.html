@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JUJUTSU // DASHBOARD — Neon GUI Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   JUJUTSU DASHBOARD — visual reference for the in-game GUI.
+   Every color, radius, spacing and timing here is the source
+   of truth for the Java SDF implementation.
+   Theme: NOBARA (crimson / dark bordeaux) per spec 5.3.
+   ============================================================ */
+:root{
+  /* --- NeonTheme.NOBARA --- */
+  --accent:        #DC2743;   /* accentPrimary */
+  --accent-deep:   #7A1030;   /* accentSecondary */
+  --accent-glow:   rgba(220,39,67,.55);
+  --accent-soft:   rgba(220,39,67,.16);
+
+  /* --- surfaces --- */
+  --bg-0:          #07040A;   /* world behind scrim */
+  --bg-1:          #0D060B;
+  --scrim:         rgba(7,3,8,.72);
+  --panel:         rgba(22,13,22,.92);      /* mainWindow fill (top) */
+  --panel-bottom:  rgba(16,9,16,.94);       /* mainWindow fill (bottom) */
+  --panel-raised:  rgba(32,19,31,.85);      /* cards / controls */
+  --panel-inset:   rgba(12,6,12,.80);       /* wells / tracks */
+  --border:        rgba(220,39,67,.22);
+  --border-strong: rgba(220,39,67,.55);
+  --highlight:     rgba(255,235,240,.07);   /* top inner highlight */
+
+  /* --- text --- */
+  --text:          #F4EFE8;
+  --text-muted:    #A89BA3;
+  --text-dim:      #615460;
+  --text-on-accent:#14040A;
+
+  /* --- metrics --- */
+  --r-window: 10px;
+  --r-card:   8px;
+  --r-ctrl:   6px;
+  --sidebar-w: 132px;
+  --header-h:  40px;
+
+  /* --- timing (UiEase) --- */
+  --t-open:  260ms;
+  --t-hover: 140ms;
+  --t-page:  160ms;
+  --t-toggle:180ms;
+
+  --font-display:'Rajdhani',sans-serif;
+  --font-body:'IBM Plex Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:var(--font-body);
+  color:var(--text);
+  background:var(--bg-0);
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+/* ================= WORLD BACKDROP (simulated) ================= */
+/* In-game this is the actual rendered world, blurred by NeonBlur.
+   Here we fake it with a layered gradient + ambient particles. */
+#world{
+  position:fixed;inset:0;z-index:0;
+  background:
+    radial-gradient(1200px 700px at 30% 20%, #1A0D18 0%, transparent 60%),
+    radial-gradient(900px 600px at 75% 80%, #12081A 0%, transparent 55%),
+    linear-gradient(160deg, var(--bg-1) 0%, var(--bg-0) 55%, #0A0410 100%);
+  filter:blur(0px);
+  transition:filter 400ms ease;
+}
+body.blur-on #world{filter:blur(14px) brightness(.85);}
+#world::after{ /* faint blocky "terrain" suggestion */
+  content:'';position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(220,39,67,.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(220,39,67,.028) 1px, transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(800px 500px at 50% 60%, #000 0%, transparent 80%);
+}
+#particles{position:fixed;inset:0;z-index:1;pointer-events:none;}
+#particles i{
+  position:absolute;display:block;border-radius:50%;
+  background:var(--accent);opacity:0;
+  animation:drift linear infinite;
+}
+@keyframes drift{
+  0%{transform:translateY(20px) scale(.4);opacity:0;}
+  12%{opacity:.5;}
+  80%{opacity:.25;}
+  100%{transform:translateY(-140px) scale(1);opacity:0;}
+}
+
+/* ================= SCRIM ================= */
+#scrim{
+  position:fixed;inset:0;z-index:2;
+  background:
+    radial-gradient(120% 90% at 50% 40%, transparent 30%, rgba(5,2,6,.55) 100%),
+    linear-gradient(180deg, rgba(8,3,9,.55) 0%, rgba(8,3,9,.78) 100%);
+  opacity:0;transition:opacity var(--t-open) ease;
+}
+body.open #scrim{opacity:1;}
+
+/* ================= MAIN WINDOW ================= */
+#window{
+  position:fixed;z-index:10;
+  width:640px;height:420px;
+  left:50%;top:50%;
+  transform:translate(-50%,-50%) scale(.96);
+  opacity:0;pointer-events:none;
+  transition:transform var(--t-open) cubic-bezier(.22,1,.36,1), opacity var(--t-open) ease;
+}
+body.open #window{
+  transform:translate(-50%,-50%) scale(1);
+  opacity:1;pointer-events:auto;
+}
+#window.dragging{transition:none;}
+/* The SDF window: fill gradient + accent border + outer glow + drop shadow.
+   box-shadow stack mirrors the SDF glow/shadow terms. */
+.window-chrome{
+  position:absolute;inset:0;border-radius:var(--r-window);
+  background:linear-gradient(180deg, var(--panel) 0%, var(--panel-bottom) 100%);
+  border:1px solid var(--border);
+  box-shadow:
+    0 0 0 1px rgba(220,39,67,.06),          /* outer border halo */
+    0 0 26px -4px var(--accent-glow),        /* neon outer glow */
+    0 18px 48px -12px rgba(0,0,0,.85),       /* drop shadow */
+    inset 0 1px 0 var(--highlight);          /* top highlight line */
+}
+/* animated accent sweep along the top edge — a living signature */
+.window-chrome::before{
+  content:'';position:absolute;top:-1px;left:8%;right:8%;height:1px;
+  background:linear-gradient(90deg, transparent, var(--accent) 35%, #FF6B85 50%, var(--accent) 65%, transparent);
+  background-size:200% 100%;
+  animation:sweep 5s ease-in-out infinite;
+  opacity:.8;border-radius:1px;
+  filter:drop-shadow(0 0 6px var(--accent-glow));
+}
+@keyframes sweep{0%,100%{background-position:0% 0;}50%{background-position:100% 0;}}
+
+/* ================= HEADER ================= */
+#header{
+  position:relative;height:var(--header-h);
+  display:flex;align-items:center;gap:12px;
+  padding:0 14px;cursor:grab;
+  border-bottom:1px solid rgba(220,39,67,.12);
+}
+#header:active{cursor:grabbing;}
+#header .sigil{
+  width:20px;height:20px;flex:none;position:relative;
+}
+#header .sigil::before,#header .sigil::after{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  border:1.5px solid var(--accent);
+}
+#header .sigil::after{inset:5px;border-color:#FF6B85;animation:sigil 3s ease-in-out infinite;}
+@keyframes sigil{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(.7);opacity:.5;}}
+#title{
+  font-family:var(--font-display);font-weight:700;font-size:17px;
+  letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text);
+}
+#title b{color:var(--accent);font-weight:700;}
+#version{
+  font-size:10px;letter-spacing:.08em;color:var(--text-dim);
+  font-family:var(--font-display);font-weight:600;text-transform:uppercase;
+  padding:2px 7px;border:1px solid rgba(220,39,67,.18);border-radius:4px;
+  background:var(--accent-soft);
+}
+#header .spacer{flex:1;}
+#closeBtn{
+  width:26px;height:26px;flex:none;border-radius:6px;cursor:pointer;
+  display:grid;place-items:center;color:var(--text-muted);
+  border:1px solid transparent;background:transparent;
+  transition:all var(--t-hover) ease;font-size:14px;line-height:1;
+}
+#closeBtn:hover{
+  color:#FFDCE3;background:rgba(220,39,67,.14);
+  border-color:var(--border-strong);
+  box-shadow:0 0 12px -2px var(--accent-glow);
+}
+
+/* ================= BODY LAYOUT ================= */
+#body{
+  position:absolute;top:var(--header-h);left:0;right:0;bottom:0;
+  display:flex;
+}
+
+/* ================= SIDEBAR ================= */
+#sidebar{
+  width:var(--sidebar-w);flex:none;
+  padding:14px 10px;display:flex;flex-direction:column;gap:4px;
+  border-right:1px solid rgba(220,39,67,.10);
+  background:linear-gradient(180deg, rgba(18,10,18,.5), rgba(14,8,14,.3));
+}
+#sidebar .cat-label{
+  font-family:var(--font-display);font-size:9px;font-weight:600;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--text-dim);
+  padding:0 8px 6px;
+}
+.nav-item{
+  position:relative;display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:var(--r-ctrl);cursor:pointer;
+  color:var(--text-muted);
+  border:1px solid transparent;
+  transition:all var(--t-hover) ease;
+  font-size:12.5px;font-weight:500;
+}
+.nav-item .glyph{
+  width:16px;height:16px;flex:none;display:grid;place-items:center;
+  font-family:var(--font-display);font-weight:700;font-size:11px;
+  color:var(--text-dim);transition:color var(--t-hover) ease;
+}
+.nav-item:hover{color:var(--text);background:rgba(220,39,67,.07);}
+.nav-item:hover .glyph{color:var(--text-muted);}
+.nav-item.active{
+  color:var(--text);
+  background:linear-gradient(90deg, var(--accent-soft), rgba(220,39,67,.04));
+  border-color:rgba(220,39,67,.28);
+  box-shadow:0 0 16px -4px var(--accent-glow), inset 0 0 12px -6px var(--accent-glow);
+}
+.nav-item.active .glyph{color:var(--accent);}
+/* accent bar on the selected item, grows in */
+.nav-item::before{
+  content:'';position:absolute;left:-1px;top:20%;bottom:20%;width:2px;
+  border-radius:2px;background:var(--accent);
+  transform:scaleY(0);transform-origin:center;
+  transition:transform var(--t-page) cubic-bezier(.22,1,.36,1);
+  box-shadow:0 0 8px var(--accent-glow);
+}
+.nav-item.active::before{transform:scaleY(1);}
+#sidebar .foot{margin-top:auto;padding:8px 8px 0;font-size:9.5px;color:var(--text-dim);letter-spacing:.06em;line-height:1.5;}
+#sidebar .foot b{color:var(--accent);font-weight:600;}
+
+/* ================= PAGE CONTAINER ================= */
+#pages{position:relative;flex:1;overflow:hidden;}
+.page{
+  position:absolute;inset:0;padding:16px 18px;overflow-y:auto;overflow-x:hidden;
+  opacity:0;transform:translateX(10px);pointer-events:none;
+  transition:opacity var(--t-page) ease, transform var(--t-page) cubic-bezier(.22,1,.36,1);
+  scrollbar-width:thin;scrollbar-color:var(--accent-deep) transparent;
+}
+.page::-webkit-scrollbar{width:4px;}
+.page::-webkit-scrollbar-thumb{background:var(--accent-deep);border-radius:2px;}
+.page.active{opacity:1;transform:translateX(0);pointer-events:auto;}
+.page-title{
+  font-family:var(--font-display);font-weight:700;font-size:20px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--text);
+  display:flex;align-items:baseline;gap:10px;margin-bottom:2px;
+}
+.page-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent);}
+.page-sub{font-size:11px;color:var(--text-dim);margin-bottom:14px;letter-spacing:.03em;}
+
+/* ================= CARDS (Character page) ================= */
+.card-row{display:flex;gap:14px;margin-bottom:16px;}
+.char-card{
+  position:relative;flex:1;border-radius:var(--r-card);cursor:pointer;
+  background:linear-gradient(180deg, var(--panel-raised), rgba(24,14,23,.85));
+  border:1px solid rgba(220,39,67,.14);
+  padding:0;overflow:hidden;
+  transition:all var(--t-hover) ease, box-shadow 240ms ease;
+}
+.char-card .portrait{
+  height:96px;position:relative;
+  background:
+    radial-gradient(120px 70px at 50% 30%, rgba(220,39,67,.22), transparent 70%),
+    linear-gradient(180deg, rgba(30,16,29,.9), rgba(16,9,16,.9));
+  display:grid;place-items:center;
+  border-bottom:1px solid rgba(220,39,67,.10);
+}
+.char-card .portrait .face{
+  font-family:var(--font-display);font-weight:700;font-size:34px;
+  color:var(--accent-deep);letter-spacing:.05em;
+  transition:all 200ms ease;text-shadow:0 0 18px transparent;
+}
+.char-card .meta{padding:9px 12px 11px;}
+.char-card .name{
+  font-family:var(--font-display);font-weight:700;font-size:14.5px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--text);
+}
+.char-card .role{font-size:10px;color:var(--text-dim);letter-spacing:.05em;margin-top:1px;}
+.char-card:hover{
+  border-color:rgba(220,39,67,.4);
+  transform:translateY(-2px);
+  box-shadow:0 6px 20px -8px rgba(0,0,0,.7), 0 0 18px -6px var(--accent-glow);
+}
+.char-card:hover .face{color:var(--accent);text-shadow:0 0 18px var(--accent-glow);}
+.char-card.selected{
+  border-color:var(--border-strong);
+  box-shadow:0 0 0 1px rgba(220,39,67,.2), 0 0 24px -4px var(--accent-glow), inset 0 0 20px -8px var(--accent-glow);
+}
+.char-card.selected .face{color:var(--accent);text-shadow:0 0 20px var(--accent-glow);}
+/* checkmark badge */
+.char-card .badge{
+  position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;
+  background:var(--accent);color:var(--text-on-accent);
+  display:grid;place-items:center;font-size:11px;font-weight:700;
+  transform:scale(0);transition:transform 200ms cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 0 12px var(--accent-glow);
+}
+.char-card.selected .badge{transform:scale(1);}
+
+/* ability strip */
+.ability-strip{display:flex;gap:8px;margin-bottom:16px;}
+.ability{
+  position:relative;flex:1;height:44px;border-radius:var(--r-ctrl);
+  background:var(--panel-inset);border:1px solid rgba(220,39,67,.12);
+  display:flex;align-items:center;gap:8px;padding:0 10px;
+  transition:all var(--t-hover) ease;cursor:default;
+}
+.ability .icon{
+  width:22px;height:22px;flex:none;border-radius:4px;
+  background:linear-gradient(135deg, var(--accent-deep), var(--accent));
+  box-shadow:0 0 10px -2px var(--accent-glow);
+  display:grid;place-items:center;
+  font-family:var(--font-display);font-weight:700;font-size:11px;color:#FFD9E0;
+}
+.ability .label{font-size:10px;color:var(--text-muted);letter-spacing:.04em;line-height:1.25;}
+.ability .key{
+  position:absolute;top:-6px;right:-4px;
+  font-family:var(--font-display);font-weight:700;font-size:9px;
+  background:var(--accent);color:var(--text-on-accent);
+  padding:1px 5px;border-radius:3px;letter-spacing:.05em;
+  box-shadow:0 0 8px var(--accent-glow);
+}
+.ability:hover{border-color:rgba(220,39,67,.35);background:rgba(220,39,67,.06);}
+
+/* ================= CONTROLS (shell) ================= */
+.section-label{
+  font-family:var(--font-display);font-size:10px;font-weight:600;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);
+  margin:14px 0 8px;display:flex;align-items:center;gap:8px;
+}
+.section-label::after{content:'';flex:1;height:1px;background:rgba(220,39,67,.1);}
+.ctrl-row{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 12px;margin-bottom:8px;border-radius:var(--r-ctrl);
+  background:var(--panel-inset);border:1px solid rgba(220,39,67,.10);
+  transition:border-color var(--t-hover) ease, background var(--t-hover) ease;
+}
+.ctrl-row:hover{border-color:rgba(220,39,67,.28);background:rgba(220,39,67,.05);}
+.ctrl-row .info{flex:1;min-width:0;}
+.ctrl-row .info .t{font-size:12px;font-weight:600;color:var(--text);letter-spacing:.02em;}
+.ctrl-row .info .d{font-size:10px;color:var(--text-dim);margin-top:1px;letter-spacing:.02em;}
+
+/* toggle */
+.toggle{position:relative;width:36px;height:19px;flex:none;cursor:pointer;}
+.toggle .track{
+  position:absolute;inset:0;border-radius:10px;
+  background:rgba(60,40,58,.5);border:1px solid rgba(220,39,67,.18);
+  transition:all var(--t-toggle) ease;
+}
+.toggle .knob{
+  position:absolute;top:2.5px;left:3px;width:12px;height:12px;border-radius:50%;
+  background:var(--text-dim);transition:all var(--t-toggle) cubic-bezier(.34,1.4,.64,1);
+}
+.toggle.on .track{background:var(--accent-deep);border-color:var(--accent);box-shadow:0 0 12px -2px var(--accent-glow), inset 0 0 8px -2px var(--accent-glow);}
+.toggle.on .knob{left:19px;background:#FFD9E0;box-shadow:0 0 8px var(--accent-glow);}
+
+/* slider */
+.slider{position:relative;width:130px;height:19px;flex:none;cursor:pointer;}
+.slider .rail{position:absolute;top:8px;left:0;right:0;height:3px;border-radius:2px;background:rgba(60,40,58,.6);}
+.slider .fill{position:absolute;top:8px;left:0;height:3px;border-radius:2px;background:linear-gradient(90deg,var(--accent-deep),var(--accent));box-shadow:0 0 8px -1px var(--accent-glow);width:50%;}
+.slider .handle{
+  position:absolute;top:3.5px;width:12px;height:12px;border-radius:50%;
+  background:#FFD9E0;border:2px solid var(--accent);left:calc(50% - 6px);
+  box-shadow:0 0 10px var(--accent-glow);transition:transform var(--t-hover) ease;
+}
+.slider:hover .handle{transform:scale(1.2);}
+.slider .val{position:absolute;top:-13px;right:0;font-family:var(--font-display);font-weight:600;font-size:10px;color:var(--accent);letter-spacing:.05em;}
+
+/* dropdown */
+.dropdown{position:relative;width:130px;flex:none;}
+.dropdown .dd-btn{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:6px 10px;border-radius:var(--r-ctrl);cursor:pointer;
+  background:rgba(60,40,58,.35);border:1px solid rgba(220,39,67,.18);
+  font-size:11px;color:var(--text);transition:all var(--t-hover) ease;
+}
+.dropdown .dd-btn:hover{border-color:var(--border-strong);box-shadow:0 0 10px -3px var(--accent-glow);}
+.dropdown .chev{font-size:9px;color:var(--accent);transition:transform var(--t-toggle) ease;}
+.dropdown.open .chev{transform:rotate(180deg);}
+.dropdown .dd-list{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:50;
+  background:rgba(26,15,25,.98);border:1px solid var(--border-strong);
+  border-radius:var(--r-ctrl);overflow:hidden;
+  box-shadow:0 10px 30px -8px rgba(0,0,0,.9), 0 0 18px -6px var(--accent-glow);
+  opacity:0;transform:translateY(-4px);pointer-events:none;
+  transition:all var(--t-toggle) ease;
+}
+.dropdown.open .dd-list{opacity:1;transform:translateY(0);pointer-events:auto;}
+.dropdown .dd-opt{padding:7px 10px;font-size:11px;color:var(--text-muted);cursor:pointer;transition:all 100ms ease;}
+.dropdown .dd-opt:hover{background:var(--accent-soft);color:var(--text);}
+.dropdown .dd-opt.sel{color:var(--accent);background:rgba(220,39,67,.08);}
+
+/* keybind field */
+.keybind{
+  flex:none;min-width:64px;text-align:center;padding:5px 10px;border-radius:var(--r-ctrl);
+  font-family:var(--font-display);font-weight:700;font-size:11px;letter-spacing:.08em;
+  background:rgba(60,40,58,.35);border:1px solid rgba(220,39,67,.18);color:var(--text);
+  cursor:pointer;transition:all var(--t-hover) ease;
+}
+.keybind.listening{border-color:var(--accent);color:var(--accent);box-shadow:0 0 12px -2px var(--accent-glow);animation:pulse 1s ease infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 12px -2px var(--accent-glow);}50%{box-shadow:0 0 18px 0 var(--accent-glow);}}
+
+/* ================= BUTTONS ================= */
+.btn-row{display:flex;gap:10px;margin-top:6px;}
+.btn{
+  position:relative;flex:1;height:36px;border-radius:18px;cursor:pointer;
+  font-family:var(--font-display);font-weight:700;font-size:12.5px;
+  letter-spacing:.14em;text-transform:uppercase;
+  display:grid;place-items:center;border:1px solid transparent;
+  transition:all var(--t-hover) ease;
+}
+.btn.secondary{
+  background:linear-gradient(180deg, rgba(40,24,38,.9), rgba(28,16,27,.9));
+  color:var(--text-muted);border-color:rgba(220,39,67,.18);
+}
+.btn.secondary:hover{color:var(--text);border-color:var(--border-strong);box-shadow:0 0 14px -4px var(--accent-glow);}
+.btn.primary{
+  background:linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
+  color:var(--text-on-accent);
+  box-shadow:0 0 20px -4px var(--accent-glow), inset 0 1px 0 rgba(255,220,230,.35);
+}
+.btn.primary:hover{filter:brightness(1.12);box-shadow:0 0 28px -2px var(--accent-glow), inset 0 1px 0 rgba(255,220,230,.45);transform:translateY(-1px);}
+.btn.primary:active{transform:translateY(0);filter:brightness(.95);}
+
+/* ================= TOOLTIP ================= */
+#tooltip{
+  position:fixed;z-index:100;pointer-events:none;
+  background:rgba(26,15,25,.98);border:1px solid var(--border-strong);
+  border-radius:6px;padding:7px 10px;max-width:220px;
+  font-size:10.5px;color:var(--text-muted);line-height:1.45;letter-spacing:.02em;
+  box-shadow:0 8px 24px -6px rgba(0,0,0,.9), 0 0 14px -5px var(--accent-glow);
+  opacity:0;transform:translateY(4px);transition:opacity 120ms ease, transform 120ms ease;
+}
+#tooltip.show{opacity:1;transform:translateY(0);}
+#tooltip b{color:var(--accent);font-weight:600;}
+
+/* hint bar */
+#hint{
+  position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:5;
+  font-family:var(--font-display);font-size:10px;font-weight:600;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim);
+  transition:opacity 300ms ease;
+}
+body.open #hint{opacity:0;}
+#hint b{color:var(--accent);}
+</style>
+</head>
+<body class="blur-on">
+
+<div id="world"></div>
+<canvas id="particles"></canvas>
+<div id="scrim"></div>
+
+<div id="hint">Press <b>V</b> to open the dashboard</div>
+
+<div id="window">
+  <div class="window-chrome"></div>
+
+  <div id="header">
+    <div class="sigil"></div>
+    <div id="title">Jujutsu <b>//</b> Dashboard</div>
+    <div id="version">v1.0.0</div>
+    <div class="spacer"></div>
+    <button id="closeBtn" title="Close">✕</button>
+  </div>
+
+  <div id="body">
+    <div id="sidebar">
+      <div class="cat-label">Modules</div>
+      <div class="nav-item active" data-page="character"><span class="glyph">◈</span>Character</div>
+      <div class="nav-item" data-page="combat"><span class="glyph">✦</span>Combat</div>
+      <div class="nav-item" data-page="visuals"><span class="glyph">◐</span>Visuals</div>
+      <div class="nav-item" data-page="misc"><span class="glyph">⚙</span>Misc</div>
+      <div class="foot">Nobara kit active<br><b>Straw Doll</b> technique</div>
+    </div>
+
+    <div id="pages">
+
+      <!-- ============ CHARACTER PAGE (the one real feature) ============ -->
+      <div class="page active" data-page="character">
+        <div class="page-title">Character</div>
+        <div class="page-sub">Select your vessel. Only Nobara is awakened.</div>
+
+        <div class="card-row">
+          <div class="char-card selected" data-char="nobara">
+            <div class="badge">✓</div>
+            <div class="portrait"><div class="face">Nobara</div></div>
+            <div class="meta"><div class="name">Nobara Kugisaki</div><div class="role">Straw Doll Technique · Grade 3</div></div>
+          </div>
+          <div class="char-card" data-char="none">
+            <div class="badge">✓</div>
+            <div class="portrait"><div class="face">—</div></div>
+            <div class="meta"><div class="name">None</div><div class="role">No technique · Default</div></div>
+          </div>
+        </div>
+
+        <div class="section-label">Innate · Straw Doll</div>
+        <div class="ability-strip">
+          <div class="ability" data-tip="<b>Piercing Nail</b><br>Charge and fire nails that embed marks."><span class="key">R</span><div class="icon">钉</div><div class="label">Piercing<br>Nail</div></div>
+          <div class="ability" data-tip="<b>Hairpin Enlargement</b><br>Detonate embedded marks on a target."><span class="key">B</span><div class="icon">簪</div><div class="label">Hairpin<br>Enlarge</div></div>
+          <div class="ability" data-tip="<b>Resonance</b><br>Strike through a bound remnant at range."><span class="key">⇧R</span><div class="icon">共</div><div class="label">Resonance<br>Link</div></div>
+          <div class="ability" data-tip="<b>Black Flash</b><br>Land a second strike inside the window."><span class="key">LMB</span><div class="icon">黒</div><div class="label">Black<br>Flash</div></div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn secondary" id="cancelBtn">Cancel</button>
+          <button class="btn primary" id="confirmBtn">Confirm</button>
+        </div>
+      </div>
+
+      <!-- ============ COMBAT PAGE (shell) ============ -->
+      <div class="page" data-page="combat">
+        <div class="page-title">Combat</div>
+        <div class="page-sub">Tuning shell — values are local preview only.</div>
+
+        <div class="section-label">Straw Doll</div>
+        <div class="ctrl-row"><div class="info"><div class="t">Auto nail prepare</div><div class="d">Begin charging nails while holding the item</div></div><div class="toggle on" data-toggle><div class="track"></div><div class="knob"></div></div></div>
+        <div class="ctrl-row"><div class="info"><div class="t">Black Flash assist</div><div class="d">Widen the input window slightly</div></div><div class="toggle" data-toggle><div class="track"></div><div class="knob"></div></div></div>
+        <div class="ctrl-row"><div class="info"><div class="t">Resonance slow-motion</div><div class="d">Client time-dilation on confirmed hit</div></div><div class="toggle on" data-toggle><div class="track"></div><div class="knob"></div></div></div>
+
+        <div class="section-label">Balance preview</div>
+        <div class="ctrl-row"><div class="info"><div class="t">Nail charge speed</div><div class="d">Ticks per prepared nail</div></div><div class="slider" data-slider data-min="4" data-max="20" data-val="10"><div class="rail"></div><div class="fill"></div><div class="handle"></div><div class="val">10</div></div></div>
+        <div class="ctrl-row"><div class="info"><div class="t">Hairpin chain radius</div><div class="d">Blocks between detonation links</div></div><div class="slider" data-slider data-min="2" data-max="16" data-val="10"><div class="rail"></div><div class="fill"></div><div class="handle"></div><div class="val">10</div></div></div>
+      </div>
+
+      <!-- ============ VISUALS PAGE (shell) ============ -->
+      <div class="page" data-page="visuals">
+        <div class="page-title">Visuals</div>
+        <div class="page-sub">Render pipeline shell — local preview only.</div>
+
+        <div class="section-label">Pipeline</div>
+        <div class="ctrl-row"><div class="info"><div class="t">Background blur</div><div class="d">Blur the world behind the dashboard</div></div><div class="toggle on" data-toggle data-blur><div class="track"></div><div class="knob"></div></div></div>
+        <div class="ctrl-row"><div class="info"><div class="t">SDF neon glow</div><div class="d">Shader-based borders and halos</div></div><div class="toggle on" data-toggle><div class="track"></div><div class="knob"></div></div></div>
+        <div class="ctrl-row"><div class="info"><div class="t">Drop shadows</div><div class="d">Soft shadow under panels and cards</div></div><div class="toggle on" data-toggle><div class="track"></div><div class="knob"></div></div></div>
+
+        <div class="section-label">Density</div>
+        <div class="ctrl-row"><div class="info"><div class="t">Particle quality</div><div class="d">VFX particle density multiplier</div></div>
+          <div class="dropdown" data-dropdown>
+            <div class="dd-btn"><span class="dd-cur">Full</span><span class="chev">▼</span></div>
+            <div class="dd-list"><div class="dd-opt sel">Full</div><div class="dd-opt">Reduced</div><div class="dd-opt">Minimal</div></div>
+          </div>
+        </div>
+        <div class="ctrl-row"><div class="info"><div class="t">Glow intensity</div><div class="d">Neon halo strength</div></div><div class="slider" data-slider data-min="0" data-max="100" data-val="70"><div class="rail"></div><div class="fill"></div><div class="handle"></div><div class="val">70</div></div></div>
+      </div>
+
+      <!-- ============ MISC PAGE (shell) ============ -->
+      <div class="page" data-page="misc">
+        <div class="page-title">Misc</div>
+        <div class="page-sub">Bindings and theme shell — local preview only.</div>
+
+        <div class="section-label">Bindings</div>
+        <div class="ctrl-row"><div class="info"><div class="t">Open dashboard</div><div class="d">Toggle this menu</div></div><div class="keybind" data-keybind>V</div></div>
+        <div class="ctrl-row"><div class="info"><div class="t">Piercing Nail</div><div class="d">Fire prepared nails</div></div><div class="keybind" data-keybind>R</div></div>
+        <div class="ctrl-row"><div class="info"><div class="t">Hairpin / Boom</div><div class="d">Detonate marks</div></div><div class="keybind" data-keybind>B</div></div>
+
+        <div class="section-label">Theme</div>
+        <div class="ctrl-row"><div class="info"><div class="t">Accent palette</div><div class="d">Follows selected character</div></div>
+          <div class="dropdown" data-dropdown>
+            <div class="dd-btn"><span class="dd-cur">Nobara Crimson</span><span class="chev">▼</span></div>
+            <div class="dd-list"><div class="dd-opt sel">Nobara Crimson</div><div class="dd-opt">Gojo Azure</div><div class="dd-opt">Sukuna Ember</div><div class="dd-opt">Megumi Teal</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+/* ============================================================
+   Interaction layer — mirrors the planned in-game input stack:
+   reverse z-order hit testing, drag capture, popup-first,
+   single focus, Escape closes popup then screen.
+   ============================================================ */
+const body=document.body;
+const win=document.getElementById('window');
+const header=document.getElementById('header');
+const tooltip=document.getElementById('tooltip');
+
+/* ---------- open / close (V toggle) ---------- */
+function setOpen(o){body.classList.toggle('open',o);}
+setOpen(true); /* start open for the mockup review */
+document.addEventListener('keydown',e=>{
+  if(e.key==='v'||e.key==='V'||e.key==='м'||e.key==='М'){
+    if(document.activeElement&&document.activeElement.classList.contains('listening'))return;
+    setOpen(!body.classList.contains('open'));
+  }
+  if(e.key==='Escape'){
+    const openDd=document.querySelector('.dropdown.open');
+    if(openDd){openDd.classList.remove('open');return;}
+    setOpen(false);
+  }
+});
+document.getElementById('closeBtn').addEventListener('click',()=>setOpen(false));
+document.getElementById('cancelBtn').addEventListener('click',()=>setOpen(false));
+document.getElementById('confirmBtn').addEventListener('click',()=>{
+  /* In-game: ClientPlayNetworking.send(new SelectCharacterPayload(selection.id())) */
+  setOpen(false);
+});
+
+/* ---------- window drag (header = drag handle, capture) ---------- */
+let drag=null;
+header.addEventListener('mousedown',e=>{
+  if(e.target.closest('#closeBtn'))return;
+  const r=win.getBoundingClientRect();
+  drag={dx:e.clientX-r.left,dy:e.clientY-r.top};
+  win.classList.add('dragging');
+  win.style.left='0';win.style.top='0';win.style.transform='none';
+  win.style.position='fixed';win.style.left=r.left+'px';win.style.top=r.top+'px';
+});
+document.addEventListener('mousemove',e=>{
+  if(!drag)return;
+  win.style.left=(e.clientX-drag.dx)+'px';
+  win.style.top=(e.clientY-drag.dy)+'px';
+});
+document.addEventListener('mouseup',()=>{drag=null;win.classList.remove('dragging');});
+
+/* ---------- sidebar page switching ---------- */
+const navItems=[...document.querySelectorAll('.nav-item')];
+const pages=[...document.querySelectorAll('.page')];
+navItems.forEach(n=>n.addEventListener('click',()=>{
+  navItems.forEach(x=>x.classList.toggle('active',x===n));
+  pages.forEach(p=>p.classList.toggle('active',p.dataset.page===n.dataset.page));
+}));
+
+/* ---------- character cards ---------- */
+const cards=[...document.querySelectorAll('.char-card')];
+cards.forEach(c=>c.addEventListener('click',()=>{
+  cards.forEach(x=>x.classList.toggle('selected',x===c));
+}));
+
+/* ---------- toggles ---------- */
+document.querySelectorAll('[data-toggle]').forEach(t=>t.addEventListener('click',()=>{
+  t.classList.toggle('on');
+  if(t.hasAttribute('data-blur'))body.classList.toggle('blur-on',t.classList.contains('on'));
+}));
+
+/* ---------- sliders (drag capture) ---------- */
+document.querySelectorAll('[data-slider]').forEach(s=>{
+  const min=+s.dataset.min,max=+s.dataset.max;
+  const fill=s.querySelector('.fill'),handle=s.querySelector('.handle'),val=s.querySelector('.val');
+  function set(clientX){
+    const r=s.getBoundingClientRect();
+    let t=Math.min(1,Math.max(0,(clientX-r.left)/r.width));
+    const v=Math.round(min+t*(max-min));
+    t=(v-min)/(max-min);
+    fill.style.width=(t*100)+'%';
+    handle.style.left='calc('+(t*100)+'% - 6px)';
+    val.textContent=v;
+  }
+  s.addEventListener('mousedown',e=>{
+    set(e.clientX);
+    const mv=ev=>set(ev.clientX);
+    const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
+    document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
+  });
+});
+
+/* ---------- dropdowns (popup-first, close on outside click) ---------- */
+document.querySelectorAll('[data-dropdown]').forEach(dd=>{
+  const btn=dd.querySelector('.dd-btn'),cur=dd.querySelector('.dd-cur');
+  btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    const was=dd.classList.contains('open');
+    document.querySelectorAll('.dropdown.open').forEach(x=>x.classList.remove('open'));
+    if(!was)dd.classList.add('open');
+  });
+  dd.querySelectorAll('.dd-opt').forEach(o=>o.addEventListener('click',e=>{
+    e.stopPropagation();
+    dd.querySelectorAll('.dd-opt').forEach(x=>x.classList.toggle('sel',x===o));
+    cur.textContent=o.textContent;
+    dd.classList.remove('open');
+  }));
+});
+document.addEventListener('mousedown',()=>document.querySelectorAll('.dropdown.open').forEach(x=>x.classList.remove('open')));
+
+/* ---------- keybind fields (listening state) ---------- */
+document.querySelectorAll('[data-keybind]').forEach(k=>{
+  k.addEventListener('click',()=>{
+    const was=k.classList.contains('listening');
+    document.querySelectorAll('.keybind.listening').forEach(x=>{x.classList.remove('listening');});
+    if(!was){k.classList.add('listening');k.dataset.prev=k.textContent;k.textContent='...';}
+  });
+  k.addEventListener('keydown',e=>{
+    if(!k.classList.contains('listening'))return;
+    e.stopPropagation();
+    k.textContent=e.key.length===1?e.key.toUpperCase():e.key;
+    k.classList.remove('listening');
+  });
+});
+
+/* ---------- tooltips ---------- */
+document.querySelectorAll('[data-tip]').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{tooltip.innerHTML=el.dataset.tip;tooltip.classList.add('show');});
+  el.addEventListener('mousemove',e=>{
+    tooltip.style.left=Math.min(e.clientX+14,innerWidth-240)+'px';
+    tooltip.style.top=(e.clientY+16)+'px';
+  });
+  el.addEventListener('mouseleave',()=>tooltip.classList.remove('show'));
+});
+
+/* ---------- ambient particles (cursed energy motes) ---------- */
+const cv=document.getElementById('particles'),cx=cv.getContext('2d');
+let W,H,motes=[];
+function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;}
+resize();addEventListener('resize',resize);
+for(let i=0;i<42;i++)motes.push({
+  x:Math.random()*innerWidth,y:Math.random()*innerHeight,
+  r:.6+Math.random()*1.8,vy:.12+Math.random()*.4,
+  a:.05+Math.random()*.3,ph:Math.random()*Math.PI*2,sp:.4+Math.random()*1.2
+});
+function tick(t){
+  cx.clearRect(0,0,W,H);
+  for(const m of motes){
+    m.y-=m.vy;m.ph+=.01*m.sp;
+    if(m.y<-10){m.y=H+10;m.x=Math.random()*W;}
+    const flick=m.a*(0.6+0.4*Math.sin(m.ph+t*.001*m.sp));
+    cx.beginPath();cx.arc(m.x+Math.sin(m.ph)*6,m.y,m.r,0,Math.PI*2);
+    cx.fillStyle=`rgba(220,39,67,${flick})`;
+    cx.shadowColor='rgba(220,39,67,.8)';cx.shadowBlur=6;
+    cx.fill();cx.shadowBlur=0;
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
