@@ -16,6 +16,7 @@ public final class PageContainer extends UiContainer {
         children.clear();
         currentPage = page;
         add(page);
+        page.setBounds(0f, 0f, width, height);
         page.setVisible(true);
         switching = true;
         switchStartMillis = System.currentTimeMillis();
@@ -24,6 +25,14 @@ public final class PageContainer extends UiContainer {
     }
 
     public NeonPage currentPage() { return currentPage; }
+
+    @Override
+    public void layout() {
+        if (currentPage != null) {
+            currentPage.setBounds(0f, 0f, width, height);
+        }
+        super.layout();
+    }
 
     @Override
     public void tick(float deltaTicks) {

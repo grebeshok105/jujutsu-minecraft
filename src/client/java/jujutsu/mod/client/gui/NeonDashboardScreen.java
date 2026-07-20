@@ -40,6 +40,10 @@ public final class NeonDashboardScreen extends Screen {
     private PageContainer pageContainer;
     private NeonButton closeBtn;
     private CharacterPage charPage;
+    private CombatPage combatPage;
+    private VisualsPage visualsPage;
+    private MiscPage miscPage;
+    private boolean contentBuilt;
     private NeonTheme targetTheme = NeonTheme.NOBARA;
 
     private float openAnim;
@@ -102,6 +106,14 @@ public final class NeonDashboardScreen extends Screen {
         float pageH = wh - HEADER_H - 20;
         pageContainer.setBounds(pageX, pageY, pageW, pageH);
         pageContainer.layout();
+
+        if (!contentBuilt && pageW > 0 && pageH > 0) {
+            contentBuilt = true;
+            charPage.buildContent(pageW, pageH);
+            combatPage.buildContent(pageW, pageH);
+            visualsPage.buildContent(pageW, pageH);
+            miscPage.buildContent(pageW, pageH);
+        }
     }
 
     private UiRoot buildRoot() {
@@ -116,9 +128,9 @@ public final class NeonDashboardScreen extends Screen {
 
         CharacterPage charPage = new CharacterPage(this::animateClose);
         this.charPage = charPage;
-        CombatPage combatPage = new CombatPage();
-        VisualsPage visualsPage = new VisualsPage();
-        MiscPage miscPage = new MiscPage();
+        this.combatPage = new CombatPage();
+        this.visualsPage = new VisualsPage();
+        this.miscPage = new MiscPage();
 
         pageContainer = new PageContainer();
         r.add(pageContainer);
@@ -133,11 +145,6 @@ public final class NeonDashboardScreen extends Screen {
         sidebarItems.add(visualsItem);
         sidebarItems.add(miscItem);
         for (SidebarItem item : sidebarItems) r.add(item);
-
-        charPage.buildContent(400, 300);
-        combatPage.buildContent(400, 300);
-        visualsPage.buildContent(400, 300);
-        miscPage.buildContent(400, 300);
 
         charItem.setSelected(true);
         pageContainer.setPage(charPage);
@@ -211,6 +218,7 @@ public final class NeonDashboardScreen extends Screen {
             else if (child instanceof jujutsu.mod.client.ui.neon.widget.KeybindField k) k.updateMouse(mx, my);
             else if (child instanceof jujutsu.mod.client.ui.neon.widget.NeonColorPicker c) c.updateMouse(mx, my);
             else if (child instanceof jujutsu.mod.client.ui.neon.widget.NeonCard card) card.updateMouse(mx, my);
+            else if (child instanceof NeonButton b) b.updateMouse(mx, my);
             else if (child instanceof jujutsu.mod.client.ui.neon.UiContainer c) updatePageMouseTrackers(c, mx, my);
         }
     }
@@ -234,6 +242,9 @@ public final class NeonDashboardScreen extends Screen {
     @Override
     public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float delta) {
         NeonBlur.apply();
+        // GuiGraphics fill batches after the HUD flush, so this covers the crosshair.
+        // The SDF gradient scrim still renders on top for the neon look.
+        g.fill(0, 0, this.width, this.height, 0x8A060403);
     }
 
     @Override
