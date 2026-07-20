@@ -1,30 +1,54 @@
 package jujutsu.mod.client.gui.neon;
 
 import jujutsu.mod.client.ui.neon.NeonContext;
+import jujutsu.mod.client.ui.neon.NeonTheme;
 import jujutsu.mod.client.ui.neon.UiContainer;
+import jujutsu.mod.client.ui.neon.render.SdfShape;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
 public abstract class NeonPage extends UiContainer {
     private final Component title;
+    private final Component subtitle;
 
-    protected NeonPage(Component title) {
+    protected NeonPage(Component title, Component subtitle) {
         this.title = title;
+        this.subtitle = subtitle;
     }
 
     public Component title() { return title; }
 
     public abstract void buildContent(float pageW, float pageH);
 
+    /** Vertical offset where page content should start (below title + subtitle). */
+    public float contentTop() { return 30f; }
+
     @Override
     public void renderSurface(NeonContext ctx) {
         if (!isVisible()) return;
+        // Trailing rule line after the title.
+        int titleW = ctx.font().width(title);
+        float ax = absX(), ay = absY();
+        float ruleX = ax + titleW + 10;
+        float ruleW = width - titleW - 10;
+        if (ruleW > 0) {
+            ctx.sdf().add(SdfShape.builder()
+                    .rect(ruleX, ay + 3.5f, ruleW, 1)
+                    .radius(0).border(0, 0).glow(0, 0)
+                    .fill(ctx.theme().border(), ctx.theme().border())
+                    .build());
+        }
         super.renderSurface(ctx);
     }
 
     @Override
     public void renderText(NeonContext ctx) {
         if (!isVisible()) return;
-        ctx.graphics().drawString(ctx.font(), title, (int) absX(), (int) absY(), jujutsu.mod.client.ui.neon.NeonTheme.text(), false);
+        GuiGraphics g = ctx.graphics();
+        g.drawString(ctx.font(), title, (int) absX(), (int) absY(), NeonTheme.text(), false);
+        if (subtitle != null) {
+            g.drawString(ctx.font(), subtitle, (int) absX(), (int) (absY() + 14), NeonTheme.textDim(), false);
+        }
         super.renderText(ctx);
     }
 }

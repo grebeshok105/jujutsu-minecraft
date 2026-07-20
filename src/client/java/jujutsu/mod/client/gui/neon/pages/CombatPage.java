@@ -9,7 +9,7 @@ import net.minecraft.network.chat.Component;
 
 public final class CombatPage extends NeonPage {
     public CombatPage() {
-        super(Component.literal("Combat"));
+        super(Component.literal("Combat"), Component.literal("Tuning shell \u2014 values are local preview only."));
     }
 
     @Override

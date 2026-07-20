@@ -10,7 +10,7 @@ import net.minecraft.network.chat.Component;
 
 public final class MiscPage extends NeonPage {
     public MiscPage() {
-        super(Component.literal("Misc"));
+        super(Component.literal("Misc"), Component.literal("Bindings shell \u2014 local preview only."));
     }
 
     @Override

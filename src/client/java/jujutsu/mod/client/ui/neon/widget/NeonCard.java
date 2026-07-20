@@ -6,32 +6,44 @@ import jujutsu.mod.client.ui.neon.NeonTheme;
 import jujutsu.mod.client.ui.neon.UiComponent;
 import jujutsu.mod.client.ui.neon.render.SdfShape;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
+/** Horizontal character card: portrait well on the left, name/tech/grade meta on the right. */
 public final class NeonCard extends UiComponent {
+    private static final float PORTRAIT = 46f;
+    private static final float PAD = 8f;
+
     private final Component name;
-    private final Component role;
-    private final ResourceLocation portrait;
+    private final Component tech;
+    private final Component grade;
     private final int accentRgb;
+    private final ResourceLocation skinPortrait;
+    private final String emojiGlyph;
+    private final boolean unlocked;
     private final Runnable onSelect;
     private boolean selected;
     private float selectAnim;
     private boolean hoveredThisFrame;
     private double lastMouseX = -1, lastMouseY = -1;
 
-    public NeonCard(Component name, Component role, ResourceLocation portrait, int accentRgb, Runnable onSelect) {
+    public NeonCard(Component name, Component tech, Component grade, int accentRgb,
+                    ResourceLocation skinPortrait, String emojiGlyph, boolean unlocked, Runnable onSelect) {
         this.name = name;
-        this.role = role;
-        this.portrait = portrait;
+        this.tech = tech;
+        this.grade = grade;
         this.accentRgb = accentRgb;
+        this.skinPortrait = skinPortrait;
+        this.emojiGlyph = emojiGlyph;
+        this.unlocked = unlocked;
         this.onSelect = onSelect;
-        this.width = 140;
-        this.height = 150;
+        this.height = PORTRAIT + PAD * 2;
     }
 
     public void setSelected(boolean s) { this.selected = s; }
     public boolean isSelected() { return selected; }
+    public boolean isUnlocked() { return unlocked; }
 
     public void updateMouse(double mx, double my) {
         this.lastMouseX = mx;
@@ -43,8 +55,8 @@ public final class NeonCard extends UiComponent {
 
     @Override
     public void tick(float deltaTicks) {
-        hoveredThisFrame = contains(lastMouseX, lastMouseY);
-        float target = selected ? 1f : (hoveredThisFrame ? 0.35f : 0f);
+        hoveredThisFrame = unlocked && contains(lastMouseX, lastMouseY);
+        float target = selected ? 1f : (hoveredThisFrame ? 0.45f : 0f);
         selectAnim = UiEase.approach(selectAnim, target, 0.3f, deltaTicks);
         super.tick(deltaTicks);
     }
@@ -53,30 +65,31 @@ public final class NeonCard extends UiComponent {
     public void renderSurface(NeonContext ctx) {
         if (!isVisible()) return;
         float ax = absX(), ay = absY();
-        int borderA = applyAlpha(accentRgb, 0.2f + 0.6f * selectAnim);
-        int glowA = applyAlpha(accentRgb, 0.55f * selectAnim);
+
+        int borderArgb = selected
+                ? applyAlpha(accentRgb, 0.9f)
+                : applyAlpha(accentRgb, 0.14f + 0.4f * selectAnim);
+        float glowR = selected ? 16f : 8f * selectAnim;
+        int glowArgb = applyAlpha(accentRgb, (selected ? 0.5f : 0.3f) * Math.max(selectAnim, 0.001f) * (selected ? 1f : selectAnim));
 
         ctx.sdf().add(SdfShape.builder()
                 .rect(ax, ay, width, height)
                 .radius(8)
-                .border(1, borderA)
-                .glow(14 * selectAnim, glowA)
-                .highlight(0.2f + 0.6f * selectAnim)
+                .border(1, borderArgb)
+                .glow(glowR, glowArgb)
+                .highlight(0.2f + 0.4f * selectAnim)
                 .fill(0xD9211914, 0xD9181210)
                 .build());
 
-        if (portrait != null) {
-            float headSize = 48;
-            float headX = ax + (width - headSize) / 2f;
-            float headY = ay + 16;
-            ctx.sdf().add(SdfShape.builder()
-                    .rect(headX, headY, headSize, headSize)
-                    .radius(6)
-                    .border(1, applyAlpha(accentRgb, 0.3f + 0.3f * selectAnim))
-                    .glow(0, 0).highlight(0.2f)
-                    .fill(0xCC090A0E, 0xCC090A0E)
-                    .build());
-        }
+        // Portrait well.
+        ctx.sdf().add(SdfShape.builder()
+                .rect(ax + PAD, ay + PAD, PORTRAIT, PORTRAIT)
+                .radius(8)
+                .border(1, applyAlpha(accentRgb, 0.12f + 0.3f * selectAnim))
+                .glow(selected ? 8f : 0f, applyAlpha(accentRgb, 0.35f))
+                .highlight(0.15f)
+                .fill(0xE61E1611, 0xE6100B09)
+                .build());
     }
 
     @Override
@@ -85,20 +98,39 @@ public final class NeonCard extends UiComponent {
         GuiGraphics g = ctx.graphics();
         float ax = absX(), ay = absY();
 
-        int nameW = ctx.font().width(name);
-        g.drawString(ctx.font(), name, (int) (ax + (width - nameW) / 2f), (int) (ay + 74), NeonTheme.text(), false);
+        // Portrait: skin head (base + hat layers) or emoji glyph placeholder.
+        float wellX = ax + PAD, wellY = ay + PAD;
+        if (skinPortrait != null) {
+            int head = 40;
+            int hx = (int) (wellX + (PORTRAIT - head) / 2f);
+            int hy = (int) (wellY + (PORTRAIT - head) / 2f);
+            g.blit(RenderPipelines.GUI_TEXTURED, skinPortrait, hx, hy, 8.0f, 8.0f, head, head, 8, 8, 64, 64);
+            g.blit(RenderPipelines.GUI_TEXTURED, skinPortrait, hx, hy, 40.0f, 8.0f, head, head, 8, 8, 64, 64);
+        } else if (emojiGlyph != null) {
+            int gw = ctx.font().width(emojiGlyph);
+            int glyphColor = unlocked ? (accentRgb | 0xFF000000) : NeonTheme.textDim();
+            g.drawString(ctx.font(), emojiGlyph, (int) (wellX + (PORTRAIT - gw) / 2f), (int) (wellY + PORTRAIT / 2f - 4),
+                    glyphColor, false);
+        }
 
-        int roleW = ctx.font().width(role);
-        g.drawString(ctx.font(), role, (int) (ax + (width - roleW) / 2f), (int) (ay + 88), NeonTheme.textDim(), false);
+        // Meta column.
+        float metaX = ax + PAD + PORTRAIT + 10;
+        int nameColor = unlocked ? NeonTheme.text() : NeonTheme.textMuted();
+        g.drawString(ctx.font(), name.copy().withStyle(s -> s.withColor(nameColor)), (int) metaX, (int) (ay + 12), nameColor, false);
+        g.drawString(ctx.font(), tech, (int) metaX, (int) (ay + 25), unlocked ? accentRgb | 0xFF000000 : NeonTheme.textDim(), false);
+        g.drawString(ctx.font(), grade, (int) metaX, (int) (ay + 38), NeonTheme.textDim(), false);
 
+        // Selected badge (✓) or locked SOON tag, top-right.
         if (selected) {
-            g.drawString(ctx.font(), "\u2713", (int) (ax + width - 18), (int) (ay + 6), 0xFF4ADE80, false);
+            g.drawString(ctx.font(), "\u2713", (int) (ax + width - 16), (int) (ay + 6), 0xFF4ADE80, false);
+        } else if (!unlocked) {
+            g.drawString(ctx.font(), "SOON", (int) (ax + width - 30), (int) (ay + 7), NeonTheme.textDim(), false);
         }
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && contains(mouseX, mouseY)) {
+        if (button == 0 && unlocked && contains(mouseX, mouseY)) {
             onSelect.run();
             return true;
         }

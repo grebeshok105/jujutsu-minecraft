@@ -7,7 +7,7 @@ import net.minecraft.network.chat.Component;
 
 public final class VisualsPage extends NeonPage {
     public VisualsPage() {
-        super(Component.literal("Visuals"));
+        super(Component.literal("Visuals"), Component.literal("Render pipeline shell \u2014 local preview only."));
     }
 
     @Override
