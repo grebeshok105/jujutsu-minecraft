@@ -328,7 +328,7 @@ public final class ProjectSanityTest {
 		String keybinds = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/input/JujutsuKeybinds.java"));
 		assert keybinds.contains("key.jujutsumod.nobara_hairpin_enlarge") : "Hairpin Enlarge must be a visible keybind";
 		assert keybinds.contains("key.jujutsumod.nobara_hairpin_explosion") : "Hairpin Explosion must be a visible keybind";
-		String screen = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/gui/CharacterSelectScreen.java"));
+		String screen = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/gui/neon/pages/CharacterPage.java"));
 		assert screen.contains("ability.hairpin_enlarge") : "Character select must show Hairpin Enlarge in the kit preview";
 		assert screen.contains("ability.hairpin_explosion") : "Character select must show Hairpin Explosion in the kit preview";
 		String commands = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/command/JujutsuCommands.java"));
@@ -751,15 +751,10 @@ public final class ProjectSanityTest {
 		String uiRender = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/UiRender.java"));
 		assert !uiRender.contains("for (int row = 0; row < h; row++)") : "Large rounded UI panels must not submit one fill per pixel row";
 		assert !uiRender.contains("cornerInset(") : "Rounded rects should use cheap block primitives instead of per-row corner scans";
-		String uiButton = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/UiButton.java"));
-		assert !uiButton.contains("for (int row = 0; row < h; row++)") : "Character select buttons must not paint gradients one pixel row at a time";
-		String card = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/CharacterCard.java"));
-		assert !card.contains("y - lift") : "Character cards must not animate through rounded integer Y jumps";
-		assert !card.contains("headX - 5") : "Nobara portrait must not draw the side background around the skin head";
-		assert !card.contains("coatY") : "Nobara portrait must not draw the old orange body/coat stub below the head";
-		assert !card.contains("nailX") : "Nobara portrait must not draw the old right-side nail that reads like a T";
-		assert !card.contains("y + h - 12") : "Character cards must not draw the dark strip under the technique label";
-		assert card.contains("drawPortraitBackdrop") : "Nobara portrait should reuse the cleaner Default-style portrait backdrop";
+		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/neon/render/SdfRenderer.java"))
+				: "Neon dashboard must use the SDF shader renderer for GPU-batched surfaces";
+		String sdfRenderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/neon/render/SdfRenderer.java"));
+		assert sdfRenderer.contains("drawIndexed") : "SDF renderer must batch all shapes into one draw call";
 	}
 
 	private static void assertGeckoLibNobaraPlayerModelWired() throws IOException {
@@ -803,7 +798,7 @@ public final class ProjectSanityTest {
 		assert !animatable.contains("speedValue >") : "HumanoidRenderState.speedValue is a vanilla limb scale, not a movement trigger";
 		String geo = Files.readString(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json"));
 		assert geo.contains("\"name\": \"bb_main\",\n\t\t\t\t\t\"parent\": \"skirt\"") : "Nobara skirt/coat panels must follow the body instead of floating as a root bone";
-		String card = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/CharacterCard.java"));
+		String card = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/gui/neon/pages/CharacterPage.java"));
 		assert card.contains("textures/entity/character/nobara.png") : "Character select portrait must keep using the player-skin head, not the GeckoLib NPC texture";
 	}
 
