@@ -1,11 +1,10 @@
 package jujutsu.mod.client.gui.neon.pages;
 
-import java.util.List;
 import jujutsu.mod.client.gui.neon.NeonPage;
+import jujutsu.mod.client.ui.neon.NeonTheme;
+import jujutsu.mod.client.ui.neon.widget.CtrlRow;
 import jujutsu.mod.client.ui.neon.widget.KeybindField;
-import jujutsu.mod.client.ui.neon.widget.NeonColorPicker;
-import jujutsu.mod.client.ui.neon.widget.NeonDropdown;
-import jujutsu.mod.client.ui.neon.widget.NeonToggle;
+import jujutsu.mod.client.ui.neon.widget.SectionLabel;
 import net.minecraft.network.chat.Component;
 
 public final class MiscPage extends NeonPage {
@@ -15,25 +14,29 @@ public final class MiscPage extends NeonPage {
 
     @Override
     public void buildContent(float pageW, float pageH) {
-        NeonToggle notifications = new NeonToggle(Component.literal("Notifications"), true);
-        notifications.setBounds(0, 24, pageW, 24);
-        add(notifications);
+        float y = contentTop();
 
-        NeonDropdown language = new NeonDropdown(Component.literal("Language"),
-                List.of(Component.literal("System Default"), Component.literal("English"), Component.literal("Russian")), 0);
-        language.setBounds(0, 66, pageW, 24);
-        add(language);
+        SectionLabel bindings = new SectionLabel(Component.literal("Bindings"));
+        bindings.setBounds(0, y, pageW, 12); add(bindings); y += 18;
 
-        NeonToggle debugOverlay = new NeonToggle(Component.literal("Debug Overlay"), false);
-        debugOverlay.setBounds(0, 108, pageW, 24);
-        add(debugOverlay);
+        CtrlRow openKey = new CtrlRow(Component.literal("Toggle this menu"),
+                new KeybindField(Component.literal("Open dashboard"), "V"));
+        openKey.setBounds(0, y, pageW, 46); add(openKey); y += 52;
 
-        KeybindField openKey = new KeybindField(Component.literal("Open Dashboard"), "V");
-        openKey.setBounds(0, 150, pageW, 24);
-        add(openKey);
+        CtrlRow piercing = new CtrlRow(Component.literal("Fire prepared nails"),
+                new KeybindField(Component.literal("Piercing Nail"), "R"));
+        piercing.setBounds(0, y, pageW, 46); add(piercing); y += 52;
 
-        NeonColorPicker accentColor = new NeonColorPicker(Component.literal("Accent Color"), 0xFFE48A36);
-        accentColor.setBounds(0, 192, pageW, 24);
-        add(accentColor);
+        CtrlRow hairpin = new CtrlRow(Component.literal("Detonate marks"),
+                new KeybindField(Component.literal("Hairpin / Boom"), "B"));
+        hairpin.setBounds(0, y, pageW, 46); add(hairpin); y += 58;
+
+        SectionLabel note = new SectionLabel(Component.literal("Note"));
+        note.setBounds(0, y, pageW, 12); add(note); y += 18;
+
+        CtrlRow accent = new CtrlRow(Component.literal("Driven by the selected character \u2014 not user-picked"),
+                new jujutsu.mod.client.ui.neon.widget.NeonLabel(
+                        Component.literal("Accent theme"), NeonTheme.text(), false));
+        accent.setBounds(0, y, pageW, 46); add(accent);
     }
 }

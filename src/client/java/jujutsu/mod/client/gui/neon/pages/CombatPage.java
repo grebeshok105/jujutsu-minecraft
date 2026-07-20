@@ -1,10 +1,10 @@
 package jujutsu.mod.client.gui.neon.pages;
 
-import java.util.List;
 import jujutsu.mod.client.gui.neon.NeonPage;
-import jujutsu.mod.client.ui.neon.widget.NeonDropdown;
+import jujutsu.mod.client.ui.neon.widget.CtrlRow;
 import jujutsu.mod.client.ui.neon.widget.NeonSlider;
 import jujutsu.mod.client.ui.neon.widget.NeonToggle;
+import jujutsu.mod.client.ui.neon.widget.SectionLabel;
 import net.minecraft.network.chat.Component;
 
 public final class CombatPage extends NeonPage {
@@ -14,21 +14,32 @@ public final class CombatPage extends NeonPage {
 
     @Override
     public void buildContent(float pageW, float pageH) {
-        NeonToggle autoAttack = new NeonToggle(Component.literal("Auto Attack"), false);
-        autoAttack.setBounds(0, 24, pageW, 24);
-        add(autoAttack);
+        float y = contentTop();
 
-        NeonSlider reach = new NeonSlider(Component.literal("Reach Distance"), 0.5f);
-        reach.setBounds(0, 60, pageW, 30);
-        add(reach);
+        SectionLabel straw = new SectionLabel(Component.literal("Straw Doll"));
+        straw.setBounds(0, y, pageW, 12); add(straw); y += 18;
 
-        NeonToggle hitMarkers = new NeonToggle(Component.literal("Hit Markers"), true);
-        hitMarkers.setBounds(0, 102, pageW, 24);
-        add(hitMarkers);
+        CtrlRow autoPrep = new CtrlRow(Component.literal("Begin charging nails while holding the item"),
+                new NeonToggle(Component.literal("Auto nail prepare"), true));
+        autoPrep.setBounds(0, y, pageW, 46); add(autoPrep); y += 52;
 
-        NeonDropdown mode = new NeonDropdown(Component.literal("Combat Mode"),
-                List.of(Component.literal("Standard"), Component.literal("Aggressive"), Component.literal("Defensive")), 0);
-        mode.setBounds(0, 150, pageW, 24);
-        add(mode);
+        CtrlRow bfAssist = new CtrlRow(Component.literal("Widen the input window slightly"),
+                new NeonToggle(Component.literal("Black Flash assist"), false));
+        bfAssist.setBounds(0, y, pageW, 46); add(bfAssist); y += 52;
+
+        CtrlRow slowMo = new CtrlRow(Component.literal("Client time-dilation on confirmed hit"),
+                new NeonToggle(Component.literal("Resonance slow-motion"), true));
+        slowMo.setBounds(0, y, pageW, 46); add(slowMo); y += 58;
+
+        SectionLabel balance = new SectionLabel(Component.literal("Balance preview"));
+        balance.setBounds(0, y, pageW, 12); add(balance); y += 18;
+
+        CtrlRow chargeSpeed = new CtrlRow(Component.literal("Ticks per prepared nail"),
+                new NeonSlider(Component.literal("Nail charge speed"), 0.5f));
+        chargeSpeed.setBounds(0, y, pageW, 46); add(chargeSpeed); y += 52;
+
+        CtrlRow chainRadius = new CtrlRow(Component.literal("Blocks between detonation links"),
+                new NeonSlider(Component.literal("Hairpin chain radius"), 0.5f));
+        chainRadius.setBounds(0, y, pageW, 46); add(chainRadius);
     }
 }
