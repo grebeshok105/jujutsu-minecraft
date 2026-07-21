@@ -50,13 +50,19 @@ public final class PageContainer extends UiContainer {
         NeonContext faded = new NeonContext(
                 ctx.sdf(), ctx.graphics(), ctx.font(), ctx.theme(),
                 ctx.mouseX(), ctx.mouseY(), ctx.deltaTicks(),
-                ctx.openAnim() * switchAnim);
+                ctx.openAnim() * switchAnim,
+                ctx.overlays());
         super.renderSurface(faded);
     }
 
     @Override
     public void renderText(NeonContext ctx) {
         if (!isVisible() || currentPage == null) return;
-        super.renderText(ctx);
+        NeonContext faded = new NeonContext(
+                ctx.sdf(), ctx.graphics(), ctx.font(), ctx.theme(),
+                ctx.mouseX(), ctx.mouseY(), ctx.deltaTicks(),
+                ctx.openAnim() * switchAnim,
+                ctx.overlays());
+        super.renderText(faded);
     }
 }

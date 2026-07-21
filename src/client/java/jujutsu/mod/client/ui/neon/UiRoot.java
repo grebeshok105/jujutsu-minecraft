@@ -5,7 +5,7 @@ import jujutsu.mod.client.ui.neon.render.SdfRenderer;
 import jujutsu.mod.client.ui.neon.render.SdfShape;
 
 public final class UiRoot extends UiContainer {
-    public static final float HEADER_HEIGHT = 40f;
+    private float headerHeight = 40f;
 
     private float windowX, windowY, windowW, windowH;
     private boolean dragging;
@@ -24,6 +24,14 @@ public final class UiRoot extends UiContainer {
         this.chromeRenderer = chromeRenderer;
     }
 
+    public void setHeaderHeight(float headerHeight) {
+        this.headerHeight = headerHeight;
+    }
+
+    public float headerHeight() {
+        return headerHeight;
+    }
+
     public void setWindow(float x, float y, float w, float h) {
         this.windowX = x;
         this.windowY = y;
@@ -40,7 +48,7 @@ public final class UiRoot extends UiContainer {
     public void setTheme(NeonTheme t) { this.theme = t; }
 
     public boolean isInHeader(double mx, double my) {
-        return mx >= windowX && mx < windowX + windowW && my >= windowY && my < windowY + HEADER_HEIGHT;
+        return mx >= windowX && mx < windowX + windowW && my >= windowY && my < windowY + headerHeight;
     }
 
     public void startDrag(double mx, double my) {
@@ -54,7 +62,7 @@ public final class UiRoot extends UiContainer {
         windowX = mx - dragOffX;
         windowY = my - dragOffY;
         windowX = Math.max(0, Math.min(windowX, screenW - windowW));
-        windowY = Math.max(0, Math.min(windowY, screenH - HEADER_HEIGHT));
+        windowY = Math.max(0, Math.min(windowY, screenH - headerHeight));
         setBounds(windowX, windowY, windowW, windowH);
         layout();
     }

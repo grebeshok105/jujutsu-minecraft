@@ -2,6 +2,7 @@ package jujutsu.mod.client.ui.neon.widget;
 
 import jujutsu.mod.client.ui.UiEase;
 import jujutsu.mod.client.ui.neon.NeonContext;
+import jujutsu.mod.client.ui.neon.NeonFonts;
 import jujutsu.mod.client.ui.neon.NeonTheme;
 import jujutsu.mod.client.ui.neon.UiComponent;
 import jujutsu.mod.client.ui.neon.render.SdfShape;
@@ -18,7 +19,7 @@ public final class NeonButton extends UiComponent {
     private boolean hoveredThisFrame;
 
     public NeonButton(Component label, float w, float h, boolean primary, Runnable onClick) {
-        this.label = label;
+        this.label = NeonFonts.wrap(label);
         this.width = w;
         this.height = h;
         this.primary = primary;
@@ -46,28 +47,31 @@ public final class NeonButton extends UiComponent {
         if (!isVisible()) return;
         NeonTheme t = ctx.theme();
         float ax = absX(), ay = absY();
-        float glowR = primary ? 12f : 0f;
-        float glowAlpha = primary ? 0.55f * (0.6f + 0.4f * hover) : 0f;
+        float glowR = primary ? 14f + 4f * hover : 0f;
+        float glowAlpha = primary ? 0.75f * (0.65f + 0.35f * hover) : 0f;
         int glowColor = applyAlpha(t.glow(), glowAlpha);
 
         int fillTop, fillBottom;
         if (primary) {
-            fillTop = t.accentArgb();
-            fillBottom = t.deepArgb();
+            // Brighter warm top so Confirm reads as the actionable CTA.
+            fillTop = brighten(t.accentArgb(), 0.38f + 0.12f * hover);
+            fillBottom = brighten(t.deepArgb(), 0.12f + 0.08f * hover);
         } else {
             fillTop = lerpColor(t.raised(), t.fillAccentTop(), hover * 0.5f);
             fillBottom = lerpColor(t.raisedBottom(), t.fillAccentBottom(), hover * 0.5f);
         }
 
-        int borderArgb = primary ? 0 : applyAlpha(t.borderStrong(), 0.3f + 0.4f * hover);
+        int borderArgb = primary
+                ? applyAlpha(brighten(t.accentArgb(), 0.55f), 0.85f)
+                : applyAlpha(t.borderStrong(), 0.3f + 0.4f * hover);
         float radius = height / 2f;
 
         ctx.sdf().add(SdfShape.builder()
                 .rect(ax, ay, width, height)
                 .radius(radius)
-                .border(primary ? 0 : 1, borderArgb)
+                .border(primary ? 1.25f : 1, borderArgb)
                 .glow(glowR, glowColor)
-                .highlight(primary ? 0.6f + 0.2f * hover : 0.2f + 0.3f * hover)
+                .highlight(primary ? 0.75f + 0.2f * hover : 0.2f + 0.3f * hover)
                 .fill(fillTop, fillBottom)
                 .build());
     }
@@ -104,6 +108,18 @@ public final class NeonButton extends UiComponent {
             return true;
         }
         return false;
+    }
+
+    private static int brighten(int argb, float amount) {
+        amount = UiEase.clamp01(amount);
+        int a = (argb >>> 24) & 0xFF;
+        int r = (argb >> 16) & 0xFF;
+        int g = (argb >> 8) & 0xFF;
+        int b = argb & 0xFF;
+        r = Math.round(r + (255 - r) * amount);
+        g = Math.round(g + (255 - g) * amount);
+        b = Math.round(b + (255 - b) * amount);
+        return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
     private static int applyAlpha(int argb, float alpha) {

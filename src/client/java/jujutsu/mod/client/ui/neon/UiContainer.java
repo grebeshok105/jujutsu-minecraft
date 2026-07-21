@@ -2,7 +2,7 @@ package jujutsu.mod.client.ui.neon;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.gui.GuiGraphics;
+import jujutsu.mod.client.ui.neon.widget.NeonDropdown;
 
 public class UiContainer extends UiComponent {
     protected final List<UiComponent> children = new ArrayList<>();
@@ -47,9 +47,28 @@ public class UiContainer extends UiComponent {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        // Open dropdowns win hit-testing even when the popup covers later siblings.
+        if (dispatchOpenDropdownClick(mouseX, mouseY, button)) {
+            return true;
+        }
         for (int i = children.size() - 1; i >= 0; i--) {
             UiComponent child = children.get(i);
             if (child.isVisible() && child.contains(mouseX, mouseY) && child.mouseClicked(mouseX, mouseY, button)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean dispatchOpenDropdownClick(double mouseX, double mouseY, int button) {
+        for (int i = children.size() - 1; i >= 0; i--) {
+            UiComponent child = children.get(i);
+            if (!child.isVisible()) continue;
+            if (child instanceof NeonDropdown d && d.isOpen()) {
+                if (d.mouseClicked(mouseX, mouseY, button)) {
+                    return true;
+                }
+            } else if (child instanceof UiContainer c && c.dispatchOpenDropdownClick(mouseX, mouseY, button)) {
                 return true;
             }
         }

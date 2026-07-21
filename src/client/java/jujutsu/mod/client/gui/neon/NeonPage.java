@@ -1,6 +1,7 @@
 package jujutsu.mod.client.gui.neon;
 
 import jujutsu.mod.client.ui.neon.NeonContext;
+import jujutsu.mod.client.ui.neon.NeonFonts;
 import jujutsu.mod.client.ui.neon.NeonTheme;
 import jujutsu.mod.client.ui.neon.UiContainer;
 import jujutsu.mod.client.ui.neon.render.SdfShape;
@@ -12,8 +13,8 @@ public abstract class NeonPage extends UiContainer {
     private final Component subtitle;
 
     protected NeonPage(Component title, Component subtitle) {
-        this.title = title;
-        this.subtitle = subtitle;
+        this.title = NeonFonts.wrap(title);
+        this.subtitle = subtitle == null ? null : NeonFonts.wrap(subtitle);
     }
 
     public Component title() { return title; }
@@ -21,12 +22,11 @@ public abstract class NeonPage extends UiContainer {
     public abstract void buildContent(float pageW, float pageH);
 
     /** Vertical offset where page content should start (below title + subtitle). */
-    public float contentTop() { return 30f; }
+    public float contentTop() { return 26f; }
 
     @Override
     public void renderSurface(NeonContext ctx) {
         if (!isVisible()) return;
-        // Trailing rule line after the title.
         int titleW = ctx.font().width(title);
         float ax = absX(), ay = absY();
         float ruleX = ax + titleW + 10;
@@ -47,7 +47,7 @@ public abstract class NeonPage extends UiContainer {
         GuiGraphics g = ctx.graphics();
         g.drawString(ctx.font(), title, (int) absX(), (int) absY(), NeonTheme.text(), false);
         if (subtitle != null) {
-            g.drawString(ctx.font(), subtitle, (int) absX(), (int) (absY() + 14), NeonTheme.textDim(), false);
+            g.drawString(ctx.font(), subtitle, (int) absX(), (int) (absY() + 12), NeonTheme.textDim(), false);
         }
         super.renderText(ctx);
     }

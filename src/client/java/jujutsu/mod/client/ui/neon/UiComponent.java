@@ -58,7 +58,7 @@ public abstract class UiComponent {
     public boolean mouseReleased(double mouseX, double mouseY, int button) { return false; }
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) { return false; }
 
-    protected boolean contains(double mx, double my) {
+    public boolean contains(double mx, double my) {
         float ax = absX(), ay = absY();
         return mx >= ax && mx < ax + width && my >= ay && my < ay + height;
     }

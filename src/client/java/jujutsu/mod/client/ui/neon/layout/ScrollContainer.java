@@ -70,7 +70,7 @@ public final class ScrollContainer extends UiContainer {
     }
 
     @Override
-    protected boolean contains(double mx, double my) {
+    public boolean contains(double mx, double my) {
         float ax = absX(), ay = absY();
         return mx >= ax && mx < ax + width && my >= ay && my < ay + height;
     }

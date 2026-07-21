@@ -2,6 +2,7 @@ package jujutsu.mod.client.ui.neon.widget;
 
 import jujutsu.mod.client.ui.UiEase;
 import jujutsu.mod.client.ui.neon.NeonContext;
+import jujutsu.mod.client.ui.neon.NeonFonts;
 import jujutsu.mod.client.ui.neon.NeonTheme;
 import jujutsu.mod.client.ui.neon.UiComponent;
 import jujutsu.mod.client.ui.neon.render.SdfShape;
@@ -21,9 +22,9 @@ public final class SidebarItem extends UiComponent {
 
     public SidebarItem(ResourceLocation icon, Component label, Runnable onSelect) {
         this.icon = icon;
-        this.label = label;
+        this.label = NeonFonts.wrap(label);
         this.onSelect = onSelect;
-        this.height = 34;
+        this.height = 26;
     }
 
     public void setSelected(boolean s) { this.selected = s; }
@@ -47,9 +48,23 @@ public final class SidebarItem extends UiComponent {
 
     @Override
     public void renderSurface(NeonContext ctx) {
-        if (!isVisible() || selectAnim < 0.01f) return;
+        if (!isVisible()) return;
         NeonTheme t = ctx.theme();
         float ax = absX(), ay = absY();
+
+        // Soft emoji glow always present; stronger when selected.
+        float iconGlow = 0.22f + 0.35f * selectAnim;
+        ctx.sdf().add(SdfShape.builder()
+                .rect(ax + 6, ay + 5, 16, 16)
+                .radius(8)
+                .border(0, 0)
+                .glow(8 + 4 * selectAnim, applyAlpha(t.glow(), iconGlow))
+                .fill(applyAlpha(t.accentArgb(), 0.08f + 0.10f * selectAnim), applyAlpha(t.accentArgb(), 0.02f))
+                .highlight(0f)
+                .build());
+
+        if (selectAnim < 0.01f) return;
+
         int borderA = applyAlpha(t.borderStrong(), 0.35f * selectAnim);
         int glowA = applyAlpha(t.glow(), 0.5f * selectAnim);
         int fillA = applyAlpha(t.accentArgb(), 0.14f * selectAnim);
@@ -63,7 +78,6 @@ public final class SidebarItem extends UiComponent {
                 .fill(fillA, applyAlpha(t.accentArgb(), 0.03f * selectAnim))
                 .build());
 
-        // Left accent bar (grows from center when active).
         float barH = height * 0.6f * selectAnim;
         float barY = ay + (height - barH) / 2f;
         ctx.sdf().add(SdfShape.builder()
@@ -82,10 +96,10 @@ public final class SidebarItem extends UiComponent {
         float ax = absX(), ay = absY();
         int textColor = selected ? NeonTheme.text() : NeonTheme.textMuted();
         if (icon != null) {
-            g.blit(RenderPipelines.GUI_TEXTURED, icon, (int) (ax + 9), (int) (ay + 9),
-                    0f, 0f, 16, 16, 96, 96, 96, 96);
+            g.blit(RenderPipelines.GUI_TEXTURED, icon, (int) (ax + 7), (int) (ay + 6),
+                    0f, 0f, 14, 14, 96, 96, 96, 96);
         }
-        g.drawString(ctx.font(), label, (int) (ax + 30), (int) (ay + 13), textColor, false);
+        g.drawString(ctx.font(), label, (int) (ax + 26), (int) (ay + 9), textColor, false);
     }
 
     @Override

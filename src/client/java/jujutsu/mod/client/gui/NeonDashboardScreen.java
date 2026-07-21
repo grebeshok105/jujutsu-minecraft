@@ -10,6 +10,7 @@ import jujutsu.mod.client.gui.neon.pages.MiscPage;
 import jujutsu.mod.client.gui.neon.pages.VisualsPage;
 import jujutsu.mod.client.ui.UiEase;
 import jujutsu.mod.client.ui.neon.NeonContext;
+import jujutsu.mod.client.ui.neon.NeonFonts;
 import jujutsu.mod.client.ui.neon.NeonTheme;
 import jujutsu.mod.client.ui.neon.UiComponent;
 import jujutsu.mod.client.ui.neon.UiRoot;
@@ -29,8 +30,12 @@ import net.minecraft.network.chat.Component;
 public final class NeonDashboardScreen extends Screen {
     private static final long OPEN_MS = 260;
     private static final long CLOSE_MS = 200;
-    private static final float SIDEBAR_W = 132;
-    private static final float HEADER_H = 40;
+    /** ~half the on-screen area vs original 660×440. */
+    private static final float UI_SCALE = 0.72f;
+    private static final float WINDOW_W = 660f * UI_SCALE;
+    private static final float WINDOW_H = 440f * UI_SCALE;
+    private static final float SIDEBAR_W = 132f * UI_SCALE;
+    private static final float HEADER_H = 40f * UI_SCALE;
 
     private final SdfRenderer sdf = new SdfRenderer();
     private UiRoot root;
@@ -80,10 +85,11 @@ public final class NeonDashboardScreen extends Screen {
     }
 
     private void layoutWindow() {
-        float ww = Math.min(660, width - 40);
-        float wh = Math.min(440, height - 40);
+        float ww = Math.min(WINDOW_W, width - 24);
+        float wh = Math.min(WINDOW_H, height - 24);
         float wx = (width - ww) / 2f;
         float wy = (height - wh) / 2f;
+        root.setHeaderHeight(HEADER_H);
         root.setWindow(wx, wy, ww, wh);
         layoutInternal();
     }
@@ -92,17 +98,19 @@ public final class NeonDashboardScreen extends Screen {
         float ww = root.windowW();
         float wh = root.windowH();
 
-        closeBtn.setBounds(ww - 34, 8, 24, 24);
+        closeBtn.setBounds(ww - 28, 6, 20, 20);
 
         float sbY = HEADER_H;
+        float itemH = 26f;
+        float itemGap = 28f;
         for (int i = 0; i < sidebarItems.size(); i++) {
-            sidebarItems.get(i).setBounds(10, sbY + 26 + i * 38, SIDEBAR_W - 20, 34);
+            sidebarItems.get(i).setBounds(8, sbY + 20 + i * itemGap, SIDEBAR_W - 16, itemH);
         }
 
-        float pageX = SIDEBAR_W + 12;
-        float pageY = HEADER_H + 10;
-        float pageW = ww - SIDEBAR_W - 24;
-        float pageH = wh - HEADER_H - 20;
+        float pageX = SIDEBAR_W + 10;
+        float pageY = HEADER_H + 8;
+        float pageW = ww - SIDEBAR_W - 20;
+        float pageH = wh - HEADER_H - 16;
         pageContainer.setBounds(pageX, pageY, pageW, pageH);
         pageContainer.layout();
 
@@ -117,12 +125,13 @@ public final class NeonDashboardScreen extends Screen {
 
     private UiRoot buildRoot() {
         UiRoot r = new UiRoot(theme, this::animateClose);
+        r.setHeaderHeight(HEADER_H);
         r.setChromeRenderer(c -> {
             renderSidebarBackground(c);
             renderHeaderChrome(c);
         });
 
-        closeBtn = new NeonButton(Component.literal("\u2715"), 24, 24, false, this::animateClose);
+        closeBtn = new NeonButton(NeonFonts.literal("\u2715"), 20, 20, false, this::animateClose);
         r.add(closeBtn);
 
         CharacterPage charPage = new CharacterPage(this::animateClose);
@@ -134,10 +143,10 @@ public final class NeonDashboardScreen extends Screen {
         pageContainer = new PageContainer();
         r.add(pageContainer);
 
-        SidebarItem charItem = new SidebarItem(dashIcon("bust"), Component.literal("Character"), () -> selectPage(charPage, 0));
-        SidebarItem combatItem = new SidebarItem(dashIcon("swords"), Component.literal("Combat"), () -> selectPage(combatPage, 1));
-        SidebarItem visualsItem = new SidebarItem(dashIcon("sparkles"), Component.literal("Visuals"), () -> selectPage(visualsPage, 2));
-        SidebarItem miscItem = new SidebarItem(dashIcon("gear"), Component.literal("Misc"), () -> selectPage(miscPage, 3));
+        SidebarItem charItem = new SidebarItem(dashIcon("bust"), NeonFonts.literal("Character"), () -> selectPage(charPage, 0));
+        SidebarItem combatItem = new SidebarItem(dashIcon("swords"), NeonFonts.literal("Combat"), () -> selectPage(combatPage, 1));
+        SidebarItem visualsItem = new SidebarItem(dashIcon("sparkles"), NeonFonts.literal("Visuals"), () -> selectPage(visualsPage, 2));
+        SidebarItem miscItem = new SidebarItem(dashIcon("gear"), NeonFonts.literal("Misc"), () -> selectPage(miscPage, 3));
 
         sidebarItems.add(charItem);
         sidebarItems.add(combatItem);
@@ -147,6 +156,12 @@ public final class NeonDashboardScreen extends Screen {
 
         charItem.setSelected(true);
         pageContainer.setPage(charPage);
+
+        // Theme follows currently selected character at open.
+        targetTheme = charPage.selection() == jujutsu.mod.character.JujutsuCharacter.NOBARA
+                ? NeonTheme.NOBARA : NeonTheme.NONE;
+        theme = targetTheme;
+        r.setTheme(theme);
 
         return r;
     }
@@ -193,6 +208,7 @@ public final class NeonDashboardScreen extends Screen {
         sdf.flush();
 
         root.renderText(ctx);
+        ctx.flushOverlays();
         renderShellText(ctx);
     }
 
@@ -201,30 +217,31 @@ public final class NeonDashboardScreen extends Screen {
         float wx = root.windowX(), wy = root.windowY();
         float ww = root.windowW();
 
-        // Header bottom border line.
         ctx.sdf().add(SdfShape.builder()
                 .rect(wx, wy + HEADER_H - 1, ww, 1)
                 .radius(0).border(0, 0).glow(0, 0)
                 .fill(applyAlpha(t.accentArgb(), 0.12f), applyAlpha(t.accentArgb(), 0.12f))
                 .build());
 
-        // Sigil: outer accent ring + inner ring.
-        float sigX = wx + 14, sigY = wy + 10;
+        // Sigil rings.
+        float sigX = wx + 12, sigY = wy + 6;
+        float sig = 16f;
         ctx.sdf().add(SdfShape.builder()
-                .rect(sigX, sigY, 20, 20)
-                .radius(10).border(1.5f, t.accentArgb()).glow(4, applyAlpha(t.accentArgb(), 0.35f))
+                .rect(sigX, sigY, sig, sig)
+                .radius(sig / 2f).border(1.4f, t.accentArgb()).glow(3, applyAlpha(t.accentArgb(), 0.35f))
                 .fill(0x00000000, 0x00000000).highlight(0f)
                 .build());
         ctx.sdf().add(SdfShape.builder()
-                .rect(sigX + 5, sigY + 5, 10, 10)
-                .radius(5).border(1f, 0xFFFFD9A8).glow(0, 0)
+                .rect(sigX + 4, sigY + 4, 8, 8)
+                .radius(4).border(1f, 0xFFFFD9A8).glow(0, 0)
                 .fill(0x00000000, 0x00000000).highlight(0f)
                 .build());
 
-        // Version badge background.
-        float badgeW = 44;
+        // Version badge next to sigil (title removed).
+        float badgeX = wx + 36;
+        float badgeW = 40;
         ctx.sdf().add(SdfShape.builder()
-                .rect(wx + 178, wy + 12, badgeW, 16)
+                .rect(badgeX, wy + 8, badgeW, 14)
                 .radius(4).border(1, t.border()).glow(0, 0)
                 .fill(t.fillAccentTop(), t.fillAccentTop()).highlight(0f)
                 .build());
@@ -236,28 +253,20 @@ public final class NeonDashboardScreen extends Screen {
         float wx = root.windowX(), wy = root.windowY();
         float wh = root.windowH();
 
-        // Title with accent-colored "//".
-        Component title = Component.literal("JUJUTSU ")
-                .append(Component.literal("//").withStyle(s -> s.withColor(t.accentArgb())))
-                .append(Component.literal(" DASHBOARD"));
-        g.drawString(font, title, (int) (wx + 42), (int) (wy + 16), NeonTheme.text(), false);
+        // Version only — no "JUJUTSU // DASHBOARD" title.
+        g.drawString(font, NeonFonts.literal("v1.0.0"), (int) (wx + 42), (int) (wy + 11), NeonTheme.textDim(), false);
 
-        // Version badge text.
-        g.drawString(font, "v1.0.0", (int) (wx + 184), (int) (wy + 16), NeonTheme.textDim(), false);
+        g.drawString(font, NeonFonts.literal("MODULES"), (int) (wx + 14), (int) (wy + HEADER_H + 8), NeonTheme.textDim(), false);
 
-        // MODULES category label.
-        g.drawString(font, "MODULES", (int) (wx + 18), (int) (wy + HEADER_H + 12), NeonTheme.textDim(), false);
-
-        // Sidebar footer status.
         String firstName = charPage != null && charPage.selection() == jujutsu.mod.character.JujutsuCharacter.NOBARA
                 ? "Nobara" : "None";
         String tech = charPage != null && charPage.selection() == jujutsu.mod.character.JujutsuCharacter.NOBARA
                 ? "Straw Doll" : "No";
-        float footY = wy + wh - 34;
-        g.drawString(font, firstName + " kit active", (int) (wx + 18), (int) footY, NeonTheme.textDim(), false);
-        Component techLine = Component.literal(tech + " ").withStyle(s -> s.withColor(t.accentArgb()))
-                .append(Component.literal("technique"));
-        g.drawString(font, techLine, (int) (wx + 18), (int) (footY + 12), NeonTheme.textDim(), false);
+        float footY = wy + wh - 28;
+        g.drawString(font, NeonFonts.literal(firstName + " kit active"), (int) (wx + 14), (int) footY, NeonTheme.textDim(), false);
+        Component techLine = NeonFonts.literal(tech + " ").withStyle(s -> s.withColor(t.accentArgb()).withFont(NeonFonts.ID))
+                .append(NeonFonts.literal("technique"));
+        g.drawString(font, techLine, (int) (wx + 14), (int) (footY + 10), NeonTheme.textDim(), false);
     }
 
     private static int applyAlpha(int argb, float alpha) {
@@ -314,9 +323,8 @@ public final class NeonDashboardScreen extends Screen {
     @Override
     public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float delta) {
         NeonBlur.apply();
-        // GuiGraphics fill batches after the HUD flush, so this covers the crosshair.
-        // The SDF gradient scrim still renders on top for the neon look.
-        g.fill(0, 0, this.width, this.height, 0x8A060403);
+        // Opaque-enough scrim; crosshair also cancelled via NeonDashboardCrosshairMixin.
+        g.fill(0, 0, this.width, this.height, 0xCC060403);
     }
 
     @Override
