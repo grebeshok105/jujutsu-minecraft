@@ -4,7 +4,8 @@
 > Worktree `.worktrees/neon-gui-polish`, branch `feat/neon-gui-polish`.
 > `main` fast-forwarded to include qoder Neon GUI (`e31a67e`), polish continues here.
 > `gradlew check` green. Jar installed to instance.
-> Installed JAR SHA-256: `C2EEACFAA0319D1AEF52A731CE9C902BD6BD6309BDECE6FC74A5B26ADB04CBB5`.
+> Installed JAR SHA-256: `4174A413D0002FAB08C644A6C9B6C311E0662777B7E1C5707635A1BEA83D9A3B`.
+> Hotfix 2026-07-21b: default MC font (Inter was tofu), window 560×400, strong emoji glow, Nobara head 46/40 centered.
 
 ---
 
