@@ -9,8 +9,8 @@
     {
       "type": "bitmap",
       "file": "jujutsumod:font/neon.png",
-      "height": 16,
-      "ascent": 13,
+      "height": 10,
+      "ascent": 8,
       "chars": [
         " !\"#$%&'()*+,-./",
         "0123456789:;<=>?",

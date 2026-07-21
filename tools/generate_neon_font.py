@@ -33,10 +33,10 @@ FONT_CANDIDATES = [
     Path(r"C:\Windows\Fonts\calibri.ttf"),
 ]
 
-# 32px source cells, rendered at height 16 (clean 2x downscale = smoother than 8px pixel font)
+# 32px source cells, rendered at height 10 (close to vanilla 8, still smoother HD bake).
 CELL = 32
-HEIGHT = 16
-ASCENT = 13
+HEIGHT = 10
+ASCENT = 8
 PT = 22  # FreeType point size into the 32px cell
 
 # Pure ASCII only — homogeneous metrics, no fallback tofu for Latin UI.
