@@ -225,7 +225,10 @@ public final class MsdfFontPipeline implements AutoCloseable {
 			}
 			i += charCount;
 		}
-		// Do not auto-flush: callers batch many strings then MsdfFonts.endFrame().
+		// Flush immediately so text is not covered by later SDF panels in the same frame.
+		if (!charBatch.isEmpty() && currentAtlas != null) {
+			flush();
+		}
 	}
 
 	public void flush() {

@@ -42,27 +42,40 @@ public final class MsdfFontAtlas {
 	}
 
 	public void ensureLoaded() {
-		if (loaded.get()) {
+		if (loaded.get() && !glyphs.isEmpty()) {
 			return;
 		}
 		synchronized (this) {
-			if (loaded.get()) {
+			if (loaded.get() && !glyphs.isEmpty()) {
 				return;
 			}
+			// Allow retry if earlier warm happened before resources were ready.
+			loaded.set(false);
+			glyphs.clear();
 			doLoad();
 		}
 	}
 
 	public void forceLoad() {
-		ensureLoaded();
+		synchronized (this) {
+			loaded.set(false);
+			glyphs.clear();
+			doLoad();
+		}
 	}
 
 	private void doLoad() {
 		try {
-			Optional<Resource> resourceOpt = Minecraft.getInstance().getResourceManager().getResource(jsonId);
+			Minecraft mc = Minecraft.getInstance();
+			if (mc == null || mc.getResourceManager() == null) {
+				LOG.warn("MSDF load skipped (no ResourceManager yet): {}", jsonId);
+				loaded.set(false);
+				return;
+			}
+			Optional<Resource> resourceOpt = mc.getResourceManager().getResource(jsonId);
 			if (resourceOpt.isEmpty()) {
 				LOG.warn("MSDF font JSON missing: {}", jsonId);
-				loaded.set(true);
+				loaded.set(false);
 				return;
 			}
 			try (InputStream is = resourceOpt.get().open();
@@ -74,7 +87,7 @@ public final class MsdfFontAtlas {
 			}
 		} catch (Exception e) {
 			LOG.error("Failed to load MSDF font {}", jsonId, e);
-			loaded.set(true);
+			loaded.set(false);
 		}
 	}
 

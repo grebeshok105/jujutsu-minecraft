@@ -18,17 +18,18 @@ public final class Render2D {
 
 	private Render2D() {}
 
+	/**
+	 * Surfaces are flushed per-rect (see shape()) so MSDF text drawn between rects
+	 * is never buried under a late SDF batch. endFrame only drains leftover text.
+	 */
 	public static void beginFrame() {
-		batching = true;
+		batching = false;
 		SDF.setGlobalAlpha(1f);
-		SDF.begin();
+		MsdfFonts.warm();
 	}
 
 	public static void endFrame() {
-		if (batching) {
-			SDF.flush();
-			batching = false;
-		}
+		batching = false;
 		MsdfFonts.endFrame();
 	}
 
@@ -145,10 +146,8 @@ public final class Render2D {
 	}
 
 	private static void shape(float x, float y, float w, float h, int fillTop, int fillBot, float radius, float border, int borderColor) {
-		boolean owned = !batching;
-		if (owned) {
-			SDF.begin();
-		}
+		// Immediate flush: interleave correctly with MSDF text from Fonts.* during the same frame.
+		SDF.begin();
 		SDF.add(SdfShape.builder()
 				.rect(x, y, w, h)
 				.radius(radius)
@@ -157,9 +156,7 @@ public final class Render2D {
 				.highlight(0.05f)
 				.fill(fillTop, fillBot)
 				.build());
-		if (owned) {
-			SDF.flush();
-		}
+		SDF.flush();
 	}
 
 	// keep font draw available for code that still routes text through Render2D sometimes

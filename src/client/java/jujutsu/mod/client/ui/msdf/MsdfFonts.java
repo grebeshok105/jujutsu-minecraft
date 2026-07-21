@@ -45,20 +45,26 @@ public final class MsdfFonts {
 	}
 
 	public static void warm() {
-		if (warmed) {
-			return;
-		}
+		boolean allReady = true;
 		for (MsdfFontAtlas atlas : ATLASES) {
 			try {
-				atlas.forceLoad();
+				if (atlas.getGlyphCount() == 0) {
+					atlas.forceLoad();
+				}
+				if (atlas.getGlyphCount() == 0) {
+					allReady = false;
+				}
 			} catch (Exception e) {
+				allReady = false;
 				LOG.error("MSDF warm failed for {}", atlas.getTextureId(), e);
 			}
 		}
-		warmed = true;
-		LOG.info("MSDF faces ready: ui={} bold={} icons={} cat={}",
-				ATLASES[0].getGlyphCount(), ATLASES[1].getGlyphCount(),
-				ATLASES[2].getGlyphCount(), ATLASES[3].getGlyphCount());
+		warmed = allReady;
+		if (allReady) {
+			LOG.info("MSDF faces ready: ui={} bold={} icons={} cat={}",
+					ATLASES[0].getGlyphCount(), ATLASES[1].getGlyphCount(),
+					ATLASES[2].getGlyphCount(), ATLASES[3].getGlyphCount());
+		}
 	}
 
 	public static void draw(Face face, String text, float x, float y, float size, int argb) {
