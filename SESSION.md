@@ -1,61 +1,160 @@
 # Session Handoff — Jujutsu Minecraft
 
-> **CURRENT 2026-07-21 — NEON GUI POLISH DONE.**
-> Worktree `.worktrees/neon-gui-polish`, branch `feat/neon-gui-polish`.
-> `main` fast-forwarded to include qoder Neon GUI (`e31a67e`), polish continues here.
-> `gradlew check` green. Jar installed to instance.
-> Installed JAR SHA-256: `4174A413D0002FAB08C644A6C9B6C311E0662777B7E1C5707635A1BEA83D9A3B`.
-> Hotfix 2026-07-21b: default MC font (Inter was tofu), window 560×400, strong emoji glow, Nobara head 46/40 centered.
+> **CURRENT 2026-07-21 — RICH CLICKGUI PORT ON N + NEON DASHBOARD ON V.**  
+> Active worktree: `.worktrees/neon-gui-polish`  
+> Active branch: **`feat/neon-gui-polish`** @ **`95d81a1`**  
+> `main` still at **`e31a67e`** (neon GUI base only — **does not** include Rich port yet).  
+> Jar: `D:\Games\instances\Jujutsu\mods\jujutsumod-1.0.0.jar`  
+> SHA-256: `5AE099A20B941A666F44BD777A693FE4F8638F35E164A9F00B95C74A7FB68AF7`  
+> Text fix confirmed in-game (MSDF labels visible after `95d81a1`).
 
 ---
 
-## Где мы сейчас
+## Worktrees / branches map
 
-- Проект: `D:\WorkFlow\Jujutsu Minecraft`
-- Активный worktree: `D:\WorkFlow\Jujutsu Minecraft\.worktrees\neon-gui-polish`
-- Ветка: `feat/neon-gui-polish` (base = `main` @ neon GUI + polish)
-- План: `docs/superpowers/plans/2026-07-21-neon-gui-polish.md`
-- Инстанс: `D:\Games\instances\Jujutsu\mods\jujutsumod-1.0.0.jar`
+| Path | Branch | HEAD | Role |
+|------|--------|------|------|
+| `D:\WorkFlow\Jujutsu Minecraft` | **`main`** | `e31a67e` | Stable base: neon dashboard GUI merged from qoder |
+| `.worktrees/neon-gui-polish` | **`feat/neon-gui-polish`** | **`95d81a1`** | **ACTIVE** — polish + MSDF + Rich ClickGui port (N) |
+| `.qoder/worktrees/neon-gui` | `worktree-neon-gui` | `e31a67e` (ahead 25 vs old tip naming) | Original neon GUI stages (Phases 0–4); merged into main |
+| `.worktrees/nobara-cinematic-slice` | `codex/nobara-cinematic-slice` | `5073b24` | Nobara cinematic / hammer / momentum (ahead 16) |
+| `.worktrees/vfx-director-prototype` | `codex/vfx-director-prototype` | `c9ed0df` | VFX director sandbox docs |
+| `.worktrees/brainstorming` | `chore/jujutsu-brainstorming` | `d349422` | Older brainstorming / VFX alignment |
 
-## Что сделано (polish)
+**Merge base for polish branch:** `main` @ `e31a67e`  
+**Commits only on `feat/neon-gui-polish` (not in main):** `e31a67e..95d81a1` (25 commits).
 
-1. Ability strip: `absY() + stripTop()`, dynamic row count
-2. Emoji soft SDF glow (sidebar / ability / portrait)
-3. Header: убран `JUJUTSU // DASHBOARD`, версия `v1.0.0` осталась
-4. CtrlRow dynamic height + dropdown overlay pass (z-order)
-5. Crosshair hidden via `NeonDashboardCrosshairMixin` + darker scrim
-6. Font: Inter TTF as `jujutsumod:neon`
-7. Roster: only Nobara + None
-8. Confirm primary brighter (brighten + glow + border)
-9. Window scale `UI_SCALE = 0.72` (~half area)
-10. **Selection restore:** open menu selects current character (client map keeps NONE; default NONE; optimistic `applyLocal` on Confirm)
+---
 
-## Git
+## Keybinds (current product)
 
-- Merge: `main` FF from `worktree-neon-gui` @ `e31a67e`
-- Polish branch: `feat/neon-gui-polish`
+| Key | Screen | Branch / status |
+|-----|--------|-----------------|
+| **V** | `NeonDashboardScreen` — neon SDF dashboard (Character/Combat/Visuals/Misc) | On `main` + polish branch |
+| **N** | **`ClickGui`** — ported Rich-Modern clickgui (`jujutsu.mod.client.rich…`) | **Only on `feat/neon-gui-polish`** |
+| R / B / LMB | Nobara kit actions | Shared gameplay |
 
-## In-game QA checklist
+Fallback if ClickGui fails to init: old `ModernMenuScreen` (legacy experimental shell).
 
-1. V → menu smaller, no title, version visible, no crosshair
-2. Only Nobara + None cards; ability strip under them
-3. If active kit is None → None selected on open; Nobara → Nobara
-4. Confirm brighter than Cancel
-5. Visuals dropdown popup not stacking into next row
-6. Custom font readable
-7. Confirm still sends SelectCharacterPayload
+---
 
-## Обязательные правила
+## What’s on `feat/neon-gui-polish` (ordered commits)
 
-- Клиентский код — только `src/client`. VFX контракт не трогать.
-- Коммиты conventional, английские.
-- Obsidian codex обновлять.
-- Собирать jar и копировать в инстанс.
+### A. Neon dashboard polish (earlier on same branch)
+
+| Commit | Summary |
+|--------|---------|
+| `25d4a0d` | feat(gui): polish neon dashboard layout, selection, chrome |
+| `fd9c860` | docs(session): handoff for neon gui polish |
+| `35e6fc5` | fix(gui): restore default font, fit layout, emoji glow, center nobara head |
+| `091bffc` | docs(session): note gui hotfixes and new jar hash |
+| `2355813` … `ed12211` | font experiments (Open Sans / Segoe / bitmap / reset) — mostly superseded for **N** path |
+
+### B. Separate modern menu (N) + MSDF foundation
+
+| Commit | Summary |
+|--------|---------|
+| **`ef6cf13`** | **feat(gui): add separate modern vessel menu on N with MSDF fonts** |
+| `dd2a2ad` | fix(gui): harden modern menu keybind N open path |
+| `1b2d723` | feat(gui): restyle modern menu as Rich-like clickgui shell |
+| `d7da0d3` | fix(gui): review fixes — hitboxes, scrim, MSDF batch, lifecycle |
+| `7befbeb` | chore: untrack Rich-Modern research extract from VCS |
+| `c5c8d31` | feat(gui): lock Rich clickgui visual contract (400×250, palette) |
+| `8ef6fd3` | feat(gui): port layout/metrics/fonts from full Rich sources |
+
+### C. Full Rich ClickGui structure port (current N)
+
+| Commit | Summary |
+|--------|---------|
+| **`6b76943`** | **feat(gui): port full Rich clickgui structure with SDF-backed Render2D** |
+| **`f3bbf69`** | **fix(gui): open ported Rich ClickGui on N** |
+| **`95d81a1`** | **fix(gui): stop SDF batch burying MSDF text; retry font atlas load** ← **HEAD** |
+
+---
+
+## Architecture (N path — HEAD)
+
+```
+N key
+  → JujutsuKeybinds.toggleModern()
+  → Initialization.getInstance().getManager().getClickgui()
+  → jujutsu.mod.client.rich.screens.clickgui.ClickGui
+
+ClickGui (ported structure from Rich-Modern)
+  ├── BackgroundComponent / BackgroundRenderer / CategoryRenderer / HeaderRenderer / AvatarRenderer
+  ├── ModuleComponent / ModuleListRenderer / SettingsPanelRenderer
+  ├── settingsrender/* (Checkbox, Slider, Bind, Select, Color, Text, …)
+  ├── modules: JujutsuModules (Nobara / None / kit rows under COMBAT etc.)
+  └── Render2D  →  SdfRenderer (panels)
+      Fonts.*   →  MsdfFonts (bold / ui / guiicons / categoryicons)
+```
+
+**Important honesty note (for next agent):**  
+UI **call graph and layout** = Rich sources.  
+GPU backends **RectPipeline/blur/glass from 1.21.11 did not compile on 1.21.8 Mojmap** → `Render2D` is an adapter over project SDF + MSDF.  
+Do not claim original Rich GL pipelines are running as-is.
+
+Assets: `src/client/resources/assets/jujutsumod/fonts/*` (msdf atlases), shaders under `shaders/core/` (msdf + many Rich shader files present; adapters may not use all).
+
+Research (local only, gitignored):  
+`docs/research/rich-modern-full/` (full rar extract + codegraph index)  
+`docs/research/rich-modern-gui-ref/` (older partial extract)
+
+Spec: `docs/research/2026-07-21-rich-clickgui-visual-spec.md`
+
+---
+
+## What’s on `main` (`e31a67e`)
+
+- Neon dashboard (V) from qoder rework + review fixes  
+- Tip commit: `e31a67e docs: record review-fix commits in SESSION.md`  
+- **No** Rich ClickGui, **no** N-menu MSDF port  
+- Related history on main line (examples):  
+  - `aa87078` SDF projection / chrome  
+  - `77d94c7` V-while-listening, dropdown, toggle/slider styling  
+  - `f0d55ff` Apple emoji icons  
+  - `e6b52bf` / `a21db5a` / `5d085af` / `e1922c0` neon phases 0–3  
+
+Other branches (not merged into polish work):  
+- `codex/nobara-cinematic-slice` @ `5073b24`  
+- `codex/vfx-director-prototype` @ `c9ed0df`  
+- `chore/jujutsu-brainstorming` @ `d349422`  
+
+---
+
+## In-game QA (current)
+
+1. **V** → neon dashboard (old polished UI).  
+2. **N** → Rich ClickGui shell: sidebar (Основные / Combat…), module list, settings, toggles.  
+3. **Text visible** (after `95d81a1`).  
+4. Combat category shows Nobara / None + ability modules; settings checkboxes work as UI state.  
+5. Esc / N closes ClickGui.  
+6. Confirm character select still primarily via **V** neon Character page unless wired later into ClickGui modules.
+
+---
+
+## Next steps (suggested)
+
+1. Merge `feat/neon-gui-polish` → `main` when ready (large client-only GUI commit set).  
+2. Wire Nobara Confirm / vessel apply into ClickGui module actions (not only V dashboard).  
+3. Optional: port real Rich `RectPipeline` if targeting a loader that matches 1.21.11 APIs.  
+4. Update Obsidian codex notes for dual GUI (V neon / N rich).  
+5. Clean unused Rich shaders if adapters stay.
+
+---
+
+## Rules (unchanged)
+
+- Client UI only under `src/client`.  
+- VFX core contract untouched.  
+- Conventional English commits.  
+- Build jar → copy to `D:\Games\instances\Jujutsu\mods\`.  
+- Obsidian / codebase codex for meaningful system changes.
 
 ---
 
 ## SUPERSEDED
 
-> **SUPERSEDED 2026-07-20:** Neon GUI Stages 2-7 + rework complete on `worktree-neon-gui`.
-
-> **SUPERSEDED 2026-07-12:** Resonant Momentum / hammer / embedded nail — in main.
+> **SUPERSEDED 2026-07-21 morning:** “Neon GUI polish done” as sole story — still true for **V**, but **N** is now the Rich port track.  
+> **SUPERSEDED 2026-07-20:** Neon stages on `worktree-neon-gui` only.  
+> **SUPERSEDED 2026-07-12:** Resonant Momentum / hammer notes — in main gameplay history.
