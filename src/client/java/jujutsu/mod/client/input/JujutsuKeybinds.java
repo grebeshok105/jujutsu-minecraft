@@ -6,12 +6,14 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.world.item.ItemStack;
+import jujutsu.mod.client.gui.ModernMenuScreen;
 import jujutsu.mod.client.gui.NeonDashboardScreen;
 import jujutsu.mod.network.NobaraActionPayload;
 import jujutsu.mod.registry.JujutsuItems;
 
 public final class JujutsuKeybinds {
 	private static KeyMapping characterSelect;
+	private static KeyMapping modernMenu;
 	private static KeyMapping nobaraEnlarge;
 	private static KeyMapping nobaraExplosion;
 	private static boolean attackWasDown;
@@ -23,6 +25,12 @@ public final class JujutsuKeybinds {
 				"key.jujutsumod.character_select",
 				InputConstants.Type.KEYSYM,
 				InputConstants.KEY_V,
+				"key.categories.jujutsumod"
+		));
+		modernMenu = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+				"key.jujutsumod.modern_menu",
+				InputConstants.Type.KEYSYM,
+				InputConstants.KEY_N,
 				"key.categories.jujutsumod"
 		));
 		nobaraEnlarge = KeyBindingHelper.registerKeyBinding(new KeyMapping(
@@ -44,6 +52,14 @@ public final class JujutsuKeybinds {
 					client.screen.onClose();
 				} else if (client.screen == null) {
 					client.setScreen(new NeonDashboardScreen());
+				}
+			}
+			while (modernMenu.consumeClick()) {
+				if (client.player == null) continue;
+				if (client.screen instanceof ModernMenuScreen) {
+					client.screen.onClose();
+				} else if (client.screen == null) {
+					client.setScreen(new ModernMenuScreen());
 				}
 			}
 			while (nobaraEnlarge.consumeClick()) {

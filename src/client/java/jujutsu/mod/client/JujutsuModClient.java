@@ -9,6 +9,7 @@ import jujutsu.mod.client.network.JujutsuClientNetworking;
 import jujutsu.mod.client.particle.JujutsuClientParticles;
 import jujutsu.mod.client.render.ProjectJjkNailRenderer;
 import jujutsu.mod.client.render.nobara.doll.ProjectJjkStrawDollRenderer;
+import jujutsu.mod.client.ui.msdf.MsdfFonts;
 import jujutsu.mod.client.ui.neon.render.SdfPipelines;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollItem;
 import jujutsu.mod.registry.JujutsuEntities;
@@ -29,5 +30,7 @@ public class JujutsuModClient implements ClientModInitializer {
 		if (SdfPipelines.SDF_SHAPE == null) {
 			throw new IllegalStateException("SDF pipeline failed to register");
 		}
+		// Modern menu MSDF pipeline (key N). Independent of neon dashboard (key V).
+		MsdfFonts.bootstrap();
 	}
 }
