@@ -63,6 +63,11 @@ public final class MsdfFonts {
 		PIPELINE.drawText(UI, text, x, y, size, argb, outlineWidth, outlineArgb, 0f);
 	}
 
+	/** Flush batched MSDF glyphs once after all draw* calls for the frame. */
+	public static void endFrame() {
+		PIPELINE.flush();
+	}
+
 	public static float width(String text, float size) {
 		warm();
 		return PIPELINE.getTextWidth(UI, text, size);

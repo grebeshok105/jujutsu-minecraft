@@ -33,7 +33,7 @@ public final class ModernTheme {
 	public static final int ONLINE = 0xFF5DCF7A;
 	public static final int STAR = 0xFFE8C35A;
 	public static final int DANGER = 0xFFE06A6A;
-	public static final int TOGGLE_ON = 0xFFECECEF;
+	public static final int TOGGLE_ON = 0xFFE8A04A; // accent when used
 	public static final int TOGGLE_OFF = 0xFF3A3A42;
 	public static final int TOGGLE_KNOB = 0xFFF2F2F5;
 

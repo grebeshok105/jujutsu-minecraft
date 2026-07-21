@@ -150,11 +150,17 @@ public final class MsdfFontPipeline implements AutoCloseable {
 		float cursorX = x;
 		float cursorY = y;
 
-		float textWidth = getTextWidth(atlas, text, size);
-		float textHeight = getTextHeight(atlas, text, size);
-		float pivotX = x + textWidth / 2f;
-		float pivotY = y + textHeight / 2f;
-		float rotationRad = (float) Math.toRadians(rotation);
+		// Pivot only needed when rotating; skip full width scan for normal UI text.
+		float pivotX = x;
+		float pivotY = y;
+		float rotationRad = 0f;
+		if (rotation != 0f) {
+			float textWidth = getTextWidth(atlas, text, size);
+			float textHeight = getTextHeight(atlas, text, size);
+			pivotX = x + textWidth / 2f;
+			pivotY = y + textHeight / 2f;
+			rotationRad = (float) Math.toRadians(rotation);
+		}
 
 		int currentColor = color;
 		int i = 0;
@@ -219,10 +225,7 @@ public final class MsdfFontPipeline implements AutoCloseable {
 			}
 			i += charCount;
 		}
-
-		if (!charBatch.isEmpty() && currentAtlas != null) {
-			flush();
-		}
+		// Do not auto-flush: callers batch many strings then MsdfFonts.endFrame().
 	}
 
 	public void flush() {
