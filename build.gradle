@@ -36,6 +36,12 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 	modImplementation "software.bernie.geckolib:geckolib-fabric-${project.minecraft_version}:${project.geckolib_version}"
+
+	// Ported Rich-Modern clickgui sources use lombok (main + client source sets).
+	compileOnly 'org.projectlombok:lombok:1.18.36'
+	annotationProcessor 'org.projectlombok:lombok:1.18.36'
+	clientCompileOnly 'org.projectlombok:lombok:1.18.36'
+	clientAnnotationProcessor 'org.projectlombok:lombok:1.18.36'
 }
 
 tasks.register('testProjectSanity', JavaExec) {

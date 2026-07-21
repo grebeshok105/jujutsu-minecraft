@@ -10,6 +10,7 @@ import jujutsu.mod.client.particle.JujutsuClientParticles;
 import jujutsu.mod.client.render.ProjectJjkNailRenderer;
 import jujutsu.mod.client.render.nobara.doll.ProjectJjkStrawDollRenderer;
 import jujutsu.mod.client.ui.msdf.MsdfFonts;
+import jujutsu.mod.client.rich.Initialization;
 import jujutsu.mod.client.ui.neon.render.SdfPipelines;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollItem;
 import jujutsu.mod.registry.JujutsuEntities;
@@ -32,5 +33,7 @@ public class JujutsuModClient implements ClientModInitializer {
 		}
 		// Modern menu MSDF pipeline (key N). Independent of neon dashboard (key V).
 		MsdfFonts.bootstrap();
+		Initialization.getInstance();
 	}
 }
+

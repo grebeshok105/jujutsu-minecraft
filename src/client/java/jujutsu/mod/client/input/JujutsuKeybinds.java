@@ -9,6 +9,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import jujutsu.mod.client.rich.Initialization;
+import jujutsu.mod.client.rich.screens.clickgui.ClickGui;
 import jujutsu.mod.client.gui.ModernMenuScreen;
 import jujutsu.mod.client.gui.NeonDashboardScreen;
 import jujutsu.mod.network.NobaraActionPayload;
@@ -140,7 +142,13 @@ public final class JujutsuKeybinds {
 			client.screen.onClose();
 		} else if (client.screen == null) {
 			LOG.info("Opening ModernMenuScreen");
-			client.setScreen(new ModernMenuScreen());
+			Initialization.getInstance();
+					ClickGui gui = Initialization.getInstance().getManager().getClickgui();
+					if (gui != null) {
+						client.setScreen(gui);
+					} else {
+						client.setScreen(new ModernMenuScreen());
+					}
 		}
 	}
 
@@ -158,3 +166,4 @@ public final class JujutsuKeybinds {
 		return stack.is(JujutsuItems.STRAW_DOLL_HAMMER) || stack.is(JujutsuItems.PROJECTJJK_STRAW_DOLL_HAMMER);
 	}
 }
+
