@@ -1,97 +1,50 @@
 # Session Handoff — Jujutsu Minecraft
 
-> **CURRENT 2026-07-20 — NEON GUI COMPLETE + REWORK-TO-MOCKUP DONE.**
-> Worktree `.qoder/worktrees/neon-gui`, ветка `worktree-neon-gui`.
-> Все стейджи + переработка под макет закоммичены. `gradlew check` зелёный. Jar в инстансе.
-> **In-game: SDF рисует** (после фикса endianness). Клики/прицел/иконки исправлены.
+> **CURRENT 2026-07-21 — NEON GUI POLISH DONE.**
+> Worktree `.worktrees/neon-gui-polish`, branch `feat/neon-gui-polish`.
+> `main` fast-forwarded to include qoder Neon GUI (`e31a67e`), polish continues here.
+> `gradlew check` green. Jar installed to instance.
+> Installed JAR SHA-256: `C2EEACFAA0319D1AEF52A731CE9C902BD6BD6309BDECE6FC74A5B26ADB04CBB5`.
 
 ---
 
 ## Где мы сейчас
 
 - Проект: `D:\WorkFlow\Jujutsu Minecraft`
-- Активный worktree: `D:\WorkFlow\Jujutsu Minecraft\.qoder\worktrees\neon-gui`
-- Ветка: `worktree-neon-gui` (main = `72f36a3`)
-- Последний коммит: `aa87078 fix(gui): chrome above panel + exception-safe projection restore`
-- Инстанс: `D:\Games\instances\Jujutsu\mods\jujutsumod-1.0.0.jar` (обновлён)
+- Активный worktree: `D:\WorkFlow\Jujutsu Minecraft\.worktrees\neon-gui-polish`
+- Ветка: `feat/neon-gui-polish` (base = `main` @ neon GUI + polish)
+- План: `docs/superpowers/plans/2026-07-21-neon-gui-polish.md`
+- Инстанс: `D:\Games\instances\Jujutsu\mods\jujutsumod-1.0.0.jar`
 
-## Коммиты (Stages 3-7 + Rework)
+## Что сделано (polish)
 
-| Commit | Stage | Содержание |
-|---|---|---|
-| `77e2128` | 3 | Kit core + draggable dashboard window |
-| `bf13e8e` | 4 | Sidebar, pages, scroll, shell controls |
-| `70ea937` | 5 | Functional CharacterPage (SelectCharacterPayload) |
-| `3b14ca9` | 6 | KeybindField, ColorPicker, sounds, lang |
-| `3faef61` | 7 | Cleanup: delete legacy, update tests |
-| `0ca1fd3` | fix | SDF nativeOrder endianness + projection backup/restore |
-| `e1922c0` | P0 | page click bounds, crosshair dim, real page dims, button hover |
-| `5d085af` | P1 | header chrome (sigil/title/version) + sidebar (MODULES/footer/accent bar) |
-| `a21db5a` | P2 | 6-card roster grid, page headers, ability strip, Cancel/Confirm |
-| `e6b52bf` | P3 | ctrl-row shell pages (Combat/Visuals/Misc) |
-| `f0d55ff` | P4 | Apple emoji icons (96px PNG) для sidebar/portraits/abilities |
-| `77d94c7` | review | V-while-listening, dropdown popup/label, toggle/slider/badge styling, half-width buttons |
-| `aa87078` | review | chrome above panel (hook) + exception-safe projection restore |
+1. Ability strip: `absY() + stripTop()`, dynamic row count
+2. Emoji soft SDF glow (sidebar / ability / portrait)
+3. Header: убран `JUJUTSU // DASHBOARD`, версия `v1.0.0` осталась
+4. CtrlRow dynamic height + dropdown overlay pass (z-order)
+5. Crosshair hidden via `NeonDashboardCrosshairMixin` + darker scrim
+6. Font: Inter TTF as `jujutsumod:neon`
+7. Roster: only Nobara + None
+8. Confirm primary brighter (brighten + glow + border)
+9. Window scale `UI_SCALE = 0.72` (~half area)
+10. **Selection restore:** open menu selects current character (client map keeps NONE; default NONE; optimistic `applyLocal` on Confirm)
 
-## Статус стейджей
+## Git
 
-| Stage | Статус |
-|---|---|
-| 0-2 | DONE (ранее) |
-| 3-7 | DONE ✅ |
-| Rework P0-P4 | DONE ✅ (приведение к макету + фикс багов) |
+- Merge: `main` FF from `worktree-neon-gui` @ `e31a67e`
+- Polish branch: `feat/neon-gui-polish`
 
-## ПЕРВОЕ ДЕЙСТВИЕ: in-game проверка
+## In-game QA checklist
 
-1. Запустить инстанс или `gradlew.bat runClient --no-daemon`
-2. Зайти в мир, нажать **V**
-3. Проверить: окно открывается с анимацией, sidebar переключает страницы, drag за header, X/Esc/V закрывают, Character page шлёт payload, glow/hover работают
-4. GUI scale 1/2/4, resize
-5. Если шейдер не работает → проверить latest.log на GLSL ошибки
+1. V → menu smaller, no title, version visible, no crosshair
+2. Only Nobara + None cards; ability strip under them
+3. If active kit is None → None selected on open; Nobara → Nobara
+4. Confirm brighter than Cancel
+5. Visuals dropdown popup not stacking into next row
+6. Custom font readable
+7. Confirm still sends SelectCharacterPayload
 
-## Архитектура (что построено)
-
-```
-src/client/java/jujutsu/mod/client/
-  ui/neon/
-    UiComponent.java       — базовый виджет (float bounds, hover/press, abs coords)
-    UiContainer.java       — дети, reverse z-order input
-    UiRoot.java            — окно, drag, theme, scrim+window SDF
-    NeonTheme.java         — per-character accent, lerp()
-    NeonContext.java       — render context record
-    layout/
-      VerticalLayout.java
-      HorizontalLayout.java
-      ScrollContainer.java — scissored text clipping
-    widget/
-      NeonLabel.java
-      NeonButton.java      — primary/secondary, glow, sound
-      NeonToggle.java      — shell, local state, sound
-      NeonSlider.java      — shell, drag-capture
-      NeonDropdown.java    — shell, popup list
-      NeonCard.java        — character card, glow selection
-      SidebarItem.java     — glyph + label, animated glow
-      KeybindField.java    — shell, listen-mode
-      NeonColorPicker.java — shell, preset cycling
-    render/
-      SdfPipelines.java    — RenderPipeline + VertexFormat
-      SdfShape.java        — shape record + builder
-      SdfRenderer.java     — batch → one draw call
-      NeonBlur.java        — independent disable
-  gui/
-    NeonDashboardScreen.java — Screen host (V toggle, open/close anim, drag)
-    neon/
-      NeonPage.java        — abstract page
-      PageContainer.java   — page switch animation
-      pages/
-        CharacterPage.java — REAL: SelectCharacterPayload, ability strip, portrait
-        CombatPage.java    — shell
-        VisualsPage.java   — shell
-        MiscPage.java      — shell (KeybindField, ColorPicker)
-  input/JujutsuKeybinds.java — V = toggle dashboard
-```
-
-## Обязательные правила (напоминание)
+## Обязательные правила
 
 - Клиентский код — только `src/client`. VFX контракт не трогать.
 - Коммиты conventional, английские.
@@ -100,10 +53,8 @@ src/client/java/jujutsu/mod/client/
 
 ---
 
-## SUPERSEDED (предыдущие handoff)
+## SUPERSEDED
 
-> **SUPERSEDED 2026-07-20:** Neon GUI Stages 2-7 завершены в worktree-neon-gui.
+> **SUPERSEDED 2026-07-20:** Neon GUI Stages 2-7 + rework complete on `worktree-neon-gui`.
 
-> **SUPERSEDED 2026-07-12:** Resonant Momentum / hammer / embedded nail — в main.
-
-> **SUPERSEDED 2026-07-11:** Nobara cinematic slice — в main.
+> **SUPERSEDED 2026-07-12:** Resonant Momentum / hammer / embedded nail — in main.
