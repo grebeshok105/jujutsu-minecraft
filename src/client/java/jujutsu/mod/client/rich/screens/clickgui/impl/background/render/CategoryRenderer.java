@@ -9,17 +9,22 @@ import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Sidebar categories: one live tab (Characters) + two non-clickable "Soon..." placeholders.
+ */
 public class CategoryRenderer {
 
-	private static final ModuleCategory[] MAIN_CATEGORIES = {
+	/** Only clickable live tab. */
+	private static final ModuleCategory[] LIVE_CATEGORIES = {
 			ModuleCategory.COMBAT
 	};
-	private static final String[] MAIN_CATEGORY_NAMES = {"Characters"};
-	private static final String[] MAIN_CATEGORY_ICONS = {"a"};
+	private static final String[] LIVE_NAMES = {"Characters"};
+	private static final String[] LIVE_ICONS = {"a"};
 
-	private static final ModuleCategory[] EXTRA_CATEGORIES = {};
-	private static final String[] EXTRA_CATEGORY_NAMES = {};
-	private static final String[] EXTRA_CATEGORY_ICONS = {};
+	/** Visual-only placeholders (not hit-testable). */
+	private static final int SOON_COUNT = 2;
+	private static final String SOON_LABEL = "Soon...";
+	private static final String SOON_ICON = "e";
 
 	private final Map<ModuleCategory, Float> categoryAnimations = new HashMap<>();
 
@@ -30,35 +35,44 @@ public class CategoryRenderer {
 	private static final float ICON_SIZE = 6f;
 	private static final float ICON_SPACING = 4f;
 	private static final float SECTION_TEXT_SIZE = 5f;
+	private static final float ROW_H = 15f;
+	private static final float FIRST_ROW_Y = 65f;
 
 	public CategoryRenderer() {
-		for (ModuleCategory cat : MAIN_CATEGORIES) {
+		for (ModuleCategory cat : LIVE_CATEGORIES) {
 			categoryAnimations.put(cat, 0f);
 		}
 	}
 
 	public void updateAnimations(ModuleCategory selectedCategory, float deltaTime) {
-		for (ModuleCategory cat : MAIN_CATEGORIES) {
-			updateCategoryAnimation(cat, selectedCategory, deltaTime);
-		}
-	}
-
-	private void updateCategoryAnimation(ModuleCategory cat, ModuleCategory selected, float deltaTime) {
-		float target = cat == selected ? 1f : 0f;
-		float current = categoryAnimations.getOrDefault(cat, 0f);
-		float diff = target - current;
-		float change = diff * ANIMATION_SPEED * deltaTime;
-		if (Math.abs(diff) < 0.001f) {
-			categoryAnimations.put(cat, target);
-		} else {
-			categoryAnimations.put(cat, current + change);
+		for (ModuleCategory cat : LIVE_CATEGORIES) {
+			float target = cat == selectedCategory ? 1f : 0f;
+			float current = categoryAnimations.getOrDefault(cat, 0f);
+			float diff = target - current;
+			if (Math.abs(diff) < 0.001f) {
+				categoryAnimations.put(cat, target);
+			} else {
+				categoryAnimations.put(cat, current + diff * ANIMATION_SPEED * deltaTime);
+			}
 		}
 	}
 
 	public void render(float bgX, float bgY, ModuleCategory selectedCategory, float alphaMultiplier) {
-		if (MAIN_CATEGORIES.length == 0) return;
 		renderSectionHeader(bgX, bgY + 52f, "Основные", alphaMultiplier);
-		renderMainCategories(bgX, bgY, alphaMultiplier);
+
+		// Live Characters tab
+		for (int i = 0; i < LIVE_CATEGORIES.length; i++) {
+			float animation = categoryAnimations.getOrDefault(LIVE_CATEGORIES[i], 0f);
+			float textY = bgY + FIRST_ROW_Y + i * ROW_H;
+			renderCategoryItem(bgX, textY, LIVE_NAMES[i], LIVE_ICONS[i], animation, alphaMultiplier, true);
+		}
+
+		// Non-clickable Soon... rows
+		int soonStart = LIVE_CATEGORIES.length;
+		for (int i = 0; i < SOON_COUNT; i++) {
+			float textY = bgY + FIRST_ROW_Y + (soonStart + i) * ROW_H;
+			renderCategoryItem(bgX, textY, SOON_LABEL, SOON_ICON, 0f, alphaMultiplier, false);
+		}
 	}
 
 	private void renderSectionHeader(float bgX, float sectionY, String title, float alphaMultiplier) {
@@ -74,27 +88,25 @@ public class CategoryRenderer {
 		Fonts.BOLD.draw(title, textX, sectionY, SECTION_TEXT_SIZE, new Color(150, 150, 150, textAlpha).getRGB());
 	}
 
-	private void renderMainCategories(float bgX, float bgY, float alphaMultiplier) {
-		for (int i = 0; i < MAIN_CATEGORY_NAMES.length; i++) {
-			ModuleCategory cat = MAIN_CATEGORIES[i];
-			float animation = categoryAnimations.getOrDefault(cat, 0f);
-			float textY = bgY + 65f + i * 15f;
-			renderCategoryItem(bgX, textY, MAIN_CATEGORY_NAMES[i], MAIN_CATEGORY_ICONS[i], animation, alphaMultiplier);
-		}
-	}
-
-	private void renderCategoryItem(float bgX, float textY, String name, String icon, float animation, float alphaMultiplier) {
+	private void renderCategoryItem(float bgX, float textY, String name, String icon,
+			float animation, float alphaMultiplier, boolean interactive) {
 		float offsetX = animation * MAX_OFFSET;
 
-		int baseGray = 128;
-		int targetWhite = 255;
-		int colorValue = (int) (baseGray + (targetWhite - baseGray) * animation);
-		int alpha = (int) ((128 + 127 * animation) * alphaMultiplier);
-
-		// Blend selected category text toward theme accent.
-		int plain = new Color(colorValue, colorValue, colorValue, alpha).getRGB();
-		int accent = ClickGuiTheme.accent(alpha);
-		int textColor = lerpColor(plain, accent, animation * 0.85f);
+		int alpha;
+		int textColor;
+		if (interactive) {
+			int baseGray = 128;
+			int targetWhite = 255;
+			int colorValue = (int) (baseGray + (targetWhite - baseGray) * animation);
+			alpha = (int) ((128 + 127 * animation) * alphaMultiplier);
+			int plain = new Color(colorValue, colorValue, colorValue, alpha).getRGB();
+			int accent = ClickGuiTheme.accent(alpha);
+			textColor = lerpColor(plain, accent, animation * 0.85f);
+		} else {
+			// Dim locked placeholder — clearly non-interactive
+			alpha = (int) (70 * alphaMultiplier);
+			textColor = new Color(90, 90, 95, alpha).getRGB();
+		}
 
 		float iconX = bgX + 17f + offsetX;
 		float iconWidth = Fonts.CATEGORY_ICONS.getWidth(icon, ICON_SIZE);
@@ -103,7 +115,7 @@ public class CategoryRenderer {
 
 		Fonts.CATEGORY_ICONS.draw(icon, iconX, textY + 0.5f, ICON_SIZE, textColor);
 
-		if (animation > 0.01f) {
+		if (interactive && animation > 0.01f) {
 			float lineWidth = (iconWidth + ICON_SPACING + textWidth) * animation;
 			float lineAlpha = animation * 120 * alphaMultiplier;
 			Render2D.rect(iconX, textY + 9f, lineWidth, 0.5f, ClickGuiTheme.accent((int) lineAlpha), 0);
@@ -117,15 +129,19 @@ public class CategoryRenderer {
 		Fonts.BOLD.draw(name, textX, textY, TEXT_SIZE, textColor);
 	}
 
+	/**
+	 * Hit-test only for live categories. Soon... rows return null (not clickable).
+	 */
 	public ModuleCategory getCategoryAtPosition(double mouseX, double mouseY, float bgX, float bgY) {
 		if (mouseX < bgX + 10f || mouseX > bgX + 95f) return null;
 
-		for (int i = 0; i < MAIN_CATEGORY_NAMES.length; i++) {
-			float catY = 65f + i * 15f;
+		for (int i = 0; i < LIVE_CATEGORIES.length; i++) {
+			float catY = FIRST_ROW_Y + i * ROW_H;
 			if (mouseY >= bgY + catY && mouseY <= bgY + catY + 13f) {
-				return MAIN_CATEGORIES[i];
+				return LIVE_CATEGORIES[i];
 			}
 		}
+		// Soon rows intentionally ignored
 		return null;
 	}
 
