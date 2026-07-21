@@ -37,7 +37,7 @@ FONT_CANDIDATES = [
 # 12 ≈ halfway between vanilla 8 and the too-large 16.
 CELL = 12
 HEIGHT = 12
-ASCENT = 10
+ASCENT = 9
 
 # Super-sample then downscale for cleaner edges than raw 12px FreeType.
 SS = 4  # 48px work cells
@@ -62,17 +62,17 @@ def pick_font() -> Path:
 
 def render_supersampled(ttf: Path) -> Image.Image:
     work = CELL * SS
-    # Point size so capital H fills most of the work cell.
-    face = ImageFont.truetype(str(ttf), size=int(work * 0.78))
+    # Size so "Hg" nearly fills the work cell (leave 1px pad top/bottom after downscale).
+    face = ImageFont.truetype(str(ttf), size=int(work * 0.92))
     cols = max(len(r) for r in ROWS)
     rows_n = len(ROWS)
     big = Image.new("RGBA", (cols * work, rows_n * work), (0, 0, 0, 0))
     draw = ImageDraw.Draw(big)
 
-    # Shared baseline from "Hg" metrics.
-    base = draw.textbbox((0, 0), "Hg", font=face)
-    # Target: top of H near top pad, descenders of g fit in cell.
-    top_pad = int(work * 0.08)
+    # Fit "Hg" band into the cell with equal vertical padding.
+    band = draw.textbbox((0, 0), "Hg", font=face)
+    band_h = band[3] - band[1]
+    top_pad = max(1, (work - band_h) // 2)
 
     for ry, row in enumerate(ROWS):
         padded = row.ljust(cols)
@@ -80,9 +80,9 @@ def render_supersampled(ttf: Path) -> Image.Image:
             if ch == " ":
                 continue
             bbox = draw.textbbox((0, 0), ch, font=face)
-            # LEFT-ALIGNED
+            # LEFT-ALIGNED (critical for MC auto-width)
             x = cx * work + LEFT_PAD_SS - bbox[0]
-            y = ry * work + top_pad - base[1]
+            y = ry * work + top_pad - band[1]
             draw.text((x, y), ch, font=face, fill=(255, 255, 255, 255))
 
     # High-quality downscale to final CELL size (scale will be 1.0 in MC).
