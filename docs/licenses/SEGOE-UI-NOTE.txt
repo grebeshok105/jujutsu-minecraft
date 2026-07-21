@@ -1,0 +1,3 @@
+neon.ttf is a local copy of Windows Segoe UI (segoeui.ttf) for the jujutsumod dashboard.
+Segoe UI is a Microsoft proprietary typeface; redistributing it in public releases may
+require a Microsoft license. For private/local use on Windows this is the system UI default.

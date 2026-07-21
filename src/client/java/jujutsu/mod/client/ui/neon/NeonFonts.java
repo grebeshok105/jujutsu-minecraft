@@ -7,8 +7,8 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * Dashboard typography — Open Sans TTF registered as {@code jujutsumod:neon}.
- * Always apply via Component style so Minecraft's multi-font Font resolves glyphs.
+ * Dashboard typography — Windows Segoe UI (system default UI face) bundled as
+ * {@code jujutsumod:neon}. Apply only via Component style so multi-font Font resolves it.
  */
 public final class NeonFonts {
     public static final ResourceLocation ID = JujutsuMod.id("neon");
@@ -24,7 +24,6 @@ public final class NeonFonts {
     }
 
     public static MutableComponent wrap(Component component) {
-        // Preserve existing color/bold etc., force neon font.
         return component.copy().withStyle(s -> s.withFont(ID));
     }
 
