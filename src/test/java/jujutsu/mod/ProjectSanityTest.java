@@ -575,7 +575,10 @@ public final class ProjectSanityTest {
 		assert start >= 0 && end > start : "Straw Doll recipes must keep distinct caster and target impact phases";
 		String dollStrike = recipes.substring(start, end);
 		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkStrawDollRuntime.java"));
-		assert !ritual.contains("tickRateManager") : "Resonance must not manipulate the global server tick rate";
+		assert ritual.contains("tickRateManager") && ritual.contains("RESONANCE_TIME.trigger")
+				: "Resonance impact must briefly lower server tick rate for hit-stop";
+		assert ritual.contains("worldFixedCue") && ritual.contains("VfxCue.NO_ANCHOR")
+				: "Resonance struck VFX must be world-fixed (NO_ANCHOR), not player-anchored";
 		assert !dollStrike.contains("SoundEvents.ANVIL_USE") : "The doll strike must not sound like an anvil";
 		for (String sound : new String[] {"PROJECTJJK_IMPLODE", "PROJECTJJK_DEEP_EXPLOSION", "PROJECTJJK_BLACK_FLASH_IMPACT", "PROJECTJJK_LONG_WHOOSH"}) {
 			assert dollStrike.contains(sound) : "The doll strike is missing sound layer " + sound;
@@ -583,8 +586,10 @@ public final class ProjectSanityTest {
 		assert dollStrike.contains("ParticleTypes.EXPLOSION_EMITTER")
 				&& dollStrike.contains("triggerExplosion") && dollStrike.contains("triggerFlash")
 				: "The doll strike must stack explosions, camera impulse, and a long flash";
-		assert dollStrike.contains("context.hud().triggerNausea(0.85f, initialAgeTicks)")
-				: "A local Nobara caster must receive the heavy Resonance screen impact";
+		assert dollStrike.contains("triggerNausea")
+				: "Nearby viewers must receive Resonance screen post-effects";
+		assert dollStrike.contains("RESONANCE_VFX_DURATION_TICKS")
+				: "Doll strike lifetime must use the shared Resonance VFX duration (~3.5s)";
 		String hud = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxHudChannel.java"));
 		assert hud.contains("graphics.fill(0, 0, width, height, (washAlpha << 24) | 0x00120A18)")
 				: "The Resonance nausea overlay must include a visible full-screen wash";

@@ -81,10 +81,16 @@ public final class VfxWorldChannel {
 			}
 			float progress = Math.max(0.0f, Math.min(1.0f, age / flash.durationTicks()));
 			float fade = 1.0f - progress;
-			Vec3 origin = VfxAnchorResolver.resolve(flash.cue(), entityId -> {
-				Entity anchor = context.world().getEntity(entityId);
-				return anchor == null ? null : anchor.position();
-			});
+			// Resonance struck + Black Flash stay planted at the immutable cue origin (world-fixed).
+			boolean worldFixed = flash.style() == ImpactStyle.DOLL_STRIKE
+					|| flash.style() == ImpactStyle.RESONANCE_RELEASE
+					|| flash.style() == ImpactStyle.BLACK_FLASH;
+			Vec3 origin = worldFixed
+					? flash.cue().origin()
+					: VfxAnchorResolver.resolve(flash.cue(), entityId -> {
+						Entity anchor = context.world().getEntity(entityId);
+						return anchor == null ? null : anchor.position();
+					});
 			Vec3 center = origin.subtract(cameraPosition);
 			int intensity = Math.max(1, flash.cue().intensity());
 			switch (flash.style()) {
@@ -94,10 +100,7 @@ public final class VfxWorldChannel {
 				case RITUAL_BIND -> renderRitualBind(consumer, center, intensity, progress, fade);
 				case DOLL_STRIKE -> renderDollStrike(consumer, center, intensity, progress, fade);
 				case RESONANCE_RELEASE -> renderResonanceRelease(consumer, center, intensity, progress, fade);
-				case BLACK_FLASH -> {
-					Vec3 fixedCenter = flash.cue().origin().subtract(cameraPosition);
-					renderBlackFlash(consumer, fixedCenter, intensity, progress, fade, flash.cue());
-				}
+				case BLACK_FLASH -> renderBlackFlash(consumer, center, intensity, progress, fade, flash.cue());
 			}
 		}
 	}

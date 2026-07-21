@@ -37,8 +37,12 @@ public final class VfxHudChannel {
 	}
 
 	public void triggerNausea(float strength, float initialAgeTicks) {
+		triggerNausea(strength, 760, initialAgeTicks);
+	}
+
+	public void triggerNausea(float strength, int durationMillis, float initialAgeTicks) {
 		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
-		int boundedDurationMillis = 760;
+		int boundedDurationMillis = Math.max(1, durationMillis);
 		if (!VfxTimeline.shouldExtendRealtimeWindow(
 				nauseaStartedAtMillis,
 				nauseaDurationMillis,
@@ -50,7 +54,7 @@ public final class VfxHudChannel {
 		}
 		nauseaStartedAtMillis = startedAtMillis;
 		nauseaDurationMillis = boundedDurationMillis;
-		nauseaMaxAlpha = Math.max(0, Math.min(84, Math.round(84.0f * Math.max(0.0f, Math.min(1.0f, strength)))));
+		nauseaMaxAlpha = Math.max(0, Math.min(100, Math.round(100.0f * Math.max(0.0f, Math.min(1.0f, strength)))));
 	}
 
 	public void triggerFlash(int durationMillis, int maxAlpha) {

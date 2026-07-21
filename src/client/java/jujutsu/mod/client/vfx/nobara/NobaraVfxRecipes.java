@@ -369,62 +369,70 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance dollStrike(VfxCue cue) {
-		return VfxInstance.of(36, (context, initialAgeTicks) -> {
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.DOLL_STRIKE, 36);
-			float proximity = context.proximity(cue, 44.0);
+		int life = ProjectJjkNobaraProfile.RESONANCE_VFX_DURATION_TICKS;
+		return VfxInstance.of(life, (context, initialAgeTicks) -> {
+			// World-fixed geometry: duration matches server cue lifetime.
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.DOLL_STRIKE, life);
+			float proximity = context.proximity(cue, 56.0);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
-				Vec3 origin = context.resolveOrigin(cue);
+				// Prefer immutable cue origin so particles stay planted even if player moves.
+				Vec3 origin = cue.origin();
 				RandomSource random = random(cue, 0xD01157L);
-				context.burst(JujutsuParticles.HAIRPIN_SNAP_CRACK, origin, 42, 0.52, 0.28, random);
-				context.burst(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, origin, 28, 0.64, 0.45, random);
-				context.burst(PROJECTJJK_CYAN, origin, 56, 0.68, 0.34, random);
-				context.burst(ParticleTypes.EXPLOSION_EMITTER, origin, 3, 0.18, 0.02, random);
-				context.burst(ParticleTypes.FLASH, origin, 3, 0.12, 0.0, random);
-				context.playNoFalloff(JujutsuSounds.PROJECTJJK_IMPLODE, 1.15f * proximity, 0.52f, origin, random);
-				context.playNoFalloff(JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, 1.5f * proximity, 0.58f, origin, random);
-				context.playNoFalloff(JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, 1.1f * proximity, 0.68f, origin, random);
-				context.playNoFalloff(JujutsuSounds.PROJECTJJK_LONG_WHOOSH, 0.9f * proximity, 0.55f, origin, random);
+				context.burst(JujutsuParticles.HAIRPIN_SNAP_CRACK, origin, 64, 0.72, 0.34, random);
+				context.burst(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, origin, 48, 0.88, 0.55, random);
+				context.burst(PROJECTJJK_CYAN, origin, 84, 0.95, 0.42, random);
+				context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 56, 0.8, 0.18, random);
+				context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 48, 1.8, -0.4, 0.05, random);
+				context.burst(ParticleTypes.EXPLOSION_EMITTER, origin, 5, 0.28, 0.03, random);
+				context.burst(ParticleTypes.FLASH, origin, 5, 0.18, 0.0, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_IMPLODE, 1.25f * proximity, 0.48f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, 1.65f * proximity, 0.55f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, 1.25f * proximity, 0.64f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_LONG_WHOOSH, 1.05f * proximity, 0.5f, origin, random);
 			}
-			if (proximity > 0.01f) {
-				context.camera().triggerResonanceImpact(intensity(cue) + 7, Math.min(1.0f, proximity * 1.15f), initialAgeTicks);
-				context.camera().triggerExplosion(intensity(cue) + 5, proximity, initialAgeTicks);
+			// Screen post-effects for nearby viewers (not only an entity-local anchor).
+			if (proximity > 0.08f) {
+				context.camera().triggerResonanceImpact(intensity(cue) + 8, Math.min(1.0f, proximity * 1.2f), initialAgeTicks);
+				context.camera().triggerExplosion(intensity(cue) + 6, proximity, initialAgeTicks);
 				context.hud().triggerImpact(proximity, initialAgeTicks);
-				context.hud().triggerFlash(420, Math.round(210.0f * proximity), initialAgeTicks);
-				context.postProcess().triggerBlur(Math.round(520.0f * proximity), initialAgeTicks);
-				context.firstPerson().triggerSnap(initialAgeTicks);
-			}
-			if (isLocalAnchor(context, cue)) {
-				context.hud().triggerNausea(0.85f, initialAgeTicks);
-				context.postProcess().triggerBlur(700, initialAgeTicks);
+				context.hud().triggerFlash(3200, Math.round(230.0f * proximity), initialAgeTicks);
+				context.postProcess().triggerBlur(Math.round(900.0f * proximity), initialAgeTicks);
+				context.hud().triggerNausea(0.9f * proximity, 3200, initialAgeTicks);
+				context.time().triggerSlowMotion(0.55f, 2000, initialAgeTicks);
+				if (proximity > 0.45f) {
+					context.firstPerson().triggerSnap(initialAgeTicks);
+				}
 			}
 		});
 	}
 
 	private static VfxInstance resonanceRelease(VfxCue cue) {
-		return VfxInstance.of(38, (context, initialAgeTicks) -> {
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.RESONANCE_RELEASE, 38);
+		int life = ProjectJjkNobaraProfile.RESONANCE_VFX_DURATION_TICKS;
+		return VfxInstance.of(life, (context, initialAgeTicks) -> {
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.RESONANCE_RELEASE, life);
 			int marks = intensity(cue);
-			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
-				Vec3 origin = context.resolveOrigin(cue);
-				RandomSource random = random(cue, 0x5A17E0L);
-				spawnResonanceBurst(context, origin, marks, random);
-				context.burst(ParticleTypes.EXPLOSION_EMITTER, origin, 4, 0.3, 0.04, random);
-				context.burst(ParticleTypes.FLASH, origin, 3, 0.18, 0.0, random);
-				context.playNoFalloff(JujutsuSounds.PROJECTJJK_IMPLODE, 1.1f, 0.48f, origin, random);
-				context.playNoFalloff(JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, 1.5f, 0.66f, origin, random);
-				context.playNoFalloff(JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT_2, 1.15f, 0.72f, origin, random);
-			}
 			float proximity = context.proximity(cue, 64.0);
-			if (proximity > 0.01f) {
-				context.camera().triggerResonanceImpact(marks + 2, proximity, initialAgeTicks);
-				context.camera().triggerExplosion(marks + 5, proximity, initialAgeTicks);
-				context.hud().triggerImpact(proximity, initialAgeTicks);
-				context.hud().triggerFlash(520, Math.round(225.0f * proximity), initialAgeTicks);
-				context.postProcess().triggerBlur(Math.round(360.0f * proximity), initialAgeTicks);
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				Vec3 origin = cue.origin();
+				RandomSource random = random(cue, 0x5A17E0L);
+				spawnResonanceBurst(context, origin, marks + 2, random);
+				context.burst(ParticleTypes.EXPLOSION_EMITTER, origin, 6, 0.42, 0.05, random);
+				context.burst(ParticleTypes.FLASH, origin, 5, 0.24, 0.0, random);
+				context.burst(PROJECTJJK_CYAN, origin, 72, 1.05, 0.4, random);
+				context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 56, 2.4, -0.55, 0.04, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_IMPLODE, 1.2f * proximity, 0.44f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, 1.7f * proximity, 0.6f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT_2, 1.3f * proximity, 0.68f, origin, random);
 			}
-			if (isLocalAnchor(context, cue)) {
-				context.hud().triggerNausea(1.0f, initialAgeTicks);
-				context.postProcess().triggerBlur(520, initialAgeTicks);
+			if (proximity > 0.08f) {
+				context.camera().triggerResonanceImpact(marks + 4, proximity, initialAgeTicks);
+				context.camera().triggerExplosion(marks + 6, proximity, initialAgeTicks);
+				context.hud().triggerImpact(proximity, initialAgeTicks);
+				// Long post: flash + vignette wash + blur (~3.5s feel).
+				context.hud().triggerFlash(3500, Math.round(240.0f * proximity), initialAgeTicks);
+				context.hud().triggerNausea(1.0f * Math.min(1.0f, proximity * 1.1f), 3500, initialAgeTicks);
+				context.postProcess().triggerBlur(Math.round(1100.0f * proximity), initialAgeTicks);
+				context.time().triggerSlowMotion(0.5f, 2000, initialAgeTicks);
 			}
 		});
 	}

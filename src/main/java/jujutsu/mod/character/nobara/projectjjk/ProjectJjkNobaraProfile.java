@@ -66,6 +66,12 @@ public final class ProjectJjkNobaraProfile {
 
 	// Resonance (straw doll remote strike).
 	public static final float RESONANCE_DAMAGE = 28.0f;
+	/** Server tick rate during Resonance hit-stop (normal is 20). */
+	public static final float RESONANCE_SERVER_TICK_RATE = 10.0f;
+	/** Dilated server ticks after impact ≈ 2 real seconds at half rate. */
+	public static final int RESONANCE_SERVER_SLOW_TICKS = 20;
+	/** World VFX lifetime for struck Resonance (~3.5s at 20 tps). */
+	public static final int RESONANCE_VFX_DURATION_TICKS = 70;
 	public static final float SELF_RESONANCE_SELF_DAMAGE = 6.0f;
 	public static final float SELF_RESONANCE_LINKED_DAMAGE = 18.0f;
 	/** Chance a successful hammer / nail impact procs Black Flash (no second-click window). */

@@ -208,6 +208,16 @@ tasks.register('testResonantMomentum', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testServerTimeDilation', JavaExec) {
+	group = 'verification'
+	description = 'Runs ServerTimeDilation restore/overlap tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.nobara.projectjjk.ServerTimeDilationTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.named('check') {
 	dependsOn tasks.named('testProjectSanity')
 	dependsOn tasks.named('testTargetResolver')
@@ -226,6 +236,7 @@ tasks.named('check') {
 	dependsOn tasks.named('testHairpinChain')
 	dependsOn tasks.named('testNailTrap')
 	dependsOn tasks.named('testResonantMomentum')
+	dependsOn tasks.named('testServerTimeDilation')
 }
 
 processResources {

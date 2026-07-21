@@ -37,12 +37,14 @@ public final class ProjectJjkStrawDollRuntime {
 	private static final double VFX_RADIUS = 64.0;
 	private static final ProjectJjkRemnantProgress REMNANT_PROGRESS = new ProjectJjkRemnantProgress(REMNANT_HIT_THRESHOLD);
 	private static final Map<UUID, PendingRitual> PENDING_RITUALS = new HashMap<>();
+	private static final ServerTimeDilation RESONANCE_TIME = new ServerTimeDilation();
 
 	private ProjectJjkStrawDollRuntime() {}
 
 	public static void register() {
 		ServerTickEvents.END_SERVER_TICK.register(ProjectJjkStrawDollRuntime::onServerTick);
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+			RESONANCE_TIME.clear(tickRateAccess(server));
 			clearAll();
 		});
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> clearCaster(handler.player.getUUID()));
@@ -129,6 +131,7 @@ public final class ProjectJjkStrawDollRuntime {
 	}
 
 	private static void onServerTick(MinecraftServer server) {
+		RESONANCE_TIME.tick(tickRateAccess(server));
 		for (PendingRitual pending : List.copyOf(PENDING_RITUALS.values())) {
 			if (PENDING_RITUALS.get(pending.casterId()) != pending) {
 				continue;
@@ -241,12 +244,19 @@ public final class ProjectJjkStrawDollRuntime {
 		ResonantMomentum.grant(caster);
 		CombatStagger.GLOBAL.apply(target, gameTime, ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
 
-		Vec3 targetOrigin = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
-		Vec3 dollOrigin = caster.getEyePosition().add(caster.getLookAngle().scale(0.45));
-		JujutsuNetworking.broadcastVfxCue(level, caster.position(), VFX_RADIUS,
-				cue(level, NobaraVfxIds.DOLL_STRIKE, RITUAL_VFX_INTENSITY, dollOrigin, gameTime, caster));
-		JujutsuNetworking.broadcastVfxCue(level, targetOrigin, VFX_RADIUS,
-				cue(level, NobaraVfxIds.RESONANCE_RELEASE, RITUAL_VFX_INTENSITY, targetOrigin, gameTime, target));
+		// Server hit-stop ONLY after a successful Resonance impact (~2 real seconds at half TPS).
+		RESONANCE_TIME.trigger(
+				tickRateAccess(level.getServer()),
+				ProjectJjkNobaraProfile.RESONANCE_SERVER_TICK_RATE,
+				ProjectJjkNobaraProfile.RESONANCE_SERVER_SLOW_TICKS
+		);
+
+		// World-fixed origins (NO_ANCHOR): effects stay planted in the world, not glued to caster/target.
+		Vec3 struckOrigin = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
+		JujutsuNetworking.broadcastVfxCue(level, struckOrigin, VFX_RADIUS,
+				worldFixedCue(level, NobaraVfxIds.DOLL_STRIKE, RITUAL_VFX_INTENSITY, struckOrigin, gameTime));
+		JujutsuNetworking.broadcastVfxCue(level, struckOrigin, VFX_RADIUS,
+				worldFixedCue(level, NobaraVfxIds.RESONANCE_RELEASE, RITUAL_VFX_INTENSITY, struckOrigin, gameTime));
 		caster.displayClientMessage(Component.translatable(
 				"message.jujutsumod.projectjjk.resonance.complete",
 				remnant.targetName()
@@ -335,6 +345,20 @@ public final class ProjectJjkStrawDollRuntime {
 		REMNANT_PROGRESS.clear();
 	}
 
+	private static ServerTimeDilation.TickRateAccess tickRateAccess(MinecraftServer server) {
+		return new ServerTimeDilation.TickRateAccess() {
+			@Override
+			public float tickRate() {
+				return server.tickRateManager().tickrate();
+			}
+
+			@Override
+			public void setTickRate(float tickRate) {
+				server.tickRateManager().setTickRate(tickRate);
+			}
+		};
+	}
+
 	private static VfxCue cue(
 			ServerLevel level,
 			ResourceLocation effectId,
@@ -348,6 +372,26 @@ public final class ProjectJjkStrawDollRuntime {
 				origin,
 				anchor.getId(),
 				origin.subtract(anchor.position()),
+				Math.max(1, intensity),
+				gameTime,
+				level.random.nextLong(),
+				Vec3.ZERO
+		);
+	}
+
+	/** Unanchored cue: world geometry stays at the immutable origin for the whole lifetime. */
+	private static VfxCue worldFixedCue(
+			ServerLevel level,
+			ResourceLocation effectId,
+			int intensity,
+			Vec3 origin,
+			long gameTime
+	) {
+		return new VfxCue(
+				effectId,
+				origin,
+				VfxCue.NO_ANCHOR,
+				Vec3.ZERO,
 				Math.max(1, intensity),
 				gameTime,
 				level.random.nextLong(),
