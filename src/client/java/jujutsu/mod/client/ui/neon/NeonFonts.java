@@ -9,9 +9,13 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * Single entry-point for dashboard text. Every string goes through the neon font
- * (Segoe UI) so glyphs and advance widths stay consistent — never mix plain
- * {@code String} draws (those use the default Minecraft pixel font).
+ * Dashboard typography.
+ *
+ * <p>Uses a <b>bitmap</b> font ({@code jujutsumod:neon}), not a TTF provider.
+ * Research conclusion for MC 1.21: FreeType TTF in-game looks muddy and uneven;
+ * vanilla and quality packs bake TTF offline into a PNG atlas (see
+ * {@code tools/generate_neon_font.py}). Always draw through these helpers so
+ * every string uses the same font id and advance widths.
  */
 public final class NeonFonts {
     public static final ResourceLocation ID = JujutsuMod.id("neon");
@@ -49,7 +53,6 @@ public final class NeonFonts {
         return font.width(literal(text));
     }
 
-    /** Top-left draw, no shadow. */
     public static void draw(GuiGraphics g, Font font, Component text, float x, float y, int color) {
         g.drawString(font, wrap(text), Math.round(x), Math.round(y), color, false);
     }
@@ -58,7 +61,6 @@ public final class NeonFonts {
         g.drawString(font, literal(text), Math.round(x), Math.round(y), color, false);
     }
 
-    /** Vertically centered inside a row of {@code boxH} using real font line height. */
     public static void drawVCenter(GuiGraphics g, Font font, Component text, float x, float boxY, float boxH, int color) {
         int line = Math.max(8, font.lineHeight);
         int y = Math.round(boxY + (boxH - line) / 2f) + 1;
