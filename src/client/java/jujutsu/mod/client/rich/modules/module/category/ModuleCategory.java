@@ -1,7 +1,7 @@
 package jujutsu.mod.client.rich.modules.module.category;
 
 public enum ModuleCategory {
-	COMBAT("Combat"),
+	COMBAT("Characters"),
 	MOVEMENT("Movement"),
 	RENDER("Render"),
 	PLAYER("Player"),

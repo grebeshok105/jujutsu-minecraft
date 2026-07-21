@@ -22,7 +22,7 @@
 | `.worktrees/brainstorming` | `chore/jujutsu-brainstorming` | `d349422` | Older brainstorming / VFX alignment |
 
 **Merge base for polish branch:** `main` @ `e31a67e`  
-**Commits only on `feat/neon-gui-polish` (not in main):** `e31a67e..b22be83`.
+**Commits only on `feat/neon-gui-polish` (not in main):** `e31a67e..7f32273`.
 
 ---
 
@@ -70,7 +70,7 @@ Fallback if ClickGui fails to init: old `ModernMenuScreen` (legacy experimental 
 | **`f3bbf69`** | **fix(gui): open ported Rich ClickGui on N** |
 | **`95d81a1`** | **fix(gui): stop SDF batch burying MSDF text; retry font atlas load** |
 | **`675009d`** | **docs(session): map branches, commits, V/N dual GUI handoff** |
-| **`7f32273`** | **docs(session): set HEAD to session map commit** ← **HEAD** |
+| **`7f32273`** | **docs(session): set HEAD to session map commit**  |
 
 ---
 
@@ -140,7 +140,7 @@ Other branches (not merged into polish work):
 1. Merge `feat/neon-gui-polish` → `main` when ready (large client-only GUI commit set).  
 2. Wire Nobara Confirm / vessel apply into ClickGui module actions (not only V dashboard).  
 3. Optional: port real Rich `RectPipeline` if targeting a loader that matches 1.21.11 APIs.  
-4. Update Obsidian codex notes for dual GUI (V neon / N rich).  
+4. Update Obsidian codex notes for dual GUI (V neon / N rich). **DONE 2026-07-21** via mcpvault (GUI-dual-overview, GUI-rich-clickgui, GUI-msdf-pipeline, GUI-hud-overlays + index updates).  
 5. Clean unused Rich shaders if adapters stay.
 
 ---
@@ -160,3 +160,4 @@ Other branches (not merged into polish work):
 > **SUPERSEDED 2026-07-21 morning:** “Neon GUI polish done” as sole story — still true for **V**, but **N** is now the Rich port track.  
 > **SUPERSEDED 2026-07-20:** Neon stages on `worktree-neon-gui` only.  
 > **SUPERSEDED 2026-07-12:** Resonant Momentum / hammer notes — in main gameplay history.
+

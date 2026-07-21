@@ -11,31 +11,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import jujutsu.mod.client.rich.Initialization;
 import jujutsu.mod.client.rich.screens.clickgui.ClickGui;
-import jujutsu.mod.client.gui.ModernMenuScreen;
-import jujutsu.mod.client.gui.NeonDashboardScreen;
 import jujutsu.mod.network.NobaraActionPayload;
 import jujutsu.mod.registry.JujutsuItems;
 
 public final class JujutsuKeybinds {
 	private static final Logger LOG = LoggerFactory.getLogger("jujutsumod/keys");
 
-	private static KeyMapping characterSelect;
 	private static KeyMapping modernMenu;
 	private static KeyMapping nobaraEnlarge;
 	private static KeyMapping nobaraExplosion;
 	private static boolean attackWasDown;
 	private static boolean modernMenuWasDown;
-	private static boolean neonMenuWasDown;
 
 	private JujutsuKeybinds() {}
 
 	public static void register() {
-		characterSelect = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-				"key.jujutsumod.character_select",
-				InputConstants.Type.KEYSYM,
-				InputConstants.KEY_V,
-				"key.categories.jujutsumod"
-		));
+		// Single menu: ClickGui on N (Neon dashboard removed).
 		modernMenu = KeyBindingHelper.registerKeyBinding(new KeyMapping(
 				"key.jujutsumod.modern_menu",
 				InputConstants.Type.KEYSYM,
@@ -54,32 +45,21 @@ public final class JujutsuKeybinds {
 				InputConstants.KEY_B,
 				"key.categories.jujutsumod"
 		));
-		LOG.info("Registered keybinds: modern_menu default=N, character_select default=V");
+		LOG.info("Registered keybinds: menu default=N (ClickGui), combat R/B");
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (client.player == null) {
 				modernMenuWasDown = false;
-				neonMenuWasDown = false;
 				attackWasDown = false;
 				return;
 			}
 
-			// Drain Fabric click counters.
-			boolean neonClicked = drainClicks(characterSelect);
 			boolean modernClicked = drainClicks(modernMenu);
-
-			// Rising-edge on isDown + physical default keys (covers rebound-unknown / missed clicks).
-			boolean neonDown = isActive(client, characterSelect, InputConstants.KEY_V);
 			boolean modernDown = isActive(client, modernMenu, InputConstants.KEY_N);
 
-			if (neonClicked || (neonDown && !neonMenuWasDown)) {
-				toggleNeon(client);
-			}
 			if (modernClicked || (modernDown && !modernMenuWasDown)) {
 				toggleModern(client);
 			}
-
-			neonMenuWasDown = neonDown;
 			modernMenuWasDown = modernDown;
 
 			while (nobaraEnlarge.consumeClick()) {
@@ -110,11 +90,6 @@ public final class JujutsuKeybinds {
 		return clicked;
 	}
 
-	/**
-	 * Key is considered held if the bound KeyMapping says so, or (when no GUI is open)
-	 * the physical default key is held. Physical fallback keeps N/V working even if the
-	 * options file left the bind unknown or another mod ate the click counter.
-	 */
 	private static boolean isActive(Minecraft client, KeyMapping mapping, int physicalFallback) {
 		if (mapping.isDown()) {
 			return true;
@@ -122,35 +97,26 @@ public final class JujutsuKeybinds {
 		if (client.screen != null || client.getWindow() == null) {
 			return false;
 		}
-		// Only use physical fallback when bind is unbound or still on its default key.
 		if (mapping.isUnbound() || mapping.isDefault()) {
 			return InputConstants.isKeyDown(client.getWindow().getWindow(), physicalFallback);
 		}
 		return false;
 	}
 
-	private static void toggleNeon(Minecraft client) {
-		if (client.screen instanceof NeonDashboardScreen) {
-			client.screen.onClose();
-		} else if (client.screen == null) {
-			client.setScreen(new NeonDashboardScreen());
-		}
-	}
-
 	private static void toggleModern(Minecraft client) {
-		if (client.screen instanceof ClickGui || client.screen instanceof ModernMenuScreen) {
+		if (client.screen instanceof ClickGui) {
 			client.screen.onClose();
 			return;
 		}
 		if (client.screen != null) {
 			return;
 		}
-		LOG.info("Opening Rich ClickGui");
 		ClickGui gui = Initialization.getInstance().getManager().getClickgui();
 		if (gui != null) {
+			LOG.info("Opening ClickGui");
 			client.setScreen(gui);
 		} else {
-			client.setScreen(new ModernMenuScreen());
+			LOG.error("ClickGui failed to initialize");
 		}
 	}
 
@@ -168,4 +134,3 @@ public final class JujutsuKeybinds {
 		return stack.is(JujutsuItems.STRAW_DOLL_HAMMER) || stack.is(JujutsuItems.PROJECTJJK_STRAW_DOLL_HAMMER);
 	}
 }
-

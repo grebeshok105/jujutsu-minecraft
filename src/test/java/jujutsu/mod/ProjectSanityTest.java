@@ -328,9 +328,12 @@ public final class ProjectSanityTest {
 		String keybinds = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/input/JujutsuKeybinds.java"));
 		assert keybinds.contains("key.jujutsumod.nobara_hairpin_enlarge") : "Hairpin Enlarge must be a visible keybind";
 		assert keybinds.contains("key.jujutsumod.nobara_hairpin_explosion") : "Hairpin Explosion must be a visible keybind";
-		String screen = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/gui/neon/pages/CharacterPage.java"));
-		assert screen.contains("ability.hairpin_enlarge") : "Character select must show Hairpin Enlarge in the kit preview";
-		assert screen.contains("ability.hairpin_explosion") : "Character select must show Hairpin Explosion in the kit preview";
+		String screen = Files.readString(CLIENT_JAVA.resolve(
+				"jujutsu/mod/client/rich/screens/clickgui/impl/character/CharacterRosterPanel.java"));
+		assert screen.contains("Enlarge") : "Character select must show Hairpin Enlarge in the kit preview";
+		assert screen.contains("Boom") : "Character select must show Hairpin Explosion in the kit preview";
+		assert screen.contains("emoji_pin") && screen.contains("emoji_boom")
+				: "Character roster must expose Enlarge/Boom ability icons";
 		String commands = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/command/JujutsuCommands.java"));
 		assert commands.contains("\"enlarge\"") && commands.contains("\"explosion\"") : "Hairpin Enlarge/Explosion must have test commands";
 		assert commands.contains("ProjectJjkNobaraActions.tryCast") : "Hairpin commands must use the shared Nobara selection gate";
@@ -748,13 +751,17 @@ public final class ProjectSanityTest {
 	}
 
 	private static void assertCharacterSelectUsesCheapUiPrimitives() throws IOException {
-		String uiRender = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/UiRender.java"));
-		assert !uiRender.contains("for (int row = 0; row < h; row++)") : "Large rounded UI panels must not submit one fill per pixel row";
-		assert !uiRender.contains("cornerInset(") : "Rounded rects should use cheap block primitives instead of per-row corner scans";
+		// ClickGui surfaces go through SDF-backed Render2D (no per-row CPU rounded rects).
+		String render2d = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/rich/util/render/Render2D.java"));
+		assert render2d.contains("SdfRenderer") : "ClickGui Render2D must draw panels via the SDF renderer";
+		assert !render2d.contains("for (int row = 0; row < h; row++)") : "Large rounded UI panels must not submit one fill per pixel row";
 		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/neon/render/SdfRenderer.java"))
-				: "Neon dashboard must use the SDF shader renderer for GPU-batched surfaces";
+				: "ClickGui must keep the SDF shader renderer for GPU surfaces";
 		String sdfRenderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/ui/neon/render/SdfRenderer.java"));
 		assert sdfRenderer.contains("drawIndexed") : "SDF renderer must batch all shapes into one draw call";
+		assert Files.exists(CLIENT_JAVA.resolve(
+				"jujutsu/mod/client/rich/screens/clickgui/impl/character/CharacterRosterPanel.java"))
+				: "Character roster panel must exist for the Characters tab";
 	}
 
 	private static void assertGeckoLibNobaraPlayerModelWired() throws IOException {
@@ -798,7 +805,8 @@ public final class ProjectSanityTest {
 		assert !animatable.contains("speedValue >") : "HumanoidRenderState.speedValue is a vanilla limb scale, not a movement trigger";
 		String geo = Files.readString(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json"));
 		assert geo.contains("\"name\": \"bb_main\",\n\t\t\t\t\t\"parent\": \"skirt\"") : "Nobara skirt/coat panels must follow the body instead of floating as a root bone";
-		String card = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/gui/neon/pages/CharacterPage.java"));
+		String card = Files.readString(CLIENT_JAVA.resolve(
+				"jujutsu/mod/client/rich/screens/clickgui/impl/character/CharacterRosterPanel.java"));
 		assert card.contains("textures/entity/character/nobara.png") : "Character select portrait must keep using the player-skin head, not the GeckoLib NPC texture";
 	}
 

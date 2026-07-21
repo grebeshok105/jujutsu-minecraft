@@ -25,13 +25,11 @@ public class JujutsuModClient implements ClientModInitializer {
 		NobaraVfxRecipes.register();
 		JujutsuClientNetworking.registerReceivers();
 		JujutsuKeybinds.register();
-		// Register the neon-dashboard SDF pipeline (touching the field runs the static
-		// RenderPipelines.register). Must happen before the first resource reload precompiles
-		// pipelines so the shader is picked up.
+		// SDF panels for ClickGui (touching the field registers the pipeline).
 		if (SdfPipelines.SDF_SHAPE == null) {
 			throw new IllegalStateException("SDF pipeline failed to register");
 		}
-		// Modern menu MSDF pipeline (key N). Independent of neon dashboard (key V).
+		// ClickGui MSDF type + slim Rich host (key N).
 		MsdfFonts.bootstrap();
 		Initialization.getInstance();
 	}
