@@ -19,14 +19,15 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * Modern vessel menu (key N) — Rich-Modern clickgui language:
- * charcoal shell, left categories, middle list, right detail.
- * Neon dashboard (key V) remains separate.
+ * Vessel menu (N) — visual 1:1 intent of Rich clickgui screenshot + ClickGui layout.
+ * Functionality stays ours (character select, kit info). Neon dashboard (V) unchanged.
+ *
+ * Spec: docs/research/2026-07-21-rich-clickgui-visual-spec.md
  */
 public final class ModernMenuScreen extends Screen {
-	private static final long OPEN_MS = 300;
-	private static final long CLOSE_MS = 220;
-	private static final float RISE = 14f;
+	private static final long OPEN_MS = 280;
+	private static final long CLOSE_MS = 200;
+	private static final float RISE = 12f;
 
 	private static final ResourceLocation NOBARA_SKIN =
 			JujutsuMod.id("textures/entity/character/nobara.png");
@@ -48,63 +49,41 @@ public final class ModernMenuScreen extends Screen {
 			JujutsuMod.id("textures/gui/dashboard/emoji_bolt.png");
 
 	private enum Tab {
-		CHARACTER("Character", "Vessel"),
-		COMBAT("Combat", "Kit"),
-		VISUALS("Visuals", "Look"),
-		MISC("Misc", "Keys");
+		CHARACTER("Character"),
+		COMBAT("Combat"),
+		VISUALS("Visuals"),
+		MISC("Misc");
 
 		final String title;
-		final String subtitle;
 
-		Tab(String title, String subtitle) {
+		Tab(String title) {
 			this.title = title;
-			this.subtitle = subtitle;
 		}
 	}
 
-	private record RosterEntry(
-			String name, String tech, String grade, String pill,
-			JujutsuCharacter character, boolean portraitSkin, ResourceLocation emoji) {}
+	private record ModuleRow(String name, String bind, JujutsuCharacter character, boolean skin) {}
 
-	private static final RosterEntry[] ROSTER = {
-			new RosterEntry("Nobara Kugisaki", "Straw Doll Technique", "Grade 3", "R",
-					JujutsuCharacter.NOBARA, true, null),
-			new RosterEntry("None", "No Technique", "Default", "—",
-					JujutsuCharacter.NONE, false, EMOJI_BUST),
+	private static final ModuleRow[] CHARACTER_MODULES = {
+			new ModuleRow("Nobara", "N", JujutsuCharacter.NOBARA, true),
+			new ModuleRow("None", "—", JujutsuCharacter.NONE, false),
 	};
 
-	/** Matches CharacterPage / live keybinds. */
-	private static final String[] NOBARA_ABILITIES = {
+	private static final String[] ABILITY_NAMES = {
 			"Piercing Nail", "Hairpin Enlarge", "Hairpin Boom", "Resonance"
 	};
-	private static final String[] NOBARA_KEYS = {"R", "B", "Shift+R", "LMB"};
-	private static final ResourceLocation[] NOBARA_ICONS = {
+	private static final String[] ABILITY_KEYS = {"R", "B", "Shift+R", "LMB"};
+	private static final String[] ABILITY_SUB = {
+			"Directed nail shot", "Enlarge marked hairpin", "Mass hairpin detonation", "Hammer / ritual"
+	};
+	private static final ResourceLocation[] ABILITY_ICONS = {
 			EMOJI_PIN, EMOJI_BOLT, EMOJI_BOOM, EMOJI_LINK
-	};
-	private static final String[] VISUAL_ROWS = {"MSDF Type", "SDF Panels", "Rich Shell"};
-	private static final String[] MISC_ROWS = {"Menu  N", "Neon  V", "Nail  R", "Boom  B"};
-	private static final String[] VISUAL_DETAIL_T = {
-			"MSDF Typography", "SDF Surfaces", "Rich Layout"
-	};
-	private static final String[] VISUAL_DETAIL_B = {
-			"Sharp multi-channel distance field text at any size.",
-			"Soft rounded panels with border + glow channels.",
-			"Sidebar · list · detail shell matching the reference."
-	};
-	private static final String[] MISC_DETAIL_T = {
-			"Modern Menu", "Neon Dashboard", "Combat Keys"
-	};
-	private static final String[] MISC_DETAIL_B = {
-			"N — open / close this Rich-style vessel menu.",
-			"V — original neon dashboard (unchanged).",
-			"R / B / LMB — Nobara kit when selected."
 	};
 
 	private final SdfRenderer sdf = new SdfRenderer();
 
 	private Tab tab = Tab.CHARACTER;
+	private int moduleIndex;
 	private JujutsuCharacter selection;
-	private int listIndex;
 
 	private float openAnim;
 	private boolean closing;
@@ -114,25 +93,19 @@ public final class ModernMenuScreen extends Screen {
 	private long closeStartMillis;
 	private long lastFrameNanos;
 
-	// Fitted panel size (responsive)
-	private float panelW = ModernTheme.BG_W;
-	private float panelH = ModernTheme.BG_H;
-	private float listW = ModernTheme.LIST_W;
-	private float sidebarW = ModernTheme.SIDEBAR_W;
-
-	private final float[] sidebarHover = new float[Tab.values().length];
-	private final float[] listHover = new float[ROSTER.length];
-	private float selectFlash;
+	private final float[] sideHover = new float[Tab.values().length];
+	private final float[] modHover = new float[8];
 	private float confirmHover;
 	private float cancelHover;
+	private float selectFlash;
 	private float contentAlpha = 1f;
 
 	public ModernMenuScreen() {
 		super(Component.translatable("screen.jujutsumod.modern_menu"));
-		this.openStartMillis = System.currentTimeMillis();
-		this.lastFrameNanos = System.nanoTime();
-		this.selection = initialSelection();
-		this.listIndex = indexOf(selection);
+		openStartMillis = System.currentTimeMillis();
+		lastFrameNanos = System.nanoTime();
+		selection = initialSelection();
+		moduleIndex = indexOf(selection);
 	}
 
 	private static JujutsuCharacter initialSelection() {
@@ -144,12 +117,12 @@ public final class ModernMenuScreen extends Screen {
 	}
 
 	private static int indexOf(JujutsuCharacter c) {
-		for (int i = 0; i < ROSTER.length; i++) {
-			if (ROSTER[i].character() == c) {
+		for (int i = 0; i < CHARACTER_MODULES.length; i++) {
+			if (CHARACTER_MODULES[i].character() == c) {
 				return i;
 			}
 		}
-		return ROSTER.length > 1 ? 1 : 0; // prefer None if unknown
+		return 1;
 	}
 
 	@Override
@@ -161,45 +134,22 @@ public final class ModernMenuScreen extends Screen {
 	protected void init() {
 		super.init();
 		MsdfFonts.warm();
-		layout();
 	}
 
-	@Override
-	public void resize(Minecraft mc, int w, int h) {
-		super.resize(mc, w, h);
-		layout();
-	}
-
-	private void layout() {
-		panelW = Math.min(ModernTheme.BG_W, Math.max(360f, width - 24f));
-		panelH = Math.min(ModernTheme.BG_H, Math.max(240f, height - 32f));
-		float scale = panelW / ModernTheme.BG_W;
-		sidebarW = ModernTheme.SIDEBAR_W * scale;
-		listW = ModernTheme.LIST_W * scale;
-	}
-
-	/** Same geometry for draw, hover, and clicks. */
 	private float panelX() {
-		return (width - panelW) * 0.5f;
+		return (width - ModernTheme.BG_W) * 0.5f;
 	}
 
 	private float panelY() {
-		float base = (height - panelH) * 0.5f;
-		float anim = UiEase.outCubic(openAnim);
-		return base + (1f - anim) * RISE;
-	}
-
-	private float contentW() {
-		return panelW - sidebarW - 1f;
+		float base = (height - ModernTheme.BG_H) * 0.5f;
+		return base + (1f - UiEase.outCubic(openAnim)) * RISE;
 	}
 
 	private float contentH() {
-		return panelH - ModernTheme.HEADER_H - 1f;
+		return ModernTheme.BG_H - ModernTheme.CONTENT_TOP - ModernTheme.CONTENT_BOTTOM_PAD;
 	}
 
-	private float detailW() {
-		return contentW() - ModernTheme.PAD * 2f - listW - ModernTheme.GAP;
-	}
+	// ── lifecycle ─────────────────────────────────────────────────────
 
 	@Override
 	public void tick() {
@@ -221,6 +171,13 @@ public final class ModernMenuScreen extends Screen {
 	}
 
 	@Override
+	public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float delta) {
+		// scrim in SDF batch (must not cover shell)
+	}
+
+	// ── render ────────────────────────────────────────────────────────
+
+	@Override
 	public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
 		float dt = tickDelta();
 		updateAnimation();
@@ -228,507 +185,493 @@ public final class ModernMenuScreen extends Screen {
 		float px = panelX();
 		float py = panelY();
 
-		contentAlpha = UiEase.approach(contentAlpha, 1f, 0.28f, dt * 20f);
-		selectFlash = UiEase.approach(selectFlash, 0f, 0.12f, dt * 20f);
+		contentAlpha = UiEase.approach(contentAlpha, 1f, 0.3f, dt * 20f);
+		selectFlash = UiEase.approach(selectFlash, 0f, 0.14f, dt * 20f);
 		updateHovers(mouseX, mouseY, px, py, dt);
-
 		float ca = anim * contentAlpha;
 
-		// SDF first (immediate). Scrim is an SDF quad so it cannot cover the shell.
 		sdf.setGlobalAlpha(anim);
 		sdf.begin();
 
-		// World dim (under UI because same batch order: first shape, then shell on top)
+		// Scrim first (painter's order → under shell)
 		sdf.add(SdfShape.builder()
-				.rect(0, 0, width, height)
-				.radius(0).border(0, 0).glow(0, 0)
-				.fill(0xA0000000, 0xA0000000)
-				.build());
-
-		// Outer shell
-		sdf.add(SdfShape.builder()
-				.rect(px, py, panelW, panelH)
-				.radius(ModernTheme.RADIUS)
-				.border(1.1f, ModernTheme.PANEL_EDGE)
-				.glow(10f, 0x40000000)
-				.highlight(0.10f)
-				.fill(ModernTheme.PANEL, 0xF0121214)
-				.build());
-
-		// Sidebar with matching outer corners
-		sdf.add(SdfShape.builder()
-				.rect(px, py, sidebarW, panelH)
-				.radius(ModernTheme.RADIUS)
-				.border(0, 0)
-				.fill(ModernTheme.SIDEBAR, ModernTheme.SIDEBAR)
-				.build());
-		// Cover right side of sidebar so only left corners stay round
-		sdf.add(SdfShape.builder()
-				.rect(px + sidebarW - 12, py, 12, panelH)
+				.rect(-20, -20, width + 40, height + 40)
 				.radius(0).border(0, 0)
-				.fill(ModernTheme.SIDEBAR, ModernTheme.SIDEBAR)
+				.fill(ModernTheme.SCRIM, ModernTheme.SCRIM)
 				.build());
+
+		// Outer shell — single continuous rounded rect (screenshot)
 		sdf.add(SdfShape.builder()
-				.rect(px + sidebarW, py + 10, 1f, panelH - 20)
+				.rect(px, py, ModernTheme.BG_W, ModernTheme.BG_H)
+				.radius(ModernTheme.RADIUS)
+				.border(1f, ModernTheme.BORDER)
+				.glow(8f, 0x28000000)
+				.highlight(0.06f)
+				.fill(ModernTheme.PANEL, ModernTheme.PANEL_DEEP)
+				.build());
+
+		// Thin vertical divider only — no sharp sidebar rect (keeps outer radius clean).
+		sdf.add(SdfShape.builder()
+				.rect(px + ModernTheme.SIDEBAR_W, py + 12, 1f, ModernTheme.BG_H - 24)
+				.radius(0).border(0, 0)
+				.fill(ModernTheme.DIVIDER, ModernTheme.DIVIDER)
+				.build());
+		// Header hairline under title / search row
+		sdf.add(SdfShape.builder()
+				.rect(px + ModernTheme.SIDEBAR_W + 8, py + ModernTheme.HEADER_H - 1,
+						ModernTheme.BG_W - ModernTheme.SIDEBAR_W - 16, 1f)
 				.radius(0).border(0, 0)
 				.fill(ModernTheme.DIVIDER, ModernTheme.DIVIDER)
 				.build());
 
-		// Header strip
-		sdf.add(SdfShape.builder()
-				.rect(px + sidebarW, py, contentW(), ModernTheme.HEADER_H)
-				.radius(0).border(0, 0)
-				.fill(0xF0151518, 0xF0151518)
-				.build());
-		sdf.add(SdfShape.builder()
-				.rect(px + sidebarW + 10, py + ModernTheme.HEADER_H - 1, contentW() - 20, 1f)
-				.radius(0).border(0, 0)
-				.fill(ModernTheme.DIVIDER, ModernTheme.DIVIDER)
-				.build());
+		drawAvatarChip(px, py);
+		drawSearchPill(px, py);
+		drawSidebarItems(px, py);
+		drawModuleList(px, py);
+		drawSettingsPanel(px, py);
 
-		drawAvatarSurface(px, py);
-		drawSidebarSurfaces(px, py);
-		drawListSurfaces(px, py);
-		drawDetailSurfaces(px, py);
 		sdf.flush();
 
-		// Text (batched MSDF)
+		// Text
 		drawAvatarText(px, py, ca);
 		drawSidebarText(px, py, ca);
 		drawHeaderText(px, py, ca);
-		drawListText(px, py, ca);
-		drawDetailText(px, py, ca);
+		drawModuleText(px, py, ca);
+		drawSettingsText(px, py, ca);
 		MsdfFonts.endFrame();
 
-		// Icons / portraits last via GuiGraphics (above panels)
-		drawPortraits(g, px, py, ca);
-		drawIcons(g, px, py, ca);
-
-		MsdfFonts.drawCentered(
-				"N close  ·  V neon dashboard",
-				px + panelW * 0.5f,
-				py + panelH + 8,
-				7f,
-				ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, anim * 0.85f));
-		MsdfFonts.endFrame();
+		drawSidebarIcons(g, px, py);
+		drawModuleIcons(g, px, py);
+		drawSettingsIcons(g, px, py);
 	}
 
-	private void drawAvatarSurface(float px, float py) {
-		float ax = px + 10;
-		float ay = py + 10;
-		float aw = sidebarW - 20;
+	// ── surfaces ──────────────────────────────────────────────────────
+
+	private void drawAvatarChip(float px, float py) {
+		// top-left profile card inside sidebar (screenshot)
+		float ax = px + 8;
+		float ay = py + 8;
+		float aw = ModernTheme.SIDEBAR_W - 16;
+		float ah = 32;
 		sdf.add(SdfShape.builder()
-				.rect(ax, ay, aw, 34)
-				.radius(10f)
-				.border(1f, ModernTheme.withAlpha(0xFFFFFFFF, 0.06f))
-				.highlight(0.12f)
-				.fill(ModernTheme.CARD, ModernTheme.CARD)
+				.rect(ax, ay, aw, ah)
+				.radius(9f)
+				.border(1f, ModernTheme.BORDER_SOFT)
+				.highlight(0.08f)
+				.fill(ModernTheme.AVATAR, ModernTheme.AVATAR)
 				.build());
+		// online dot
 		sdf.add(SdfShape.builder()
-				.rect(ax + 8, ay + 13, 8, 8)
-				.radius(4f)
+				.rect(ax + 7, ay + 12, 7, 7)
+				.radius(3.5f)
 				.border(0, 0)
-				.glow(4f, ModernTheme.withAlpha(ModernTheme.ONLINE, 0.5f))
+				.glow(3f, ModernTheme.withAlpha(ModernTheme.ONLINE, 0.45f))
 				.fill(ModernTheme.ONLINE, ModernTheme.ONLINE)
 				.build());
 	}
 
-	private void drawSidebarSurfaces(float px, float py) {
-		float y = py + 70;
+	private void drawSearchPill(float px, float py) {
+		float sw = 92f;
+		float sh = 18f;
+		float sx = px + ModernTheme.BG_W - 12 - sw;
+		float sy = py + 10;
+		sdf.add(SdfShape.builder()
+				.rect(sx, sy, sw, sh)
+				.radius(8f)
+				.border(1f, ModernTheme.BORDER_SOFT)
+				.fill(ModernTheme.CHIP, ModernTheme.CHIP)
+				.build());
+	}
+
+	private void drawSidebarItems(float px, float py) {
+		// section "MAIN"
+		float y = py + 52;
+		// items start
+		y = py + 64;
 		Tab[] tabs = Tab.values();
 		for (int i = 0; i < tabs.length; i++) {
-			float h = 26f;
-			float hover = sidebarHover[i];
+			float h = ModernTheme.SIDE_ITEM_H;
+			float x = px + 7;
+			float w = ModernTheme.SIDEBAR_W - 14;
 			boolean sel = tabs[i] == tab;
-			float x = px + 8;
-			float w = sidebarW - 16;
+			float hover = sideHover[i];
 			if (sel || hover > 0.02f) {
-				int fill = sel ? ModernTheme.CARD_SELECTED
-						: ModernTheme.lerpColor(ModernTheme.CARD, ModernTheme.CARD_HOVER, hover);
+				int fill = sel ? ModernTheme.ROW_SELECTED
+						: ModernTheme.lerpColor(0x00111111, ModernTheme.ROW_HOVER, hover);
 				sdf.add(SdfShape.builder()
 						.rect(x, y, w, h)
-						.radius(8f)
-						.border(sel ? 1f : 0f, ModernTheme.withAlpha(0xFFFFFFFF, sel ? 0.08f : 0f))
-						.highlight(sel ? 0.14f : 0.08f * hover)
-						.fill(fill, ModernTheme.CARD)
+						.radius(7f)
+						.border(0, 0)
+						.highlight(sel ? 0.10f : 0.05f * hover)
+						.fill(fill, fill)
 						.build());
 			}
 			if (sel) {
+				// thin left indicator — soft white, not amber
 				sdf.add(SdfShape.builder()
-						.rect(x + 2, y + 6, 2.5f, h - 12)
-						.radius(1.2f)
+						.rect(x + 2, y + 5, 2f, h - 10)
+						.radius(1f)
 						.border(0, 0)
-						.glow(4f, ModernTheme.withAlpha(ModernTheme.ACCENT, 0.45f))
-						.fill(ModernTheme.ACCENT, ModernTheme.ACCENT)
+						.fill(0xFFE8E8E8, 0xFFE8E8E8)
 						.build());
 			}
-			y += h + 4;
+			y += h + ModernTheme.SIDE_ITEM_GAP;
 		}
 	}
 
-	private void drawListSurfaces(float px, float py) {
-		float lx = px + sidebarW + ModernTheme.PAD;
-		float ly = py + ModernTheme.HEADER_H + ModernTheme.PAD;
-		float lh = contentH() - ModernTheme.PAD * 2f;
+	private void drawModuleList(float px, float py) {
+		float lx = px + ModernTheme.LIST_X;
+		float ly = py + ModernTheme.CONTENT_TOP;
+		float lw = ModernTheme.LIST_W;
+		float lh = contentH();
 
+		// list column plate
 		sdf.add(SdfShape.builder()
-				.rect(lx, ly, listW, lh)
-				.radius(12f)
-				.border(1f, ModernTheme.withAlpha(0xFFFFFFFF, 0.04f))
+				.rect(lx, ly, lw, lh)
+				.radius(10f)
+				.border(1f, ModernTheme.BORDER_SOFT)
 				.fill(ModernTheme.COLUMN, ModernTheme.COLUMN)
 				.build());
 
-		if (tab == Tab.CHARACTER) {
-			float rowY = ly + 8;
-			for (int i = 0; i < ROSTER.length; i++) {
-				boolean sel = i == listIndex;
-				float hover = listHover[i];
-				float rowH = 34f;
-				int fill = sel ? ModernTheme.CARD_SELECTED
-						: ModernTheme.lerpColor(ModernTheme.CARD, ModernTheme.CARD_HOVER, hover);
-				sdf.add(SdfShape.builder()
-						.rect(lx + 6, rowY, listW - 12, rowH)
-						.radius(9f)
-						.border(sel ? 1.2f : 1f, ModernTheme.withAlpha(
-								sel ? ModernTheme.ACCENT : 0xFFFFFFFF,
-								sel ? 0.40f + 0.25f * selectFlash : 0.05f + 0.08f * hover))
-						.glow(sel ? 7f : 0f, ModernTheme.withAlpha(ModernTheme.ACCENT, 0.20f))
-						.highlight(0.10f + (sel ? 0.08f : 0.06f * hover))
-						.fill(fill, fill)
-						.build());
-				// bind pill
-				sdf.add(SdfShape.builder()
-						.rect(lx + listW - 34, rowY + 9, 18, 16)
-						.radius(5f)
-						.border(0, 0)
-						.fill(0xFF2A2A30, 0xFF2A2A30)
-						.build());
-				rowY += rowH + 6;
-			}
-		} else if (tab == Tab.COMBAT) {
-			float rowY = ly + 8;
-			int n = selection == JujutsuCharacter.NOBARA ? NOBARA_ABILITIES.length : 1;
-			for (int i = 0; i < n; i++) {
-				float rowH = 32f;
-				sdf.add(SdfShape.builder()
-						.rect(lx + 6, rowY, listW - 12, rowH)
-						.radius(9f)
-						.border(1f, ModernTheme.withAlpha(0xFFFFFFFF, 0.05f))
-						.highlight(0.08f)
-						.fill(ModernTheme.CARD, ModernTheme.CARD)
-						.build());
-				rowY += rowH + 5;
-			}
-		} else {
-			String[] rows = tab == Tab.VISUALS ? VISUAL_ROWS : MISC_ROWS;
-			float rowY = ly + 8;
-			for (int i = 0; i < rows.length; i++) {
-				sdf.add(SdfShape.builder()
-						.rect(lx + 6, rowY, listW - 12, 30f)
-						.radius(8f)
-						.border(1f, ModernTheme.withAlpha(0xFFFFFFFF, 0.04f))
-						.fill(ModernTheme.CARD, ModernTheme.CARD)
-						.build());
-				rowY += 35;
-			}
+		ModuleRow[] rows = modulesForTab();
+		float rowY = ly + 6;
+		for (int i = 0; i < rows.length; i++) {
+			boolean sel = isModuleSelected(i);
+			float hover = i < modHover.length ? modHover[i] : 0f;
+			float rh = ModernTheme.ROW_H;
+			int fill = sel ? ModernTheme.ROW_SELECTED
+					: ModernTheme.lerpColor(ModernTheme.ROW, ModernTheme.ROW_HOVER, hover);
+			sdf.add(SdfShape.builder()
+					.rect(lx + 5, rowY, lw - 10, rh)
+					.radius(8f)
+					.border(1f, ModernTheme.withAlpha(0xFFFFFFFF,
+							sel ? 0.10f + 0.12f * selectFlash : 0.04f + 0.06f * hover))
+					.highlight(sel ? 0.10f : 0.05f * hover)
+					.fill(fill, fill)
+					.build());
+			// bind chip (right)
+			float bw = 14f;
+			sdf.add(SdfShape.builder()
+					.rect(lx + lw - 10 - bw - 4, rowY + (rh - 14) * 0.5f, bw, 14)
+					.radius(4f)
+					.border(0, 0)
+					.fill(0xFF2A2A2A, 0xFF2A2A2A)
+					.build());
+			rowY += rh + ModernTheme.ROW_GAP;
 		}
 	}
 
-	private void drawDetailSurfaces(float px, float py) {
-		float dx = px + sidebarW + ModernTheme.PAD + listW + ModernTheme.GAP;
-		float dy = py + ModernTheme.HEADER_H + ModernTheme.PAD;
-		float dw = detailW();
-		float dh = contentH() - ModernTheme.PAD * 2f;
+	private void drawSettingsPanel(float px, float py) {
+		float sx = px + ModernTheme.SETTINGS_X;
+		float sy = py + ModernTheme.CONTENT_TOP;
+		float sw = ModernTheme.SETTINGS_W;
+		float sh = contentH();
 
 		sdf.add(SdfShape.builder()
-				.rect(dx, dy, dw, dh)
-				.radius(12f)
-				.border(1f, ModernTheme.withAlpha(0xFFFFFFFF, 0.05f))
-				.highlight(0.08f)
-				.fill(ModernTheme.COLUMN, 0xF0121214)
+				.rect(sx, sy, sw, sh)
+				.radius(10f)
+				.border(1f, ModernTheme.BORDER_SOFT)
+				.highlight(0.05f)
+				.fill(ModernTheme.COLUMN, ModernTheme.COLUMN)
 				.build());
 
+		// title underline hairline
 		sdf.add(SdfShape.builder()
-				.rect(dx + 12, dy + 28, Math.min(48, dw - 24), 2f)
+				.rect(sx + 10, sy + 22, 28, 1.5f)
 				.radius(1f)
 				.border(0, 0)
-				.glow(4f, ModernTheme.withAlpha(ModernTheme.ACCENT, 0.35f))
-				.fill(ModernTheme.ACCENT, ModernTheme.withAlpha(ModernTheme.ACCENT, 0.3f))
+				.fill(0xFF3A3A3A, 0xFF3A3A3A)
 				.build());
 
 		if (tab == Tab.CHARACTER) {
-			float head = 52f;
-			sdf.add(SdfShape.builder()
-					.rect(dx + 14, dy + 42, head, head)
-					.radius(12f)
-					.border(1.2f, ModernTheme.withAlpha(ModernTheme.ACCENT,
-							ROSTER[listIndex].character() == JujutsuCharacter.NOBARA ? 0.4f : 0.15f))
-					.glow(ROSTER[listIndex].character() == JujutsuCharacter.NOBARA ? 8f : 0f,
-							ModernTheme.withAlpha(ModernTheme.ACCENT, 0.25f))
-					.fill(0xFF0E0E10, 0xFF0E0E10)
-					.build());
-
-			if (ROSTER[listIndex].character() == JujutsuCharacter.NOBARA) {
-				float chipY = dy + 108;
-				float chipX = dx + 12;
-				for (int i = 0; i < NOBARA_ABILITIES.length; i++) {
-					float cw = (dw - 24 - 6) * 0.5f;
-					float ch = 28f;
-					float cx = chipX + (i % 2) * (cw + 6);
-					float cy = chipY + (i / 2) * (ch + 6);
-					// Info chips only (not clickable) — quieter border
+			// settings rows (ability keys) like screenshot
+			float rowY = sy + 32;
+			ModuleRow mod = CHARACTER_MODULES[moduleIndex];
+			int rows = mod.character() == JujutsuCharacter.NOBARA ? ABILITY_NAMES.length : 1;
+			for (int i = 0; i < rows; i++) {
+				float rh = 34f;
+				sdf.add(SdfShape.builder()
+						.rect(sx + 6, rowY, sw - 12, rh)
+						.radius(8f)
+						.border(1f, ModernTheme.BORDER_SOFT)
+						.fill(ModernTheme.ROW, ModernTheme.ROW)
+						.build());
+				// value pill (right) — like dropdown value in screenshot
+				if (mod.character() == JujutsuCharacter.NOBARA) {
+					float vw = 36f;
 					sdf.add(SdfShape.builder()
-							.rect(cx, cy, cw, ch)
-							.radius(8f)
-							.border(1f, ModernTheme.withAlpha(0xFFFFFFFF, 0.06f))
-							.fill(0xF01C1C20, 0xF0161619)
+							.rect(sx + sw - 12 - vw - 4, rowY + 9, vw, 16)
+							.radius(5f)
+							.border(0, 0)
+							.fill(0xFF2A2A2A, 0xFF2A2A2A)
 							.build());
 				}
+				rowY += rh + 4;
 			}
 
-			float btnH = 28f;
-			float btnY = dy + dh - btnH - 12;
-			float cancelW = (dw - 12 - 10) * 0.38f;
-			float confW = (dw - 12 - 10) * 0.62f;
-			float bx = dx + 12;
+			// Cancel / Confirm — quiet gray, screenshot language
+			float btnH = 24f;
+			float btnY = sy + sh - btnH - 8;
+			float gap = 6f;
+			float cancelW = (sw - 12 - gap) * 0.40f;
+			float confW = (sw - 12 - gap) * 0.60f;
+			float bx = sx + 6;
 
 			sdf.add(SdfShape.builder()
 					.rect(bx, btnY, cancelW, btnH)
-					.radius(8f)
-					.border(1f, ModernTheme.withAlpha(0xFFFFFFFF, 0.08f + 0.1f * cancelHover))
-					.highlight(0.08f + 0.08f * cancelHover)
-					.fill(ModernTheme.lerpColor(ModernTheme.CARD, ModernTheme.CARD_HOVER, cancelHover),
-							ModernTheme.CARD)
+					.radius(7f)
+					.border(1f, ModernTheme.withAlpha(0xFFFFFFFF, 0.06f + 0.08f * cancelHover))
+					.fill(ModernTheme.lerpColor(ModernTheme.ROW, ModernTheme.ROW_HOVER, cancelHover),
+							ModernTheme.ROW)
 					.build());
-
-			int confFill = ModernTheme.lerpColor(0xFF2A2118, 0xFF3A2A16, confirmHover);
 			sdf.add(SdfShape.builder()
-					.rect(bx + cancelW + 10, btnY, confW, btnH)
-					.radius(8f)
-					.border(1.2f, ModernTheme.withAlpha(ModernTheme.ACCENT, 0.45f + 0.35f * confirmHover))
-					.glow(8f + 4f * confirmHover, ModernTheme.withAlpha(ModernTheme.ACCENT, 0.25f + 0.2f * confirmHover))
-					.highlight(0.14f + 0.1f * confirmHover)
-					.fill(confFill, 0xFF1A140E)
+					.rect(bx + cancelW + gap, btnY, confW, btnH)
+					.radius(7f)
+					.border(1f, ModernTheme.withAlpha(0xFFFFFFFF, 0.10f + 0.12f * confirmHover))
+					.highlight(0.08f + 0.08f * confirmHover)
+					.fill(ModernTheme.lerpColor(0xFF2A2A28, 0xFF343432, confirmHover),
+							0xFF222220)
 					.build());
 		} else {
-			float rowY = dy + 42;
-			int rows = tab == Tab.COMBAT
-					? (selection == JujutsuCharacter.NOBARA ? 4 : 1)
-					: 3;
-			for (int i = 0; i < rows; i++) {
+			float rowY = sy + 32;
+			int n = tab == Tab.COMBAT && selection == JujutsuCharacter.NOBARA ? 4 : 3;
+			for (int i = 0; i < n; i++) {
 				sdf.add(SdfShape.builder()
-						.rect(dx + 10, rowY, dw - 20, tab == Tab.COMBAT ? 36f : 40f)
-						.radius(9f)
-						.border(1f, ModernTheme.withAlpha(0xFFFFFFFF, 0.04f))
-						.fill(ModernTheme.CARD, ModernTheme.CARD)
+						.rect(sx + 6, rowY, sw - 12, 34f)
+						.radius(8f)
+						.border(1f, ModernTheme.BORDER_SOFT)
+						.fill(ModernTheme.ROW, ModernTheme.ROW)
 						.build());
-				rowY += tab == Tab.COMBAT ? 42 : 48;
+				rowY += 38;
 			}
 		}
 	}
+
+	// ── text ──────────────────────────────────────────────────────────
 
 	private void drawAvatarText(float px, float py, float a) {
 		Minecraft mc = Minecraft.getInstance();
 		String name = mc.player != null ? mc.player.getName().getString() : "Player";
-		if (name.length() > 10) {
-			name = name.substring(0, 9) + "…";
+		if (name.length() > 9) {
+			name = name.substring(0, 8) + "…";
 		}
-		MsdfFonts.draw(name, px + 28, py + 16, 8.5f, ModernTheme.withAlpha(ModernTheme.TEXT, a));
+		MsdfFonts.draw(name, px + 24, py + 13, 7.5f, ModernTheme.withAlpha(ModernTheme.TEXT, a));
 		String sub = selection == JujutsuCharacter.NOBARA ? "Nobara" : "None";
-		MsdfFonts.draw(sub, px + 28, py + 28, 7f, ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a));
+		MsdfFonts.draw(sub, px + 24, py + 24, 6.5f, ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a));
 	}
 
 	private void drawSidebarText(float px, float py, float a) {
-		MsdfFonts.draw("MAIN", px + 12, py + 54, 7.5f, ModernTheme.withAlpha(0xFF8A8A94, a));
-		float y = py + 70;
+		MsdfFonts.draw("MAIN", px + 10, py + 50, 6.5f, ModernTheme.withAlpha(ModernTheme.TEXT_SECTION, a));
+		float y = py + 64;
 		for (Tab t : Tab.values()) {
 			boolean sel = t == tab;
-			int col = sel ? ModernTheme.TEXT : ModernTheme.TEXT_DIM;
-			MsdfFonts.draw(t.title, px + 28, y + 8, 9f, ModernTheme.withAlpha(col, a));
-			y += 30;
+			MsdfFonts.draw(t.title, px + 24, y + 7, 8f,
+					ModernTheme.withAlpha(sel ? ModernTheme.TEXT : ModernTheme.TEXT_DIM, a));
+			y += ModernTheme.SIDE_ITEM_H + ModernTheme.SIDE_ITEM_GAP;
 		}
+		MsdfFonts.draw("Soon…", px + 10, py + ModernTheme.BG_H - 18, 7f,
+				ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a * 0.75f));
 	}
 
 	private void drawHeaderText(float px, float py, float a) {
-		float hx = px + sidebarW + 14;
-		MsdfFonts.draw(tab.title, hx, py + 8, 12f, ModernTheme.withAlpha(ModernTheme.TEXT, a));
-		MsdfFonts.draw(tab.subtitle, hx + MsdfFonts.width(tab.title, 12f) + 8, py + 12, 8f,
-				ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a));
+		// Category title next to sidebar (screenshot: "Combat")
+		MsdfFonts.draw(tab.title, px + ModernTheme.SIDEBAR_W + 12, py + 12, 11f,
+				ModernTheme.withAlpha(ModernTheme.TEXT, a));
+		// search placeholder
+		float sw = 92f;
+		float sx = px + ModernTheme.BG_W - 12 - sw;
+		MsdfFonts.draw("Search…", sx + 8, py + 14, 7f,
+				ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a * 0.75f));
 	}
 
-	private void drawListText(float px, float py, float a) {
-		float lx = px + sidebarW + ModernTheme.PAD;
-		float ly = py + ModernTheme.HEADER_H + ModernTheme.PAD;
-
-		if (tab == Tab.CHARACTER) {
-			float rowY = ly + 8;
-			for (int i = 0; i < ROSTER.length; i++) {
-				RosterEntry e = ROSTER[i];
-				boolean sel = i == listIndex;
-				MsdfFonts.draw(shortName(e.name()), lx + 14, rowY + 8, 9f,
-						ModernTheme.withAlpha(sel ? ModernTheme.TEXT : ModernTheme.TEXT_DIM, a));
-				MsdfFonts.draw(e.grade(), lx + 14, rowY + 19, 7f,
-						ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a));
-				MsdfFonts.drawCentered(e.pill(), lx + listW - 25, rowY + 12, 8f,
-						ModernTheme.withAlpha(ModernTheme.TEXT_DIM, a));
-				rowY += 40;
-			}
-		} else if (tab == Tab.COMBAT) {
-			float rowY = ly + 8;
-			if (selection == JujutsuCharacter.NOBARA) {
-				for (String ability : NOBARA_ABILITIES) {
-					MsdfFonts.draw(ability, lx + 12, rowY + 11, 8f,
-							ModernTheme.withAlpha(ModernTheme.TEXT, a));
-					rowY += 37;
-				}
-			} else {
-				MsdfFonts.draw("No active kit", lx + 12, rowY + 11, 8f,
-						ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a));
-			}
-		} else {
-			String[] rows = tab == Tab.VISUALS ? VISUAL_ROWS : MISC_ROWS;
-			float rowY = ly + 8;
-			for (String row : rows) {
-				MsdfFonts.draw(row, lx + 12, rowY + 10, 8.5f, ModernTheme.withAlpha(ModernTheme.TEXT, a));
-				rowY += 35;
-			}
+	private void drawModuleText(float px, float py, float a) {
+		float lx = px + ModernTheme.LIST_X;
+		float ly = py + ModernTheme.CONTENT_TOP;
+		ModuleRow[] rows = modulesForTab();
+		float rowY = ly + 6;
+		for (int i = 0; i < rows.length; i++) {
+			ModuleRow r = rows[i];
+			boolean sel = isModuleSelected(i);
+			MsdfFonts.draw(r.name(), lx + 12, rowY + 9, 8.5f,
+					ModernTheme.withAlpha(sel ? ModernTheme.TEXT : ModernTheme.TEXT_DIM, a));
+			MsdfFonts.drawCentered(r.bind(), lx + ModernTheme.LIST_W - 10 - 11, rowY + 9, 7f,
+					ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a));
+			rowY += ModernTheme.ROW_H + ModernTheme.ROW_GAP;
 		}
 	}
 
-	private void drawDetailText(float px, float py, float a) {
-		float dx = px + sidebarW + ModernTheme.PAD + listW + ModernTheme.GAP;
-		float dy = py + ModernTheme.HEADER_H + ModernTheme.PAD;
-		float dw = detailW();
-		float dh = contentH() - ModernTheme.PAD * 2f;
+	private void drawSettingsText(float px, float py, float a) {
+		float sx = px + ModernTheme.SETTINGS_X;
+		float sy = py + ModernTheme.CONTENT_TOP;
+		float sw = ModernTheme.SETTINGS_W;
+		float sh = contentH();
 
 		if (tab == Tab.CHARACTER) {
-			RosterEntry e = ROSTER[listIndex];
-			MsdfFonts.draw(e.name(), dx + 12, dy + 12, 11f, ModernTheme.withAlpha(ModernTheme.TEXT, a));
-			MsdfFonts.draw(e.tech(), dx + 74, dy + 48, 9f, ModernTheme.withAlpha(ModernTheme.TEXT_DIM, a));
-			MsdfFonts.draw(e.grade(), dx + 74, dy + 62, 8f, ModernTheme.withAlpha(ModernTheme.ACCENT, a));
-			MsdfFonts.draw(e.character() == JujutsuCharacter.NOBARA ? "R · B · Shift+R · LMB" : "No technique binds",
-					dx + 74, dy + 76, 7.5f, ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a));
+			ModuleRow mod = CHARACTER_MODULES[moduleIndex];
+			MsdfFonts.draw(mod.name(), sx + 10, sy + 8, 10.5f, ModernTheme.withAlpha(ModernTheme.TEXT, a));
 
-			if (e.character() == JujutsuCharacter.NOBARA) {
-				float chipY = dy + 108;
-				float chipX = dx + 12;
-				for (int i = 0; i < NOBARA_ABILITIES.length; i++) {
-					float cw = (dw - 24 - 6) * 0.5f;
-					float ch = 28f;
-					float cx = chipX + (i % 2) * (cw + 6);
-					float cy = chipY + (i / 2) * (ch + 6);
-					MsdfFonts.draw(shortAbility(NOBARA_ABILITIES[i]), cx + 22, cy + 9, 7.5f,
+			float rowY = sy + 32;
+			if (mod.character() == JujutsuCharacter.NOBARA) {
+				for (int i = 0; i < ABILITY_NAMES.length; i++) {
+					MsdfFonts.draw(ABILITY_NAMES[i], sx + 24, rowY + 7, 8f,
+							ModernTheme.withAlpha(ModernTheme.TEXT, a));
+					MsdfFonts.draw(ABILITY_SUB[i], sx + 24, rowY + 18, 6.5f,
+							ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a));
+					float vw = 36f;
+					MsdfFonts.drawCentered(ABILITY_KEYS[i],
+							sx + sw - 12 - vw * 0.5f - 4, rowY + 12, 7f,
 							ModernTheme.withAlpha(ModernTheme.TEXT_DIM, a));
-					MsdfFonts.draw(NOBARA_KEYS[i],
-							cx + cw - 8 - MsdfFonts.width(NOBARA_KEYS[i], 7f), cy + 9, 7f,
-							ModernTheme.withAlpha(ModernTheme.ACCENT, a));
+					rowY += 38;
 				}
 			} else {
-				MsdfFonts.draw("Clear vessel — vanilla play", dx + 14, dy + 120, 8.5f,
+				MsdfFonts.draw("No technique", sx + 14, rowY + 10, 8f,
+						ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a));
+				MsdfFonts.draw("Play as a normal survivor", sx + 14, rowY + 22, 6.5f,
 						ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a));
 			}
 
-			float btnH = 28f;
-			float btnY = dy + dh - btnH - 12;
-			float cancelW = (dw - 12 - 10) * 0.38f;
-			float confW = (dw - 12 - 10) * 0.62f;
-			float bx = dx + 12;
-			MsdfFonts.drawCentered("Cancel", bx + cancelW * 0.5f, btnY + 9, 9f,
+			float btnH = 24f;
+			float btnY = sy + sh - btnH - 8;
+			float gap = 6f;
+			float cancelW = (sw - 12 - gap) * 0.40f;
+			float confW = (sw - 12 - gap) * 0.60f;
+			float bx = sx + 6;
+			MsdfFonts.drawCentered("Cancel", bx + cancelW * 0.5f, btnY + 7, 8f,
 					ModernTheme.withAlpha(ModernTheme.TEXT_DIM, a));
-			MsdfFonts.drawCentered("Confirm", bx + cancelW + 10 + confW * 0.5f, btnY + 9, 9.5f,
+			MsdfFonts.drawCentered("Confirm", bx + cancelW + gap + confW * 0.5f, btnY + 7, 8.5f,
 					ModernTheme.withAlpha(ModernTheme.TEXT, a));
 		} else if (tab == Tab.COMBAT) {
-			MsdfFonts.draw("Loadout", dx + 12, dy + 12, 11f, ModernTheme.withAlpha(ModernTheme.TEXT, a));
-			float rowY = dy + 42;
+			MsdfFonts.draw("Loadout", sx + 10, sy + 8, 10.5f, ModernTheme.withAlpha(ModernTheme.TEXT, a));
+			float rowY = sy + 32;
 			if (selection == JujutsuCharacter.NOBARA) {
-				for (int i = 0; i < NOBARA_ABILITIES.length; i++) {
-					MsdfFonts.draw(NOBARA_ABILITIES[i], dx + 20, rowY + 12, 9f,
+				for (int i = 0; i < ABILITY_NAMES.length; i++) {
+					MsdfFonts.draw(ABILITY_NAMES[i], sx + 14, rowY + 7, 8f,
 							ModernTheme.withAlpha(ModernTheme.TEXT, a));
-					MsdfFonts.draw(NOBARA_KEYS[i],
-							dx + dw - 20 - MsdfFonts.width(NOBARA_KEYS[i], 8f), rowY + 13, 8f,
-							ModernTheme.withAlpha(ModernTheme.ACCENT, a));
-					rowY += 42;
+					MsdfFonts.draw(ABILITY_SUB[i], sx + 14, rowY + 18, 6.5f,
+							ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a));
+					MsdfFonts.draw(ABILITY_KEYS[i],
+							sx + sw - 14 - MsdfFonts.width(ABILITY_KEYS[i], 7.5f), rowY + 12, 7.5f,
+							ModernTheme.withAlpha(ModernTheme.TEXT_DIM, a));
+					rowY += 38;
 				}
 			} else {
-				MsdfFonts.draw("Select a vessel first", dx + 20, rowY + 12, 9f,
+				MsdfFonts.draw("Select a vessel first", sx + 14, rowY + 12, 8f,
 						ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a));
 			}
 		} else if (tab == Tab.VISUALS) {
-			MsdfFonts.draw("Presentation", dx + 12, dy + 12, 11f, ModernTheme.withAlpha(ModernTheme.TEXT, a));
-			float rowY = dy + 48;
-			for (int i = 0; i < VISUAL_DETAIL_T.length; i++) {
-				MsdfFonts.draw(VISUAL_DETAIL_T[i], dx + 20, rowY + 6, 9f, ModernTheme.withAlpha(ModernTheme.TEXT, a));
-				MsdfFonts.draw(VISUAL_DETAIL_B[i], dx + 20, rowY + 20, 7.2f, ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a));
-				rowY += 48;
+			MsdfFonts.draw("Presentation", sx + 10, sy + 8, 10.5f, ModernTheme.withAlpha(ModernTheme.TEXT, a));
+			String[] t = {"MSDF Type", "SDF Panels", "Rich Shell"};
+			String[] b = {
+					"Sharp distance-field labels",
+					"Soft rounded charcoal cards",
+					"Sidebar · list · settings"
+			};
+			float rowY = sy + 32;
+			for (int i = 0; i < t.length; i++) {
+				MsdfFonts.draw(t[i], sx + 14, rowY + 7, 8f, ModernTheme.withAlpha(ModernTheme.TEXT, a));
+				MsdfFonts.draw(b[i], sx + 14, rowY + 18, 6.5f, ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a));
+				rowY += 38;
 			}
 		} else {
-			MsdfFonts.draw("Controls", dx + 12, dy + 12, 11f, ModernTheme.withAlpha(ModernTheme.TEXT, a));
-			float rowY = dy + 48;
-			for (int i = 0; i < MISC_DETAIL_T.length; i++) {
-				MsdfFonts.draw(MISC_DETAIL_T[i], dx + 20, rowY + 6, 9f, ModernTheme.withAlpha(ModernTheme.TEXT, a));
-				MsdfFonts.draw(MISC_DETAIL_B[i], dx + 20, rowY + 20, 7.2f, ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a));
-				rowY += 48;
+			MsdfFonts.draw("Controls", sx + 10, sy + 8, 10.5f, ModernTheme.withAlpha(ModernTheme.TEXT, a));
+			String[] t = {"Modern Menu", "Neon Dashboard", "Nobara Kit"};
+			String[] b = {"Key N open / close", "Key V original UI", "R · B · Shift+R · LMB"};
+			float rowY = sy + 32;
+			for (int i = 0; i < t.length; i++) {
+				MsdfFonts.draw(t[i], sx + 14, rowY + 7, 8f, ModernTheme.withAlpha(ModernTheme.TEXT, a));
+				MsdfFonts.draw(b[i], sx + 14, rowY + 18, 6.5f, ModernTheme.withAlpha(ModernTheme.TEXT_MUTED, a));
+				rowY += 38;
 			}
 		}
 	}
 
-	private void drawPortraits(GuiGraphics g, float px, float py, float a) {
-		if (a < 0.05f || tab != Tab.CHARACTER) {
-			return;
-		}
-		float dx = px + sidebarW + ModernTheme.PAD + listW + ModernTheme.GAP;
-		float dy = py + ModernTheme.HEADER_H + ModernTheme.PAD;
-		int head = 52;
-		int hx = Math.round(dx + 14);
-		int hy = Math.round(dy + 42);
-		// Clip square skin blit into rounded frame
-		g.enableScissor(hx + 1, hy + 1, hx + head - 1, hy + head - 1);
-		RosterEntry e = ROSTER[listIndex];
-		if (e.portraitSkin()) {
-			g.blit(RenderPipelines.GUI_TEXTURED, NOBARA_SKIN, hx, hy, 8f, 8f, head, head, 8, 8, 64, 64);
-			g.blit(RenderPipelines.GUI_TEXTURED, NOBARA_SKIN, hx, hy, 40f, 8f, head, head, 8, 8, 64, 64);
-		} else if (e.emoji() != null) {
-			g.blit(RenderPipelines.GUI_TEXTURED, e.emoji(), hx + 4, hy + 4, 0f, 0f, head - 8, head - 8, 96, 96, 96, 96);
-		}
-		g.disableScissor();
-	}
+	// ── icons ─────────────────────────────────────────────────────────
 
-	private void drawIcons(GuiGraphics g, float px, float py, float a) {
-		if (a < 0.05f) {
-			return;
-		}
+	private void drawSidebarIcons(GuiGraphics g, float px, float py) {
 		ResourceLocation[] icons = {EMOJI_BUST, EMOJI_SWORDS, EMOJI_SPARKLES, EMOJI_GEAR};
-		float y = py + 74;
+		float y = py + 64 + 5;
 		for (ResourceLocation icon : icons) {
+			g.blit(RenderPipelines.GUI_TEXTURED, icon,
+					Math.round(px + 10), Math.round(y), 0f, 0f, 11, 11, 96, 96, 96, 96);
+			y += ModernTheme.SIDE_ITEM_H + ModernTheme.SIDE_ITEM_GAP;
+		}
+	}
+
+	private void drawModuleIcons(GuiGraphics g, float px, float py) {
+		if (tab != Tab.CHARACTER) {
+			return;
+		}
+		float lx = px + ModernTheme.LIST_X;
+		float ly = py + ModernTheme.CONTENT_TOP;
+		float rowY = ly + 6;
+		for (ModuleRow r : CHARACTER_MODULES) {
 			int s = 12;
-			g.blit(RenderPipelines.GUI_TEXTURED, icon, Math.round(px + 12), Math.round(y), 0f, 0f, s, s, 96, 96, 96, 96);
-			y += 30;
-		}
-		if (tab == Tab.CHARACTER && ROSTER[listIndex].character() == JujutsuCharacter.NOBARA) {
-			float dx = px + sidebarW + ModernTheme.PAD + listW + ModernTheme.GAP;
-			float dy = py + ModernTheme.HEADER_H + ModernTheme.PAD;
-			float dw = detailW();
-			float chipY = dy + 108;
-			float chipX = dx + 12;
-			for (int i = 0; i < NOBARA_ICONS.length; i++) {
-				float cw = (dw - 24 - 6) * 0.5f;
-				float ch = 28f;
-				float cx = chipX + (i % 2) * (cw + 6);
-				float cy = chipY + (i / 2) * (ch + 6);
-				g.blit(RenderPipelines.GUI_TEXTURED, NOBARA_ICONS[i],
-						Math.round(cx + 6), Math.round(cy + 8), 0f, 0f, 12, 12, 96, 96, 96, 96);
+			int ix = Math.round(lx + 10);
+			int iy = Math.round(rowY + 8);
+			if (r.skin()) {
+				g.enableScissor(ix, iy, ix + s, iy + s);
+				g.blit(RenderPipelines.GUI_TEXTURED, NOBARA_SKIN, ix, iy, 8f, 8f, s, s, 8, 8, 64, 64);
+				g.blit(RenderPipelines.GUI_TEXTURED, NOBARA_SKIN, ix, iy, 40f, 8f, s, s, 8, 8, 64, 64);
+				g.disableScissor();
+			} else {
+				g.blit(RenderPipelines.GUI_TEXTURED, EMOJI_BUST, ix, iy, 0f, 0f, s, s, 96, 96, 96, 96);
 			}
+			rowY += ModernTheme.ROW_H + ModernTheme.ROW_GAP;
 		}
 	}
 
-	private static String shortName(String name) {
-		int sp = name.indexOf(' ');
-		return sp > 0 ? name.substring(0, sp) : name;
+	private void drawSettingsIcons(GuiGraphics g, float px, float py) {
+		if (tab != Tab.CHARACTER) {
+			return;
+		}
+		ModuleRow mod = CHARACTER_MODULES[moduleIndex];
+		if (mod.character() != JujutsuCharacter.NOBARA) {
+			return;
+		}
+		float sx = px + ModernTheme.SETTINGS_X;
+		float sy = py + ModernTheme.CONTENT_TOP;
+		float rowY = sy + 32;
+		for (ResourceLocation icon : ABILITY_ICONS) {
+			g.blit(RenderPipelines.GUI_TEXTURED, icon,
+					Math.round(sx + 10), Math.round(rowY + 10), 0f, 0f, 11, 11, 96, 96, 96, 96);
+			rowY += 38;
+		}
 	}
 
-	private static String shortAbility(String name) {
-		return name.length() > 12 ? name.substring(0, 11) + "…" : name;
+	// ── data helpers ──────────────────────────────────────────────────
+
+	private ModuleRow[] modulesForTab() {
+		return switch (tab) {
+			case CHARACTER -> CHARACTER_MODULES;
+			case COMBAT -> selection == JujutsuCharacter.NOBARA
+					? new ModuleRow[] {
+							new ModuleRow("Piercing", "R", null, false),
+							new ModuleRow("Enlarge", "B", null, false),
+							new ModuleRow("Boom", "S+R", null, false),
+							new ModuleRow("Resonance", "LMB", null, false),
+					}
+					: new ModuleRow[] {new ModuleRow("Empty", "—", null, false)};
+			case VISUALS -> new ModuleRow[] {
+					new ModuleRow("MSDF", "—", null, false),
+					new ModuleRow("SDF", "—", null, false),
+					new ModuleRow("Shell", "—", null, false),
+			};
+			case MISC -> new ModuleRow[] {
+					new ModuleRow("Menu", "N", null, false),
+					new ModuleRow("Neon", "V", null, false),
+					new ModuleRow("Kit", "R/B", null, false),
+			};
+		};
 	}
+
+	private boolean isModuleSelected(int i) {
+		if (tab == Tab.CHARACTER) {
+			return i == moduleIndex;
+		}
+		return false;
+	}
+
+	// ── input ─────────────────────────────────────────────────────────
 
 	private float tickDelta() {
 		long now = System.nanoTime();
@@ -738,51 +681,45 @@ public final class ModernMenuScreen extends Screen {
 	}
 
 	private void updateHovers(int mx, int my, float px, float py, float dt) {
-		float speed = 0.35f;
 		float fdt = dt * 60f;
+		float speed = 0.38f;
 
-		float y = py + 70;
+		float y = py + 64;
 		Tab[] tabs = Tab.values();
 		for (int i = 0; i < tabs.length; i++) {
-			float h = 26f;
-			boolean hit = hit(mx, my, px + 8, y, sidebarW - 16, h);
-			sidebarHover[i] = UiEase.approach(sidebarHover[i], hit ? 1f : 0f, speed, fdt);
-			y += h + 4;
+			boolean hit = hit(mx, my, px + 7, y, ModernTheme.SIDEBAR_W - 14, ModernTheme.SIDE_ITEM_H);
+			sideHover[i] = UiEase.approach(sideHover[i], hit ? 1f : 0f, speed, fdt);
+			y += ModernTheme.SIDE_ITEM_H + ModernTheme.SIDE_ITEM_GAP;
 		}
 
-		float lx = px + sidebarW + ModernTheme.PAD;
-		float ly = py + ModernTheme.HEADER_H + ModernTheme.PAD;
-		if (tab == Tab.CHARACTER) {
-			float rowY = ly + 8;
-			for (int i = 0; i < ROSTER.length; i++) {
-				boolean hit = hit(mx, my, lx + 6, rowY, listW - 12, 34f);
-				listHover[i] = UiEase.approach(listHover[i], hit ? 1f : 0f, speed, fdt);
-				rowY += 40;
-			}
+		ModuleRow[] rows = modulesForTab();
+		float lx = px + ModernTheme.LIST_X;
+		float ly = py + ModernTheme.CONTENT_TOP;
+		float rowY = ly + 6;
+		for (int i = 0; i < rows.length && i < modHover.length; i++) {
+			boolean hit = hit(mx, my, lx + 5, rowY, ModernTheme.LIST_W - 10, ModernTheme.ROW_H);
+			modHover[i] = UiEase.approach(modHover[i], hit ? 1f : 0f, speed, fdt);
+			rowY += ModernTheme.ROW_H + ModernTheme.ROW_GAP;
 		}
 
 		if (tab == Tab.CHARACTER) {
-			float dx = px + sidebarW + ModernTheme.PAD + listW + ModernTheme.GAP;
-			float dy = py + ModernTheme.HEADER_H + ModernTheme.PAD;
-			float dw = detailW();
-			float dh = contentH() - ModernTheme.PAD * 2f;
-			float btnH = 28f;
-			float btnY = dy + dh - btnH - 12;
-			float cancelW = (dw - 12 - 10) * 0.38f;
-			float confW = (dw - 12 - 10) * 0.62f;
-			float bx = dx + 12;
+			float sx = px + ModernTheme.SETTINGS_X;
+			float sy = py + ModernTheme.CONTENT_TOP;
+			float sw = ModernTheme.SETTINGS_W;
+			float sh = contentH();
+			float btnH = 24f;
+			float btnY = sy + sh - btnH - 8;
+			float gap = 6f;
+			float cancelW = (sw - 12 - gap) * 0.40f;
+			float confW = (sw - 12 - gap) * 0.60f;
+			float bx = sx + 6;
 			cancelHover = UiEase.approach(cancelHover, hit(mx, my, bx, btnY, cancelW, btnH) ? 1f : 0f, speed, fdt);
 			confirmHover = UiEase.approach(confirmHover,
-					hit(mx, my, bx + cancelW + 10, btnY, confW, btnH) ? 1f : 0f, speed, fdt);
+					hit(mx, my, bx + cancelW + gap, btnY, confW, btnH) ? 1f : 0f, speed, fdt);
 		} else {
 			cancelHover = UiEase.approach(cancelHover, 0f, speed, fdt);
 			confirmHover = UiEase.approach(confirmHover, 0f, speed, fdt);
 		}
-	}
-
-	@Override
-	public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float delta) {
-		// scrim drawn in SDF batch
 	}
 
 	@Override
@@ -793,47 +730,49 @@ public final class ModernMenuScreen extends Screen {
 		float px = panelX();
 		float py = panelY();
 
-		float y = py + 70;
+		// sidebar
+		float y = py + 64;
 		for (Tab t : Tab.values()) {
-			if (hit(mouseX, mouseY, px + 8, y, sidebarW - 16, 26f)) {
+			if (hit(mouseX, mouseY, px + 7, y, ModernTheme.SIDEBAR_W - 14, ModernTheme.SIDE_ITEM_H)) {
 				if (tab != t) {
 					tab = t;
-					contentAlpha = 0.4f;
+					contentAlpha = 0.45f;
 				}
 				return true;
 			}
-			y += 30;
+			y += ModernTheme.SIDE_ITEM_H + ModernTheme.SIDE_ITEM_GAP;
 		}
 
-		float lx = px + sidebarW + ModernTheme.PAD;
-		float ly = py + ModernTheme.HEADER_H + ModernTheme.PAD;
-
+		// modules
 		if (tab == Tab.CHARACTER) {
-			float rowY = ly + 8;
-			for (int i = 0; i < ROSTER.length; i++) {
-				if (hit(mouseX, mouseY, lx + 6, rowY, listW - 12, 34f)) {
-					listIndex = i;
-					selection = ROSTER[i].character();
+			float lx = px + ModernTheme.LIST_X;
+			float ly = py + ModernTheme.CONTENT_TOP;
+			float rowY = ly + 6;
+			for (int i = 0; i < CHARACTER_MODULES.length; i++) {
+				if (hit(mouseX, mouseY, lx + 5, rowY, ModernTheme.LIST_W - 10, ModernTheme.ROW_H)) {
+					moduleIndex = i;
+					selection = CHARACTER_MODULES[i].character();
 					selectFlash = 1f;
 					return true;
 				}
-				rowY += 40;
+				rowY += ModernTheme.ROW_H + ModernTheme.ROW_GAP;
 			}
 
-			float dx = px + sidebarW + ModernTheme.PAD + listW + ModernTheme.GAP;
-			float dy = py + ModernTheme.HEADER_H + ModernTheme.PAD;
-			float dw = detailW();
-			float dh = contentH() - ModernTheme.PAD * 2f;
-			float btnH = 28f;
-			float btnY = dy + dh - btnH - 12;
-			float cancelW = (dw - 12 - 10) * 0.38f;
-			float confW = (dw - 12 - 10) * 0.62f;
-			float bx = dx + 12;
+			float sx = px + ModernTheme.SETTINGS_X;
+			float sy = py + ModernTheme.CONTENT_TOP;
+			float sw = ModernTheme.SETTINGS_W;
+			float sh = contentH();
+			float btnH = 24f;
+			float btnY = sy + sh - btnH - 8;
+			float gap = 6f;
+			float cancelW = (sw - 12 - gap) * 0.40f;
+			float confW = (sw - 12 - gap) * 0.60f;
+			float bx = sx + 6;
 			if (hit(mouseX, mouseY, bx, btnY, cancelW, btnH)) {
 				animateClose();
 				return true;
 			}
-			if (hit(mouseX, mouseY, bx + cancelW + 10, btnY, confW, btnH)) {
+			if (hit(mouseX, mouseY, bx + cancelW + gap, btnY, confW, btnH)) {
 				confirm();
 				return true;
 			}
@@ -842,7 +781,7 @@ public final class ModernMenuScreen extends Screen {
 	}
 
 	private void confirm() {
-		selection = ROSTER[listIndex].character();
+		selection = CHARACTER_MODULES[moduleIndex].character();
 		Minecraft mc = Minecraft.getInstance();
 		if (mc.player != null) {
 			PlayerSkin.Model model =
@@ -860,16 +799,6 @@ public final class ModernMenuScreen extends Screen {
 		if (keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_ESCAPE
 				|| keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_N) {
 			animateClose();
-			return true;
-		}
-		if (keyCode >= com.mojang.blaze3d.platform.InputConstants.KEY_1
-				&& keyCode <= com.mojang.blaze3d.platform.InputConstants.KEY_4) {
-			int idx = keyCode - com.mojang.blaze3d.platform.InputConstants.KEY_1;
-			Tab[] tabs = Tab.values();
-			if (idx < tabs.length && tab != tabs[idx]) {
-				tab = tabs[idx];
-				contentAlpha = 0.4f;
-			}
 			return true;
 		}
 		return super.keyPressed(keyCode, scanCode, modifiers);
@@ -897,8 +826,7 @@ public final class ModernMenuScreen extends Screen {
 				forceClose = true;
 			}
 		} else {
-			float t = (now - openStartMillis) / (float) OPEN_MS;
-			openAnim = UiEase.clamp01(t);
+			openAnim = UiEase.clamp01((now - openStartMillis) / (float) OPEN_MS);
 		}
 	}
 
