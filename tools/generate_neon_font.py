@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 """
-Generate a Minecraft bitmap font atlas from a Windows UI TTF.
+Minecraft bitmap font atlas from Windows UI TTF (Segoe).
 
-MC 1.21 BitmapProvider scale (from bytecode):
-  cellH = textureHeight / rowCount
-  scale = height / cellH
-  advance = floor(inkWidth * scale + 0.5) + 1
+MC 1.21 BitmapProvider:
+  scale = height / cellHeight
+  advance = round(inkWidth * scale) + 1
 
-If CELL != height, glyphs are resampled in-game and look squished/blurry.
-Rule: CELL == HEIGHT so scale == 1.0 (pixel-perfect).
+Rules that actually look good in-game:
+1. CELL == HEIGHT  → scale 1.0 (no squash/warp).
+2. Glyphs LEFT-aligned (width measured from cell left edge).
+3. Enough pixels per glyph: height 12 looks "144p"; 14–16 is the sweet zone.
+4. Super-sample offline then LANCZOS down — FreeType at native 14px is muddy.
 
-Glyphs must be LEFT-aligned: advance is measured from the left edge of the
-cell to the rightmost non-zero alpha column.
+height history:
+  16 — too large for this UI
+  12 — scale-correct but pixelated
+  14 — target: smooth enough, not huge
 """
 from __future__ import annotations
 
@@ -19,7 +23,7 @@ import json
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "src" / "main" / "resources" / "assets" / "jujutsumod"
@@ -33,15 +37,11 @@ FONT_CANDIDATES = [
     Path(r"C:\Windows\Fonts\arial.ttf"),
 ]
 
-# 1:1 bake — no in-game vertical squash.
-# 12 ≈ halfway between vanilla 8 and the too-large 16.
-CELL = 12
-HEIGHT = 12
-ASCENT = 9
-
-# Super-sample then downscale for cleaner edges than raw 12px FreeType.
-SS = 4  # 48px work cells
-LEFT_PAD_SS = 2  # becomes ~0.5–1px after downscale
+CELL = 14
+HEIGHT = 14
+ASCENT = 11
+SS = 4  # work cell = 56px
+LEFT_PAD_SS = 3
 
 ROWS: list[str] = [
     " !\"#$%&'()*+,-./",
@@ -62,17 +62,17 @@ def pick_font() -> Path:
 
 def render_supersampled(ttf: Path) -> Image.Image:
     work = CELL * SS
-    # Size so "Hg" nearly fills the work cell (leave 1px pad top/bottom after downscale).
-    face = ImageFont.truetype(str(ttf), size=int(work * 0.92))
+    # Fill most of the cell; leave room for descenders (g, y, p, q).
+    face = ImageFont.truetype(str(ttf), size=int(work * 0.88))
     cols = max(len(r) for r in ROWS)
     rows_n = len(ROWS)
     big = Image.new("RGBA", (cols * work, rows_n * work), (0, 0, 0, 0))
     draw = ImageDraw.Draw(big)
 
-    # Fit "Hg" band into the cell with equal vertical padding.
     band = draw.textbbox((0, 0), "Hg", font=face)
     band_h = band[3] - band[1]
-    top_pad = max(1, (work - band_h) // 2)
+    # Bias slightly up so capitals sit high; g descender still fits.
+    top_pad = max(2, int((work - band_h) * 0.28))
 
     for ry, row in enumerate(ROWS):
         padded = row.ljust(cols)
@@ -80,35 +80,28 @@ def render_supersampled(ttf: Path) -> Image.Image:
             if ch == " ":
                 continue
             bbox = draw.textbbox((0, 0), ch, font=face)
-            # LEFT-ALIGNED (critical for MC auto-width)
             x = cx * work + LEFT_PAD_SS - bbox[0]
             y = ry * work + top_pad - band[1]
             draw.text((x, y), ch, font=face, fill=(255, 255, 255, 255))
 
-    # High-quality downscale to final CELL size (scale will be 1.0 in MC).
-    final = big.resize(
-        (cols * CELL, rows_n * CELL),
-        resample=Image.Resampling.LANCZOS,
-    )
-    # Slight alpha crisp: keep AA but kill near-zero noise that inflates width.
+    final = big.resize((cols * CELL, rows_n * CELL), resample=Image.Resampling.LANCZOS)
+
+    # Clean near-zero alpha (stops inflated advances) but keep soft edges.
     px = final.load()
     w, h = final.size
     for y in range(h):
         for x in range(w):
             r, g, b, a = px[x, y]
-            if a < 24:
+            if a < 18:
                 px[x, y] = (255, 255, 255, 0)
             else:
-                # Boost mid-alpha so thin strokes stay visible after tint
-                a2 = min(255, int(a * 1.15))
-                px[x, y] = (255, 255, 255, a2)
+                px[x, y] = (255, 255, 255, min(255, int(20 + a * 0.92)))
     return final
 
 
 def write_json(cols: int) -> None:
     chars = [r.ljust(cols) for r in ROWS]
-    # Vanilla space at h=8 is 4; proportional for h=12 → 6.
-    space = max(3, HEIGHT // 2)
+    space = 5  # ~vanilla-ish relative spacing at h=14
     doc = {
         "providers": [
             {"type": "space", "advances": {" ": space}},
@@ -127,8 +120,8 @@ def write_json(cols: int) -> None:
 
 
 def main() -> int:
-    assert CELL == HEIGHT, "CELL must equal HEIGHT for scale=1.0"
-    assert ASCENT <= HEIGHT, "ascent must be <= height"
+    assert CELL == HEIGHT, "CELL must equal HEIGHT (scale=1.0)"
+    assert ASCENT <= HEIGHT
     ttf = pick_font()
     print(f"source: {ttf}")
     atlas = render_supersampled(ttf)
@@ -139,7 +132,7 @@ def main() -> int:
     if old.exists():
         old.unlink()
     print(f"atlas {atlas.size} bytes={TEX_PNG.stat().st_size}")
-    print(f"CELL={CELL} HEIGHT={HEIGHT} ASCENT={ASCENT} scale=1.0")
+    print(f"CELL={CELL} HEIGHT={HEIGHT} ASCENT={ASCENT} scale=1.0 SS={SS}")
     return 0
 
 

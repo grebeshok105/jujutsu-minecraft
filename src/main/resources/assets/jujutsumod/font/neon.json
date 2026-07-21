@@ -3,14 +3,14 @@
     {
       "type": "space",
       "advances": {
-        " ": 6
+        " ": 5
       }
     },
     {
       "type": "bitmap",
       "file": "jujutsumod:font/neon.png",
-      "height": 12,
-      "ascent": 9,
+      "height": 14,
+      "ascent": 11,
       "chars": [
         " !\"#$%&'()*+,-./",
         "0123456789:;<=>?",
