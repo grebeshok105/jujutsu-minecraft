@@ -2,15 +2,17 @@
 """
 Generate a Minecraft *bitmap* font atlas from a system TTF.
 
-Why bitmap (not TTF) — deep research summary (MC 1.21 Font + FreeType):
-1. Vanilla UI never uses TTF; default is bitmap (Mojangles) + unifont fallback.
-2. TTF provider strips kerning/ligatures (wiki). FreeType AA at GUI scale looks muddy.
-3. TTF `file` is relative to assets/<ns>/font/ and MC auto-prefixes `font/` (double-path trap).
-4. Bitmap glyphs are pixel-stable, auto-width from rightmost alpha, recolorable if white.
-5. Quality path used by real packs: bake TTF offline → PNG atlas → bitmap provider.
+Critical Minecraft bitmap rules (wiki + observed bugs):
+1. Texture is split into equal cells by rows/cols of `chars`.
+2. Glyph advance width = distance from LEFT edge of cell to rightmost
+   non-zero alpha column.  => glyphs MUST be left-aligned (not centered),
+   otherwise every letter gets huge left padding baked into advance width
+   and text looks like "N o b a r a".
+3. `height` should match cell height or a clean scale of it (wiki).
+4. White glyphs recolor in-game; transparent = empty.
 
-Bitmap texture path: assets/<ns>/textures/font/neon.png
-JSON: assets/<ns>/font/neon.json  with file "ns:font/neon.png"
+We bake HD cells (CELL) and set height slightly above vanilla 8 so Segoe
+stays readable without looking giant (vanilla~8, previous bad=16, now=11).
 """
 from __future__ import annotations
 
@@ -33,14 +35,14 @@ FONT_CANDIDATES = [
     Path(r"C:\Windows\Fonts\calibri.ttf"),
 ]
 
-# 32px source cells, rendered at height 10 (close to vanilla 8, still smoother HD bake).
-CELL = 32
-HEIGHT = 10
-ASCENT = 8
-PT = 22  # FreeType point size into the 32px cell
+# Bake high-res, display slightly larger than vanilla 8.
+CELL = 24
+HEIGHT = 11
+ASCENT = 9
+PT = 17  # fits in 24px cell with 1px left pad
+LEFT_PAD = 1
+TOP_BIAS = 1  # nudge down a hair inside the cell
 
-# Pure ASCII only — homogeneous metrics, no fallback tofu for Latin UI.
-# 16 columns × 6 rows = 96 glyphs covering 0x20–0x7E fully.
 ROWS: list[str] = [
     " !\"#$%&'()*+,-./",
     "0123456789:;<=>?",
@@ -65,31 +67,35 @@ def render_atlas(ttf: Path) -> tuple[Image.Image, list[str]]:
     img = Image.new("RGBA", (cols * CELL, rows_n * CELL), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
-    # Pre-measure capital H for vertical centering baseline.
-    sample = draw.textbbox((0, 0), "H", font=face)
-    sample_h = sample[3] - sample[1]
+    # Shared vertical band from capital H so baseline is consistent.
+    h_box = draw.textbbox((0, 0), "Hg", font=face)
+    band_top = h_box[1]
+    band_h = h_box[3] - h_box[1]
 
     for ry, row in enumerate(ROWS):
         padded = row.ljust(cols)
         for cx, ch in enumerate(padded):
+            if ch == " ":
+                continue  # space width comes from space provider
             bbox = draw.textbbox((0, 0), ch, font=face)
-            gw = max(1, bbox[2] - bbox[0])
-            # Horizontal center; vertical align to capital baseline band.
-            x = cx * CELL + (CELL - gw) // 2 - bbox[0]
-            y = ry * CELL + (CELL - sample_h) // 2 - sample[1]
-            # Pure white RGB, alpha from FreeType raster — MC multiplies by text color.
+            # LEFT-ALIGNED inside cell (required for correct MC auto-width).
+            x = cx * CELL + LEFT_PAD - bbox[0]
+            # Vertical: place capital band near top of cell with small pad.
+            y = ry * CELL + TOP_BIAS - band_top + max(0, (CELL - band_h - TOP_BIAS * 2) // 4)
             draw.text((x, y), ch, font=face, fill=(255, 255, 255, 255))
 
     return img, [r.ljust(cols) for r in ROWS]
 
 
 def write_json(chars: list[str]) -> None:
+    # Space advance ~ half an average glyph at height 11 (vanilla space is 4 at h=8).
+    space_w = 4
     doc = {
         "providers": [
             {
                 "type": "space",
                 "advances": {
-                    " ": 5,
+                    " ": space_w,
                 },
             },
             {
@@ -125,7 +131,7 @@ def main() -> int:
         print(f"removed stale {old_ttf.name}")
     print(f"wrote {TEX_PNG.relative_to(ROOT)} ({TEX_PNG.stat().st_size} bytes) {atlas.size}")
     print(f"wrote {FONT_JSON.relative_to(ROOT)}")
-    print(f"cell={CELL} height={HEIGHT} ascent={ASCENT}")
+    print(f"cell={CELL} height={HEIGHT} ascent={ASCENT} left_pad={LEFT_PAD}")
     return 0
 
 
