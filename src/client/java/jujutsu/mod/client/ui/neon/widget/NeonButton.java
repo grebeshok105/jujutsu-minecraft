@@ -57,13 +57,13 @@ public final class NeonButton extends UiComponent {
             fillTop = brighten(t.accentArgb(), 0.38f + 0.12f * hover);
             fillBottom = brighten(t.deepArgb(), 0.12f + 0.08f * hover);
         } else {
-            fillTop = lerpColor(t.raised(), t.fillAccentTop(), hover * 0.5f);
-            fillBottom = lerpColor(t.raisedBottom(), t.fillAccentBottom(), hover * 0.5f);
+            fillTop = lerpColor(t.raised(), t.fillAccentTop(), 0.25f + hover * 0.45f);
+            fillBottom = lerpColor(t.raisedBottom(), t.fillAccentBottom(), 0.15f + hover * 0.4f);
         }
 
         int borderArgb = primary
-                ? applyAlpha(brighten(t.accentArgb(), 0.55f), 0.85f)
-                : applyAlpha(t.borderStrong(), 0.3f + 0.4f * hover);
+                ? applyAlpha(brighten(t.accentArgb(), 0.55f), 0.95f)
+                : applyAlpha(t.borderStrong(), 0.45f + 0.4f * hover);
         float radius = height / 2f;
 
         ctx.sdf().add(SdfShape.builder()

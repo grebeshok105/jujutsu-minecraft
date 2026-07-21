@@ -90,9 +90,14 @@ public final class UiRoot extends UiContainer {
         float sx = cx - sw / 2f;
         float sy = cy - sh / 2f;
 
+        // Character-tinted panel: stronger accent border/glow so theme is obvious.
         sdf.add(SdfShape.builder().rect(sx, sy, sw, sh)
-                .radius(10).border(1, t.border()).glow(12, t.glow()).highlight(1f)
-                .fill(t.panelTop(), t.panelBottom()).build());
+                .radius(10)
+                .border(1.5f, t.borderStrong())
+                .glow(18, t.glow())
+                .highlight(0.85f)
+                .fill(t.panelTop(), t.panelBottom())
+                .build());
 
         if (chromeRenderer != null) {
             chromeRenderer.accept(ctx);

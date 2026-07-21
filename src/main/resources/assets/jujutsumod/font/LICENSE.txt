@@ -1,3 +1,5 @@
-Inter font (SIL Open Font License 1.1)
-Source: https://github.com/rsms/inter / fontsource inter latin-400
-Bundled as neon.ttf for jujutsumod dashboard UI only.
+Open Sans
+Copyright 2020 The Open Sans Project Authors (https://github.com/googlefonts/opensans)
+Licensed under the SIL Open Font License, Version 1.1
+https://scripts.sil.org/OFL
+Bundled as neon.ttf for jujutsumod dashboard UI.

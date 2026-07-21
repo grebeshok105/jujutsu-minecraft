@@ -100,16 +100,17 @@ public final class NeonDropdown extends UiComponent {
         float py = ay + height + 2;
         float ph = options.size() * ITEM_H;
 
-        // Opaque panel + accent border via GuiGraphics (always above SDF + sibling text).
-        g.fill((int) ax, (int) py, (int) (ax + width), (int) (py + ph), 0xF51C1510);
+        // Opaque theme panel + accent border (always above SDF + sibling text).
+        int panel = (t.raised() & 0x00FFFFFF) | 0xF5000000;
+        g.fill((int) ax, (int) py, (int) (ax + width), (int) (py + ph), panel);
         g.fill((int) ax, (int) py, (int) (ax + width), (int) py + 1, t.accentArgb());
-        g.fill((int) ax, (int) (py + ph - 1), (int) (ax + width), (int) (py + ph), t.border());
-        g.fill((int) ax, (int) py, (int) ax + 1, (int) (py + ph), t.border());
-        g.fill((int) (ax + width - 1), (int) py, (int) (ax + width), (int) (py + ph), t.border());
+        g.fill((int) ax, (int) (py + ph - 1), (int) (ax + width), (int) (py + ph), t.borderStrong());
+        g.fill((int) ax, (int) py, (int) ax + 1, (int) (py + ph), t.borderStrong());
+        g.fill((int) (ax + width - 1), (int) py, (int) (ax + width), (int) (py + ph), t.borderStrong());
 
         g.fill((int) (ax + 2), (int) (py + selectedIndex * ITEM_H + 1),
                 (int) (ax + width - 2), (int) (py + selectedIndex * ITEM_H + ITEM_H - 1),
-                applyAlpha(t.accentArgb(), 0.22f));
+                applyAlpha(t.accentArgb(), 0.28f));
         for (int i = 0; i < options.size(); i++) {
             int color = i == selectedIndex ? NeonTheme.text() : NeonTheme.textMuted();
             g.drawString(ctx.font(), options.get(i), (int) (ax + 8), (int) (py + i * ITEM_H + 5), color, false);

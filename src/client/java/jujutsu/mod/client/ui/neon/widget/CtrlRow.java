@@ -46,9 +46,9 @@ public final class CtrlRow extends UiContainer {
         ctx.sdf().add(SdfShape.builder()
                 .rect(absX(), absY(), width, height)
                 .radius(6)
-                .border(1, applyAlpha(t.accentArgb(), 0.10f))
-                .glow(0, 0).highlight(0.10f)
-                .fill(t.panelInset(), t.panelInset())
+                .border(1, applyAlpha(t.accentArgb(), 0.22f))
+                .glow(0, 0).highlight(0.14f)
+                .fill(t.raised(), t.raisedBottom())
                 .build());
         super.renderSurface(ctx);
     }

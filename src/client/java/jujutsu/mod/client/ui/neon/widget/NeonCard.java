@@ -76,24 +76,25 @@ public final class NeonCard extends UiComponent {
         float glowR = selected ? 14f : 7f * selectAnim;
         int glowArgb = applyAlpha(accentRgb, (selected ? 0.5f : 0.3f) * Math.max(selectAnim, 0.001f) * (selected ? 1f : selectAnim));
 
+        NeonTheme t = ctx.theme();
         ctx.sdf().add(SdfShape.builder()
                 .rect(ax, ay, width, height)
                 .radius(8)
                 .border(1, borderArgb)
                 .glow(glowR, glowArgb)
-                .highlight(0.2f + 0.4f * selectAnim)
-                .fill(0xD9211914, 0xD9181210)
+                .highlight(0.25f + 0.4f * selectAnim)
+                .fill(t.raised(), t.raisedBottom())
                 .build());
 
-        // Portrait well.
+        // Portrait well — slightly darker inset of the same theme family.
         float wellX = ax + PAD, wellY = ay + PAD;
         ctx.sdf().add(SdfShape.builder()
                 .rect(wellX, wellY, PORTRAIT, PORTRAIT)
                 .radius(8)
-                .border(1, applyAlpha(accentRgb, 0.12f + 0.3f * selectAnim))
-                .glow(selected ? 8f : 0f, applyAlpha(accentRgb, 0.35f))
-                .highlight(0.15f)
-                .fill(0xE61E1611, 0xE6100B09)
+                .border(1, applyAlpha(accentRgb, 0.18f + 0.35f * selectAnim))
+                .glow(selected ? 10f : 4f, applyAlpha(accentRgb, 0.40f + 0.2f * selectAnim))
+                .highlight(0.18f)
+                .fill(t.panelInset(), t.panelInset())
                 .build());
 
         // Emoji halo AFTER well so it is not covered (skin portraits skip this).

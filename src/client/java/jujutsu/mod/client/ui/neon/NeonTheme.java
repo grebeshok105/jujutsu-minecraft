@@ -2,35 +2,84 @@ package jujutsu.mod.client.ui.neon;
 
 import jujutsu.mod.client.ui.UiEase;
 
-public record NeonTheme(int accentArgb, int deepArgb) {
+/**
+ * Per-character neon palette. Surfaces are character-tinted mid-tones (not pure black)
+ * so the dashboard reads as warm orange for Nobara / cool slate for None.
+ */
+public record NeonTheme(
+        int accentArgb,
+        int deepArgb,
+        int panelTop,
+        int panelBottom,
+        int raised,
+        int raisedBottom,
+        int panelInset,
+        int sidebarTop,
+        int sidebarBottom,
+        int scrimTop,
+        int scrimBottom) {
 
-    public static final NeonTheme NOBARA = new NeonTheme(0xFFE48A36, 0xFF8B3F1C);
-    public static final NeonTheme NONE = new NeonTheme(0xFF505760, 0xFF2E333A);
+    /** Nobara — warm amber wood / cursed-tool orange. */
+    public static final NeonTheme NOBARA = new NeonTheme(
+            0xFFE48A36,
+            0xFF8B3F1C,
+            0xF23C2A1E, // panel top  — readable warm brown
+            0xF5302218, // panel bottom
+            0xE64A3628, // raised
+            0xE63E2C20,
+            0xD92A1E16, // inset
+            0xC038281C, // sidebar top
+            0xA0281C14, // sidebar bottom
+            0x991A100C, // scrim (not pure black)
+            0xB0140C0A
+    );
 
-    public int glow() { return withAlpha(accentArgb, 0x8C); }
-    public int border() { return withAlpha(accentArgb, 0x38); }
-    public int borderStrong() { return withAlpha(accentArgb, 0x8C); }
-    public int fillAccentTop() { return withAlpha(accentArgb, 0x24); }
-    public int fillAccentBottom() { return withAlpha(accentArgb, 0x0A); }
+    /** None — cooler graphite / steel slate. */
+    public static final NeonTheme NONE = new NeonTheme(
+            0xFF7A8796,
+            0xFF3A4450,
+            0xF22A3038,
+            0xF5222830,
+            0xE6384048,
+            0xE62E363E,
+            0xD91E242C,
+            0xC0283038,
+            0xA01C2228,
+            0x99101418,
+            0xB00C1014
+    );
 
-    public int panelTop() { return 0xEB17110F; }
-    public int panelBottom() { return 0xF0110C0A; }
-    public int raised() { return 0xD9211914; }
-    public int raisedBottom() { return 0xD9181210; }
-    public int panelInset() { return 0xCC0D0907; }
-    public int scrimTop() { return 0xB8090605; }
-    public int scrimBottom() { return 0xC7090605; }
-    public int sidebarTop() { return 0x80131009; }
-    public int sidebarBottom() { return 0x4D0F0A08; }
+    public int glow() { return withAlpha(accentArgb, 0xA0); }
+    public int border() { return withAlpha(accentArgb, 0x55); }
+    public int borderStrong() { return withAlpha(accentArgb, 0xB0); }
+    public int fillAccentTop() { return withAlpha(accentArgb, 0x38); }
+    public int fillAccentBottom() { return withAlpha(accentArgb, 0x18); }
 
-    public static int text() { return 0xFFF4EFE8; }
-    public static int textMuted() { return 0xFFA89E97; }
-    public static int textDim() { return 0xFF635850; }
+    /** Soft accent wash for header/sidebar accents. */
+    public int accentWash(float alpha) {
+        return withAlpha(accentArgb, Math.round(UiEase.clamp01(alpha) * 255f));
+    }
+
+    public static int text() { return 0xFFFFF6EC; }
+    public static int textMuted() { return 0xFFC8B8A8; }
+    public static int textDim() { return 0xFF8A7A6C; }
     public static int textOnAccent() { return 0xFF1A0D02; }
 
     public NeonTheme lerp(NeonTheme other, float t) {
         t = UiEase.clamp01(t);
-        return new NeonTheme(lerpColor(accentArgb, other.accentArgb, t), lerpColor(deepArgb, other.deepArgb, t));
+        return new NeonTheme(
+                lerpColor(accentArgb, other.accentArgb, t),
+                lerpColor(deepArgb, other.deepArgb, t),
+                lerpColor(panelTop, other.panelTop, t),
+                lerpColor(panelBottom, other.panelBottom, t),
+                lerpColor(raised, other.raised, t),
+                lerpColor(raisedBottom, other.raisedBottom, t),
+                lerpColor(panelInset, other.panelInset, t),
+                lerpColor(sidebarTop, other.sidebarTop, t),
+                lerpColor(sidebarBottom, other.sidebarBottom, t),
+                lerpColor(scrimTop, other.scrimTop, t),
+                lerpColor(scrimBottom, other.scrimBottom, t)
+        );
     }
 
     private static int withAlpha(int rgb, int alpha) {

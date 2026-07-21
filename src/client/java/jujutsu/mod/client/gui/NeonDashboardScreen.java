@@ -220,10 +220,16 @@ public final class NeonDashboardScreen extends Screen {
         float wx = root.windowX(), wy = root.windowY();
         float ww = root.windowW();
 
+        // Soft accent wash so the header reads character-colored, not flat black.
+        ctx.sdf().add(SdfShape.builder()
+                .rect(wx, wy, ww, HEADER_H)
+                .radius(0).border(0, 0).glow(0, 0).highlight(0.18f)
+                .fill(applyAlpha(t.accentArgb(), 0.14f), applyAlpha(t.accentArgb(), 0.03f))
+                .build());
         ctx.sdf().add(SdfShape.builder()
                 .rect(wx, wy + HEADER_H - 1, ww, 1)
                 .radius(0).border(0, 0).glow(0, 0)
-                .fill(applyAlpha(t.accentArgb(), 0.12f), applyAlpha(t.accentArgb(), 0.12f))
+                .fill(applyAlpha(t.accentArgb(), 0.40f), applyAlpha(t.accentArgb(), 0.40f))
                 .build());
 
         // Sigil rings.
@@ -231,7 +237,7 @@ public final class NeonDashboardScreen extends Screen {
         float sig = 16f;
         ctx.sdf().add(SdfShape.builder()
                 .rect(sigX, sigY, sig, sig)
-                .radius(sig / 2f).border(1.4f, t.accentArgb()).glow(3, applyAlpha(t.accentArgb(), 0.35f))
+                .radius(sig / 2f).border(1.6f, t.accentArgb()).glow(6, applyAlpha(t.accentArgb(), 0.50f))
                 .fill(0x00000000, 0x00000000).highlight(0f)
                 .build());
         ctx.sdf().add(SdfShape.builder()
@@ -245,8 +251,8 @@ public final class NeonDashboardScreen extends Screen {
         float badgeW = 40;
         ctx.sdf().add(SdfShape.builder()
                 .rect(badgeX, wy + 8, badgeW, 14)
-                .radius(4).border(1, t.border()).glow(0, 0)
-                .fill(t.fillAccentTop(), t.fillAccentTop()).highlight(0f)
+                .radius(4).border(1, t.borderStrong()).glow(0, 0)
+                .fill(t.fillAccentTop(), t.fillAccentBottom()).highlight(0.2f)
                 .build());
     }
 
@@ -326,8 +332,10 @@ public final class NeonDashboardScreen extends Screen {
     @Override
     public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float delta) {
         NeonBlur.apply();
-        // Opaque-enough scrim; crosshair also cancelled via NeonDashboardCrosshairMixin.
-        g.fill(0, 0, this.width, this.height, 0xCC060403);
+        // Soft tinted dim (not pure black). Crosshair also cancelled via mixin.
+        // Prefer theme-aware wash so Nobara reads warm and None reads cool.
+        int wash = theme != null ? (theme.scrimTop() & 0x00FFFFFF) | 0x99000000 : 0x99060403;
+        g.fill(0, 0, this.width, this.height, wash);
     }
 
     @Override
