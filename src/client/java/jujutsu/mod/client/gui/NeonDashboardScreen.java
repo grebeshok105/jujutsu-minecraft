@@ -146,18 +146,8 @@ public final class NeonDashboardScreen extends Screen {
         pageContainer = new PageContainer();
         r.add(pageContainer);
 
-        SidebarItem charItem = new SidebarItem(dashIcon("bust"), NeonFonts.literal("Character"), () -> selectPage(charPage, 0));
-        SidebarItem combatItem = new SidebarItem(dashIcon("swords"), NeonFonts.literal("Combat"), () -> selectPage(combatPage, 1));
-        SidebarItem visualsItem = new SidebarItem(dashIcon("sparkles"), NeonFonts.literal("Visuals"), () -> selectPage(visualsPage, 2));
-        SidebarItem miscItem = new SidebarItem(dashIcon("gear"), NeonFonts.literal("Misc"), () -> selectPage(miscPage, 3));
-
-        sidebarItems.add(charItem);
-        sidebarItems.add(combatItem);
-        sidebarItems.add(visualsItem);
-        sidebarItems.add(miscItem);
-        for (SidebarItem item : sidebarItems) r.add(item);
-
-        charItem.setSelected(true);
+        // Sidebar tabs intentionally empty — shell only.
+        sidebarItems.clear();
         pageContainer.setPage(charPage);
 
         // Theme follows currently selected character at open.
@@ -262,19 +252,8 @@ public final class NeonDashboardScreen extends Screen {
         float wx = root.windowX(), wy = root.windowY();
         float wh = root.windowH();
 
-        // Version only — no "JUJUTSU // DASHBOARD" title.
+        // Version only — menu body/sidebar labels cleared.
         NeonFonts.draw(g, font, "v1.0.0", wx + 42, wy + 11, NeonTheme.textDim());
-
-        NeonFonts.draw(g, font, "MODULES", wx + 14, wy + HEADER_H + 8, NeonTheme.textDim());
-
-        String firstName = charPage != null && charPage.selection() == jujutsu.mod.character.JujutsuCharacter.NOBARA
-                ? "Nobara" : "None";
-        String tech = charPage != null && charPage.selection() == jujutsu.mod.character.JujutsuCharacter.NOBARA
-                ? "Straw Doll" : "No";
-        float footY = wy + wh - 28;
-        int line = Math.max(8, font.lineHeight);
-        NeonFonts.draw(g, font, firstName + " kit active", wx + 14, footY, NeonTheme.textDim());
-        NeonFonts.draw(g, font, NeonFonts.colored(tech + " technique", t.accentArgb()), wx + 14, footY + line, NeonTheme.textDim());
     }
 
     private static int applyAlpha(int argb, float alpha) {

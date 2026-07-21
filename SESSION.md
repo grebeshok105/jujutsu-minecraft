@@ -2,7 +2,7 @@
 
 > **CURRENT 2026-07-21 — RICH CLICKGUI PORT ON N + NEON DASHBOARD ON V.**  
 > Active worktree: `.worktrees/neon-gui-polish`  
-> Active branch: **`feat/neon-gui-polish`** @ **`b22be83`**  
+> Active branch: **`feat/neon-gui-polish`** @ **`7f32273`**  
 > `main` still at **`e31a67e`** (neon GUI base only — **does not** include Rich port yet).  
 > Jar: `D:\Games\instances\Jujutsu\mods\jujutsumod-1.0.0.jar`  
 > SHA-256: `5AE099A20B941A666F44BD777A693FE4F8638F35E164A9F00B95C74A7FB68AF7`  
@@ -15,7 +15,7 @@
 | Path | Branch | HEAD | Role |
 |------|--------|------|------|
 | `D:\WorkFlow\Jujutsu Minecraft` | **`main`** | `e31a67e` | Stable base: neon dashboard GUI merged from qoder |
-| `.worktrees/neon-gui-polish` | **`feat/neon-gui-polish`** | **`b22be83`** | **ACTIVE** — polish + MSDF + Rich ClickGui port (N) |
+| `.worktrees/neon-gui-polish` | **`feat/neon-gui-polish`** | **`7f32273`** | **ACTIVE** — polish + MSDF + Rich ClickGui port (N) |
 | `.qoder/worktrees/neon-gui` | `worktree-neon-gui` | `e31a67e` (ahead 25 vs old tip naming) | Original neon GUI stages (Phases 0–4); merged into main |
 | `.worktrees/nobara-cinematic-slice` | `codex/nobara-cinematic-slice` | `5073b24` | Nobara cinematic / hammer / momentum (ahead 16) |
 | `.worktrees/vfx-director-prototype` | `codex/vfx-director-prototype` | `c9ed0df` | VFX director sandbox docs |
@@ -70,7 +70,7 @@ Fallback if ClickGui fails to init: old `ModernMenuScreen` (legacy experimental 
 | **`f3bbf69`** | **fix(gui): open ported Rich ClickGui on N** |
 | **`95d81a1`** | **fix(gui): stop SDF batch burying MSDF text; retry font atlas load** |
 | **`675009d`** | **docs(session): map branches, commits, V/N dual GUI handoff** |
-| **`b22be83`** | **docs(session): set HEAD to session map commit** ← **HEAD** |
+| **`7f32273`** | **docs(session): set HEAD to session map commit** ← **HEAD** |
 
 ---
 

@@ -10,17 +10,14 @@ import java.util.Map;
 
 public class CategoryRenderer {
 
-    private static final ModuleCategory[] MAIN_CATEGORIES = {
-            ModuleCategory.COMBAT, ModuleCategory.MOVEMENT, ModuleCategory.RENDER, ModuleCategory.PLAYER, ModuleCategory.MISC
-    };
-    private static final String[] MAIN_CATEGORY_NAMES = {"Combat", "Movement", "Render", "Player", "Util"};
-    private static final String[] MAIN_CATEGORY_ICONS = {"a", "b", "c", "d", "e"};
+    /** Empty — no category tabs / labels in the sidebar. */
+    private static final ModuleCategory[] MAIN_CATEGORIES = {};
+    private static final String[] MAIN_CATEGORY_NAMES = {};
+    private static final String[] MAIN_CATEGORY_ICONS = {};
 
-    private static final ModuleCategory[] EXTRA_CATEGORIES = {
-            ModuleCategory.AUTOBUY
-    };
-    private static final String[] EXTRA_CATEGORY_NAMES = {"AutoBuy"};
-    private static final String[] EXTRA_CATEGORY_ICONS = {"g"};
+    private static final ModuleCategory[] EXTRA_CATEGORIES = {};
+    private static final String[] EXTRA_CATEGORY_NAMES = {};
+    private static final String[] EXTRA_CATEGORY_ICONS = {};
 
     private final Map<ModuleCategory, Float> categoryAnimations = new HashMap<>();
 
@@ -66,10 +63,17 @@ public class CategoryRenderer {
     }
 
     public void render(float bgX, float bgY, ModuleCategory selectedCategory, float alphaMultiplier) {
-        renderSectionHeader(bgX, bgY + 52f, "Основные", alphaMultiplier);
-        renderMainCategories(bgX, bgY, alphaMultiplier);
-        renderSectionHeader(bgX, bgY + 62f + MAIN_CATEGORY_NAMES.length * 15f + 10f - EXTRA_CATEGORY_OFFSET, "Другие", alphaMultiplier);
-        renderExtraCategories(bgX, bgY, alphaMultiplier);
+        if (MAIN_CATEGORIES.length == 0 && EXTRA_CATEGORIES.length == 0) {
+            return;
+        }
+        if (MAIN_CATEGORIES.length > 0) {
+            renderSectionHeader(bgX, bgY + 52f, "Основные", alphaMultiplier);
+            renderMainCategories(bgX, bgY, alphaMultiplier);
+        }
+        if (EXTRA_CATEGORIES.length > 0) {
+            renderSectionHeader(bgX, bgY + 62f + MAIN_CATEGORY_NAMES.length * 15f + 10f - EXTRA_CATEGORY_OFFSET, "Другие", alphaMultiplier);
+            renderExtraCategories(bgX, bgY, alphaMultiplier);
+        }
     }
 
     private void renderSectionHeader(float bgX, float sectionY, String title, float alphaMultiplier) {

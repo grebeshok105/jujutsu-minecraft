@@ -26,16 +26,18 @@ public abstract class NeonPage extends UiContainer {
     @Override
     public void renderSurface(NeonContext ctx) {
         if (!isVisible()) return;
-        int titleW = NeonFonts.width(ctx.font(), title);
-        float ax = absX(), ay = absY();
-        float ruleX = ax + titleW + 10;
-        float ruleW = width - titleW - 10;
-        if (ruleW > 0) {
-            ctx.sdf().add(SdfShape.builder()
-                    .rect(ruleX, ay + 3.5f, ruleW, 1)
-                    .radius(0).border(0, 0).glow(0, 0)
-                    .fill(ctx.theme().border(), ctx.theme().border())
-                    .build());
+        if (title != null && !title.getString().isEmpty()) {
+            int titleW = NeonFonts.width(ctx.font(), title);
+            float ax = absX(), ay = absY();
+            float ruleX = ax + titleW + 10;
+            float ruleW = width - titleW - 10;
+            if (ruleW > 0) {
+                ctx.sdf().add(SdfShape.builder()
+                        .rect(ruleX, ay + 3.5f, ruleW, 1)
+                        .radius(0).border(0, 0).glow(0, 0)
+                        .fill(ctx.theme().border(), ctx.theme().border())
+                        .build());
+            }
         }
         super.renderSurface(ctx);
     }
@@ -43,10 +45,12 @@ public abstract class NeonPage extends UiContainer {
     @Override
     public void renderText(NeonContext ctx) {
         if (!isVisible()) return;
-        int line = Math.max(8, ctx.font().lineHeight);
-        NeonFonts.draw(ctx.graphics(), ctx.font(), title, absX(), absY(), NeonTheme.text());
-        if (subtitle != null) {
-            NeonFonts.draw(ctx.graphics(), ctx.font(), subtitle, absX(), absY() + line + 2, NeonTheme.textDim());
+        if (title != null && !title.getString().isEmpty()) {
+            int line = Math.max(8, ctx.font().lineHeight);
+            NeonFonts.draw(ctx.graphics(), ctx.font(), title, absX(), absY(), NeonTheme.text());
+            if (subtitle != null) {
+                NeonFonts.draw(ctx.graphics(), ctx.font(), subtitle, absX(), absY() + line + 2, NeonTheme.textDim());
+            }
         }
         super.renderText(ctx);
     }

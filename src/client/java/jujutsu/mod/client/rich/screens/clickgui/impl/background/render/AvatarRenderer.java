@@ -1,52 +1,11 @@
 package jujutsu.mod.client.rich.screens.clickgui.impl.background.render;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import jujutsu.mod.client.rich.util.render.Render2D;
-import jujutsu.mod.client.rich.util.render.shader.Scissor;
-import jujutsu.mod.client.rich.util.render.font.Fonts;
-import jujutsu.mod.client.rich.util.render.gif.GifRender;
-import antidaunleak.api.UserProfile;
 
-import java.awt.*;
-
+/** Avatar / profile block cleared — shell only. */
 public class AvatarRenderer {
 
-    private static final int FORCED_GUI_SCALE = 2;
-    private static final Minecraft mc = Minecraft.getInstance();
-
-    public void render(GuiGraphics context, float bgX, float bgY, float alphaMultiplier) {
-        int alpha = (int) (255 * alphaMultiplier);
-        int alphaFon = (int) (105 * alphaMultiplier);
-        int alphaText = (int) (200 * alphaMultiplier);
-
-        UserProfile userProfile = UserProfile.getInstance();
-        String username = userProfile.profile("username");
-        String uid = userProfile.profile("uid");
-
-        Render2D.blur(bgX + 15f, bgY + 15f, 1, 1, 0f, 0, alphaText);
-Render2D.blur(bgX + 15f, bgY + 15f, 1, 1, 0f, 0, alphaText);
-        GifRender.drawBackground(bgX + 12.5f, bgY + 12.5f, 70, 30, 7, applyAlpha(-1, alpha));
-        Render2D.rect(bgX + 15f, bgY + 15f, 25, 25, new Color(42, 42, 42, alpha).getRGB(), 15);
-        GifRender.drawAvatar(bgX + 16f, bgY + 16f, 23, 23, 15, applyAlpha(-1, alpha));
-        Render2D.rect(bgX + 33, bgY + 33, 5, 5, new Color(0, 255, 0, alpha).getRGB(), 10);
-Render2D.rect(bgX + 12.5f, bgY + 12.5f, 70, 30, new Color(0, 0, 0, alphaFon).getRGB(), 7);
-
-        float textX = bgX + 44;
-        float textY = bgY + 22;
-        float maxTextWidth = 35f;
-        float textHeight = 14f;
-
-        Scissor.enable(textX, textY - 2, maxTextWidth, textHeight, FORCED_GUI_SCALE);
-        Fonts.BOLD.draw(username, textX, textY, 6, new Color(255, 255, 255, alphaText).getRGB());
-        Fonts.BOLD.draw("Uid: " + uid, textX, textY + 7, 5, new Color(255, 255, 255, alphaText).getRGB());
-        Render2D.blur(textX, textY + 7, 1, 1, 0f, 0, alphaText);
-        Scissor.disable();
-
-        Render2D.blur(textX, textY + 7, 1, 1, 0f, 0, alphaText);
-    }
-
-    private int applyAlpha(int color, int alpha) {
-        return (color & 0x00FFFFFF) | (alpha << 24);
-    }
+	public void render(GuiGraphics context, float bgX, float bgY, float alphaMultiplier) {
+		// Intentionally empty.
+	}
 }
