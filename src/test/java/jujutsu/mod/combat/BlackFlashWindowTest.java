@@ -30,10 +30,17 @@ public final class BlackFlashWindowTest {
 			String hammer = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/NobaraHammerCombatRuntime.java"));
 			String runtime = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraRuntime.java"));
 			String nail = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkNailEntity.java"));
+			String profile = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraProfile.java"));
 			assert hammer.contains("LivingEntity firstSuccessful = null") : "horizontal Black Flash must bind to first accepted hit";
-			assert hammer.contains("if (firstSuccessful != null) openWindow") : "rejected sweep hits cannot open Black Flash";
-			assert runtime.indexOf("isSuccessfulOrdinaryHit(damageAccepted") < runtime.indexOf("openNailEmbedWindow(owner") : "embed Black Flash requires an accepted ordinary hit";
-			assert nail.contains("flightMultiplier *= multiplier") && nail.contains("launchVelocity(direction).scale(flightMultiplier)") : "forced prepared-nail Black Flash must survive launch delay";
+			assert hammer.contains("tryProcLivingBlackFlash") : "Black Flash must roll on accepted living impacts";
+			assert hammer.contains("BLACK_FLASH_CHANCE") || profile.contains("BLACK_FLASH_CHANCE = 0.10f")
+					: "Black Flash chance must be a flat 10% roll";
+			assert !hammer.contains("WINDOWS.put") : "second-click Black Flash timing windows must be removed";
+			assert runtime.indexOf("isSuccessfulOrdinaryHit(damageAccepted") < runtime.indexOf("openNailEmbedWindow(owner")
+					: "embed Black Flash requires an accepted ordinary hit";
+			assert nail.contains("flightMultiplier *= multiplier")
+					&& nail.contains("launchVelocity(direction).scale(flightMultiplier)")
+					: "prepared-nail Black Flash amplify must survive launch delay";
 		} catch (Exception exception) {
 			throw new AssertionError(exception);
 		}

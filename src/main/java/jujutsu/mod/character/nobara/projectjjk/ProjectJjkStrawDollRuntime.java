@@ -80,14 +80,19 @@ public final class ProjectJjkStrawDollRuntime {
 				"item.jujutsumod.resonance_remnant.bound",
 				binding.targetName()
 		));
-		Vec3 dropAt = wound == null
+		// Prefer inventory; only drop at the caster if inventory is full.
+		Vec3 vfxAt = wound == null
 				? target.position().add(0.0, target.getBbHeight() * 0.55, 0.0)
 				: wound;
-		ItemEntity dropped = new ItemEntity(level, dropAt.x, dropAt.y, dropAt.z, stack);
-		dropped.setDefaultPickUpDelay();
-		level.addFreshEntity(dropped);
-		JujutsuNetworking.broadcastVfxCue(level, dropAt, VFX_RADIUS,
-				cue(level, NobaraVfxIds.REMNANT_DROP, 1, dropAt, level.getGameTime(), target));
+		if (!caster.getInventory().add(stack)) {
+			ItemEntity dropped = new ItemEntity(level, caster.getX(), caster.getY() + 0.5, caster.getZ(), stack);
+			dropped.setNoPickUpDelay();
+			dropped.setThrower(caster);
+			level.addFreshEntity(dropped);
+			vfxAt = caster.position().add(0.0, 1.0, 0.0);
+		}
+		JujutsuNetworking.broadcastVfxCue(level, vfxAt, VFX_RADIUS,
+				cue(level, NobaraVfxIds.REMNANT_DROP, 1, vfxAt, level.getGameTime(), target));
 	}
 
 	private static RemnantVisualType remnantVisualType(LivingEntity target) {

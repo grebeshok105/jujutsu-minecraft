@@ -68,7 +68,15 @@ public final class ProjectJjkNobaraProfile {
 	public static final float RESONANCE_DAMAGE = 28.0f;
 	public static final float SELF_RESONANCE_SELF_DAMAGE = 6.0f;
 	public static final float SELF_RESONANCE_LINKED_DAMAGE = 18.0f;
+	/** Chance a successful hammer / nail impact procs Black Flash (no second-click window). */
+	public static final float BLACK_FLASH_CHANCE = 0.10f;
 	public static final float BLACK_FLASH_DAMAGE_MULTIPLIER = 1.75f;
+	/** Two Black Flashes in a row: stronger bonus damage. */
+	public static final float BLACK_FLASH_CHAIN_MULTIPLIER = 2.25f;
+	/** Heal on chained Black Flash (hearts in half-heart units: 4.0 = 2 hearts). */
+	public static final float BLACK_FLASH_CHAIN_HEAL = 4.0f;
+	/** Nail prepare / snap start cooldown (0.5s at 20 tps). */
+	public static final int SNAP_COOLDOWN_TICKS = 10;
 	public static final float HAMMER_HORIZONTAL_DAMAGE = 5.0f;
 	public static final float HAMMER_OVERHEAD_DAMAGE = 8.0f;
 	public static final float EMBEDDED_NAIL_DRIVE_DAMAGE = 4.0f;

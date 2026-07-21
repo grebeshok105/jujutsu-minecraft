@@ -19,7 +19,12 @@ public final class ProjectJjkNailItem extends Item {
 
 	@Override
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
-		if (player instanceof ServerPlayer serverPlayer) ProjectJjkNobaraRuntime.beginPreparing(serverPlayer, player.getItemInHand(hand));
+		if (player instanceof ServerPlayer serverPlayer) {
+			// 0.5s snap cooldown — block prepare spam.
+			if (!ProjectJjkNobaraRuntime.beginPreparing(serverPlayer, player.getItemInHand(hand))) {
+				return InteractionResult.FAIL;
+			}
+		}
 		player.startUsingItem(hand);
 		return InteractionResult.CONSUME;
 	}

@@ -34,11 +34,23 @@ public final class ProjectJjkNobaraRuntime {
 	private static final double IMPULSE_BROADCAST_RADIUS = 56.0;
 	private static final Map<UUID, Integer> ACTIVE_EXPLOSIVE_NAILS = new ConcurrentHashMap<>();
 	private static final Map<UUID, PreparationSession> PREPARATIONS = new ConcurrentHashMap<>();
+	/** Last nail-snap / prepare start game time per player. */
+	private static final Map<UUID, Long> LAST_SNAP_AT = new ConcurrentHashMap<>();
 
 	private ProjectJjkNobaraRuntime() {}
 
-	public static void beginPreparing(ServerPlayer player, ItemStack stack) {
+	/**
+	 * Start nail prepare. Returns false if snap cooldown blocks (0.5s).
+	 */
+	public static boolean beginPreparing(ServerPlayer player, ItemStack stack) {
+		long now = player.level().getGameTime();
+		Long last = LAST_SNAP_AT.get(player.getUUID());
+		if (last != null && now - last < ProjectJjkNobaraProfile.SNAP_COOLDOWN_TICKS) {
+			return false;
+		}
+		LAST_SNAP_AT.put(player.getUUID(), now);
 		PREPARATIONS.put(player.getUUID(), new PreparationSession());
+		return true;
 	}
 
 	public static void tickPreparing(ServerPlayer player, ItemStack stack, int useTicks) {

@@ -145,6 +145,9 @@ public final class ProjectJjkNobaraProfileTest {
 		assert ProjectJjkNobaraProfile.SELF_RESONANCE_SELF_DAMAGE == 6.0f;
 		assert ProjectJjkNobaraProfile.SELF_RESONANCE_LINKED_DAMAGE == 18.0f;
 		assert ProjectJjkNobaraProfile.BLACK_FLASH_DAMAGE_MULTIPLIER == 1.75f;
+		assert ProjectJjkNobaraProfile.BLACK_FLASH_CHANCE == 0.10f;
+		assert ProjectJjkNobaraProfile.BLACK_FLASH_CHAIN_MULTIPLIER == 2.25f;
+		assert ProjectJjkNobaraProfile.SNAP_COOLDOWN_TICKS == 10;
 		assert ProjectJjkNobaraProfile.HAMMER_HORIZONTAL_DAMAGE == 5.0f;
 		assert ProjectJjkNobaraProfile.HAMMER_OVERHEAD_DAMAGE == 8.0f;
 		assert ProjectJjkNobaraProfile.EMBEDDED_NAIL_DRIVE_DAMAGE == 4.0f;
