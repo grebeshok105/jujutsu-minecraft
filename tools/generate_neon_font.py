@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 """
-Generate a Minecraft *bitmap* font atlas from a system TTF.
+Generate a Minecraft bitmap font atlas from a Windows UI TTF.
 
-Critical Minecraft bitmap rules (wiki + observed bugs):
-1. Texture is split into equal cells by rows/cols of `chars`.
-2. Glyph advance width = distance from LEFT edge of cell to rightmost
-   non-zero alpha column.  => glyphs MUST be left-aligned (not centered),
-   otherwise every letter gets huge left padding baked into advance width
-   and text looks like "N o b a r a".
-3. `height` should match cell height or a clean scale of it (wiki).
-4. White glyphs recolor in-game; transparent = empty.
+MC 1.21 BitmapProvider scale (from bytecode):
+  cellH = textureHeight / rowCount
+  scale = height / cellH
+  advance = floor(inkWidth * scale + 0.5) + 1
 
-We bake HD cells (CELL) and set height slightly above vanilla 8 so Segoe
-stays readable without looking giant (vanilla~8, previous bad=16, now=11).
+If CELL != height, glyphs are resampled in-game and look squished/blurry.
+Rule: CELL == HEIGHT so scale == 1.0 (pixel-perfect).
+
+Glyphs must be LEFT-aligned: advance is measured from the left edge of the
+cell to the rightmost non-zero alpha column.
 """
 from __future__ import annotations
 
@@ -20,7 +19,7 @@ import json
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "src" / "main" / "resources" / "assets" / "jujutsumod"
@@ -32,16 +31,17 @@ FONT_CANDIDATES = [
     Path(r"C:\Windows\Fonts\segoeuisl.ttf"),
     Path(r"C:\Windows\Fonts\segoeui.ttf"),
     Path(r"C:\Windows\Fonts\arial.ttf"),
-    Path(r"C:\Windows\Fonts\calibri.ttf"),
 ]
 
-# Bake high-res, display slightly larger than vanilla 8.
-CELL = 24
-HEIGHT = 11
-ASCENT = 9
-PT = 17  # fits in 24px cell with 1px left pad
-LEFT_PAD = 1
-TOP_BIAS = 1  # nudge down a hair inside the cell
+# 1:1 bake — no in-game vertical squash.
+# 12 ≈ halfway between vanilla 8 and the too-large 16.
+CELL = 12
+HEIGHT = 12
+ASCENT = 10
+
+# Super-sample then downscale for cleaner edges than raw 12px FreeType.
+SS = 4  # 48px work cells
+LEFT_PAD_SS = 2  # becomes ~0.5–1px after downscale
 
 ROWS: list[str] = [
     " !\"#$%&'()*+,-./",
@@ -57,47 +57,61 @@ def pick_font() -> Path:
     for p in FONT_CANDIDATES:
         if p.is_file():
             return p
-    raise SystemExit("No system TTF found among candidates")
+    raise SystemExit("No system TTF found")
 
 
-def render_atlas(ttf: Path) -> tuple[Image.Image, list[str]]:
-    face = ImageFont.truetype(str(ttf), size=PT)
+def render_supersampled(ttf: Path) -> Image.Image:
+    work = CELL * SS
+    # Point size so capital H fills most of the work cell.
+    face = ImageFont.truetype(str(ttf), size=int(work * 0.78))
     cols = max(len(r) for r in ROWS)
     rows_n = len(ROWS)
-    img = Image.new("RGBA", (cols * CELL, rows_n * CELL), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
+    big = Image.new("RGBA", (cols * work, rows_n * work), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(big)
 
-    # Shared vertical band from capital H so baseline is consistent.
-    h_box = draw.textbbox((0, 0), "Hg", font=face)
-    band_top = h_box[1]
-    band_h = h_box[3] - h_box[1]
+    # Shared baseline from "Hg" metrics.
+    base = draw.textbbox((0, 0), "Hg", font=face)
+    # Target: top of H near top pad, descenders of g fit in cell.
+    top_pad = int(work * 0.08)
 
     for ry, row in enumerate(ROWS):
         padded = row.ljust(cols)
         for cx, ch in enumerate(padded):
             if ch == " ":
-                continue  # space width comes from space provider
+                continue
             bbox = draw.textbbox((0, 0), ch, font=face)
-            # LEFT-ALIGNED inside cell (required for correct MC auto-width).
-            x = cx * CELL + LEFT_PAD - bbox[0]
-            # Vertical: place capital band near top of cell with small pad.
-            y = ry * CELL + TOP_BIAS - band_top + max(0, (CELL - band_h - TOP_BIAS * 2) // 4)
+            # LEFT-ALIGNED
+            x = cx * work + LEFT_PAD_SS - bbox[0]
+            y = ry * work + top_pad - base[1]
             draw.text((x, y), ch, font=face, fill=(255, 255, 255, 255))
 
-    return img, [r.ljust(cols) for r in ROWS]
+    # High-quality downscale to final CELL size (scale will be 1.0 in MC).
+    final = big.resize(
+        (cols * CELL, rows_n * CELL),
+        resample=Image.Resampling.LANCZOS,
+    )
+    # Slight alpha crisp: keep AA but kill near-zero noise that inflates width.
+    px = final.load()
+    w, h = final.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a < 24:
+                px[x, y] = (255, 255, 255, 0)
+            else:
+                # Boost mid-alpha so thin strokes stay visible after tint
+                a2 = min(255, int(a * 1.15))
+                px[x, y] = (255, 255, 255, a2)
+    return final
 
 
-def write_json(chars: list[str]) -> None:
-    # Space advance ~ half an average glyph at height 11 (vanilla space is 4 at h=8).
-    space_w = 4
+def write_json(cols: int) -> None:
+    chars = [r.ljust(cols) for r in ROWS]
+    # Vanilla space at h=8 is 4; proportional for h=12 → 6.
+    space = max(3, HEIGHT // 2)
     doc = {
         "providers": [
-            {
-                "type": "space",
-                "advances": {
-                    " ": space_w,
-                },
-            },
+            {"type": "space", "advances": {" ": space}},
             {
                 "type": "bitmap",
                 "file": "jujutsumod:font/neon.png",
@@ -105,33 +119,27 @@ def write_json(chars: list[str]) -> None:
                 "ascent": ASCENT,
                 "chars": chars,
             },
-            {
-                "type": "reference",
-                "id": "minecraft:include/unifont",
-            },
+            {"type": "reference", "id": "minecraft:include/unifont"},
         ]
     }
     FONT_JSON.parent.mkdir(parents=True, exist_ok=True)
-    FONT_JSON.write_text(
-        json.dumps(doc, indent=2, ensure_ascii=True) + "\n",
-        encoding="ascii",
-    )
+    FONT_JSON.write_text(json.dumps(doc, indent=2, ensure_ascii=True) + "\n", encoding="ascii")
 
 
 def main() -> int:
+    assert CELL == HEIGHT, "CELL must equal HEIGHT for scale=1.0"
+    assert ASCENT <= HEIGHT, "ascent must be <= height"
     ttf = pick_font()
-    print(f"source font: {ttf}")
-    atlas, chars = render_atlas(ttf)
+    print(f"source: {ttf}")
+    atlas = render_supersampled(ttf)
     TEX_DIR.mkdir(parents=True, exist_ok=True)
     atlas.save(TEX_PNG, format="PNG", optimize=True)
-    write_json(chars)
-    old_ttf = FONT_JSON.parent / "neon.ttf"
-    if old_ttf.exists():
-        old_ttf.unlink()
-        print(f"removed stale {old_ttf.name}")
-    print(f"wrote {TEX_PNG.relative_to(ROOT)} ({TEX_PNG.stat().st_size} bytes) {atlas.size}")
-    print(f"wrote {FONT_JSON.relative_to(ROOT)}")
-    print(f"cell={CELL} height={HEIGHT} ascent={ASCENT} left_pad={LEFT_PAD}")
+    write_json(max(len(r) for r in ROWS))
+    old = FONT_JSON.parent / "neon.ttf"
+    if old.exists():
+        old.unlink()
+    print(f"atlas {atlas.size} bytes={TEX_PNG.stat().st_size}")
+    print(f"CELL={CELL} HEIGHT={HEIGHT} ASCENT={ASCENT} scale=1.0")
     return 0
 
 
