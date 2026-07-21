@@ -138,17 +138,19 @@ public final class JujutsuKeybinds {
 	}
 
 	private static void toggleModern(Minecraft client) {
-		if (client.screen instanceof ModernMenuScreen) {
+		if (client.screen instanceof ClickGui || client.screen instanceof ModernMenuScreen) {
 			client.screen.onClose();
-		} else if (client.screen == null) {
-			LOG.info("Opening ModernMenuScreen");
-			Initialization.getInstance();
-					ClickGui gui = Initialization.getInstance().getManager().getClickgui();
-					if (gui != null) {
-						client.setScreen(gui);
-					} else {
-						client.setScreen(new ModernMenuScreen());
-					}
+			return;
+		}
+		if (client.screen != null) {
+			return;
+		}
+		LOG.info("Opening Rich ClickGui");
+		ClickGui gui = Initialization.getInstance().getManager().getClickgui();
+		if (gui != null) {
+			client.setScreen(gui);
+		} else {
+			client.setScreen(new ModernMenuScreen());
 		}
 	}
 
