@@ -18,17 +18,17 @@ public final class CombatPage extends NeonPage {
         float y = contentTop();
 
         SectionLabel straw = new SectionLabel(NeonFonts.literal("Straw Doll"));
-        straw.setBounds(0, y, pageW, 12); add(straw); y += 16;
+        straw.setBounds(0, y, pageW, 12); add(straw); y += 14;
 
         y = addRow(y, pageW, NeonFonts.literal("Begin charging nails while holding the item"),
                 new NeonToggle(NeonFonts.literal("Auto nail prepare"), true));
         y = addRow(y, pageW, NeonFonts.literal("Widen the input window slightly"),
                 new NeonToggle(NeonFonts.literal("Black Flash assist"), false));
         y = addRow(y, pageW, NeonFonts.literal("Client time-dilation on confirmed hit"),
-                new NeonToggle(NeonFonts.literal("Resonance slow-motion"), true), 8);
+                new NeonToggle(NeonFonts.literal("Resonance slow-motion"), true), 6);
 
         SectionLabel balance = new SectionLabel(NeonFonts.literal("Balance preview"));
-        balance.setBounds(0, y, pageW, 12); add(balance); y += 16;
+        balance.setBounds(0, y, pageW, 12); add(balance); y += 14;
 
         y = addRow(y, pageW, NeonFonts.literal("Ticks per prepared nail"),
                 new NeonSlider(NeonFonts.literal("Nail charge speed"), 4, 20, 10));
@@ -37,7 +37,7 @@ public final class CombatPage extends NeonPage {
     }
 
     private float addRow(float y, float pageW, Component desc, jujutsu.mod.client.ui.neon.UiComponent control) {
-        return addRow(y, pageW, desc, control, 6);
+        return addRow(y, pageW, desc, control, 4);
     }
 
     private float addRow(float y, float pageW, Component desc, jujutsu.mod.client.ui.neon.UiComponent control, float gap) {

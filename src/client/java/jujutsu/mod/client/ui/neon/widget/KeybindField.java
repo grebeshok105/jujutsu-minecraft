@@ -18,7 +18,7 @@ public final class KeybindField extends UiComponent {
     public KeybindField(Component label, String initialKey) {
         this.label = label;
         this.keyName = initialKey;
-        this.height = 24;
+        this.height = 20;
         this.width = 200;
     }
 
@@ -63,14 +63,15 @@ public final class KeybindField extends UiComponent {
         if (!isVisible()) return;
         GuiGraphics g = ctx.graphics();
         float ax = absX(), ay = absY();
-        g.drawString(ctx.font(), label, (int) ax, (int) (ay + 7), NeonTheme.textMuted(), false);
+        int textY = (int) (ay + (height - 8) / 2f);
+        g.drawString(ctx.font(), label, (int) ax, textY, NeonTheme.textMuted(), false);
 
         float fieldW = 60;
         float fieldX = ax + width - fieldW;
         String display = listening ? "..." : keyName;
         int tw = ctx.font().width(display);
         int color = listening ? NeonTheme.text() : NeonTheme.textDim();
-        g.drawString(ctx.font(), display, (int) (fieldX + (fieldW - tw) / 2f), (int) (ay + 7), color, false);
+        g.drawString(ctx.font(), display, (int) (fieldX + (fieldW - tw) / 2f), textY, color, false);
     }
 
     @Override

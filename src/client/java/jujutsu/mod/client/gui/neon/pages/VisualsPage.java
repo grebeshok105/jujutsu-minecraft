@@ -20,17 +20,17 @@ public final class VisualsPage extends NeonPage {
         float y = contentTop();
 
         SectionLabel pipeline = new SectionLabel(NeonFonts.literal("Pipeline"));
-        pipeline.setBounds(0, y, pageW, 12); add(pipeline); y += 16;
+        pipeline.setBounds(0, y, pageW, 12); add(pipeline); y += 14;
 
         y = addRow(y, pageW, NeonFonts.literal("Blur the world behind the dashboard"),
                 new NeonToggle(NeonFonts.literal("Background blur"), true));
         y = addRow(y, pageW, NeonFonts.literal("Shader-based borders and halos"),
                 new NeonToggle(NeonFonts.literal("SDF neon glow"), true));
         y = addRow(y, pageW, NeonFonts.literal("Soft shadow under panels and cards"),
-                new NeonToggle(NeonFonts.literal("Drop shadows"), true), 8);
+                new NeonToggle(NeonFonts.literal("Drop shadows"), true), 6);
 
         SectionLabel density = new SectionLabel(NeonFonts.literal("Density"));
-        density.setBounds(0, y, pageW, 12); add(density); y += 16;
+        density.setBounds(0, y, pageW, 12); add(density); y += 14;
 
         y = addRow(y, pageW, NeonFonts.literal("VFX particle density multiplier"),
                 new NeonDropdown(NeonFonts.literal("Particle quality"),
@@ -40,7 +40,7 @@ public final class VisualsPage extends NeonPage {
     }
 
     private float addRow(float y, float pageW, Component desc, jujutsu.mod.client.ui.neon.UiComponent control) {
-        return addRow(y, pageW, desc, control, 6);
+        return addRow(y, pageW, desc, control, 4);
     }
 
     private float addRow(float y, float pageW, Component desc, jujutsu.mod.client.ui.neon.UiComponent control, float gap) {

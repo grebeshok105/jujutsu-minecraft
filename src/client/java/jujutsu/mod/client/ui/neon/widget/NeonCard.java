@@ -1,6 +1,7 @@
 package jujutsu.mod.client.ui.neon.widget;
 
 import jujutsu.mod.client.ui.UiEase;
+import jujutsu.mod.client.ui.neon.EmojiGlow;
 import jujutsu.mod.client.ui.neon.NeonContext;
 import jujutsu.mod.client.ui.neon.NeonFonts;
 import jujutsu.mod.client.ui.neon.NeonTheme;
@@ -13,8 +14,10 @@ import net.minecraft.resources.ResourceLocation;
 
 /** Horizontal character card: portrait well on the left, name/tech/grade meta on the right. */
 public final class NeonCard extends UiComponent {
-    private static final float PORTRAIT = 36f;
-    private static final float PAD = 6f;
+    /** Restored pre-crush portrait size so the skin head centers cleanly. */
+    private static final float PORTRAIT = 46f;
+    private static final float PAD = 8f;
+    private static final int HEAD = 40;
 
     private final Component name;
     private final Component tech;
@@ -83,8 +86,9 @@ public final class NeonCard extends UiComponent {
                 .build());
 
         // Portrait well.
+        float wellX = ax + PAD, wellY = ay + PAD;
         ctx.sdf().add(SdfShape.builder()
-                .rect(ax + PAD, ay + PAD, PORTRAIT, PORTRAIT)
+                .rect(wellX, wellY, PORTRAIT, PORTRAIT)
                 .radius(8)
                 .border(1, applyAlpha(accentRgb, 0.12f + 0.3f * selectAnim))
                 .glow(selected ? 8f : 0f, applyAlpha(accentRgb, 0.35f))
@@ -92,24 +96,19 @@ public final class NeonCard extends UiComponent {
                 .fill(0xE61E1611, 0xE6100B09)
                 .build());
 
-        // Soft glow under emoji portraits.
+        // Emoji halo AFTER well so it is not covered (skin portraits skip this).
         if (emojiPortrait != null) {
-            ctx.sdf().add(SdfShape.builder()
-                    .rect(ax + PAD + 4, ay + PAD + 4, PORTRAIT - 8, PORTRAIT - 8)
-                    .radius((PORTRAIT - 8) / 2f)
-                    .border(0, 0)
-                    .glow(10, applyAlpha(accentRgb, 0.28f + 0.2f * selectAnim))
-                    .fill(applyAlpha(accentRgb, 0.08f), applyAlpha(accentRgb, 0.02f))
-                    .highlight(0f)
-                    .build());
+            float cx = wellX + PORTRAIT / 2f;
+            float cy = wellY + PORTRAIT / 2f;
+            EmojiGlow.add(ctx, cx, cy, 30f, accentRgb | 0xFF000000, 0.85f + 0.15f * selectAnim);
         }
 
         if (selected) {
             ctx.sdf().add(SdfShape.builder()
-                    .rect(ax + width - 20, ay + 5, 14, 14)
-                    .radius(7)
+                    .rect(ax + width - 24, ay + 6, 17, 17)
+                    .radius(8.5f)
                     .border(0, 0)
-                    .glow(7, applyAlpha(accentRgb, 0.5f))
+                    .glow(8, applyAlpha(accentRgb, 0.5f))
                     .highlight(0.4f)
                     .fill(accentRgb | 0xFF000000, accentRgb | 0xFF000000)
                     .build());
@@ -124,28 +123,28 @@ public final class NeonCard extends UiComponent {
 
         float wellX = ax + PAD, wellY = ay + PAD;
         if (skinPortrait != null) {
-            int head = 32;
-            int hx = (int) (wellX + (PORTRAIT - head) / 2f);
-            int hy = (int) (wellY + (PORTRAIT - head) / 2f);
-            g.blit(RenderPipelines.GUI_TEXTURED, skinPortrait, hx, hy, 8.0f, 8.0f, head, head, 8, 8, 64, 64);
-            g.blit(RenderPipelines.GUI_TEXTURED, skinPortrait, hx, hy, 40.0f, 8.0f, head, head, 8, 8, 64, 64);
+            // Integer center: (PORTRAIT - HEAD) / 2 == 3 for 46/40.
+            int hx = Math.round(wellX + (PORTRAIT - HEAD) / 2f);
+            int hy = Math.round(wellY + (PORTRAIT - HEAD) / 2f);
+            g.blit(RenderPipelines.GUI_TEXTURED, skinPortrait, hx, hy, 8.0f, 8.0f, HEAD, HEAD, 8, 8, 64, 64);
+            g.blit(RenderPipelines.GUI_TEXTURED, skinPortrait, hx, hy, 40.0f, 8.0f, HEAD, HEAD, 8, 8, 64, 64);
         } else if (emojiPortrait != null) {
-            int size = 28;
-            int ex = (int) (wellX + (PORTRAIT - size) / 2f);
-            int ey = (int) (wellY + (PORTRAIT - size) / 2f);
+            int size = 30;
+            int ex = Math.round(wellX + (PORTRAIT - size) / 2f);
+            int ey = Math.round(wellY + (PORTRAIT - size) / 2f);
             g.blit(RenderPipelines.GUI_TEXTURED, emojiPortrait, ex, ey, 0f, 0f, size, size, 96, 96, 96, 96);
         }
 
-        float metaX = ax + PAD + PORTRAIT + 8;
+        float metaX = ax + PAD + PORTRAIT + 10;
         int nameColor = unlocked ? NeonTheme.text() : NeonTheme.textMuted();
-        g.drawString(ctx.font(), name.copy().withStyle(s -> s.withColor(nameColor).withFont(NeonFonts.ID)), (int) metaX, (int) (ay + 9), nameColor, false);
-        g.drawString(ctx.font(), tech, (int) metaX, (int) (ay + 20), unlocked ? accentRgb | 0xFF000000 : NeonTheme.textDim(), false);
-        g.drawString(ctx.font(), grade, (int) metaX, (int) (ay + 31), NeonTheme.textDim(), false);
+        g.drawString(ctx.font(), name.copy().withStyle(s -> s.withColor(nameColor)), (int) metaX, (int) (ay + 12), nameColor, false);
+        g.drawString(ctx.font(), tech, (int) metaX, (int) (ay + 25), unlocked ? accentRgb | 0xFF000000 : NeonTheme.textDim(), false);
+        g.drawString(ctx.font(), grade, (int) metaX, (int) (ay + 38), NeonTheme.textDim(), false);
 
         if (selected) {
-            g.drawString(ctx.font(), NeonFonts.literal("\u2713"), (int) (ax + width - 16), (int) (ay + 7), NeonTheme.textOnAccent(), false);
+            g.drawString(ctx.font(), NeonFonts.literal("\u2713"), (int) (ax + width - 19), (int) (ay + 10), NeonTheme.textOnAccent(), false);
         } else if (!unlocked) {
-            g.drawString(ctx.font(), NeonFonts.literal("SOON"), (int) (ax + width - 28), (int) (ay + 6), NeonTheme.textDim(), false);
+            g.drawString(ctx.font(), NeonFonts.literal("SOON"), (int) (ax + width - 30), (int) (ay + 7), NeonTheme.textDim(), false);
         }
     }
 

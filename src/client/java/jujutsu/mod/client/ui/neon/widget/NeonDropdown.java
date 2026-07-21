@@ -24,7 +24,7 @@ public final class NeonDropdown extends UiComponent {
         this.label = NeonFonts.wrap(label);
         this.options = options.stream().map(c -> (Component) NeonFonts.wrap(c)).toList();
         this.selectedIndex = Math.max(0, Math.min(initial, options.size() - 1));
-        this.height = 22;
+        this.height = 20;
         this.width = 200;
     }
 
@@ -79,12 +79,13 @@ public final class NeonDropdown extends UiComponent {
         GuiGraphics g = ctx.graphics();
         NeonTheme t = ctx.theme();
         float ax = absX(), ay = absY();
-        g.drawString(ctx.font(), label, (int) ax, (int) (ay + 6), NeonTheme.textMuted(), false);
+        int textY = (int) (ay + (height - 8) / 2f);
+        g.drawString(ctx.font(), label, (int) ax, textY, NeonTheme.textMuted(), false);
 
         Component current = options.get(selectedIndex);
         int curW = ctx.font().width(current);
-        g.drawString(ctx.font(), current, (int) (ax + width - 16 - curW - 6), (int) (ay + 6), NeonTheme.text(), false);
-        g.drawString(ctx.font(), NeonFonts.literal(open ? "\u25B2" : "\u25BC"), (int) (ax + width - 16), (int) (ay + 6), t.accentArgb(), false);
+        g.drawString(ctx.font(), current, (int) (ax + width - 16 - curW - 6), textY, NeonTheme.text(), false);
+        g.drawString(ctx.font(), NeonFonts.literal(open ? "\u25B2" : "\u25BC"), (int) (ax + width - 16), textY, t.accentArgb(), false);
 
         if (open) {
             // Draw popup last so later sibling rows cannot paint over it.

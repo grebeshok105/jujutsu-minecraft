@@ -9,7 +9,8 @@ import jujutsu.mod.client.ui.neon.render.SdfShape;
 import net.minecraft.network.chat.Component;
 
 /**
- * Mockup ctrl-row: inset panel with a control on the top line and a muted description below.
+ * Compact ctrl-row: control on the top line, muted description under it.
+ * Height stays tight so shell pages fit inside the dashboard window.
  */
 public final class CtrlRow extends UiContainer {
     private final Component desc;
@@ -23,16 +24,16 @@ public final class CtrlRow extends UiContainer {
     }
 
     public float preferredHeight() {
-        float controlH = control != null ? Math.max(20f, control.height()) : 20f;
-        // control at y=5, then 4px gap, then 10px desc line + bottom pad
-        return 5f + controlH + 4f + 10f + 6f;
+        float controlH = control != null ? Math.max(18f, control.height()) : 18f;
+        // 3 pad + control + 2 gap + 9 desc + 4 bottom
+        return 3f + controlH + 2f + 9f + 4f;
     }
 
     @Override
     public void layout() {
         if (control != null) {
-            float controlH = Math.max(20f, control.height());
-            control.setBounds(10, 5, width - 20, controlH);
+            float controlH = Math.max(18f, control.height());
+            control.setBounds(10, 3, width - 20, controlH);
         }
         this.height = preferredHeight();
         super.layout();
@@ -55,8 +56,8 @@ public final class CtrlRow extends UiContainer {
     @Override
     public void renderText(NeonContext ctx) {
         if (!isVisible()) return;
-        float controlH = control != null ? Math.max(20f, control.height()) : 20f;
-        float descY = absY() + 5f + controlH + 4f;
+        float controlH = control != null ? Math.max(18f, control.height()) : 18f;
+        float descY = absY() + 3f + controlH + 2f;
         ctx.graphics().drawString(ctx.font(), desc, (int) (absX() + 12), (int) descY, NeonTheme.textDim(), false);
         super.renderText(ctx);
     }

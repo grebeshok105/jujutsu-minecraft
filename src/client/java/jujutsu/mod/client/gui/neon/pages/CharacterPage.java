@@ -14,6 +14,7 @@ import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.client.character.ClientCharacterSelectionManager;
 import jujutsu.mod.client.gui.neon.NeonPage;
 import jujutsu.mod.client.ui.UiEase;
+import jujutsu.mod.client.ui.neon.EmojiGlow;
 import jujutsu.mod.client.ui.neon.NeonContext;
 import jujutsu.mod.client.ui.neon.NeonFonts;
 import jujutsu.mod.client.ui.neon.NeonTheme;
@@ -38,13 +39,12 @@ public final class CharacterPage extends NeonPage {
     };
     private static final String[] ABILITY_KEYS = {"R", "B", "\u21E7R", "LMB"};
 
-    private record Roster(String name, String tech, String grade, int accent, int deep,
+    private record Roster(String name, String tech, String grade, int accent,
                           boolean unlocked, boolean skin, ResourceLocation emoji, JujutsuCharacter character) {}
 
-    /** Only playable slots — SOON placeholders are hidden. */
     private static final Roster[] ROSTER = {
-            new Roster("Nobara Kugisaki", "Straw Doll Technique", "Grade 3", 0xFFE48A36, 0xFF8B3F1C, true, true, null, JujutsuCharacter.NOBARA),
-            new Roster("None", "No Technique", "Default", 0xFF505760, 0xFF2E333A, true, false, dash("bust"), JujutsuCharacter.NONE),
+            new Roster("Nobara Kugisaki", "Straw Doll Technique", "Grade 3", 0xFFE48A36, true, true, null, JujutsuCharacter.NOBARA),
+            new Roster("None", "No Technique", "Default", 0xFF505760, true, false, dash("bust"), JujutsuCharacter.NONE),
     };
 
     private static ResourceLocation dash(String name) {
@@ -78,7 +78,6 @@ public final class CharacterPage extends NeonPage {
     public void buildContent(float pageW, float pageH) {
         this.pageW = pageW;
         this.pageH = pageH;
-        // Rebuild if called again (resize / re-open safety).
         cards.clear();
         children().clear();
 
@@ -104,7 +103,7 @@ public final class CharacterPage extends NeonPage {
             add(card);
         }
 
-        float btnH = 28f;
+        float btnH = 30f;
         float btnW = (pageW - 8) / 2f;
         float btnY = pageH - btnH - 2;
         cancelBtn = new NeonButton(NeonFonts.literal("Cancel"), btnW, btnH, false, closeAction);
@@ -140,9 +139,14 @@ public final class CharacterPage extends NeonPage {
 
     private float stripTop() {
         float top = contentTop();
-        float cardH = cards.isEmpty() ? 50f : cards.get(0).height();
+        float cardH = cards.isEmpty() ? 62f : cards.get(0).height();
         int rows = Math.max(1, (int) Math.ceil(cards.size() / 2.0));
-        return top + rows * (cardH + 8) + 6;
+        return top + rows * (cardH + 8) + 10;
+    }
+
+    /** Keep strip above Cancel/Confirm. */
+    private float stripHeight() {
+        return 36f;
     }
 
     @Override
@@ -165,7 +169,14 @@ public final class CharacterPage extends NeonPage {
         float ay = absY();
         float labelY = ay + stripTop();
         float stripY = labelY + 12;
-        float stripH = 32;
+        float stripH = stripHeight();
+
+        // Clamp strip so it never sits on the action buttons.
+        float btnY = ay + pageH - 32;
+        if (stripY + stripH > btnY - 6) {
+            stripY = btnY - 6 - stripH;
+            labelY = stripY - 12;
+        }
 
         Component label = abilityLabel();
         int labelW = ctx.font().width(label);
@@ -188,15 +199,7 @@ public final class CharacterPage extends NeonPage {
         float cellW = (pageW - gap * 3) / 4f;
         for (int i = 0; i < 4; i++) {
             float cx = ax + i * (cellW + gap);
-            // Soft glow under emoji cell.
-            ctx.sdf().add(SdfShape.builder()
-                    .rect(cx + 4, stripY + 6, 20, 20)
-                    .radius(10)
-                    .border(0, 0)
-                    .glow(9, applyAlpha(t.glow(), 0.32f))
-                    .fill(applyAlpha(t.accentArgb(), 0.10f), applyAlpha(t.accentArgb(), 0.02f))
-                    .highlight(0f)
-                    .build());
+            // Cell first.
             ctx.sdf().add(SdfShape.builder()
                     .rect(cx, stripY, cellW, stripH)
                     .radius(6)
@@ -204,6 +207,10 @@ public final class CharacterPage extends NeonPage {
                     .glow(0, 0).highlight(0.12f)
                     .fill(t.panelInset(), t.panelInset())
                     .build());
+            // Emoji halo AFTER the cell so it is not covered.
+            float iconCx = cx + 6 + 9;
+            float iconCy = stripY + stripH / 2f;
+            EmojiGlow.add(ctx, iconCx, iconCy, 18f, t.accentArgb(), 0.9f);
         }
     }
 
@@ -218,7 +225,13 @@ public final class CharacterPage extends NeonPage {
         float ay = absY();
         float labelY = ay + stripTop();
         float stripY = labelY + 12;
-        float stripH = 32;
+        float stripH = stripHeight();
+
+        float btnY = ay + pageH - 32;
+        if (stripY + stripH > btnY - 6) {
+            stripY = btnY - 6 - stripH;
+            labelY = stripY - 12;
+        }
 
         g.drawString(ctx.font(), abilityLabel(), (int) ax, (int) labelY, NeonTheme.textDim(), false);
 
@@ -233,16 +246,16 @@ public final class CharacterPage extends NeonPage {
         float cellW = (pageW - gap * 3) / 4f;
         for (int i = 0; i < 4; i++) {
             float cx = ax + i * (cellW + gap);
-            int iconSize = 16;
-            int iconX = (int) (cx + 6);
-            int iconY = (int) (stripY + (stripH - iconSize) / 2f);
+            int iconSize = 18;
+            int iconX = Math.round(cx + 6);
+            int iconY = Math.round(stripY + (stripH - iconSize) / 2f);
             g.blit(RenderPipelines.GUI_TEXTURED, ABILITY_ICONS[i], iconX, iconY, 0f, 0f, iconSize, iconSize, 96, 96, 96, 96);
 
             int textX = iconX + iconSize + 4;
             g.drawString(ctx.font(), ABILITY_LABELS[i], textX, (int) (stripY + (stripH - 8) / 2f), NeonTheme.textMuted(), false);
 
             int keyW = ctx.font().width(ABILITY_KEYS[i]) + 6;
-            int keyX = (int) (cx + cellW - keyW);
+            int keyX = (int) (cx + cellW - keyW - 2);
             int keyY = (int) (stripY - 4);
             g.fill(keyX, keyY, keyX + keyW, keyY + 10, ctx.theme().accentArgb());
             g.drawString(ctx.font(), NeonFonts.literal(ABILITY_KEYS[i]), keyX + 3, keyY + 1, NeonTheme.textOnAccent(), false);

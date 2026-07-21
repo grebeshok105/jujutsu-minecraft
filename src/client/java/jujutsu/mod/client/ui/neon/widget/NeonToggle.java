@@ -16,14 +16,14 @@ public final class NeonToggle extends UiComponent {
     private double lastMouseX = -1, lastMouseY = -1;
 
     private static final float TRACK_W = 36;
-    private static final float TRACK_H = 18;
-    private static final float KNOB_R = 7;
+    private static final float TRACK_H = 16;
+    private static final float KNOB_R = 6;
 
     public NeonToggle(Component label, boolean initial) {
         this.label = label;
         this.state = initial;
         this.knobAnim = initial ? 1f : 0f;
-        this.height = 24;
+        this.height = 20;
         this.width = 200;
     }
 
@@ -82,7 +82,7 @@ public final class NeonToggle extends UiComponent {
     public void renderText(NeonContext ctx) {
         if (!isVisible()) return;
         GuiGraphics g = ctx.graphics();
-        g.drawString(ctx.font(), label, (int) absX(), (int) (absY() + 7), NeonTheme.textMuted(), false);
+        g.drawString(ctx.font(), label, (int) absX(), (int) (absY() + (height - 8) / 2f), NeonTheme.textMuted(), false);
     }
 
     @Override

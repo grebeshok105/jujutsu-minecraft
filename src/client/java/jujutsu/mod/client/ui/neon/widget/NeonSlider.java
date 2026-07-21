@@ -27,7 +27,7 @@ public final class NeonSlider extends UiComponent {
         this.min = min;
         this.max = max;
         this.value = UiEase.clamp01((initial - min) / Math.max(1e-6f, max - min));
-        this.height = 30;
+        this.height = 22;
         this.width = 200;
     }
 
@@ -59,7 +59,8 @@ public final class NeonSlider extends UiComponent {
         NeonTheme t = ctx.theme();
         float ay = absY();
         float rx = railX();
-        float railY = ay + 18;
+        // Rail under the value label, within the compact 22px control height.
+        float railY = ay + 14;
 
         ctx.sdf().add(SdfShape.builder()
                 .rect(rx, railY, RAIL_W, RAIL_H)
@@ -95,9 +96,9 @@ public final class NeonSlider extends UiComponent {
         if (!isVisible()) return;
         GuiGraphics g = ctx.graphics();
         NeonTheme t = ctx.theme();
-        g.drawString(ctx.font(), label, (int) absX(), (int) (absY() + 7), NeonTheme.textMuted(), false);
+        g.drawString(ctx.font(), label, (int) absX(), (int) (absY() + 2), NeonTheme.textMuted(), false);
         String val = String.valueOf(Math.round(value()));
-        g.drawString(ctx.font(), val, (int) (railX() + RAIL_W - ctx.font().width(val)), (int) (absY() + 7), t.accentArgb(), false);
+        g.drawString(ctx.font(), val, (int) (railX() + RAIL_W - ctx.font().width(val)), (int) (absY() + 2), t.accentArgb(), false);
     }
 
     @Override

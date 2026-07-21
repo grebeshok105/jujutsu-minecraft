@@ -30,12 +30,14 @@ import net.minecraft.network.chat.Component;
 public final class NeonDashboardScreen extends Screen {
     private static final long OPEN_MS = 260;
     private static final long CLOSE_MS = 200;
-    /** ~half the on-screen area vs original 660×440. */
-    private static final float UI_SCALE = 0.72f;
-    private static final float WINDOW_W = 660f * UI_SCALE;
-    private static final float WINDOW_H = 440f * UI_SCALE;
-    private static final float SIDEBAR_W = 132f * UI_SCALE;
-    private static final float HEADER_H = 40f * UI_SCALE;
+    /**
+     * Smaller than the original 660×440, but tall enough that shell pages and
+     * the character strip stay inside the window (0.72 crushed content out).
+     */
+    private static final float WINDOW_W = 560f;
+    private static final float WINDOW_H = 400f;
+    private static final float SIDEBAR_W = 118f;
+    private static final float HEADER_H = 34f;
 
     private final SdfRenderer sdf = new SdfRenderer();
     private UiRoot root;
@@ -101,16 +103,17 @@ public final class NeonDashboardScreen extends Screen {
         closeBtn.setBounds(ww - 28, 6, 20, 20);
 
         float sbY = HEADER_H;
-        float itemH = 26f;
-        float itemGap = 28f;
+        float itemH = 28f;
+        float itemGap = 32f;
         for (int i = 0; i < sidebarItems.size(); i++) {
-            sidebarItems.get(i).setBounds(8, sbY + 20 + i * itemGap, SIDEBAR_W - 16, itemH);
+            sidebarItems.get(i).setBounds(8, sbY + 18 + i * itemGap, SIDEBAR_W - 16, itemH);
         }
 
         float pageX = SIDEBAR_W + 10;
         float pageY = HEADER_H + 8;
         float pageW = ww - SIDEBAR_W - 20;
-        float pageH = wh - HEADER_H - 16;
+        // Leave room for the sidebar footer lines at the bottom of the window.
+        float pageH = wh - HEADER_H - 36;
         pageContainer.setBounds(pageX, pageY, pageW, pageH);
         pageContainer.layout();
 
@@ -264,7 +267,7 @@ public final class NeonDashboardScreen extends Screen {
                 ? "Straw Doll" : "No";
         float footY = wy + wh - 28;
         g.drawString(font, NeonFonts.literal(firstName + " kit active"), (int) (wx + 14), (int) footY, NeonTheme.textDim(), false);
-        Component techLine = NeonFonts.literal(tech + " ").withStyle(s -> s.withColor(t.accentArgb()).withFont(NeonFonts.ID))
+        Component techLine = NeonFonts.literal(tech + " ").withStyle(s -> s.withColor(t.accentArgb()))
                 .append(NeonFonts.literal("technique"));
         g.drawString(font, techLine, (int) (wx + 14), (int) (footY + 10), NeonTheme.textDim(), false);
     }
