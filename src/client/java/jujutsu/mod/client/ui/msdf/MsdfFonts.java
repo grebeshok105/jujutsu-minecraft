@@ -5,24 +5,39 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Global MSDF font entrypoint for the modern menu (and future sharp UI).
- * Assets: {@code assets/jujutsumod/fonts/ui.{json,png}} + {@code shaders/core/msdf.*}.
+ * Multi-atlas MSDF entry (ported from rich.util.render.font.Fonts usage).
+ * Atlases live under assets/jujutsumod/fonts/ (msdf-atlas-gen JSON+PNG).
  */
 public final class MsdfFonts {
 	private static final Logger LOG = LoggerFactory.getLogger("jujutsumod/msdf");
 
-	private static final ResourceLocation JSON =
-			ResourceLocation.fromNamespaceAndPath("jujutsumod", "fonts/ui.json");
-	private static final ResourceLocation TEXTURE =
-			ResourceLocation.fromNamespaceAndPath("jujutsumod", "fonts/ui.png");
+	public enum Face {
+		UI("ui"),
+		BOLD("bold"),
+		ICONS("guiicons"),
+		CATEGORY("categoryicons");
 
-	private static final MsdfFontAtlas UI = new MsdfFontAtlas(JSON, TEXTURE);
+		final String path;
+
+		Face(String path) {
+			this.path = path;
+		}
+	}
+
+	private static final MsdfFontAtlas[] ATLASES = new MsdfFontAtlas[Face.values().length];
 	private static final MsdfFontPipeline PIPELINE = new MsdfFontPipeline();
 	private static boolean warmed;
 
+	static {
+		for (Face face : Face.values()) {
+			ResourceLocation json = ResourceLocation.fromNamespaceAndPath("jujutsumod", "fonts/" + face.path + ".json");
+			ResourceLocation tex = ResourceLocation.fromNamespaceAndPath("jujutsumod", "fonts/" + face.path + ".png");
+			ATLASES[face.ordinal()] = new MsdfFontAtlas(json, tex);
+		}
+	}
+
 	private MsdfFonts() {}
 
-	/** Touch pipeline registration early (before first resource reload if possible). */
 	public static void bootstrap() {
 		if (MsdfFontPipeline.pipeline() == null) {
 			throw new IllegalStateException("MSDF pipeline failed to register");
@@ -33,49 +48,67 @@ public final class MsdfFonts {
 		if (warmed) {
 			return;
 		}
-		try {
-			UI.forceLoad();
-			warmed = true;
-			LOG.info("MSDF UI font ready ({} glyphs)", UI.getGlyphCount());
-		} catch (Exception e) {
-			LOG.error("MSDF warm failed", e);
+		for (MsdfFontAtlas atlas : ATLASES) {
+			try {
+				atlas.forceLoad();
+			} catch (Exception e) {
+				LOG.error("MSDF warm failed for {}", atlas.getTextureId(), e);
+			}
 		}
+		warmed = true;
+		LOG.info("MSDF faces ready: ui={} bold={} icons={} cat={}",
+				ATLASES[0].getGlyphCount(), ATLASES[1].getGlyphCount(),
+				ATLASES[2].getGlyphCount(), ATLASES[3].getGlyphCount());
 	}
 
-	public static MsdfFontAtlas ui() {
-		return UI;
+	public static void draw(Face face, String text, float x, float y, float size, int argb) {
+		warm();
+		PIPELINE.drawText(ATLASES[face.ordinal()], text, x, y, size, argb);
 	}
 
 	public static void draw(String text, float x, float y, float size, int argb) {
+		draw(Face.UI, text, x, y, size, argb);
+	}
+
+	public static void drawBold(String text, float x, float y, float size, int argb) {
+		draw(Face.BOLD, text, x, y, size, argb);
+	}
+
+	public static void drawIcon(String glyph, float x, float y, float size, int argb) {
+		draw(Face.ICONS, glyph, x, y, size, argb);
+	}
+
+	public static void drawCategoryIcon(String glyph, float x, float y, float size, int argb) {
+		draw(Face.CATEGORY, glyph, x, y, size, argb);
+	}
+
+	public static void drawCentered(Face face, String text, float x, float y, float size, int argb) {
 		warm();
-		PIPELINE.drawText(UI, text, x, y, size, argb);
+		float w = PIPELINE.getTextWidth(ATLASES[face.ordinal()], text, size);
+		PIPELINE.drawText(ATLASES[face.ordinal()], text, x - w * 0.5f, y, size, argb);
 	}
 
 	public static void drawCentered(String text, float x, float y, float size, int argb) {
-		warm();
-		float w = PIPELINE.getTextWidth(UI, text, size);
-		PIPELINE.drawText(UI, text, x - w * 0.5f, y, size, argb);
+		drawCentered(Face.UI, text, x, y, size, argb);
 	}
 
-	public static void drawWithOutline(
-			String text, float x, float y, float size, int argb, float outlineWidth, int outlineArgb) {
-		warm();
-		PIPELINE.drawText(UI, text, x, y, size, argb, outlineWidth, outlineArgb, 0f);
-	}
-
-	/** Flush batched MSDF glyphs once after all draw* calls for the frame. */
 	public static void endFrame() {
 		PIPELINE.flush();
 	}
 
-	public static float width(String text, float size) {
+	public static float width(Face face, String text, float size) {
 		warm();
-		return PIPELINE.getTextWidth(UI, text, size);
+		return PIPELINE.getTextWidth(ATLASES[face.ordinal()], text, size);
 	}
 
-	public static float lineHeight(float size) {
+	public static float width(String text, float size) {
+		return width(Face.UI, text, size);
+	}
+
+	public static float lineHeight(Face face, float size) {
 		warm();
-		return (UI.getLineHeight() / UI.getFontSize()) * size;
+		MsdfFontAtlas a = ATLASES[face.ordinal()];
+		return (a.getLineHeight() / a.getFontSize()) * size;
 	}
 
 	public static void close() {
