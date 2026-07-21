@@ -1,49 +1,48 @@
-# Minecraft 1.21 Custom Font Research
+# Minecraft 1.21 Custom Font — Final Research
 
-Date: 2026-07-21  
-Goal: readable, homogeneous custom UI font for Neon Dashboard (not default Mojangles).
+## Hard facts from 1.21.8 bytecode
 
-## Sources
+1. **`FontTexture` always sets `FilterMode.NEAREST`.**  
+   Soft bitmap edges only work via **alpha**, not linear filtering. Low-res bitmaps (12–14px) always look 144p.
 
-- Minecraft Wiki — Font providers (bitmap / ttf / unihex / space / reference)
-- MC 1.21.8 FreeType path: `TrueTypeGlyphProviderDefinition.load` applies `ResourceLocation.withPrefix("font/")`
-- Instance log failures: `jujutsumod:font/font/neon.ttf` when JSON used `file: jujutsumod:font/neon.ttf`
-- Vanilla default font: **bitmap + unifont**, never TTF
+2. **TTF path:** `TrueTypeGlyphProviderDefinition.load` does  
+   `location.withPrefix("font/")` then opens the stream.  
+   JSON `"file": "ns:neon.ttf"` → `assets/ns/font/neon.ttf`.  
+   JSON `"file": "ns:font/neon.ttf"` → **double** `font/font/` → FileNotFound → tofu.
 
-## Approaches compared
+3. **TTF raster size:** `FT_Set_Pixel_Sizes(round(size * oversample))`.  
+   Display size ≈ `size`. Smoothness comes from **high oversample** (8–16+).
 
-| Approach | Quality in MC GUI | Complexity | Verdict |
-|---|---|---|---|
-| TTF provider (runtime FreeType) | Muddy AA, no kerning, uneven | Low | **Reject for UI** |
-| Bitmap provider (pre-baked PNG) | Stable, recolorable, pack-standard | Medium | **Use this** |
-| Unihex | Pixel-grid Unicode | High for Latin UI | Overkill |
-| Default Mojangles | Homogeneous, pixel | Zero | Fallback only |
+4. **Bitmap scale:** `scale = height / cellHeight`.  
+   If `height != cellH`, glyphs are resampled → squash/blur.  
+   Advance = `round(inkWidth * scale) + 1`. Glyphs must be **left-aligned**.
 
-## Correct paths
+5. **Vanilla UI never uses TTF** for Mojangles — but TTF **is** the correct path for *smooth* custom UI when path + oversample are right (wiki + tryashtar/minecraft-ttf tips).
 
-| Asset | Path |
+## Why our previous attempts failed
+
+| Attempt | Failure mode |
 |---|---|
-| Font definition | `assets/<ns>/font/<name>.json` → font id `<ns>:<name>` |
-| TTF file (if used) | `assets/<ns>/font/<file>.ttf` with JSON `"file": "<ns>:<file>.ttf"` (MC adds `font/`) |
-| Bitmap texture | `assets/<ns>/textures/font/<file>.png` with JSON `"file": "<ns>:font/<file>.png"` |
+| TTF OpenSans/Segoe, wrong path | `font/font/*.ttf` → reject → tofu |
+| TTF mixed with plain String draws | Mojangles + Segoe = uneven |
+| Bitmap 32 cell / height 10–11 | scale ≪ 1 → squashed, muddy |
+| Bitmap centered glyphs | left pad baked into advance → `N o b a r a` |
+| Bitmap 12–14 1:1 + alpha crush | NEAREST + few texels + killed AA = 144p |
 
-## Implementation chosen
+## Chosen solution (reset)
 
-1. Bake **Segoe UI Semilight** offline via `tools/generate_neon_font.py` (Pillow).
-2. Output `textures/font/neon.png` (32px cells, height=16, ascent=13).
-3. `font/neon.json` = space + bitmap + unifont reference (no TTF, no default pixel mix).
-4. All dashboard text via `NeonFonts` helpers (`Style.withFont(jujutsumod:neon)`).
+- **Provider:** TTF only (Segoe UI Semilight as `neon.ttf`)
+- **size:** `9.0` (near vanilla height)
+- **oversample:** `16.0` (FreeType face ≈ 144px → smooth AA)
+- **shift:** `[0, 0.5]`
+- **file:** `jujutsumod:neon.ttf` (no double font/)
+- **Draw path:** only `NeonFonts.*` (no plain String)
 
-## Rebuild font
+## Verify after install
 
-```bat
-python tools/generate_neon_font.py
-gradlew.bat build --no-daemon -x test
-```
+In `latest.log` must **NOT** appear:
+- `Failed to load builder (jujutsumod:neon)`
+- `font/font/neon.ttf`
+- mass `Couldn't find glyph for character`
 
-## What not to do
-
-- Do not ship runtime TTF for primary UI text.
-- Do not mix plain `drawString(String)` (default font) with styled Components.
-- Do not put `font/` twice in the TTF file id.
-- Do not leave uppercase non-glyph files in `assets/.../font/` (LICENSE.txt → invalid path warning).
+Should appear: normal resource reload, smooth Segoe-like UI text.

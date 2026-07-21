@@ -1,24 +1,16 @@
 {
   "providers": [
     {
-      "type": "space",
-      "advances": {
-        " ": 5
-      }
+      "type": "ttf",
+      "file": "jujutsumod:neon.ttf",
+      "shift": [0.0, 0.5],
+      "size": 9.0,
+      "oversample": 16.0,
+      "skip": ""
     },
     {
-      "type": "bitmap",
-      "file": "jujutsumod:font/neon.png",
-      "height": 14,
-      "ascent": 11,
-      "chars": [
-        " !\"#$%&'()*+,-./",
-        "0123456789:;<=>?",
-        "@ABCDEFGHIJKLMNO",
-        "PQRSTUVWXYZ[\\]^_",
-        "`abcdefghijklmno",
-        "pqrstuvwxyz{|}~."
-      ]
+      "type": "reference",
+      "id": "minecraft:include/space"
     },
     {
       "type": "reference",

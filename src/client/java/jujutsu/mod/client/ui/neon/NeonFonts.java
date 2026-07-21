@@ -9,13 +9,19 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * Dashboard typography.
+ * Dashboard typography — {@code jujutsumod:neon}.
  *
- * <p>Uses a <b>bitmap</b> font ({@code jujutsumod:neon}), not a TTF provider.
- * Research conclusion for MC 1.21: FreeType TTF in-game looks muddy and uneven;
- * vanilla and quality packs bake TTF offline into a PNG atlas (see
- * {@code tools/generate_neon_font.py}). Always draw through these helpers so
- * every string uses the same font id and advance widths.
+ * <p><b>Implementation (research-backed for MC 1.21.8):</b>
+ * <ul>
+ *   <li>Font atlas textures always use {@code FilterMode.NEAREST} — low-res bitmaps
+ *       always look 144p. Do NOT use small bitmap atlases for smooth UI text.</li>
+ *   <li>TTF provider is the correct path for smooth UI: FreeType rasterizes at
+ *       {@code size * oversample} px, then draws scaled. High oversample (16) = soft AA.</li>
+ *   <li>{@code file} is relative to {@code assets/<ns>/font/}; MC auto-prefixes
+ *       {@code font/}. Use {@code "jujutsumod:neon.ttf"} not {@code "...:font/neon.ttf"}.</li>
+ *   <li>{@code size} ≈ 9 matches vanilla glyph height; oversample 16 ≈ 144px FreeType face.</li>
+ *   <li>Every string MUST go through these helpers — plain {@code String} draws use Mojangles.</li>
+ * </ul>
  */
 public final class NeonFonts {
     public static final ResourceLocation ID = JujutsuMod.id("neon");
@@ -63,7 +69,7 @@ public final class NeonFonts {
 
     public static void drawVCenter(GuiGraphics g, Font font, Component text, float x, float boxY, float boxH, int color) {
         int line = Math.max(8, font.lineHeight);
-        int y = Math.round(boxY + (boxH - line) / 2f) + 1;
+        int y = Math.round(boxY + (boxH - line) / 2f);
         g.drawString(font, wrap(text), Math.round(x), y, color, false);
     }
 
@@ -81,7 +87,7 @@ public final class NeonFonts {
         Component c = wrap(text);
         int w = font.width(c);
         int line = Math.max(8, font.lineHeight);
-        int y = Math.round(boxY + (boxH - line) / 2f) + 1;
+        int y = Math.round(boxY + (boxH - line) / 2f);
         g.drawString(font, c, Math.round(centerX - w / 2f), y, color, false);
     }
 }
