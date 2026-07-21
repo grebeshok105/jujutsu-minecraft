@@ -37,7 +37,7 @@ public final class CharacterPage extends NeonPage {
             NeonFonts.translatable("screen.jujutsumod.character_select.ability.hairpin_explosion"),
             NeonFonts.translatable("screen.jujutsumod.character_select.ability.resonance"),
     };
-    private static final String[] ABILITY_KEYS = {"R", "B", "\u21E7R", "LMB"};
+    private static final String[] ABILITY_KEYS = {"R", "B", "Shift+R", "LMB"};
 
     private record Roster(String name, String tech, String grade, int accent,
                           boolean unlocked, boolean skin, ResourceLocation emoji, JujutsuCharacter character) {}
@@ -216,7 +216,7 @@ public final class CharacterPage extends NeonPage {
 
     private Component abilityLabel() {
         String tech = selection == JujutsuCharacter.NOBARA ? "Straw Doll" : "None";
-        return NeonFonts.literal("Innate \u00B7 " + tech);
+        return NeonFonts.literal("Innate - " + tech);
     }
 
     private void drawAbilityStripText(NeonContext ctx) {
@@ -233,12 +233,11 @@ public final class CharacterPage extends NeonPage {
             labelY = stripY - 12;
         }
 
-        g.drawString(ctx.font(), abilityLabel(), (int) ax, (int) labelY, NeonTheme.textDim(), false);
+        NeonFonts.draw(g, ctx.font(), abilityLabel(), ax, labelY, NeonTheme.textDim());
 
         if (selection != JujutsuCharacter.NOBARA) {
             Component none = NeonFonts.translatable("screen.jujutsumod.character_select.ability.none");
-            g.drawString(ctx.font(), none, (int) (ax + (pageW - ctx.font().width(none)) / 2f),
-                    (int) (stripY + (stripH - 8) / 2f), NeonTheme.textDim(), false);
+            NeonFonts.drawCenteredV(g, ctx.font(), none, ax + pageW / 2f, stripY, stripH, NeonTheme.textDim());
             return;
         }
 
@@ -252,13 +251,13 @@ public final class CharacterPage extends NeonPage {
             g.blit(RenderPipelines.GUI_TEXTURED, ABILITY_ICONS[i], iconX, iconY, 0f, 0f, iconSize, iconSize, 96, 96, 96, 96);
 
             int textX = iconX + iconSize + 4;
-            g.drawString(ctx.font(), ABILITY_LABELS[i], textX, (int) (stripY + (stripH - 8) / 2f), NeonTheme.textMuted(), false);
+            NeonFonts.drawVCenter(g, ctx.font(), ABILITY_LABELS[i], textX, stripY, stripH, NeonTheme.textMuted());
 
-            int keyW = ctx.font().width(ABILITY_KEYS[i]) + 6;
+            int keyW = NeonFonts.width(ctx.font(), ABILITY_KEYS[i]) + 6;
             int keyX = (int) (cx + cellW - keyW - 2);
             int keyY = (int) (stripY - 4);
             g.fill(keyX, keyY, keyX + keyW, keyY + 10, ctx.theme().accentArgb());
-            g.drawString(ctx.font(), NeonFonts.literal(ABILITY_KEYS[i]), keyX + 3, keyY + 1, NeonTheme.textOnAccent(), false);
+            NeonFonts.draw(g, ctx.font(), ABILITY_KEYS[i], keyX + 3, keyY + 1, NeonTheme.textOnAccent());
         }
     }
 

@@ -138,14 +138,18 @@ public final class NeonCard extends UiComponent {
 
         float metaX = ax + PAD + PORTRAIT + 10;
         int nameColor = unlocked ? NeonTheme.text() : NeonTheme.textMuted();
-        g.drawString(ctx.font(), name.copy().withStyle(s -> s.withColor(nameColor)), (int) metaX, (int) (ay + 12), nameColor, false);
-        g.drawString(ctx.font(), tech, (int) metaX, (int) (ay + 25), unlocked ? accentRgb | 0xFF000000 : NeonTheme.textDim(), false);
-        g.drawString(ctx.font(), grade, (int) metaX, (int) (ay + 38), NeonTheme.textDim(), false);
+        int line = Math.max(8, ctx.font().lineHeight);
+        float textTop = ay + PAD + 2;
+        NeonFonts.draw(g, ctx.font(), NeonFonts.colored(name.getString(), nameColor), metaX, textTop, nameColor);
+        NeonFonts.draw(g, ctx.font(), tech, metaX, textTop + line + 1,
+                unlocked ? (accentRgb | 0xFF000000) : NeonTheme.textDim());
+        NeonFonts.draw(g, ctx.font(), grade, metaX, textTop + (line + 1) * 2, NeonTheme.textDim());
 
         if (selected) {
-            g.drawString(ctx.font(), NeonFonts.literal("\u2713"), (int) (ax + width - 19), (int) (ay + 10), NeonTheme.textOnAccent(), false);
+            // ASCII-only: Segoe specials + pixel fallback look mixed/ugly.
+            NeonFonts.draw(g, ctx.font(), "OK", ax + width - 22, ay + 9, NeonTheme.textOnAccent());
         } else if (!unlocked) {
-            g.drawString(ctx.font(), NeonFonts.literal("SOON"), (int) (ax + width - 30), (int) (ay + 7), NeonTheme.textDim(), false);
+            NeonFonts.draw(g, ctx.font(), "SOON", ax + width - 32, ay + 8, NeonTheme.textDim());
         }
     }
 

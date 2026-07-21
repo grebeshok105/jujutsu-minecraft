@@ -134,7 +134,7 @@ public final class NeonDashboardScreen extends Screen {
             renderHeaderChrome(c);
         });
 
-        closeBtn = new NeonButton(NeonFonts.literal("\u2715"), 20, 20, false, this::animateClose);
+        closeBtn = new NeonButton(NeonFonts.literal("X"), 20, 20, false, this::animateClose);
         r.add(closeBtn);
 
         CharacterPage charPage = new CharacterPage(this::animateClose);
@@ -263,19 +263,18 @@ public final class NeonDashboardScreen extends Screen {
         float wh = root.windowH();
 
         // Version only — no "JUJUTSU // DASHBOARD" title.
-        g.drawString(font, NeonFonts.literal("v1.0.0"), (int) (wx + 42), (int) (wy + 11), NeonTheme.textDim(), false);
+        NeonFonts.draw(g, font, "v1.0.0", wx + 42, wy + 11, NeonTheme.textDim());
 
-        g.drawString(font, NeonFonts.literal("MODULES"), (int) (wx + 14), (int) (wy + HEADER_H + 8), NeonTheme.textDim(), false);
+        NeonFonts.draw(g, font, "MODULES", wx + 14, wy + HEADER_H + 8, NeonTheme.textDim());
 
         String firstName = charPage != null && charPage.selection() == jujutsu.mod.character.JujutsuCharacter.NOBARA
                 ? "Nobara" : "None";
         String tech = charPage != null && charPage.selection() == jujutsu.mod.character.JujutsuCharacter.NOBARA
                 ? "Straw Doll" : "No";
         float footY = wy + wh - 28;
-        g.drawString(font, NeonFonts.literal(firstName + " kit active"), (int) (wx + 14), (int) footY, NeonTheme.textDim(), false);
-        Component techLine = NeonFonts.literal(tech + " ").withStyle(s -> s.withColor(t.accentArgb()))
-                .append(NeonFonts.literal("technique"));
-        g.drawString(font, techLine, (int) (wx + 14), (int) (footY + 10), NeonTheme.textDim(), false);
+        int line = Math.max(8, font.lineHeight);
+        NeonFonts.draw(g, font, firstName + " kit active", wx + 14, footY, NeonTheme.textDim());
+        NeonFonts.draw(g, font, NeonFonts.colored(tech + " technique", t.accentArgb()), wx + 14, footY + line, NeonTheme.textDim());
     }
 
     private static int applyAlpha(int argb, float alpha) {

@@ -5,7 +5,6 @@ import jujutsu.mod.client.ui.neon.NeonFonts;
 import jujutsu.mod.client.ui.neon.NeonTheme;
 import jujutsu.mod.client.ui.neon.UiContainer;
 import jujutsu.mod.client.ui.neon.render.SdfShape;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
 public abstract class NeonPage extends UiContainer {
@@ -22,12 +21,12 @@ public abstract class NeonPage extends UiContainer {
     public abstract void buildContent(float pageW, float pageH);
 
     /** Vertical offset where page content should start (below title + subtitle). */
-    public float contentTop() { return 26f; }
+    public float contentTop() { return 30f; }
 
     @Override
     public void renderSurface(NeonContext ctx) {
         if (!isVisible()) return;
-        int titleW = ctx.font().width(title);
+        int titleW = NeonFonts.width(ctx.font(), title);
         float ax = absX(), ay = absY();
         float ruleX = ax + titleW + 10;
         float ruleW = width - titleW - 10;
@@ -44,10 +43,10 @@ public abstract class NeonPage extends UiContainer {
     @Override
     public void renderText(NeonContext ctx) {
         if (!isVisible()) return;
-        GuiGraphics g = ctx.graphics();
-        g.drawString(ctx.font(), title, (int) absX(), (int) absY(), NeonTheme.text(), false);
+        int line = Math.max(8, ctx.font().lineHeight);
+        NeonFonts.draw(ctx.graphics(), ctx.font(), title, absX(), absY(), NeonTheme.text());
         if (subtitle != null) {
-            g.drawString(ctx.font(), subtitle, (int) absX(), (int) (absY() + 12), NeonTheme.textDim(), false);
+            NeonFonts.draw(ctx.graphics(), ctx.font(), subtitle, absX(), absY() + line + 2, NeonTheme.textDim());
         }
         super.renderText(ctx);
     }

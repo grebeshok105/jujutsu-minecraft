@@ -2,10 +2,10 @@ package jujutsu.mod.client.ui.neon.widget;
 
 import jujutsu.mod.client.ui.UiEase;
 import jujutsu.mod.client.ui.neon.NeonContext;
+import jujutsu.mod.client.ui.neon.NeonFonts;
 import jujutsu.mod.client.ui.neon.NeonTheme;
 import jujutsu.mod.client.ui.neon.UiComponent;
 import jujutsu.mod.client.ui.neon.render.SdfShape;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
 public final class NeonToggle extends UiComponent {
@@ -81,8 +81,7 @@ public final class NeonToggle extends UiComponent {
     @Override
     public void renderText(NeonContext ctx) {
         if (!isVisible()) return;
-        GuiGraphics g = ctx.graphics();
-        g.drawString(ctx.font(), label, (int) absX(), (int) (absY() + (height - 8) / 2f), NeonTheme.textMuted(), false);
+        NeonFonts.drawVCenter(ctx.graphics(), ctx.font(), label, absX(), absY(), height, NeonTheme.textMuted());
     }
 
     @Override

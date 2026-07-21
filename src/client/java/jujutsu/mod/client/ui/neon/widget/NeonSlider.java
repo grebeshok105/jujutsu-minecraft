@@ -5,7 +5,7 @@ import jujutsu.mod.client.ui.neon.NeonContext;
 import jujutsu.mod.client.ui.neon.NeonTheme;
 import jujutsu.mod.client.ui.neon.UiComponent;
 import jujutsu.mod.client.ui.neon.render.SdfShape;
-import net.minecraft.client.gui.GuiGraphics;
+import jujutsu.mod.client.ui.neon.NeonFonts;
 import net.minecraft.network.chat.Component;
 
 /** Mockup slider: fixed-width rail on the right, warm-white handle with accent border, absolute value. */
@@ -94,11 +94,11 @@ public final class NeonSlider extends UiComponent {
     @Override
     public void renderText(NeonContext ctx) {
         if (!isVisible()) return;
-        GuiGraphics g = ctx.graphics();
         NeonTheme t = ctx.theme();
-        g.drawString(ctx.font(), label, (int) absX(), (int) (absY() + 2), NeonTheme.textMuted(), false);
+        NeonFonts.draw(ctx.graphics(), ctx.font(), label, absX(), absY() + 1, NeonTheme.textMuted());
         String val = String.valueOf(Math.round(value()));
-        g.drawString(ctx.font(), val, (int) (railX() + RAIL_W - ctx.font().width(val)), (int) (absY() + 2), t.accentArgb(), false);
+        int vw = NeonFonts.width(ctx.font(), val);
+        NeonFonts.draw(ctx.graphics(), ctx.font(), val, railX() + RAIL_W - vw, absY() + 1, t.accentArgb());
     }
 
     @Override

@@ -2,6 +2,7 @@ package jujutsu.mod.client.ui.neon.widget;
 
 import jujutsu.mod.client.ui.UiEase;
 import jujutsu.mod.client.ui.neon.NeonContext;
+import jujutsu.mod.client.ui.neon.NeonFonts;
 import jujutsu.mod.client.ui.neon.NeonTheme;
 import jujutsu.mod.client.ui.neon.UiComponent;
 import jujutsu.mod.client.ui.neon.render.SdfShape;
@@ -12,14 +13,14 @@ public final class SectionLabel extends UiComponent {
     private final Component text;
 
     public SectionLabel(Component text) {
-        this.text = text;
+        this.text = NeonFonts.wrap(text);
         this.height = 12;
     }
 
     @Override
     public void renderSurface(NeonContext ctx) {
         if (!isVisible()) return;
-        int tw = ctx.font().width(text);
+        int tw = NeonFonts.width(ctx.font(), text);
         NeonTheme t = ctx.theme();
         float ruleW = width - tw - 8;
         if (ruleW > 0) {
@@ -34,7 +35,7 @@ public final class SectionLabel extends UiComponent {
     @Override
     public void renderText(NeonContext ctx) {
         if (!isVisible()) return;
-        ctx.graphics().drawString(ctx.font(), text, (int) absX(), (int) absY(), NeonTheme.textDim(), false);
+        NeonFonts.draw(ctx.graphics(), ctx.font(), text, absX(), absY(), NeonTheme.textDim());
     }
 
     private static int applyAlpha(int argb, float alpha) {

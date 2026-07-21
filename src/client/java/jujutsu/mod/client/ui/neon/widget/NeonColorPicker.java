@@ -2,6 +2,7 @@ package jujutsu.mod.client.ui.neon.widget;
 
 import jujutsu.mod.client.ui.UiEase;
 import jujutsu.mod.client.ui.neon.NeonContext;
+import jujutsu.mod.client.ui.neon.NeonFonts;
 import jujutsu.mod.client.ui.neon.NeonTheme;
 import jujutsu.mod.client.ui.neon.UiComponent;
 import jujutsu.mod.client.ui.neon.render.SdfShape;
@@ -17,7 +18,7 @@ public final class NeonColorPicker extends UiComponent {
     private static final float SWATCH_SIZE = 18;
 
     public NeonColorPicker(Component label, int initialColor) {
-        this.label = label;
+        this.label = NeonFonts.wrap(label);
         this.colorArgb = initialColor | 0xFF000000;
         this.height = 24;
         this.width = 200;
@@ -62,11 +63,12 @@ public final class NeonColorPicker extends UiComponent {
     public void renderText(NeonContext ctx) {
         if (!isVisible()) return;
         GuiGraphics g = ctx.graphics();
-        g.drawString(ctx.font(), label, (int) absX(), (int) (absY() + 7), NeonTheme.textMuted(), false);
+        NeonFonts.drawVCenter(g, ctx.font(), label, absX(), absY(), height, NeonTheme.textMuted());
 
         String hex = String.format("#%06X", colorArgb & 0x00FFFFFF);
-        float hexX = absX() + width - SWATCH_SIZE - 4 - ctx.font().width(hex) - 8;
-        g.drawString(ctx.font(), hex, (int) hexX, (int) (absY() + 7), NeonTheme.textDim(), false);
+        int hexW = NeonFonts.width(ctx.font(), hex);
+        float hexX = absX() + width - SWATCH_SIZE - 4 - hexW - 8;
+        NeonFonts.drawVCenter(g, ctx.font(), hex, hexX, absY(), height, NeonTheme.textDim());
     }
 
     @Override

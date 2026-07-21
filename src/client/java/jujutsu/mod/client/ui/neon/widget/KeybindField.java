@@ -2,10 +2,10 @@ package jujutsu.mod.client.ui.neon.widget;
 
 import jujutsu.mod.client.ui.UiEase;
 import jujutsu.mod.client.ui.neon.NeonContext;
+import jujutsu.mod.client.ui.neon.NeonFonts;
 import jujutsu.mod.client.ui.neon.NeonTheme;
 import jujutsu.mod.client.ui.neon.UiComponent;
 import jujutsu.mod.client.ui.neon.render.SdfShape;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
 public final class KeybindField extends UiComponent {
@@ -61,17 +61,15 @@ public final class KeybindField extends UiComponent {
     @Override
     public void renderText(NeonContext ctx) {
         if (!isVisible()) return;
-        GuiGraphics g = ctx.graphics();
         float ax = absX(), ay = absY();
-        int textY = (int) (ay + (height - 8) / 2f);
-        g.drawString(ctx.font(), label, (int) ax, textY, NeonTheme.textMuted(), false);
+        NeonFonts.drawVCenter(ctx.graphics(), ctx.font(), label, ax, ay, height, NeonTheme.textMuted());
 
         float fieldW = 60;
         float fieldX = ax + width - fieldW;
         String display = listening ? "..." : keyName;
-        int tw = ctx.font().width(display);
         int color = listening ? NeonTheme.text() : NeonTheme.textDim();
-        g.drawString(ctx.font(), display, (int) (fieldX + (fieldW - tw) / 2f), textY, color, false);
+        NeonFonts.drawCenteredV(ctx.graphics(), ctx.font(), NeonFonts.literal(display),
+                fieldX + fieldW / 2f, ay, height, color);
     }
 
     @Override

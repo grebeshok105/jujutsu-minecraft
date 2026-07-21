@@ -58,7 +58,7 @@ public final class CtrlRow extends UiContainer {
         if (!isVisible()) return;
         float controlH = control != null ? Math.max(18f, control.height()) : 18f;
         float descY = absY() + 3f + controlH + 2f;
-        ctx.graphics().drawString(ctx.font(), desc, (int) (absX() + 12), (int) descY, NeonTheme.textDim(), false);
+        NeonFonts.draw(ctx.graphics(), ctx.font(), desc, absX() + 12, descY, NeonTheme.textDim());
         super.renderText(ctx);
     }
 

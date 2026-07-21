@@ -99,7 +99,7 @@ public final class SidebarItem extends UiComponent {
             int iy = Math.round(ay + (height - size) / 2f);
             g.blit(RenderPipelines.GUI_TEXTURED, icon, ix, iy, 0f, 0f, size, size, 96, 96, 96, 96);
         }
-        g.drawString(ctx.font(), label, (int) (ax + 28), (int) (ay + (height - 8) / 2f), textColor, false);
+        NeonFonts.drawVCenter(g, ctx.font(), label, ax + 28, ay, height, textColor);
     }
 
     @Override

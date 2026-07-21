@@ -79,13 +79,12 @@ public final class NeonDropdown extends UiComponent {
         GuiGraphics g = ctx.graphics();
         NeonTheme t = ctx.theme();
         float ax = absX(), ay = absY();
-        int textY = (int) (ay + (height - 8) / 2f);
-        g.drawString(ctx.font(), label, (int) ax, textY, NeonTheme.textMuted(), false);
+        NeonFonts.drawVCenter(g, ctx.font(), label, ax, ay, height, NeonTheme.textMuted());
 
         Component current = options.get(selectedIndex);
-        int curW = ctx.font().width(current);
-        g.drawString(ctx.font(), current, (int) (ax + width - 16 - curW - 6), textY, NeonTheme.text(), false);
-        g.drawString(ctx.font(), NeonFonts.literal(open ? "\u25B2" : "\u25BC"), (int) (ax + width - 16), textY, t.accentArgb(), false);
+        int curW = NeonFonts.width(ctx.font(), current);
+        NeonFonts.drawVCenter(g, ctx.font(), current, ax + width - 16 - curW - 6, ay, height, NeonTheme.text());
+        NeonFonts.drawVCenter(g, ctx.font(), open ? "^" : "v", ax + width - 14, ay, height, t.accentArgb());
 
         if (open) {
             // Draw popup last so later sibling rows cannot paint over it.
@@ -113,7 +112,7 @@ public final class NeonDropdown extends UiComponent {
                 applyAlpha(t.accentArgb(), 0.28f));
         for (int i = 0; i < options.size(); i++) {
             int color = i == selectedIndex ? NeonTheme.text() : NeonTheme.textMuted();
-            g.drawString(ctx.font(), options.get(i), (int) (ax + 8), (int) (py + i * ITEM_H + 5), color, false);
+            NeonFonts.drawVCenter(g, ctx.font(), options.get(i), ax + 8, py + i * ITEM_H, ITEM_H, color);
         }
     }
 

@@ -6,7 +6,6 @@ import jujutsu.mod.client.ui.neon.NeonFonts;
 import jujutsu.mod.client.ui.neon.NeonTheme;
 import jujutsu.mod.client.ui.neon.UiComponent;
 import jujutsu.mod.client.ui.neon.render.SdfShape;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -79,12 +78,8 @@ public final class NeonButton extends UiComponent {
     @Override
     public void renderText(NeonContext ctx) {
         if (!isVisible()) return;
-        GuiGraphics g = ctx.graphics();
         int textColor = primary ? NeonTheme.textOnAccent() : NeonTheme.text();
-        int tw = ctx.font().width(label);
-        int tx = (int) (absX() + (width - tw) / 2f);
-        int ty = (int) (absY() + (height - 8) / 2f);
-        g.drawString(ctx.font(), label, tx, ty, textColor, false);
+        NeonFonts.drawCenteredV(ctx.graphics(), ctx.font(), label, absX() + width / 2f, absY(), height, textColor);
     }
 
     @Override
