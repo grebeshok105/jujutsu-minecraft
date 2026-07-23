@@ -38,10 +38,10 @@ Compilation does not prove rendering or gameplay feel. UI, combat, mixins, and V
 2. [AGENTS.md](AGENTS.md) owns durable product and engineering rules.
 3. [SESSION.md](SESSION.md) records the current branch, changes, and verification state.
 4. [Codebase Codex MOC](Jujutsu%20Kaizen/jujutsumod-codebase-codex/00-MOC.md) indexes current architecture and maintenance notes.
-5. [docs/README.md](docs/README.md) explains the archive. Dated research, plans, reviews, and handoffs are historical records, not current instructions.
+5. [docs/README.md](docs/README.md) indexes the current operational docs; the repository intentionally keeps no historical documentation archive.
 
 ## Asset status and license
 
 The repository license is CC0-1.0 for original project code and materials where the project has the right to apply it. Some paths named projectjjk contain temporary placeholder/reference assets used with permission from the ProjectJJK author. They are not intended as the final public asset set and must not be treated as CC0 source material. Replace them or document release permission before a public distribution.
 
-The Rich-Modern reference and port also require a separate provenance review before public release. See [docs/research/projectjjk/legal/README_IMPORT_NOTES.md](docs/research/projectjjk/legal/README_IMPORT_NOTES.md) and the current risk register in the Codex.
+The Rich-Modern reference and port also require a separate provenance review before public release. See [docs/PROVENANCE.md](docs/PROVENANCE.md), [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md), and the current risk register in the Codex.

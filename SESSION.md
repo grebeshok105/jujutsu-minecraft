@@ -10,6 +10,8 @@
   - test(nobara): verify indexed trap exclusion
   - docs(project): synchronize current source of truth
   - chore(project): add local documentation audit
+  - ci(project): build with supported Java 21
+  - docs(project): prune legacy documentation
 - Product target: private play for one or two people
 
 ## Current product state
@@ -38,17 +40,16 @@
 2. AGENTS.md for durable rules.
 3. This SESSION.md for the active handoff.
 4. Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md for current architecture.
-5. docs/specs/2026-07-19-known-issues-and-tech-debt.md for live debt.
-6. Dated research, reviews, plans, specs, mockups, and old handoffs are historical references.
+5. docs/KNOWN_ISSUES.md for live debt.
 
-Use docs/README.md for the archive map. Run python3 tools/audit_docs.py after documentation changes.
+Use docs/README.md for the current-document map. Historical documentation has been intentionally removed. Run python3 tools/audit_docs.py after documentation changes.
 
 ## Verification status
 
 Completed on 2026-07-23:
 
 - ./gradlew build --no-daemon --rerun-tasks — BUILD SUCCESSFUL, 30 tasks executed, all 19 custom verification programs passed.
-- python3 tools/audit_docs.py — passed for 100 Markdown files and 61 historical records.
+- python3 tools/audit_docs.py — passed for 39 current Markdown files; all legacy documentation directories are absent.
 - git diff --check — passed.
 
 A real client smoke test was not run, so rendering and gameplay feel remain unverified in-game.

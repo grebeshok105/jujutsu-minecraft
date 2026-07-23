@@ -80,4 +80,4 @@ At minimum verify N → ClickGui, persisted vessel selection after reconnect, on
 | Could not connect to Gradle daemon | Local worker/daemon networking is restricted | Retry --no-daemon; if the environment still blocks loopback, use a current environment-specific in-process workaround rather than copying the old hard-coded port-8090 script |
 | Build succeeds but game crashes | Compile checks cannot prove runtime behavior | Run runClient and inspect the latest game log |
 
-The previous version of this document contained a port-8090 LD_PRELOAD bind shim and a fixed ~/workspace path. That workaround is historical: it is not required in the current sandbox and must not be copied unless the same loopback failure is reproduced.
+A former port-8090 LD_PRELOAD workaround is intentionally not included here. It is not required in the current sandbox; only recreate an environment-specific workaround after reproducing the same loopback failure.

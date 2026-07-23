@@ -7,4 +7,4 @@ Status: CURRENT PROVENANCE NOTE
 - The ProjectJJK author has given the jujutsumod developer permission to use the current models/assets as temporary private-development placeholders.
 - The placeholders are intended to be replaced with original assets when feasible.
 - Do not expand the imported set casually. Before public redistribution, preserve the permission scope in a durable form or replace the remaining imported assets.
-- Current implementation truth lives in the repository code and current docs; dated ProjectJJK research files are historical evidence only.
+- Current implementation truth lives in the repository code, current docs, and the permission/replacement policy in this file.

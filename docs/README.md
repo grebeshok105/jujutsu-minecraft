@@ -1,6 +1,6 @@
-# Documentation Map
+# Current Documentation
 
-This directory contains current operational documentation and a dated engineering archive. A document can be detailed and useful without describing the current main branch.
+This directory intentionally contains only current operational documentation. Historical research, reviews, handoffs, plans, specs, mockups, and visual targets were removed to keep the repository focused on the live product.
 
 ## Source-of-truth order
 
@@ -8,31 +8,16 @@ This directory contains current operational documentation and a dated engineerin
 2. Root AGENTS.md defines durable product direction, architecture rules, and workflow.
 3. Root SESSION.md defines the active branch and latest verified handoff.
 4. Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md indexes current architecture.
-5. docs/specs/2026-07-19-known-issues-and-tech-debt.md is the live risk register despite its dated filename.
+5. KNOWN_ISSUES.md is the live risk and debt register.
 
 If two documents disagree, use the higher source in this list and update the lower one.
 
-## Current operational documents
+## Files in this directory
 
-- BUILDING_IN_SANDBOX.md — restricted-container JDK and Gradle notes, plus the normal build command.
-- specs/2026-07-19-known-issues-and-tech-debt.md — current risk and debt register.
-- ../README.md — product overview and contributor entry point.
-- ../AGENTS.md — non-negotiable engineering rules.
-- ../SESSION.md — latest implementation handoff.
-- ../Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md — current codebase map.
-
-## Historical records
-
-The following directories preserve dated context and are deliberately not rewritten into current behavior claims:
-
-- research/ and research/sources/ — investigations, external references, and implementation studies.
-- reviews/ — point-in-time audits; findings may already be fixed or reclassified.
-- session-handoffs/ — closed-session snapshots.
-- superpowers/plans/ and superpowers/specs/ — accepted or superseded design/implementation records.
-- gui/ and visual-targets/ — visual targets and retired mockups.
-- vfx/ — dated technique notes.
-
-Every historical Markdown file carries a HISTORICAL REFERENCE banner. Historical HTML files carry data-document-status="historical" on their html element.
+- BUILDING_IN_SANDBOX.md — normal and restricted-container build guidance.
+- KNOWN_ISSUES.md — live risk and debt register.
+- PROVENANCE.md — ProjectJJK placeholder permission and replacement policy.
+- THIRD_PARTY_NOTICES.md — retained third-party notices that apply to current runtime assets.
 
 ## Maintenance
 
@@ -42,4 +27,4 @@ Run the documentation validator after changing code-derived facts or docs:
 python3 tools/audit_docs.py
 ```
 
-The validator checks the hierarchy, historical markers, selected stale terms, local links, and current code-derived counts in the Codex MOC. Run it locally before every documentation PR; adding it to GitHub Actions requires workflow-write permission for the connected GitHub integration.
+The validator checks that only current docs remain, validates local links, rejects stale historical references, and compares current Codebase Codex metrics with the source tree. CI runs the same audit before the Java 21 build.

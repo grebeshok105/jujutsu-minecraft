@@ -1,3 +1,0 @@
-src/main/resources/assets/jujutsumod/font/neon.ttf identifies as Segoe UI Semilight (SegoeUI-Semilight).
-Segoe UI is a Microsoft proprietary typeface. The file is currently packaged by processResources even though the active ClickGui primarily uses client MSDF atlases.
-Private local development is the current scope. Remove neon.ttf if unused or replace it with a verified OFL/Apache font before public redistribution. The Open Sans notice does not apply to this file.

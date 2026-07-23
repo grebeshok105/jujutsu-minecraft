@@ -12,10 +12,9 @@ Code target: current checkout of main or the active feature branch
 2. Root AGENTS.md for durable rules.
 3. Root SESSION.md for the active handoff.
 4. This Codex for architecture/navigation.
-5. The live known-issues register for debt.
-6. Dated research, reviews, plans, specs, mockups, and old handoffs as historical references.
+5. docs/KNOWN_ISSUES.md for live debt.
 
-Do not cite removed worktrees as sources of truth. Prefer repo-relative path + symbol; add a commit SHA when a statement must remain point-in-time.
+The repository intentionally keeps no documentation archive. Prefer repo-relative path + symbol; add a commit SHA when a statement must remain point-in-time.
 
 ## Current product snapshot
 

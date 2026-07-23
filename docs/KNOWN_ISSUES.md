@@ -76,14 +76,13 @@ Nineteen custom JavaExec programs use main methods and assertions. They are usef
 
 ### E9 — Build reproducibility can improve
 
-loom_version uses 1.17-SNAPSHOT, and CI currently tests one JDK. Pin a stable Loom release when available, add dependency locking if releases become important, and test Java 21 explicitly.
+loom_version uses 1.17-SNAPSHOT, and CI now tests Java 21. Pin a stable Loom release when available, add dependency locking if releases become important, and add a second supported-JDK matrix only after it is proven compatible.
 
 ## Low-priority product debt
 
 - Crafting recipes and broader datapack content are intentionally absent.
 - Publication automation for Modrinth/CurseForge should wait until release provenance is clean.
 - Some generic Rich ClickGui modules/components are unused and can be removed after confirming the final UI scope.
-- The debug and research archive is large; keep it clearly historical rather than deleting decision evidence.
 
 ## Resolved on fix/persistence-nail-lifecycle-docs-sync
 
@@ -91,9 +90,6 @@ loom_version uses 1.17-SNAPSHOT, and CI currently tests one JDK. Pin a stable Lo
 - Nobara starter tools are claimed once per player instead of being refilled on every selection.
 - Loaded ordinary embedded nails expire after 1200 ticks and are capped at 30 per owner.
 - Hairpin R/B resolve nails through EmbeddedNailRegistry instead of level.getAllEntities().
-- README, AGENTS.md, SESSION.md, build instructions, Codex, and archive status are synchronized.
-- Documentation audit tooling detects stale current-doc terms, missing historical markers, broken local links, and stale code-derived metrics.
-
-## Historical findings no longer current
-
-The 2026-07-19 full audit remains in docs/reviews as a historical report. Its VfxDeltaTrackerMixin, NailTrap return-value, old worktree, old GUI, old VFX-count, and other point-in-time findings must not be copied into the live backlog without re-verifying current code.
+- README, AGENTS.md, SESSION.md, build instructions, and Codex are synchronized around the current product state.
+- Documentation audit tooling rejects removed archive paths, stale references, broken local links, and stale code-derived metrics.
+- Historical documentation was intentionally removed after its durable conclusions were incorporated into current docs or the live issue register.

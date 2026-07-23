@@ -11,4 +11,4 @@ Status: CURRENT
 - Confirm sends SelectCharacterPayload and receives server echo through CharacterSelectionSyncPayload.
 - Theme: ClickGuiTheme, orange/slate character accent.
 
-The Neon Dashboard, Key V, CharacterSelectScreen, and ModernMenu fallback are retired. They appear only in historical records/mockups.
+The Neon Dashboard, Key V, CharacterSelectScreen, and ModernMenu fallback are retired.

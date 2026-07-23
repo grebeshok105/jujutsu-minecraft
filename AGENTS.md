@@ -32,7 +32,7 @@ Primary priorities:
 - Ordinary loaded embedded nails: 1200-tick TTL, maximum 30 per owner, resolved through `EmbeddedNailRegistry`
 - Resonance global server hit-stop is intentional for the current private 1–2 player target; do not silently remove it as a multiplayer optimization
 - **No** cursed-energy resource bar in the current kit
-- **No** Neon Dashboard / Key V menu; that path is retired and appears only in historical documents
+- **No** Neon Dashboard / Key V menu; that path is retired
 
 ## Non-Negotiable Workflow
 
@@ -71,10 +71,9 @@ Use this order when documents disagree:
 2. `AGENTS.md` for durable product and engineering rules.
 3. Active `SESSION.md` for the branch and latest handoff.
 4. Versioned Codebase Codex MOC for architecture and maintenance navigation.
-5. The live known-issues document for unresolved debt.
-6. Dated research, reviews, plans, specs, visual targets, and handoffs as historical records only.
+5. `docs/KNOWN_ISSUES.md` for unresolved debt.
 
-Historical documents carry a `HISTORICAL REFERENCE` banner. Do not rewrite history to look current; update the current docs and keep the original record clearly scoped. Run `python3 tools/audit_docs.py` after documentation changes.
+The repository intentionally keeps only current documentation. If a past decision still matters, summarize its durable conclusion in the relevant current document rather than restoring an archive. Run `python3 tools/audit_docs.py` after documentation changes.
 
 ## Brainstorming Gate
 
@@ -92,7 +91,7 @@ No code-first experiments in the main product path unless the user explicitly as
 ## Knowledge Bases
 
 - **Versioned repo Codex:** start at `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; this is the maintained architecture index shipped with the repository.
-- **ProjectJJK research and provenance:** use `docs/research/projectjjk/` and `docs/research/projectjjk/legal/` as dated evidence, not as current implementation instructions.
+- **ProjectJJK provenance:** use `docs/PROVENANCE.md` and `docs/THIRD_PARTY_NOTICES.md` for the current permission and replacement policy.
 - An external Obsidian vault may contain richer research when mcpvault is connected, but it is optional and must be cross-checked against current code before use.
 - Treat `VERIFIED` / `INFERRED` / `UNKNOWN` exactly as defined in `01-meta/Citation-standard.md`. Do not implement `UNKNOWN` as fact.
 - Every meaningful gameplay, character, VFX, UI, networking, asset, or architecture change must update the relevant current Codex note and MOC link.

@@ -13,4 +13,4 @@ Key rules:
 - neon.ttf is Segoe UI Semilight and must be removed/replaced before public redistribution unless separately licensed.
 - Rich-Modern-derived content needs a provenance decision before public release.
 
-See docs/research/projectjjk/legal/README_IMPORT_NOTES.md and docs/licenses/.
+See docs/PROVENANCE.md and docs/THIRD_PARTY_NOTICES.md.

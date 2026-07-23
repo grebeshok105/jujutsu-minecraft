@@ -2,7 +2,7 @@
 
 Status: CURRENT SUMMARY
 
-The live detailed register is docs/specs/2026-07-19-known-issues-and-tech-debt.md.
+The live detailed register is docs/KNOWN_ISSUES.md.
 
 ## Accepted
 
@@ -24,4 +24,4 @@ The live detailed register is docs/specs/2026-07-19-known-issues-and-tech-debt.m
 - Profile ClickGui SDF/MSDF batching before optimizing.
 - Extract second-character seams only after a real second kit.
 
-Resolved on the active branch: persistent selection, one-time starter claims, 1200-tick/30-owner embedded nail bounds, owner-indexed Hairpin lookup, and current/historical documentation separation.
+Resolved on the active branch: persistent selection, one-time starter claims, 1200-tick/30-owner embedded nail bounds, owner-indexed Hairpin lookup, and current-document consolidation.
