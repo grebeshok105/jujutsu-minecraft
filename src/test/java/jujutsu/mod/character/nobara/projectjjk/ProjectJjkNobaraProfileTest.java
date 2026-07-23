@@ -15,7 +15,7 @@ public final class ProjectJjkNobaraProfileTest {
 		assertPreparedLaunchRequiresCloseNails();
 		assertPreparedLaunchRangeUsesPlayerBounds();
 		assertGroundImpactsStayTighterThanDirectHits();
-		assertEmbeddedNailsDoNotExpireByAge();
+		assertEmbeddedNailsAreBounded();
 		assertTargetMarksFollowCurseMarkDuration();
 		assertBodyEmbedPointStaysInsideBodyHeight();
 		assertBodyEmbedPointPiercesIntoBody();
@@ -92,8 +92,9 @@ public final class ProjectJjkNobaraProfileTest {
 		assert ProjectJjkNobaraProfile.GROUND_IMPACT_RADIUS >= 2.0 : "ground impact should still read visually";
 	}
 
-	private static void assertEmbeddedNailsDoNotExpireByAge() {
-		assert ProjectJjkNobaraProfile.EMBEDDED_NAIL_AGE_TICKS == 0 : "persistent nails must not disappear because their anchor was unloaded for a long time";
+	private static void assertEmbeddedNailsAreBounded() {
+		assert ProjectJjkNobaraProfile.EMBEDDED_NAIL_AGE_TICKS == 1200 : "embedded nails must expire after one minute to bound long-running worlds";
+		assert ProjectJjkNobaraProfile.MAX_EMBEDDED_NAILS_PER_OWNER == 30 : "each owner must have a hard embedded-nail cap";
 	}
 
 	private static void assertTargetMarksFollowCurseMarkDuration() {

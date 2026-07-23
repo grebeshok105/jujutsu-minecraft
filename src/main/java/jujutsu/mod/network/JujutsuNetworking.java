@@ -32,8 +32,8 @@ public final class JujutsuNetworking {
 				context.server().execute(() -> handleNobaraAction(context.player(), payload)));
 		ServerPlayNetworking.registerGlobalReceiver(SelectCurseLinkPayload.TYPE, (payload, context) ->
 				context.server().execute(() -> jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime.select(context.player(), payload.linkId())));
-		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> { CharacterSelectionManager.syncTo(handler.player); jujutsu.mod.combat.BlackFlashFocus.sync(handler.player); });
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> CharacterSelectionManager.clear(handler.player));
+		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> { CharacterSelectionManager.syncOnJoin(handler.player); jujutsu.mod.combat.BlackFlashFocus.sync(handler.player); });
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> CharacterSelectionManager.disconnect(handler.player));
 	}
 
 	private static void handleNobaraAction(ServerPlayer player, NobaraActionPayload payload) {

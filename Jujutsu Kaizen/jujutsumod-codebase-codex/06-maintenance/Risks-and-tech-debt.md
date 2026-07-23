@@ -1,56 +1,27 @@
-# Risks & Tech Debt
+# Risks and Technical Debt
 
-← [[00-MOC]] · [[../04-client-vfx/VFX-core]]
+Status: CURRENT SUMMARY
 
-Only code-backed or process-backed risks.
+The live detailed register is docs/KNOWN_ISSUES.md.
 
-| ID | Risk | Priority | Source | Status |
-|---|---|---|---|---|
-| R1 | Checkout without cinematic worktree misleads agents (missing current Nobara) | **P0** | MOC SoT note | VERIFIED |
-| R2 | In-memory character selection is lost on restart | **P1** | `CharacterSelectionManager` map | VERIFIED |
-| R3 | VFX broadcast radius or `canSend` can omit a client’s local composition | **P1** | `JujutsuNetworking.java:38-59` | VERIFIED |
-| R4 | Existing camera/skin/renderer mixins increase MC-bump cost | **P2** | client mixins json | VERIFIED |
-| R5 | ProjectJJK-named assets/legal comparison materials | **P1** | assets `projectjjk/**`, ARR research | VERIFIED |
-| R6 | No automated in-game or two-client smoke in CI | **P2** | Java assertion tests/build only | VERIFIED |
-| R7 | Custom particle classes still have boilerplate even though burst/ring spawning is centralized | **P2** | particle package + `VfxParticleChannel` | MITIGATED |
-| R8 | A future agent could bypass VFX Core, drop late-cue age from a recipe, or reintroduce legacy static managers | **P1** | `ProjectSanityTest.java:303-393` + [[VFX-core]] | MITIGATED |
-| R9 | Vanilla blur call compiles but its availability/feel across live client state and graphics settings is not manually verified | **P2** | `VfxPostProcessChannel.java:23-36` | MITIGATED |
-| R10 | Curse links are in-memory only and vanish at server stop; no ordinary gameplay source exists yet | **P1** | `CurseLinkRegistry.java:12-36`; `JujutsuCommands.java:43-73` | VERIFIED |
-| R11 | Runtime-object nail anchors depend on external resolvers correctly distinguishing temporary absence from removal | **P1** | `NailRuntimeAnchorRegistry.java:16-31` | MITIGATED |
-| R12 | Combat-expansion behavior has structural tests but no manual timing/two-client QA | **P1** | `NailAnchorTest`, `BlackFlashWindowTest`, `CurseLinkRegistryTest`, current handoff | VERIFIED |
+## Accepted
 
-## VFX-specific guardrails
+- Global Resonance server hit-stop for the private 1–2 player target.
+- Temporary ProjectJJK placeholders used with author permission and replaced later.
 
-- The server can decide cue timing and seed; the client may only draw.
-- Unknown or expired cues are safe to ignore, but a missing ID is still a visual regression and must get a test.
-- Every current Nobara HUD/camera/first-person/post-process/time recipe call must preserve `initialAgeTicks`; the exact 35-call guard intentionally fails when one silently falls back to a fresh overload.
-- The target-local render-time pulse is intentionally a visual approximation, not a gameplay clock. Manual QA must verify that `VfxDeltaTrackerMixin` feels like a brief slow hit without input or observer desynchronization.
-- `ClientLevel` cleanup is identity-based, not dimension-name based. The guard requires `clear()` inside the identity-change branch, and null/disconnect must reset the tracked level.
-- World impacts must retain `VfxCue` and resolve the entity anchor on every render; caching the first resolved position would reintroduce stale geometry after movement/despawn.
-- `VfxDirector` caps active instances at 64. High-frequency scenes need a measured budget, not an unbounded new manager.
-- Vanilla particle settings reduce local density. Verify spectacle at ALL, DECREASED, and MINIMAL before declaring an effect tuned.
-- Blur remains internal to the director. If the public vanilla call throws a runtime/linkage error, it disables only blur for that client session; world/HUD/camera/particle fallbacks must remain sufficient.
-- A runtime-anchor resolver must return `TEMPORARILY_UNAVAILABLE` for an unloaded object. Returning `CONFIRMED_REMOVED` discards a persistent nail and is irreversible for that entity.
-- A future gameplay source for curse links must explicitly own their removal and decide restart persistence before it calls `createLink`.
+## Public-release blockers
 
-## Resolved on 2026-07-10
+- Rich-Modern provenance/license is unresolved.
+- neon.ttf is Segoe UI Semilight.
+- Public redistribution scope for placeholders must be recorded or assets replaced.
 
-| Former risk | Resolution | Source | Status |
-|---|---|---|---|
-| Integer impulse switch drifted client/server | one shared `VfxCue` payload and recipe registry replace the switch | `VfxCuePayload.java`, `JujutsuClientNetworking.java:14-15` | VERIFIED |
-| Separate Hairpin world/HUD/camera/particle/FP managers duplicated lifecycle | `VfxDirector` owns generic channels, level-identity cleanup, and null/disconnect reset | `VfxDirector.java:25-148` | VERIFIED |
-| Late packets replayed one-shot beats and restarted realtime channel clocks | opening beats are `< 2` ticks; non-expired cues pass actual age into offset channel timestamps | `VfxTimeline.java:10-27`, `NobaraVfxRecipes.java:37-189` | VERIFIED |
-| World impacts captured a one-time origin instead of following a live entity | each render resolves the retained cue through `VfxAnchorResolver`, with `cue.origin()` fallback | `VfxWorldChannel.java:34-69` | VERIFIED |
-| First-person snap phase scale did not traverse its documented range | 0.75-second snap now traverses the complete `0..15` scale | `VfxFirstPersonChannel.java:14-59`, `ProjectSanityTest.java:380-393` | VERIFIED |
-| Persistent nail aura could be lost in a generic timeline migration | it remains state-driven and shares `VfxPalette` | `ProjectJjkNailRenderer.java:23,31-42` | VERIFIED |
-| Post-process had no proven internal route | director-owned `VfxPostProcessChannel` calls the public vanilla blur method and disables itself safely on runtime/linkage failure | `VfxPostProcessChannel.java:7-46` | MITIGATED |
-| Mark-only remote hit omitted the canon-defining physical link/effigy ritual | target-bound remnant, reusable doll, nail, hammer, wind-up, and server revalidation now gate Resonance | [[../03-systems/Straw-Doll-resonance]] | VERIFIED |
-| Initial `.bbmodel` was a reduced blockout with empty animators and unstable Box UV details | source now matches all 25 runtime cubes/14 animator tracks, loads its texture portably, and opens with zero Blockbench model issues | [[../03-systems/Straw-Doll-resonance]] | VERIFIED |
-| Copied ProjectJJK doll research files were still packageable runtime resources | geometry, animation, and texture copies removed from `assets/jujutsumod`; sanity guard prevents reintroduction | `ProjectSanityTest.java:557-563` | VERIFIED |
+## Engineering priorities
 
-## P0 action
+- Add GameTest/dedicated-server and real runClient smoke coverage.
+- Bound CurseLinkOptionsPayload.
+- Normalize cleanup of remaining static runtime state.
+- Complete ru_ru keys.
+- Profile ClickGui SDF/MSDF batching before optimizing.
+- Extract second-character seams only after a real second kit.
 
-Document source of truth as the cinematic branch/worktree until merged to main/release. This vault cites that path.
-
----
-tags: #jujutsumod #risks #vfx #verified
+Resolved on the active branch: persistent selection, one-time starter claims, 1200-tick/30-owner embedded nail bounds, owner-indexed Hairpin lookup, and current-document consolidation.

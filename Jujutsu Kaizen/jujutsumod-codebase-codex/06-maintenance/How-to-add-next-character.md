@@ -1,63 +1,20 @@
 # How to Add the Next Character
 
-← [[00-MOC]] · [[../04-client-vfx/VFX-core]] · AGENTS character workflow
+Status: CURRENT
 
-## Recommended path
+Do not add a generic framework before a real second kit is approved.
 
-1. Write the character brief, combat loop, counterplay, VFX language, and approved design before code.
-2. Add `JujutsuCharacter` enum value, select-screen card/lang, and loadout branch.
-3. Create `character/<name>/` with profile constants and server-authoritative runtime methods.
-4. Add items/entities/sounds/particles only where the design needs them.
-5. Use explicit C2S action payloads only for client input that requires server validation.
-6. For each transient visual event:
-   - add `<Character>VfxIds`,
-   - emit a server `VfxCue`; use `Vec3.ZERO` when unanchored, or `origin.subtract(anchor.position())` for an entity anchor,
-   - register a Java `VfxRecipe`,
-   - test/document it.
-7. Keep persistent, stateful visual objects (for example an entity aura) in their real entity renderer; share `VfxPalette`/helpers only where useful.
-8. Add pure tests, `ProjectSanityTest` guards, build, then run real-client smoke.
+For the approved character:
 
-## VFX recipe checklist
+1. Write and approve the fantasy, combat loop, counterplay, controls, and VFX language.
+2. Add the character id/model metadata and persistent starter-claim behavior.
+3. Add server-owned action routing, validation, resources, and lifecycle state.
+4. Add typed payload support without creating one receiver per visual effect.
+5. Add CharacterRosterPanel data/card and localized strings.
+6. Add CharacterVfxIds and CharacterVfxRecipes using VFX Core channels.
+7. Register recipes through one explicit aggregate entrypoint once two characters exist.
+8. Add deterministic unit tests plus GameTest/dedicated-server cases where world integration matters.
+9. Run full build, docs audit, and real client smoke.
+10. Update AGENTS.md only for durable decisions, SESSION.md for the handoff, and relevant Codex notes.
 
-| Step | Required result |
-|---|---|
-| ID | stable `ResourceLocation` under the character namespace |
-| Server cue | immutable origin fallback; `NO_ANCHOR` + `Vec3.ZERO` when static; entity ID + `origin.subtract(anchor.position())` when anchored; bounded intensity, `level.getGameTime()`, `level.random.nextLong()` |
-| Recipe | one registration through `VfxDirector`; channel-only composition |
-| Quality | readable result at reduced/minimal particles; cull local spectacle by proximity as needed |
-| Boundaries | no client gameplay mutation and no per-effect receiver/render callback/mixin |
-| Documentation | VFX note, MOC, affected networking/boundary notes |
-| QA | check/build + real ability smoke; two-client observation when available |
-
-## Do expand
-
-| Place | Why |
-|---|---|
-| Character enum + selection | single gate |
-| Per-character package | isolation |
-| Profile constants class | balance without magic numbers |
-| `*VfxIds` + server cue + client recipe | one reusable VFX contract |
-| Real entity renderer for persistent world objects | avoids fake client-only followers |
-
-## Do not inflate early
-
-| Place | Why |
-|---|---|
-| Giant universal Ability framework | AGENTS: prove kit first |
-| Shared CE economy | not in current code; design decision |
-| One semantic impulse payload or client switch per character | VFX Core replaces this pattern |
-| Per-character render events/HUD singletons/mixins | director owns transient effects |
-| JSON/DSL editor, preview scene, generic GeckoLib attachments | explicitly outside VFX Core V1 |
-| Parallel old/new implementation stacks | keep one canonical runtime path per character |
-
-## Pain points to expect
-
-- Selection map is in-memory only (no disk persistence).
-- Visual assets and particles grow fast; assign ownership and delete dead assets when replacing a pipeline.
-- A server ID without a client recipe fails safely but loses spectacle; cover it with a guard.
-- In-game feel and two-client behavior remain manual checks; compile/tests do not prove them.
-
-**Status:** INFERRED process from current Nobara reference implementation + AGENTS; no second character exists yet.
-
----
-tags: #jujutsumod #maintenance #vfx #verified
+Extract CharacterDefinition/handler registries only where the second kit demonstrates repeated Nobara-specific branching.

@@ -1,23 +1,13 @@
 # Code Graph Status
 
-← [[00-MOC]]
+Status: CURRENT
 
-| Field | Value |
-|---|---|
-| Tool | `codebase-memory-mcp__index_repository` |
-| Mode | `full` |
-| Project | `D-WorkFlow-Jujutsu-Minecraft-.worktrees-nobara-cinematic-slice` |
-| Path | `D:/WorkFlow/Jujutsu Minecraft/.worktrees/nobara-cinematic-slice` |
-| Status | `indexed` |
-| Nodes | **14076** |
-| Edges | **17331** |
-| Excluded | `build/tmp` (1) |
-| ADR | false |
-| Date | 2026-07-08 |
+No versioned .codegraph index is present in the repository. Do not assume an external index exists.
 
-**Status:** VERIFIED (MCP response this session).
+Use, in order:
 
-Fallback if MCP down: `rg` on worktree path.
+1. Native filesystem/symbol search.
+2. The scoped Filesystem MCP server when available.
+3. A code graph only after indexing the current checkout and recording its commit.
 
----
-tags: #jujutsumod #codegraph
+Any graph result must be cross-checked against current source before changing behavior.

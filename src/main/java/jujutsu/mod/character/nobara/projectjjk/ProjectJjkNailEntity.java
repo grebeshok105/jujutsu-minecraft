@@ -83,6 +83,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	private Vec3 embeddedLocalForward = new Vec3(0.0, 0.0, 1.0);
 	private NailAnchor anchor = NailAnchor.none();
 	private boolean trapNail;
+	private boolean embeddedIndexTracked;
 
 	public ProjectJjkNailEntity(EntityType<? extends ProjectJjkNailEntity> entityType, Level level) {
 		super(entityType, level);
@@ -184,7 +185,10 @@ public final class ProjectJjkNailEntity extends Entity {
 		return embeddedAgeTicks;
 	}
 
-	public void markAsTrapNail() { trapNail = true; }
+	public void markAsTrapNail() {
+		trapNail = true;
+		untrackEmbeddedNail();
+	}
 	public boolean isTrapNail() { return trapNail; }
 
 	public void attachToRuntimeObject(ResourceLocation type, UUID objectId, Vec3 localOffset, Vec3 localForward) {
@@ -438,6 +442,7 @@ public final class ProjectJjkNailEntity extends Entity {
 			setLaunched(false);
 			setDeltaMovement(Vec3.ZERO);
 		} else {
+			untrackEmbeddedNail();
 			embeddedTargetId = -1;
 			embeddedLocalOffset = Vec3.ZERO;
 			embeddedLocalForward = new Vec3(0.0, 0.0, 1.0);
@@ -482,6 +487,9 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	private void tickEmbedded() {
 		setDeltaMovement(Vec3.ZERO);
+		if (!level().isClientSide() && level() instanceof ServerLevel serverLevel && !trapNail && !embeddedIndexTracked) {
+			embeddedIndexTracked = EmbeddedNailRegistry.track(serverLevel, this);
+		}
 		if (!level().isClientSide() && ProjectJjkNobaraProfile.EMBEDDED_NAIL_AGE_TICKS > 0
 				&& embeddedAgeTicks++ >= ProjectJjkNobaraProfile.EMBEDDED_NAIL_AGE_TICKS) {
 			discard();
@@ -619,7 +627,18 @@ public final class ProjectJjkNailEntity extends Entity {
 	@Override
 	public void onRemoval(RemovalReason removalReason) {
 		untrackActiveExplosiveNail();
+		untrackEmbeddedNail();
 		super.onRemoval(removalReason);
+	}
+
+	private void untrackEmbeddedNail() {
+		if (!embeddedIndexTracked) {
+			return;
+		}
+		if (level() instanceof ServerLevel serverLevel) {
+			EmbeddedNailRegistry.untrack(serverLevel, this);
+		}
+		embeddedIndexTracked = false;
 	}
 
 	private void trackActiveExplosiveNail() {

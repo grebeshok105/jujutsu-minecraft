@@ -35,6 +35,7 @@ public final class ProjectSanityTest {
 		assertPerNailHairpinDamageContract();
 		assertResonanceUsesInternalDamageAndStagger();
 		assertCombatExpansionReviewFixes();
+		assertEmbeddedNailLifecycleIsBounded();
 		assertParticleJsonTexturesExist();
 		assertItemDefinitionsResolveToTextures();
 		assertDefaultNobaraItemsUseProjectJjkModels();
@@ -131,6 +132,20 @@ public final class ProjectSanityTest {
 		for (String clip : List.of("hammer_horizontal", "hammer_overhead", "hammer_nail_launch", "hammer_embedded_drive", "hammer_doll_strike", "self_resonance", "black_flash")) {
 			assert animation.contains("animation.player_model." + clip) : "Missing dedicated Nobara animation: " + clip;
 		}
+	}
+
+	private static void assertEmbeddedNailLifecycleIsBounded() throws IOException {
+		Path registryPath = MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/EmbeddedNailRegistry.java");
+		assert Files.exists(registryPath) : "Embedded nails need an owner-indexed server registry";
+		String registry = Files.readString(registryPath);
+		assert registry.contains("MAX_EMBEDDED_NAILS_PER_OWNER") : "Embedded nail registry must enforce the per-owner cap";
+		assert registry.contains("ServerLifecycleEvents.SERVER_STOPPING") : "Embedded nail registry must clear server-owned state on shutdown";
+		String entity = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNailEntity.java"));
+		assert entity.contains("EmbeddedNailRegistry.track") && entity.contains("untrackEmbeddedNail")
+				: "Embedded nail entities must enter and leave the loaded-owner index with their lifecycle";
+		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
+		assert ritual.contains("EmbeddedNailRegistry.loadedOwnedNails") : "Hairpin must resolve owned nails through the bounded index";
+		assert !ritual.contains("level.getAllEntities()") : "Hairpin must not scan every loaded entity";
 	}
 
 	private static void assertParticleJsonTexturesExist() throws IOException {

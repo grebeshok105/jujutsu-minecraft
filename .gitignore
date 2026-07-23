@@ -32,6 +32,7 @@ bin/
 # fabric
 
 run/
+logs/
 
 # java
 
@@ -39,13 +40,4 @@ hs_err_*.log
 replay_*.log
 *.hprof
 *.jfr
-
-# gui mockup assets (large binaries, download separately)
-docs/gui/AppleColorEmoji-Windows.ttf
-
-# Local research extracts (do not ship)
-docs/research/rich-modern-gui-ref/
-
-
-docs/research/rich-modern-full/
 
