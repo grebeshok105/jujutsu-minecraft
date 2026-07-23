@@ -18,15 +18,26 @@ public final class ClientCharacterSelectionManager {
 
 	public static void apply(CharacterSelectionSyncPayload payload) {
 		JujutsuCharacter character = JujutsuCharacter.byId(payload.characterId());
-		if (character == JujutsuCharacter.NONE) {
-			SELECTIONS.remove(payload.playerId());
-			return;
-		}
+		// Always remember the selection, including NONE — UI defaults must match the server.
 		SELECTIONS.put(payload.playerId(), new Selection(character, model(payload.modelId())));
+	}
+
+	/** Optimistic local update after Confirm (before server echo). */
+	public static void applyLocal(UUID playerId, JujutsuCharacter character, PlayerSkin.Model model) {
+		SELECTIONS.put(playerId, new Selection(character, model));
 	}
 
 	public static Selection selection(UUID playerId) {
 		return SELECTIONS.get(playerId);
+	}
+
+	/**
+	 * Character currently known for this player. Missing entry means {@link JujutsuCharacter#NONE}
+	 * (matches server {@code CharacterSelectionManager.selected} default).
+	 */
+	public static JujutsuCharacter characterOrNone(UUID playerId) {
+		Selection selection = selection(playerId);
+		return selection == null ? JujutsuCharacter.NONE : selection.character();
 	}
 
 	public static void rememberEntity(AbstractClientPlayer player, float partialTick) {

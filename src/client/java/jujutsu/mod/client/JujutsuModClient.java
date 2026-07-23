@@ -9,6 +9,8 @@ import jujutsu.mod.client.network.JujutsuClientNetworking;
 import jujutsu.mod.client.particle.JujutsuClientParticles;
 import jujutsu.mod.client.render.ProjectJjkNailRenderer;
 import jujutsu.mod.client.render.nobara.doll.ProjectJjkStrawDollRenderer;
+import jujutsu.mod.client.ui.msdf.MsdfFonts;
+import jujutsu.mod.client.rich.Initialization;
 import jujutsu.mod.client.ui.neon.render.SdfPipelines;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollItem;
 import jujutsu.mod.registry.JujutsuEntities;
@@ -23,11 +25,13 @@ public class JujutsuModClient implements ClientModInitializer {
 		NobaraVfxRecipes.register();
 		JujutsuClientNetworking.registerReceivers();
 		JujutsuKeybinds.register();
-		// Register the neon-dashboard SDF pipeline (touching the field runs the static
-		// RenderPipelines.register). Must happen before the first resource reload precompiles
-		// pipelines so the shader is picked up.
+		// SDF panels for ClickGui (touching the field registers the pipeline).
 		if (SdfPipelines.SDF_SHAPE == null) {
 			throw new IllegalStateException("SDF pipeline failed to register");
 		}
+		// ClickGui MSDF type + slim Rich host (key N).
+		MsdfFonts.bootstrap();
+		Initialization.getInstance();
 	}
 }
+
