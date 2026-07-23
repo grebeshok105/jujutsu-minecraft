@@ -13,6 +13,7 @@ import jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime;
 import jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime;
 import jujutsu.mod.command.JujutsuCommands;
 import jujutsu.mod.network.JujutsuNetworking;
+import jujutsu.mod.registry.JujutsuAttachments;
 import jujutsu.mod.registry.JujutsuDataComponents;
 import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.registry.JujutsuItems;
@@ -32,6 +33,7 @@ public class JujutsuMod implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		JujutsuEntities.register();
+		JujutsuAttachments.register();
 		JujutsuDataComponents.register();
 		JujutsuItems.register();
 		JujutsuParticles.register();

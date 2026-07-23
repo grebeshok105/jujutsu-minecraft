@@ -44,6 +44,16 @@ dependencies {
 	clientAnnotationProcessor 'org.projectlombok:lombok:1.18.36'
 }
 
+tasks.register('testCharacterPlayerState', JavaExec) {
+	group = 'verification'
+	description = 'Runs persistent character selection and starter-claim tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.CharacterPlayerStateTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.register('testProjectSanity', JavaExec) {
 	group = 'verification'
 	description = 'Runs resource and side-separation sanity checks'
@@ -225,6 +235,7 @@ tasks.register('testServerTimeDilation', JavaExec) {
 }
 
 tasks.named('check') {
+	dependsOn tasks.named('testCharacterPlayerState')
 	dependsOn tasks.named('testProjectSanity')
 	dependsOn tasks.named('testTargetResolver')
 	dependsOn tasks.named('testProjectJjkNobaraProfile')
