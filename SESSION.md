@@ -4,9 +4,12 @@
 
 - Branch: fix/persistence-nail-lifecycle-docs-sync
 - Base: main at 2faa275
-- Implementation commits:
-  - 9ee028d — persist character selection and one-time starter claims
-  - 8739116 — bound embedded nail lifecycle and replace the global entity scan
+- Change commits:
+  - fix(character): persist selection and starter claims
+  - fix(nobara): bound embedded nail lifecycle
+  - test(nobara): verify indexed trap exclusion
+  - docs(project): synchronize current source of truth
+  - chore(project): add local documentation audit
 - Product target: private play for one or two people
 
 ## Current product state
@@ -42,13 +45,13 @@ Use docs/README.md for the archive map. Run python3 tools/audit_docs.py after do
 
 ## Verification status
 
-Final verification for this branch must include:
+Completed on 2026-07-23:
 
-- ./gradlew build --no-daemon --rerun-tasks
-- python3 tools/audit_docs.py
-- git diff --check
+- ./gradlew build --no-daemon --rerun-tasks — BUILD SUCCESSFUL, 30 tasks executed, all 19 custom verification programs passed.
+- python3 tools/audit_docs.py — passed for 100 Markdown files and 61 historical records.
+- git diff --check — passed.
 
-Do not claim in-game rendering or gameplay feel until a real client smoke test is performed.
+A real client smoke test was not run, so rendering and gameplay feel remain unverified in-game.
 
 ## Next product steps
 
