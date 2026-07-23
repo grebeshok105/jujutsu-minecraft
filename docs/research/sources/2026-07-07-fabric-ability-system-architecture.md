@@ -1,5 +1,7 @@
 # **Архитектура и реализация продвинутой боевой системы Minecraft Fabric (1.21.8): Проект "jujutsumod"**
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 Настоящий отчет представляет собой исчерпывающий технический документ (Implementation Bible), описывающий архитектуру, паттерны проектирования и конкретные шаги для реализации продвинутой боевой системы (gameplay, combat, ability system) для мода jujutsumod на базе Minecraft Fabric 1.21.8 и Java 21\. Документ фокусируется на реализации первого функционального среза (vertical slice) персонажа Нобары Кугисаки. Проектирование выполнено с упором на строгую серверную авторитарность (server-authoritative), клиентскую визуализацию (client-only visuals), типизированную сетевую сериализацию (typed payloads) и использование исключительно публичных Fabric API, избегая преждевременного создания монолитных фреймворков и нестабильных хаков на базе Mixin.
 
 ## **1\. Регистрация компонентов и управление ресурсами**

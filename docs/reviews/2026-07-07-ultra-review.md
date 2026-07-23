@@ -1,5 +1,7 @@
 # Jujutsu Minecraft - Ultra Review
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 ## Executive Summary
 
 - Направление проекта правильное: один vertical slice, Hairpin first, server semantic event + client VFX playback. Это реально годная база.

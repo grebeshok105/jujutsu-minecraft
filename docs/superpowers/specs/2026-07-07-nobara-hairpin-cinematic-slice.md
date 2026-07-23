@@ -1,5 +1,7 @@
 # Nobara Hairpin Cinematic Slice
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 Status: superseded archival note.
 
 Superseded 2026-07-09: the old jujutsumod cinematic Hairpin runtime, `HairpinFxPayload`, playback managers, fake nail flight renderer, and old item assets were removed. ProjectJJK Nobara is now the canonical runtime. Use `Jujutsu Kaizen/jujutsumod-codebase-codex/06-maintenance/2026-07-09-legacy-nobara-removal.md` and `jujutsumod-codebase-codex/03-systems/Nobara-overview.md` for current implementation guidance.

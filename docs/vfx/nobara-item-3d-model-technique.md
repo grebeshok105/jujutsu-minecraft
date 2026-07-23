@@ -1,5 +1,7 @@
 # Nobara Item 3D Model Technique
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 Status: superseded archival note.
 
 Superseded 2026-07-09: the default `hairpin_nail` and `straw_doll_hammer` ids now point at ProjectJJK item models and textures. The old `textures/item/hairpin_nail.png`, `textures/item/straw_doll_hammer.png`, and `textures/item/model/*` assets described below were removed with the legacy Nobara cleanup. Keep this note only as historical context for why current item models must sample opaque texture regions.

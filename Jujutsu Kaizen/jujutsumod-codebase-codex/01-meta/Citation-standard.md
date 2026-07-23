@@ -1,59 +1,22 @@
 # Citation Standard
 
-← [[00-MOC]] · [[Sources-and-method]]
+Status: CURRENT
 
-## Goal
+## Evidence labels
 
-Каждый actionable claim проверяется за ≤30 секунд по `file:line`.
+- VERIFIED — directly supported by current code, tests, or a reproduced command.
+- INFERRED — reasonable interpretation that still needs runtime or upstream confirmation.
+- UNKNOWN — not established; never implement it as fact.
+- HISTORICAL — true only for the dated artifact/commit that records it.
 
-## Format
+## Preferred citation
 
-```text
-**Source:** .worktrees/nobara-cinematic-slice/src/.../File.java:LINE — факт / symbol
-**Resource:** src/main/resources/... (если asset)
-**Status:** VERIFIED | INFERRED | UNKNOWN
-```
+Use repo-relative path plus a stable symbol, for example:
 
-Опционально: `Symbol: ClassName.methodName`, если lines могут сдвинуться.
+`src/main/java/jujutsu/mod/character/CharacterSelectionManager.java — select`
 
-## Status
+Add a commit SHA for point-in-time claims. Add line numbers only when useful in a review; line-only citations rot quickly.
 
-| Status | Значение | Можно 1:1? |
-|---|---|---|
-| **VERIFIED** | Буквально в коде/ресурсе | Да, после re-read |
-| **INFERRED** | Цепочка вызовов без одного литерала | Перепроверь path |
-| **UNKNOWN** | Не найдено / runtime only | Не имплементировать как факт |
+## Conflict rule
 
-## Paths
-
-| Root | Path |
-|---|---|
-| Full product (default cite) | `D:/WorkFlow/Jujutsu Minecraft/.worktrees/nobara-cinematic-slice/` |
-| Thin checkout | `D:/WorkFlow/Jujutsu Minecraft/` (может отставать) |
-| Repo-relative cite prefix | `.worktrees/nobara-cinematic-slice/` |
-
-## Required anchors
-
-| Claim type | Must cite |
-|---|---|
-| identity/version | `fabric.mod.json` / `gradle.properties` |
-| register order | `JujutsuMod.onInitialize` |
-| item/entity id | registry class field line |
-| balance number | `ProjectJjkNobaraProfile` constant |
-| network payload | record class + `JujutsuNetworking.registerPayloads` |
-| client-only | `src/client/...` path |
-| test command | `build.gradle` task |
-
-## Master index
-
-[[05-reference/Claim-Source-Index]]
-
-## Before changing behavior
-
-1. Open cited `file:line`.
-2. Confirm method still matches.
-3. Check [[05-reference/ProjectJJK-parity-map]] if parity-related.
-4. Only then edit code (отдельная задача — не эта база).
-
----
-tags: #jujutsumod #citation
+Current code and passing tests beat prose. Root AGENTS.md owns durable decisions. SESSION.md owns the active handoff. Historical docs preserve context but never override current behavior.

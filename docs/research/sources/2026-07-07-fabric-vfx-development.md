@@ -1,5 +1,7 @@
 # **Техническое исследование реализации высококачественных клиентских VFX в Minecraft Fabric 1.21.8**
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 ## **Архитектура клиент-серверного разделения и конвейер рендеринга**
 
 Современная разработка боевых модификаций для Minecraft требует жесткого разделения ответственности между сервером, обладающим абсолютным авторитетом в принятии решений (Gameplay Authority), и клиентом, отвечающим за высокопроизводительную визуализацию и интерполяцию состояний игрового мира. Использование механизма splitEnvironmentSourceSets() в сборочном скрипте Gradle позволяет физически изолировать клиентский код в директории src/client, полностью предотвращая непреднамеренный доступ к классам физического клиента на стороне выделенного сервера.  

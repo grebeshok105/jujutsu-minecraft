@@ -1,120 +1,99 @@
-# Spec: Known Issues & Tech Debt
+# Known Issues and Technical Debt
 
-Дата: 2026-07-19
-Статус: OPEN
-Контекст: main синхронизирован с codex/nobara-cinematic-slice (5073b24).
+Status: CURRENT LIVE REGISTER
 
----
+Last code verification: 2026-07-23
 
-## P0 — Критические
+Applies to: main plus fix/persistence-nail-lifecycle-docs-sync
 
-### 1. Worktree SoT устранён, но worktree не очищены
+Owner hierarchy: current code/tests → AGENTS.md → SESSION.md → Codebase Codex → this register
 
-main теперь содержит весь код из `codex/nobara-cinematic-slice`. Worktree `.worktrees/nobara-cinematic-slice` и ветка `codex/nobara-cinematic-slice` больше не нужны как источник правды.
+## Accepted product decisions
 
-**Действие:** удалить worktree + ветку после подтверждения, что незакоммиченный `.bbmodel` не нужен. Остальные worktree (`brainstorming`, `vfx-director-prototype`) — ревизовать и удалить.
+### Global Resonance hit-stop
 
----
+Resonance intentionally changes the global server tick rate to create hit-stop. This affects every player and dimension, but the current product target is private play for one or two people. Do not remove it as a generic multiplayer optimization. Reopen only if the target becomes a public or competitive server.
 
-## P1 — Высокие
+### ProjectJJK placeholder assets
 
-### 2. Выбор персонажа теряется при рестарте
+ProjectJJK-named models/assets are temporary placeholders used with permission from the author. They may stay for private development and are intended to be replaced later. They are not automatically CC0. Before public distribution, preserve evidence and scope of permission or replace the remaining assets.
 
-`CharacterSelectionManager` хранит выбор в памяти. После перезахода игрок теряет выбранного персонажа.
+## Public-release blockers
 
-**Действие:** персистить в player data (NBT/Component) или в world savedata.
+### R1 — Rich-Modern provenance is unresolved
 
-### 3. VFX broadcast может пропустить клиента
+The client/rich package and associated font/shader assets were derived from a user-provided Rich-Modern reference. Dated research explicitly said study-only, while current source describes a port. Determine the upstream license/permission and replace code/assets that cannot be redistributed.
 
-`VfxCuePayload` рассылается по радиусу. Клиент вне радиуса в момент каста не получит cue → визуальный провал.
+### R2 — Bundled Segoe UI font
 
-**Действие:** late-join catch-up или broadcast всем игрокам в измерении для критичных cue.
+src/main/resources/assets/jujutsumod/font/neon.ttf identifies as Segoe UI Semilight. The old Open Sans note was incorrect. The font is currently packaged even though ClickGui primarily uses MSDF atlases. Remove it if unused or replace it with an OFL font before public distribution.
 
-### 4. ProjectJJK ARR-ассеты в репозитории
+### R3 — Placeholder release permission must be recorded
 
-Текстуры, модели, анимации, звуки из ProjectJJK (All Rights Reserved) находятся в `assets/jujutsumod/textures/projectjjk/`, `geo/projectjjk/`, `sounds/projectjjk/`, `geckolib/`. Юридический риск при публикации.
+Private author permission is sufficient for current development. A public release still needs a recorded scope covering redistribution, or replacement with original assets.
 
-**Действие:** заменить на оригинальные ассеты или получить лицензию. До замены — не публиковать мод публично.
+## High-priority engineering work
 
-### 5. Нет автоматического in-game smoke-теста в CI
+### E1 — No automated in-game smoke test
 
-Сборка проверяет компиляцию и unit-тесты, но не запускает клиент. Регрессия в рендере/краше не ловится.
+CI compiles and runs assertion programs but does not boot a client or dedicated server. Renderer, mixin, packet, UI, and gameplay integration regressions can survive a green build.
 
-**Действие:** headless `runClient` smoke или GameTest Framework.
+Action: add GameTests/dedicated-server coverage first; keep real runClient smoke for graphics-dependent behavior.
 
----
+### E2 — Curse-link options payload is not bounded
 
-## P2 — Средние
+CurseLinkOptionsPayload trusts an incoming list size and unbounded technique string, while the client creates one button per entry.
 
-### 6. Shader/post-process бэкенд не доказан на 1.21.8
+Action: cap entries and string length, reject malformed ids, and add scrolling/pagination if the list can grow.
 
-`VfxPostProcessChannel` существует, но ни один post-process шейдер не подтверждён работающим на 1.21.8 (vanilla post-process pipeline изменился). Старые hairpin-шейдеры удалены.
+### E3 — Some server runtime state is still static and unevenly cleaned
 
-**Действие:** прототип одного post-process pass на 1.21.8; если невозможно — fallback на world-space квады.
+CombatStagger, preparation state, anchor-removal tracking, and related maps use different cleanup rules. Most are server-thread safe, but long-running worlds need explicit ownership and pruning.
 
-### 7. Mixin-зависимость от vanilla renderer internals
+Action: centralize per-server state or add lifecycle/TTL cleanup with tests.
 
-`NobaraPlayerRendererMixin`, `NobaraLivingEntityRendererMixin`, `CharacterSkinMixin`, `HairpinCameraMixin`, `HairpinGameRendererMixin`, `VfxDeltaTrackerMixin`, `NobaraFirstPersonSnapMixin` — 7 mixin. Каждый MC-апдейт может сломать.
+## Medium-priority work
 
-**Действие:** при апгрейде MC — приоритетная проверка mixin. По возможности заменять на Fabric API hooks.
+### E4 — VFX delivery is transient and radius-filtered
 
-### 8. Нет localization для ru_ru (частично)
+Clients outside the broadcast radius at cast time do not receive a cue. This is acceptable for most short effects, but critical long-lived visuals need explicit state or catch-up rather than wider blind broadcast.
 
-`ru_ru.json` добавлен, но покрывает не все ключи из `en_us.json`.
+### E5 — Russian localization is incomplete
 
-**Действие:** синхронизировать ключи.
+ru_ru.json has fewer keys than en_us.json. Synchronize all player-visible keys and add an automated key-set check.
 
-### 9. Нет публикации (CurseForge/Modrinth)
+### E6 — ClickGui rendering has avoidable per-shape work
 
-`build.gradle` не содержит `cursegradle` / `modrinth` плагинов. Релизный процесс ручной.
+Render2D immediately begins and flushes SDF for each shape to preserve MSDF ordering. SdfRenderer allocates/uploads per flush. Profile in-game before redesigning; if material, batch by render layer and reuse staging buffers.
 
-**Действие:** добавить после замены ARR-ассетов.
+### E7 — Second-character integration is still Nobara-shaped
 
----
+Selection, UI cards, action payloads, loadout dispatch, and VFX registration contain direct Nobara branches. Do not build a giant abstraction early, but extract CharacterDefinition/handler boundaries when the second real kit is approved.
 
-## P3 — Низкие / Наблюдение
+### E8 — Standard test reporting is weak
 
-### 10. Кастомные частицы — boilerplate
+Nineteen custom JavaExec programs use main methods and assertions. They are useful and green, but do not provide normal per-test JUnit reports or GameTest world integration.
 
-8 particle-классов с повторяющейся логикой. Частично митигировано `JujutsuClientParticles`, но каждый класс всё ещё ~50 строк однотипного кода.
+### E9 — Build reproducibility can improve
 
-### 11. Нет datapack-контента
+loom_version uses 1.17-SNAPSHOT, and CI currently tests one JDK. Pin a stable Loom release when available, add dependency locking if releases become important, and test Java 21 explicitly.
 
-Рецепты, loot tables, tags для предметов отсутствуют (кроме damage_type tags). Крафт гвоздей/молота не определён.
+## Low-priority product debt
 
-### 12. `nobara-cinematic-slice-review-33ef9c2.zip` в корне репо
+- Crafting recipes and broader datapack content are intentionally absent.
+- Publication automation for Modrinth/CurseForge should wait until release provenance is clean.
+- Some generic Rich ClickGui modules/components are unused and can be removed after confirming the final UI scope.
+- The debug and research archive is large; keep it clearly historical rather than deleting decision evidence.
 
-4.5 MB бинарник. Не нужен в git.
+## Resolved on fix/persistence-nail-lifecycle-docs-sync
 
-**Действие:** удалить из tracking (git rm --cached) + добавить в .gitignore.
+- Character selection now persists through Fabric Data Attachment API and is copied on death.
+- Nobara starter tools are claimed once per player instead of being refilled on every selection.
+- Loaded ordinary embedded nails expire after 1200 ticks and are capped at 30 per owner.
+- Hairpin R/B resolve nails through EmbeddedNailRegistry instead of level.getAllEntities().
+- README, AGENTS.md, SESSION.md, build instructions, Codex, and archive status are synchronized.
+- Documentation audit tooling detects stale current-doc terms, missing historical markers, broken local links, and stale code-derived metrics.
 
-### 13. `lightrag.log` и `rag_storage/` в корне
+## Historical findings no longer current
 
-Артефакты RAG-тулинга. Не должны быть в репо.
-
-**Действие:** .gitignore.
-
----
-
-## Открытые дизайн-вопросы (из AGENTS.md)
-
-| # | Вопрос | Статус |
-|---|--------|--------|
-| 1 | Anime-accurate vs Minecraft-native vs hybrid? | Фактически hybrid (ProjectJJK-механики + MC-рендер) |
-| 2 | Singleplayer-first или multiplayer-safe? | Server-authoritative, но без dedicated-server теста |
-| 3 | Первый персонаж? | Нобара — реализована |
-| 4 | Сколько активных способностей? | 6+ (nail, hammer, enlarge, boom, resonance, trap, chain) |
-| 5 | Cursed energy универсальная или per-character? | Per-character (`ProjectJjkNobaraProfile`) |
-| 6 | Визуальная библиотека? | GeckoLib для geo-рендера; постпроцесс не решён |
-| 7 | Прогрессия в первом майлстоуне? | Remnant progress есть, но без unlock-гейта |
-
----
-
-## Следующие шаги (приоритет)
-
-1. Удалить stale worktree и ветки
-2. Заменить/изолировать ARR-ассеты
-3. Персистентность выбора персонажа
-4. VFX late-join / broadcast fix
-5. Доказать shader-бэкенд или закрыть канал
-6. In-game smoke в CI
+The 2026-07-19 full audit remains in docs/reviews as a historical report. Its VfxDeltaTrackerMixin, NailTrap return-value, old worktree, old GUI, old VFX-count, and other point-in-time findings must not be copied into the live backlog without re-verifying current code.

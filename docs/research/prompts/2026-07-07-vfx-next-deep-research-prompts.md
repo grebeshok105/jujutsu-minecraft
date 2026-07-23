@@ -1,5 +1,7 @@
 # Next Deep Research Prompts For Hairpin VFX Production
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 Use these prompts for additional deep research before the custom particle and shader production phase.
 
 ## Prompt 1: Fabric 1.21.8 Custom Particle Production Pipeline

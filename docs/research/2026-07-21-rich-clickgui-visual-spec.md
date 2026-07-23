@@ -1,5 +1,7 @@
 # Rich ClickGUI visual target (locked reference)
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 Source screenshot: `C:\Users\KOMP1\Pictures\Снимок экрана 2026-07-21 144110.png`  
 Layout source: `rich.screens.clickgui.ClickGui` (FIXED_GUI_SCALE=2)
 

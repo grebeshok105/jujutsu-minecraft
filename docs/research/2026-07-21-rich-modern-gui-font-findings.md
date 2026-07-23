@@ -1,5 +1,7 @@
 # Rich-Modern GUI font findings (read-only study)
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 **Source:** user-provided `Rich-Modern.rar` (Fabric client, MC 1.21.11).  
 **Scope:** only `rich.util.render.font.*`, MSDF shaders, font atlases, ClickGui text entry points.  
 **Not executed:** no gradle, no jar run, no native code. Extracted for reading under `docs/research/rich-modern-gui-ref/` (do not ship).

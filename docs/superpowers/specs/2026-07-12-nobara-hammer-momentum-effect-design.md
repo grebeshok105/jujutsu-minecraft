@@ -1,5 +1,7 @@
 # Nobara Hammer and Momentum Effect Design
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 ## Goal
 
 Replace the oversized sledgehammer silhouette with a compact silver nail-driving claw hammer, and remove the custom Resonant Momentum HUD in favor of Minecraft's native beneficial-effect list.

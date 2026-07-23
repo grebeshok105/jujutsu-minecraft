@@ -1,9 +1,7 @@
 # jujutsumod Codebase Codex
 
-База знаний **нашего** мода (не ProjectJJK).
+Status: CURRENT INDEX
 
-**Открыть:** [[jujutsumod-codebase-codex/00-MOC]]
+The maintained entry point is [jujutsumod-codebase-codex/00-MOC.md](jujutsumod-codebase-codex/00-MOC.md).
 
-Связанный research vault: [[grok-projectjjk-codex/00-MOC]]
-
-Source of truth for code cites: `.worktrees/nobara-cinematic-slice` (full kit).
+Current code and tests are authoritative. The Codex describes the checked-out branch; dated material under docs/ is historical unless docs/README.md says otherwise.

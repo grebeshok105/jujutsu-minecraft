@@ -1,5 +1,7 @@
 # Nobara Hairpin Depth, Chain, Trap, Remnants, and Momentum Design
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 ## Goal
 
 Extend the canonical ProjectJJK Nobara slice with readable directed and mass Hairpin identities, sequential per-nail detonations, three-level embedded depth, a territory-control nail trap, deterministic Black Flash debugging, richer Bound Remnant art, and a one-minute reward after Straw Doll Resonance.

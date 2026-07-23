@@ -1,5 +1,7 @@
 # Minecraft 1.21 Custom Font — Final Research
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 ## Hard facts from 1.21.8 bytecode
 
 1. **`FontTexture` always sets `FilterMode.NEAREST`.**  

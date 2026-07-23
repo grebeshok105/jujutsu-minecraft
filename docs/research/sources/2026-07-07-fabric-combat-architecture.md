@@ -1,5 +1,7 @@
 # **Архитектура боевой системы для Minecraft Fabric 1.21.8: Проектирование сервер-авторитарного кинематографичного PvP/PvE-движка**
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 ## **Аннотация**
 
 Настоящий технический отчет посвящен проектированию архитектуры сетевой боевой системы для платформы Minecraft Fabric (версия 1.21.8, среда исполнения Java 21). Основной технологический вызов проекта заключается в совмещении динамики файтинга, вдохновленного вселенной *Jujutsu Kaisen*, со строгим контролем серверного состояния и сетевой стабильностью в условиях стандартного игрового цикла Minecraft с частотой 20 тиков в секунду (TPS).  

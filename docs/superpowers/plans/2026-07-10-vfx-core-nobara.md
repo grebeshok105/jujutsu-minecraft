@@ -1,5 +1,7 @@
 # VFX Core for Fabric 1.21.8 and Nobara — Implementation Plan
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 > **For agentic workers:** execute sequentially in the isolated `nobara-cinematic-slice` worktree. Use TDD for every new production type, make one conventional commit per completed task, and run the named verification before that commit.
 
 **Goal:** Build a reusable, Fabric-native VFX library so a future agent adds a combat effect through a typed cue and a small Java recipe instead of modifying payload handlers, render events, HUD code, camera mixins, and particle helpers independently.

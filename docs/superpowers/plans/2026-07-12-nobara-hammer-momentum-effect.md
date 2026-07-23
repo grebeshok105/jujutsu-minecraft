@@ -1,5 +1,7 @@
 # Nobara Hammer and Momentum Effect Implementation Plan
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 > **Status: COMPLETE 2026-07-12.** Native Momentum effect, restored embedded nail anchors, and compact Blockbench hammer shipped. Installed JAR SHA-256: `A93302AE6F7924C340D2D1DF6DCEC5523FFE8A555E11EF724A0E3367E1084116`.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

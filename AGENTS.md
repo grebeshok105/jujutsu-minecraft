@@ -27,10 +27,12 @@ Primary priorities:
 - Playable vessel: **Nobara** (nails, hammer, Hairpin, Resonance, traps, Black Flash path) + **None**
 - Transient combat VFX: **VFX Core** only (`VfxCue` → director → recipes)
 - Player menu: **Key N → ClickGui**; sidebar **Characters** (live) + **Soon...** placeholders (non-clickable)
-- Character apply: `SelectCharacterPayload` C2S, server-authoritative; UI theme orange/slate via `ClickGuiTheme`
+- Character apply: `SelectCharacterPayload` C2S, server-authoritative; selection persists via Fabric Data Attachment API and starter loadout claims are one-time
+- UI theme: orange/slate via `ClickGuiTheme`
+- Ordinary loaded embedded nails: 1200-tick TTL, maximum 30 per owner, resolved through `EmbeddedNailRegistry`
+- Resonance global server hit-stop is intentional for the current private 1–2 player target; do not silently remove it as a multiplayer optimization
 - **No** cursed-energy resource bar in the current kit
-- **No** Neon Dashboard / Key V menu (removed)
-- Optional GUI work may live on worktree/branch `feat/neon-gui-polish` while `main` lags — **check worktree before editing**
+- **No** Neon Dashboard / Key V menu; that path is retired and appears only in historical documents
 
 ## Non-Negotiable Workflow
 
@@ -52,13 +54,27 @@ Do not load everything every turn. Prefer the lightest tool that answers the que
 
 | Tool | When |
 |------|------|
-| **Skills** | Load `using-superpowers` first each session; then match task → skill (e.g. `minecraft-mod-dev`, `using-git-worktrees`, `systematic-debugging`, `verification-before-completion`). Follow skill checklists when they apply. |
-| **mcpvault** | Obsidian vault: read/write codex notes before design/implement/review of documented systems. Paths under vault root (e.g. `jujutsumod-codebase-codex/…`). |
-| **codegraph** | Structural “where is / who calls / architecture” questions on indexed code — use before long grep/read loops when `.codegraph/` exists. |
-| **codebase-memory / search** | Fallback symbol search when codegraph is unavailable or insufficient. |
-| **Repo docs** | `SESSION.md` (active worktree), `AGENTS.md`, vault MOCs |
+| **Skills** | Match task → skill (for example `minecraft-mod-dev`, `using-git-worktrees`, `systematic-debugging`, `verification-before-completion`) and follow an available skill's checklist. Do not assume a named skill exists without checking. |
+| **mcp-runner** | Launch a narrowly relevant public MCP server in the sandbox when it adds real capability; Context7 is useful for current library APIs. Do not install arbitrary servers just for quantity. |
+| **mcpvault** | Optional external Obsidian vault. Use it when connected, but never treat an unavailable local vault as a blocker or as newer than the versioned repo Codex. |
+| **codegraph** | Structural “where is / who calls / architecture” questions on indexed code when `.codegraph/` exists. |
+| **filesystem/search** | Authoritative fallback for current implementation facts. |
+| **Repo docs** | `AGENTS.md`, active `SESSION.md`, `docs/README.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`. |
 
-If mcpvault or codegraph is unavailable, say so once and continue with filesystem/search.
+If an optional MCP server, vault, or code graph is unavailable, say so once and continue with the repository. Current code and tests remain authoritative.
+
+## Documentation Authority
+
+Use this order when documents disagree:
+
+1. Current code and passing tests for implemented behavior.
+2. `AGENTS.md` for durable product and engineering rules.
+3. Active `SESSION.md` for the branch and latest handoff.
+4. Versioned Codebase Codex MOC for architecture and maintenance navigation.
+5. The live known-issues document for unresolved debt.
+6. Dated research, reviews, plans, specs, visual targets, and handoffs as historical records only.
+
+Historical documents carry a `HISTORICAL REFERENCE` banner. Do not rewrite history to look current; update the current docs and keep the original record clearly scoped. Run `python3 tools/audit_docs.py` after documentation changes.
 
 ## Brainstorming Gate
 
@@ -73,15 +89,14 @@ Before implementing **new** gameplay systems, characters, VFX architecture, netw
 Skip the full gate for trivial fixes, copy, polish, or changes the user already specified precisely.  
 No code-first experiments in the main product path unless the user explicitly asks for a throwaway prototype.
 
-## Obsidian Knowledge Base
+## Knowledge Bases
 
-- Before designing, implementing, or reviewing ProjectJJK/Nobara/ported systems, consult the vault via **mcpvault** first.
-- **Our mod codex:** `jujutsumod-codebase-codex/` — start `00-MOC.md`, then `01-meta/Citation-standard.md`, `04-client-vfx/VFX-core.md`, GUI notes (`GUI-dual-overview`, `GUI-character-select`, `GUI-rich-clickgui`).
-- **ProjectJJK research:** `grok-projectjjk-codex/` — start `00-MOC.md`; for 1:1 parity use `05-reference/Claim-Source-Index.md` + `One-to-one-checklist.md`.
-- Treat `VERIFIED` / `INFERRED` / `UNKNOWN` exactly as in the citation standard. Do not implement `UNKNOWN` as fact.
-- Cross-check vault claims against the real codebase (codegraph → search) before changing behavior.
-- Every meaningful gameplay, character, VFX, UI, networking, asset, or architecture change must create or update codex notes (new system → note + MOC link; change → claims/citations/uncertainties).
-- When using vault findings, mention note path(s). If mcpvault is down, say so and use repo docs/code.
+- **Versioned repo Codex:** start at `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; this is the maintained architecture index shipped with the repository.
+- **ProjectJJK research and provenance:** use `docs/research/projectjjk/` and `docs/research/projectjjk/legal/` as dated evidence, not as current implementation instructions.
+- An external Obsidian vault may contain richer research when mcpvault is connected, but it is optional and must be cross-checked against current code before use.
+- Treat `VERIFIED` / `INFERRED` / `UNKNOWN` exactly as defined in `01-meta/Citation-standard.md`. Do not implement `UNKNOWN` as fact.
+- Every meaningful gameplay, character, VFX, UI, networking, asset, or architecture change must update the relevant current Codex note and MOC link.
+- Mention exact note paths when a knowledge-base claim influences implementation.
 
 ## Technical Rules
 
@@ -192,7 +207,8 @@ Typical live areas:
 - VFX must read in motion, not only in screenshots.
 - Never copy anime assets into the repo unless licensing is explicit.
 - Prefer original/inspired designs over copyrighted rips.
-- ProjectJJK-named comparison assets stay research/legal-sensitive — do not expand casually.
+- Current ProjectJJK-named runtime models/assets are temporary placeholders used with the author's permission. Preserve provenance, do not relabel them as CC0, do not expand the imported set casually, and replace or document release permission before public distribution.
+- Rich-Modern-derived code/assets require a separate provenance review before public release.
 
 ## Verification Policy
 
@@ -200,11 +216,12 @@ Before claiming work is done, run the narrowest command that proves the changed 
 
 Baseline:
 
-- Windows: `gradlew.bat build --no-daemon -x test` (or full `build` when sanity matters)
-- Unix: `./gradlew build --no-daemon -x test`
+- Windows: `gradlew.bat build --no-daemon`
+- Unix: `./gradlew build --no-daemon`
+- Documentation: `python3 tools/audit_docs.py`
 - Client smoke when UI/gameplay changed: `gradlew.bat runClient --no-daemon`
 
-Do not claim in-game behavior from compilation alone.
+The full build owns all custom verification programs through `check`. Do not claim in-game behavior from compilation alone.
 
 ## Communication
 
@@ -222,10 +239,13 @@ Do not claim in-game behavior from compilation alone.
 4. No universal cursed-energy bar in the current kit.
 5. Transient combat VFX: **VFX Core only**.
 6. Product menu: **ClickGui (N)** with Characters select; Neon V dashboard retired.
+7. Character selection and one-time starter claims persist through Fabric Data Attachment API.
+8. Loaded ordinary embedded nails use a 1200-tick TTL, a 30-per-owner cap, and an owner index.
+9. Resonance global server hit-stop stays intentional for the private 1–2 player target unless the product target changes.
 
 ## Open Questions (real remaining)
 
-1. When to merge `feat/neon-gui-polish` (or successor) fully into `main` / release.
-2. Who is the second character, and which kit axes must differ from Nobara.
-3. Whether ClickGui grows more live tabs later or stays Characters + Soon placeholders.
-4. How far to push Rich visual parity vs keep SDF/MSDF adapters long-term.
+1. Who is the second character, and which kit axes must differ from Nobara.
+2. Whether ClickGui grows more live tabs later or stays Characters + Soon placeholders.
+3. How far to push Rich visual parity vs keep SDF/MSDF adapters long-term.
+4. When temporary ProjectJJK placeholders are replaced and what provenance evidence is needed for a public release.

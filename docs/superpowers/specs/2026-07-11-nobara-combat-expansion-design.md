@@ -1,5 +1,7 @@
 # Nobara Combat Expansion Design
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 ## Intent
 
 Deepen the existing ProjectJJK Nobara vertical slice without replacing its canonical runtime or VFX Core. Nails become durable gameplay objects, hammer attacks become a real aggressive melee loop, Resonance gains weight without potion-effect shortcuts, and Black Flash/curse links establish small reusable contracts for later characters.

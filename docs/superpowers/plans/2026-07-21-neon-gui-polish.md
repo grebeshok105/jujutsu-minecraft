@@ -1,5 +1,7 @@
 # Neon GUI Polish Implementation Plan
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 > **For agentic workers:** Execute inline in one pass. User explicitly forbids review↔fix loops: do **one global review after all fixes**, then fix findings once. Do not dispatch multi-stage review subagents.
 
 **Goal:** Merge qoder `worktree-neon-gui` into `main`, open a new polish branch, and fix 9 in-game Neon Dashboard UX defects from screenshots (layout, chrome, roster, fonts, crosshair, accents, size).

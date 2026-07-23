@@ -1,5 +1,7 @@
 # aaa combat & ability design bible для minecraft
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 ## рамка документа
 
 цель этого документа - дать ai-агенту не просто набор фич, а цельную боевую философию для мода, который ощущается как смесь fighting games, character action, soulslike и monster-hunter-подхода, но при этом остается честным, читаемым и устойчивым в сетевой Minecraft-среде. в терминах capcom это значит проектировать бой не от списка механик, а назад - от нужного опыта игрока и от “vision-based goal”; в терминах riot - добиться того, чтобы игрок быстро понимал происходящее и мог на него осознанно ответить; в терминах академического исследования game feel - собрать физичность, усиление ощущений и поддержку намерения игрока в одну систему. citeturn34view0turn39view3turn21view11

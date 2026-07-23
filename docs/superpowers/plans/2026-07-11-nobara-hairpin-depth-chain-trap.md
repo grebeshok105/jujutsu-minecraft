@@ -1,5 +1,7 @@
 # Nobara Hairpin Depth, Chain, Trap, Remnants, and Momentum Implementation Plan
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 > **Status: COMPLETE 2026-07-11.** Implemented through `d1461cc`; two final reviews completed and fixed in one pass. Runtime JAR installed with SHA-256 `472D7CECD157C89CF66A39D113B8837BEFA72CAB7F1C6A4C6A5F242FDCF257C1`.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

@@ -1,5 +1,7 @@
 # Hairpin VFX Canonical Profile
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 Status: accepted after ultra review.
 
 Source inputs:

@@ -1,5 +1,7 @@
 # vfx/ux библия для hairpin нобары кугисаки в minecraft fabric
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 ## executive summary
 
 hairpin стоит делать не как “еще один взрыв”, а как технику удаленного пробоя и расширения проклятой энергии из уже поставленных гвоздей. в каноне hairpin всегда читабелен через точку привязки: сначала есть гвоздь, потом короткое подтверждение активации, потом энергия не столько разлетается во все стороны, сколько резко вырастает из места фиксации и ломает цель, окружение или траекторию боя. это видно в трех ключевых применениях: против момо hairpin использует промахнувшиеся гвозди как ловушку в окружении, против кечизу - как добивающий детонатор гвоздя в голове, против махито - как двухшаговую постановку, где первый взрыв выставляет гвозди в нужное положение, а второй уже пробивает ноги и фиксирует цель. citeturn5view0turn14view2turn14view0turn14view1turn13view1turn13view0turn13view2

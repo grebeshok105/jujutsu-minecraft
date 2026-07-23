@@ -1,5 +1,7 @@
 # Nobara Combat Expansion Implementation Plan
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 > **For agentic workers:** Execute this plan task-by-task with test-first changes and small conventional commits. Perform one global review after all implementation stages.
 
 **Goal:** Extend the canonical ProjectJJK Nobara implementation with persistent anchored nails, per-nail Hairpin damage, hammer combat, Black Flash, curse links, self resonance, and synchronized first/third-person presentation.

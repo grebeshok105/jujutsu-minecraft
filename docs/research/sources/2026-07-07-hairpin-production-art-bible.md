@@ -1,5 +1,7 @@
 # nobara hairpin production vfx art bible and implementation breakdown
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 ## production art direction summary
 
 hairpin в каноне - это не “магический взрыв вообще” и не прокси-удар через куклу. это локальная детонация уже заряженных гвоздей, причем именно застрявший гвоздь становится отсроченной угрозой. в бою с momo hairpin превращает промахи по цели в контроль пространства через взрыв застрявших гвоздей и разрушение окружения. resonance работает иначе: ей нужен связанный фрагмент цели и соломенная кукла как прокси, после чего урон проходит по связи, а не из места застрявшего гвоздя. у hairpin семантика простая и сильная: “здесь уже поставлена мина, и она принадлежит nobara”. citeturn4view0turn4view1turn4view2turn5view0turn5view1

@@ -1,5 +1,6 @@
-Open Sans
+Open Sans reference license
 Copyright 2020 The Open Sans Project Authors (https://github.com/googlefonts/opensans)
 Licensed under the SIL Open Font License, Version 1.1
 https://scripts.sil.org/OFL
-Bundled as neon.ttf for jujutsumod dashboard UI.
+
+Current provenance warning: src/main/resources/assets/jujutsumod/font/neon.ttf is NOT Open Sans; it identifies as Segoe UI Semilight. This notice must not be used to justify redistribution of neon.ttf or MSDF atlases whose source font has not been independently recorded.

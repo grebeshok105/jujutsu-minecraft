@@ -1,5 +1,7 @@
 # production-ready custom particles для hairpin на fabric 1.21.8
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 ## executive summary
 
 для целевого стека `minecraft 1.21.8 + fabric api 0.134.0+1.21.8 + official mojang mappings` базовая линия такая: регистрируешь particle types в common-коде, клиентские factory - отдельно, а для реального hairpin-эффекта не тащишь по сети сами частицы. сервер должен слать один семантический clientbound payload с anchor-контекстом и детерминированным seed, а клиент уже локально раскладывает это в несколько семейств VFX. это лучше попадает в ваш `mark -> warn -> compression -> snap -> burst -> residue`, потому что сетевой контракт остается маленьким и стабильным, а визуальная грамотность живет целиком на клиенте. сама Fabric-референс-сборка для 1.21.8 использует `loom.officialMojangMappings()` и `fabric-api 0.134.0+1.21.8`. citeturn37view0turn31view0

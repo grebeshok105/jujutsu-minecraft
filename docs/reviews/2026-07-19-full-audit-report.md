@@ -1,5 +1,7 @@
 # Full Audit Report — Jujutsu Minecraft
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 Дата: 2026-07-19
 Коммит: 054a9a5 (main)
 Аудиторы: 6 параллельных субагентов (server code, client code, VFX core, docs compliance, tests/build, assets)

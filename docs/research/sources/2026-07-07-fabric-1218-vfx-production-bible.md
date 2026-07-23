@@ -1,5 +1,7 @@
 # **Minecraft VFX Production Bible for Fabric 1.21.8**
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 ## **Реферат архитектурного конвейера**
 
 Графический движок Minecraft в версии 1.21.8 претерпел фундаментальные изменения, связанные с долгосрочной стратегией Mojang по разделению процесса визуализации на фазу извлечения данных (extraction phase) и фазу непосредственной отрисовки (drawing phase). Исторический подход, сочетавший вычисления игровой логики и прямые вызовы OpenGL в одном потоке, полностью упраздняется. Теперь подготовка данных игрового мира для отрисовки изолируется в неизменяемых структурах состояния (Render States). Это позволяет графическому процессору осуществлять параллельный вывод кадра, пока центральный процессор обрабатывает симуляцию следующего игрового тика.  

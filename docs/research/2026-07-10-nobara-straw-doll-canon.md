@@ -1,5 +1,7 @@
 # Nobara Straw Doll Technique — canon research for jujutsumod
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 Date: 2026-07-10  
 Scope: canon behavior, evidentiary appearance, ProjectJJK reference behavior, and a minimal Minecraft gameplay loop. No architecture or implementation design.  
 Spoilers: manga through **Chapter 267**.

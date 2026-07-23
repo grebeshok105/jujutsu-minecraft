@@ -1,5 +1,7 @@
 # fabric 1.21.8 hairpin vfx research for glsl, renderpipeline, post-processing, and sodium/iris-safe rendering
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 ## executive summary
 
 для **первого production-среза hairpin** самый безопасный стек такой:  

@@ -1,5 +1,7 @@
 # Session Handoff: Hairpin Production VFX Slice
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 Date: 2026-07-07
 Branch: `chore/jujutsu-brainstorming`
 Workspace: `D:\WorkFlow\Jujutsu Minecraft\.worktrees\brainstorming`

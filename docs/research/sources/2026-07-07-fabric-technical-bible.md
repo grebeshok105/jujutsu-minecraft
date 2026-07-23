@@ -1,5 +1,7 @@
 # техническая библия fabric 1.21.8 для ai-агента разработки крупного мода
 
+> **Status: HISTORICAL REFERENCE.** This dated research/design/review record is not the current source of truth. For current behavior use `README.md`, `AGENTS.md`, `SESSION.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; current code and tests win on conflict.
+
 ## версия, рамки и источник истины
 
 эта спецификация нацелена именно на экосистему fabric для minecraft 1.21.8 и опирается на три слоя источников: официальную документацию fabric, yarn javadocs для 1.21.8, а также реальные исходники и примеры из fabric api и связанных репозиториев. это важно, потому что после 1.21.6 mojang начал переводить рендер на двухфазную модель extraction/drawing, а в более новых ветках fabric 26.1 произошли уже отдельные несовместимые переименования под official mappings. для 1.21.8 базой надо считать versioned docs на 1.21.8 и yarn 1.21.8, а не переносить на проект выводы из 26.1 без проверки. citeturn12view1turn12view3turn5search4turn30search19
