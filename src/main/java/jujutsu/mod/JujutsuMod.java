@@ -4,6 +4,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 
 import net.minecraft.resources.ResourceLocation;
+import jujutsu.mod.character.nobara.projectjjk.EmbeddedNailRegistry;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkRitualRuntime;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollRuntime;
 import jujutsu.mod.character.nobara.projectjjk.NailAnchorLifecycle;
@@ -42,6 +43,7 @@ public class JujutsuMod implements ModInitializer {
 		JujutsuNetworking.registerPayloads();
 		ProjectJjkRitualRuntime.register();
 		ProjectJjkStrawDollRuntime.register();
+		EmbeddedNailRegistry.register();
 		NailAnchorLifecycle.register();
 		NobaraHammerCombatRuntime.register();
 		NobaraActionGuard.register();

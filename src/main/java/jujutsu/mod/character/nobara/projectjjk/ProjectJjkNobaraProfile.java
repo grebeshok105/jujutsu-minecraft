@@ -24,7 +24,8 @@ public final class ProjectJjkNobaraProfile {
 	// Embedded nail marks (the cursed connection carrier).
 	public static final int MARK_MAX_PER_TARGET = 4;
 	public static final int MARK_DURATION_TICKS = 900;
-	public static final int EMBEDDED_NAIL_AGE_TICKS = 0;
+	public static final int EMBEDDED_NAIL_AGE_TICKS = 1200;
+	public static final int MAX_EMBEDDED_NAILS_PER_OWNER = 30;
 	public static final int TARGET_MARK_RENDER_TICKS = MARK_DURATION_TICKS;
 
 	// Hairpin mark detonation.
