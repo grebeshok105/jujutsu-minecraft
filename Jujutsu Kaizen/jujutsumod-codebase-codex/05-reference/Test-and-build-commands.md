@@ -19,4 +19,4 @@ Focused commands:
 ./gradlew testProjectJjkNobaraProfile testProjectSanity --no-daemon
 ```
 
-Use runClient for UI, rendering, mixin, animation, combat-feel, and VFX claims. CI runs tools/audit_docs.py and the Java 21 full build.
+Use runClient for UI, rendering, mixin, animation, combat-feel, and VFX claims. The docs audit is currently a required local PR check; wiring it into GitHub Actions needs workflow-write permission for the connected integration.

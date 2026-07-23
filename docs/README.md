@@ -42,4 +42,4 @@ Run the documentation validator after changing code-derived facts or docs:
 python3 tools/audit_docs.py
 ```
 
-CI runs the same command. It checks the hierarchy, historical markers, selected stale terms, local links, and current code-derived counts in the Codex MOC.
+The validator checks the hierarchy, historical markers, selected stale terms, local links, and current code-derived counts in the Codex MOC. Run it locally before every documentation PR; adding it to GitHub Actions requires workflow-write permission for the connected GitHub integration.
