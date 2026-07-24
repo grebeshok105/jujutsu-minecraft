@@ -54,6 +54,36 @@ tasks.register('testCharacterPlayerState', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testTodoProfile', JavaExec) {
+	group = 'verification'
+	description = 'Runs Todo profile constants tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.todo.TodoProfileTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
+tasks.register('testTodoSwapPlan', JavaExec) {
+	group = 'verification'
+	description = 'Runs Todo atomic swap-preflight tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.todo.TodoSwapPlanTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
+tasks.register('testTodoTargetSafety', JavaExec) {
+	group = 'verification'
+	description = 'Runs Todo transport-state safety policy tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.todo.TodoTargetSafetyTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.register('testProjectSanity', JavaExec) {
 	group = 'verification'
 	description = 'Runs resource and side-separation sanity checks'
@@ -236,6 +266,9 @@ tasks.register('testServerTimeDilation', JavaExec) {
 
 tasks.named('check') {
 	dependsOn tasks.named('testCharacterPlayerState')
+	dependsOn tasks.named('testTodoProfile')
+	dependsOn tasks.named('testTodoSwapPlan')
+	dependsOn tasks.named('testTodoTargetSafety')
 	dependsOn tasks.named('testProjectSanity')
 	dependsOn tasks.named('testTargetResolver')
 	dependsOn tasks.named('testProjectJjkNobaraProfile')

@@ -3,6 +3,7 @@ package jujutsu.mod.combat;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -31,6 +32,11 @@ public final class TargetResolver {
 	public record Result(Mode mode, Vec3 point, Vec3 normal, Optional<Integer> entityId, double maxRange) {}
 
 	public static Result resolve(ServerLevel level, ServerPlayer owner, double maxRange) {
+		return resolve(level, owner, maxRange, living -> true);
+	}
+
+	/** Resolves a server-side aimed living target while applying a character-specific eligibility predicate. */
+	public static Result resolve(ServerLevel level, ServerPlayer owner, double maxRange, Predicate<LivingEntity> eligible) {
 		Vec3 origin = owner.getEyePosition();
 		Vec3 look = owner.getLookAngle();
 		Vec3 direction = safeDirection(look);
@@ -40,7 +46,8 @@ public final class TargetResolver {
 				? Optional.empty()
 				: Optional.of(new BlockCandidate(blockHit.getLocation(), directionVector(blockHit.getDirection())));
 		AABB sweepBounds = new AABB(origin, end).inflate(2.25);
-		List<EntityCandidate> entityCandidates = level.getEntities(owner, sweepBounds, entity -> entity instanceof LivingEntity living && living.isAlive()).stream()
+		List<EntityCandidate> entityCandidates = level.getEntities(owner, sweepBounds,
+				entity -> entity instanceof LivingEntity living && living.isAlive() && eligible.test(living)).stream()
 				.map(entity -> {
 					AABB bounds = entity.getBoundingBox();
 					double radius = Math.max(bounds.getXsize(), Math.max(bounds.getYsize(), bounds.getZsize())) * 0.5;
@@ -61,7 +68,9 @@ public final class TargetResolver {
 				.filter(candidate -> distanceAlongRay(origin, direction, candidate.center()) <= blockDistance)
 				.filter(candidate -> distanceAlongRay(origin, direction, candidate.center()) <= maxRange)
 				.filter(candidate -> perpendicularDistance(origin, direction, candidate.center()) <= candidate.radius() + ENTITY_SWEEP_RADIUS)
-				.min(Comparator.comparingDouble(candidate -> distanceAlongRay(origin, direction, candidate.center())));
+				.min(Comparator
+							.comparingDouble((EntityCandidate candidate) -> perpendicularDistance(origin, direction, candidate.center()))
+							.thenComparingDouble(candidate -> distanceAlongRay(origin, direction, candidate.center())));
 
 		if (entity.isPresent()) {
 			EntityCandidate candidate = entity.get();
