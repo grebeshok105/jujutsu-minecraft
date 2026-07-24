@@ -11,8 +11,8 @@
   "key.categories.jujutsumod": "Jujutsu Minecraft",
   "key.jujutsumod.modern_menu": "Jujutsu Menu (Characters)",
   "screen.jujutsumod.modern_menu": "Characters",
-  "key.jujutsumod.nobara_hairpin_enlarge": "Nobara: Hairpin Enlarge",
-  "key.jujutsumod.nobara_hairpin_explosion": "Nobara: Hairpin Explosion",
+  "key.jujutsumod.nobara_hairpin_enlarge": "Primary Technique",
+  "key.jujutsumod.nobara_hairpin_explosion": "Secondary Technique",
   "message.jujutsumod.nobara.action.no_target": "No marked target or nail found.",
   "message.jujutsumod.nobara.action.not_selected": "Select Nobara first.",
   "message.jujutsumod.nobara.trap.no_ground": "Aim at ground within 8 blocks.",
@@ -71,5 +71,11 @@
   "screen.jujutsumod.dashboard.page.character": "Character",
   "screen.jujutsumod.dashboard.page.combat": "Combat",
   "screen.jujutsumod.dashboard.page.visuals": "Visuals",
-  "screen.jujutsumod.dashboard.page.misc": "Misc"
+  "screen.jujutsumod.dashboard.page.misc": "Misc",
+  "message.jujutsumod.character.action.not_selected": "Select a character first.",
+  "message.jujutsumod.character.action.cooldown": "Ability is recharging.",
+  "message.jujutsumod.todo.boogie.no_target": "No valid target in sight.",
+  "message.jujutsumod.todo.boogie.invalid_target": "Target is no longer valid.",
+  "message.jujutsumod.todo.boogie.out_of_range": "Target is out of range.",
+  "message.jujutsumod.todo.boogie.unsafe": "No safe swap destination was found."
 }

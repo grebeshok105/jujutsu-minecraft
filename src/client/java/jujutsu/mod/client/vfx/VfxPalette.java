@@ -33,5 +33,15 @@ public final class VfxPalette {
 	public static final int BLACK_FLASH_BLOOD_G = 0;
 	public static final int BLACK_FLASH_BLOOD_B = 12;
 
+	public static final int TODO_VIOLET_R = 178;
+	public static final int TODO_VIOLET_G = 108;
+	public static final int TODO_VIOLET_B = 255;
+	public static final int TODO_EDGE_R = 113;
+	public static final int TODO_EDGE_G = 215;
+	public static final int TODO_EDGE_B = 255;
+	public static final int TODO_DEEP_R = 50;
+	public static final int TODO_DEEP_G = 26;
+	public static final int TODO_DEEP_B = 96;
+
 	private VfxPalette() {}
 }

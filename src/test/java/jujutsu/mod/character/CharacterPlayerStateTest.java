@@ -23,11 +23,15 @@ public final class CharacterPlayerStateTest {
 		assert deselected.selectedCharacter() == JujutsuCharacter.NONE : "None must remain a valid persisted selection";
 		assert deselected.hasClaimedStarter(JujutsuCharacter.NOBARA) : "Deselecting must not reset one-time starter claims";
 
-		JsonElement encoded = CharacterPlayerState.CODEC.encodeStart(JsonOps.INSTANCE, claimed)
+		CharacterPlayerState todoSelected = deselected.withSelectedCharacter(JujutsuCharacter.TODO);
+		assert todoSelected.selectedCharacter() == JujutsuCharacter.TODO : "Todo selection must persist through the shared player state";
+		assert todoSelected.hasClaimedStarter(JujutsuCharacter.NOBARA) : "Todo selection must not alter Nobara claim history";
+
+		JsonElement encoded = CharacterPlayerState.CODEC.encodeStart(JsonOps.INSTANCE, todoSelected)
 				.getOrThrow(error -> new AssertionError("Failed to encode character state: " + error));
 		CharacterPlayerState decoded = CharacterPlayerState.CODEC.parse(JsonOps.INSTANCE, encoded)
 				.getOrThrow(error -> new AssertionError("Failed to decode character state: " + error));
-		assert decoded.equals(claimed) : "Persistent character state codec must round-trip";
+		assert decoded.equals(todoSelected) : "Persistent character state codec must round-trip";
 
 		CharacterPlayerState sanitized = new CharacterPlayerState("unknown_character", java.util.Set.of());
 		assert sanitized.selectedCharacter() == JujutsuCharacter.NONE : "Unknown persisted character ids must safely fall back to None";
