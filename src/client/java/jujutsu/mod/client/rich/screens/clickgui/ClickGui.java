@@ -25,6 +25,10 @@ import jujutsu.mod.client.rich.util.render.shader.Scissor;
 public class ClickGui extends Screen implements IMinecraft {
 	public static ClickGui INSTANCE;
 	private static final int FIXED_GUI_SCALE = 2;
+	/** Header band: the only part of the panel with no click target of its own, so it is the drag handle. */
+	private static final float DRAG_HANDLE_HEIGHT = 38f;
+	/** How much of the handle must stay reachable, so a drag can never strand the panel off-screen. */
+	private static final float MIN_HANDLE_VISIBLE = 24f;
 
 	private final BackgroundComponent background = new BackgroundComponent();
 	private final CharacterRosterPanel characterRoster = new CharacterRosterPanel();
@@ -47,6 +51,9 @@ public class ClickGui extends Screen implements IMinecraft {
 	protected void init() {
 		super.init();
 		closing = false;
+		// Runs on open and on every window resize: drop any stale grab and pull the panel back into reach.
+		dragHandler.endDrag();
+		clampDragToScreen();
 		openAnimation.setMs(280).setValue(1.0).setDirection(Direction.FORWARDS).reset();
 		background.setSearchActive(false);
 		characterRoster.syncFromClient();
@@ -79,6 +86,30 @@ public class ClickGui extends Screen implements IMinecraft {
 		return category == ModuleCategory.COMBAT;
 	}
 
+	/**
+	 * Panel origin in screen pixels. Rendering and hit testing both read it here so the drag offset
+	 * can never be applied to one and not the other. Mouse coordinates, {@code width}/{@code height}
+	 * and the SDF surfaces all live in the same GUI-scaled space, so the offset needs no conversion.
+	 */
+	private float panelOriginX() {
+		return (this.width - BackgroundComponent.BG_WIDTH) / 2f + dragHandler.getOffsetX();
+	}
+
+	private float panelOriginY() {
+		return (this.height - BackgroundComponent.BG_HEIGHT) / 2f + dragHandler.getOffsetY();
+	}
+
+	/** Keeps the handle grabbable: it may hang off the sides, but never above the top edge. */
+	private void clampDragToScreen() {
+		float baseX = (this.width - BackgroundComponent.BG_WIDTH) / 2f;
+		float baseY = (this.height - BackgroundComponent.BG_HEIGHT) / 2f;
+		dragHandler.clampTo(
+				MIN_HANDLE_VISIBLE - BackgroundComponent.BG_WIDTH - baseX,
+				this.width - MIN_HANDLE_VISIBLE - baseX,
+				-baseY,
+				this.height - MIN_HANDLE_VISIBLE - baseY);
+	}
+
 	@Override
 	public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
 		float animValue = openAnimation.getOutput().floatValue();
@@ -97,15 +128,15 @@ public class ClickGui extends Screen implements IMinecraft {
 			Render2D.rect(0, 0, 5000, 5000, new Color(r, g, b, dimAlpha).getRGB(), 0);
 		}
 
-		float mul = Render2D.getScaleMultiplier();
-		float bgX = (this.width - BackgroundComponent.BG_WIDTH) / 2f + dragHandler.getOffsetX() / mul;
-		float bgY = (this.height - BackgroundComponent.BG_HEIGHT) / 2f + dragHandler.getOffsetY() / mul;
+		if (!closing) {
+			dragHandler.update();
+		}
+
+		float bgX = panelOriginX();
+		float bgY = panelOriginY();
 
 		float mx = mouseX;
 		float my = mouseY;
-		if (!closing) {
-			dragHandler.update(mx, my);
-		}
 
 		float yOffset = closing ? (1f - animValue) * 28f : (1f - animValue) * -12f;
 		bgY += yOffset;
@@ -144,9 +175,8 @@ public class ClickGui extends Screen implements IMinecraft {
 		if (closing) return false;
 		float mx = (float) mouseX;
 		float my = (float) mouseY;
-		float mul = Render2D.getScaleMultiplier();
-		float bgX = (this.width - BackgroundComponent.BG_WIDTH) / 2f + dragHandler.getOffsetX() / mul;
-		float bgY = (this.height - BackgroundComponent.BG_HEIGHT) / 2f + dragHandler.getOffsetY() / mul;
+		float bgX = panelOriginX();
+		float bgY = panelOriginY();
 
 		ModuleCategory cat = background.getCategoryAtPosition(mx, my, bgX, bgY);
 		if (cat != null) {
@@ -163,6 +193,12 @@ public class ClickGui extends Screen implements IMinecraft {
 			}
 		}
 
+		// Reached only after every interactive element has passed on the click, so the handle can
+		// never steal a tab, card or confirm press.
+		if (button == 0 && dragHandler.startDrag(mx, my, bgX, bgY, BackgroundComponent.BG_WIDTH, DRAG_HANDLE_HEIGHT)) {
+			return true;
+		}
+		// Middle mouse keeps the whole panel as a grab surface, as it always has.
 		if (button == 2 && dragHandler.startDrag(mx, my, bgX, bgY, BackgroundComponent.BG_WIDTH, BackgroundComponent.BG_HEIGHT)) {
 			return true;
 		}
@@ -170,9 +206,21 @@ public class ClickGui extends Screen implements IMinecraft {
 	}
 
 	@Override
+	public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+		if (!closing && dragHandler.isDragging()) {
+			dragHandler.drag(mouseX, mouseY);
+			clampDragToScreen();
+			return true;
+		}
+		return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+	}
+
+	@Override
 	public boolean mouseReleased(double mouseX, double mouseY, int button) {
-		if (closing) return false;
+		// Released before the closing gate: a release during the close animation must still drop the
+		// grab, or reopening would resume the drag without a button held.
 		dragHandler.endDrag();
+		if (closing) return false;
 		return super.mouseReleased(mouseX, mouseY, button);
 	}
 
@@ -193,6 +241,7 @@ public class ClickGui extends Screen implements IMinecraft {
 
 	@Override
 	public void onClose() {
+		dragHandler.endDrag();
 		if (!closing) {
 			closing = true;
 			openAnimation.setDirection(Direction.BACKWARDS);

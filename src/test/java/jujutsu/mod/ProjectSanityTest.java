@@ -67,6 +67,7 @@ public final class ProjectSanityTest {
 		assertHairpinScreenOverlayUsesSmoothGradientVignette();
 		assertCharacterSelectUsesCheapUiPrimitives();
 		assertClickGuiModulesCoverEveryVessel();
+		assertClickGuiPanelIsDraggable();
 		assertGeckoLibNobaraPlayerModelWired();
 		assertNobaraHeldItemsAndArmPosesWired();
 		assertNobaraGeoHeadLookIsSafeAndEnabled();
@@ -862,6 +863,26 @@ public final class ProjectSanityTest {
 		assert Files.exists(CLIENT_JAVA.resolve(
 				"jujutsu/mod/client/rich/screens/clickgui/impl/character/CharacterRosterPanel.java"))
 				: "Character roster panel must exist for the Characters tab";
+	}
+
+	private static void assertClickGuiPanelIsDraggable() throws IOException {
+		String clickGui = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/rich/screens/clickgui/ClickGui.java"));
+		assert clickGui.contains("panelOriginX()") && clickGui.contains("panelOriginY()")
+				: "Render and hit testing must read the panel origin from one place, or the drag offset desynchronizes";
+		assert !clickGui.contains("Render2D.getScaleMultiplier()")
+				: "Mouse, screen size and SDF surfaces share one GUI-scaled space; scaling the drag offset breaks travel at every scale but 2";
+		assert clickGui.contains("public boolean mouseDragged(")
+				: "Panel drag must be driven by the vanilla mouse event, not polled from GLFW";
+		assert clickGui.contains("DRAG_HANDLE_HEIGHT")
+				: "Panel drag must grab a dedicated handle band instead of the whole panel";
+		assert clickGui.contains("clampDragToScreen()")
+				: "A drag must not be able to strand the panel where its handle cannot be grabbed again";
+		String drag = Files.readString(CLIENT_JAVA.resolve(
+				"jujutsu/mod/client/rich/screens/clickgui/impl/DragHandler.java"));
+		assert !drag.contains("glfwGetMouseButton")
+				: "The drag handler must stay pure geometry so the release path is the screen's alone";
+		assert drag.contains("public void clampTo(")
+				: "The drag handler must expose clamping for drags and window resizes alike";
 	}
 
 	private static void assertClickGuiModulesCoverEveryVessel() throws IOException {

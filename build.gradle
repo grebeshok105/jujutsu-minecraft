@@ -274,7 +274,18 @@ tasks.register('testServerTimeDilation', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testClickGuiDrag', JavaExec) {
+	group = 'verification'
+	description = 'Runs ClickGui panel drag geometry tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.client.rich.screens.clickgui.impl.DragHandlerTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.named('check') {
+	dependsOn tasks.named('testClickGuiDrag')
 	dependsOn tasks.named('testCharacterPlayerState')
 	dependsOn tasks.named('testTodoProfile')
 	dependsOn tasks.named('testTodoSwapPlan')
