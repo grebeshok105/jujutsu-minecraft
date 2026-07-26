@@ -29,7 +29,7 @@ This block is the single owner of current-slice facts. `README.md` keeps only th
 - Playable vessels: **Nobara** (nails, hammer, Hairpin, Resonance, traps, Black Flash path), **Todo** (Boogie Woogie swap, heavy vanilla melee, shared Black Flash bridge), and **None**
 - Nobara controls: `R` directed Hairpin, `B` mass Hairpin, `Shift+R` Self Resonance, `Shift+B` Nail Trap, hammer left click contextual melee
 - Todo controls: `R` Boogie Woogie (server-authoritative self↔target swap, falling back to a live thrown mark when nothing eligible is under the crosshair), `Shift+R` feint clap (the full clap performance with no swap behind it; the modifier is the sneak key, so the cast is visibly crouched — an accepted tradeoff recorded in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)), `B` pair swap (first cast marks a bystander, second swaps the pair while Todo stays put; `Shift+B` folds onto `B` for him via `canonicalSlot`, so crouching between the two presses does not lose one); vanilla melee with Todo attribute modifiers
-- Each vessel binds one server definition (`CharacterDefinition` in `JujutsuCharacters`) and one client definition (`CharacterClientDefinition` in `JujutsuCharacterClients`); the two exhaustive registry switches are the only places that name every vessel, and `registerServerHooks`/`registerClientHooks` mean neither mod init file is ever edited for a new vessel — contract owned by the Codex note `02-architecture/Vessel-definitions.md`
+- Each vessel binds one server and one client definition — see "The Vessel Seam" below, which owns that rule
 - Each vessel's slots are mapped by its own router — `NobaraAbilityRouter`, `TodoAbilityRouter`, reached through the vessel's definition — over an exhaustive `CharacterAbility` switch, so a new slot fails compilation instead of falling into whichever arm a `default` would have picked. Nobara's router additionally owns her stagger check and her single fallback message, because both are hers alone and neither belongs in the shared executor. `CharacterAbility` network ids are wire format: append, never renumber. `CharacterAbilityPayload` also carries the vessel the client believed in, and the server refuses a cast whose claim disagrees with the stored selection
 - Todo has no starter loadout in this slice; the `todo_swap_marker` item is obtainable only by giving it, and only Todo can throw it — `TodoSwapMarkerItem.use` refuses other vessels on both sides through `CharacterSelectionView`. Baseline tuning lives in `TodoProfile`
 - Both vessels render through GeckoLib replaced-player renderers declared by each vessel's client definition, collected by `CharacterGeoRenderers` and dispatched from `CharacterRenderDispatchMixin`
@@ -99,7 +99,7 @@ Do not load everything every turn. Prefer the lightest tool that answers the que
 
 | Tool | When |
 |------|------|
-| **Skills** | Match task → skill (for example `minecraft-mod-dev`, `using-git-worktrees`, `systematic-debugging`, `verification-before-completion`) and follow an available skill's checklist. Do not assume a named skill exists without checking. |
+| **Skills** | Match task → skill and follow its checklist. This repository ships its own under `.claude/skills/`; those are versioned with the architecture they describe and are authoritative for it. User-level skills may also be present but belong to other projects — do not assume a named skill exists without checking. |
 | **mcp-runner** | Launch a narrowly relevant public MCP server in the sandbox when it adds real capability; Context7 is useful for current library APIs. Do not install arbitrary servers just for quantity. |
 | **mcpvault** | Optional external Obsidian vault. Use it when connected, but never treat an unavailable local vault as a blocker or as newer than the versioned repo Codex. |
 | **codegraph** | Structural “where is / who calls / architecture” questions when `.codegraph/` exists. Build the index with `codegraph init`; query with `codegraph explore "<question or symbol names>"` for the relevant symbols' source plus the call paths between them, or `codegraph node <symbol-or-file>` for one symbol's source and callers. Prefer it over grep for “who calls this”. The index is local-only and never committed — only `.codegraph/.gitignore` is tracked. Re-run `codegraph init` after a refactor, or the graph answers from stale symbols. |
@@ -167,6 +167,26 @@ No code-first experiments in the main product path unless the user explicitly as
 - Panel geometry lives in **one** GUI-scaled space: mouse coordinates, the screen's `width`/`height`, and the SDF surfaces already agree, so never convert a drag offset or a hit test through `Render2D.getScaleMultiplier()`. Rendering and hit testing must read the panel origin from one accessor, or the two desynchronize. Panel position is session-only — the project has no UI-state persistence.
 - The ClickGui rasterizes **immediately** (`SdfRenderer.flush()` during Screen rendering), while vanilla HUD elements are only recorded during `Gui.render` and rasterized last by `GuiRenderer`. A vanilla HUD element therefore composites **over** the finished menu and no scrim alpha can hide it. Suppress one by conditionally declining its draw through `HudElementRegistry.replaceElement` — never by removing the element, hiding the whole HUD, or adding a HUD mixin.
 
+## The Vessel Seam (non-negotiable)
+
+**Shared code never asks which character a player is. It asks the vessel.**
+
+A vessel is one `JujutsuCharacter` constant, one `CharacterDefinition` bound in `JujutsuCharacters`, one `CharacterClientDefinition` bound in `JujutsuCharacterClients`, and assets. Adding one changes **no shared file** beyond the enum and those two registry arms.
+
+Verified, not asserted: adding a constant and compiling produces exactly two errors, one per registry, and none anywhere else. Binding it to the wrong definition compiles and fails `testCharacterDefinitions` instead. Re-run that probe if you suspect the seam has eroded.
+
+Two guarantees, not one. **Compile-time** is the exhaustive `switch` with no `default`, in those two registries only. **Build-time** is the registry tests, covering what a switch cannot express — that a definition claims the constant it was bound to, that no client type reached `src/main`, that every `register()` under a vessel's package is called, and that each card lists the slots its router answers. They derive from the enum and the source tree, so a new vessel needs no test edit provided its runtimes live in `jujutsu/mod/character/<id>/` and its definition is `<Id>Definition.java`.
+
+Therefore, without exception:
+
+- No per-character `if` or `switch` in a **dispatch** file — anything deciding which character this is. Ask the definition. Content registries (`JujutsuItems`, `JujutsuEntities`) are a different category and may of course gain a vessel's items.
+- No payload, cooldown store, or input path for one vessel. `CharacterAbilityPayload` and `CharacterAbilityCooldowns` are shared and already key on the vessel.
+- No vessel runtime registered from `JujutsuMod` or `JujutsuModClient`. Use `registerServerHooks` / `registerClientHooks`; both init files loop their registry.
+- No client type in `src/main` — a dedicated server loads that source set and every implementation of `CharacterDefinition`.
+- No roster, skin, renderer or VFX metadata written twice. Declare it once on the definition.
+
+Contract: Codex note `02-architecture/Vessel-definitions.md`. Procedure: the `add-vessel` skill. Four deliberate per-vessel exceptions remain and are listed in that note; do not add a fifth without recording why.
+
 ## Mandatory VFX Core Contract
 
 - Read vault note `jujutsumod-codebase-codex/04-client-vfx/VFX-core.md` before designing, implementing, or reviewing combat visuals.
@@ -215,22 +235,13 @@ Avoid:
 
 **Done for v2 slice:** the second character (Todo) built on the same contracts — proving the template is reusable, not just theoretical.
 
-**Next milestone focus:** polish feel/visuals of both kits, then the third vessel on the now-shared render contracts — not a broad unfinished framework.
+**Next milestone focus:** polish feel/visuals of both kits, then the third vessel through the seam and the `add-vessel` skill — not a broad unfinished framework. The third vessel is the first real test of whether the seam holds; if it forces a shared-file edit, fix the seam rather than the vessel.
 
-## Suggested Character Workflow
+## Adding a Character
 
-For each character:
+Use the **`add-vessel`** skill in `.claude/skills/`. It owns the procedure end to end — research and design, scaffold, abilities, client presentation, testing, documentation — along with the readiness checklist, the commit order, and the explicit list of things a new vessel must never do. It is versioned with the architecture it describes, so it is authoritative over any workflow restated elsewhere.
 
-1. Write a character brief.
-2. Define the combat loop and any resource/pressure model.
-3. Define abilities (costs, targets, counterplay).
-4. Define VFX/SFX against VFX Core.
-5. Define networking and client/server boundaries.
-6. Implement the smallest playable version.
-7. Verify in-game (not compile-only).
-8. Polish timing, feel, visuals.
-9. Capture reusable patterns only after it works once.
-10. Update vault codex + `SESSION.md` if the handoff matters.
+What this file still owns and the skill defers to: the seam rule above, the VFX Core contract, the design principles below, and the brainstorming gate. Design approval comes before scaffolding, always.
 
 ## Code Organization Direction
 
