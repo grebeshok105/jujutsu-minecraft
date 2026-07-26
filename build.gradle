@@ -274,6 +274,16 @@ tasks.register('testServerTimeDilation', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testTodoPairSwap', JavaExec) {
+	group = 'verification'
+	description = 'Runs Todo pair-swap selection lifecycle and bystander-safety tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.todo.TodoPairSwapTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.register('testTodoFakeClap', JavaExec) {
 	group = 'verification'
 	description = 'Runs Todo feint clap gate, cue-sharing and cooldown-independence tests'
@@ -302,6 +312,7 @@ tasks.named('check') {
 	dependsOn tasks.named('testTodoTargetSafety')
 	dependsOn tasks.named('testTodoHandsEmpty')
 	dependsOn tasks.named('testTodoFakeClap')
+	dependsOn tasks.named('testTodoPairSwap')
 	dependsOn tasks.named('testProjectSanity')
 	dependsOn tasks.named('testTargetResolver')
 	dependsOn tasks.named('testProjectJjkNobaraProfile')

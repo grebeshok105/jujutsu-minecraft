@@ -15,6 +15,7 @@ public final class TodoAbilityRouter {
 		return switch (ability) {
 			case PRIMARY -> TodoBoogieWoogieRuntime.tryCast(todo, ability, notify);
 			case SECONDARY -> TodoFakeClapRuntime.tryCast(todo, ability, notify);
+			case TERTIARY -> TodoPairSwapRuntime.tryCast(todo, ability, notify);
 		};
 	}
 }

@@ -13,6 +13,11 @@ public final class TodoVfxIds {
 	 * deliberately quiet: anything an observer could see or hear would give the feint away.
 	 */
 	public static final ResourceLocation FEINT_TELL = JujutsuMod.id("todo/feint_tell");
+	/**
+	 * Caster-only confirmation that a pair-swap participant is marked, anchored to that participant so it
+	 * lands on the right body. Sent to one player: only the caster may know who is marked.
+	 */
+	public static final ResourceLocation PAIR_MARK = JujutsuMod.id("todo/pair_mark");
 
 	private TodoVfxIds() {}
 }

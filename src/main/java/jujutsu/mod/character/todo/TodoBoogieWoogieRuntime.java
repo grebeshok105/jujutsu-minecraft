@@ -83,8 +83,8 @@ public final class TodoBoogieWoogieRuntime {
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.invalid_target", "entity changed before commit");
 		}
 
-		boolean todoPlaced = place(todo, level, plan.get().todoDestination(), todoSnapshot);
-		boolean targetPlaced = todoPlaced && place(target, level, plan.get().targetDestination(), targetSnapshot);
+		boolean todoPlaced = place(todo, level, plan.get().firstDestination(), todoSnapshot);
+		boolean targetPlaced = todoPlaced && place(target, level, plan.get().secondDestination(), targetSnapshot);
 		if (!todoPlaced || !targetPlaced) {
 			boolean todoRestored = restore(todo, todoSnapshot);
 			boolean targetRestored = restore(target, targetSnapshot);
@@ -105,11 +105,12 @@ public final class TodoBoogieWoogieRuntime {
 		JujutsuNetworking.sendAbilityCooldown(todo, JujutsuCharacter.TODO, CharacterAbility.PRIMARY, TodoProfile.BOOGIE_WOOGIE_COOLDOWN_TICKS);
 		emitSwapFeedback(level, todo, todoSnapshot.position(), targetSnapshot.position());
 		JujutsuMod.LOGGER.debug("Todo Boogie Woogie success player={} target={} from={} to={}",
-				todo.getGameProfile().getName(), target.getName().getString(), todoSnapshot.position(), plan.get().todoDestination());
+				todo.getGameProfile().getName(), target.getName().getString(), todoSnapshot.position(), plan.get().firstDestination());
 		return true;
 	}
 
-	private static boolean isEligibleTarget(ServerPlayer todo, LivingEntity target) {
+	/** Shared with the pair swap, so a bystander is never held to a laxer standard than a direct target. */
+	static boolean isEligibleTarget(ServerPlayer todo, LivingEntity target) {
 		boolean leashed = target instanceof Leashable leashable && leashable.isLeashed();
 		return target != todo
 				&& target.isAlive()
@@ -170,11 +171,11 @@ public final class TodoBoogieWoogieRuntime {
 		return entity.getDimensions(entity.getPose()).makeBoundingBox(candidate);
 	}
 
-	private static boolean place(LivingEntity entity, ServerLevel level, Vec3 destination, Snapshot snapshot) {
+	static boolean place(LivingEntity entity, ServerLevel level, Vec3 destination, Snapshot snapshot) {
 		return entity.teleportTo(level, destination.x, destination.y, destination.z, Set.<Relative>of(), snapshot.yaw(), snapshot.pitch(), false);
 	}
 
-	private static boolean restore(LivingEntity entity, Snapshot snapshot) {
+	static boolean restore(LivingEntity entity, Snapshot snapshot) {
 		if (entity.level() != snapshot.level()) {
 			return false;
 		}
@@ -185,7 +186,7 @@ public final class TodoBoogieWoogieRuntime {
 		return placed;
 	}
 
-	private static void restoreMotionAndRotation(LivingEntity entity, Snapshot snapshot) {
+	static void restoreMotionAndRotation(LivingEntity entity, Snapshot snapshot) {
 		entity.forceSetRotation(snapshot.yaw(), snapshot.pitch());
 		entity.setYHeadRot(snapshot.headYaw());
 		entity.setDeltaMovement(snapshot.velocity());
@@ -218,12 +219,12 @@ public final class TodoBoogieWoogieRuntime {
 						todo.getRandom().nextLong(), aim));
 	}
 
-	private static void broadcastSwapEndpoint(ServerLevel level, ServerPlayer todo, Vec3 endpoint, Vec3 pairDelta, long gameTime) {
+	static void broadcastSwapEndpoint(ServerLevel level, ServerPlayer todo, Vec3 endpoint, Vec3 pairDelta, long gameTime) {
 		JujutsuNetworking.broadcastVfxCue(level, endpoint, TodoProfile.BOOGIE_WOOGIE_CUE_RADIUS,
 				new VfxCue(TodoVfxIds.SWAP_ENDPOINT, endpoint, VfxCue.NO_ANCHOR, pairDelta, 1, gameTime, todo.getRandom().nextLong(), pairDelta));
 	}
 
-	private static void scheduleMoveSound(ServerLevel level, Vec3 origin) {
+	static void scheduleMoveSound(ServerLevel level, Vec3 origin) {
 		long dueAt = level.getGameTime() + TodoProfile.BOOGIE_WOOGIE_MOVE_SOUND_DELAY_TICKS;
 		PENDING_MOVE_SOUNDS.add(new PendingSound(level.dimension(), origin, dueAt));
 	}
@@ -287,8 +288,8 @@ public final class TodoBoogieWoogieRuntime {
 		return List.copyOf(offsets);
 	}
 
-	private record Snapshot(ServerLevel level, Vec3 position, float yaw, float pitch, float headYaw, Vec3 velocity) {
-		private static Snapshot capture(LivingEntity entity) {
+	record Snapshot(ServerLevel level, Vec3 position, float yaw, float pitch, float headYaw, Vec3 velocity) {
+		static Snapshot capture(LivingEntity entity) {
 			return new Snapshot((ServerLevel) entity.level(), entity.position(), entity.getYRot(), entity.getXRot(), entity.getYHeadRot(), entity.getDeltaMovement());
 		}
 	}

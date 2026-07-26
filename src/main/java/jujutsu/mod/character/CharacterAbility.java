@@ -7,7 +7,8 @@ package jujutsu.mod.character;
  */
 public enum CharacterAbility {
 	PRIMARY(0),
-	SECONDARY(1);
+	SECONDARY(1),
+	TERTIARY(2);
 
 	private final int networkId;
 

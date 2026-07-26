@@ -32,6 +32,17 @@ public final class TodoProfile {
 	 * spends or delays Boogie Woogie. Long enough for the clap to finish before the next one starts.
 	 */
 	public static final int FAKE_CLAP_COOLDOWN_TICKS = 20;
+	/**
+	 * Pair swap: longer than Todo's own swap because he takes no personal risk in it — he stays put
+	 * while two bystanders trade places.
+	 */
+	public static final int PAIR_SWAP_COOLDOWN_TICKS = 100;
+	/**
+	 * How long a marked first participant stays selected. Five seconds is enough to line up a second
+	 * target and short enough that a stale mark cannot surprise anyone. The mark visual reads this,
+	 * rather than repeating the literal.
+	 */
+	public static final int PAIR_SELECTION_TTL_TICKS = 100;
 	/** Shared Black Flash chance for Todo's vanilla melee bridge. */
 	public static final float BLACK_FLASH_CHANCE = 0.10f;
 	public static final float BLACK_FLASH_DAMAGE_MULTIPLIER = 1.75f;

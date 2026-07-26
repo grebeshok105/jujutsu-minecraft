@@ -25,6 +25,7 @@ public final class TodoVfxRecipes {
 		VfxDirector.register(TodoVfxIds.BOOGIE_WOOGIE, TodoVfxRecipes::boogieWoogie);
 		VfxDirector.register(TodoVfxIds.SWAP_ENDPOINT, TodoVfxRecipes::swapEndpoint);
 		VfxDirector.register(TodoVfxIds.FEINT_TELL, TodoVfxRecipes::feintTell);
+		VfxDirector.register(TodoVfxIds.PAIR_MARK, TodoVfxRecipes::pairMark);
 	}
 
 	private static VfxInstance boogieWoogie(VfxCue cue) {
@@ -65,6 +66,23 @@ public final class TodoVfxRecipes {
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				Vec3 chest = context.resolveOrigin(cue).add(0.0, 1.1, 0.0);
 				context.ring(TODO_EDGE, chest, 6, 0.16, 0.0, 0.008, random(cue, 0xFE117L));
+			}
+		});
+	}
+
+	/**
+	 * Caster-only mark confirmation on the first pair-swap participant. A single beat, not a marker that
+	 * follows the body for the whole selection: a transient cue is started once, and VFX Core keeps
+	 * anything that must track a live entity on that entity's own renderer. The actionbar line names who
+	 * was marked, which is what the caster actually needs to remember.
+	 */
+	private static VfxInstance pairMark(VfxCue cue) {
+		return VfxInstance.of(8, (context, initialAgeTicks) -> {
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				Vec3 marked = context.resolveOrigin(cue).add(0.0, 1.0, 0.0);
+				RandomSource random = random(cue, 0x9A12CAFEL);
+				context.ring(TODO_VIOLET, marked, 12, 0.55, 0.0, 0.02, random);
+				context.burst(TODO_EDGE, marked, 6, 0.22, 0.05, random);
 			}
 		});
 	}

@@ -82,7 +82,11 @@ public final class JujutsuKeybinds {
 				}
 			}
 			while (nobaraExplosion.consumeClick()) {
-				if (selectedCharacter(client) == JujutsuCharacter.NOBARA) {
+				JujutsuCharacter character = selectedCharacter(client);
+				if (character == JujutsuCharacter.TODO) {
+					// Two casts on one key: the first marks a participant, the second swaps the pair.
+					sendCharacterAbility(character, CharacterAbility.TERTIARY);
+				} else if (character == JujutsuCharacter.NOBARA) {
 					sendNobaraAction(client.player.isShiftKeyDown()
 							? NobaraActionPayload.NAIL_TRAP
 							: NobaraActionPayload.HAIRPIN_MASS);

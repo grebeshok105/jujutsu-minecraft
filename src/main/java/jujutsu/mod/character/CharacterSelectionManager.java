@@ -26,6 +26,8 @@ public final class CharacterSelectionManager {
 		if (character == JujutsuCharacter.NOBARA) {
 			ProjectJjkNobaraLoadout.ensureStarterTools(player);
 		}
+		// Leaving the vessel mid-setup must not leave a pair-swap mark for a later cast to consume.
+		jujutsu.mod.character.todo.TodoPairSwapRuntime.forget(player.getUUID());
 		broadcast(player.getServer(), player.getUUID(), character);
 	}
 

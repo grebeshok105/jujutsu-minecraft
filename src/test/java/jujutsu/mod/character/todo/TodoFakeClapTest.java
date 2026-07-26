@@ -45,7 +45,7 @@ public final class TodoFakeClapTest {
 		assert CharacterAbility.SECONDARY.networkId() == 1 : "SECONDARY must append rather than renumber";
 		assert CharacterAbility.byNetworkId(0) == CharacterAbility.PRIMARY : "Network id 0 must resolve to PRIMARY";
 		assert CharacterAbility.byNetworkId(1) == CharacterAbility.SECONDARY : "Network id 1 must resolve to SECONDARY";
-		assert CharacterAbility.byNetworkId(2) == null : "An unknown slot id must resolve to null, not a default";
+		assert CharacterAbility.byNetworkId(99) == null : "An unknown slot id must resolve to null, not a default";
 	}
 
 	private static void assertFeintCarriesNoSwapMachinery() throws Exception {
