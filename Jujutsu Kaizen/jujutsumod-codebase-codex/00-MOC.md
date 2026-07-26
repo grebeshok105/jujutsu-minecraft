@@ -26,6 +26,7 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 - Shared input slots — R, Shift+R, B, Shift+B, and left click with a technique weapon — mean whatever the selected vessel's own router says; each vessel binds one server and one client definition. See [Vessel definitions](02-architecture/Vessel-definitions.md).
 - Vessel bodies are GeckoLib replaced-player renders behind one shared stack; NONE keeps the vanilla model.
 - Transient combat effects use VfxCue → VfxDirector → character recipes, each registered by its vessel's client definition.
+- A completed Boogie Woogie emits its own cues — afterimage and arrival — which the feint does not, and opens a 24-tick window on Todo's next hit. A landed marker is a reusable anchor; a mark on a body still expires and is still consumed.
 - Loaded ordinary embedded nails use a 1200-tick TTL, a 30-per-owner cap, and EmbeddedNailRegistry.
 - Resonance global server hit-stop is intentional for the private 1–2 player target.
 
@@ -33,10 +34,10 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 
 | Metric | Value |
 |---|---:|
-| Main Java files | 97 |
-| Client Java files | 164 |
-| Test Java files | 30 |
-| Verification programs | 30 |
+| Main Java files | 99 |
+| Client Java files | 165 |
+| Test Java files | 33 |
+| Verification programs | 33 |
 | Client mixins | 6 |
 | Network payloads | 8 |
 | Nobara VFX ids | 25 |

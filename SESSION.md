@@ -2,21 +2,42 @@
 
 ## Current state
 
-- `main` = `a0d7f79` — the vessel definition seam (PR #9, PR #10) and the add-vessel skill (PR #11), all merged
-- Active branch: `chore/quality-gate` in `.worktrees/quality-gate`, **not merged**
+- `main` = the vessel definition seam and the add-vessel skill (PR #9, #10, #11), plus the quality gate
+- Active branch: `feat/todo-swap-impact`, rebased onto that `main`, **not merged** — the Boogie Woogie gameplay pass
 - Product target: private play for one or two people
 
 Durable product state lives in AGENTS.md under "Current slice (facts)" and, for the seam, under "The Vessel Seam". This file records only what changed recently and what is still unproven. Documentation authority order is owned by AGENTS.md; asset and provenance policy by docs/PROVENANCE.md and docs/THIRD_PARTY_NOTICES.md.
 
-## On the active branch — the single merge gate
+## Landed on main — the single merge gate
 
-Stage 1 of an agreed six-stage plan for the build-time barrier: `qualityGate → JUnit 5 → ArchUnit → SpotBugs → PIT → GameTest`. Only stage 1 is in scope on this branch. No JUnit migration and no new JavaExec verification programs land here.
+Stage 1 of an agreed six-stage plan for the build-time barrier: `qualityGate → JUnit 5 → ArchUnit → SpotBugs → PIT → GameTest`. Stage 2 is written and waiting on `chore/junit-foundation`.
 
 - **`./gradlew qualityGate`** is now the one command. It runs `check`, `auditDocumentation` and `verifyAssertionsEnabled`. AGENTS.md makes a green run of exactly this task the condition for the word "verified", and states in the same place what a green run does **not** prove.
 - **The documentation audit stopped being CI-only.** It was a separate workflow step, so a documentation break surfaced after a push rather than before a commit.
 - **`verifyAssertionsEnabled` closes a real hole, not a hypothetical one.** `JavaExec.enableAssertions` defaults to `false` — measured, not assumed — and the verification programs are `main()` classes guarded by `assert`. A task registered without `jvmArgs '-ea'` therefore passes unconditionally and silently. The audit reads the Gradle task model rather than the text of `build.gradle`, so a task registered from anywhere is covered, and it fails with the list of offenders.
 - **CI no longer keeps its own command list.** It runs the same `qualityGate`, then `assemble` for the artifact. Green CI and green local now mean the same thing.
 - **New rule, applied to itself:** every gate rule ships with proof that it can fail. All three components were broken deliberately and the failure messages recorded in the commit body.
+
+## On the active branch — the Boogie Woogie impact pass
+
+Five commits. The through-line: **the swap stopped being a teleport with a sound on it.** Contract and reasoning: `Jujutsu Kaizen/jujutsumod-codebase-codex/03-systems/Todo-Boogie-Woogie.md`.
+
+- **A swapped body keeps its momentum on the client.** `place` teleports absolutely with an empty `Relative` set, so the transition carried `Vec3.ZERO` and the client was told its velocity was nothing — the server-side `setDeltaMovement` was a fiction for a player, who owns his own movement. One `hurtMarked` inside the shared restore helper fixes all four routes and the rollback path.
+- **One emission point.** The aimed swap, both marker swaps and the pair swap each hand-copied the same five feedback calls; they now share `emitSwapImpact`. The pending-sound scheduler carries its own sound, so a low landing report lands three ticks after the clap at the midpoint of where the bodies ended up — one report, because Minecraft audio has no propagation delay and two would flam.
+- **The impact sequence.** Camera snap, per-body afterimage silhouette, per-body arrival gather, velocity streak, and six ticks of the world's audio stepping back. All of it on `SWAP_AFTERIMAGE` / `SWAP_ARRIVAL`, which the feint does not emit — the feint shares the clap cue, so anything added there would announce it.
+- **A landed mark is a permanent anchor**, a body mark is not. The record enforces both lifetimes rather than trusting call sites, and `TodoSwapMarks.onUsed` is the one place that decides what a swap costs a mark.
+- **Swap momentum.** A completed swap opens a 24-tick window; the next confirmed hit is ×1.25 and staggers 8 ticks. Carried by a `MobEffect` attribute modifier, so there is no second damage instance at all.
+
+### What the exploration found that the naive version would have shipped broken
+
+1. `ServerLivingEntityEvents.AFTER_DAMAGE` **does not fire on a killing blow** — a kill would have silently refunded the momentum.
+2. `SoundManager.updateSourceVolume` **ignores its volume argument** for every category except MASTER; it is not a ducking API. `pauseAllExcept` / `resume` is.
+3. `TODO_SWAP_MARKER` is `noSave()`, so an unloaded chunk destroys the projectile forever while the mark sweep deliberately treats an unresolvable entity as alive — permanence would have produced an invisible working teleport anchor.
+4. Black Flash re-enters the damage event, so an unguarded momentum listener sees one swing twice and spends the window on the wrong pass.
+
+### Verified by mutation, not by a green run
+
+Three: assignment instead of `Math.max` in `VfxSoundDuck.extendedDeadline`, `sin` for `cos` in `VfxWorldChannel.facingScale`, and disabling the re-entrancy guard in `TodoSwapMomentum`. Each fails its own assertion and was reverted.
 
 ## Landed on main — the vessel definition seam
 
@@ -39,8 +60,8 @@ Nine commits. The through-line: **shared code stopped asking which character a p
 
 ## Verification status
 
-- 30 JavaExec verification programs wired into `check`, all green. Three added by the seam work: `testCharacterDefinitions`, `testCharacterClients`, `testNobaraAbilitySlots`. All 30 confirmed to enable assertions.
-- The documentation audit is **inside `./gradlew qualityGate`** now, and no longer a hand-run step.
+- 33 JavaExec verification programs wired into `check`, all green. Three added by the seam work (`testCharacterDefinitions`, `testCharacterClients`, `testNobaraAbilitySlots`) and three by the impact pass (`testTodoSwapMomentum`, `testVfxSoundDuck`, `testVfxSilhouette`). All 33 confirmed to enable assertions by `verifyAssertionsEnabled`.
+- The documentation audit is **inside `./gradlew qualityGate`** now, and no longer a hand-run step. The impact pass moved all four audited counters at once.
 - Two checks proven able to fail by mutation rather than only observed green: transposing two router arms, and binding a constant to the wrong definition.
 - Jar built from `main` and installed at `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar`.
 
@@ -56,7 +77,21 @@ Run by the user at commit `d9df2b5`: Nobara's kit confirmed working (abilities a
 - client definitions (`53a4dcd`) — renderers, skins, roster cards, theme accents and VFX packs all moved behind the client registry
 - the marker's vessel gate and Todo's Shift+B fold (`20b5b15`)
 
-## Must be checked in game before this is trusted
+## Must be checked in game before the impact pass is trusted
+
+Nothing below has been run in game. The build proves shape, not behaviour.
+
+1. **A normal swap** reads as one physical beat: clap, snap, two silhouettes, two arrivals, a fraction of a second of quiet, then the low report. Movement continues instead of stopping dead.
+2. **Every rejection is silent** — hands full, no target with no mark, nowhere safe to stand: no sound, no flash, no duck.
+3. **The feint still gives nothing away.** `Shift+R` has the clap and the camera snap; no silhouette, no arrival, no report, no quiet.
+4. **Open a menu during the quiet.** Audio returns and the vanilla pause is not disturbed.
+5. **Five swaps back to back** leave no stuck silhouette, no stuck quiet, no stuck camera offset.
+6. **The mark.** Throw it, swap to it — the mark and the projectile are both still there; swap again. Walk out of render distance and back: the mark is honestly lost with a message. Change dimension, die, change vessel: cleared.
+7. **A body mark** still lasts ten seconds and is still consumed.
+8. **Momentum.** Swap then hit: heavier, staggers, its own effect. The second hit is ordinary. Swap, miss, then hit inside the window: still boosted. Swap, wait two seconds, hit: ordinary. Swap then change vessel: the effect is gone.
+9. **Nobara regression.** `restoreMotionAndRotation` and `VfxWorldChannel` are the only shared files this pass touched.
+
+## Must be checked in game before the seam work is trusted
 
 1. **Both vessels still load and render.** The renderer map, skin mixin and roster are now registry-driven; a wiring mistake shows as a vanilla body or a missing card, not as a failed build.
 2. **Every runtime still installs.** Mod init no longer names them. Nail traps, straw doll, resonance, hammer combat, Todo's marks — if a `registerServerHooks` call were dropped the ability would simply do nothing, silently. The build-time test covers the call existing, not the listener firing.
