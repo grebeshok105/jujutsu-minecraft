@@ -3,12 +3,13 @@
 ## Current state
 
 - `main` = the vessel definition seam and the add-vessel skill (PR #9, #10, #11), the quality gate, and the Boogie Woogie impact pass
-- Active branch: `chore/junit-foundation`, rebased onto that `main`, **not merged** — stage 2 of the build-time barrier
+- Everything below is **merged into `main`**; no branch is in flight. Barrier stages 1 and 2 are done, stage 3 is ArchUnit
+- One thing on `main` has **never been run in game**: the sixth input slot, `USE_CONTEXT` — two right clicks marking a body. The in-game pass covered the six commits before it
 - Product target: private play for one or two people
 
 Durable product state lives in AGENTS.md under "Current slice (facts)" and, for the seam, under "The Vessel Seam". This file records only what changed recently and what is still unproven. Documentation authority order is owned by AGENTS.md; asset and provenance policy by docs/PROVENANCE.md and docs/THIRD_PARTY_NOTICES.md.
 
-## On the active branch — the JUnit foundation
+## Landed on main — the JUnit foundation
 
 Stage 2 of the barrier plan. Foundation only: **no existing `JavaExec` program was migrated**, so all 34 keep running exactly as before.
 
@@ -28,7 +29,7 @@ Stage 1 of an agreed six-stage plan for the build-time barrier: `qualityGate →
 - **CI no longer keeps its own command list.** It runs the same `qualityGate`, then `assemble` for the artifact. Green CI and green local now mean the same thing.
 - **New rule, applied to itself:** every gate rule ships with proof that it can fail. All three components were broken deliberately and the failure messages recorded in the commit body.
 
-## On the active branch — the Boogie Woogie impact pass
+## Landed on main — the Boogie Woogie impact pass
 
 Five commits. The through-line: **the swap stopped being a teleport with a sound on it.** Contract and reasoning: `Jujutsu Kaizen/jujutsumod-codebase-codex/03-systems/Todo-Boogie-Woogie.md`.
 
@@ -90,7 +91,7 @@ Run by the user at commit `d9df2b5`: Nobara's kit confirmed working (abilities a
 
 ## Must be checked in game before the impact pass is trusted
 
-Nothing below has been run in game. The build proves shape, not behaviour.
+The user ran this pass in game through the sixth commit and it held. **The seventh commit was added afterwards and is untested:** the `USE_CONTEXT` slot, reached by two right clicks in quick succession. It is the only slot whose key vanilla already owns, so it is exactly the kind of input that build-time cannot judge — check that an ordinary right click still does its ordinary thing, that a pair marks the body under the crosshair, and that the pair is not triggered by normal interaction with blocks, containers or items.
 
 1. **A normal swap** reads as one physical beat: clap, snap, two silhouettes, two arrivals, a fraction of a second of quiet, then the low report. Movement continues instead of stopping dead.
 2. **Every rejection is silent** — hands full, no target with no mark, nowhere safe to stand: no sound, no flash, no duck.
