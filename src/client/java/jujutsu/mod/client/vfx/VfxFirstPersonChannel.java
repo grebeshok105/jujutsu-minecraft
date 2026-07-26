@@ -33,6 +33,10 @@ public final class VfxFirstPersonChannel {
 	}
 
 	public void triggerSnap(float initialAgeTicks) {
+		// One channel serves every vessel: never reinterpret an in-flight clap with snap timing.
+		if (style == Style.CLAP && progress() >= 0.0f) {
+			return;
+		}
 		style = Style.SNAP;
 		startedAtNanos = VfxTimeline.startedAtNanos(System.nanoTime(), initialAgeTicks);
 	}
@@ -56,17 +60,31 @@ public final class VfxFirstPersonChannel {
 		startedAtNanos = System.nanoTime();
 	}
 
+	/** Null once the animation is over, so a finished style never keeps cancelling the vanilla hand path. */
 	public Style style() {
-		return rawProgress() < 0.0f ? null : style;
+		return progress() < 0.0f ? null : style;
 	}
 
-	public float activeProgress() {
+	/**
+	 * Pure read: -1 when idle or finished, otherwise 0..1. Callers that render must sample this
+	 * once per frame and reuse the value, or the two arms land on different instants.
+	 */
+	public float progress() {
 		float progress = rawProgress();
-		if (progress >= 1.0f) {
+		return progress >= 1.0f ? -1.0f : progress;
+	}
+
+	/** Releases a finished animation. Call once per frame, never from a pose getter. */
+	public void expireIfFinished() {
+		if (rawProgress() >= 1.0f) {
 			startedAtNanos = Long.MIN_VALUE;
-			return -1.0f;
 		}
-		return progress;
+	}
+
+	/** Drops an in-flight animation, e.g. when the player switches vessel mid-clap. */
+	public void cancel() {
+		startedAtNanos = Long.MIN_VALUE;
+		style = Style.SNAP;
 	}
 
 	private float rawProgress() {
@@ -78,15 +96,15 @@ public final class VfxFirstPersonChannel {
 	}
 
 	public Pose currentPose() {
-		float progress = activeProgress();
+		float progress = progress();
 		if (progress < 0.0f || style != Style.SNAP) {
 			return null;
 		}
 		return snapPose(progress);
 	}
 
-	public Pose clapArmPose(HumanoidArm arm) {
-		float progress = activeProgress();
+	/** Pose at a caller-supplied progress, so both arms of one frame share the same instant. */
+	public Pose clapArmPose(HumanoidArm arm, float progress) {
 		if (progress < 0.0f || style != Style.CLAP) {
 			return null;
 		}
@@ -94,7 +112,7 @@ public final class VfxFirstPersonChannel {
 	}
 
 	void clear() {
-		startedAtNanos = Long.MIN_VALUE;
+		cancel();
 	}
 
 	private static Pose snapPose(float progress) {

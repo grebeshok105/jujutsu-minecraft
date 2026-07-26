@@ -108,8 +108,22 @@ public final class VfxDirector {
 		return FIRST_PERSON.style();
 	}
 
-	public static VfxFirstPersonChannel.Pose firstPersonClapArmPose(net.minecraft.world.entity.HumanoidArm arm) {
-		return FIRST_PERSON.clapArmPose(arm);
+	/** Sample once per frame; pass the result to every arm so they share one instant. */
+	public static float firstPersonProgress() {
+		return FIRST_PERSON.progress();
+	}
+
+	public static void expireFirstPerson() {
+		FIRST_PERSON.expireIfFinished();
+	}
+
+	/** Drops an in-flight first-person animation, e.g. on a vessel switch. */
+	public static void cancelFirstPerson() {
+		FIRST_PERSON.cancel();
+	}
+
+	public static VfxFirstPersonChannel.Pose firstPersonClapArmPose(net.minecraft.world.entity.HumanoidArm arm, float progress) {
+		return FIRST_PERSON.clapArmPose(arm, progress);
 	}
 
 	private static void renderWorld(WorldRenderContext context) {
