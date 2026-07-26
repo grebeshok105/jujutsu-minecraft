@@ -1,4 +1,4 @@
-package jujutsu.mod.client.render.nobara;
+package jujutsu.mod.client.render.todo;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.model.PlayerModel;
@@ -12,20 +12,21 @@ import software.bernie.geckolib.renderer.GeoReplacedEntityRenderer;
 import software.bernie.geckolib.renderer.base.GeoRenderState;
 import jujutsu.mod.client.render.CharacterGeoRenderer;
 
-public final class NobaraPlayerGeoRenderer<R extends PlayerRenderState & GeoRenderState>
-		extends GeoReplacedEntityRenderer<NobaraPlayerGeoAnimatable, AbstractClientPlayer, R>
+public final class TodoPlayerGeoRenderer<R extends PlayerRenderState & GeoRenderState>
+		extends GeoReplacedEntityRenderer<TodoPlayerGeoAnimatable, AbstractClientPlayer, R>
 		implements CharacterGeoRenderer {
 	private final PlayerModel vanillaPoseModel;
 
-	public NobaraPlayerGeoRenderer(EntityRendererProvider.Context context) {
-		super(context, new NobaraPlayerGeoModel(), NobaraPlayerGeoAnimatable.INSTANCE);
+	public TodoPlayerGeoRenderer(EntityRendererProvider.Context context) {
+		super(context, new TodoPlayerGeoModel(), TodoPlayerGeoAnimatable.INSTANCE);
 		this.vanillaPoseModel = new PlayerModel(context.bakeLayer(ModelLayers.PLAYER), false);
-		addRenderLayer(new NobaraHeldItemLayer<>(this));
-		withScale(0.94f, 0.94f);
+		addRenderLayer(new TodoHeldItemLayer<>(this));
+		// Model bind pose is ~36.75u; slight scale matches player footprint like Nobara.
+		withScale(0.96f, 0.96f);
 	}
 
 	@Override
-	public void addRenderData(NobaraPlayerGeoAnimatable animatable, AbstractClientPlayer player, R renderState) {
+	public void addRenderData(TodoPlayerGeoAnimatable animatable, AbstractClientPlayer player, R renderState) {
 		vanillaPoseModel.setupAnim(renderState);
 		renderState.addGeckolibData(DataTickets.HUMANOID_MODEL, vanillaPoseModel);
 	}
