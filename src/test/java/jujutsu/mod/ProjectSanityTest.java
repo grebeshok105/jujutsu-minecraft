@@ -904,9 +904,9 @@ public final class ProjectSanityTest {
 		String sharedRenderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterPlayerGeoRenderer.java"));
 		assert sharedRenderer.contains("vanillaPoseModel.setupAnim(renderState)") && sharedRenderer.contains("DataTickets.HUMANOID_MODEL")
 				: "Character renderers must derive arm poses from the current vanilla player render state";
-		String geoModel = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoModel.java"));
-		assert geoModel.contains("applyVanillaArmPose") && geoModel.contains("DataTickets.HUMANOID_MODEL")
-				: "Nobara model must apply vanilla-equivalent held-item arm rotations";
+		String sharedModel = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterPlayerGeoModel.java"));
+		assert sharedModel.contains("applyVanillaArmPose") && sharedModel.contains("DataTickets.HUMANOID_MODEL")
+				: "Character models must apply vanilla-equivalent held-item arm rotations";
 		String geo = Files.readString(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json"));
 		assert Pattern.compile("\"name\"\\s*:\\s*\"rightHandItem\"\\s*,\\s*\"parent\"\\s*:\\s*\"right_elbow\"").matcher(geo).find()
 				: "Nobara model needs a right-hand item attachment under the right elbow";
@@ -923,15 +923,24 @@ public final class ProjectSanityTest {
 	}
 
 	private static void assertNobaraGeoHeadLookIsSafeAndEnabled() throws IOException {
+		String sharedModel = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterPlayerGeoModel.java"));
+		assert sharedModel.contains("setCustomAnimations") : "Character Gecko models must apply a safe per-frame head look pass";
+		assert sharedModel.contains("getBone(HEAD_BONE)") : "Head look must rotate the separate head bone only";
+		assert sharedModel.contains("MAX_HEAD_YAW_DEGREES = 38.0f") : "Head yaw clamp must stay conservative after the unsafe 75 degree attempt";
+		assert sharedModel.contains("MAX_HEAD_PITCH_DEGREES = 22.0f") : "Head pitch clamp must stay conservative after the unsafe 45 degree attempt";
+		assert sharedModel.contains("head.resetStateChanges()") : "Render-only head look must not leak rotationChanged into GeckoLib's next-frame reset bookkeeping";
+		assert !sharedModel.contains("MAX_HEAD_YAW_DEGREES = 75.0f") : "Do not restore the old unsafe head yaw range";
+		assert !sharedModel.contains("MAX_HEAD_PITCH_DEGREES = 45.0f") : "Do not restore the old unsafe head pitch range";
+		// Clamps live on the shared base; a vessel must not silently reintroduce its own looser copy.
+		for (String vessel : new String[] {"nobara/NobaraPlayerGeoModel.java", "todo/TodoPlayerGeoModel.java"}) {
+			String subclass = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/").resolve(vessel));
+			assert subclass.contains("extends CharacterPlayerGeoModel")
+					: vessel + " must inherit the shared head-look clamps";
+			assert !subclass.contains("MAX_HEAD_YAW_DEGREES =") && !subclass.contains("MAX_HEAD_PITCH_DEGREES =")
+					: vessel + " must not redefine the shared head-look clamps";
+		}
 		String geoModel = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoModel.java"));
-		assert geoModel.contains("setCustomAnimations") : "Nobara Gecko model must apply a safe per-frame head look pass";
-		assert geoModel.contains("getBone(HEAD_BONE)") : "Nobara head look must rotate the separate head bone only";
 		assert geoModel.contains("NobaraPlayerGeoAnimatable.headLookWeight(animationState, playerState)") : "Nobara head look must use the animatable/controller-aware action weight";
-		assert geoModel.contains("MAX_HEAD_YAW_DEGREES = 38.0f") : "Nobara head yaw clamp must stay conservative after the unsafe 75 degree attempt";
-		assert geoModel.contains("MAX_HEAD_PITCH_DEGREES = 22.0f") : "Nobara head pitch clamp must stay conservative after the unsafe 45 degree attempt";
-		assert geoModel.contains("head.resetStateChanges()") : "Nobara render-only head look must not leak rotationChanged into GeckoLib's next-frame reset bookkeeping";
-		assert !geoModel.contains("MAX_HEAD_YAW_DEGREES = 75.0f") : "Do not restore the old unsafe head yaw range";
-		assert !geoModel.contains("MAX_HEAD_PITCH_DEGREES = 45.0f") : "Do not restore the old unsafe head pitch range";
 		String animatable = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoAnimatable.java"));
 		assert animatable.contains("headKeyframedActionIsPlaying(state)") : "Nobara head look must attenuate while ProjectJJK head-keyframed action clips are active";
 		assert animatable.contains("getTriggeredAnimation()") && animatable.contains("getCurrentRawAnimation()") : "Nobara head look must account for GeckoLib triggered and current raw action animations";
