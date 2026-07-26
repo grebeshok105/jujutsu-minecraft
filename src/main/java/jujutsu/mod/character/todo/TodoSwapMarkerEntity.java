@@ -64,9 +64,12 @@ public class TodoSwapMarkerEntity extends ThrowableItemProjectile {
 				face.getStepX() * TodoProfile.MARKER_SURFACE_OFFSET,
 				face.getStepY() * TodoProfile.MARKER_SURFACE_OFFSET,
 				face.getStepZ() * TodoProfile.MARKER_SURFACE_OFFSET);
-		// Landing is settled on BOTH sides. `landed` is not synched, so if only the server stopped the
-		// physics the client would keep applying gravity between position updates and the resting marker
-		// would visibly sag and snap back once per update interval.
+		// Landing is settled on both sides for every client that witnessed the hit, because `landed` is not
+		// synched: if only the server stopped the physics, a witnessing client would keep applying gravity
+		// between position updates and the resting marker would sag and snap back once per interval.
+		// A client that enters tracking range later constructs this with `landed = false` and never sees
+		// onHitBlock -- harmless, because zero delta plus the synched noGravity flag means no movement, and
+		// a landed mark now outlives its old ten-second window often enough for that to be the normal case.
 		landed = true;
 		setDeltaMovement(Vec3.ZERO);
 		setNoGravity(true);
@@ -78,8 +81,7 @@ public class TodoSwapMarkerEntity extends ThrowableItemProjectile {
 			discard();
 			return;
 		}
-		TodoSwapMarks.mark(level, owner.getUUID(),
-				TodoSwapMark.atPosition(level.dimension(), rest, getId(), level.getGameTime() + TodoProfile.MARKER_MARK_TTL_TICKS));
+		TodoSwapMarks.mark(level, owner.getUUID(), TodoSwapMark.atPosition(level.dimension(), rest, getId()));
 	}
 
 	@Override
@@ -104,7 +106,7 @@ public class TodoSwapMarkerEntity extends ThrowableItemProjectile {
 			struck.setGlowingTag(true);
 		}
 		TodoSwapMarks.mark(level, owner.getUUID(), TodoSwapMark.onEntity(level.dimension(), struck.position(),
-				struck.getId(), struck.getUUID(), glowApplied, level.getGameTime() + TodoProfile.MARKER_MARK_TTL_TICKS));
+				struck.getId(), struck.getUUID(), glowApplied, level.getGameTime() + TodoProfile.MARKER_BODY_MARK_TTL_TICKS));
 		discard();
 	}
 }
