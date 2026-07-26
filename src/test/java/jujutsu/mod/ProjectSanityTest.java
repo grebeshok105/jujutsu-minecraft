@@ -158,7 +158,11 @@ public final class ProjectSanityTest {
 	private static void assertParticleJsonTexturesExist() throws IOException {
 		Path particlesDir = JUJUTSU_ASSETS.resolve("particles");
 		try (Stream<Path> files = Files.list(particlesDir)) {
-			for (Path particleJson : files.filter(path -> path.toString().endsWith(".json")).toList()) {
+			// Guarded because the filter, not the directory, is the fragile part: rename the extension or
+			// move the format and this loop would check nothing at all while still reporting success.
+			List<Path> particleFiles = files.filter(path -> path.toString().endsWith(".json")).toList();
+			assert !particleFiles.isEmpty() : "No particle JSON found under " + particlesDir + "; this check would pass vacuously";
+			for (Path particleJson : particleFiles) {
 				String json = Files.readString(particleJson);
 				Matcher matcher = TEXTURE_ID.matcher(json);
 				boolean foundTexture = false;
@@ -175,7 +179,9 @@ public final class ProjectSanityTest {
 	private static void assertItemDefinitionsResolveToTextures() throws IOException {
 		Path itemsDir = JUJUTSU_ASSETS.resolve("items");
 		try (Stream<Path> files = Files.list(itemsDir)) {
-			for (Path itemDefinition : files.filter(path -> path.toString().endsWith(".json")).toList()) {
+			List<Path> itemFiles = files.filter(path -> path.toString().endsWith(".json")).toList();
+			assert !itemFiles.isEmpty() : "No item definitions found under " + itemsDir + "; this check would pass vacuously";
+			for (Path itemDefinition : itemFiles) {
 				String json = Files.readString(itemDefinition);
 				boolean geckoItem = json.contains("\"type\": \"geckolib:geckolib\"");
 				Matcher modelMatcher = (geckoItem ? ITEM_BASE_MODEL_ID : ITEM_MODEL_ID).matcher(json);
@@ -1136,7 +1142,13 @@ public final class ProjectSanityTest {
 
 	private static void assertNoForbiddenImports() throws IOException {
 		try (Stream<Path> files = Files.walk(ROOT.resolve("src"))) {
-			for (Path javaFile : files.filter(path -> path.toString().endsWith(".java")).toList()) {
+			// The side-separation rule is the most valuable check in this file, so it is also the worst
+			// one to let run over an empty list. Both counts are floors, not exact numbers.
+			List<Path> javaFiles = files.filter(path -> path.toString().endsWith(".java")).toList();
+			assert javaFiles.size() > 200 : "Only " + javaFiles.size() + " java files walked; the side-separation check is not seeing the source tree";
+			long mainFiles = javaFiles.stream().filter(path -> path.startsWith(MAIN_JAVA)).count();
+			assert mainFiles > 50 : "Only " + mainFiles + " files under src/main walked; the client-import check would pass vacuously";
+			for (Path javaFile : javaFiles) {
 				String source = Files.readString(javaFile);
 				assert !source.contains(FORBIDDEN_FABRIC_IMPL) : "Forbidden Fabric impl import in " + javaFile;
 				if (javaFile.startsWith(MAIN_JAVA)) {
