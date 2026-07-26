@@ -10,6 +10,8 @@ import jujutsu.mod.client.ui.UiEase;
 public final class ClickGuiTheme {
 	public static final int NOBARA_ACCENT = 0xFFE48A36;
 	public static final int NOBARA_DEEP = 0xFF8B3F1C;
+	public static final int TODO_ACCENT = 0xFFA56CFF;
+	public static final int TODO_DEEP = 0xFF4B2A85;
 	public static final int NONE_ACCENT = 0xFF7A8796;
 	public static final int NONE_DEEP = 0xFF3A4450;
 
@@ -21,17 +23,23 @@ public final class ClickGuiTheme {
 	private ClickGuiTheme() {}
 
 	public static void setCharacter(JujutsuCharacter character) {
-		if (character == JujutsuCharacter.NOBARA) {
-			targetR = ((NOBARA_ACCENT >> 16) & 0xFF) / 255f;
-			targetG = ((NOBARA_ACCENT >> 8) & 0xFF) / 255f;
-			targetB = (NOBARA_ACCENT & 0xFF) / 255f;
-			targetWarm = 1f;
-		} else {
-			targetR = ((NONE_ACCENT >> 16) & 0xFF) / 255f;
-			targetG = ((NONE_ACCENT >> 8) & 0xFF) / 255f;
-			targetB = (NONE_ACCENT & 0xFF) / 255f;
-			targetWarm = 0f;
-		}
+		int accent = switch (character) {
+			case NOBARA -> NOBARA_ACCENT;
+			case TODO -> TODO_ACCENT;
+			case NONE -> NONE_ACCENT;
+		};
+		targetR = ((accent >> 16) & 0xFF) / 255f;
+		targetG = ((accent >> 8) & 0xFF) / 255f;
+		targetB = (accent & 0xFF) / 255f;
+		targetWarm = character == JujutsuCharacter.NOBARA ? 1f : character == JujutsuCharacter.TODO ? 0.45f : 0f;
+	}
+
+	public static int accentFor(JujutsuCharacter character) {
+		return switch (character) {
+			case NOBARA -> NOBARA_ACCENT;
+			case TODO -> TODO_ACCENT;
+			case NONE -> NONE_ACCENT;
+		};
 	}
 
 	public static void snapTo(JujutsuCharacter character) {

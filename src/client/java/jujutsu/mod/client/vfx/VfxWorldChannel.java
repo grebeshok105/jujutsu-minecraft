@@ -44,6 +44,15 @@ public final class VfxWorldChannel {
 	private static final int BF_BLOOD_R = VfxPalette.BLACK_FLASH_BLOOD_R;
 	private static final int BF_BLOOD_G = VfxPalette.BLACK_FLASH_BLOOD_G;
 	private static final int BF_BLOOD_B = VfxPalette.BLACK_FLASH_BLOOD_B;
+	private static final int TODO_VIOLET_R = VfxPalette.TODO_VIOLET_R;
+	private static final int TODO_VIOLET_G = VfxPalette.TODO_VIOLET_G;
+	private static final int TODO_VIOLET_B = VfxPalette.TODO_VIOLET_B;
+	private static final int TODO_EDGE_R = VfxPalette.TODO_EDGE_R;
+	private static final int TODO_EDGE_G = VfxPalette.TODO_EDGE_G;
+	private static final int TODO_EDGE_B = VfxPalette.TODO_EDGE_B;
+	private static final int TODO_DEEP_R = VfxPalette.TODO_DEEP_R;
+	private static final int TODO_DEEP_G = VfxPalette.TODO_DEEP_G;
+	private static final int TODO_DEEP_B = VfxPalette.TODO_DEEP_B;
 	private static final int BF_SPARK_R = VfxPalette.BLACK_FLASH_SPARK_R;
 	private static final int BF_SPARK_G = VfxPalette.BLACK_FLASH_SPARK_G;
 	private static final int BF_SPARK_B = VfxPalette.BLACK_FLASH_SPARK_B;
@@ -84,7 +93,8 @@ public final class VfxWorldChannel {
 			// Resonance struck + Black Flash stay planted at the immutable cue origin (world-fixed).
 			boolean worldFixed = flash.style() == ImpactStyle.DOLL_STRIKE
 					|| flash.style() == ImpactStyle.RESONANCE_RELEASE
-					|| flash.style() == ImpactStyle.BLACK_FLASH;
+					|| flash.style() == ImpactStyle.BLACK_FLASH
+					|| flash.style() == ImpactStyle.BOOGIE_WOOGIE;
 			Vec3 origin = worldFixed
 					? flash.cue().origin()
 					: VfxAnchorResolver.resolve(flash.cue(), entityId -> {
@@ -101,6 +111,7 @@ public final class VfxWorldChannel {
 				case DOLL_STRIKE -> renderDollStrike(consumer, center, intensity, progress, fade);
 				case RESONANCE_RELEASE -> renderResonanceRelease(consumer, center, intensity, progress, fade);
 				case BLACK_FLASH -> renderBlackFlash(consumer, center, intensity, progress, fade, flash.cue());
+					case BOOGIE_WOOGIE -> renderBoogieWoogie(consumer, center, intensity, progress, fade, flash.cue());
 			}
 		}
 	}
@@ -115,6 +126,29 @@ public final class VfxWorldChannel {
 			Vec3 end = start.add(new Vec3(0.0, 0.16 - index * 0.035, 1.1 + progress * 1.25));
 			addFlashBlade(consumer, start, end, 0.022f, alpha);
 		}
+	}
+
+	private static void renderBoogieWoogie(VertexConsumer consumer, Vec3 center, int intensity, float progress, float fade, VfxCue cue) {
+		Vec3 target = center.add(cue.anchorOffset());
+		if (target.distanceToSqr(center) < 1.0E-4) {
+			return;
+		}
+		int alpha = Math.min(220, Math.round(210.0f * fade));
+		Vec3 midpoint = center.add(target).scale(0.5);
+		Vec3 side = sideVector(target.subtract(center), midpoint, 0.028f + Math.min(3, intensity) * 0.006f);
+		addRibbon(consumer, center, target, side.scale(3.4), TODO_DEEP_R, TODO_DEEP_G, TODO_DEEP_B, Math.round(alpha * 0.42f));
+		addRibbon(consumer, center, target, side.scale(1.35), TODO_VIOLET_R, TODO_VIOLET_G, TODO_VIOLET_B, alpha);
+		addRibbon(consumer, center.add(target.subtract(center).scale(0.12)), target, side.scale(0.42), TODO_EDGE_R, TODO_EDGE_G, TODO_EDGE_B, Math.round(alpha * 0.62f));
+		float pulse = 0.22f + (1.0f - progress) * 0.18f;
+		addTodoPulse(consumer, center, pulse, alpha);
+		addTodoPulse(consumer, target, pulse, alpha);
+	}
+
+	private static void addTodoPulse(VertexConsumer consumer, Vec3 center, float radius, int alpha) {
+		Vec3 horizontal = EAST.scale(radius);
+		Vec3 vertical = UP.scale(radius);
+		addRibbon(consumer, center.subtract(horizontal), center.add(horizontal), vertical.scale(0.08), TODO_VIOLET_R, TODO_VIOLET_G, TODO_VIOLET_B, alpha);
+		addRibbon(consumer, center.subtract(vertical), center.add(vertical), horizontal.scale(0.08), TODO_EDGE_R, TODO_EDGE_G, TODO_EDGE_B, Math.round(alpha * 0.8f));
 	}
 
 	private static void renderEnlargeImpact(VertexConsumer consumer, Vec3 center, int intensity, float progress, float fade) {
@@ -469,7 +503,8 @@ public final class VfxWorldChannel {
 		RITUAL_BIND,
 		DOLL_STRIKE,
 		RESONANCE_RELEASE,
-		BLACK_FLASH
+		BLACK_FLASH,
+		BOOGIE_WOOGIE
 	}
 
 	private record ImpactFlash(VfxCue cue, ImpactStyle style, int durationTicks) {}

@@ -20,6 +20,7 @@ public final class CharacterSelectionManager {
 			updated = updated.claimStarter(character);
 		}
 		attachments(player).setAttached(JujutsuAttachments.CHARACTER_STATE, updated);
+		CharacterCombatModifiers.applyForSelection(player, character);
 		if (claimStarter) {
 			ProjectJjkNobaraLoadout.ensureStarterTools(player);
 		}

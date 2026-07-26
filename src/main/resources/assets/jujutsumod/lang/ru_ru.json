@@ -28,5 +28,13 @@
   ,"screen.jujutsumod.dashboard.page.visuals": "Визуал"
   ,"screen.jujutsumod.dashboard.page.misc": "Разное"
   ,"key.jujutsumod.modern_menu": "Меню дзюдзюцу (Персонажи)"
+  ,"key.jujutsumod.nobara_hairpin_enlarge": "Основная техника"
+  ,"key.jujutsumod.nobara_hairpin_explosion": "Вторичная техника"
   ,"screen.jujutsumod.modern_menu": "Выбор сосуда"
+  ,"message.jujutsumod.character.action.not_selected": "Сначала выберите персонажа."
+  ,"message.jujutsumod.character.action.cooldown": "Способность восстанавливается."
+  ,"message.jujutsumod.todo.boogie.no_target": "Перед вами нет подходящей цели."
+  ,"message.jujutsumod.todo.boogie.invalid_target": "Цель больше не подходит."
+  ,"message.jujutsumod.todo.boogie.out_of_range": "Цель вне радиуса действия."
+  ,"message.jujutsumod.todo.boogie.unsafe": "Не удалось найти безопасную позицию для обмена."
 }

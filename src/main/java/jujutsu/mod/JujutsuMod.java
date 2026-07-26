@@ -4,6 +4,9 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 
 import net.minecraft.resources.ResourceLocation;
+import jujutsu.mod.character.CharacterAbilityCooldowns;
+import jujutsu.mod.character.CharacterCombatModifiers;
+import jujutsu.mod.character.todo.TodoBlackFlashRuntime;
 import jujutsu.mod.character.nobara.projectjjk.EmbeddedNailRegistry;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkRitualRuntime;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollRuntime;
@@ -41,11 +44,14 @@ public class JujutsuMod implements ModInitializer {
 		JujutsuSounds.register();
 		JujutsuEffects.register();
 		JujutsuNetworking.registerPayloads();
+		CharacterAbilityCooldowns.register();
+		CharacterCombatModifiers.register();
 		ProjectJjkRitualRuntime.register();
 		ProjectJjkStrawDollRuntime.register();
 		EmbeddedNailRegistry.register();
 		NailAnchorLifecycle.register();
 		NobaraHammerCombatRuntime.register();
+		TodoBlackFlashRuntime.register();
 		NobaraActionGuard.register();
 		SelfResonanceRuntime.register();
 		NailTrapRuntime.register();

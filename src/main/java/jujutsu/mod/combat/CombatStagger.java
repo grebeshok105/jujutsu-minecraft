@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.world.entity.LivingEntity;
+import jujutsu.mod.character.CharacterCombatModifiers;
 
 public final class CombatStagger {
 	public static final CombatStagger GLOBAL = new CombatStagger();
@@ -14,7 +15,7 @@ public final class CombatStagger {
 	}
 
 	public void apply(LivingEntity entity, long gameTime, int ticks) {
-		apply(entity.getUUID(), gameTime, ticks);
+		apply(entity.getUUID(), gameTime, CharacterCombatModifiers.adjustedStaggerTicks(entity, ticks));
 		entity.stopUsingItem();
 		entity.setDeltaMovement(entity.getDeltaMovement().scale(0.15));
 		hasImpulse(entity);

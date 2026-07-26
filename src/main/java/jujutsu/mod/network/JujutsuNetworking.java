@@ -6,6 +6,8 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.character.CharacterAbility;
+import jujutsu.mod.character.CharacterAbilityExecutor;
 import jujutsu.mod.character.CharacterSelectionManager;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraActions;
@@ -19,6 +21,8 @@ public final class JujutsuNetworking {
 		PayloadTypeRegistry.playS2C().register(CharacterSelectionSyncPayload.TYPE, CharacterSelectionSyncPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(SelectCharacterPayload.TYPE, SelectCharacterPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(NobaraActionPayload.TYPE, NobaraActionPayload.STREAM_CODEC);
+		PayloadTypeRegistry.playC2S().register(CharacterAbilityPayload.TYPE, CharacterAbilityPayload.STREAM_CODEC);
+		PayloadTypeRegistry.playS2C().register(AbilityCooldownPayload.TYPE, AbilityCooldownPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(CurseLinkOptionsPayload.TYPE, CurseLinkOptionsPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(SelectCurseLinkPayload.TYPE, SelectCurseLinkPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(BlackFlashFocusPayload.TYPE, BlackFlashFocusPayload.STREAM_CODEC);
@@ -30,6 +34,8 @@ public final class JujutsuNetworking {
 				context.server().execute(() -> CharacterSelectionManager.select(context.player(), JujutsuCharacter.byId(payload.characterId()))));
 		ServerPlayNetworking.registerGlobalReceiver(NobaraActionPayload.TYPE, (payload, context) ->
 				context.server().execute(() -> handleNobaraAction(context.player(), payload)));
+		ServerPlayNetworking.registerGlobalReceiver(CharacterAbilityPayload.TYPE, (payload, context) ->
+				context.server().execute(() -> handleCharacterAbility(context.player(), payload)));
 		ServerPlayNetworking.registerGlobalReceiver(SelectCurseLinkPayload.TYPE, (payload, context) ->
 				context.server().execute(() -> jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime.select(context.player(), payload.linkId())));
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> { CharacterSelectionManager.syncOnJoin(handler.player); jujutsu.mod.combat.BlackFlashFocus.sync(handler.player); });
@@ -38,6 +44,13 @@ public final class JujutsuNetworking {
 
 	private static void handleNobaraAction(ServerPlayer player, NobaraActionPayload payload) {
 		ProjectJjkNobaraActions.tryCast(player, payload.action(), true);
+	}
+
+	private static void handleCharacterAbility(ServerPlayer player, CharacterAbilityPayload payload) {
+		CharacterAbility ability = CharacterAbility.byNetworkId(payload.abilityId());
+		if (ability != null) {
+			CharacterAbilityExecutor.tryCast(player, ability, true);
+		}
 	}
 
 	public static int broadcastVfxCue(ServerLevel level, Vec3 center, double radius, VfxCue cue) {
@@ -61,6 +74,14 @@ public final class JujutsuNetworking {
 			return false;
 		}
 		ServerPlayNetworking.send(player, new VfxCuePayload(cue));
+		return true;
+	}
+
+	public static boolean sendAbilityCooldown(ServerPlayer player, JujutsuCharacter character, CharacterAbility ability, int remainingTicks) {
+		if (!ServerPlayNetworking.canSend(player, AbilityCooldownPayload.TYPE)) {
+			return false;
+		}
+		ServerPlayNetworking.send(player, new AbilityCooldownPayload(character.id(), ability.networkId(), Math.max(0, remainingTicks)));
 		return true;
 	}
 

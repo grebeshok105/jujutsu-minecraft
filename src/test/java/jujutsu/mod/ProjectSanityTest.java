@@ -41,6 +41,7 @@ public final class ProjectSanityTest {
 		assertDefaultNobaraItemsUseProjectJjkModels();
 		assertItemRegistryUsesKeyedProperties();
 		assertExplicitNobaraActionsAreVisible();
+		assertTodoSecondCharacterContracts();
 		assertProjectJjkHairpinFinisherNumbers();
 		assertHairpinFinishersSnapWithoutMarks();
 		assertVfxCueTransportIsRegistered();
@@ -361,6 +362,36 @@ public final class ProjectSanityTest {
 		assert !hammer.contains("detonateMarks") : "Hammer must not hide Hairpin Explosion as a fallback action";
 		assert Files.exists(JUJUTSU_ASSETS.resolve("textures/gui/abilities/hairpin_enlargement.png")) : "Missing Hairpin Enlarge UI icon";
 		assert Files.exists(JUJUTSU_ASSETS.resolve("textures/gui/abilities/hairpin_explosion.png")) : "Missing Hairpin Explosion UI icon";
+	}
+
+	private static void assertTodoSecondCharacterContracts() throws IOException {
+		String characters = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/JujutsuCharacter.java"));
+		assert characters.contains("TODO(\"todo\"") : "Todo must be a selectable persistent character id";
+		Path todoRuntime = MAIN_JAVA.resolve("jujutsu/mod/character/todo/TodoBoogieWoogieRuntime.java");
+		assert Files.exists(todoRuntime) : "Todo needs the server-authoritative Boogie Woogie runtime";
+		String runtime = Files.readString(todoRuntime);
+		assert runtime.contains("TodoProfile.BOOGIE_WOOGIE_RANGE") : "Todo range must come from the profile";
+		assert runtime.contains("TodoSwapPlan.preflight") && runtime.contains("restore(todo, todoSnapshot)")
+				: "Boogie Woogie must require an atomic destination plan and roll back a partial authoritative move";
+		assert Files.exists(MAIN_JAVA.resolve("jujutsu/mod/character/todo/TodoSwapPlan.java"))
+				: "Todo must keep the two-party swap preflight in a testable atomic plan";
+		assert runtime.contains("hasLineOfSight") && runtime.contains("ArmorStand") && runtime.contains("isPassenger")
+				&& runtime.contains("isVehicle") && runtime.contains("Leashable")
+				: "Todo targeting must validate visibility and reject armor stands, passengers, vehicles, and leashed entities";
+		String networking = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/network/JujutsuNetworking.java"));
+		assert networking.contains("CharacterAbilityPayload.TYPE") && networking.contains("AbilityCooldownPayload.TYPE")
+				: "Todo must use typed shared ability and cooldown packets";
+		String keybinds = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/input/JujutsuKeybinds.java"));
+		assert keybinds.contains("JujutsuCharacter.TODO") && keybinds.contains("CharacterAbility.PRIMARY")
+				: "Todo must reuse the primary technique key instead of adding a new keybind";
+		String roster = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/rich/screens/clickgui/impl/character/CharacterRosterPanel.java"));
+		assert roster.contains("Aoi Todo") && roster.contains("Boogie Woogie")
+				: "The existing character roster must expose Todo and his primary technique";
+		String recipes = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/todo/TodoVfxRecipes.java"));
+		assert recipes.contains("TodoVfxIds.BOOGIE_WOOGIE") && recipes.contains("VfxWorldChannel.ImpactStyle.BOOGIE_WOOGIE")
+				: "Todo swap visuals must use VFX Core recipes and channels";
+		String animationHook = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/todo/TodoAnimationHooks.java"));
+		assert animationHook.contains("ability.boogie_woogie") : "Todo must retain a safe future animation hook";
 	}
 
 	private static void assertProjectJjkHairpinFinisherNumbers() throws IOException {

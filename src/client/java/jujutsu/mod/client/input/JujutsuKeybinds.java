@@ -11,6 +11,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import jujutsu.mod.client.rich.Initialization;
 import jujutsu.mod.client.rich.screens.clickgui.ClickGui;
+import jujutsu.mod.client.character.ClientAbilityCooldowns;
+import jujutsu.mod.client.character.ClientCharacterSelectionManager;
+import jujutsu.mod.character.CharacterAbility;
+import jujutsu.mod.character.JujutsuCharacter;
+import jujutsu.mod.network.CharacterAbilityPayload;
 import jujutsu.mod.network.NobaraActionPayload;
 import jujutsu.mod.registry.JujutsuItems;
 
@@ -63,14 +68,21 @@ public final class JujutsuKeybinds {
 			modernMenuWasDown = modernDown;
 
 			while (nobaraEnlarge.consumeClick()) {
-				sendNobaraAction(client.player.isShiftKeyDown()
-						? NobaraActionPayload.SELF_RESONANCE
-						: NobaraActionPayload.HAIRPIN_DIRECTED);
+				JujutsuCharacter character = selectedCharacter(client);
+				if (character == JujutsuCharacter.TODO) {
+					sendCharacterAbility(character, CharacterAbility.PRIMARY);
+				} else if (character == JujutsuCharacter.NOBARA) {
+					sendNobaraAction(client.player.isShiftKeyDown()
+							? NobaraActionPayload.SELF_RESONANCE
+							: NobaraActionPayload.HAIRPIN_DIRECTED);
+				}
 			}
 			while (nobaraExplosion.consumeClick()) {
-				sendNobaraAction(client.player.isShiftKeyDown()
-						? NobaraActionPayload.NAIL_TRAP
-						: NobaraActionPayload.HAIRPIN_MASS);
+				if (selectedCharacter(client) == JujutsuCharacter.NOBARA) {
+					sendNobaraAction(client.player.isShiftKeyDown()
+							? NobaraActionPayload.NAIL_TRAP
+							: NobaraActionPayload.HAIRPIN_MASS);
+				}
 			}
 
 			boolean attackDown = client.options.keyAttack.isDown();
@@ -117,6 +129,19 @@ public final class JujutsuKeybinds {
 			client.setScreen(gui);
 		} else {
 			LOG.error("ClickGui failed to initialize");
+		}
+	}
+
+	private static JujutsuCharacter selectedCharacter(Minecraft client) {
+		return client.player == null ? JujutsuCharacter.NONE : ClientCharacterSelectionManager.characterOrNone(client.player.getUUID());
+	}
+
+	private static void sendCharacterAbility(JujutsuCharacter character, CharacterAbility ability) {
+		if (!ClientAbilityCooldowns.isReady(character, ability)) {
+			return;
+		}
+		if (ClientPlayNetworking.canSend(CharacterAbilityPayload.TYPE)) {
+			ClientPlayNetworking.send(new CharacterAbilityPayload(ability.networkId()));
 		}
 	}
 
