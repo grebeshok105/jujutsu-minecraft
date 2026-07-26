@@ -27,6 +27,8 @@ public final class JujutsuSounds {
 	public static final SoundEvent PROJECTJJK_CLAP = create("projectjjk.clap");
 	public static final SoundEvent PROJECTJJK_LONG_WHOOSH = create("projectjjk.long_whoosh");
 	public static final SoundEvent PROJECTJJK_WHOOSH_VORTEX = create("projectjjk.whoosh_vortex");
+	/** Low body-impact report. Two variants, so a rapid exchange does not sound like one looped sample. */
+	public static final SoundEvent PROJECTJJK_AEC_BOOM = create("projectjjk.aec_boom");
 
 	private JujutsuSounds() {}
 
@@ -52,6 +54,7 @@ public final class JujutsuSounds {
 		register("projectjjk.clap", PROJECTJJK_CLAP);
 		register("projectjjk.long_whoosh", PROJECTJJK_LONG_WHOOSH);
 		register("projectjjk.whoosh_vortex", PROJECTJJK_WHOOSH_VORTEX);
+		register("projectjjk.aec_boom", PROJECTJJK_AEC_BOOM);
 	}
 
 	private static SoundEvent create(String path) {

@@ -1,5 +1,6 @@
 package jujutsu.mod.character.todo;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -169,7 +170,7 @@ public final class TodoPairSwapRuntime {
 		CharacterAbilityCooldowns.start(todo, CharacterAbility.SECONDARY, TodoProfile.PAIR_SWAP_COOLDOWN_TICKS);
 		JujutsuNetworking.sendAbilityCooldown(todo, CharacterAbility.SECONDARY,
 				TodoProfile.PAIR_SWAP_COOLDOWN_TICKS);
-		emitPairFeedback(level, todo, firstSnapshot.position(), secondSnapshot.position());
+		emitPairFeedback(level, todo, firstSnapshot, plan.get().firstDestination(), secondSnapshot, plan.get().secondDestination());
 		JujutsuMod.LOGGER.debug("Todo pair swap success caster={} first={} second={}",
 				todo.getGameProfile().getName(), first.getName().getString(), aimed.getName().getString());
 		return true;
@@ -179,14 +180,14 @@ public final class TodoPairSwapRuntime {
 	 * The clap is Todo's, the endpoints are the two bodies that actually moved. Reusing the ordinary swap
 	 * cues on purpose: from a distance a pair swap and a normal one look the same, which is free deception.
 	 */
-	private static void emitPairFeedback(ServerLevel level, ServerPlayer todo, Vec3 firstOrigin, Vec3 secondOrigin) {
-		TodoBoogieWoogieRuntime.emitClapPerformance(level, todo, todo.position(), todo.getLookAngle());
-		long gameTime = level.getGameTime();
-		Vec3 pairDelta = secondOrigin.subtract(firstOrigin);
-		TodoBoogieWoogieRuntime.broadcastSwapEndpoint(level, todo, firstOrigin, pairDelta, gameTime);
-		TodoBoogieWoogieRuntime.broadcastSwapEndpoint(level, todo, secondOrigin, Vec3.ZERO, gameTime);
-		TodoBoogieWoogieRuntime.scheduleMoveSound(level, firstOrigin);
-		TodoBoogieWoogieRuntime.scheduleMoveSound(level, secondOrigin);
+	private static void emitPairFeedback(ServerLevel level, ServerPlayer todo,
+			TodoBoogieWoogieRuntime.Snapshot first, Vec3 firstDestination,
+			TodoBoogieWoogieRuntime.Snapshot second, Vec3 secondDestination) {
+		// The clap is his and keeps his aim; the geometry belongs to the two bodies that actually moved.
+		TodoBoogieWoogieRuntime.emitSwapImpact(level, todo, todo.position(), todo.getLookAngle(),
+				first.position(), second.position(),
+				List.of(new TodoBoogieWoogieRuntime.MovedBody(first, firstDestination),
+						new TodoBoogieWoogieRuntime.MovedBody(second, secondDestination)));
 	}
 
 	private static LivingEntity resolveAimed(ServerPlayer todo, ServerLevel level) {
