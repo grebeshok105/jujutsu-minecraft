@@ -45,5 +45,21 @@ replay_*.log
 
 .qoder/
 .obsidian/
+
+# Scratch material that must stay out of the repository.
+#
+# These are not work in progress. docs/research/ and docs/specs/ are restorations of
+# point-in-time documents this repository deliberately does not keep, and tools/audit_docs.py
+# fails the build the moment they are tracked again — which is exactly what happened once,
+# through a careless `git add -A`. The rest are duplicates of committed content or scratch
+# extracts. Ignoring them means a blanket add cannot resurrect them by accident.
+
+docs/research/
+docs/specs/
+_merge_stash/
+/assets/
+/*.zip
+Jujutsu Kaizen/grok-projectjjk-codex/
+Jujutsu Kaizen/Grok ProjectJJK Codex.md
 lightrag.log
 
