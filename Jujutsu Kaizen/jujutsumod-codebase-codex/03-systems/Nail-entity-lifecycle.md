@@ -14,4 +14,8 @@ ProjectJjkNailEntity moves through prepared, launched, and embedded states. Anch
 - onRemoval and state transitions untrack the entity; server stop clears registry maps.
 - Hairpin R/B query the owner index instead of scanning level.getAllEntities().
 
+## Depth
+
+Depth 1..3 persists and synchronizes; a hammer hit deepens one nail. Damage multipliers are `NAIL_DEPTH_1_MULTIPLIER = 1.0f`, `NAIL_DEPTH_2_MULTIPLIER = 1.35f`, `NAIL_DEPTH_3_MULTIPLIER = 1.75f`, resolved by depth with depth-1 as the default fallback (VERIFIED — ProjectJjkNobaraProfile). Depth has dedicated transition and level-III VFX.
+
 Trap nails remain owned by NailTrapRuntime and use the shorter trap lifetime. The nail entity type is currently noSave, so unloaded entities are not durable world storage despite having serialization code.

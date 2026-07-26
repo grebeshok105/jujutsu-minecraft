@@ -14,4 +14,6 @@ Status: CURRENT
 
 The single entity type is projectjjk_nail. CharacterPlayerState is stored through the character_state Fabric attachment and copied on death.
 
-Client mixins: CharacterSkinMixin, HairpinCameraMixin, HairpinGameRendererMixin, NobaraFirstPersonSnapMixin, NobaraLivingEntityRendererMixin, and NobaraPlayerRendererMixin. They are required and must be smoke-tested on Minecraft updates.
+Client mixins (VERIFIED — src/client/resources/jujutsumod.client.mixins.json): CharacterRenderDispatchMixin, CharacterSkinMixin, FirstPersonHandFxMixin, HairpinCameraMixin, HairpinGameRendererMixin, and PlayerRenderContextMixin. All six are `required` and must be smoke-tested on Minecraft updates.
+
+The render-facing three are roster-wide, not Nobara-specific: CharacterRenderDispatchMixin picks the vessel renderer, PlayerRenderContextMixin records the AbstractClientPlayer/partial-tick pair the dispatch needs, and FirstPersonHandFxMixin owns both first-person hand styles. See [Vessel render stack](../04-client-vfx/Vessel-render-stack.md).
