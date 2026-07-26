@@ -2,11 +2,10 @@
 
 ## Current branch
 
-- Branch: feat/todo-boogie-woogie
-- Base: main at 710b24e
-- Feature commit: c8e48dd feat(todo): add playable Aoi Todo
-- Follow-up: review fixes + GeckoLib model pass, now committed as 9763b57
-- Render debt pass: shared vessel render stack and fail-closed dispatch (026e804, 281c009, 7507e64, 8acd89d, 3ef4c10)
+- Branch: refactor/shared-vessel-render-stack
+- Base: main at 21ebefe (merge of PR #4)
+- PR #4 merged only the first Todo slice (c8e48dd) plus its review note (b3b4605)
+- This branch rebases the remaining eight commits onto that merge: the GeckoLib model pass and review fixes (85792d8) and the shared vessel render stack (5be077b, 17d4a65, 69b9358, f4ccdea, 350aa86)
 - Product target: private play for one or two people
 
 ## Current product state
@@ -72,6 +71,12 @@ Render debt pass (this session):
 - CharacterHeldItemLayer, CharacterPlayerGeoRenderer, CharacterPlayerGeoModel absorb the duplicated vessel render stack
 - Sanity-test guards repointed to the shared files and extended to assert no vessel redefines the head-look clamps or hand-rolls the pose-stack guard
 - `gradlew.bat build --no-daemon` — BUILD SUCCESSFUL
+
+Rebase onto 21ebefe (this session):
+
+- Eight commits replayed onto the PR #4 merge with no conflicts
+- `gradlew.bat build --no-daemon` — BUILD SUCCESSFUL
+- `python tools/audit_docs.py` — passed; the audit now scopes to git-tracked Markdown so untracked local workspaces cannot fail it
 
 In-game smoke still required, and now covers both the original Todo slice and the render refactor: model/animations, clap timing, swap occupancy, BF bonus, Nobara targeting, plus third-person Nobara and Todo held items and head look.
 
