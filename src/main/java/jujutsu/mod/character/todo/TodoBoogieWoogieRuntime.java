@@ -8,7 +8,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Leashable;
@@ -25,6 +24,7 @@ import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.network.JujutsuNetworking;
+import jujutsu.mod.registry.JujutsuSounds;
 import jujutsu.mod.vfx.TodoVfxIds;
 import jujutsu.mod.vfx.VfxCue;
 
@@ -69,8 +69,8 @@ public final class TodoBoogieWoogieRuntime {
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.invalid_target", "cross-level target");
 		}
 		Optional<TodoSwapPlan> plan = TodoSwapPlan.preflight(
-				findSafeDestination(level, todo, targetSnapshot.position(), target),
-				findSafeDestination(level, target, todoSnapshot.position(), todo)
+				findSafeDestination(level, todo, targetSnapshot.position()),
+				findSafeDestination(level, target, todoSnapshot.position())
 		);
 		if (plan.isEmpty()) {
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.unsafe", "no atomic safe destination");
@@ -118,12 +118,22 @@ public final class TodoBoogieWoogieRuntime {
 				&& hasFinitePosition(target.position());
 	}
 
+	/** SOFT keeps the shipped fallback to the exact requested point; STRICT cancels instead. */
+	public enum Strictness {
+		SOFT,
+		STRICT
+	}
+
+	private static Vec3 findSafeDestination(ServerLevel level, LivingEntity entity, Vec3 requested) {
+		return findSafeDestination(level, entity, requested, Strictness.SOFT);
+	}
+
 	/**
 	 * Free-form destination: air / water / crawl / flight are all valid.
 	 * Only world bounds, loaded chunks, border, and solid-block intersection are checked.
 	 * No floor, no third-party entity occupancy gates.
 	 */
-	private static Vec3 findSafeDestination(ServerLevel level, LivingEntity entity, Vec3 requested, Entity otherSwapParticipant) {
+	static Vec3 findSafeDestination(ServerLevel level, LivingEntity entity, Vec3 requested, Strictness strictness) {
 		for (int up = 0; up <= TodoProfile.SAFE_POSITION_UPWARD_BLOCKS; up++) {
 			for (Vec3 horizontal : HORIZONTAL_OFFSETS) {
 				Vec3 candidate = requested.add(horizontal.x, up, horizontal.z);
@@ -132,28 +142,29 @@ public final class TodoBoogieWoogieRuntime {
 				}
 			}
 		}
-		// Last resort: exact requested point if it is at least in-world (lets mid-air / fluid swaps through
-		// even when noBlockCollision is picky about overlapping the swap partner's old volume).
-		if (isInWorldDestination(level, requested)) {
+		// Last resort for SOFT only: exact requested point if it is at least in-world and inside the border,
+		// which lets mid-air / fluid swaps through. STRICT never forces a point, so the cast cancels instead.
+		if (strictness == Strictness.SOFT && isInWorldDestination(level, entity, requested)) {
 			return requested;
 		}
 		return null;
 	}
 
 	private static boolean isPlaceableDestination(ServerLevel level, LivingEntity entity, Vec3 candidate) {
-		if (!isInWorldDestination(level, candidate)) {
-			return false;
-		}
-		AABB box = entity.getDimensions(entity.getPose()).makeBoundingBox(candidate);
-		AABB borderBox = box.inflate(TodoProfile.WORLD_BORDER_MARGIN);
-		return level.getWorldBorder().isWithinBounds(borderBox) && level.noBlockCollision(entity, box);
+		return isInWorldDestination(level, entity, candidate)
+				&& level.noBlockCollision(entity, boundingBoxAt(entity, candidate));
 	}
 
-	private static boolean isInWorldDestination(ServerLevel level, Vec3 candidate) {
+	private static boolean isInWorldDestination(ServerLevel level, LivingEntity entity, Vec3 candidate) {
 		BlockPos destinationBlock = BlockPos.containing(candidate);
 		return hasFinitePosition(candidate)
 				&& level.isInWorldBounds(destinationBlock)
-				&& level.getChunkSource().hasChunk(destinationBlock.getX() >> 4, destinationBlock.getZ() >> 4);
+				&& level.getChunkSource().hasChunk(destinationBlock.getX() >> 4, destinationBlock.getZ() >> 4)
+				&& level.getWorldBorder().isWithinBounds(boundingBoxAt(entity, candidate).inflate(TodoProfile.WORLD_BORDER_MARGIN));
+	}
+
+	private static AABB boundingBoxAt(LivingEntity entity, Vec3 candidate) {
+		return entity.getDimensions(entity.getPose()).makeBoundingBox(candidate);
 	}
 
 	private static boolean place(LivingEntity entity, ServerLevel level, Vec3 destination, Snapshot snapshot) {
@@ -180,27 +191,39 @@ public final class TodoBoogieWoogieRuntime {
 
 	private static void emitSwapFeedback(ServerLevel level, ServerPlayer todo, Vec3 todoOrigin, Vec3 targetOrigin) {
 		long gameTime = level.getGameTime();
-		Vec3 direction = targetOrigin.subtract(todoOrigin);
-		JujutsuNetworking.broadcastVfxCue(level, todoOrigin, 64.0,
-				new VfxCue(TodoVfxIds.BOOGIE_WOOGIE, todoOrigin, todo.getId(), direction, 1, gameTime, todo.getRandom().nextLong(), direction));
-		// Clap SFX is timed on clients by TodoVfxRecipes at the palm-contact beat of the clap anim.
-		// Server still emits a single authoritative clap at contact via delayed level game-time queue below.
-		scheduleClapSound(level, todoOrigin);
+		Vec3 pairDelta = targetOrigin.subtract(todoOrigin);
+		// Clap first, so it is never later than the swap it announces.
+		level.playSound(null, todoOrigin.x, todoOrigin.y, todoOrigin.z, JujutsuSounds.PROJECTJJK_CLAP, SoundSource.PLAYERS,
+				TodoProfile.BOOGIE_WOOGIE_CLAP_VOLUME, TodoProfile.BOOGIE_WOOGIE_CLAP_PITCH);
+		// Performance cue: caster-anchored with a zero offset, so it carries no endpoint geometry.
+		JujutsuNetworking.broadcastVfxCue(level, todoOrigin, TodoProfile.BOOGIE_WOOGIE_CUE_RADIUS,
+				new VfxCue(TodoVfxIds.BOOGIE_WOOGIE, todoOrigin, todo.getId(), Vec3.ZERO, 1, gameTime, todo.getRandom().nextLong(), pairDelta));
+		// One absolute endpoint per moved body; only the leading one carries the pair delta the ribbon spans.
+		broadcastSwapEndpoint(level, todo, todoOrigin, pairDelta, gameTime);
+		broadcastSwapEndpoint(level, todo, targetOrigin, Vec3.ZERO, gameTime);
+		scheduleMoveSound(level, todoOrigin);
+		scheduleMoveSound(level, targetOrigin);
 	}
 
-	private static void scheduleClapSound(ServerLevel level, Vec3 origin) {
-		long dueAt = level.getGameTime() + 6L;
-		PENDING_CLAP_SOUNDS.add(new PendingClap(level.dimension(), origin, dueAt));
+	private static void broadcastSwapEndpoint(ServerLevel level, ServerPlayer todo, Vec3 endpoint, Vec3 pairDelta, long gameTime) {
+		JujutsuNetworking.broadcastVfxCue(level, endpoint, TodoProfile.BOOGIE_WOOGIE_CUE_RADIUS,
+				new VfxCue(TodoVfxIds.SWAP_ENDPOINT, endpoint, VfxCue.NO_ANCHOR, pairDelta, 1, gameTime, todo.getRandom().nextLong(), pairDelta));
+	}
+
+	private static void scheduleMoveSound(ServerLevel level, Vec3 origin) {
+		long dueAt = level.getGameTime() + TodoProfile.BOOGIE_WOOGIE_MOVE_SOUND_DELAY_TICKS;
+		PENDING_MOVE_SOUNDS.add(new PendingSound(level.dimension(), origin, dueAt));
 	}
 
 	/** Call once from mod init. */
 	public static void register() {
-		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_WORLD_TICK.register(TodoBoogieWoogieRuntime::tickClapSounds);
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_WORLD_TICK.register(TodoBoogieWoogieRuntime::tickMoveSounds);
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPING.register(server -> PENDING_MOVE_SOUNDS.clear());
 	}
 
-	private static void tickClapSounds(ServerLevel level) {
+	private static void tickMoveSounds(ServerLevel level) {
 		long now = level.getGameTime();
-		PENDING_CLAP_SOUNDS.removeIf(pending -> {
+		PENDING_MOVE_SOUNDS.removeIf(pending -> {
 			if (!pending.dimension().equals(level.dimension())) {
 				return false;
 			}
@@ -208,14 +231,15 @@ public final class TodoBoogieWoogieRuntime {
 				return false;
 			}
 			Vec3 o = pending.origin();
-			level.playSound(null, o.x, o.y, o.z, SoundEvents.NOTE_BLOCK_HAT.value(), SoundSource.PLAYERS, 0.95f, 1.28f);
+			level.playSound(null, o.x, o.y, o.z, JujutsuSounds.PROJECTJJK_CINEMATIC_WHOOSH, SoundSource.PLAYERS,
+					TodoProfile.BOOGIE_WOOGIE_MOVE_SOUND_VOLUME, TodoProfile.BOOGIE_WOOGIE_MOVE_SOUND_PITCH);
 			return true;
 		});
 	}
 
-	private static final java.util.concurrent.CopyOnWriteArrayList<PendingClap> PENDING_CLAP_SOUNDS = new java.util.concurrent.CopyOnWriteArrayList<>();
+	private static final java.util.concurrent.CopyOnWriteArrayList<PendingSound> PENDING_MOVE_SOUNDS = new java.util.concurrent.CopyOnWriteArrayList<>();
 
-	private record PendingClap(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension, Vec3 origin, long dueAt) {}
+	private record PendingSound(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension, Vec3 origin, long dueAt) {}
 
 	private static boolean isEmptyHand(ItemStack stack) {
 		return stack == null || stack.isEmpty();

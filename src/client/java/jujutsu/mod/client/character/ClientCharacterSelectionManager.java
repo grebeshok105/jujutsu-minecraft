@@ -4,9 +4,12 @@ import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.PlayerSkin;
 import jujutsu.mod.character.JujutsuCharacter;
+import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.network.CharacterSelectionSyncPayload;
 
 public final class ClientCharacterSelectionManager {
@@ -19,12 +22,28 @@ public final class ClientCharacterSelectionManager {
 	public static void apply(CharacterSelectionSyncPayload payload) {
 		JujutsuCharacter character = JujutsuCharacter.byId(payload.characterId());
 		// Always remember the selection, including NONE — UI defaults must match the server.
-		SELECTIONS.put(payload.playerId(), new Selection(character, model(payload.modelId())));
+		Selection previous = SELECTIONS.put(payload.playerId(), new Selection(character, model(payload.modelId())));
+		cancelFirstPersonOnVesselChange(payload.playerId(), previous, character);
 	}
 
 	/** Optimistic local update after Confirm (before server echo). */
 	public static void applyLocal(UUID playerId, JujutsuCharacter character, PlayerSkin.Model model) {
-		SELECTIONS.put(playerId, new Selection(character, model));
+		Selection previous = SELECTIONS.put(playerId, new Selection(character, model));
+		cancelFirstPersonOnVesselChange(playerId, previous, character);
+	}
+
+	/**
+	 * A vessel switch mid-animation would otherwise leave the first-person channel cancelling the
+	 * vanilla hand path for the rest of its run, hiding held items.
+	 */
+	private static void cancelFirstPersonOnVesselChange(UUID playerId, Selection previous, JujutsuCharacter character) {
+		if (previous != null && previous.character() == character) {
+			return;
+		}
+		LocalPlayer local = Minecraft.getInstance().player;
+		if (local != null && local.getUUID().equals(playerId)) {
+			VfxDirector.cancelFirstPerson();
+		}
 	}
 
 	public static Selection selection(UUID playerId) {

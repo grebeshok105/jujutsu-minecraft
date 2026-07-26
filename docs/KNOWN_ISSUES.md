@@ -24,10 +24,9 @@ Verified 2026-07-26 against `src/main/java/jujutsu/mod/character/todo/TodoBoogie
 
 This is deliberate for the current 1–2 player target: air, water, crawl, and flight destinations are all intended to be valid. It is recorded here because an earlier revision of SESSION.md wrongly claimed a non-living-collision fix ("A3") had landed, and that false claim also reached a pull-request description. It never landed.
 
-Residual debt, not the policy itself:
+Resolved since: `findSafeDestination` now takes a `Strictness`. The ordinary Todo-and-target swap keeps `SOFT`, which retains the last-resort fallback as shipped game feel; `STRICT` has no fallback and is for swaps that move third parties. The world-border test moved into `isInWorldDestination`, so the fallback path enforces it too. The unused `otherSwapParticipant` parameter is gone — its comment claimed the fallback existed because collision is picky about the partner's volume, but `Level.noBlockCollision(Entity, AABB)` tests block shapes only and never consults entities, so there was nothing to exclude.
 
-- `findSafeDestination(ServerLevel, LivingEntity, Vec3, Entity otherSwapParticipant)` declares `otherSwapParticipant` and never reads it. Both call sites pass the other participant. It is residue of the abandoned occupancy fix. Either drop the parameter or use it; leaving it invites a future reader to assume an occupancy gate exists.
-- Two swapped entities can therefore end up interpenetrating, and either can land inside a non-living collidable entity such as a boat or minecart. Vanilla teleport/collision semantics decide what happens next; no crash has been observed or reproduced.
+Residual, and inherent to the policy: two swapped entities can end up interpenetrating, and either can land inside a non-living collidable entity such as a boat or minecart. Vanilla teleport/collision semantics decide what happens next; no crash has been observed or reproduced.
 
 Reopen only if the product target becomes public/competitive play, or if a live smoke test shows a concrete stuck/suffocation case.
 

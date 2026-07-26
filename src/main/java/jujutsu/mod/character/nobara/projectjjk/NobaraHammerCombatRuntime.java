@@ -18,8 +18,8 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.combat.BlackFlashFocus;
 import jujutsu.mod.combat.BlackFlashImpact;
+import jujutsu.mod.combat.BlackFlashStrike;
 import jujutsu.mod.combat.CombatStagger;
-import jujutsu.mod.combat.ForcedBlackFlash;
 import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.network.JujutsuNetworking;
@@ -181,30 +181,28 @@ public final class NobaraHammerCombatRuntime {
 		float mult = chain
 				? ProjectJjkNobaraProfile.BLACK_FLASH_CHAIN_MULTIPLIER
 				: ProjectJjkNobaraProfile.BLACK_FLASH_DAMAGE_MULTIPLIER;
-		float bonus = baseDamage * Math.max(0.0f, mult - 1.0f);
-		if (bonus > 0.0f) {
-			target.hurtServer(player.level(), NobaraDamageSources.hairpin(player.level(), player), bonus);
-		}
-		CombatStagger.GLOBAL.apply(target, player.level().getGameTime(), ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
-		Vec3 look = player.getLookAngle();
-		target.knockback(chain ? 2.4 : 2.0, -look.x, -look.z);
-		BlackFlashFocus.grant(player);
+		BlackFlashStrike.resolve(
+				player,
+				target,
+				baseDamage,
+				mult,
+				NobaraDamageSources.hairpin(player.level(), player),
+				false,
+				ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS,
+				chain ? 2.4 : 2.0);
 		if (chain) {
 			applyChainBonus(player);
 		}
 		emitDirected(
 				player,
 				NobaraVfxIds.BLACK_FLASH,
-				target.position().add(0.0, target.getBbHeight() * 0.55, 0.0),
+				BlackFlashStrike.impactOrigin(target),
 				chain ? 3 : 2,
-				look);
+				player.getLookAngle());
 	}
 
 	private static boolean rollBlackFlash(ServerPlayer player) {
-		if (ForcedBlackFlash.isEnabled(player)) {
-			return true;
-		}
-		return player.getRandom().nextFloat() < ProjectJjkNobaraProfile.BLACK_FLASH_CHANCE;
+		return BlackFlashStrike.rolls(player, ProjectJjkNobaraProfile.BLACK_FLASH_CHANCE);
 	}
 
 	private static int bumpStreak(ServerPlayer player) {

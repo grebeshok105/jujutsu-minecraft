@@ -1,8 +1,5 @@
 package jujutsu.mod.character.todo;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -14,27 +11,23 @@ import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.character.CharacterSelectionManager;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.vfx.NobaraVfxIds;
-import jujutsu.mod.combat.BlackFlashFocus;
-import jujutsu.mod.combat.CombatStagger;
-import jujutsu.mod.combat.ForcedBlackFlash;
+import jujutsu.mod.combat.BlackFlashStrike;
 import jujutsu.mod.combat.JujutsuDamageSources;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.vfx.VfxCue;
 
 /** Bridges Todo's vanilla melee hits into the existing Black Flash focus, damage, stagger, and VFX path. */
 public final class TodoBlackFlashRuntime {
-	private static final Set<UUID> APPLYING_BONUS = new HashSet<>();
-
 	private TodoBlackFlashRuntime() {}
 
 	public static void register() {
 		ServerLivingEntityEvents.AFTER_DAMAGE.register(TodoBlackFlashRuntime::afterDamage);
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> APPLYING_BONUS.remove(handler.player.getUUID()));
-		ServerLifecycleEvents.SERVER_STOPPING.register(server -> APPLYING_BONUS.clear());
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> BlackFlashStrike.forgetBonusHit(handler.player.getUUID()));
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> BlackFlashStrike.clearBonusHits());
 	}
 
 	private static void afterDamage(LivingEntity target, DamageSource source, float baseDamageTaken, float damageTaken, boolean blocked) {
-		if (blocked || damageTaken <= 0.0f || APPLYING_BONUS.contains(target.getUUID())) {
+		if (blocked || damageTaken <= 0.0f || BlackFlashStrike.isApplyingBonus(target)) {
 			return;
 		}
 		Entity direct = source.getDirectEntity();
@@ -44,30 +37,22 @@ public final class TodoBlackFlashRuntime {
 				|| !todo.isAlive() || todo.isSpectator()) {
 			return;
 		}
-		if (!ForcedBlackFlash.isEnabled(todo) && todo.getRandom().nextFloat() >= TodoProfile.BLACK_FLASH_CHANCE) {
+		if (!BlackFlashStrike.rolls(todo, TodoProfile.BLACK_FLASH_CHANCE)) {
 			return;
 		}
 
-		float bonus = baseDamageTaken * Math.max(0.0f, TodoProfile.BLACK_FLASH_DAMAGE_MULTIPLIER - 1.0f);
-		if (bonus > 0.0f) {
-			APPLYING_BONUS.add(target.getUUID());
-			// AFTER_DAMAGE runs after vanilla sets invulnerableTime; clear it only for the bonus hit.
-			int previousInvulnerable = target.invulnerableTime;
-			target.invulnerableTime = 0;
-			try {
-				target.hurtServer(todo.level(), JujutsuDamageSources.blackFlash(todo.level(), todo), bonus);
-			} finally {
-				target.invulnerableTime = Math.max(target.invulnerableTime, previousInvulnerable);
-				APPLYING_BONUS.remove(target.getUUID());
-			}
-		}
-		CombatStagger.GLOBAL.apply(target, todo.level().getGameTime(), TodoProfile.BLACK_FLASH_STAGGER_TICKS);
-		Vec3 look = todo.getLookAngle();
-		target.knockback(2.0, -look.x, -look.z);
-		BlackFlashFocus.grant(todo);
-		Vec3 origin = target.position().add(0.0, target.getBbHeight() * 0.55, 0.0);
+		BlackFlashStrike.resolve(
+				todo,
+				target,
+				baseDamageTaken,
+				TodoProfile.BLACK_FLASH_DAMAGE_MULTIPLIER,
+				JujutsuDamageSources.blackFlash(todo.level(), todo),
+				true,
+				TodoProfile.BLACK_FLASH_STAGGER_TICKS,
+				2.0);
+		Vec3 origin = BlackFlashStrike.impactOrigin(target);
 		JujutsuNetworking.broadcastVfxCue(todo.level(), origin, 64.0,
 				new VfxCue(NobaraVfxIds.BLACK_FLASH, origin, VfxCue.NO_ANCHOR, Vec3.ZERO, 2,
-						todo.level().getGameTime(), todo.getRandom().nextLong(), look));
+						todo.level().getGameTime(), todo.getRandom().nextLong(), todo.getLookAngle()));
 	}
 }

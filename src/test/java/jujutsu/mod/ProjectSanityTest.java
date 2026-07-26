@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -26,6 +27,8 @@ public final class ProjectSanityTest {
 	private static final Pattern ITEM_FACE = Pattern.compile("\"(?:north|south|east|west|up|down)\"\\s*:\\s*\\{([^}]*)}");
 	private static final Pattern FACE_TEXTURE = Pattern.compile("\"texture\"\\s*:\\s*\"#([a-z0-9_]+)\"");
 	private static final Pattern FACE_UV = Pattern.compile("\"uv\"\\s*:\\s*\\[\\s*([0-9.]+)\\s*,\\s*([0-9.]+)\\s*,\\s*([0-9.]+)\\s*,\\s*([0-9.]+)\\s*]");
+	private static final Pattern VESSEL_CONSTANT = Pattern.compile("^\\t([A-Z][A-Z0-9_]*)\\(\"", Pattern.MULTILINE);
+	private static final Pattern CLICKGUI_MODULE = Pattern.compile("new ModuleStructure\\(");
 	private static final String FORBIDDEN_FABRIC_IMPL = "net.fabricmc.fabric." + "impl.";
 	private static final String CLIENT_IMPORT = "import net.minecraft." + "client.";
 
@@ -63,6 +66,7 @@ public final class ProjectSanityTest {
 		assertNobaraNailAuraAvoidsSoulFire();
 		assertHairpinScreenOverlayUsesSmoothGradientVignette();
 		assertCharacterSelectUsesCheapUiPrimitives();
+		assertClickGuiModulesCoverEveryVessel();
 		assertGeckoLibNobaraPlayerModelWired();
 		assertNobaraHeldItemsAndArmPosesWired();
 		assertNobaraGeoHeadLookIsSafeAndEnabled();
@@ -576,12 +580,24 @@ public final class ProjectSanityTest {
 				: "Nobara SNAP must still transform the vanilla hand stack";
 		assert snapMixin.contains("@Inject(method = \"renderHandsWithItems\", at = @At(\"HEAD\")")
 				: "First-person hand FX should apply at the start of hand rendering";
+		// Cancelling renderHandsWithItems skips vanilla's terminal flush; without it the arms are drawn
+		// after GameRenderer pops the model-view and pick up a camera-orientation rotation.
+		assert snapMixin.contains("buffer.endBatch()")
+				: "CLAP must flush the arm batch before cancelling vanilla hand rendering";
+		assert !snapMixin.contains("jujutsumod$clapPushDepth")
+				: "Clap arms must own a matched push/pop each instead of an aggregate depth counter";
+		assert snapMixin.contains("jujutsumod$clapFrameProgress")
+				: "Both clap arms must render from one progress sample per frame";
 		String snap = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxFirstPersonChannel.java"));
 		assert snap.contains("DURATION_SECONDS = 0.75f") : "Snap timing should preserve ProjectJJK's full 0..15 scaled snap phases";
 		assert snap.contains("scaledProgress = progress * 15.0f") : "Snap timing must actually traverse the full 0..15 phase range";
 		assert snap.contains("scaledProgress") && snap.contains("easeInQuint") && snap.contains("easeInCubic") : "Snap pose should keep ProjectJJK-style windup/hold/release phases";
 		assert snap.contains("Intentionally ignore initialAgeTicks")
 				: "CLAP must start from progress 0 every cast";
+		assert snap.contains("public void expireIfFinished()") && snap.contains("public float progress()")
+				: "First-person progress must be a pure read with an explicit once-per-frame expiry";
+		assert snap.contains("public void cancel()")
+				: "A vessel switch must be able to drop an in-flight first-person animation";
 	}
 
 	private static void assertNobaraHammerHasExplosiveAndPiercingLaunchModes() throws IOException {
@@ -846,6 +862,28 @@ public final class ProjectSanityTest {
 		assert Files.exists(CLIENT_JAVA.resolve(
 				"jujutsu/mod/client/rich/screens/clickgui/impl/character/CharacterRosterPanel.java"))
 				: "Character roster panel must exist for the Characters tab";
+	}
+
+	private static void assertClickGuiModulesCoverEveryVessel() throws IOException {
+		// Same intent as the exhaustive switch in CharacterGeoRenderers: a new JujutsuCharacter
+		// constant must fail here until the Characters tab declares its module.
+		String characters = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/JujutsuCharacter.java"));
+		String modules = Files.readString(CLIENT_JAVA.resolve(
+				"jujutsu/mod/client/rich/modules/jujutsu/JujutsuModules.java"));
+		Matcher vessels = VESSEL_CONSTANT.matcher(characters);
+		int vesselCount = 0;
+		while (vessels.find()) {
+			vesselCount++;
+			String vessel = vessels.group(1);
+			String moduleName = vessel.charAt(0) + vessel.substring(1).toLowerCase(Locale.ROOT);
+			assert modules.contains("\"" + moduleName + "\"")
+					: "ClickGui Characters tab has no module for vessel " + vessel;
+			assert modules.contains(".add(" + moduleName.toLowerCase(Locale.ROOT) + ")")
+					: "Vessel module " + moduleName + " must be registered in the module repository";
+		}
+		assert vesselCount >= 3 : "Vessel constants must be discoverable in JujutsuCharacter";
+		assert CLICKGUI_MODULE.matcher(modules).results().count() == vesselCount
+				: "The Characters tab must declare exactly one module per playable vessel, including NONE";
 	}
 
 	private static void assertGeckoLibNobaraPlayerModelWired() throws IOException {

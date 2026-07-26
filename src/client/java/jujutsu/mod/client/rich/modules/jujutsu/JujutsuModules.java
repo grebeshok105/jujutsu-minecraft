@@ -16,10 +16,14 @@ public final class JujutsuModules {
 				"Nobara", "Straw Doll Technique — Grade 3 vessel", ModuleCategory.COMBAT);
 		nobara.setState(false);
 
+		ModuleStructure todo = new ModuleStructure(
+				"Todo", "Boogie Woogie — Heavy Melee vessel", ModuleCategory.COMBAT);
+		todo.setState(false);
+
 		ModuleStructure none = new ModuleStructure(
 				"None", "No cursed technique", ModuleCategory.COMBAT);
 		none.setState(true);
 
-		repo.builder().add(nobara).add(none);
+		repo.builder().add(nobara).add(todo).add(none);
 	}
 }

@@ -30,9 +30,9 @@ public abstract class FirstPersonHandFxMixin {
 	@Unique
 	private boolean jujutsumod$snapTransformPushed;
 	@Unique
-	private int jujutsumod$clapPushDepth;
-	@Unique
 	private boolean jujutsumod$drawingClapArms;
+	@Unique
+	private float jujutsumod$clapFrameProgress = -1.0f;
 
 	@Shadow
 	private void renderPlayerArm(PoseStack poseStack, MultiBufferSource buffer, int combinedLight, float equippedProgress, float swingProgress, HumanoidArm side) {
@@ -47,11 +47,19 @@ public abstract class FirstPersonHandFxMixin {
 			int combinedLight,
 			CallbackInfo ci
 	) {
+		VfxDirector.expireFirstPerson();
 		VfxFirstPersonChannel.Style style = VfxDirector.firstPersonStyle();
 		if (style == VfxFirstPersonChannel.Style.CLAP) {
 			// Vanilla empty-hand path only ever draws the main arm. Own both arms so the off-hand
 			// is guaranteed on-screen at the same height/base pose as the main arm.
-			jujutsumod$drawBothClapArms(matrices, buffer, player, combinedLight);
+			try {
+				jujutsumod$drawBothClapArms(matrices, buffer, player, combinedLight);
+			} finally {
+				// Vanilla renderHandsWithItems ends with endBatch(). Arms are only submitted to the GPU
+				// there, and RenderType.draw samples the model-view at draw time, so skipping it defers
+				// the draw past GameRenderer's popMatrix and adds a camera-orientation rotation.
+				buffer.endBatch();
+			}
 			ci.cancel();
 			return;
 		}
@@ -100,12 +108,16 @@ public abstract class FirstPersonHandFxMixin {
 			return;
 		}
 		jujutsumod$drawingClapArms = true;
+		// One progress sample for the whole frame: the channel's clock is wall-time, so sampling per
+		// arm puts the two hands on different instants and can expire the pose between them.
+		jujutsumod$clapFrameProgress = VfxDirector.firstPersonProgress();
 		try {
 			// Always draw right then left in fixed order so poses are independent of main-hand setting.
 			jujutsumod$drawOneClapArm(matrices, buffer, combinedLight, HumanoidArm.RIGHT);
 			jujutsumod$drawOneClapArm(matrices, buffer, combinedLight, HumanoidArm.LEFT);
 		} finally {
 			jujutsumod$drawingClapArms = false;
+			jujutsumod$clapFrameProgress = -1.0f;
 		}
 	}
 
@@ -116,8 +128,14 @@ public abstract class FirstPersonHandFxMixin {
 			int combinedLight,
 			HumanoidArm arm
 	) {
-		// equip=0, swing=0: same rest base for both arms (vanilla empty-hand rest).
-		renderPlayerArm(matrices, buffer, combinedLight, 0.0f, 0.0f, arm);
+		// renderPlayerArm mutates the caller's stack and never restores it, so each arm owns its frame.
+		matrices.pushPose();
+		try {
+			// equip=0, swing=0: same rest base for both arms (vanilla empty-hand rest).
+			renderPlayerArm(matrices, buffer, combinedLight, 0.0f, 0.0f, arm);
+		} finally {
+			matrices.popPose();
+		}
 	}
 
 	/** Kill attack/item residual while clapping so both arms share the same base pose. */
@@ -144,34 +162,17 @@ public abstract class FirstPersonHandFxMixin {
 		if (!jujutsumod$clapActive()) {
 			return;
 		}
-		VfxFirstPersonChannel.Pose pose = VfxDirector.firstPersonClapArmPose(arm);
+		VfxFirstPersonChannel.Pose pose = VfxDirector.firstPersonClapArmPose(arm, jujutsumod$clapFrameProgress);
 		if (pose == null) {
 			return;
 		}
 		float side = arm == HumanoidArm.RIGHT ? 1.0f : -1.0f;
-		matrices.pushPose();
-		jujutsumod$clapPushDepth++;
+		// Transform only: jujutsumod$drawOneClapArm owns the matching push/pop for this arm.
 		// Side-mirrored meet: both palms travel toward center and slightly up into the FOV.
 		matrices.translate(pose.translateX() * side, pose.translateY(), pose.translateZ());
 		matrices.mulPose(Axis.XP.rotationDegrees(pose.rotateX()));
 		matrices.mulPose(Axis.YP.rotationDegrees(side * pose.rotateY()));
 		matrices.mulPose(Axis.ZP.rotationDegrees(side * pose.rotateZ()));
-	}
-
-	@Inject(method = "renderPlayerArm", at = @At("RETURN"))
-	private void jujutsumod$restoreClapArmTransform(
-			PoseStack matrices,
-			MultiBufferSource buffer,
-			int combinedLight,
-			float equippedProgress,
-			float swingProgress,
-			HumanoidArm arm,
-			CallbackInfo ci
-	) {
-		if (jujutsumod$clapPushDepth > 0) {
-			matrices.popPose();
-			jujutsumod$clapPushDepth--;
-		}
 	}
 
 	@Unique
