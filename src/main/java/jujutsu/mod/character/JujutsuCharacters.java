@@ -16,17 +16,20 @@ import jujutsu.mod.character.todo.TodoDefinition;
  * player's attachment or in the runtime that owns it, never in a field here.
  */
 public final class JujutsuCharacters {
-	private static final CharacterDefinition NONE = new NoneDefinition();
-	private static final CharacterDefinition NOBARA = new NobaraDefinition();
-	private static final CharacterDefinition TODO = new TodoDefinition();
+	// Suffixed rather than named after the constants they answer for. With bare names the arms read
+	// "case NONE -> NONE", and a transposition — "case NOBARA -> TODO" — reads exactly like a correct
+	// line. The suffix makes the wrong one look wrong; the registry test catches it either way.
+	private static final CharacterDefinition NONE_DEFINITION = new NoneDefinition();
+	private static final CharacterDefinition NOBARA_DEFINITION = new NobaraDefinition();
+	private static final CharacterDefinition TODO_DEFINITION = new TodoDefinition();
 
 	private JujutsuCharacters() {}
 
 	public static CharacterDefinition definition(JujutsuCharacter character) {
 		return switch (character) {
-			case NONE -> NONE;
-			case NOBARA -> NOBARA;
-			case TODO -> TODO;
+			case NONE -> NONE_DEFINITION;
+			case NOBARA -> NOBARA_DEFINITION;
+			case TODO -> TODO_DEFINITION;
 		};
 	}
 

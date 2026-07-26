@@ -41,6 +41,6 @@ public final class CharacterCombatModifiers {
 		if (requestedTicks <= 0 || !(entity instanceof ServerPlayer player)) {
 			return requestedTicks;
 		}
-		return JujutsuCharacters.of(player).adjustStaggerTicks(requestedTicks);
+		return JujutsuCharacters.of(player).adjustIncomingStaggerTicks(requestedTicks);
 	}
 }

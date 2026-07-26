@@ -17,8 +17,22 @@ import net.minecraft.server.level.ServerPlayer;
  * do, so they default to doing nothing; a vessel with no attribute modifiers should not have to say so.
  */
 public interface CharacterDefinition {
-	/** The enum constant this definition speaks for. The registry checks that they agree. */
+	/**
+	 * The enum constant this definition speaks for.
+	 *
+	 * <p>The registry's switch cannot catch an arm wired to the wrong definition — {@code case TODO ->
+	 * NOBARA_DEFINITION} compiles and type-checks. Asking each definition who it thinks it is closes that
+	 * gap, and {@code CharacterDefinitionRegistryTest} is what actually asks.
+	 */
 	JujutsuCharacter id();
+
+	/**
+	 * Registers this vessel's server-side event listeners, once, during mod init.
+	 *
+	 * <p>Without this the claim above would be false: mod init used to hand-list every vessel's runtimes,
+	 * so a new vessel with any event-driven behaviour had to edit it.
+	 */
+	default void registerServerHooks() {}
 
 	/**
 	 * Runs whatever this vessel puts on that input position, or {@code false} if it puts nothing there.
@@ -37,14 +51,17 @@ public interface CharacterDefinition {
 	 */
 	default void removeAttributes(ServerPlayer player) {}
 
-	/** Scales an incoming stagger. The default keeps the requested duration. */
-	default int adjustStaggerTicks(int requestedTicks) {
+	/**
+	 * Scales a stagger this vessel is about to <b>receive</b>. The default keeps the requested duration.
+	 *
+	 * <p>Named for the direction because the codebase has two stagger rules that are easy to confuse:
+	 * this one, a resistance, and Nobara's gate that refuses a cast while she is staggered.
+	 *
+	 * @param requestedTicks always greater than zero; the caller returns early otherwise, so an
+	 *     implementation must not turn a request for no stagger into one tick of it
+	 */
+	default int adjustIncomingStaggerTicks(int requestedTicks) {
 		return requestedTicks;
-	}
-
-	/** Whether becoming this vessel for the first time should hand out a starter kit. */
-	default boolean grantsStarterKit() {
-		return false;
 	}
 
 	/** Runs after the player becomes this vessel, once the selection is already stored. */

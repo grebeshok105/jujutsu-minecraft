@@ -38,7 +38,19 @@ public final class TodoDefinition implements CharacterDefinition {
 	}
 
 	@Override
-	public int adjustStaggerTicks(int requestedTicks) {
+	public void registerServerHooks() {
+		TodoBlackFlashRuntime.register();
+		TodoBoogieWoogieRuntime.register();
+		TodoPairSwapRuntime.register();
+		TodoSwapMarks.register();
+	}
+
+	/** Halves it, but never rounds a real stagger away, and never invents one from nothing. */
+	@Override
+	public int adjustIncomingStaggerTicks(int requestedTicks) {
+		if (requestedTicks <= 0) {
+			return requestedTicks;
+		}
 		return Math.max(1, (int) Math.ceil(requestedTicks * TodoProfile.STAGGER_DURATION_MULTIPLIER));
 	}
 

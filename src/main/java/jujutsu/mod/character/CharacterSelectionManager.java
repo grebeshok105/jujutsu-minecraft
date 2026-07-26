@@ -19,10 +19,9 @@ public final class CharacterSelectionManager {
 		// Every switch runs it, including re-selecting the same vessel, which is what the unconditional
 		// Todo cleanup this replaced did.
 		JujutsuCharacters.definition(previous).onDeselected(player);
-		CharacterPlayerState updated = current.withSelectedCharacter(character);
-		if (arriving.grantsStarterKit()) {
-			updated = updated.claimStarter(character);
-		}
+		// Recorded for every vessel, not just the ones that hand something out: "has been this vessel at
+		// least once" is a fact about the player, and claimStarter is idempotent.
+		CharacterPlayerState updated = current.withSelectedCharacter(character).claimStarter(character);
 		attachments(player).setAttached(JujutsuAttachments.CHARACTER_STATE, updated);
 		CharacterCombatModifiers.applyForSelection(player, character);
 		arriving.onSelected(player);

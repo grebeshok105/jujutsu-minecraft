@@ -174,6 +174,8 @@ Verified 2026-07-26 against `NobaraAbilityRouter`, `NailTrapRuntime` and `SelfRe
 
 Pre-existing: inherited verbatim from the int-keyed gate the router replaced, so this is not migration damage. It is recorded rather than fixed because the fix changes what players see, and the router cannot currently tell "the runtime already explained itself" from "nothing was found". The honest shapes are either a tri-state return from each runtime, or dropping the fallback for the slots whose runtimes speak.
 
+Worth being exact about the cost of waiting, because it is smaller than it looks: the blocker is not `CharacterDefinition.tryCast`'s `boolean`. Widening that alone would change nothing, since the router still could not tell the two failures apart. The information has to come from `NailTrapRuntime` and `SelfResonanceRuntime` themselves, so the fix reaches into the runtimes whenever it is done, and the shared interface can be widened at that point at no extra cost.
+
 `NobaraAbilitySlotsTest` deliberately scopes its message count to the router and says so, rather than claiming a property it cannot establish across files.
 
 ### E11 — The shared cooldown message now precedes Nobara's silent stagger check

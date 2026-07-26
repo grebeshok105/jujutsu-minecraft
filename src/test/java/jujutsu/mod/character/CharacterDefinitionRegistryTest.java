@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /**
  * The vessel registry's fail-closed contract.
@@ -25,7 +26,42 @@ public final class CharacterDefinitionRegistryTest {
 		assertTheSweepMatchesTheSwitch();
 		assertTheSwitchCannotFallThrough();
 		assertNothingClientOnlyLeakedIn();
+		assertEveryVesselRuntimeIsRegistered();
 		System.out.println("CharacterDefinitionRegistryTest passed");
+	}
+
+	/**
+	 * Mod init used to hand-list twelve per-vessel registrations; they moved into the definitions. The
+	 * risk in that move is dropping one, which would silently disable a whole runtime with no error at
+	 * any point. So the expected list is read off the source tree rather than written down here: every
+	 * class under a vessel's package that exposes {@code register()} must be called by its definition.
+	 */
+	private static void assertEveryVesselRuntimeIsRegistered() throws Exception {
+		String[][] vessels = {
+				{"jujutsu/mod/character/nobara", "jujutsu/mod/character/nobara/NobaraDefinition.java"},
+				{"jujutsu/mod/character/todo", "jujutsu/mod/character/todo/TodoDefinition.java"},
+		};
+		for (String[] vessel : vessels) {
+			String definition = Files.readString(MAIN.resolve(vessel[1]));
+			try (Stream<Path> tree = Files.walk(MAIN.resolve(vessel[0]))) {
+				for (Path source : tree.filter(path -> path.toString().endsWith(".java")).toList()) {
+					String body = Files.readString(source);
+					if (!body.contains("public static void register()")) {
+						continue;
+					}
+					String owner = source.getFileName().toString().replace(".java", "");
+					assert definition.contains(owner + ".register()")
+							: owner + " exposes register() but no vessel definition calls it, so its listeners never install";
+				}
+			}
+		}
+		String init = Files.readString(Path.of("src/main/java/jujutsu/mod/JujutsuMod.java"));
+		assert init.contains("definition.registerServerHooks()")
+				: "Mod init must install vessel listeners through the registry";
+		for (String vesselPackage : new String[] {"character.nobara", "character.todo"}) {
+			assert !init.contains(vesselPackage)
+					: "Mod init must not reach into " + vesselPackage + "; that is what the hook replaced";
+		}
 	}
 
 	/**

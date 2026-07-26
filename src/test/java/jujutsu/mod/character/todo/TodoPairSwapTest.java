@@ -92,9 +92,15 @@ public final class TodoPairSwapTest {
 		int store = selection.indexOf("setAttached(JujutsuAttachments.CHARACTER_STATE");
 		assert deselect >= 0 && store > deselect
 				: "The departing vessel must pack up while it is still the selected one";
+		// Registration moved out of mod init and into the vessel that owns it, which is the point of the
+		// definition seam: mod init no longer names a single vessel's runtime.
+		assert definition.contains("TodoPairSwapRuntime.register()")
+				: "The pair swap lifecycle must be registered by Todo's definition";
 		String init = Files.readString(Path.of("src/main/java/jujutsu/mod/JujutsuMod.java"));
-		assert init.contains("TodoPairSwapRuntime.register()")
-				: "The pair swap lifecycle must be registered from mod init";
+		assert init.contains("definition.registerServerHooks()")
+				: "Mod init must register every vessel's hooks through the registry";
+		assert !init.contains("TodoPairSwapRuntime") && !init.contains("NailTrapRuntime")
+				: "Mod init must not hand-list any vessel's runtimes";
 	}
 
 	private static void assertMarkingIsFreeAndOnlyTheSwapCosts() throws Exception {

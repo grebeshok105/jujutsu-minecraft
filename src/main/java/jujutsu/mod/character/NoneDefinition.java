@@ -10,7 +10,7 @@ import net.minecraft.server.level.ServerPlayer;
  * inherited as the do-nothing default, which is exactly right — including {@link #removeAttributes},
  * since it never added any.
  */
-public final class NoneDefinition implements CharacterDefinition {
+final class NoneDefinition implements CharacterDefinition {
 	@Override
 	public JujutsuCharacter id() {
 		return JujutsuCharacter.NONE;

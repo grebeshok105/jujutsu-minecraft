@@ -95,8 +95,9 @@ public final class TodoSwapMarkerTest {
 		// Every exit funnels through release(), so no path can handle one form and forget the other.
 		assert marks.split("private static void release\\(", -1).length == 2
 				: "There must be exactly one release path for both mark forms";
-		String init = Files.readString(Path.of("src/main/java/jujutsu/mod/JujutsuMod.java"));
-		assert init.contains("TodoSwapMarks.register()") : "The mark lifecycle must be registered from mod init";
+		String definition = Files.readString(TODO.resolve("TodoDefinition.java"));
+		assert definition.contains("TodoSwapMarks.register()")
+				: "The mark lifecycle must be registered by the vessel that owns it";
 	}
 
 	private static void assertMarkSwapIsStrictAndCostsThePrimaryCooldown() throws Exception {
