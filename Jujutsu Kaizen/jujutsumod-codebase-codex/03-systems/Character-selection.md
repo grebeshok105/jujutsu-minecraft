@@ -8,10 +8,11 @@ Server flow:
 
 1. JujutsuNetworking receives the bounded character id on the server thread.
 2. CharacterSelectionManager loads CharacterPlayerState from JujutsuAttachments.CHARACTER_STATE.
-3. The selected id is persisted and copied on death.
-4. The Nobara starter loadout is granted only when Nobara has not previously been claimed by that player. Todo grants no starter items.
-5. CharacterCombatModifiers applies or clears Todo attribute multipliers for the selection.
-6. CharacterSelectionSyncPayload is broadcast for rendering/UI.
-7. On reconnect, syncOnJoin restores the persisted state to the joining client and observers.
+3. The departing vessel's `onDeselected` hook runs before the new selection is stored, so it still sees itself selected — Todo's mark and pending-swap cleanup lives there.
+4. The selected id is persisted and copied on death. The starter claim is recorded for every vessel — "has been this vessel at least once" is a fact about the player — and is currently read by nothing (see E12 in docs/KNOWN_ISSUES.md).
+5. CharacterCombatModifiers asks every definition to remove its own attribute modifiers, then the selected one to add its own; the ids and numbers live with the vessel that owns them.
+6. The arriving vessel's `onSelected` hook runs. Nobara's restores her starter loadout on **every** selection, deliberately: it is idempotent — it fills only a missing hammer, doll or nails — so re-selecting her replaces a kit lost to death or a switch without duplicating held ones. Todo grants no starter items.
+7. CharacterSelectionSyncPayload is broadcast for rendering/UI.
+8. On reconnect, syncOnJoin restores the persisted state to the joining client and observers.
 
-Selecting None does not erase starter-claim history. Disconnect removes remote rendering state from observers but does not delete the persisted selection.
+Hook contracts are owned by [Vessel definitions](../02-architecture/Vessel-definitions.md). Selecting None does not erase starter-claim history. Disconnect removes remote rendering state from observers but does not delete the persisted selection.

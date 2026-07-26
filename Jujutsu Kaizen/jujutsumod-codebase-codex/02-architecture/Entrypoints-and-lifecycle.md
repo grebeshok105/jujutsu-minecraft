@@ -4,9 +4,9 @@ Status: CURRENT
 
 ## Common entrypoint
 
-JujutsuMod.onInitialize registers entities, persistent attachments, data components, items, particles, sounds, effects, networking, CharacterAbilityCooldowns, CharacterCombatModifiers, TodoBlackFlashRuntime.register(), TodoBoogieWoogieRuntime.register(), ritual/runtime systems (ProjectJjkRitualRuntime, ProjectJjkStrawDollRuntime, NobaraHammerCombatRuntime, NobaraActionGuard, SelfResonanceRuntime, NailTrapRuntime), EmbeddedNailRegistry, NailAnchorLifecycle, commands, and debug Black Flash support.
+JujutsuMod.onInitialize registers entities, persistent attachments, data components, items, particles, sounds, effects, networking, CharacterAbilityCooldowns, CharacterCombatModifiers, commands, and debug Black Flash support. It names no vessel: per-vessel runtimes install through each vessel's `CharacterDefinition.registerServerHooks()`, called in a loop over `JujutsuCharacters.all()` — Nobara's definition registers her eight runtimes (ProjectJjkRitualRuntime, ProjectJjkStrawDollRuntime, EmbeddedNailRegistry, NailAnchorLifecycle, NobaraHammerCombatRuntime, NobaraActionGuard, SelfResonanceRuntime, NailTrapRuntime) and Todo's registers his four (TodoBlackFlashRuntime, TodoBoogieWoogieRuntime, TodoPairSwapRuntime, TodoSwapMarks). See [Vessel definitions](Vessel-definitions.md).
 
-`TodoBoogieWoogieRuntime.register()` exists only to attach an END_WORLD_TICK listener that drains the delayed clap-sound queue; the swap itself is invoked from `CharacterAbilityExecutor.tryCast`, not from a registered event (VERIFIED — TodoBoogieWoogieRuntime.register, .tickClapSounds).
+`TodoBoogieWoogieRuntime.register()` exists only to attach an END_WORLD_TICK listener that drains the delayed clap-sound queue; the swap itself is invoked through `CharacterAbilityExecutor.tryCast` → `TodoDefinition.tryCast` → `TodoAbilityRouter`, not from a registered event (VERIFIED — TodoBoogieWoogieRuntime.register, .tickClapSounds).
 
 Important lifecycle owners:
 
@@ -17,6 +17,6 @@ Important lifecycle owners:
 
 ## Client entrypoint
 
-JujutsuModClient registers the nail entity renderer and straw-doll item renderer, particle factories, VfxDirector, JujutsuVfxRecipes.registerAll() (Nobara + Todo), client payload receivers, keybinds, SDF/MSDF pipelines, and the ClickGui host.
+JujutsuModClient first hands the client's selection mirror to `CharacterSelectionView.setClientLookup` — so shared code that runs on both sides, like an item's `use`, can ask which vessel a player is without `src/main` touching a client class — then registers particle factories, VfxDirector, then `JujutsuCharacterClients.registerAll()` — each vessel installs its own client hooks through `CharacterClientDefinition.registerClientHooks()`, which is where the nail entity renderer, the straw-doll item renderer, and the per-vessel VFX recipe packs now register (the aggregate `JujutsuVfxRecipes` is deleted). It must follow `VfxDirector.initialize()` because the recipes register into the director it builds. Then client payload receivers, keybinds, SDF/MSDF pipelines, and the ClickGui host. See [Vessel definitions](Vessel-definitions.md).
 
-The vessel GeckoLib renderers are **not** registered here. `CharacterGeoRenderers.create(context)` is called from `CharacterRenderDispatchMixin` inside the `LivingEntityRenderer` constructor, once per `PlayerRenderer`, because that is the only place with the `EntityRendererProvider.Context` the renderers need (VERIFIED). See [Vessel render stack](../04-client-vfx/Vessel-render-stack.md).
+The vessel GeckoLib renderers are **not** registered here. `CharacterGeoRenderers.create(context)` — which asks each client definition for its renderer — is called from `CharacterRenderDispatchMixin` inside the `LivingEntityRenderer` constructor, once per `PlayerRenderer`, because that is the only place with the `EntityRendererProvider.Context` the renderers need (VERIFIED). See [Vessel render stack](../04-client-vfx/Vessel-render-stack.md).
