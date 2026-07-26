@@ -34,6 +34,7 @@ public final class TodoVfxRecipes {
 		VfxDirector.register(TodoVfxIds.SWAP_ENDPOINT, TodoVfxRecipes::swapEndpoint);
 		VfxDirector.register(TodoVfxIds.SWAP_AFTERIMAGE, TodoVfxRecipes::swapAfterimage);
 		VfxDirector.register(TodoVfxIds.SWAP_ARRIVAL, TodoVfxRecipes::swapArrival);
+		VfxDirector.register(TodoVfxIds.MOMENTUM_STRIKE, TodoVfxRecipes::momentumStrike);
 		VfxDirector.register(TodoVfxIds.FEINT_TELL, TodoVfxRecipes::feintTell);
 		VfxDirector.register(TodoVfxIds.PAIR_MARK, TodoVfxRecipes::pairMark);
 	}
@@ -105,6 +106,21 @@ public final class TodoVfxRecipes {
 			if (isLocalArrival(context, cue)) {
 				// A displacement jolt belongs to the body that was displaced, not to everyone watching it.
 				context.camera().triggerSwapSnap(2, 1.0f, initialAgeTicks);
+			}
+		});
+	}
+
+	/**
+	 * The hit a landed swap bought. Deliberately one beat and no camera work: it can land on the same tick
+	 * as a Black Flash, whose cue should win that frame outright.
+	 */
+	private static VfxInstance momentumStrike(VfxCue cue) {
+		return VfxInstance.of(8, (context, initialAgeTicks) -> {
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				Vec3 impact = context.resolveOrigin(cue);
+				RandomSource random = random(cue, 0x30DE12L);
+				context.ring(TODO_VIOLET, impact, 10, 0.42, 0.0, 0.09, random);
+				context.burst(TODO_EDGE, impact, 7, 0.24, 0.22, random);
 			}
 		});
 	}

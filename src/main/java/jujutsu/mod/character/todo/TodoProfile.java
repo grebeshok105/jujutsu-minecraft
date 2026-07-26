@@ -76,6 +76,19 @@ public final class TodoProfile {
 	 * and a public mark is something an opponent can play around.
 	 */
 	public static final double MARKER_SWAP_RANGE = 32.0;
+	/**
+	 * What a landed swap buys: one heavier hit, taken through an ATTACK_DAMAGE modifier so the vanilla
+	 * swing is simply bigger and no second damage instance exists to double-count or double-consume.
+	 *
+	 * <p>Read the multiplier honestly. Both hands must be empty to clap, so a fist that swings inside the
+	 * window gains about a third of a heart. <b>The stagger is the payload</b>; the damage only matters if
+	 * the player deliberately draws a weapon inside the window, which is the intended loop — displace,
+	 * arm, hit. The window is shorter than the swap's own cooldown, so two grants can never overlap.
+	 */
+	public static final double SWAP_MOMENTUM_DAMAGE_MULTIPLIER = 1.25;
+	public static final int SWAP_MOMENTUM_WINDOW_TICKS = 24;
+	/** Between Nobara's light stagger and the Black Flash's: an opening, not a free hit. */
+	public static final int SWAP_MOMENTUM_STAGGER_TICKS = 8;
 	/** Shared Black Flash chance for Todo's vanilla melee bridge. */
 	public static final float BLACK_FLASH_CHANCE = 0.10f;
 	public static final float BLACK_FLASH_DAMAGE_MULTIPLIER = 1.75f;

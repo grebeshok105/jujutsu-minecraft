@@ -108,6 +108,9 @@ public final class TodoBoogieWoogieRuntime {
 
 		CharacterAbilityCooldowns.start(todo, CharacterAbility.PRIMARY, TodoProfile.BOOGIE_WOOGIE_COOLDOWN_TICKS);
 		JujutsuNetworking.sendAbilityCooldown(todo, CharacterAbility.PRIMARY, TodoProfile.BOOGIE_WOOGIE_COOLDOWN_TICKS);
+		// Past the last `return false` in this method, so the window is only ever opened by a swap that
+		// actually happened.
+		TodoSwapMomentumRuntime.grant(todo);
 		emitSwapImpact(level, todo, todoSnapshot.position(), targetSnapshot.position().subtract(todoSnapshot.position()),
 				todoSnapshot.position(), targetSnapshot.position(),
 				List.of(new MovedBody(todoSnapshot, plan.get().firstDestination()),

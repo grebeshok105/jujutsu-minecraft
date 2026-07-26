@@ -92,6 +92,7 @@
   "message.jujutsumod.todo.boogie.unsafe": "No safe swap destination was found.",
   "message.jujutsumod.todo.boogie.hands_full": "Boogie Woogie needs both hands empty.",
   "item.jujutsumod.todo_swap_marker": "Boogie Woogie Marker",
+  "effect.jujutsumod.todo_swap_momentum": "Swap Momentum",
   "message.jujutsumod.todo.mark.lost": "Your Boogie Woogie marker is gone.",
   "message.jujutsumod.todo.pair.marked": "Marked %s for the swap.",
   "message.jujutsumod.todo.pair.cancelled": "Swap mark cleared.",
