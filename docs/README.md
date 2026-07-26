@@ -1,24 +1,18 @@
 # Current Documentation
 
-This directory intentionally contains only current operational documentation. Historical research, reviews, handoffs, plans, specs, mockups, and visual targets were removed to keep the repository focused on the live product.
+This directory contains current operational documentation plus the approved design notes whose rationale is still worth keeping. Point-in-time material — research, pre-merge reviews, handoffs, mockups, and visual targets — is not kept here; when such a document's findings are still true, they are folded into the register or the relevant current doc instead of being archived.
 
 ## Source-of-truth order
 
-1. Current code and passing tests define implemented behavior.
-2. Root AGENTS.md defines durable product direction, architecture rules, and workflow.
-3. Root SESSION.md defines the active branch and latest verified handoff.
-4. Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md indexes current architecture.
-5. KNOWN_ISSUES.md is the live risk and debt register.
-
-If two documents disagree, use the higher source in this list and update the lower one.
+Owned by the root AGENTS.md under "Documentation Authority". If two documents disagree, use the higher source there and update the lower one.
 
 ## Files in this directory
 
-- BUILDING_IN_SANDBOX.md — normal and restricted-container build guidance.
-- KNOWN_ISSUES.md — live risk and debt register.
+- BUILDING_IN_SANDBOX.md — build guidance for normal and restricted containers, and the owner of the client-smoke checklist.
+- KNOWN_ISSUES.md — live risk and debt register, and the owner of accepted-tradeoff rationales.
 - PROVENANCE.md — ProjectJJK placeholder permission and replacement policy.
 - THIRD_PARTY_NOTICES.md — retained third-party notices that apply to current runtime assets.
-- TODO_BOOGIE_WOOGIE.md — approved design for the Aoi Todo / Boogie Woogie vertical slice.
+- TODO_BOOGIE_WOOGIE.md — approved design for the Aoi Todo / Boogie Woogie slice, now implemented and merged. Kept for rationale, superseded by the code where they differ.
 
 ## Maintenance
 

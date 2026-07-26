@@ -16,6 +16,8 @@ The jujutsumod developer has permission to use the current models/assets as temp
 
 `src/main/resources/assets/jujutsumod/font/neon.ttf` identifies as Segoe UI Semilight. It is not Open Sans and is not covered by the Open Sans OFL notice. Remove it if unused or replace it with a verified redistributable font before public distribution.
 
+This file owns the notice; the tracked action item is R2 in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
+
 ## Rich-Modern-derived material
 
 The current `client/rich` source and related assets require a separate provenance/license decision before public release.

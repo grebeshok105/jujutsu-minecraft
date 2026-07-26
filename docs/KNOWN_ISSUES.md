@@ -2,9 +2,9 @@
 
 Status: CURRENT LIVE REGISTER
 
-Last code verification: 2026-07-23
+Last code verification: 2026-07-26. Entries carrying a "Verified 2026-07-26" line were re-checked against source on that date. E3, E4, and E6 were last checked on 2026-07-23 and were not re-verified in this pass; treat their detail as older than the rest.
 
-Applies to: main plus fix/persistence-nail-lifecycle-docs-sync
+Applies to: main and the active branch refactor/shared-vessel-render-stack. The earlier branch fix/persistence-nail-lifecycle-docs-sync no longer exists; its work is in main.
 
 Owner hierarchy: current code/tests → AGENTS.md → SESSION.md → Codebase Codex → this register
 
@@ -12,37 +12,86 @@ Owner hierarchy: current code/tests → AGENTS.md → SESSION.md → Codebase Co
 
 ### Global Resonance hit-stop
 
+This register owns the rationale; other documents point here.
+
 Resonance intentionally changes the global server tick rate to create hit-stop. This affects every player and dimension, but the current product target is private play for one or two people. Do not remove it as a generic multiplayer optimization. Reopen only if the target becomes a public or competitive server.
+
+### Boogie Woogie destinations have no entity-occupancy gate
+
+Verified 2026-07-26 against `src/main/java/jujutsu/mod/character/todo/TodoBoogieWoogieRuntime.java`.
+
+`findSafeDestination` gates a destination only on world bounds, chunk load, world border, and solid-block collision (`isPlaceableDestination`, `isInWorldDestination`). There is no floor requirement and no check that another entity already occupies the destination — no `isPickable` or entity-query call exists anywhere in the file, and its doc comment states the policy explicitly: "No floor, no third-party entity occupancy gates."
+
+This is deliberate for the current 1–2 player target: air, water, crawl, and flight destinations are all intended to be valid. It is recorded here because an earlier revision of SESSION.md wrongly claimed a non-living-collision fix ("A3") had landed, and that false claim also reached a pull-request description. It never landed.
+
+Residual debt, not the policy itself:
+
+- `findSafeDestination(ServerLevel, LivingEntity, Vec3, Entity otherSwapParticipant)` declares `otherSwapParticipant` and never reads it. Both call sites pass the other participant. It is residue of the abandoned occupancy fix. Either drop the parameter or use it; leaving it invites a future reader to assume an occupancy gate exists.
+- Two swapped entities can therefore end up interpenetrating, and either can land inside a non-living collidable entity such as a boat or minecart. Vanilla teleport/collision semantics decide what happens next; no crash has been observed or reproduced.
+
+Reopen only if the product target becomes public/competitive play, or if a live smoke test shows a concrete stuck/suffocation case.
 
 ### ProjectJJK placeholder assets
 
-ProjectJJK-named models/assets are temporary placeholders used with permission from the author. They may stay for private development and are intended to be replaced later. They are not automatically CC0. Before public distribution, preserve evidence and scope of permission or replace the remaining assets.
+Owned by [PROVENANCE.md](PROVENANCE.md) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Those files hold the permission scope, the retained upstream notice, and the replacement policy. Only the release-blocking consequences are tracked here, as R3.
 
 ## Public-release blockers
 
 ### R1 — Rich-Modern provenance is unresolved
 
+Verified 2026-07-26. Still open.
+
 The client/rich package and associated font/shader assets were derived from a user-provided Rich-Modern reference. Dated research explicitly said study-only, while current source describes a port. Determine the upstream license/permission and replace code/assets that cannot be redistributed.
+
+Cheapest available reduction: `src/client/java/antidaunleak/api/UserProfile.java` is git-tracked, is the only remaining file in the imported `antidaunleak` namespace, and nothing in the tree references it (`grep -rl antidaunleak src/` returns that file alone). Removing it would shrink the unresolved-provenance surface by one whole namespace at zero functional cost. Do not delete it as an unapproved cleanup — it is recorded here so the decision is made deliberately along with the rest of R1.
 
 ### R2 — Bundled Segoe UI font
 
-src/main/resources/assets/jujutsumod/font/neon.ttf identifies as Segoe UI Semilight. The old Open Sans note was incorrect. The font is currently packaged even though ClickGui primarily uses MSDF atlases. Remove it if unused or replace it with an OFL font before public distribution.
+Verified 2026-07-26: `src/main/resources/assets/jujutsumod/font/neon.ttf` is still present (~870 KB) alongside `neon.json`.
+
+The notice itself is owned by [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) under "Segoe UI Semilight".
+
+Action: confirm whether ClickGui still loads the TTF at all given the MSDF atlases, then remove it if unused or replace it with a verified redistributable font before public distribution.
 
 ### R3 — Placeholder release permission must be recorded
 
-Private author permission is sufficient for current development. A public release still needs a recorded scope covering redistribution, or replacement with original assets.
+Verified 2026-07-26. Still open.
+
+Private author permission is sufficient for current development. A public release still needs a recorded scope covering redistribution, or replacement with original assets. Policy detail lives in [PROVENANCE.md](PROVENANCE.md).
 
 ## High-priority engineering work
 
-### E1 — No automated in-game smoke test
+### E1 — No automated in-game smoke test, and no world/teleport coverage for the swap
 
-CI compiles and runs assertion programs but does not boot a client or dedicated server. Renderer, mixin, packet, UI, and gameplay integration regressions can survive a green build.
+Verified 2026-07-26. Still open.
 
-Action: add GameTests/dedicated-server coverage first; keep real runClient smoke for graphics-dependent behavior.
+CI compiles and runs assertion programs but does not boot a client or dedicated server. Renderer, mixin, packet, UI, and gameplay integration regressions can survive a green build. `grep -rln GameTest src/` returns nothing — there are no GameTest classes at all.
+
+Specifically for Boogie Woogie: no test calls `TodoBoogieWoogieRuntime.tryCast`. The four Todo tests (`TodoProfileTest`, `TodoSwapPlanTest`, `TodoTargetSafetyTest`, `TodoHandsEmptyTest`) cover profile constants, `TodoSwapPlan.preflight` null-handling, a boolean truth table, and the empty-hands gate. Nothing constructs a `ServerLevel` or exercises an actual teleport. Untested as a result: real player↔mob and player↔player swap, blocked/occupied destinations, second-teleport failure and rollback, velocity / yaw / pitch / head-yaw / fall-distance preservation, and the packet path end to end.
+
+Action: add narrow server/world tests around the real runtime — valid swap, blocked destination, second-teleport failure and rollback, motion and rotation preservation, cooldown started on success and not on failure. Keep the existing pure tests as fast checks and keep real runClient smoke for graphics-dependent behavior.
+
+### E1a — Ability cooldown survives respawn and resets on disconnect
+
+Verified 2026-07-26 against `src/main/java/jujutsu/mod/character/CharacterAbilityCooldowns.java`.
+
+`READY_AT` is keyed by player UUID and is pruned only on `ServerPlayConnectionEvents.DISCONNECT` and `SERVER_STOPPING`. There is no death or respawn hook, so a running cooldown survives respawn but is cleared by a disconnect/rejoin. For a 60-tick cooldown this is harmless.
+
+This is recorded as the intended policy rather than a defect, so that a future refactor cannot change it silently. Confirm it during the next manual smoke; if the desired policy is different, change it deliberately and update this entry.
+
+### E1b — TargetResolver ordering is a cross-character contract
+
+Verified 2026-07-26 against `src/main/java/jujutsu/mod/combat/TargetResolver.java`.
+
+`resolveForTests` ranks candidates by `hitDistance` (ray–AABB entry depth) first, with perpendicular distance to the aim line only as a tie-break. `TargetResolverTest` asserts that ordering via `assertCloserEntityHitBeatsFartherEntity`.
+
+The resolver is shared by four callers: `TodoBoogieWoogieRuntime`, `NobaraHammerCombatRuntime`, `ProjectJjkNobaraRuntime`, and `ProjectJjkRitualRuntime`. Any change to the comparator is therefore a cross-character gameplay change, not a per-ability tweak, and needs a Nobara regression smoke (hammer targeting, nail launch, directed Hairpin) in addition to whatever motivated it. Note for future readers: a pre-merge review once described this comparator as crosshair-proximity-first; that is not what the current code does.
 
 ### E2 — Curse-link options payload is not bounded
 
-CurseLinkOptionsPayload trusts an incoming list size and unbounded technique string, while the client creates one button per entry.
+Verified 2026-07-26: `CurseLinkOptionsPayload.read` still does `readVarInt()` and loops that many times with an unbounded `readUtf()` per entry.
+
+The payload trusts an incoming list size and unbounded technique string, while the client creates one button per entry.
 
 Action: cap entries and string length, reject malformed ids, and add scrolling/pagination if the list can grow.
 
@@ -60,7 +109,9 @@ Clients outside the broadcast radius at cast time do not receive a cue. This is 
 
 ### E5 — Russian localization is incomplete
 
-ru_ru.json has fewer keys than en_us.json. Synchronize all player-visible keys and add an automated key-set check.
+Verified 2026-07-26: en_us.json has 88 keys, ru_ru.json has 54; 34 English keys have no Russian counterpart.
+
+Synchronize all player-visible keys and add an automated key-set check.
 
 ### E6 — ClickGui rendering has avoidable per-shape work
 
@@ -68,15 +119,21 @@ Render2D immediately begins and flushes SDF for each shape to preserve MSDF orde
 
 ### E7 — Second-character integration is still Nobara-shaped
 
+Verified 2026-07-26: 17 direct `JujutsuCharacter.NOBARA` references remain across src/. The shared vessel render stack removed the per-character branching in rendering, but not elsewhere.
+
 Selection, UI cards, action payloads, loadout dispatch, and VFX registration contain direct Nobara branches. Do not build a giant abstraction early, but extract CharacterDefinition/handler boundaries when the second real kit is approved.
 
 ### E8 — Standard test reporting is weak
 
-Nineteen custom JavaExec programs use main methods and assertions. They are useful and green, but do not provide normal per-test JUnit reports or GameTest world integration.
+Verified 2026-07-26: `build.gradle` registers 23 custom JavaExec verification programs.
+
+They use main methods and Java assertions. They are useful and green, but do not provide normal per-test JUnit reports or GameTest world integration — see E1 for the coverage gap that follows from having no world-level tests.
 
 ### E9 — Build reproducibility can improve
 
-loom_version uses 1.17-SNAPSHOT, and CI now tests Java 21. Pin a stable Loom release when available, add dependency locking if releases become important, and add a second supported-JDK matrix only after it is proven compatible.
+Verified 2026-07-26: `gradle.properties` still pins `loom_version=1.17-SNAPSHOT`.
+
+CI now tests Java 21. Pin a stable Loom release when available, add dependency locking if releases become important, and add a second supported-JDK matrix only after it is proven compatible.
 
 ## Low-priority product debt
 
@@ -84,12 +141,16 @@ loom_version uses 1.17-SNAPSHOT, and CI now tests Java 21. Pin a stable Loom rel
 - Publication automation for Modrinth/CurseForge should wait until release provenance is clean.
 - Some generic Rich ClickGui modules/components are unused and can be removed after confirming the final UI scope.
 
-## Resolved on fix/persistence-nail-lifecycle-docs-sync
+## Resolved and now in main
 
-- Character selection now persists through Fabric Data Attachment API and is copied on death.
+These are closed. They are kept as a short list only so a reader does not reopen them; the live behavior is described in AGENTS.md under "Current slice (facts)".
+
+- Character selection persists through Fabric Data Attachment API and is copied on death.
 - Nobara starter tools are claimed once per player instead of being refilled on every selection.
-- Loaded ordinary embedded nails expire after 1200 ticks and are capped at 30 per owner.
+- Loaded ordinary embedded nails have a TTL and a per-owner cap.
 - Hairpin R/B resolve nails through EmbeddedNailRegistry instead of level.getAllEntities().
-- README, AGENTS.md, SESSION.md, build instructions, and Codex are synchronized around the current product state.
-- Documentation audit tooling rejects removed archive paths, stale references, broken local links, and stale code-derived metrics.
-- Historical documentation was intentionally removed after its durable conclusions were incorporated into current docs or the live issue register.
+- VFX recipe registration goes through the single `JujutsuVfxRecipes.registerAll()` aggregator.
+- `TodoProfile.SAFE_POSITION_HORIZONTAL_RADIUS` and `WORLD_BORDER_MARGIN` are wired into `TodoBoogieWoogieRuntime` instead of being dead constants.
+- Todo has a GeckoLib model, animations, and a player renderer; the `ability.boogie_woogie` hook is live, not a no-op.
+- Todo roster labels are localized.
+- Documentation audit tooling rejects stale references, broken local links, and stale code-derived metrics, and scopes itself to git-tracked Markdown.

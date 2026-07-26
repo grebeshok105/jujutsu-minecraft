@@ -24,6 +24,8 @@ Primary priorities:
 
 ### Current slice (facts)
 
+This block is the single owner of current-slice facts. `README.md` keeps only the user-facing pitch and controls; `SESSION.md` keeps only what changed on the active branch.
+
 - Playable vessels: **Nobara** (nails, hammer, Hairpin, Resonance, traps, Black Flash path), **Todo** (Boogie Woogie swap, heavy vanilla melee, shared Black Flash bridge), and **None**
 - Nobara controls: `R` directed Hairpin, `B` mass Hairpin, `Shift+R` Self Resonance, `Shift+B` Nail Trap, hammer left click contextual melee
 - Todo controls: `R` Boogie Woogie (server-authoritative self↔target swap); vanilla melee with Todo attribute modifiers
@@ -35,9 +37,31 @@ Primary priorities:
 - Character apply: `SelectCharacterPayload` C2S, server-authoritative; selection persists via Fabric Data Attachment API and starter loadout claims are one-time
 - UI theme: orange/slate via `ClickGuiTheme`
 - Ordinary loaded embedded nails: 1200-tick TTL, maximum 30 per owner, resolved through `EmbeddedNailRegistry`
-- Resonance global server hit-stop is intentional for the current private 1–2 player target; do not silently remove it as a multiplayer optimization
+- Resonance global server hit-stop: see the accepted decision in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md), which owns that rationale
 - **No** cursed-energy resource bar in the current kit
 - **No** Neon Dashboard / Key V menu; that path is retired
+
+#### Todo baseline numbers (from `TodoProfile`)
+
+| Parameter | Value |
+|---|---:|
+| `BOOGIE_WOOGIE_RANGE` | 20.0 blocks |
+| `BOOGIE_WOOGIE_COOLDOWN_TICKS` | 60 (3 s) |
+| `MELEE_DAMAGE_MULTIPLIER` | 1.50 |
+| `ATTACK_SPEED_MULTIPLIER` | 0.85 |
+| `STAGGER_DURATION_MULTIPLIER` | 0.50 |
+| `BLACK_FLASH_CHANCE` | 0.10 |
+| `BLACK_FLASH_DAMAGE_MULTIPLIER` | 1.75 |
+| `BLACK_FLASH_STAGGER_TICKS` | 14 |
+| `SAFE_POSITION_HORIZONTAL_RADIUS` | 1.0 block |
+| `SAFE_POSITION_UPWARD_BLOCKS` | 3 |
+| `WORLD_BORDER_MARGIN` | 0.05 |
+
+`TodoProfile` is the source of truth for these values; do not restate them elsewhere.
+
+#### Boogie Woogie destination policy (deliberate)
+
+`TodoBoogieWoogieRuntime.findSafeDestination` checks only world bounds, chunk load, world border, and solid-block collision. There is **no floor requirement** and **no third-party entity-occupancy gate** — air, water, crawl, and flight destinations are all valid by design. This is intentional for the current 1–2 player target, not an oversight; the residual debt is tracked in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md). Do not add an occupancy gate without a product decision.
 
 ## Non-Negotiable Workflow
 
@@ -62,7 +86,7 @@ Do not load everything every turn. Prefer the lightest tool that answers the que
 | **Skills** | Match task → skill (for example `minecraft-mod-dev`, `using-git-worktrees`, `systematic-debugging`, `verification-before-completion`) and follow an available skill's checklist. Do not assume a named skill exists without checking. |
 | **mcp-runner** | Launch a narrowly relevant public MCP server in the sandbox when it adds real capability; Context7 is useful for current library APIs. Do not install arbitrary servers just for quantity. |
 | **mcpvault** | Optional external Obsidian vault. Use it when connected, but never treat an unavailable local vault as a blocker or as newer than the versioned repo Codex. |
-| **codegraph** | Structural “where is / who calls / architecture” questions on indexed code when `.codegraph/` exists. |
+| **codegraph** | Structural “where is / who calls / architecture” questions when `.codegraph/` exists. Build the index with `codegraph init`; query with `codegraph explore "<question or symbol names>"` for the relevant symbols' source plus the call paths between them, or `codegraph node <symbol-or-file>` for one symbol's source and callers. Prefer it over grep for “who calls this”. The index is local-only and never committed — only `.codegraph/.gitignore` is tracked. Re-run `codegraph init` after a refactor, or the graph answers from stale symbols. |
 | **filesystem/search** | Authoritative fallback for current implementation facts. |
 | **Repo docs** | `AGENTS.md`, active `SESSION.md`, `docs/README.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`. |
 
@@ -213,19 +237,13 @@ Typical live areas:
 - VFX must read in motion, not only in screenshots.
 - Never copy anime assets into the repo unless licensing is explicit.
 - Prefer original/inspired designs over copyrighted rips.
-- Current ProjectJJK-named runtime models/assets are temporary placeholders used with the author's permission. Preserve provenance, do not relabel them as CC0, do not expand the imported set casually, and replace or document release permission before public distribution.
-- Rich-Modern-derived code/assets require a separate provenance review before public release.
+- ProjectJJK placeholder policy, the retained upstream notice, and the Rich-Modern provenance question are owned by [docs/PROVENANCE.md](docs/PROVENANCE.md) and [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md). Read them before touching anything under a `projectjjk` path or under `client/rich`.
 
 ## Verification Policy
 
-Before claiming work is done, run the narrowest command that proves the changed behavior.
+Before claiming work is done, run the narrowest command that proves the changed behavior. Never claim a verification you did not run.
 
-Baseline:
-
-- Windows: `gradlew.bat build --no-daemon`
-- Unix: `./gradlew build --no-daemon`
-- Documentation: `python3 tools/audit_docs.py`
-- Client smoke when UI/gameplay changed: `gradlew.bat runClient --no-daemon`
+[docs/BUILDING_IN_SANDBOX.md](docs/BUILDING_IN_SANDBOX.md) owns the full command recipe — baseline build, documentation audit, focused verification tasks, and the client-smoke checklist. Use it instead of restating commands here.
 
 The full build owns all custom verification programs through `check`. Do not claim in-game behavior from compilation alone.
 
@@ -246,9 +264,10 @@ The full build owns all custom verification programs through `check`. Do not cla
 5. Transient combat VFX: **VFX Core only**.
 6. Product menu: **ClickGui (N)** with Characters select; Neon V dashboard retired.
 7. Character selection and one-time starter claims persist through Fabric Data Attachment API.
-8. Loaded ordinary embedded nails use a 1200-tick TTL, a 30-per-owner cap, and an owner index.
-9. Resonance global server hit-stop stays intentional for the private 1–2 player target unless the product target changes.
+8. Loaded ordinary embedded nails use a TTL, a per-owner cap, and an owner index — exact numbers in “Current slice (facts)” above.
+9. Resonance global server hit-stop stays intentional unless the product target changes — rationale in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
 10. Todo differs from Nobara on positioning and raw melee, not on a second projectile kit; he intentionally ships without a starter loadout.
+11. Boogie Woogie destinations have no floor check and no entity-occupancy gate — see the destination policy above.
 
 ## Open Questions (real remaining)
 

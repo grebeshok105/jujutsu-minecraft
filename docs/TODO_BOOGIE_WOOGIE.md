@@ -1,14 +1,17 @@
 # Aoi Todo — Boogie Woogie vertical slice
 
-Status: APPROVED IMPLEMENTATION DESIGN
-Target branch: `feat/todo-boogie-woogie`
+Status: APPROVED DESIGN — IMPLEMENTED AND MERGED (PR #4)
 Scope: second playable character, minimal stable multiplayer-safe kit.
+
+This is the approved design that the shipped Todo slice was built from, kept for the rationale behind the numbers and the deliberate exclusions. It is not a branch plan and not a description of current code. For current behavior use the source, then AGENTS.md under "Current slice (facts)"; for known gaps use [KNOWN_ISSUES.md](KNOWN_ISSUES.md). Where this document and the code disagree, the code wins.
+
+Superseded since approval: Todo now has a GeckoLib model, animations, and a player renderer, so the sections below that assume no model and a no-op animation hook are marked inline.
 
 ## Product goal
 
 Add Aoi Todo as the second selectable vessel and use the work to prove the mod can support more than one character without introducing a parallel character, cooldown, networking, targeting, or VFX architecture.
 
-This slice contains one active technique: **Boogie Woogie**. It swaps Todo with one valid living target. It does not include a model, a finished animation, external anime sounds, a cursed-energy resource, external-target swaps, rhythm gameplay, or unique combo attacks.
+This slice contains one active technique: **Boogie Woogie**. It swaps Todo with one valid living target. As designed it excluded a model, a finished animation, external anime sounds, a cursed-energy resource, external-target swaps, rhythm gameplay, and unique combo attacks. The model and animations have since been added; the rest of that exclusion list still holds.
 
 ## Research basis
 
@@ -30,7 +33,7 @@ Canonical Boogie Woogie is an instant position exchange associated with Todo's c
 - Todo appears in the existing ClickGui character roster.
 - Todo uses the existing persistent `CharacterPlayerState` attachment. Selection survives death, reconnect, world restart, and dimension changes.
 - Todo has no starter items in this slice. Vanilla melee remains the base weapon path.
-- Todo intentionally has no custom GeckoLib model or animation asset yet. The existing vanilla player model remains active.
+- ~~Todo intentionally has no custom GeckoLib model or animation asset yet. The existing vanilla player model remains active.~~ **Superseded:** Todo now renders through `TodoPlayerGeoRenderer` on the shared vessel render stack, using `geckolib/models/todo/todo_aoi`, `geckolib/animations/todo/todo_aoi`, and `textures/entity/character/todo_aoi.png`.
 
 ### Base profile
 
@@ -64,7 +67,7 @@ Boogie Woogie calls the shared `TargetResolver` with Todo-specific validation.
 Allowed: other players and ordinary living mobs.
 Rejected: Todo, dead entities, spectators, armor stands, removed/technical entities, passengers, vehicles, leashed entities, different-world entities, out-of-range entities, blocked line-of-sight candidates, and invalid positions.
 
-Selection is server-side from Todo's eye ray. Candidates must be before the first solid block hit, inside the 24-block reach, inside the ray sweep, and are ranked by closest perpendicular distance to the crosshair, then depth along the ray.
+Selection is server-side from Todo's eye ray. Candidates must be before the first solid block hit, inside the `TodoProfile.BOOGIE_WOOGIE_RANGE` reach of 20 blocks (matching the profile table above — an earlier revision of this line said 24, which never matched the constant), and inside the ray sweep. Ranking is by depth along the ray, with perpendicular distance to the aim line as the tie-break; that ordering is shared with Nobara's abilities, so see E1b in [KNOWN_ISSUES.md](KNOWN_ISSUES.md) before changing it.
 
 ### Atomic safe swap
 
@@ -88,7 +91,7 @@ All transient visuals use the existing `VfxCue → VfxDirector → TodoVfxRecipe
 - At both pre-swap origins: a compact purple/cyan cursed-energy flash using existing VFX channels and vanilla dust particles.
 - Between origins: a short world-channel ribbon/trail through the same cue data, not tick polling.
 - Sounds: vanilla short clap-like and teleport-like sounds, played by the server at the two origins. No protected anime audio is added.
-- `TodoAnimationHooks.BOOGIE_WOOGIE` exposes the future hook id `ability.boogie_woogie`. It is a safe no-op until a Todo GeckoLib model/animation is added.
+- ~~`TodoAnimationHooks.BOOGIE_WOOGIE` exposes the future hook id `ability.boogie_woogie`. It is a safe no-op until a Todo GeckoLib model/animation is added.~~ **Superseded:** `ability.boogie_woogie` is a real animation, triggered from the VFX cue anchor on cast. It is no longer a no-op.
 
 ### Todo melee and Black Flash
 
@@ -97,10 +100,10 @@ Todo retains vanilla melee mechanics with server-applied attribute modifiers. A 
 ## Explicitly deferred
 
 - Swap between two external targets.
-- Cursed anchors, thrown-object targets, repeated high-rate swaps, vibraslap/rhythm mechanics, tempo meter, Todo items, custom HUD, model, animation JSON, domain expansion, and boss content.
+- Cursed anchors, thrown-object targets, repeated high-rate swaps, vibraslap/rhythm mechanics, tempo meter, Todo items, custom HUD, domain expansion, and boss content. (Model and animation JSON were on this list at approval time and have since been delivered.)
 
 ## Verification
 
-Automated coverage must include target rejection, cooldown replay prevention, safe-position behavior, atomic rollback, velocity/rotation preservation, persistence/selection, and VFX/cue registration.
+The design asked for automated coverage of target rejection, cooldown replay prevention, safe-position behavior, atomic rollback, velocity/rotation preservation, persistence/selection, and VFX/cue registration. That intent was only partly met: the world/teleport half of it does not exist. See E1 in [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for what is actually covered today.
 
-Manual sandbox smoke must prove Todo selection, R activation against a valid target, blocked-position cancellation, cooldown behavior, player↔mob swap, player↔player swap when available, selection persistence, and no Nobara regression.
+The manual smoke checklist is owned by [BUILDING_IN_SANDBOX.md](BUILDING_IN_SANDBOX.md).

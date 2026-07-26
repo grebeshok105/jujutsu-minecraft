@@ -11,7 +11,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 python3 tools/audit_docs.py
 ```
 
-The full build compiles main and client source sets, runs the Gradle test task, and runs every custom JavaExec verification program wired into check. The current branch has 19 custom verification programs. A successful remapped jar is written to build/libs/jujutsumod-1.0.0.jar.
+The full build compiles main and client source sets, runs the Gradle test task, and runs every custom JavaExec verification program wired into check. The current branch has 23 custom verification programs. A successful remapped jar is written to build/libs/jujutsumod-1.0.0.jar.
 
 For a clean proof rather than an up-to-date result:
 
@@ -67,7 +67,41 @@ Compilation does not prove rendering, mixin compatibility at runtime, UI hitboxe
 ./gradlew runClient --no-daemon
 ```
 
-At minimum verify N → ClickGui, persisted vessel selection after reconnect, one-time starter claim behavior, R/B Hairpin, Shift+R, Shift+B, hammer melee, embedded-nail TTL/cap, and disconnect/rejoin cleanup.
+This checklist is the owner of the client-smoke scope. It is not automated — nothing in the build covers any of it (see E1 in KNOWN_ISSUES.md).
+
+### Menu and selection
+
+- N opens ClickGui; the Characters tab lists Nobara, Todo, and None; Soon placeholders stay non-clickable.
+- Select Todo, confirm it, and check the roster labels are localized rather than raw keys.
+- Reconnect and confirm the selection persisted; confirm the Nobara starter kit is not re-granted on re-selection.
+
+### Todo — Boogie Woogie (R)
+
+- Valid swap: aim at a mob within 20 blocks, press R, and confirm both parties exchange positions while each keeps its own yaw, pitch, head yaw, and velocity.
+- Player↔player swap when a second player is available.
+- Empty-hands gate: hold any item and confirm R is refused with the hands-full message and no partial effect.
+- Blocked destination: aim at a target standing where the reciprocal destination is inside solid blocks, and confirm either the small nudge resolves it or the cast is refused atomically with neither party moved.
+- Destination policy sanity: mid-air, in-water, and crawl-space destinations are expected to succeed, and swapping with a target in a boat or minecart is expected to be allowed. This is the deliberate policy documented in AGENTS.md, not a bug to file.
+- Cooldown: R is refused for 3 seconds after a success, and is not consumed after a refusal.
+- Out-of-range and no-line-of-sight casts produce the right refusal message.
+
+### Todo — melee and Black Flash
+
+- Vanilla melee lands with Todo's heavier damage and slower swing.
+- Black Flash procs produce the bonus damage number, stagger, and the shared Black Flash VFX. The bonus hit must not recurse into a second proc.
+
+### Nobara regression
+
+- Directed Hairpin (R) and mass Hairpin (B) pick the intended target — targeting is shared with Todo, so a Todo-side targeting change can regress this.
+- Shift+R Self Resonance, Shift+B Nail Trap, and contextual hammer melee still behave.
+- Embedded-nail TTL and per-owner cap still expire and cap; disconnect/rejoin leaves no orphaned nails.
+
+### Shared vessel rendering
+
+- Third person: both Nobara and Todo render their GeckoLib vessel model, not the vanilla player model.
+- Held items attach to the correct hand on both vessels, in third person and first person.
+- Head look tracks the camera and stays inside the clamp; no pose-stack corruption after ability casts or menu open/close.
+- Todo animations play: idle, walk, attack, and `ability.boogie_woogie` on cast, with the clap SFX at the palm-contact beat.
 
 ## Troubleshooting
 
