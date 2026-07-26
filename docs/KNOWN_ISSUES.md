@@ -4,7 +4,7 @@ Status: CURRENT LIVE REGISTER
 
 Last code verification: 2026-07-26. Entries carrying a "Verified 2026-07-26" line were re-checked against source on that date. E3, E4, and E6 were last checked on 2026-07-23 and were not re-verified in this pass; treat their detail as older than the rest.
 
-Applies to: main and the active branch refactor/shared-vessel-render-stack. The earlier branch fix/persistence-nail-lifecycle-docs-sync no longer exists; its work is in main.
+Applies to: main and the active branch feat/clickgui-drag-and-todo-fake-clap. The earlier branch fix/persistence-nail-lifecycle-docs-sync no longer exists; its work is in main.
 
 Owner hierarchy: current code/tests → AGENTS.md → SESSION.md → Codebase Codex → this register
 
@@ -66,9 +66,16 @@ Verified 2026-07-26. Still open.
 
 CI compiles and runs assertion programs but does not boot a client or dedicated server. Renderer, mixin, packet, UI, and gameplay integration regressions can survive a green build. `grep -rln GameTest src/` returns nothing — there are no GameTest classes at all.
 
-Specifically for Boogie Woogie: no test calls `TodoBoogieWoogieRuntime.tryCast`. The four Todo tests (`TodoProfileTest`, `TodoSwapPlanTest`, `TodoTargetSafetyTest`, `TodoHandsEmptyTest`) cover profile constants, `TodoSwapPlan.preflight` null-handling, a boolean truth table, and the empty-hands gate. Nothing constructs a `ServerLevel` or exercises an actual teleport. Untested as a result: real player↔mob and player↔player swap, blocked/occupied destinations, second-teleport failure and rollback, velocity / yaw / pitch / head-yaw / fall-distance preservation, and the packet path end to end.
+Specifically for Todo: no test calls any of the four `tryCast` entry points (`TodoBoogieWoogieRuntime`, `TodoFakeClapRuntime`, `TodoPairSwapRuntime`, `TodoMarkerSwapRuntime`). The Todo tests (`TodoProfileTest`, `TodoSwapPlanTest`, `TodoTargetSafetyTest`, `TodoHandsEmptyTest`, `TodoFakeClapTest`, `TodoPairSwapTest`, `TodoSwapMarkerTest`) cover profile constants, `TodoSwapPlan.preflight` null-handling, boolean truth tables including the shared `TodoSwapGates` clap gate, the pure `TodoPendingSelection` and `TodoSwapMark` predicates, and — for the three newest mechanics — source-text contract assertions rather than behaviour. Nothing constructs a `ServerLevel` or exercises an actual teleport.
 
-Action: add narrow server/world tests around the real runtime — valid swap, blocked destination, second-teleport failure and rollback, motion and rotation preservation, cooldown started on success and not on failure. Keep the existing pure tests as fast checks and keep real runClient smoke for graphics-dependent behavior.
+The gap widened rather than narrowed with this branch: three whole mechanics landed under it. Untested as a result:
+
+- real player↔mob and player↔player swap, blocked destinations, second-teleport failure and rollback, velocity / yaw / pitch / head-yaw / fall-distance preservation, the packet path end to end
+- whether the feint clap and the real clap are actually indistinguishable to a second player
+- the pair swap's whole selection lifecycle against a live world — expiry, marked-body death, dimension change, and above all that a STRICT cancellation moves nobody rather than half-applying to a bystander
+- both thrown-mark forms: that a resting marker is discarded on every exit path, and that an entity mark never leaves a glow behind on a body that was glowing for another reason
+
+Action: add narrow server/world tests around the real runtimes — valid swap, blocked destination, second-teleport failure and rollback, motion and rotation preservation, cooldown started on success and not on failure, and one mark-leak test per form. Keep the existing pure tests as fast checks and keep real runClient smoke for graphics-dependent behavior.
 
 ### E1a — Ability cooldown survives respawn and resets on disconnect
 
@@ -80,11 +87,19 @@ This is recorded as the intended policy rather than a defect, so that a future r
 
 ### E1b — TargetResolver ordering is a cross-character contract
 
-Verified 2026-07-26 against `src/main/java/jujutsu/mod/combat/TargetResolver.java`.
+Verified 2026-07-26 against `src/main/java/jujutsu/mod/combat/TargetResolver.java`. The dead-tie-break defect below is fixed; the cross-character exposure and the missing smoke are still open.
 
-`resolveForTests` ranks candidates by `hitDistance` (ray–AABB entry depth) first, with perpendicular distance to the aim line only as a tie-break. `TargetResolverTest` asserts that ordering via `assertCloserEntityHitBeatsFartherEntity`.
+What was wrong: the comparator claimed to fall back to crosshair proximity, but that key sat behind an exact-equality test on `hitDistance` — a double from `AABB.clip` plus `distanceTo` — which two real entities essentially never satisfy. The second key was therefore dead, and "closest to the crosshair" was never implemented: a mob dead-centre in the crosshair lost to a nearer mob clipped by the very edge of its 0.35 aim-assist pad.
 
-The resolver is shared by four callers: `TodoBoogieWoogieRuntime`, `NobaraHammerCombatRuntime`, `ProjectJjkNobaraRuntime`, and `ProjectJjkRitualRuntime`. Any change to the comparator is therefore a cross-character gameplay change, not a per-ability tweak, and needs a Nobara regression smoke (hammer targeting, nail launch, directed Hairpin) in addition to whatever motivated it. Note for future readers: a pre-merge review once described this comparator as crosshair-proximity-first; that is not what the current code does.
+Ranking now has three live keys, in order:
+
+1. **Pierced before grazed.** `EntityCandidate.pierced` comes from a second `clip` against the un-inflated bounding box, so a body the ray truly entered always beats one only the aim-assist pad caught. Aim assist can no longer steal the target from what the player is looking straight at.
+2. **Depth for real hits, crosshair angle for grazes.** Pierced candidates rank by `hitDistance` along the ray. Assist-only grazes rank by `angularOffset` — the perpendicular offset divided by the distance to the candidate, so a far target is not punished for being far.
+3. **Entity id, always last.** This closes a second hole: a perfectly tied pair used to be decided by entity-section iteration order, so the chosen target could flip between ticks as entities moved.
+
+Detection is untouched — still ray–AABB, not centre-near-ray. The extra record component defaults to a real hit in both existing `EntityCandidate` constructors, so no call site changed. `TargetResolverTest` now covers real-hit-beats-graze, angle between grazes, distance between equally aimed grazes, and id-decided ties independent of list order.
+
+Still open, and the reason this entry survives the fix: the resolver is shared by four callers — `TodoBoogieWoogieRuntime`, `NobaraHammerCombatRuntime`, `ProjectJjkNobaraRuntime`, and `ProjectJjkRitualRuntime` — so this was a roster-wide gameplay change, not a per-ability tweak, and it has only pure-comparator coverage. **Needs a Nobara targeting regression smoke: hammer targeting, nail launch, and directed Hairpin.** Until that runs, "assist no longer steals the target" is verified as comparator logic and UNVERIFIED as feel. Any future comparator edit needs the same smoke.
 
 ### E2 — Curse-link options payload is not bounded
 
@@ -106,11 +121,13 @@ Action: centralize per-server state or add lifecycle/TTL cleanup with tests.
 
 Clients outside the broadcast radius at cast time do not receive a cue. This is acceptable for most short effects, but critical long-lived visuals need explicit state or catch-up rather than wider blind broadcast.
 
-### E5 — Russian localization is incomplete
+### E5 — Localization parity is not enforced automatically
 
-Verified 2026-07-26: en_us.json has 88 keys, ru_ru.json has 54; 34 English keys have no Russian counterpart.
+Verified 2026-07-26: both `en_us.json` and `ru_ru.json` now hold 92 keys with an empty difference in both directions, no duplicates, and matching format specifiers. The key gap this entry originally tracked is closed. Its earlier figures (88 / 54) were themselves stale by the time they were checked; the real pre-fix counts were 92 / 58.
 
-Synchronize all player-visible keys and add an automated key-set check.
+What remains is the half that keeps it from reopening: nothing in `check` compares the two key sets, so the next English key added will silently drift again. Note also that `ru_ru.json` uses a leading-comma style from line 20 onward, which a naive generator would break.
+
+Action: add a key-set parity check to the verification suite. Two smaller judgement calls are recorded rather than fixed: `message.jujutsumod.nobara.self_resonance.selected` leaves "Self Resonance" in Latin while every other ability label is translated, and `screen.jujutsumod.modern_menu` reads "Characters" in English but «Выбор сосуда» in Russian — the English side is the more likely stale one.
 
 ### E6 — ClickGui rendering has avoidable per-shape work
 
@@ -124,7 +141,7 @@ Selection, UI cards, action payloads, loadout dispatch, and VFX registration con
 
 ### E8 — Standard test reporting is weak
 
-Verified 2026-07-26: `build.gradle` registers 23 custom JavaExec verification programs.
+Verified 2026-07-26: `build.gradle` registers 27 custom JavaExec verification programs.
 
 They use main methods and Java assertions. They are useful and green, but do not provide normal per-test JUnit reports or GameTest world integration — see E1 for the coverage gap that follows from having no world-level tests.
 

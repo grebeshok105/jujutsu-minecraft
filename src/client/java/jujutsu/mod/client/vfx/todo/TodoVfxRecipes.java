@@ -24,6 +24,8 @@ public final class TodoVfxRecipes {
 	public static void register() {
 		VfxDirector.register(TodoVfxIds.BOOGIE_WOOGIE, TodoVfxRecipes::boogieWoogie);
 		VfxDirector.register(TodoVfxIds.SWAP_ENDPOINT, TodoVfxRecipes::swapEndpoint);
+		VfxDirector.register(TodoVfxIds.FEINT_TELL, TodoVfxRecipes::feintTell);
+		VfxDirector.register(TodoVfxIds.PAIR_MARK, TodoVfxRecipes::pairMark);
 	}
 
 	private static VfxInstance boogieWoogie(VfxCue cue) {
@@ -50,6 +52,37 @@ public final class TodoVfxRecipes {
 				emitFlash(context, endpoint, random(cue, 0xB001E13L));
 				// Only the leading endpoint carries the pair delta, so the ribbon spans the two bodies once.
 				context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.BOOGIE_WOOGIE, 8);
+			}
+		});
+	}
+
+	/**
+	 * Caster-only feint confirmation: a thin wisp of dust at chest height and nothing else. No HUD
+	 * flash, no camera kick, no sound — every one of those would be perceivable by the observer the
+	 * feint exists to deceive. The cue is sent to a single player, never broadcast.
+	 */
+	private static VfxInstance feintTell(VfxCue cue) {
+		return VfxInstance.of(6, (context, initialAgeTicks) -> {
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				Vec3 chest = context.resolveOrigin(cue).add(0.0, 1.1, 0.0);
+				context.ring(TODO_EDGE, chest, 6, 0.16, 0.0, 0.008, random(cue, 0xFE117L));
+			}
+		});
+	}
+
+	/**
+	 * Caster-only mark confirmation on the first pair-swap participant. A single beat, not a marker that
+	 * follows the body for the whole selection: a transient cue is started once, and VFX Core keeps
+	 * anything that must track a live entity on that entity's own renderer. The actionbar line names who
+	 * was marked, which is what the caster actually needs to remember.
+	 */
+	private static VfxInstance pairMark(VfxCue cue) {
+		return VfxInstance.of(8, (context, initialAgeTicks) -> {
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				Vec3 marked = context.resolveOrigin(cue).add(0.0, 1.0, 0.0);
+				RandomSource random = random(cue, 0x9A12CAFEL);
+				context.ring(TODO_VIOLET, marked, 12, 0.55, 0.0, 0.02, random);
+				context.burst(TODO_EDGE, marked, 6, 0.22, 0.05, random);
 			}
 		});
 	}

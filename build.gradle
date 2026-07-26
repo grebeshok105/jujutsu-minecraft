@@ -274,12 +274,56 @@ tasks.register('testServerTimeDilation', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testTodoSwapMarker', JavaExec) {
+	group = 'verification'
+	description = 'Runs thrown swap-marker mark-form, cleanup and gate tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.todo.TodoSwapMarkerTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
+tasks.register('testTodoPairSwap', JavaExec) {
+	group = 'verification'
+	description = 'Runs Todo pair-swap selection lifecycle and bystander-safety tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.todo.TodoPairSwapTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
+tasks.register('testTodoFakeClap', JavaExec) {
+	group = 'verification'
+	description = 'Runs Todo feint clap gate, cue-sharing and cooldown-independence tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.todo.TodoFakeClapTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
+tasks.register('testClickGuiDrag', JavaExec) {
+	group = 'verification'
+	description = 'Runs ClickGui panel drag geometry tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.client.rich.screens.clickgui.impl.DragHandlerTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.named('check') {
+	dependsOn tasks.named('testClickGuiDrag')
 	dependsOn tasks.named('testCharacterPlayerState')
 	dependsOn tasks.named('testTodoProfile')
 	dependsOn tasks.named('testTodoSwapPlan')
 	dependsOn tasks.named('testTodoTargetSafety')
 	dependsOn tasks.named('testTodoHandsEmpty')
+	dependsOn tasks.named('testTodoFakeClap')
+	dependsOn tasks.named('testTodoPairSwap')
+	dependsOn tasks.named('testTodoSwapMarker')
 	dependsOn tasks.named('testProjectSanity')
 	dependsOn tasks.named('testTargetResolver')
 	dependsOn tasks.named('testProjectJjkNobaraProfile')

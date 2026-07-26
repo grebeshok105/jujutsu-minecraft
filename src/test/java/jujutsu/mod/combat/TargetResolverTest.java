@@ -9,6 +9,10 @@ public final class TargetResolverTest {
 
 	public static void main(String[] args) {
 		assertCloserEntityHitBeatsFartherEntity();
+		assertRealHitBeatsAimAssistGraze();
+		assertCrosshairAngleDecidesBetweenGrazes();
+		assertDistanceDecidesBetweenEquallyAimedGrazes();
+		assertTiesBreakOnEntityIdRegardlessOfOrder();
 		assertEntityHitBeatsBlockWhenCloser();
 		assertBlockWinsWhenEntityIsBehindBlock();
 		assertBlockFallbackWhenNoEntityHit();
@@ -33,6 +37,76 @@ public final class TargetResolverTest {
 
 		assert result.mode() == TargetResolver.Mode.ENTITY : result;
 		assert result.entityId().orElseThrow() == 7 : "Closest ray–AABB hit must win: " + result;
+	}
+
+	private static void assertRealHitBeatsAimAssistGraze() {
+		// The near candidate was only caught by the 0.35 aim-assist pad; the far one is under the crosshair.
+		TargetResolver.Result result = TargetResolver.resolveForTests(
+				new Vec3(0.0, 1.6, 0.0),
+				new Vec3(1.0, 0.0, 0.0),
+				32.0,
+				Optional.empty(),
+				List.of(
+						new TargetResolver.EntityCandidate(7, new Vec3(4.0, 1.6, 1.1), 0.75, 4.0, false),
+						new TargetResolver.EntityCandidate(11, new Vec3(9.0, 1.6, 0.0), 0.75, 8.6, true)
+				),
+				99
+		);
+
+		assert result.entityId().orElseThrow() == 11 : "Aim assist must not steal the target you are looking at: " + result;
+	}
+
+	private static void assertCrosshairAngleDecidesBetweenGrazes() {
+		// Neither body is under the crosshair, so the one nearer the aim line wins even though it is farther.
+		TargetResolver.Result result = TargetResolver.resolveForTests(
+				new Vec3(0.0, 1.6, 0.0),
+				new Vec3(1.0, 0.0, 0.0),
+				32.0,
+				Optional.empty(),
+				List.of(
+						new TargetResolver.EntityCandidate(7, new Vec3(6.0, 1.6, 0.9), 0.75, 5.6, false),
+						new TargetResolver.EntityCandidate(11, new Vec3(8.0, 1.6, 0.4), 0.75, 7.6, false)
+				),
+				99
+		);
+
+		assert result.entityId().orElseThrow() == 11 : "The graze closest to the crosshair must win: " + result;
+	}
+
+	private static void assertDistanceDecidesBetweenEquallyAimedGrazes() {
+		// Mirrored across the aim line, so the angular key is identical and distance has to settle it.
+		TargetResolver.Result result = TargetResolver.resolveForTests(
+				new Vec3(0.0, 1.6, 0.0),
+				new Vec3(1.0, 0.0, 0.0),
+				32.0,
+				Optional.empty(),
+				List.of(
+						new TargetResolver.EntityCandidate(11, new Vec3(6.0, 1.6, -0.5), 0.75, 5.8, false),
+						new TargetResolver.EntityCandidate(7, new Vec3(6.0, 1.6, 0.5), 0.75, 5.4, false)
+				),
+				99
+		);
+
+		assert result.entityId().orElseThrow() == 7 : "Equally aimed grazes must fall back to distance: " + result;
+	}
+
+	private static void assertTiesBreakOnEntityIdRegardlessOfOrder() {
+		TargetResolver.EntityCandidate low = new TargetResolver.EntityCandidate(7, new Vec3(6.0, 1.6, 0.0), 0.75, 5.5);
+		TargetResolver.EntityCandidate high = new TargetResolver.EntityCandidate(11, new Vec3(6.0, 1.6, 0.0), 0.75, 5.5);
+
+		// Real entity iteration order is not stable as entities move between sections, so a perfectly
+		// tied pair must not let it decide the target.
+		for (List<TargetResolver.EntityCandidate> order : List.of(List.of(low, high), List.of(high, low))) {
+			TargetResolver.Result result = TargetResolver.resolveForTests(
+					new Vec3(0.0, 1.6, 0.0),
+					new Vec3(1.0, 0.0, 0.0),
+					32.0,
+					Optional.empty(),
+					order,
+					99
+			);
+			assert result.entityId().orElseThrow() == 7 : "A tie must resolve to the lowest entity id: " + result;
+		}
 	}
 
 	private static void assertEntityHitBeatsBlockWhenCloser() {

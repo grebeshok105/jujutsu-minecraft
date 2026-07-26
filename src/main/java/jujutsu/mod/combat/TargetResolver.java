@@ -20,6 +20,12 @@ import net.minecraft.world.phys.Vec3;
  * Entities are picked by ray–AABB intersection (with a small aim assist inflate),
  * not by "center near ray" approximation — the latter fails when the look ray
  * hits the floor in front of a mob's bounding-box center.
+ *
+ * <p>Detection and ranking are separate concerns. Detection stays ray–AABB; ranking prefers a body the
+ * ray truly entered, and only sorts the aim-assist grazes by crosshair angle. Every ordering key is
+ * followed by the entity id, so a tie can never be decided by entity iteration order.
+ *
+ * <p>Shared by Todo's swap and three Nobara paths, so any change here is a roster-wide gameplay change.
  */
 public final class TargetResolver {
 	/** Soft aim-assist padding around living hitboxes (blocks). */
@@ -42,10 +48,16 @@ public final class TargetResolver {
 	 * @param center bounding-box center (debug / VFX)
 	 * @param radius half-extent used by pure tests
 	 * @param hitDistance distance from eye origin to the ray–AABB hit along the segment
+	 * @param pierced whether the aim ray entered the real hitbox rather than only the aim-assist pad
 	 */
-	public record EntityCandidate(int entityId, Vec3 center, double radius, double hitDistance) {
+	public record EntityCandidate(int entityId, Vec3 center, double radius, double hitDistance, boolean pierced) {
+		/** Aim assist is the exception, so a candidate counts as a real hit unless it says otherwise. */
+		public EntityCandidate(int entityId, Vec3 center, double radius, double hitDistance) {
+			this(entityId, center, radius, hitDistance, true);
+		}
+
 		public EntityCandidate(int entityId, Vec3 center, double radius) {
-			this(entityId, center, radius, center.length());
+			this(entityId, center, radius, center.length(), true);
 		}
 	}
 
@@ -99,8 +111,20 @@ public final class TargetResolver {
 				// Must be reached before the first solid block along the aim segment.
 				.filter(candidate -> candidate.hitDistance() <= blockDistance + 1.0E-3)
 				.min(Comparator
-						.comparingDouble(EntityCandidate::hitDistance)
-						.thenComparingDouble(candidate -> perpendicularDistance(origin, direction, candidate.center())));
+						// A body the ray actually entered always beats one only the aim-assist pad caught,
+						// so assist can never steal the target from what the player is looking straight at.
+						.comparing((EntityCandidate candidate) -> !candidate.pierced())
+						// Real hits rank by depth along the ray. Assist-only grazes rank by how far off the
+						// crosshair they sit — that is the "closest to the crosshair" rule, and it is the key
+						// that used to be unreachable: it sat behind an exact-equality test on hitDistance,
+						// which two real entities essentially never satisfy.
+						.thenComparingDouble(candidate -> candidate.pierced()
+								? candidate.hitDistance()
+								: angularOffset(origin, direction, candidate.center()))
+						.thenComparingDouble(EntityCandidate::hitDistance)
+						// Final key: without it a perfectly tied pair is decided by entity-section iteration
+						// order, which changes as entities move, so the target could flip between ticks.
+						.thenComparingInt(EntityCandidate::entityId));
 
 		if (entity.isPresent()) {
 			EntityCandidate candidate = entity.get();
@@ -121,8 +145,8 @@ public final class TargetResolver {
 	}
 
 	private static Optional<EntityCandidate> toCandidate(Entity entity, Vec3 origin, Vec3 end, double blockDistance) {
-		AABB box = entity.getBoundingBox().inflate(ENTITY_HITBOX_INFLATE);
-		Optional<Vec3> hit = box.clip(origin, end);
+		AABB bounds = entity.getBoundingBox();
+		Optional<Vec3> hit = bounds.inflate(ENTITY_HITBOX_INFLATE).clip(origin, end);
 		if (hit.isEmpty()) {
 			return Optional.empty();
 		}
@@ -130,15 +154,25 @@ public final class TargetResolver {
 		if (hitDistance > blockDistance + 1.0E-3) {
 			return Optional.empty();
 		}
-		AABB bounds = entity.getBoundingBox();
 		double radius = Math.max(bounds.getXsize(), Math.max(bounds.getYsize(), bounds.getZsize())) * 0.5;
-		return Optional.of(new EntityCandidate(entity.getId(), bounds.getCenter(), radius, hitDistance));
+		// The second clip is against the real box, so ranking can tell a genuine hit from assist padding.
+		boolean pierced = bounds.clip(origin, end).isPresent();
+		return Optional.of(new EntityCandidate(entity.getId(), bounds.getCenter(), radius, hitDistance, pierced));
 	}
 
-	private static double perpendicularDistance(Vec3 origin, Vec3 direction, Vec3 point) {
+	/**
+	 * Sine of the angle between the aim direction and the candidate, which is monotonic in that angle
+	 * over the only range candidates can occupy — they all lie ahead of the origin along the segment.
+	 * Distance-normalized on purpose: a raw perpendicular distance would punish far targets for being far.
+	 */
+	private static double angularOffset(Vec3 origin, Vec3 direction, Vec3 point) {
 		Vec3 offset = point.subtract(origin);
+		double length = offset.length();
+		if (length < 1.0E-5) {
+			return 0.0;
+		}
 		Vec3 projected = direction.scale(Math.max(0.0, offset.dot(direction)));
-		return offset.subtract(projected).length();
+		return offset.subtract(projected).length() / length;
 	}
 
 	private static Vec3 safeDirection(Vec3 vector) {

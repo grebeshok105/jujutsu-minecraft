@@ -56,6 +56,8 @@ Anyone profiling SDF/MSDF batching must treat interleaving as the requirement. R
 | Fixed scale space | 2 | `ClickGui.FIXED_GUI_SCALE` |
 | Open animation | 250 ms default | `ClickGui.openAnimation`, `GuiAnimation.ms` |
 | Sidebar width | 92 px before content | `ClickGui` `contentX = bgX + 92f` |
+| Drag handle height | 38 px | `ClickGui.DRAG_HANDLE_HEIGHT` |
+| Handle kept reachable | 24 px | `ClickGui.MIN_HANDLE_VISIBLE` |
 
 ## Open path
 
@@ -63,11 +65,45 @@ Key N (`key.jujutsumod.modern_menu`, default `InputConstants.KEY_N`) → `Jujuts
 
 `toggleModern` closes the ClickGui if it is already the current screen, does nothing if some other screen is open, and logs `ClickGui failed to initialize` if the manager returns null. There is no fallback screen — the retired `ModernMenuScreen` no longer exists.
 
+The screen is a singleton (`ClickGui.INSTANCE`), which is why the dragged panel position survives close and reopen without any persistence layer.
+
+## Panel drag
+
+Left mouse grabs the 38 px header band; middle mouse keeps the whole 400 × 250 rect as a grab surface, as it always did. The header is the only band of the panel with no click target of its own, and the drag branch in `mouseClicked` sits **after** every interactive handler, so a tab, a roster card, or the confirm button always wins the press.
+
+Two things about the geometry are worth keeping straight, because both were bugs:
+
+- **No scale conversion.** `ClickGui` used to divide the drag offset by `Render2D.getScaleMultiplier()` (`2 / guiScale`) while `DragHandler` accumulated raw mouse deltas. That is only correct at GUI scale 2: the panel lagged the cursor at scale 1 and outran it 2× at scale 4. Mouse coordinates, the screen's `width`/`height`, and the SDF surfaces all live in one GUI-scaled space, so the conversion was never needed and is gone.
+- **One origin accessor.** `panelOriginX()` / `panelOriginY()` are read by both `render` and `mouseClicked`, so the offset can never be applied to drawing and not to hit testing.
+
+`DragHandler` is now pure geometry in screen pixels: no `IMinecraft`, no GLFW polling, no live window. The screen owns the input and feeds it in through the vanilla `mouseDragged` event. The offset is recomputed from the grab point rather than accumulated, so a dropped motion event cannot make the panel creep, and `clampTo` confines it so at least 24 px of the handle stays reachable — called on every drag step and again from `init()`, which also runs on window resize. `endDrag` happens on release **before** the closing gate, and again in `onClose` and `init`; previously a release during the close animation left `dragging = true`, so reopening resumed a drag with no button held.
+
+Position is session-only by decision: the project has no UI-state persistence and none was added for this.
+
+`DragHandlerTest` (Gradle task `testClickGuiDrag`) covers the grab region, one-to-one travel, no double-apply on a repeated position, release, regrab without a jump, both clamp axes including an inverted range, and reset. It runs without a Minecraft instance — that is the payoff of dropping the GLFW dependency.
+
+## Vanilla crosshair while the menu is open
+
+The crosshair was not merely under the menu, it was drawn **over** it. This is the ordering fact to remember:
+
+- `Gui.render` calls `renderCrosshair` with no open-screen gate — vanilla relies on the inventory being drawn after it.
+- That blit is only *recorded* into the GUI render state, then rasterized by `GuiRenderer` at the very end of `GameRenderer.render`, i.e. after Screen rendering.
+- The ClickGui instead rasterizes **immediately**, inside `SdfRenderer.flush()` (see the per-rect flush constraint above). Its pixels are already on the framebuffer when the crosshair composites on top — with `BlendFunction.INVERT` (INFERRED from the vanilla draw), which is why the crosshair reads through the panel instead of being covered by it.
+
+So raising the scrim alpha could never have fixed it. An opaque scrim is still just earlier pixels; the crosshair lands after them regardless. Declining the draw is the only mechanism that works.
+
+`ClickGuiHud.register()`, called once from `JujutsuModClient`, wraps `VanillaHudElements.CROSSHAIR` through `HudElementRegistry.replaceElement` and returns early while `Minecraft.getInstance().screen instanceof ClickGui`. Notes on the choice:
+
+- No mixin and no seventh entry in the client mixin config — Fabric already wraps vanilla's `renderCrosshair` call site.
+- **Replace, not remove.** The vanilla element stays one condition away, so nothing has to be restored on close and an abnormal close cannot leak a permanently hidden crosshair.
+- The gate is true for the whole close animation as well, since the screen stays set until the panel has faded; popping the crosshair back mid-fade would read as a flicker.
+- Every other HUD element, third-person mode, and the F3 debug crosshair are untouched.
+
 ## Modules
 
-`JujutsuModules.registerAll` registers exactly **two** `ModuleStructure` entries — `Nobara` and `None`, both in `ModuleCategory.COMBAT` (the sidebar renders that category as "Characters"). Their in-source purpose is to keep the module repository non-empty; the visible roster is drawn by `CharacterRosterPanel`, which is the only path that sends `SelectCharacterPayload`. Module toggles are UI state and are not server-authoritative.
+`JujutsuModules.registerAll` registers **three** `ModuleStructure` entries — `Nobara`, `Todo`, and `None`, all in `ModuleCategory.COMBAT` (the sidebar renders that category as "Characters"). Their in-source purpose is to keep the module repository non-empty; the visible roster is drawn by `CharacterRosterPanel`, which is the only path that sends `SelectCharacterPayload`. Module toggles are UI state and are not server-authoritative.
 
-Note the asymmetry: the module list still has no Todo entry even though the roster panel has three cards. INFERRED: harmless, since the modules are placeholders, but it will look like a bug to the next reader.
+The old asymmetry — two modules against three roster cards, which read like a bug — is gone. `ProjectSanityTest.assertClickGuiModulesCoverEveryVessel` now derives the expected vessel list from `JujutsuCharacter` source rather than hardcoding it, so a new constant fails that check the way a missing renderer already fails compilation in `CharacterGeoRenderers`, and the count catches the reverse case of a module with no vessel.
 
 ## Shaders present but not live
 

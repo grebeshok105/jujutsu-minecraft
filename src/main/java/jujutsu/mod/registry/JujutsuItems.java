@@ -2,7 +2,9 @@ package jujutsu.mod.registry;
 
 import java.util.List;
 
+import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -13,6 +15,7 @@ import jujutsu.mod.character.nobara.projectjjk.ProjectJjkHammerItem;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailItem;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkRemnantItem;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollItem;
+import jujutsu.mod.character.todo.TodoSwapMarkerItem;
 import jujutsu.mod.JujutsuMod;
 
 public final class JujutsuItems {
@@ -22,6 +25,8 @@ public final class JujutsuItems {
 	public static final Item PROJECTJJK_STRAW_DOLL_HAMMER = createProjectJjkHammer("projectjjk_straw_doll_hammer", new Item.Properties().stacksTo(1).durability(256));
 	public static final Item RESONANCE_REMNANT = createProjectJjkRemnant("resonance_remnant", new Item.Properties().stacksTo(1));
 	public static final Item STRAW_DOLL = createProjectJjkStrawDoll("straw_doll", strawDollProperties());
+	/** Single-stack on purpose: see TodoSwapMarkerItem for why the empty-hands gate depends on it. */
+	public static final Item TODO_SWAP_MARKER = createTodoSwapMarker("todo_swap_marker", new Item.Properties().stacksTo(1));
 
 	private JujutsuItems() {}
 
@@ -32,6 +37,11 @@ public final class JujutsuItems {
 		register("projectjjk_straw_doll_hammer", PROJECTJJK_STRAW_DOLL_HAMMER);
 		register("resonance_remnant", RESONANCE_REMNANT);
 		register("straw_doll", STRAW_DOLL);
+		register("todo_swap_marker", TODO_SWAP_MARKER);
+		// Todo ships without a starter loadout by decision, so the marker would otherwise be reachable
+		// only through /give. A creative entry makes the technique usable without deciding its survival
+		// acquisition, which is still open.
+		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.COMBAT).register(entries -> entries.accept(TODO_SWAP_MARKER));
 	}
 
 	private static Item createProjectJjkNail(String path, Item.Properties properties) {
@@ -52,6 +62,11 @@ public final class JujutsuItems {
 	private static Item createProjectJjkStrawDoll(String path, Item.Properties properties) {
 		ResourceKey<Item> key = ResourceKey.create(BuiltInRegistries.ITEM.key(), JujutsuMod.id(path));
 		return new ProjectJjkStrawDollItem(properties.setId(key));
+	}
+
+	private static Item createTodoSwapMarker(String path, Item.Properties properties) {
+		ResourceKey<Item> key = ResourceKey.create(BuiltInRegistries.ITEM.key(), JujutsuMod.id(path));
+		return new TodoSwapMarkerItem(properties.setId(key));
 	}
 
 	private static Item.Properties strawDollProperties() {

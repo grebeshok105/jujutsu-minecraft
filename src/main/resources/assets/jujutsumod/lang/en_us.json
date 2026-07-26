@@ -86,5 +86,9 @@
   "message.jujutsumod.todo.boogie.invalid_target": "Target is no longer valid.",
   "message.jujutsumod.todo.boogie.out_of_range": "Target is out of range.",
   "message.jujutsumod.todo.boogie.unsafe": "No safe swap destination was found.",
-  "message.jujutsumod.todo.boogie.hands_full": "Boogie Woogie needs both hands empty."
+  "message.jujutsumod.todo.boogie.hands_full": "Boogie Woogie needs both hands empty.",
+  "item.jujutsumod.todo_swap_marker": "Boogie Woogie Marker",
+  "message.jujutsumod.todo.pair.marked": "Marked %s for the swap.",
+  "message.jujutsumod.todo.pair.cancelled": "Swap mark cleared.",
+  "message.jujutsumod.todo.pair.lost": "The marked target is gone."
 }

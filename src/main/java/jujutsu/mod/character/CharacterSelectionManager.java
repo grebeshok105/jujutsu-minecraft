@@ -26,6 +26,10 @@ public final class CharacterSelectionManager {
 		if (character == JujutsuCharacter.NOBARA) {
 			ProjectJjkNobaraLoadout.ensureStarterTools(player);
 		}
+		// Leaving the vessel mid-setup must not leave anything behind for a later cast to consume, nor a
+		// glowing body or a resting marker in the world with no owner who can use it.
+		jujutsu.mod.character.todo.TodoPairSwapRuntime.forget(player.getUUID());
+		jujutsu.mod.character.todo.TodoSwapMarks.clear(player.getServer(), player.getUUID());
 		broadcast(player.getServer(), player.getUUID(), character);
 	}
 

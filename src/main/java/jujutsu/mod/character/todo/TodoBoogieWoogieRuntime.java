@@ -14,14 +14,12 @@ import net.minecraft.world.entity.Leashable;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Relative;
 import net.minecraft.world.entity.decoration.ArmorStand;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.character.JujutsuCharacter;
-import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuSounds;
@@ -35,14 +33,19 @@ public final class TodoBoogieWoogieRuntime {
 	private TodoBoogieWoogieRuntime() {}
 
 	public static boolean tryCast(ServerPlayer todo, CharacterAbility ability, boolean notify) {
-		if (ability != CharacterAbility.PRIMARY || todo.isSpectator() || !todo.isAlive()
-				|| TodoTargetSafety.hasUnsafeTransportState(todo.isPassenger(), todo.isVehicle(), false)
-				|| CombatStagger.GLOBAL.isStaggered(todo.getUUID(), todo.level().getGameTime())) {
+		if (ability != CharacterAbility.PRIMARY) {
 			return false;
 		}
-		// Authoritative empty-hands gate: any held item blocks the swap with no partial effects.
-		if (!isEmptyHand(todo.getMainHandItem()) || !isEmptyHand(todo.getOffhandItem())) {
-			return reject(todo, notify, "message.jujutsumod.todo.boogie.hands_full", "item in main or off hand");
+		// Shared with the feint, so the two casts cannot be told apart by which of them gets refused.
+		switch (TodoSwapGates.evaluate(todo)) {
+			case UNAVAILABLE -> {
+				return false;
+			}
+			case HANDS_FULL -> {
+				return reject(todo, notify, "message.jujutsumod.todo.boogie.hands_full", "item in main or off hand");
+			}
+			case ALLOWED -> {
+			}
 		}
 		ServerLevel level = todo.level();
 		JujutsuMod.LOGGER.debug("Todo Boogie Woogie attempt player={} range={}",
@@ -51,6 +54,11 @@ public final class TodoBoogieWoogieRuntime {
 		TargetResolver.Result aimed = TargetResolver.resolve(level, todo, TodoProfile.BOOGIE_WOOGIE_RANGE,
 				candidate -> isEligibleTarget(todo, candidate));
 		if (aimed.mode() != TargetResolver.Mode.ENTITY || aimed.entityId().isEmpty()) {
+			// Nothing eligible under the crosshair: fall back to a live thrown mark before refusing. An
+			// enemy in the crosshair is what the player meant, so the mark only ever gets what is left.
+			if (TodoMarkerSwapRuntime.hasMark(todo, level)) {
+				return TodoMarkerSwapRuntime.swapWithMark(todo, level, notify);
+			}
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.no_target",
 					"no aimed target mode=" + aimed.mode());
 		}
@@ -80,8 +88,8 @@ public final class TodoBoogieWoogieRuntime {
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.invalid_target", "entity changed before commit");
 		}
 
-		boolean todoPlaced = place(todo, level, plan.get().todoDestination(), todoSnapshot);
-		boolean targetPlaced = todoPlaced && place(target, level, plan.get().targetDestination(), targetSnapshot);
+		boolean todoPlaced = place(todo, level, plan.get().firstDestination(), todoSnapshot);
+		boolean targetPlaced = todoPlaced && place(target, level, plan.get().secondDestination(), targetSnapshot);
 		if (!todoPlaced || !targetPlaced) {
 			boolean todoRestored = restore(todo, todoSnapshot);
 			boolean targetRestored = restore(target, targetSnapshot);
@@ -102,11 +110,12 @@ public final class TodoBoogieWoogieRuntime {
 		JujutsuNetworking.sendAbilityCooldown(todo, JujutsuCharacter.TODO, CharacterAbility.PRIMARY, TodoProfile.BOOGIE_WOOGIE_COOLDOWN_TICKS);
 		emitSwapFeedback(level, todo, todoSnapshot.position(), targetSnapshot.position());
 		JujutsuMod.LOGGER.debug("Todo Boogie Woogie success player={} target={} from={} to={}",
-				todo.getGameProfile().getName(), target.getName().getString(), todoSnapshot.position(), plan.get().todoDestination());
+				todo.getGameProfile().getName(), target.getName().getString(), todoSnapshot.position(), plan.get().firstDestination());
 		return true;
 	}
 
-	private static boolean isEligibleTarget(ServerPlayer todo, LivingEntity target) {
+	/** Shared with the pair swap, so a bystander is never held to a laxer standard than a direct target. */
+	static boolean isEligibleTarget(ServerPlayer todo, LivingEntity target) {
 		boolean leashed = target instanceof Leashable leashable && leashable.isLeashed();
 		return target != todo
 				&& target.isAlive()
@@ -167,11 +176,11 @@ public final class TodoBoogieWoogieRuntime {
 		return entity.getDimensions(entity.getPose()).makeBoundingBox(candidate);
 	}
 
-	private static boolean place(LivingEntity entity, ServerLevel level, Vec3 destination, Snapshot snapshot) {
+	static boolean place(LivingEntity entity, ServerLevel level, Vec3 destination, Snapshot snapshot) {
 		return entity.teleportTo(level, destination.x, destination.y, destination.z, Set.<Relative>of(), snapshot.yaw(), snapshot.pitch(), false);
 	}
 
-	private static boolean restore(LivingEntity entity, Snapshot snapshot) {
+	static boolean restore(LivingEntity entity, Snapshot snapshot) {
 		if (entity.level() != snapshot.level()) {
 			return false;
 		}
@@ -182,7 +191,7 @@ public final class TodoBoogieWoogieRuntime {
 		return placed;
 	}
 
-	private static void restoreMotionAndRotation(LivingEntity entity, Snapshot snapshot) {
+	static void restoreMotionAndRotation(LivingEntity entity, Snapshot snapshot) {
 		entity.forceSetRotation(snapshot.yaw(), snapshot.pitch());
 		entity.setYHeadRot(snapshot.headYaw());
 		entity.setDeltaMovement(snapshot.velocity());
@@ -190,27 +199,37 @@ public final class TodoBoogieWoogieRuntime {
 	}
 
 	private static void emitSwapFeedback(ServerLevel level, ServerPlayer todo, Vec3 todoOrigin, Vec3 targetOrigin) {
-		long gameTime = level.getGameTime();
 		Vec3 pairDelta = targetOrigin.subtract(todoOrigin);
-		// Clap first, so it is never later than the swap it announces.
-		level.playSound(null, todoOrigin.x, todoOrigin.y, todoOrigin.z, JujutsuSounds.PROJECTJJK_CLAP, SoundSource.PLAYERS,
-				TodoProfile.BOOGIE_WOOGIE_CLAP_VOLUME, TodoProfile.BOOGIE_WOOGIE_CLAP_PITCH);
-		// Performance cue: caster-anchored with a zero offset, so it carries no endpoint geometry.
-		JujutsuNetworking.broadcastVfxCue(level, todoOrigin, TodoProfile.BOOGIE_WOOGIE_CUE_RADIUS,
-				new VfxCue(TodoVfxIds.BOOGIE_WOOGIE, todoOrigin, todo.getId(), Vec3.ZERO, 1, gameTime, todo.getRandom().nextLong(), pairDelta));
+		emitClapPerformance(level, todo, todoOrigin, pairDelta);
 		// One absolute endpoint per moved body; only the leading one carries the pair delta the ribbon spans.
+		long gameTime = level.getGameTime();
 		broadcastSwapEndpoint(level, todo, todoOrigin, pairDelta, gameTime);
 		broadcastSwapEndpoint(level, todo, targetOrigin, Vec3.ZERO, gameTime);
 		scheduleMoveSound(level, todoOrigin);
 		scheduleMoveSound(level, targetOrigin);
 	}
 
-	private static void broadcastSwapEndpoint(ServerLevel level, ServerPlayer todo, Vec3 endpoint, Vec3 pairDelta, long gameTime) {
+	/**
+	 * Everything an observer sees and hears of the clap itself, with nothing about the swap in it.
+	 * The feint calls exactly this method, which is what makes the two casts share one timing instead
+	 * of two implementations that have to be kept in step by hand.
+	 */
+	static void emitClapPerformance(ServerLevel level, ServerPlayer todo, Vec3 origin, Vec3 aim) {
+		// Clap first, so it is never later than the swap it announces.
+		level.playSound(null, origin.x, origin.y, origin.z, JujutsuSounds.PROJECTJJK_CLAP, SoundSource.PLAYERS,
+				TodoProfile.BOOGIE_WOOGIE_CLAP_VOLUME, TodoProfile.BOOGIE_WOOGIE_CLAP_PITCH);
+		// Performance cue: caster-anchored with a zero offset, so it carries no endpoint geometry.
+		JujutsuNetworking.broadcastVfxCue(level, origin, TodoProfile.BOOGIE_WOOGIE_CUE_RADIUS,
+				new VfxCue(TodoVfxIds.BOOGIE_WOOGIE, origin, todo.getId(), Vec3.ZERO, 1, level.getGameTime(),
+						todo.getRandom().nextLong(), aim));
+	}
+
+	static void broadcastSwapEndpoint(ServerLevel level, ServerPlayer todo, Vec3 endpoint, Vec3 pairDelta, long gameTime) {
 		JujutsuNetworking.broadcastVfxCue(level, endpoint, TodoProfile.BOOGIE_WOOGIE_CUE_RADIUS,
 				new VfxCue(TodoVfxIds.SWAP_ENDPOINT, endpoint, VfxCue.NO_ANCHOR, pairDelta, 1, gameTime, todo.getRandom().nextLong(), pairDelta));
 	}
 
-	private static void scheduleMoveSound(ServerLevel level, Vec3 origin) {
+	static void scheduleMoveSound(ServerLevel level, Vec3 origin) {
 		long dueAt = level.getGameTime() + TodoProfile.BOOGIE_WOOGIE_MOVE_SOUND_DELAY_TICKS;
 		PENDING_MOVE_SOUNDS.add(new PendingSound(level.dimension(), origin, dueAt));
 	}
@@ -240,10 +259,6 @@ public final class TodoBoogieWoogieRuntime {
 	private static final java.util.concurrent.CopyOnWriteArrayList<PendingSound> PENDING_MOVE_SOUNDS = new java.util.concurrent.CopyOnWriteArrayList<>();
 
 	private record PendingSound(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension, Vec3 origin, long dueAt) {}
-
-	private static boolean isEmptyHand(ItemStack stack) {
-		return stack == null || stack.isEmpty();
-	}
 
 	private static boolean reject(ServerPlayer player, boolean notify, String messageKey, String reason) {
 		JujutsuMod.LOGGER.debug("Todo Boogie Woogie rejected player={} reason={}", player.getGameProfile().getName(), reason);
@@ -278,8 +293,8 @@ public final class TodoBoogieWoogieRuntime {
 		return List.copyOf(offsets);
 	}
 
-	private record Snapshot(ServerLevel level, Vec3 position, float yaw, float pitch, float headYaw, Vec3 velocity) {
-		private static Snapshot capture(LivingEntity entity) {
+	record Snapshot(ServerLevel level, Vec3 position, float yaw, float pitch, float headYaw, Vec3 velocity) {
+		static Snapshot capture(LivingEntity entity) {
 			return new Snapshot((ServerLevel) entity.level(), entity.position(), entity.getYRot(), entity.getXRot(), entity.getYHeadRot(), entity.getDeltaMovement());
 		}
 	}

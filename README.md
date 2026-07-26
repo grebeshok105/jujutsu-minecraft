@@ -7,7 +7,8 @@ A Fabric 1.21.8 combat mod built around a small number of deeply designed Jujuts
 - Playable vessels: Nobara, Todo, and None.
 - Menu: press N to open ClickGui, choose a vessel, then confirm it.
 - Nobara actions: R for directed Hairpin, B for mass Hairpin, Shift+R for Self Resonance, Shift+B for Nail Trap, and left click with the hammer for contextual melee.
-- Todo actions: R for Boogie Woogie (server-authoritative self↔target swap); vanilla melee with Todo modifiers and Black Flash bridge.
+- Todo actions: R for Boogie Woogie (server-authoritative self↔target swap, falling back to a thrown mark when nothing is under the crosshair), Shift+R for a feint clap that looks and sounds identical but moves nobody, B twice to swap two bystanders with each other; vanilla melee with Todo modifiers and Black Flash bridge.
+- Todo can throw a Boogie Woogie Marker: where it lands becomes a swap destination for ten seconds, and a body it strikes glows and becomes one instead. Every Todo clap still needs both hands empty, which is why the marker is consumed as it leaves the hand.
 - Gameplay authority is server-side; rendering, menus, particles, camera work, and client animation stay under src/client.
 - Character selection persists through reconnects and restarts. The Nobara starter kit is granted once per player; Todo has no starter items in this slice.
 - The current target is private play for one or two people, not a public competitive server. Several accepted tradeoffs follow from that.

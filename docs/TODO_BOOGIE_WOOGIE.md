@@ -67,7 +67,7 @@ Boogie Woogie calls the shared `TargetResolver` with Todo-specific validation.
 Allowed: other players and ordinary living mobs.
 Rejected: Todo, dead entities, spectators, armor stands, removed/technical entities, passengers, vehicles, leashed entities, different-world entities, out-of-range entities, blocked line-of-sight candidates, and invalid positions.
 
-Selection is server-side from Todo's eye ray. Candidates must be before the first solid block hit, inside the `TodoProfile.BOOGIE_WOOGIE_RANGE` reach of 20 blocks (matching the profile table above — an earlier revision of this line said 24, which never matched the constant), and inside the ray sweep. Ranking is by depth along the ray, with perpendicular distance to the aim line as the tie-break; that ordering is shared with Nobara's abilities, so see E1b in [KNOWN_ISSUES.md](KNOWN_ISSUES.md) before changing it.
+Selection is server-side from Todo's eye ray. Candidates must be before the first solid block hit, inside the `TodoProfile.BOOGIE_WOOGIE_RANGE` reach of 20 blocks (matching the profile table above — an earlier revision of this line said 24, which never matched the constant), and inside the ray sweep. Ranking prefers a body the ray actually entered over one only the aim-assist pad caught, then depth along the ray for real hits and crosshair angle for assist-only grazes, then entity id; the design's original "closest to the crosshair" fallback was dead until that was fixed. That ordering is shared with Nobara's abilities, so see E1b in [KNOWN_ISSUES.md](KNOWN_ISSUES.md) before changing it.
 
 ### Atomic safe swap
 

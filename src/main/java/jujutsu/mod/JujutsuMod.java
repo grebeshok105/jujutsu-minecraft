@@ -53,6 +53,8 @@ public class JujutsuMod implements ModInitializer {
 		NobaraHammerCombatRuntime.register();
 		TodoBlackFlashRuntime.register();
 		jujutsu.mod.character.todo.TodoBoogieWoogieRuntime.register();
+		jujutsu.mod.character.todo.TodoPairSwapRuntime.register();
+		jujutsu.mod.character.todo.TodoSwapMarks.register();
 		NobaraActionGuard.register();
 		SelfResonanceRuntime.register();
 		NailTrapRuntime.register();
