@@ -15,6 +15,15 @@ Durable product state lives in AGENTS.md under "Current slice (facts)" and, for 
 - `codex/vfx-director-prototype` holds one commit adding a standalone HTML sandbox under a documentation directory the audit forbids. Merging it fails `qualityGate` on the spot. Keep it as a scratch reference or delete it; it cannot land as is.
 - `worktree-neon-gui` is checked out by an editor workspace outside this repository's `.worktrees`, so git will not let it go. It is fully contained in `main`.
 
+## On the active branch — ArchUnit boundaries
+
+Stage 3. Six structural rules plus one pinning test, all reading compiled bytecode, both outputs imported separately so the split source sets are never fused into one graph.
+
+- **A real defect fell out of the first run, and no source-text check could have found it.** `JujutsuNetworking` calls `SelfResonanceRuntime.select` through an inline fully qualified name — no `import` line to grep. Recorded as E13; not fixed here, because this branch is test infrastructure.
+- **The exception for it is self-liquidating.** `theOneKnownNetworkLeakDoesNotGrow` pins the exact set of vessel classes the network layer may touch. It fails if a second vessel follows, and it fails when the leak is fixed — the second failure is the point.
+- **Rule 1 was rewritten after measurement.** `src/main` cannot depend on client code at all: both `net.minecraft.client` and `jujutsu.mod.client` are off its compile classpath, so an attempt is a compile error and any such rule would be unable to fail. What the compiler misses is a file under `src/main/java` that simply declares a client package — it compiles and lands in the server output. That is what the rule now checks, and it is provable.
+- **Two grep-assertions removed, and only two.** Everything about textures, models, JSON, sounds and localization stays a file read. Enum-constant branching such as `JujutsuCharacter.NOBARA` in the input layer is not expressible in ArchUnit, so those assertions stay too.
+
 ## Landed on main — the JUnit foundation
 
 Stage 2 of the barrier plan. Foundation only: **no existing `JavaExec` program was migrated**, so all 34 keep running exactly as before.

@@ -148,6 +148,14 @@ Action: centralize per-server state or add lifecycle/TTL cleanup with tests.
 
 ## Medium-priority work
 
+### E13 — the curse-link receiver is installed from the shared network layer
+
+`JujutsuNetworking.registerServerReceivers` registers the `SelectCurseLinkPayload` receiver by calling `jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime.select` through an inline fully qualified name. That is a vessel runtime reached directly from shared code, which the vessel seam forbids; it belongs in `NobaraDefinition.registerServerHooks`, beside the seven runtimes already installed there.
+
+It survived every source-text check for two reasons. The inline fully qualified name means no `import` line to grep, and `NobaraAbilitySlotsTest` asserted the call was present — protecting the packet from deletion, but pinning its registration site as a side effect. That half of the assertion is gone; the packet itself is still required to exist.
+
+Found by the first ArchUnit pass, not by review. `VesselBoundaryTest#theOneKnownNetworkLeakDoesNotGrow` pins the exact set of vessel classes the network layer may touch, so a second vessel cannot follow, and the test fails once this is fixed — which is the signal to delete both it and the allowlist entry beside it.
+
 ### E4 — VFX delivery is transient and radius-filtered
 
 Clients outside the broadcast radius at cast time do not receive a cue. This is acceptable for most short effects, but critical long-lived visuals need explicit state or catch-up rather than wider blind broadcast.
