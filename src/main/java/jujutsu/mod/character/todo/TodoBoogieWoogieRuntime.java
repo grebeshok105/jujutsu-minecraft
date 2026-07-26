@@ -228,9 +228,32 @@ public final class TodoBoogieWoogieRuntime {
 		long gameTime = level.getGameTime();
 		broadcastSwapEndpoint(level, todo, ribbonFrom, ribbonTo.subtract(ribbonFrom), gameTime);
 		broadcastSwapEndpoint(level, todo, ribbonTo, Vec3.ZERO, gameTime);
+		for (MovedBody body : moved) {
+			broadcastAfterimage(level, todo, body, gameTime);
+			broadcastArrival(level, todo, body, gameTime);
+		}
 		scheduleDisplacementWhoosh(level, ribbonFrom);
 		scheduleDisplacementWhoosh(level, ribbonTo);
 		scheduleLandingReport(level, arrivalMidpoint(moved, ribbonTo));
+	}
+
+	/** The residue at the vacated spot, sized and turned like the body that stood there. */
+	private static void broadcastAfterimage(ServerLevel level, ServerPlayer todo, MovedBody body, long gameTime) {
+		Snapshot snapshot = body.snapshot();
+		JujutsuNetworking.broadcastVfxCue(level, snapshot.position(), TodoProfile.BOOGIE_WOOGIE_CUE_RADIUS,
+				new VfxCue(TodoVfxIds.SWAP_AFTERIMAGE, snapshot.position(), VfxCue.NO_ANCHOR,
+						new Vec3(snapshot.bbWidth(), snapshot.bbHeight(), snapshot.yaw()), 1, gameTime,
+						todo.getRandom().nextLong(), body.destination().subtract(snapshot.position())));
+	}
+
+	/** The landing. Speed rides in the offset because a cue normalizes its direction. */
+	private static void broadcastArrival(ServerLevel level, ServerPlayer todo, MovedBody body, long gameTime) {
+		Snapshot snapshot = body.snapshot();
+		Vec3 velocity = snapshot.velocity();
+		JujutsuNetworking.broadcastVfxCue(level, body.destination(), TodoProfile.BOOGIE_WOOGIE_CUE_RADIUS,
+				new VfxCue(TodoVfxIds.SWAP_ARRIVAL, body.destination(), VfxCue.NO_ANCHOR,
+						new Vec3(velocity.length(), snapshot.bbWidth(), snapshot.bbHeight()), 1, gameTime,
+						todo.getRandom().nextLong(), velocity));
 	}
 
 	/** Where the swap finished, as one point: the average of every destination a body actually reached. */
@@ -342,9 +365,16 @@ public final class TodoBoogieWoogieRuntime {
 		return List.copyOf(offsets);
 	}
 
-	record Snapshot(ServerLevel level, Vec3 position, float yaw, float pitch, float headYaw, Vec3 velocity) {
+	/**
+	 * Everything about a body from before it was moved. The bounding box travels with it because the
+	 * afterimage is drawn where the body <em>used</em> to be, by which time the live entity is standing
+	 * somewhere else, possibly in a different pose.
+	 */
+	record Snapshot(ServerLevel level, Vec3 position, float yaw, float pitch, float headYaw, Vec3 velocity,
+			float bbWidth, float bbHeight) {
 		static Snapshot capture(LivingEntity entity) {
-			return new Snapshot((ServerLevel) entity.level(), entity.position(), entity.getYRot(), entity.getXRot(), entity.getYHeadRot(), entity.getDeltaMovement());
+			return new Snapshot((ServerLevel) entity.level(), entity.position(), entity.getYRot(), entity.getXRot(),
+					entity.getYHeadRot(), entity.getDeltaMovement(), entity.getBbWidth(), entity.getBbHeight());
 		}
 	}
 }

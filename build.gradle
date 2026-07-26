@@ -344,7 +344,29 @@ tasks.register('testCharacterClients', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testVfxSoundDuck', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for the swap sound duck ownership and deadlines'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.client.vfx.VfxSoundDuckTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
+tasks.register('testVfxSilhouette', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for swap afterimage silhouette geometry'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.client.vfx.VfxWorldSilhouetteTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.named('check') {
+	dependsOn tasks.named('testVfxSoundDuck')
+	dependsOn tasks.named('testVfxSilhouette')
 	dependsOn tasks.named('testCharacterClients')
 	dependsOn tasks.named('testCharacterDefinitions')
 	dependsOn tasks.named('testNobaraAbilitySlots')
