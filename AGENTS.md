@@ -28,12 +28,13 @@ This block is the single owner of current-slice facts. `README.md` keeps only th
 
 - Playable vessels: **Nobara** (nails, hammer, Hairpin, Resonance, traps, Black Flash path), **Todo** (Boogie Woogie swap, heavy vanilla melee, shared Black Flash bridge), and **None**
 - Nobara controls: `R` directed Hairpin, `B` mass Hairpin, `Shift+R` Self Resonance, `Shift+B` Nail Trap, hammer left click contextual melee
-- Todo controls: `R` Boogie Woogie (server-authoritative self↔target swap); vanilla melee with Todo attribute modifiers
-- Todo has no starter loadout in this slice; baseline tuning lives in `TodoProfile`
+- Todo controls: `R` Boogie Woogie (server-authoritative self↔target swap, falling back to a live thrown mark when nothing eligible is under the crosshair), `Shift+R` feint clap (the full clap performance with no swap behind it), `B` pair swap (first cast marks a bystander, second swaps the pair while Todo stays put); vanilla melee with Todo attribute modifiers
+- Todo's slots are mapped by `TodoAbilityRouter` over an exhaustive `CharacterAbility` switch, so a new slot fails compilation instead of falling into the swap. `CharacterAbility` network ids are wire format: append, never renumber
+- Todo has no starter loadout in this slice; the `todo_swap_marker` item is obtainable only by giving it. Baseline tuning lives in `TodoProfile`
 - Both vessels render through GeckoLib replaced-player renderers resolved by `CharacterGeoRenderers` and dispatched from `CharacterRenderDispatchMixin`
 - Vessel render code is shared: `CharacterPlayerGeoRenderer` (render entry + pose-stack guard), `CharacterPlayerGeoModel` (arm pose + clamped head look), `CharacterHeldItemLayer` (hand attachments). A new vessel supplies assets and hooks, not a copied render stack
 - Transient combat VFX: **VFX Core** only (`VfxCue` → director → recipes), registered through `JujutsuVfxRecipes.registerAll()`
-- Player menu: **Key N → ClickGui**; sidebar **Characters** (live) + **Soon...** placeholders (non-clickable)
+- Player menu: **Key N → ClickGui**; sidebar **Characters** (live) + **Soon...** placeholders (non-clickable); the panel drags by its header band with left mouse or anywhere on it with middle mouse, its position is session-only, and the vanilla crosshair is declined while the menu owns the screen
 - Character apply: `SelectCharacterPayload` C2S, server-authoritative; selection persists via Fabric Data Attachment API and starter loadout claims are one-time
 - UI theme: orange/slate via `ClickGuiTheme`
 - Ordinary loaded embedded nails: 1200-tick TTL, maximum 30 per owner, resolved through `EmbeddedNailRegistry`
@@ -47,6 +48,14 @@ This block is the single owner of current-slice facts. `README.md` keeps only th
 |---|---:|
 | `BOOGIE_WOOGIE_RANGE` | 20.0 blocks |
 | `BOOGIE_WOOGIE_COOLDOWN_TICKS` | 60 (3 s) |
+| `FAKE_CLAP_COOLDOWN_TICKS` | 20 (1 s) |
+| `PAIR_SWAP_COOLDOWN_TICKS` | 100 (5 s) |
+| `PAIR_SELECTION_TTL_TICKS` | 100 (5 s) |
+| `MARKER_THROW_POWER` | 1.35 |
+| `MARKER_FLIGHT_TICKS` | 60 |
+| `MARKER_MARK_TTL_TICKS` | 200 (10 s) |
+| `MARKER_SURFACE_OFFSET` | 0.15 |
+| `MARKER_SWAP_RANGE` | 32.0 blocks |
 | `MELEE_DAMAGE_MULTIPLIER` | 1.50 |
 | `ATTACK_SPEED_MULTIPLIER` | 0.85 |
 | `STAGGER_DURATION_MULTIPLIER` | 0.50 |
@@ -62,6 +71,12 @@ This block is the single owner of current-slice facts. `README.md` keeps only th
 #### Boogie Woogie destination policy (deliberate)
 
 `TodoBoogieWoogieRuntime.findSafeDestination` checks only world bounds, chunk load, world border, and solid-block collision. There is **no floor requirement** and **no third-party entity-occupancy gate** — air, water, crawl, and flight destinations are all valid by design. This is intentional for the current 1–2 player target, not an oversight; the residual debt is tracked in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md). Do not add an occupancy gate without a product decision.
+
+Strictness is the line between Todo's own feel and everyone else's safety. `SOFT` keeps the last-resort fallback to the exact requested point, and only Todo's aimed self↔target swap uses it — that fallback is why mid-air swaps feel good. Every cast that moves a body which did not ask to be moved uses `STRICT` and cancels instead: the pair swap, and both forms of the thrown-mark swap. Do not relax that to make a cast succeed more often.
+
+#### The empty-hands gate is absolute (deliberate)
+
+Any item in either hand refuses every Todo clap, checked in one place — `TodoSwapGates`. Both the real swap and the feint read that same truth table, because a feint that were allowed under conditions the real swap refuses would announce itself. This is also why `todo_swap_marker` is single-stack and consumed on throw rather than whitelisted in the gate: the gate is read at swap time, and by then the throwing hand is empty. Do not turn the rule into a list of permitted items.
 
 ## Non-Negotiable Workflow
 
@@ -148,6 +163,8 @@ No code-first experiments in the main product path unless the user explicitly as
 - Characters tab is the vessel select path; do not reintroduce Neon Dashboard / Key V without an explicit product decision.
 - Panels: project SDF (`SdfRenderer`) via `Render2D` adapters; text: MSDF where wired. Do not claim full original Rich GL pipelines as live.
 - Vessel selection must go through server payloads — no silent client-only authority.
+- Panel geometry lives in **one** GUI-scaled space: mouse coordinates, the screen's `width`/`height`, and the SDF surfaces already agree, so never convert a drag offset or a hit test through `Render2D.getScaleMultiplier()`. Rendering and hit testing must read the panel origin from one accessor, or the two desynchronize. Panel position is session-only — the project has no UI-state persistence.
+- The ClickGui rasterizes **immediately** (`SdfRenderer.flush()` during Screen rendering), while vanilla HUD elements are only recorded during `Gui.render` and rasterized last by `GuiRenderer`. A vanilla HUD element therefore composites **over** the finished menu and no scrim alpha can hide it. Suppress one by conditionally declining its draw through `HudElementRegistry.replaceElement` — never by removing the element, hiding the whole HUD, or adding a HUD mixin.
 
 ## Mandatory VFX Core Contract
 

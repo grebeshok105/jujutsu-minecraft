@@ -74,6 +74,11 @@ This checklist is the owner of the client-smoke scope. It is not automated — n
 - N opens ClickGui; the Characters tab lists Nobara, Todo, and None; Soon placeholders stay non-clickable.
 - Select Todo, confirm it, and check the roster labels are localized rather than raw keys.
 - Reconnect and confirm the selection persisted; confirm the Nobara starter kit is not re-granted on re-selection.
+- Vanilla crosshair is gone the whole time the menu is open, including through the close fade, and is back afterwards. Other HUD elements, third person, and the F3 crosshair are unaffected.
+- Panel drag: left-drag the header band and confirm the panel tracks the cursor one-to-one at GUI scale 1, 2, and 4 — that is the exact case the old scale conversion got wrong. Middle-drag anywhere on the panel does the same.
+- Drag never steals a click: pressing a tab, a roster card, or confirm still activates it instead of grabbing the panel.
+- Drag the panel far off each edge and confirm part of the header stays grabbable; resize the window while it is off-centre and confirm it is pulled back into reach.
+- Release the mouse during the close fade, reopen with N, and confirm the panel is not still following the cursor.
 
 ### Todo — Boogie Woogie (R)
 
@@ -85,6 +90,39 @@ This checklist is the owner of the client-smoke scope. It is not automated — n
 - Cooldown: R is refused for 3 seconds after a success, and is not consumed after a refusal.
 - Out-of-range and no-line-of-sight casts produce the right refusal message.
 
+### Todo — feint clap (Shift+R)
+
+Nothing in the build covers this; it is the only way to check the indistinguishability claim (see the feint section in the Codex note `03-systems/Todo-Boogie-Woogie.md`).
+
+- Shift+R plays the full clap — same animation, same sound, same cue — and moves nobody.
+- With a second player watching: alternate real and feint casts and confirm the two are only tellable by the swap itself, not by any difference in the clap.
+- The caster-only tell (a small dust wisp at chest height) is visible to the caster and to nobody else.
+- Independent cooldowns: a feint does not block or delay R, and R does not block Shift+R.
+- Hands-full and spectator refusals behave identically for R and Shift+R.
+- Known and expected: a real swap teleports at cast time, before the palms meet at 0.39 of the animation, so a feint is already distinguishable at t = 0. Confirm how bad that reads in practice — it is the open product question, not a bug to fix on the spot.
+
+### Todo — pair swap (B twice)
+
+Nothing in the build teleports anything, so every line here is only checkable in game.
+
+- First B on an eligible body: actionbar names it, a caster-only mark burst appears on it, and no cooldown starts — press B on a second body immediately after and it must go through.
+- Second B on a different body: the two trade places, Todo does not move, and the two endpoint bursts land on the bodies that actually moved.
+- Second B back at the marked body: the mark clears with no cooldown taken.
+- Second B at empty air: refused, and the mark **survives** — the next B must still commit.
+- Pair distance is unlimited by design: mark someone, walk until the two are 40 blocks apart, and confirm the swap still commits as long as both are within 20 blocks of Todo.
+- Marks drop on: 5 s expiry (silent), the marked body dying (message), death, dimension change, relog, and switching vessel in the ClickGui.
+- STRICT placement: mark someone, aim the second cast at a body whose destination is solid rock, and confirm the whole cast cancels with nothing moved — there must be no partial teleport.
+
+### Todo — thrown marker (R with no target)
+
+- Give yourself a Boogie Woogie Marker, right click to throw. The stack is consumed as it leaves the hand.
+- On a block: the marker stays visible resting against the face. Aim at nothing and press R — Todo swaps to it, and the marker is consumed.
+- On a body: the marker vanishes and the body glows for the mark duration. R with nothing under the crosshair swaps Todo with that body.
+- Priority: with both a live mark and an enemy under the crosshair, R must take the enemy, not the mark.
+- Glow bookkeeping: mark a body that is already glowing from a Nobara target mark, let the Todo mark expire, and confirm the Nobara glow survives.
+- Leak check: throw a marker, let the 10 s TTL run out, and confirm the resting projectile disappears. Repeat with relog, dimension change and death mid-mark — no orphan marker, no stuck glow.
+- The empty-hands rule still holds: holding a second marker (or anything else) must refuse the swap.
+
 ### Todo — melee and Black Flash
 
 - Vanilla melee lands with Todo's heavier damage and slower swing.
@@ -93,6 +131,7 @@ This checklist is the owner of the client-smoke scope. It is not automated — n
 ### Nobara regression
 
 - Directed Hairpin (R) and mass Hairpin (B) pick the intended target — targeting is shared with Todo, so a Todo-side targeting change can regress this.
+- Targeting regression owed by E1b in KNOWN_ISSUES.md: hammer targeting, nail launch, and directed Hairpin, with two mobs where a nearer one is off to the side and a farther one is dead-centre in the crosshair. The centred one must now win. This is a roster-wide comparator change and has only pure-logic coverage.
 - Shift+R Self Resonance, Shift+B Nail Trap, and contextual hammer melee still behave.
 - Embedded-nail TTL and per-owner cap still expire and cap; disconnect/rejoin leaves no orphaned nails.
 
