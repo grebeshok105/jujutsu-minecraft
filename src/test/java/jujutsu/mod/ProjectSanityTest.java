@@ -408,8 +408,11 @@ public final class ProjectSanityTest {
 				: "Boogie Woogie destinations must stay free-form (air/water/flight), not floor-gated";
 		assert !runtime.contains("hasSafeFloor")
 				: "Boogie Woogie must not require a solid floor under destinations";
-		assert runtime.contains("isEmptyHand(todo.getMainHandItem())") && runtime.contains("isEmptyHand(todo.getOffhandItem())")
-				: "Boogie Woogie must refuse items in either hand on the server";
+		String swapGates = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/todo/TodoSwapGates.java"));
+		assert swapGates.contains("isEmptyHand(todo.getMainHandItem())") && swapGates.contains("isEmptyHand(todo.getOffhandItem())")
+				: "Todo claps must refuse items in either hand on the server";
+		assert runtime.contains("TodoSwapGates.evaluate(todo)")
+				: "Boogie Woogie must read the shared clap gate, so the feint cannot gate differently";
 		assert runtime.contains("SAFE_POSITION_HORIZONTAL_RADIUS") && runtime.contains("WORLD_BORDER_MARGIN")
 				: "Todo destination nudge tuning must come from TodoProfile";
 		String animationHook = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/todo/TodoAnimationHooks.java"));

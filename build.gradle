@@ -274,6 +274,16 @@ tasks.register('testServerTimeDilation', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testTodoFakeClap', JavaExec) {
+	group = 'verification'
+	description = 'Runs Todo feint clap gate, cue-sharing and cooldown-independence tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.todo.TodoFakeClapTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.register('testClickGuiDrag', JavaExec) {
 	group = 'verification'
 	description = 'Runs ClickGui panel drag geometry tests'
@@ -291,6 +301,7 @@ tasks.named('check') {
 	dependsOn tasks.named('testTodoSwapPlan')
 	dependsOn tasks.named('testTodoTargetSafety')
 	dependsOn tasks.named('testTodoHandsEmpty')
+	dependsOn tasks.named('testTodoFakeClap')
 	dependsOn tasks.named('testProjectSanity')
 	dependsOn tasks.named('testTargetResolver')
 	dependsOn tasks.named('testProjectJjkNobaraProfile')

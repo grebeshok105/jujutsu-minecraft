@@ -70,7 +70,11 @@ public final class JujutsuKeybinds {
 			while (nobaraEnlarge.consumeClick()) {
 				JujutsuCharacter character = selectedCharacter(client);
 				if (character == JujutsuCharacter.TODO) {
-					sendCharacterAbility(character, CharacterAbility.PRIMARY);
+					// Same key as the real clap: no hold threshold and no double tap, because the real
+					// swap has to stay instant and both casts have to be typed identically fast.
+					sendCharacterAbility(character, client.player.isShiftKeyDown()
+							? CharacterAbility.SECONDARY
+							: CharacterAbility.PRIMARY);
 				} else if (character == JujutsuCharacter.NOBARA) {
 					sendNobaraAction(client.player.isShiftKeyDown()
 							? NobaraActionPayload.SELF_RESONANCE

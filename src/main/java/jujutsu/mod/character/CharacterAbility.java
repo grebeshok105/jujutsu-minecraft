@@ -1,8 +1,13 @@
 package jujutsu.mod.character;
 
-/** Shared slots for character-owned active techniques. */
+/**
+ * Shared slots for character-owned active techniques.
+ *
+ * <p>Network ids are part of the wire format and are never renumbered; new slots append.
+ */
 public enum CharacterAbility {
-	PRIMARY(0);
+	PRIMARY(0),
+	SECONDARY(1);
 
 	private final int networkId;
 

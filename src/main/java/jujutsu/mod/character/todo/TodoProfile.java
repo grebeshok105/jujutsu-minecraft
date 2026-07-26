@@ -27,6 +27,11 @@ public final class TodoProfile {
 	public static final int BOOGIE_WOOGIE_MOVE_SOUND_DELAY_TICKS = 1;
 	public static final float BOOGIE_WOOGIE_MOVE_SOUND_VOLUME = 0.7f;
 	public static final float BOOGIE_WOOGIE_MOVE_SOUND_PITCH = 1.45f;
+	/**
+	 * Feint clap cooldown: one second, a third of the real swap, on its own slot so a feint never
+	 * spends or delays Boogie Woogie. Long enough for the clap to finish before the next one starts.
+	 */
+	public static final int FAKE_CLAP_COOLDOWN_TICKS = 20;
 	/** Shared Black Flash chance for Todo's vanilla melee bridge. */
 	public static final float BLACK_FLASH_CHANCE = 0.10f;
 	public static final float BLACK_FLASH_DAMAGE_MULTIPLIER = 1.75f;

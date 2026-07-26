@@ -2,7 +2,7 @@ package jujutsu.mod.character;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import jujutsu.mod.character.todo.TodoBoogieWoogieRuntime;
+import jujutsu.mod.character.todo.TodoAbilityRouter;
 
 /** Server-only dispatcher for shared active-ability slots. */
 public final class CharacterAbilityExecutor {
@@ -23,7 +23,7 @@ public final class CharacterAbilityExecutor {
 			return false;
 		}
 		return switch (character) {
-			case TODO -> TodoBoogieWoogieRuntime.tryCast(player, ability, notify);
+			case TODO -> TodoAbilityRouter.tryCast(player, ability, notify);
 			case NOBARA, NONE -> false;
 		};
 	}
