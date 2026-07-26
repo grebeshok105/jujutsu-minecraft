@@ -96,17 +96,9 @@ public class TodoSwapMarkerEntity extends ThrowableItemProjectile {
 			discard();
 			return;
 		}
-		// Release the previous mark BEFORE reading the glow. Re-marking the same body would otherwise see
-		// the glow the old mark had applied, decide it was not ours, and then the old mark's release would
-		// switch it off -- leaving the new mark live with no highlight at all.
-		TodoSwapMarks.clear(level.getServer(), owner.getUUID());
-		// Only clear a glow we switched on, so marking never extinguishes another system's highlight.
-		boolean glowApplied = !struck.hasGlowingTag();
-		if (glowApplied) {
-			struck.setGlowingTag(true);
-		}
-		TodoSwapMarks.mark(level, owner.getUUID(), TodoSwapMark.onEntity(level.dimension(), struck.position(),
-				struck.getId(), struck.getUUID(), glowApplied, level.getGameTime() + TodoProfile.MARKER_BODY_MARK_TTL_TICKS));
+		// The release-then-read-glow order lives in TodoSwapMarks, shared with the ability that marks a
+		// body without a throw. Two copies of that order would eventually stop matching.
+		TodoSwapMarks.markBody(level, owner.getUUID(), struck);
 		discard();
 	}
 }

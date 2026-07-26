@@ -64,6 +64,11 @@ public final class TodoProfile {
 	 */
 	public static final int MARKER_BODY_MARK_TTL_TICKS = 200;
 	/**
+	 * Cooldown for marking a body by hand. Short: the cast costs no item and moves nobody, and its whole
+	 * value is set-up. Long enough that a held right click cannot repaint the mark every tick.
+	 */
+	public static final int ENTITY_MARK_COOLDOWN_TICKS = 20;
+	/**
 	 * Cooldown for the swap onto a mark. Equal to the aimed swap's today, and separate from it on purpose:
 	 * a reusable anchor is the strongest thing in the kit, and pricing it differently must not mean
 	 * rewriting the runtime.

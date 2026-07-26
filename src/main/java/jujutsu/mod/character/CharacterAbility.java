@@ -23,7 +23,15 @@ public enum CharacterAbility {
 	/** The second technique key while sneaking. */
 	SECONDARY_SNEAK(3),
 	/** Left click while holding a technique weapon. */
-	ATTACK_CONTEXT(4);
+	ATTACK_CONTEXT(4),
+	/**
+	 * Two right clicks in quick succession.
+	 *
+	 * <p>The only slot whose input the game already owns: the first click of the pair is handled by
+	 * vanilla before the mod ever sees it, and that is accepted rather than worked around. The input
+	 * layer sends this slot only once a pair completes, so an ordinary right click costs no packet.
+	 */
+	USE_CONTEXT(5);
 
 	private final int networkId;
 

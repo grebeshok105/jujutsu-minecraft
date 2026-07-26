@@ -14,8 +14,8 @@ import jujutsu.mod.combat.CombatStagger;
  * Nobara's slot map: what each input position means for her.
  *
  * <p>The switch is exhaustive on purpose, so a new {@link CharacterAbility} constant fails compilation
- * here rather than falling into whichever arm a {@code default} would have chosen. She fills all five
- * slots, which is why she never needed the "nothing on this input" arm Todo's router carries.
+ * here rather than falling into whichever arm a {@code default} would have chosen. She fills the five
+ * slots her kit was built around and refuses the sixth explicitly.
  *
  * <p>Two things live here and not in the shared executor because they are hers alone: the stagger check,
  * which she has and Todo does not, and the single fallback message every failed cast of hers produces.
@@ -38,6 +38,9 @@ public final class NobaraAbilityRouter {
 					&& ProjectJjkRitualRuntime.startMassHairpin(nobara);
 			case SECONDARY_SNEAK -> NailTrapRuntime.tryPlace(nobara);
 			case ATTACK_CONTEXT -> NobaraHammerCombatRuntime.handleInput(nobara);
+			// Her right click is vanilla's. Answering false explicitly rather than adding a default keeps
+			// the next new slot a compile error here instead of a silent no-op.
+			case USE_CONTEXT -> false;
 		};
 		if (!cast && notify) {
 			nobara.displayClientMessage(Component.translatable("message.jujutsumod.nobara.action.no_target"), true);

@@ -344,6 +344,16 @@ tasks.register('testCharacterClients', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testTodoEntityMark', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for marking a body without the thrown marker'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.todo.TodoEntityMarkTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.register('testTodoSwapMomentum', JavaExec) {
 	group = 'verification'
 	description = 'Runs assertion-based tests for the swap momentum spend rules'
@@ -375,6 +385,7 @@ tasks.register('testVfxSilhouette', JavaExec) {
 }
 
 tasks.named('check') {
+	dependsOn tasks.named('testTodoEntityMark')
 	dependsOn tasks.named('testTodoSwapMomentum')
 	dependsOn tasks.named('testVfxSoundDuck')
 	dependsOn tasks.named('testVfxSilhouette')

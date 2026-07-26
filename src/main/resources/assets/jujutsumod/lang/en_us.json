@@ -94,6 +94,8 @@
   "item.jujutsumod.todo_swap_marker": "Boogie Woogie Marker",
   "effect.jujutsumod.todo_swap_momentum": "Swap Momentum",
   "message.jujutsumod.todo.mark.lost": "Your Boogie Woogie marker is gone.",
+  "message.jujutsumod.todo.mark.placed": "Marked %s.",
+  "screen.jujutsumod.character_select.ability.entity_mark": "Mark a body",
   "message.jujutsumod.todo.pair.marked": "Marked %s for the swap.",
   "message.jujutsumod.todo.pair.cancelled": "Swap mark cleared.",
   "message.jujutsumod.todo.pair.lost": "The marked target is gone."

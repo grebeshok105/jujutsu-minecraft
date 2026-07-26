@@ -48,6 +48,25 @@ public final class TodoSwapMarks {
 		MARKS.put(owner, mark);
 	}
 
+	/**
+	 * Puts a mark on a body, glow and all. The one place that does it, because the order below is
+	 * load-bearing and two copies of it would drift.
+	 *
+	 * <p>The previous mark is released <em>before</em> the glow is read. Re-marking the same body would
+	 * otherwise see the glow the old mark had applied, conclude it was not ours, and then the old mark's
+	 * release would switch it off — leaving the new mark live with no highlight at all.
+	 */
+	static void markBody(ServerLevel level, UUID owner, LivingEntity struck) {
+		clear(level.getServer(), owner);
+		// Only claim a glow we switched on, so marking never extinguishes another system's highlight.
+		boolean glowApplied = !struck.hasGlowingTag();
+		if (glowApplied) {
+			struck.setGlowingTag(true);
+		}
+		mark(level, owner, TodoSwapMark.onEntity(level.dimension(), struck.position(), struck.getId(),
+				struck.getUUID(), glowApplied, level.getGameTime() + TodoProfile.MARKER_BODY_MARK_TTL_TICKS));
+	}
+
 	/** The owner's usable mark, or null when there is none, it has expired, or it is in another dimension. */
 	static TodoSwapMark active(MinecraftServer server, UUID owner, ServerLevel level) {
 		TodoSwapMark mark = MARKS.get(owner);

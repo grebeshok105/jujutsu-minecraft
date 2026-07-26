@@ -34,10 +34,10 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 
 | Metric | Value |
 |---|---:|
-| Main Java files | 99 |
+| Main Java files | 100 |
 | Client Java files | 165 |
-| Test Java files | 33 |
-| Verification programs | 33 |
+| Test Java files | 34 |
+| Verification programs | 34 |
 | Client mixins | 6 |
 | Network payloads | 8 |
 | Nobara VFX ids | 25 |

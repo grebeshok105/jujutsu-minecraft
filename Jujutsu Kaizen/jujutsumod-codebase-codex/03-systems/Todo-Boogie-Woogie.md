@@ -149,6 +149,25 @@ Placement is `STRICT`, which finally gives that enum a call site. Everything els
 
 The commit reuses `BOOGIE_WOOGIE` plus two `SWAP_ENDPOINT` cues, so at a distance a pair swap and an ordinary one look alike — free deception, and one less presentation to keep in step. The mark itself is a one-shot caster-only `PAIR_MARK` cue plus the actionbar line, **not** a marker that tracks the body: `VfxInstance.start` is called once and never ticked, so a transient cue cannot follow a live entity. VFX Core's rule is that anything which must follow an entity belongs on that entity's renderer. The actionbar naming the target is what the caster actually needs to remember who is marked.
 
+## Marking a body by hand — the sixth slot
+
+`CharacterAbility.USE_CONTEXT`, `TodoEntityMarkRuntime`, `TodoSwapMarks.markBody`.
+
+Two right clicks put the swap mark on whoever is under the crosshair, at the aimed swap's own range and through its own eligibility rule. It is **not** a second mark system: it produces the same `ENTITY`-form mark the thrown marker produces, with the same ten seconds, the same glow-ownership rule and the same single cleanup path. What it removes is the item.
+
+Adding the slot is the seam's own claim being exercised: appending `USE_CONTEXT(5)` produced exactly two compile errors, one per exhaustive router, and none anywhere else. Nobara refuses it explicitly rather than by a `default`; Todo answers it. Nothing else in shared code moved, and the roster-card test did its own bookkeeping — expected card length is derived as slots minus refused arms, so Nobara stayed at five and Todo's card had to gain a fourth entry.
+
+**The first click is vanilla's, deliberately.** `USE_CONTEXT` is the only slot whose key the game already owns, and a tick-level edge detector runs after vanilla has already handled the press. At the ranges this cast is for — a body across the arena, hands empty — vanilla's right click does nothing; up close the first press will still mount the horse or open the trade before the second one marks. Cancelling it would need the real interaction events or a mixin, and it was accepted instead. The input layer sends the slot **only once a pair completes**, so an ordinary right click costs no packet.
+
+The pair window is six ticks and lives in `JujutsuKeybinds`, vessel-neutral like the rest of that file. This is the kit's only multi-press input, and it does not contradict the standing "no hold threshold, no double tap" rule — that rule exists because the *swap* must stay instant, and nothing here delays anything.
+
+Two costs, both real and both deliberate:
+
+- **It inherits the one-mark rule.** Marking a body replaces a landed anchor, so the two are alternatives rather than a stockpile.
+- **The cast is public.** The glow it applies is visible to everyone, so a caster-only cue would only mislead the caster about how visible he is. That is the exact inverse of the feint, whose cue is caster-only precisely because it must leave no trace.
+
+The glow sequence — release the old mark, *then* read the glow, then apply and store — now lives once in `TodoSwapMarks.markBody`, called by both the throw and the ability. It was a comment-guarded ordering in one file; with two callers it had to become one method, and `TodoEntityMarkTest` pins the order there while `TodoSwapMarkerTest` pins the delegation.
+
 ## The thrown mark — no new slot
 
 `TodoSwapMarkerItem`, `TodoSwapMarkerEntity`, `TodoSwapMark`, `TodoSwapMarks`, `TodoMarkerSwapRuntime`.

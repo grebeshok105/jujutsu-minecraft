@@ -178,12 +178,14 @@ public final class TodoSwapMarkerTest {
 	}
 
 	private static void assertRemarkingTheSameBodyKeepsItsGlow() throws Exception {
+		// The release-before-read-glow order moved into TodoSwapMarks.markBody when an ability gained the
+		// ability to mark a body without a throw. TodoEntityMarkTest owns that ordering assertion now; what
+		// this file still has to prove is that the throw goes through it instead of keeping a second copy.
 		String entity = Files.readString(TODO.resolve("TodoSwapMarkerEntity.java"));
-		int release = entity.indexOf("TodoSwapMarks.clear(level.getServer(), owner.getUUID())");
-		int readGlow = entity.indexOf("boolean glowApplied = !struck.hasGlowingTag()");
-		assert release > 0 && readGlow > 0 && release < readGlow
-				: "The previous mark must be released before the glow is read, or re-marking the same body "
-						+ "reads its own glow as foreign and then switches it off";
+		assert entity.contains("TodoSwapMarks.markBody(level, owner.getUUID(), struck)")
+				: "A body hit must mark through the one shared path";
+		assert !entity.contains("hasGlowingTag") && !entity.contains("setGlowingTag")
+				: "A second copy of the glow sequence here is how the two ways of marking would drift apart";
 	}
 
 	private static void assertTheMarkerIsObtainable() throws Exception {

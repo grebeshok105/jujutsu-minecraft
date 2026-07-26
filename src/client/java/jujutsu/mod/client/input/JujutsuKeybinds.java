@@ -26,6 +26,19 @@ public final class JujutsuKeybinds {
 	private static KeyMapping secondTechniqueKey;
 	private static boolean attackWasDown;
 	private static boolean modernMenuWasDown;
+	private static boolean useWasDown;
+	private static int ticksSinceFirstUse = Integer.MAX_VALUE;
+
+	/**
+	 * How long a second right click has to arrive to count as a pair. Six ticks is comfortably inside a
+	 * deliberate double click and comfortably outside two separate interactions.
+	 *
+	 * <p>This is the one place in the kit with a multi-press input, and it does not contradict the rule
+	 * that a cast must stay instant: that rule is about the swap, which cannot afford to wait for a second
+	 * press. Nothing here delays anything — the first click is vanilla's and always was, and only the
+	 * completed pair reaches the mod at all.
+	 */
+	private static final int USE_PAIR_WINDOW_TICKS = 6;
 
 	private JujutsuKeybinds() {}
 
@@ -58,6 +71,8 @@ public final class JujutsuKeybinds {
 			if (client.player == null) {
 				modernMenuWasDown = false;
 				attackWasDown = false;
+				useWasDown = false;
+				ticksSinceFirstUse = Integer.MAX_VALUE;
 				return;
 			}
 
@@ -86,6 +101,25 @@ public final class JujutsuKeybinds {
 				sendCharacterAbility(client, CharacterAbility.ATTACK_CONTEXT);
 			}
 			attackWasDown = attackDown;
+
+			// The right click is vanilla's key, and the first press of a pair is vanilla's press: it has
+			// already opened the chest or mounted the horse before this handler runs, and that is accepted
+			// rather than worked around. Only a completed pair sends anything, so an ordinary right click
+			// costs no packet at all.
+			if (ticksSinceFirstUse < Integer.MAX_VALUE) {
+				ticksSinceFirstUse++;
+			}
+			boolean useDown = client.options.keyUse.isDown();
+			if (useDown && !useWasDown && client.screen == null) {
+				if (ticksSinceFirstUse <= USE_PAIR_WINDOW_TICKS) {
+					sendCharacterAbility(client, CharacterAbility.USE_CONTEXT);
+					// Consumed, so a third click starts a fresh pair rather than firing again.
+					ticksSinceFirstUse = Integer.MAX_VALUE;
+				} else {
+					ticksSinceFirstUse = 0;
+				}
+			}
+			useWasDown = useDown;
 		});
 	}
 
