@@ -377,6 +377,92 @@ tasks.named('check') {
 	dependsOn tasks.named('testServerTimeDilation')
 }
 
+// The verification programs are plain main() classes guarded by `assert`, so a task that forgets to
+// enable assertions does not fail — it passes unconditionally, forever, in silence. This audit reads
+// the real Gradle task model rather than the text of this file, so a task registered from anywhere is
+// still covered.
+tasks.register('verifyAssertionsEnabled') {
+	group = 'verification'
+	description = 'Fails if any verification JavaExec task would run with assertions disabled'
+	doLast {
+		// Realized into a plain list: DomainObjectCollection.findAll(Closure) is removed in Gradle 10.
+		def programs = tasks.withType(JavaExec).matching { it.group == 'verification' }.toList()
+		def offenders = programs.findAll { program -> !enablesAssertions(program) }
+				.collect { it.name }
+				.toSorted()
+		if (!offenders.isEmpty()) {
+			throw new GradleException(
+					'These verification JavaExec tasks run with assertions disabled, so every assert inside them\n'
+							+ 'is skipped and the task passes unconditionally:\n'
+							+ offenders.collect { "  - ${it}" }.join('\n')
+							+ "\nGive each one `jvmArgs '-ea'` or `enableAssertions = true`.")
+		}
+		logger.lifecycle("verifyAssertionsEnabled: ${programs.size()} verification JavaExec tasks all enable assertions")
+	}
+}
+
+// True when this program will actually evaluate its `assert` statements, by either route the JVM offers.
+static boolean enablesAssertions(JavaExec program) {
+	if (program.enableAssertions) {
+		return true
+	}
+	return program.jvmArgs.any { String arg ->
+		arg == '-ea' || arg == '-enableassertions' || arg.startsWith('-ea:') || arg.startsWith('-enableassertions:')
+	}
+}
+
+// The documentation audit used to exist only as a CI step, so a documentation break was discovered
+// after a push rather than before a commit. It is part of the gate now.
+tasks.register('auditDocumentation') {
+	group = 'verification'
+	description = 'Runs the repository documentation audit (tools/audit_docs.py)'
+	def auditScript = layout.projectDirectory.file('tools/audit_docs.py').asFile
+	def projectRoot = layout.projectDirectory.asFile
+	doLast {
+		String interpreter = resolvePythonInterpreter()
+		if (interpreter == null) {
+			throw new GradleException('Documentation audit could not run: neither python3 nor python is on PATH.')
+		}
+		Process audit = new ProcessBuilder(interpreter, auditScript.absolutePath)
+				.directory(projectRoot)
+				.redirectErrorStream(true)
+				.start()
+		String report = audit.inputStream.getText('UTF-8')
+		int exitCode = audit.waitFor()
+		report.readLines().each { logger.lifecycle(it) }
+		if (exitCode != 0) {
+			throw new GradleException("Documentation audit failed: ${interpreter} tools/audit_docs.py exited ${exitCode}. See the report above.")
+		}
+	}
+}
+
+// Windows ships `python`, CI ships `python3`, and the repository is worked on from both.
+static String resolvePythonInterpreter() {
+	for (String candidate : ['python3', 'python']) {
+		try {
+			Process probe = new ProcessBuilder(candidate, '--version').redirectErrorStream(true).start()
+			probe.inputStream.getText('UTF-8')
+			if (probe.waitFor() == 0) {
+				return candidate
+			}
+		} catch (IOException ignored) {
+			// Not on PATH under this name; try the next one.
+		}
+	}
+	return null
+}
+
+// The one command. Nothing may be called verified without a green run of this task.
+tasks.register('qualityGate') {
+	group = 'verification'
+	description = 'The merge gate: check, the documentation audit and the assertion-flag audit'
+	// `check` already pulls compileJava and compileClientJava through the test classpath, so the
+	// compiler barrier is inside the gate without naming it here.
+	dependsOn tasks.named('check')
+	dependsOn tasks.named('auditDocumentation')
+	dependsOn tasks.named('verifyAssertionsEnabled')
+}
+
 processResources {
 	def version = project.version
 	inputs.property "version", version

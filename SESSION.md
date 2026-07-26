@@ -2,11 +2,21 @@
 
 ## Current state
 
-- `main` = `c9e4904` — the vessel definition seam, merged as PR #9 and PR #10
-- Active branch: `docs/add-vessel-skill` at `805c8a3`, **not merged**
+- `main` = `a0d7f79` — the vessel definition seam (PR #9, PR #10) and the add-vessel skill (PR #11), all merged
+- Active branch: `chore/quality-gate` in `.worktrees/quality-gate`, **not merged**
 - Product target: private play for one or two people
 
 Durable product state lives in AGENTS.md under "Current slice (facts)" and, for the seam, under "The Vessel Seam". This file records only what changed recently and what is still unproven. Documentation authority order is owned by AGENTS.md; asset and provenance policy by docs/PROVENANCE.md and docs/THIRD_PARTY_NOTICES.md.
+
+## On the active branch — the single merge gate
+
+Stage 1 of an agreed six-stage plan for the build-time barrier: `qualityGate → JUnit 5 → ArchUnit → SpotBugs → PIT → GameTest`. Only stage 1 is in scope on this branch. No JUnit migration and no new JavaExec verification programs land here.
+
+- **`./gradlew qualityGate`** is now the one command. It runs `check`, `auditDocumentation` and `verifyAssertionsEnabled`. AGENTS.md makes a green run of exactly this task the condition for the word "verified", and states in the same place what a green run does **not** prove.
+- **The documentation audit stopped being CI-only.** It was a separate workflow step, so a documentation break surfaced after a push rather than before a commit.
+- **`verifyAssertionsEnabled` closes a real hole, not a hypothetical one.** `JavaExec.enableAssertions` defaults to `false` — measured, not assumed — and the verification programs are `main()` classes guarded by `assert`. A task registered without `jvmArgs '-ea'` therefore passes unconditionally and silently. The audit reads the Gradle task model rather than the text of `build.gradle`, so a task registered from anywhere is covered, and it fails with the list of offenders.
+- **CI no longer keeps its own command list.** It runs the same `qualityGate`, then `assemble` for the artifact. Green CI and green local now mean the same thing.
+- **New rule, applied to itself:** every gate rule ships with proof that it can fail. All three components were broken deliberately and the failure messages recorded in the commit body.
 
 ## Landed on main — the vessel definition seam
 
@@ -20,7 +30,7 @@ Nine commits. The through-line: **shared code stopped asking which character a p
 - **Client definitions** — `CharacterClientDefinition` + `JujutsuCharacterClients`. `JujutsuVfxRecipes` deleted; each vessel registers its own. Six shared client files stopped naming a vessel. The roster's input strips were stale and are now honest.
 - **E7 and E12 closed.** Seven direct vessel references remain in `src/`, one per file, all deliberate.
 
-## On the active branch — the add-vessel skill
+## Landed on main — the add-vessel skill
 
 - `.claude/skills/add-vessel/SKILL.md` — repo-local, versioned with the architecture it describes. Six phases, prohibitions, readiness checklist, commit order. References the Codex notes rather than restating them.
 - **Both registry tests now derive their expectations** instead of hand-keeping per-vessel lists: vessels from the enum, packages from the vessel id, and each card's expected length from the arms its router does not refuse. Before this, a new vessel would have shipped with three guarantees silently absent — which contradicted the skill's central claim.
@@ -29,8 +39,8 @@ Nine commits. The through-line: **shared code stopped asking which character a p
 
 ## Verification status
 
-- 30 JavaExec verification programs wired into `check`, all green. Three added by the seam work: `testCharacterDefinitions`, `testCharacterClients`, `testNobaraAbilitySlots`.
-- `python tools/audit_docs.py` passing. It is a **CI step, not part of `gradlew build`** — run it by hand after documentation changes.
+- 30 JavaExec verification programs wired into `check`, all green. Three added by the seam work: `testCharacterDefinitions`, `testCharacterClients`, `testNobaraAbilitySlots`. All 30 confirmed to enable assertions.
+- The documentation audit is **inside `./gradlew qualityGate`** now, and no longer a hand-run step.
 - Two checks proven able to fail by mutation rather than only observed green: transposing two router arms, and binding a constant to the wrong definition.
 - Jar built from `main` and installed at `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar`.
 
@@ -59,7 +69,7 @@ Run by the user at commit `d9df2b5`: Nobara's kit confirmed working (abilities a
 
 ## Next product steps
 
-1. Merge `docs/add-vessel-skill`, or say what should change in the skill first.
+1. Merge `chore/quality-gate`, then continue the barrier plan: JUnit 5, then ArchUnit, then SpotBugs, then PIT, then GameTest. Stage 2 is deliberately held until the parallel branch in flight lands.
 2. Run the in-game pass above — items 1–3 are the ones the seam work put at real risk.
 3. Decide the fate of `CharacterPlayerState.hasClaimedStarter`: give the persisted claim a job or delete it (E12 residue).
 4. Decide E10 (Nobara's fallback erases five translated diagnostics) and E11 (cooldown message precedes her silent stagger check) deliberately, not inside a refactor.
