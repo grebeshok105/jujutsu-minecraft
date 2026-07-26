@@ -70,7 +70,17 @@ The look is applied as an **offset from the animated rest pose** (`head.setRotY(
 | SNAP | Nobara (`NobaraVfxRecipes` → `firstPerson().triggerSnap`) | Whole-stack transform pushed at `renderHandsWithItems` HEAD and popped at RETURN. The vanilla hand path continues normally underneath. |
 | CLAP | Todo (`TodoVfxRecipes` → `firstPerson().triggerClap`) | Cancels `renderHandsWithItems` outright and draws **both** arms itself. |
 
-SNAP is the channel's default state. CLAP exists because vanilla's empty-hand path only ever draws the main arm, so an off-hand clap would be invisible; the mixin calls `renderPlayerArm` for RIGHT then LEFT in fixed order — independent of the main-hand setting — so both arms share a base pose. Two `@ModifyVariable` hooks force `equippedProgress` and `swingProgress` to 0 while clapping to kill attack/item residual, and a per-arm push/pop pair applies the side-mirrored meet offset from `VfxDirector.firstPersonClapArmPose(arm)`.
+SNAP is the channel's default state. CLAP exists because vanilla's empty-hand path only ever draws the main arm, so an off-hand clap would be invisible; the mixin calls `renderPlayerArm` for RIGHT then LEFT in fixed order — independent of the main-hand setting — so both arms share a base pose. Two `@ModifyVariable` hooks force `equippedProgress` and `swingProgress` to 0 while clapping to kill attack/item residual, and the side-mirrored meet offset comes from `VfxDirector.firstPersonClapArmPose(arm, progress)`.
+
+Three rules make CLAP correct, each of which was a live bug first, and `ProjectSanityTest` now guards all three:
+
+1. **Flush before cancelling.** Cancelling `renderHandsWithItems` skips vanilla's terminal `endBatch()`. Arms are only submitted to the GPU there, and `RenderType.draw` samples the model-view at draw time, so without the flush the draw is deferred to `GameRenderer`'s later flush — after `popMatrix()` has reset the model-view — and the arms pick up a rigid rotation by the camera's orientation about the camera origin. Symptom: hand position depends on where the player was looking, and an arm can end up behind the near plane.
+2. **Each arm owns a matched push/pop.** `ItemInHandRenderer.renderPlayerArm` mutates the caller's pose stack and never restores it; vanilla compensates by wrapping every call. An aggregate depth counter is not enough, because a skipped push and a taken pop pair only in total and will pop another frame's transform.
+3. **One progress sample per frame.** The channel's clock is wall-time, so sampling per arm puts the two hands on different instants — and if the animation expires between them, the second arm renders unposed at the vanilla rest pivot. `progress()` is a pure read; expiry is the explicit once-per-frame `expireIfFinished()`. `style()` expires too, so a clap played entirely in third person cannot keep cancelling the vanilla hand path.
+
+`cancel()` drops an in-flight animation. `ClientCharacterSelectionManager` calls it when the local player's vessel changes, because otherwise the mixin keeps cancelling the vanilla hand path for the rest of the run and held items disappear. `triggerSnap` refuses to clobber an in-flight CLAP: one channel serves every vessel, and reinterpreting a clap with snap timing was a cross-vessel state leak.
+
+Known and unfixed: the arms cross over at contact. The meet yaw is applied about the camera origin rather than the shoulder, so on a pivot ~0.82 blocks out it contributes roughly twice the intended inward travel. INFERRED from geometry, not yet confirmed on screen.
 
 Clap offsets stay small on purpose: parent rotations multiply `renderPlayerArm`'s large fixed translates, so a value that looks reasonable in isolation throws the arm off-screen.
 

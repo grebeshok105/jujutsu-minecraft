@@ -49,7 +49,11 @@ The policy is deliberately **free-form**: air, water, crawl space, and mid-fligh
 
 There is **no floor check** and **no third-party entity-occupancy gate**. A swap can legally drop either participant into open air, and a destination occupied by an unrelated entity is not rejected. This is intentional for the technique's fantasy; do not "fix" it without a product decision, and do not document a floor requirement that does not exist.
 
-The search order is `up` 0..3 outer, then a 13-entry horizontal offset ring (origin, ±0.5 axis, ±1.0 axis, ±0.7 diagonals) inner — so the exact requested point wins when it is usable. If every candidate fails, there is a last-resort fallback: the exact requested point is accepted when it merely passes `isInWorldDestination`, skipping the border and collision tests. The in-source reason is that `noBlockCollision` can be picky about overlapping the swap partner's old volume, and this lets mid-air and fluid swaps through. INFERRED consequence: the fallback can place a participant clipping geometry, which vanilla will resolve by pushing it out.
+The search order is `up` 0..3 outer, then a 13-entry horizontal offset ring (origin, ±0.5 axis, ±1.0 axis, ±0.7 diagonals) inner — so the exact requested point wins when it is usable.
+
+`findSafeDestination` takes a `Strictness`. Under `SOFT`, used by this ability, a last-resort fallback accepts the exact requested point when it passes `isInWorldDestination` — finite coordinates, world bounds, chunk loaded, and now the world border, which moved into that test so both paths enforce it. Block collision is still skipped on that path, so the fallback can place a participant clipping geometry, which vanilla resolves by pushing it out. `STRICT` has no fallback: if no candidate passes, the destination is null and the whole swap cancels. It exists for swaps that move third parties, where relaxing safety for a bystander is not justified by Todo's own mid-air feel.
+
+An earlier in-source comment justified the fallback by claiming `noBlockCollision` is picky about the swap partner's old volume. That is false — `Level.noBlockCollision(Entity, AABB)` tests block shapes only and never consults entities. The dead `otherSwapParticipant` parameter that comment referred to has been deleted.
 
 ## Commit, and the rollback that can fail
 
@@ -67,9 +71,13 @@ On success both participants get `restoreMotionAndRotation` (forced rotation, he
 
 ## Cooldown and feedback
 
-`CharacterAbilityCooldowns.start` plus `JujutsuNetworking.sendAbilityCooldown` for the 60-tick cooldown. Then one `VfxCue(TodoVfxIds.BOOGIE_WOOGIE, …)` broadcast within 64 blocks, carrying both origins as origin + direction so the client can flash both ends.
+`CharacterAbilityCooldowns.start` plus `JujutsuNetworking.sendAbilityCooldown` for the 60-tick cooldown. Then two kinds of cue, because one cue cannot carry two absolute world points: `TodoVfxIds.BOOGIE_WOOGIE` is the performance, anchored to the caster with a zero offset, and one `TodoVfxIds.SWAP_ENDPOINT` per moved body carries an absolute endpoint with no anchor, each broadcast around its own point so far-side observers receive it.
 
-The clap SFX is split on purpose: clients time it from `TodoVfxRecipes` at the palm-contact beat, and the server plays one authoritative `NOTE_BLOCK_HAT` six ticks later through the static `PENDING_CLAP_SOUNDS` queue drained by `TodoBoogieWoogieRuntime.register()`'s END_WORLD_TICK listener. That queue has no `SERVER_STOPPING` clear — see [Risks and technical debt](../06-maintenance/Risks-and-tech-debt.md).
+That split fixed a real defect. `VfxAnchorResolver` already adds the cue's anchor offset, the recipe added it again, and the cue is broadcast after the teleport — so the two flashes landed at `todoPos + delta` and `todoPos + 2*delta`, drifting with packet order. The ribbon was never affected because `VfxWorldChannel` treats this style as world-fixed and reads `cue.origin()` directly.
+
+The first-person clap is gated on the local anchor. A recipe runs on every client that receives the cue, so before the gate every nearby player's own arms clapped.
+
+Sound is server-authoritative: `JujutsuSounds.PROJECTJJK_CLAP` plays with the swap, and a movement sound follows one tick later at both original positions through the static pending-sound queue drained by `TodoBoogieWoogieRuntime.register()`'s END_WORLD_TICK listener, which now clears on `SERVER_STOPPING`. An earlier revision of this note claimed clients timed the clap from `TodoVfxRecipes`; that was never true — no sound call existed there.
 
 ## Seam: Todo does not own a Black Flash cue id
 

@@ -19,7 +19,7 @@ The live detailed register is docs/KNOWN_ISSUES.md.
 
 - Add GameTest/dedicated-server and real runClient smoke coverage. Still open: no `src/gametest` source set exists (VERIFIED).
 - Bound CurseLinkOptionsPayload. Still open: `read` sizes its list from a raw `readVarInt` with no cap (VERIFIED — CurseLinkOptionsPayload.read).
-- Normalize cleanup of remaining static runtime state. Still open, and Todo added one: `TodoBoogieWoogieRuntime.PENDING_CLAP_SOUNDS` is a static queue drained only by END_WORLD_TICK, with no SERVER_STOPPING clear (VERIFIED).
+- Normalize cleanup of remaining static runtime state. Still open in general; Todo's own pending-sound queue is now cleared on SERVER_STOPPING (VERIFIED).
 - Complete ru_ru keys. Still open: 54 ru_ru keys against 88 en_us keys (VERIFIED — assets/jujutsumod/lang).
 - Profile ClickGui SDF/MSDF batching before optimizing. Still open; note that `Render2D` deliberately flushes SDF per rect, so any profiling must treat that as a correctness constraint, not overhead to remove — see [GUI render pipelines](../04-client-vfx/GUI-render-pipelines.md).
 - Legacy GeckoLib-4 `geo/` assets are dead weight and a naming trap — see [Assets and resources](../02-architecture/Assets-and-resources.md). Deliberately not deleted.
