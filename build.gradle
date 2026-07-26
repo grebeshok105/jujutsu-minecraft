@@ -47,6 +47,12 @@ dependencies {
 	// boots the loader for the test JVM, which is what makes registry- and buffer-level tests possible
 	// at all. The 30 JavaExec programs keep running unchanged beside this.
 	testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
+
+	// Structural rules read compiled bytecode, so they survive renames and formatting in a way the
+	// source-text checks they replace never could. The plain artifact rather than archunit-junit5:
+	// @AnalyzeClasses imports by package off the classpath, which would fuse the split main and client
+	// outputs into one graph and quietly make the side-separation rule check nothing.
+	testImplementation 'com.tngtech.archunit:archunit:1.4.1'
 }
 
 tasks.register('testCharacterPlayerState', JavaExec) {
@@ -528,6 +534,9 @@ tasks.withType(JavaCompile).configureEach {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// The architecture rules read the two compiled outputs as separate class sets, so the client output
+	// has to exist by the time they run. Without this the client rules would import an empty directory.
+	dependsOn tasks.named('clientClasses')
 	// A JUnit setup that discovers nothing is the same silent pass as a JavaExec task without -ea:
 	// the task is green because it ran no assertions, not because the assertions held. Proven able to
 	// fail — see the commit that introduced it.

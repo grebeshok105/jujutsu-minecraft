@@ -2,6 +2,8 @@
 
 A Fabric 1.21.8 combat mod built around a small number of deeply designed Jujutsu-inspired character kits. The current playable vessels are Nobara (nails, hammer, Hairpin, Resonance, traps, Black Flash) and Todo (Boogie Woogie swap, heavy melee, shared Black Flash bridge), plus a shared cinematic VFX pipeline and character menu.
 
+**New here, or on a new machine? Read [docs/START_HERE.md](docs/START_HERE.md) first** — clone, one command to prove the checkout, and what to read in which order.
+
 ## Current product
 
 - Playable vessels: Nobara, Todo, and None.

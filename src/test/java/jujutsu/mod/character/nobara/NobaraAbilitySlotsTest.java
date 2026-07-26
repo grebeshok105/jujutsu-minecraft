@@ -90,7 +90,13 @@ public final class NobaraAbilitySlotsTest {
 				: "No second client-to-server ability channel may exist beside CharacterAbilityPayload";
 		// The curse-link picker is a different conversation and must survive: Self Resonance opens it,
 		// the player answers it, and only the next cast reads the answer.
-		assert networking.contains("SelectCurseLinkPayload.TYPE") && networking.contains("SelfResonanceRuntime.select")
+		//
+		// This used to also require that JujutsuNetworking calls SelfResonanceRuntime.select, which
+		// pinned *where* the receiver is installed as well as *that* the packet exists. The receiver
+		// belongs in Nobara's registerServerHooks, and keeping that half would have made the fix fail a
+		// test. VesselBoundaryTest#theOneKnownNetworkLeakDoesNotGrow now tracks the real placement
+		// structurally, and fails when it is corrected so the exception is removed with it.
+		assert networking.contains("SelectCurseLinkPayload.TYPE")
 				: "The curse-link selection packet is not part of the ability path and must stay registered";
 	}
 

@@ -15,6 +15,20 @@ Durable product state lives in AGENTS.md under "Current slice (facts)" and, for 
 - `codex/vfx-director-prototype` holds one commit adding a standalone HTML sandbox under a documentation directory the audit forbids. Merging it fails `qualityGate` on the spot. Keep it as a scratch reference or delete it; it cannot land as is.
 - `worktree-neon-gui` is checked out by an editor workspace outside this repository's `.worktrees`, so git will not let it go. It is fully contained in `main`.
 
+## On the active branch — ArchUnit boundaries, after an adversarial review
+
+Stage 3. Ten structural rules over compiled bytecode, three source-text tripwires named as the greps they are, and a recorded list of what neither can prove.
+
+The first version of the rules was reviewed by three independent judges instructed to break them, not to bless them. **They confirmed 16 bypasses against a green build.** Every one has been re-run against the fixed rules: 15 are caught, 1 is documented as beyond static analysis.
+
+- **The rules stopped enumerating vessel names.** Identities come from `JujutsuCharacter`, and packages under `character` are checked fail-closed, so a third vessel is covered the day it exists. Five bypasses came from two hardcoded strings — a package spelled `nobaranet`, a vessel called `yuji`, `TodoProfile` moved sideways into `jujutsu.mod.combat`.
+- **The wire surface is pinned as an inventory**, not by class location. A payload declared in the shared `jujutsu.mod.network` package was a private input path that every location-based rule waved through.
+- **Payload placement is checked in both outputs.** It used to check only the server one, so a payload in the client `todo` package — the case the rule names verbatim — passed.
+- **The registry allowlist narrowed from a class to a direction.** Building a vessel's content is registration; calling a vessel method from a registry is shared code running vessel logic, and two judges independently smuggled dispatch in that way.
+- **Two things bytecode cannot see, confirmed and covered honestly.** javac folds `static final` constants into the caller, so `TodoProfile.BOOGIE_WOOGIE_RANGE` read from shared code leaves no dependency at all — verified with `javap`. The same is true of `Class.forName`. Both are caught by source-text tripwires that say in their own name and javadoc that they are greps.
+- **Rule 5 was deleted, not kept for the count.** Its subject set was a strict subset of rule 3's with the same assertion, so no mutation could redden it alone.
+- **What is still open is written down.** The limits of the gate are listed in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md), together with E13 and E14.
+
 ## Landed on main — the JUnit foundation
 
 Stage 2 of the barrier plan. Foundation only: **no existing `JavaExec` program was migrated**, so all 34 keep running exactly as before.

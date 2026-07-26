@@ -31,7 +31,6 @@ public final class ProjectSanityTest {
 	private static final Pattern VESSEL_CONSTANT = Pattern.compile("^\\t([A-Z][A-Z0-9_]*)\\(\"", Pattern.MULTILINE);
 	private static final Pattern CLICKGUI_MODULE = Pattern.compile("new ModuleStructure\\(");
 	private static final String FORBIDDEN_FABRIC_IMPL = "net.fabricmc.fabric." + "impl.";
-	private static final String CLIENT_IMPORT = "import net.minecraft." + "client.";
 
 	private ProjectSanityTest() {}
 
@@ -1150,10 +1149,12 @@ public final class ProjectSanityTest {
 			assert mainFiles > 50 : "Only " + mainFiles + " files under src/main walked; the client-import check would pass vacuously";
 			for (Path javaFile : javaFiles) {
 				String source = Files.readString(javaFile);
+				// Fabric's impl packages are on the compile classpath, so only a check can keep them out.
+				// The client-import half that used to sit here is gone: it was measured to be unable to
+				// fail, because splitEnvironmentSourceSets keeps net.minecraft.client off src/main's
+				// classpath entirely and the attempt is a compile error. VesselBoundaryTest covers the
+				// case the compiler misses — a file under src/main that declares a client package.
 				assert !source.contains(FORBIDDEN_FABRIC_IMPL) : "Forbidden Fabric impl import in " + javaFile;
-				if (javaFile.startsWith(MAIN_JAVA)) {
-					assert !source.contains(CLIENT_IMPORT) : "Client import in common source set: " + javaFile;
-				}
 			}
 		}
 	}

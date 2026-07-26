@@ -40,13 +40,15 @@ Ask the user, unless already answered:
 
 - Who is the vessel, and which arc/form?
 - What is the combat fantasy in one sentence, and the counterplay in one sentence?
-- Which of the five input slots does the kit use, and what does each do?
+- Which of the six input slots does the kit use, and what does each do?
 - Stronger, weaker, or sideways compared to Nobara and Todo?
 - Mandatory or not: custom model, animations, starter items, a technique weapon, a thrown entity, passive combat behaviour.
 - If it has items: how does a player get them — a starter kit on selection, a creative-tab entry, both? Todo's marker needed an explicit `CreativeModeTabs.COMBAT` entry precisely because he has no starter kit.
 - One PR, or scaffold first and abilities after?
 
-**One design constraint to check early.** `ATTACK_CONTEXT` — left click holding a technique weapon — is the only slot not yet fully behind the seam: `JujutsuKeybinds.isTechniqueWeapon` still spells out Nobara's two hammers. A melee vessel whose fantasy is "left click with my cursed tool" therefore needs either a shared-input edit or a different slot. Decide this in design, not halfway through implementation.
+**Two design constraints to check early.** `ATTACK_CONTEXT` — left click holding a technique weapon — is the only slot not yet fully behind the seam: `JujutsuKeybinds.isTechniqueWeapon` still spells out Nobara's two hammers. A melee vessel whose fantasy is "left click with my cursed tool" therefore needs either a shared-input edit or a different slot. Decide this in design, not halfway through implementation.
+
+The sixth slot, `USE_CONTEXT`, is two right clicks in quick succession, and it is the only one whose key vanilla already owns: the first click of the pair is handled before the mod sees it. The input layer sends the slot only once a pair completes, so an ordinary right click costs no packet. Todo marks a body with it. A defect here does not look like a broken ability — it looks like ordinary right clicks misbehaving, so smoke-test block, container and item interaction if you use it.
 
 Then research the character honestly. Canon gives fantasy, not numbers — range, cooldown, and safety rules are design choices and must be written down as such, with the reason.
 
@@ -146,28 +148,34 @@ The vessel-switch trigger is `onDeselected`; the rest are your runtime's own lis
 
 ## Phase 5 — Testing and in-game smoke
 
-Add a verification program in the project idiom: `main()` + `assert`, registered as a JavaExec task in `build.gradle`, wired into `check`.
+**Write new tests as JUnit 5.** They join `check` automatically — no task to register, nothing to forget. The older `main()` + `assert` programs wired as JavaExec tasks in `build.gradle` still run and are not being converted wholesale, but do not add another one. `fabric-loader-junit` boots the loader for the test JVM, so a JUnit test may call `SharedConstants.tryDetectVersion()` and `Bootstrap.bootStrap()` in `@BeforeAll` and then exercise registries, codecs and buffers for real. `SelectionPayloadCodecTest` is the worked example.
 
-The registry tests already cover the binding itself — that your definitions claim the right constant, that every `register()` under your package is called, and that no client type reached `src/main`. They derive the vessel list from the enum and your package from the vessel id, so they pick your vessel up with **no edit**, provided you follow the convention: runtimes in `jujutsu/mod/character/<id>/`, definition named `<Id>Definition.java`. Do not duplicate them. Test what is yours: the slot map bound arm by arm, the profile's invariants, any pure predicate.
+Three suites already cover your vessel with **no edit**, provided you follow the convention — runtimes in `jujutsu/mod/character/<id>/`, definition named `<Id>Definition.java`:
 
-**Assert inside the arm, not anywhere in the file.** A whole-file substring search passes with two arms transposed. Prove your test can fail: mutate the thing it claims to check, watch it go red, revert.
+- The **registry tests** check the binding: that your definitions claim the right constant, that every `register()` under your package is called, and that no client type reached `src/main`.
+- **`VesselBoundaryTest`** reads compiled bytecode and derives vessel identities from the enum. Your package under `character` must be spelled exactly as your `id()`, or it fails as an unregistered vessel. It also pins the full packet inventory, so a payload of yours anywhere fails until it is argued for.
+- **`SourceBoundaryTripwireTest`** is a source-text grep, named as one, for the two breaches bytecode cannot show: a compile-time constant, which javac folds into the caller, and `Class.forName`. It will fail if shared code names one of your types, and if your vessel names another vessel's.
 
-Then run:
+Do not duplicate any of them. Test what is yours: the slot map bound arm by arm, the profile's invariants, any pure predicate.
+
+**Assert inside the arm, not anywhere in the file.** A whole-file substring search passes with two arms transposed.
+
+**Every new check ships with proof that it can fail.** Break the thing it guards, record the mutation and the resulting failure message in the commit body, restore. A check only ever seen green may be vacuous — this is a repository rule, in AGENTS.md, not a suggestion.
+
+Then run the one command that owns the word "verified":
 
 ```bash
-./gradlew.bat build --no-daemon
+./gradlew qualityGate
 ```
 
-```bash
-python tools/audit_docs.py
-```
+It runs `check`, the documentation audit and the assertion-flag audit together. Nothing may be called done without a green run of exactly this.
 
 **In-game smoke is mandatory and cannot be skipped.** Compilation proves nothing about feel, rendering, animation or timing. Hand the user a short checklist ordered by what is most likely broken — the newest path first, then the shared paths the vessel touches, then what should have stayed untouched. Do not run the game yourself unless asked.
 
 ## Phase 6 — Documentation and final audit
 
 - New Codex note under `03-systems/` for the vessel, following `Nobara-overview.md` / `Todo-Boogie-Woogie.md`.
-- Link it from `00-MOC.md` and bump the metrics table. `tools/audit_docs.py` enforces those counts, and it is a **CI step, not part of `gradlew build`** — a stale table passes locally and fails on the pull request. Run it by hand.
+- Link it from `00-MOC.md` and bump the metrics table. `tools/audit_docs.py` enforces those counts and now runs **inside `./gradlew qualityGate`**, so a stale table fails before the commit rather than after the push. Adding any `.java` file moves a counter — expect that, it is not a mistake.
 - `AGENTS.md` "Current slice (facts)": controls line and anything durable.
 - `SESSION.md`: what changed, what is verified, what the user still has to check.
 - Any accepted tradeoff goes in `docs/KNOWN_ISSUES.md` with its reason, not in a comment.
@@ -219,8 +227,8 @@ Run it for **your** constant only. Running it for `NOBARA` or `TODO` returns the
 - [ ] Any vessel-gated item checks selection on both sides through `CharacterSelectionView`
 - [ ] Starter kit fills only what is missing, and does not read `hasClaimedStarter`
 - [ ] `en_us` and `ru_ru` complete for every key named
-- [ ] Verification program added, wired into `check`, and proven able to fail by mutation
-- [ ] `./gradlew.bat build` green; `python tools/audit_docs.py` passing
+- [ ] Tests added as JUnit 5, each proven able to fail by a recorded mutation
+- [ ] `./gradlew qualityGate` green
 - [ ] Codex note written, MOC linked and metrics bumped, `AGENTS.md` and `SESSION.md` updated
 - [ ] `grep -rn "JujutsuCharacter.<NEW>"` shows hits only in the vessel's own files
 - [ ] In-game smoke checklist handed to the user
@@ -239,8 +247,8 @@ Small commits, each green on its own. This shape came from the migration that bu
 | 5 | `feat(<vessel>): register the VFX recipe pack` | recipes and channels |
 | 6 | `docs(project): record <vessel>` | Codex note, MOC, AGENTS.md, SESSION.md, metrics |
 
-If a commit turns out to need a **dispatch** file, that is the signal to stop and re-read the seam — not to edit the file. Needing a content registry, `build.gradle`, a lang file or the MOC is normal and expected.
+If a commit turns out to need a **dispatch** file, that is the signal to stop and re-read the seam — not to edit the file. Needing a content registry, a lang file or the MOC is normal and expected. Needing `build.gradle` no longer is: JUnit tests join `check` on their own.
 
 ## Final output
 
-Report: the vessel and its id; the slot map; files added, and confirmation that no shared file changed beyond the enum and the two registries; abilities implemented; assets added; test task name and the mutation used to prove it; build and audit results; what remains for the user in game.
+Report: the vessel and its id; the slot map; files added, and confirmation that no shared file changed beyond the enum and the two registries; abilities implemented; assets added; test names and the mutation used to prove each; the `qualityGate` result; what remains for the user in game.
