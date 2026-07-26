@@ -2,6 +2,7 @@ package jujutsu.mod.character.todo;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.regex.Pattern;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.todo.TodoSwapGates.ClapGate;
 
@@ -41,10 +42,16 @@ public final class TodoFakeClapTest {
 	}
 
 	private static void assertAbilitySlotsAreWireStable() {
+		// Slots are named after the input that reaches them, so the input layer can stay vessel-agnostic.
 		assert CharacterAbility.PRIMARY.networkId() == 0 : "PRIMARY must keep network id 0";
-		assert CharacterAbility.SECONDARY.networkId() == 1 : "SECONDARY must append rather than renumber";
-		assert CharacterAbility.byNetworkId(0) == CharacterAbility.PRIMARY : "Network id 0 must resolve to PRIMARY";
-		assert CharacterAbility.byNetworkId(1) == CharacterAbility.SECONDARY : "Network id 1 must resolve to SECONDARY";
+		assert CharacterAbility.PRIMARY_SNEAK.networkId() == 1 : "PRIMARY_SNEAK must follow PRIMARY";
+		assert CharacterAbility.SECONDARY.networkId() == 2 : "SECONDARY must follow the sneak variant of PRIMARY";
+		assert CharacterAbility.SECONDARY_SNEAK.networkId() == 3 : "SECONDARY_SNEAK must follow SECONDARY";
+		assert CharacterAbility.ATTACK_CONTEXT.networkId() == 4 : "ATTACK_CONTEXT must be the last slot";
+		for (CharacterAbility slot : CharacterAbility.values()) {
+			assert CharacterAbility.byNetworkId(slot.networkId()) == slot
+					: "Every slot must round-trip through its network id: " + slot;
+		}
 		assert CharacterAbility.byNetworkId(99) == null : "An unknown slot id must resolve to null, not a default";
 	}
 
@@ -78,9 +85,10 @@ public final class TodoFakeClapTest {
 	private static void assertCooldownsAreIndependent() throws Exception {
 		String feint = Files.readString(TODO.resolve("TodoFakeClapRuntime.java"));
 		String swap = Files.readString(TODO.resolve("TodoBoogieWoogieRuntime.java"));
-		assert feint.contains("CharacterAbilityCooldowns.start(todo, CharacterAbility.SECONDARY, TodoProfile.FAKE_CLAP_COOLDOWN_TICKS)")
+		assert feint.contains("CharacterAbilityCooldowns.start(todo, CharacterAbility.PRIMARY_SNEAK, TodoProfile.FAKE_CLAP_COOLDOWN_TICKS)")
 				: "The feint must start its own slot's cooldown";
-		assert !feint.contains("CharacterAbility.PRIMARY")
+		// PRIMARY as a whole token, so the PRIMARY_SNEAK the feint legitimately uses does not match.
+		assert !Pattern.compile("CharacterAbility\\.PRIMARY(?![_A-Z])").matcher(feint).find()
 				: "The feint must never touch the real swap's cooldown slot";
 		assert swap.contains("CharacterAbilityCooldowns.start(todo, CharacterAbility.PRIMARY, TodoProfile.BOOGIE_WOOGIE_COOLDOWN_TICKS)")
 				: "The real swap must keep its own cooldown slot";
@@ -92,15 +100,28 @@ public final class TodoFakeClapTest {
 
 	private static void assertSlotRoutingIsExhaustive() throws Exception {
 		String router = Files.readString(TODO.resolve("TodoAbilityRouter.java"));
-		assert router.contains("case PRIMARY ->") && router.contains("case SECONDARY ->")
-				: "Every Todo slot must be routed explicitly";
-		assert !router.contains("default ->")
+		for (CharacterAbility slot : CharacterAbility.values()) {
+			assert router.contains(slot.name())
+					: "Every input slot must be answered explicitly by Todo's router, missing: " + slot;
+		}
+		assert !Pattern.compile("default\\s*->").matcher(router).find()
 				: "The slot switch must stay exhaustive so a new ability cannot fall into the swap";
+		String definition = Files.readString(TODO.resolve("TodoDefinition.java"));
+		assert definition.contains("TodoAbilityRouter.tryCast(player, slot, notify)")
+				: "Todo's definition must send casts to his slot router";
 		String executor = Files.readString(Path.of("src/main/java/jujutsu/mod/character/CharacterAbilityExecutor.java"));
-		assert executor.contains("TodoAbilityRouter.tryCast(player, ability, notify)")
-				: "The executor must dispatch Todo through the slot router";
+		assert !executor.contains("Todo")
+				: "The shared gate reaches Todo through the registry and must not name him";
 		String keybinds = Files.readString(Path.of("src/client/java/jujutsu/mod/client/input/JujutsuKeybinds.java"));
-		assert keybinds.contains("CharacterAbility.SECONDARY") && keybinds.contains("isShiftKeyDown()")
+		assert keybinds.contains("CharacterAbility.PRIMARY_SNEAK") && keybinds.contains("isShiftKeyDown()")
 				: "The feint must ride the existing technique key with a shift modifier, not a new keybind";
+		// Both technique keys go through the same translation, so the input layer picks slots by input
+		// position only. Selecting by meaning is what forced every new vessel to edit this file.
+		assert keybinds.contains("slot(client, CharacterAbility.PRIMARY, CharacterAbility.PRIMARY_SNEAK)")
+				: "The technique key must name its slot from the sneak state, not from what Todo does with it";
+		assert keybinds.contains("slot(client, CharacterAbility.SECONDARY, CharacterAbility.SECONDARY_SNEAK)")
+				: "The second technique key must name its slot the same way, sneak variant included";
+		assert !keybinds.contains("Todo")
+				: "No vessel's runtime, profile or ability name may be visible from the input layer";
 	}
 }

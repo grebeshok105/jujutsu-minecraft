@@ -5,16 +5,9 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 
 import net.minecraft.resources.ResourceLocation;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
+import jujutsu.mod.character.CharacterDefinition;
+import jujutsu.mod.character.JujutsuCharacters;
 import jujutsu.mod.character.CharacterCombatModifiers;
-import jujutsu.mod.character.todo.TodoBlackFlashRuntime;
-import jujutsu.mod.character.nobara.projectjjk.EmbeddedNailRegistry;
-import jujutsu.mod.character.nobara.projectjjk.ProjectJjkRitualRuntime;
-import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollRuntime;
-import jujutsu.mod.character.nobara.projectjjk.NailAnchorLifecycle;
-import jujutsu.mod.character.nobara.projectjjk.NobaraHammerCombatRuntime;
-import jujutsu.mod.character.nobara.projectjjk.NobaraActionGuard;
-import jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime;
-import jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime;
 import jujutsu.mod.command.JujutsuCommands;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuAttachments;
@@ -46,18 +39,11 @@ public class JujutsuMod implements ModInitializer {
 		JujutsuNetworking.registerPayloads();
 		CharacterAbilityCooldowns.register();
 		CharacterCombatModifiers.register();
-		ProjectJjkRitualRuntime.register();
-		ProjectJjkStrawDollRuntime.register();
-		EmbeddedNailRegistry.register();
-		NailAnchorLifecycle.register();
-		NobaraHammerCombatRuntime.register();
-		TodoBlackFlashRuntime.register();
-		jujutsu.mod.character.todo.TodoBoogieWoogieRuntime.register();
-		jujutsu.mod.character.todo.TodoPairSwapRuntime.register();
-		jujutsu.mod.character.todo.TodoSwapMarks.register();
-		NobaraActionGuard.register();
-		SelfResonanceRuntime.register();
-		NailTrapRuntime.register();
+		// Each vessel brings its own listeners. This used to be twelve hand-listed calls, which meant a
+		// new vessel had to edit mod init — the one shared file the definition seam was supposed to free.
+		for (CharacterDefinition definition : JujutsuCharacters.all()) {
+			definition.registerServerHooks();
+		}
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> CurseLinkRegistry.GLOBAL.clear());
 		JujutsuCommands.register();
 		ForcedBlackFlash.register();

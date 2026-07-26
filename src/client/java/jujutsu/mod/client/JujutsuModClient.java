@@ -1,32 +1,29 @@
 package jujutsu.mod.client;
 
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
-import net.minecraft.client.renderer.entity.ThrownItemRenderer;
-import jujutsu.mod.client.vfx.JujutsuVfxRecipes;
+import jujutsu.mod.character.CharacterSelectionView;
+import jujutsu.mod.client.character.ClientCharacterSelectionManager;
+import jujutsu.mod.client.character.JujutsuCharacterClients;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.input.JujutsuKeybinds;
 import jujutsu.mod.client.network.JujutsuClientNetworking;
 import jujutsu.mod.client.particle.JujutsuClientParticles;
-import jujutsu.mod.client.render.ProjectJjkNailRenderer;
-import jujutsu.mod.client.render.nobara.doll.ProjectJjkStrawDollRenderer;
 import jujutsu.mod.client.ui.msdf.MsdfFonts;
 import jujutsu.mod.client.rich.Initialization;
 import jujutsu.mod.client.rich.screens.clickgui.ClickGuiHud;
 import jujutsu.mod.client.ui.neon.render.SdfPipelines;
-import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollItem;
-import jujutsu.mod.registry.JujutsuEntities;
 
 public class JujutsuModClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
-		ProjectJjkStrawDollItem.setRendererFactory(ProjectJjkStrawDollRenderer::provider);
-		EntityRendererRegistry.register(JujutsuEntities.PROJECTJJK_NAIL, ProjectJjkNailRenderer::new);
-		// The resting marker is the mark, so vanilla thrown-item rendering is exactly what it needs.
-		EntityRendererRegistry.register(JujutsuEntities.TODO_SWAP_MARKER, ThrownItemRenderer::new);
+		// Lets shared code that runs on both sides ask which vessel a player is without this source set
+		// ever touching a client class.
+		CharacterSelectionView.setClientLookup(ClientCharacterSelectionManager::characterOrNone);
 		JujutsuClientParticles.registerFactories();
 		VfxDirector.initialize();
-		JujutsuVfxRecipes.registerAll();
+		// Each vessel installs its own renderers and VFX recipes. Must follow VfxDirector.initialize(),
+		// because the recipes register into the director it builds.
+		JujutsuCharacterClients.registerAll();
 		JujutsuClientNetworking.registerReceivers();
 		JujutsuKeybinds.register();
 		// SDF panels for ClickGui (touching the field registers the pipeline).

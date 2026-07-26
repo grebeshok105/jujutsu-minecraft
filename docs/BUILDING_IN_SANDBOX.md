@@ -11,7 +11,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 python3 tools/audit_docs.py
 ```
 
-The full build compiles main and client source sets, runs the Gradle test task, and runs every custom JavaExec verification program wired into check. The current branch has 23 custom verification programs. A successful remapped jar is written to build/libs/jujutsumod-1.0.0.jar.
+The full build compiles main and client source sets, runs the Gradle test task, and runs every custom JavaExec verification program wired into check. The current branch has 30 custom verification programs. A successful remapped jar is written to build/libs/jujutsumod-1.0.0.jar.
 
 For a clean proof rather than an up-to-date result:
 
@@ -73,7 +73,7 @@ This checklist is the owner of the client-smoke scope. It is not automated — n
 
 - N opens ClickGui; the Characters tab lists Nobara, Todo, and None; Soon placeholders stay non-clickable.
 - Select Todo, confirm it, and check the roster labels are localized rather than raw keys.
-- Reconnect and confirm the selection persisted; confirm the Nobara starter kit is not re-granted on re-selection.
+- Reconnect and confirm the selection persisted. Drop or lose a Nobara starter tool, re-select her, and confirm the missing hammer/doll/nails come back — and that tools still held are **not** duplicated. The re-grant on every selection is deliberate and idempotent.
 - Vanilla crosshair is gone the whole time the menu is open, including through the close fade, and is back afterwards. Other HUD elements, third person, and the F3 crosshair are unaffected.
 - Panel drag: left-drag the header band and confirm the panel tracks the cursor one-to-one at GUI scale 1, 2, and 4 — that is the exact case the old scale conversion got wrong. Middle-drag anywhere on the panel does the same.
 - Drag never steals a click: pressing a tab, a roster card, or confirm still activates it instead of grabbing the panel.

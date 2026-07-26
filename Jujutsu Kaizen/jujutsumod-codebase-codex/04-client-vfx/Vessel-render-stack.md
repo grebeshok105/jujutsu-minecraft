@@ -8,7 +8,7 @@ How a selected vessel replaces the vanilla player model. Everything below is VER
 
 `CharacterRenderDispatchMixin` targets `LivingEntityRenderer` and is the single dispatch point for the whole roster — it is deliberately not Nobara-specific.
 
-1. In the `LivingEntityRenderer` constructor, and only when `this instanceof PlayerRenderer`, it builds the vessel map via `CharacterGeoRenderers.create(context)`. This is the only place that has the `EntityRendererProvider.Context` the renderers need, which is why the map is not built in `JujutsuModClient`.
+1. In the `LivingEntityRenderer` constructor, and only when `this instanceof PlayerRenderer`, it builds the vessel map via `CharacterGeoRenderers.create(context)`, which asks each vessel's `CharacterClientDefinition.createRenderer`. This is the only place that has the `EntityRendererProvider.Context` the renderers need, which is why the map is not built in `JujutsuModClient`.
 2. At `render(LivingEntityRenderState, …)` HEAD it bails out unless the state is a `PlayerRenderState` and the player is not a spectator.
 3. It resolves the selection with `ClientCharacterSelectionManager.selectionByEntityId`, looks up the renderer, and bails if either is missing.
 4. It needs a live `AbstractClientPlayer` plus a partial tick, which vanilla's render state does not carry. `PlayerRenderContextMixin` records that pair, and the dispatch reads it back through `ClientCharacterSelectionManager.renderContextByEntityId`. No context means no vessel render.
@@ -22,15 +22,15 @@ How a selected vessel replaces the vanilla player model. Everything below is VER
 
 ## Vessel map
 
-`CharacterGeoRenderers.create` fills an `EnumMap<JujutsuCharacter, CharacterGeoRenderer>` from an **exhaustive switch with no `default`**:
+`CharacterGeoRenderers.create` fills an `EnumMap<JujutsuCharacter, CharacterGeoRenderer>` by asking every client definition in `JujutsuCharacterClients.all()` for its renderer:
 
-| Vessel | Renderer |
+| Vessel | `createRenderer` answers |
 |---|---|
-| NOBARA | `NobaraPlayerGeoRenderer` |
-| TODO | `TodoPlayerGeoRenderer` |
+| NOBARA | `NobaraPlayerGeoRenderer` (from `NobaraClientDefinition`) |
+| TODO | `TodoPlayerGeoRenderer` (from `TodoClientDefinition`) |
 | NONE | `null` — omitted from the map, meaning vanilla player rendering |
 
-The missing `default` is the design: a new `JujutsuCharacter` constant fails compilation here until it either declares a renderer or explicitly opts into vanilla. `null` is the explicit vanilla opt-in, not an oversight.
+The switch this file used to hold moved into `JujutsuCharacterClients.definition`, which is **exhaustive with no `default`**: a new `JujutsuCharacter` constant fails compilation there until it is bound to a client definition, and that definition either declares a renderer or inherits the `null` default. `null` is the explicit vanilla opt-in, not an oversight. See [Vessel definitions](../02-architecture/Vessel-definitions.md).
 
 ## Shared renderer: pose-stack guard
 

@@ -12,6 +12,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import javax.imageio.ImageIO;
+import jujutsu.mod.character.CharacterAbility;
 
 public final class ProjectSanityTest {
 	private static final Path ROOT = Path.of("").toAbsolutePath();
@@ -43,7 +44,7 @@ public final class ProjectSanityTest {
 		assertItemDefinitionsResolveToTextures();
 		assertDefaultNobaraItemsUseProjectJjkModels();
 		assertItemRegistryUsesKeyedProperties();
-		assertExplicitNobaraActionsAreVisible();
+		assertNobaraCastsThroughTheSharedSlotPath();
 		assertTodoSecondCharacterContracts();
 		assertProjectJjkHairpinFinisherNumbers();
 		assertHairpinFinishersSnapWithoutMarks();
@@ -341,29 +342,52 @@ public final class ProjectSanityTest {
 				: "The compact hammer must retain its Blockbench source";
 	}
 
-	private static void assertExplicitNobaraActionsAreVisible() throws IOException {
-		Path payload = MAIN_JAVA.resolve("jujutsu/mod/network/NobaraActionPayload.java");
-		assert Files.exists(payload) : "Nobara Enlarge/Explosion must have an explicit client->server action payload";
+	private static void assertNobaraCastsThroughTheSharedSlotPath() throws IOException {
+		// Nobara casts over the shared slot packet now. The bespoke int-keyed pair must stay deleted:
+		// a second input path is what let her and Todo drift apart in the first place.
+		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/network/NobaraActionPayload.java"))
+				: "Nobara must not carry a private ability packet beside the shared one";
+		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraActions.java"))
+				: "Nobara must not carry a private int-keyed ability gate beside the shared executor";
 		String networking = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/network/JujutsuNetworking.java"));
-		assert networking.contains("NobaraActionPayload.TYPE") : "Nobara action payload must be registered server-side";
+		assert !networking.contains("NobaraActionPayload") : "The removed Nobara packet must not be registered server-side";
+		assert networking.contains("CharacterAbilityPayload.TYPE") && networking.contains("CharacterAbilityExecutor.tryCast(player, ability, true)")
+				: "Every vessel's abilities must arrive through the one shared slot packet";
 		String keybinds = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/input/JujutsuKeybinds.java"));
 		assert keybinds.contains("key.jujutsumod.nobara_hairpin_enlarge") : "Hairpin Enlarge must be a visible keybind";
 		assert keybinds.contains("key.jujutsumod.nobara_hairpin_explosion") : "Hairpin Explosion must be a visible keybind";
-		String screen = Files.readString(CLIENT_JAVA.resolve(
-				"jujutsu/mod/client/rich/screens/clickgui/impl/character/CharacterRosterPanel.java"));
-		assert screen.contains("screen.jujutsumod.character_select.ability.hairpin_enlarge")
+		// The kit preview moved out of the screen and into her client definition, which is why the screen
+		// no longer names a vessel at all. The preview must still show her whole kit.
+		String card = Files.readString(CLIENT_JAVA.resolve(
+				"jujutsu/mod/client/character/nobara/NobaraClientDefinition.java"));
+		assert card.contains("screen.jujutsumod.character_select.ability.hairpin_enlarge")
 				: "Character select must show Hairpin Enlarge in the kit preview";
-		assert screen.contains("screen.jujutsumod.character_select.ability.hairpin_explosion")
+		assert card.contains("screen.jujutsumod.character_select.ability.hairpin_explosion")
 				: "Character select must show Hairpin Explosion in the kit preview";
-		assert screen.contains("emoji_pin") && screen.contains("emoji_boom")
+		assert card.contains("JujutsuCharacterIcons.PIN") && card.contains("JujutsuCharacterIcons.BOOM")
 				: "Character roster must expose Enlarge/Boom ability icons";
 		String commands = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/command/JujutsuCommands.java"));
 		assert commands.contains("\"enlarge\"") && commands.contains("\"explosion\"") : "Hairpin Enlarge/Explosion must have test commands";
-		assert commands.contains("ProjectJjkNobaraActions.tryCast") : "Hairpin commands must use the shared Nobara selection gate";
-		String actionRuntime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraActions.java"));
-		assert actionRuntime.contains("CharacterSelectionManager.selected(player) != JujutsuCharacter.NOBARA") : "Nobara actions must reject non-Nobara players";
-		assert actionRuntime.contains("startDirectedHairpin(player)") : "R must call the directed Hairpin runtime";
-		assert actionRuntime.contains("startMassHairpin(player)") : "B must call the mass Hairpin runtime";
+		assert commands.contains("CharacterAbilityExecutor.tryCast(player, slot, true)")
+				: "Hairpin commands must go through the shared gate so they see the same selection and stagger checks";
+		String executor = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/CharacterAbilityExecutor.java"));
+		assert executor.contains("CharacterSelectionManager.selected(player)") && executor.contains("JujutsuCharacter.NONE")
+				: "The shared gate owns the selection check for every vessel";
+		assert executor.contains("JujutsuCharacters.definition(character)")
+				&& executor.contains("definition.tryCast(player, slot, notify)")
+				: "The shared gate must ask the vessel's definition instead of naming vessels";
+		String actionRuntime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/NobaraAbilityRouter.java"));
+		assert actionRuntime.contains("CombatStagger.GLOBAL.isStaggered")
+				: "Nobara keeps her own stagger gate; the shared executor has none";
+		assert actionRuntime.contains("startDirectedHairpin(nobara)") : "R must call the directed Hairpin runtime";
+		assert actionRuntime.contains("startMassHairpin(nobara)") : "B must call the mass Hairpin runtime";
+		assert !Pattern.compile("default\\s*->").matcher(actionRuntime).find()
+				: "The slot switch must stay exhaustive so a new slot cannot fall into an existing ability";
+		// Taken from the enum rather than spelled out, so a new slot cannot leave this loop testing five.
+		for (CharacterAbility slot : CharacterAbility.values()) {
+			assert actionRuntime.contains("case " + slot.name() + " ->")
+					: "Nobara's router must answer every input slot explicitly, missing: " + slot;
+		}
 		String hammer = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkHammerItem.java"));
 		assert !hammer.contains("tryEnlargeMarkedTarget") : "Hammer must not hide Hairpin Enlarge as a fallback action";
 		assert !hammer.contains("detonateMarks") : "Hammer must not hide Hairpin Explosion as a fallback action";
@@ -389,21 +413,39 @@ public final class ProjectSanityTest {
 		assert networking.contains("CharacterAbilityPayload.TYPE") && networking.contains("AbilityCooldownPayload.TYPE")
 				: "Todo must use typed shared ability and cooldown packets";
 		String keybinds = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/input/JujutsuKeybinds.java"));
-		assert keybinds.contains("JujutsuCharacter.TODO") && keybinds.contains("CharacterAbility.PRIMARY")
-				: "Todo must reuse the primary technique key instead of adding a new keybind";
-		String roster = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/rich/screens/clickgui/impl/character/CharacterRosterPanel.java"));
+		// The point of the slot names: the input layer reuses the two technique keys for every vessel and
+		// asks only "am I a vessel at all", so adding one never edits this file.
+		assert keybinds.contains("CharacterAbility.PRIMARY") && keybinds.contains("CharacterAbility.SECONDARY")
+				: "Both technique keys must name shared slots rather than per-vessel actions";
+		assert !keybinds.contains("JujutsuCharacter.TODO") && !keybinds.contains("JujutsuCharacter.NOBARA")
+				: "The ability dispatcher must not compare against any single vessel by name";
+		assert keybinds.contains("character == JujutsuCharacter.NONE")
+				: "The one vessel question the input layer may ask is whether the player has a vessel at all";
+		// One exception, and it is named rather than hidden: the attack-context slot is only sent while a
+		// technique weapon is held, and today that check spells out Nobara's two hammers. It is still
+		// per-vessel branching, expressed as item ids instead of the enum, and it leaves in step 5 when a
+		// client-side vessel definition can answer the question.
+		assert keybinds.contains("STRAW_DOLL_HAMMER") && keybinds.contains("isTechniqueWeapon")
+				: "The remaining per-vessel weapon check must stay in one named helper, not spread out";
+		String roster = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/character/todo/TodoClientDefinition.java"));
 		assert roster.contains("JujutsuCharacter.TODO")
 				&& roster.contains("screen.jujutsumod.character_select.todo")
 				&& roster.contains("screen.jujutsumod.character_select.ability.boogie_woogie")
-				: "The existing character roster must expose Todo and his primary technique via localized keys";
+				: "The character roster must expose Todo and his primary technique via localized keys";
 		String recipes = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/todo/TodoVfxRecipes.java"));
 		assert recipes.contains("TodoVfxIds.BOOGIE_WOOGIE") && recipes.contains("VfxWorldChannel.ImpactStyle.BOOGIE_WOOGIE")
 				: "Todo swap visuals must use VFX Core recipes and channels";
 		assert recipes.contains("firstPerson().triggerClap")
 				: "Todo clap must use the dual-hand first-person CLAP channel, not one-sided SNAP";
+		// The aggregate entrypoint is gone: each vessel registers its own recipes from its client
+		// definition, so the list of who has recipes cannot drift from the list of who exists.
+		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/JujutsuVfxRecipes.java"))
+				: "A hand-kept aggregate of vessel recipe packs must not come back";
+		assert roster.contains("TodoVfxRecipes.register()")
+				: "Todo's VFX recipes must register from his own client definition";
 		String clientInit = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/JujutsuModClient.java"));
-		assert clientInit.contains("JujutsuVfxRecipes.registerAll()")
-				: "Second-character VFX recipes must register through the aggregate JujutsuVfxRecipes entrypoint";
+		assert clientInit.contains("JujutsuCharacterClients.registerAll()")
+				: "Client init must install every vessel's client hooks through the registry";
 		assert runtime.contains("isPlaceableDestination") || runtime.contains("isInWorldDestination")
 				: "Boogie Woogie destinations must stay free-form (air/water/flight), not floor-gated";
 		assert !runtime.contains("hasSafeFloor")
@@ -418,9 +460,15 @@ public final class ProjectSanityTest {
 		String animationHook = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/todo/TodoAnimationHooks.java"));
 		assert animationHook.contains("ability.boogie_woogie") || animationHook.contains("BOOGIE_WOOGIE_ANIM")
 				: "Todo must trigger the GeckoLib clap animation from VFX Core";
-		String skinMixin = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/CharacterSkinMixin.java"));
-		assert skinMixin.contains("TODO") && skinMixin.contains("textures/entity/character/todo.png")
+		// The skin path is declared once, by the vessel, and both the skin mixin and the roster portrait
+		// read it from there. It used to be spelled out in each of them.
+		assert roster.contains("textures/entity/character/todo.png") && roster.contains("playerSkin()")
 				: "Todo first-person hands must use the character skin texture";
+		String skinMixin = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/CharacterSkinMixin.java"));
+		assert skinMixin.contains("JujutsuCharacterClients.definition(selection.character()).playerSkin()")
+				: "The skin mixin must ask the vessel rather than carry its own copy of every skin path";
+		assert !skinMixin.contains("textures/entity/character/")
+				: "No skin path may be written twice";
 		assert Files.exists(JUJUTSU_ASSETS.resolve("textures/entity/character/todo.png")) : "Missing Todo player skin";
 		assert Files.exists(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/animations/todo/todo_aoi.animation.json"))
 				: "Missing Todo GeckoLib clap animation pack";
@@ -605,15 +653,16 @@ public final class ProjectSanityTest {
 	}
 
 	private static void assertNobaraHammerHasExplosiveAndPiercingLaunchModes() throws IOException {
-		String payload = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/network/NobaraActionPayload.java"));
-		assert payload.contains("HAMMER_CONTEXT") : "Left-click hammer combat needs an explicit contextual action payload";
 		String keybinds = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/input/JujutsuKeybinds.java"));
 		assert keybinds.contains("keyAttack.isDown()") : "Client input must edge-detect left-click attack for explosive hammer launches";
-		assert keybinds.contains("HAMMER_CONTEXT") : "Left-click hammer combat must send the contextual payload";
+		assert keybinds.contains("CharacterAbility.ATTACK_CONTEXT")
+				: "Left-click hammer combat must reach the server through the shared attack-context slot";
+		assert keybinds.contains("isTechniqueWeapon(client.player.getMainHandItem(), client.player.getOffhandItem())")
+				: "The attack-context slot must only be sent while a technique weapon is held, in either hand";
 		String hammer = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkHammerItem.java"));
 		assert hammer.contains("launchHairpin(serverPlayer, stack, hand, false)") : "Right-click hammer use must launch non-explosive piercing nails";
-		String actions = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraActions.java"));
-		assert actions.contains("HAMMER_CONTEXT") && actions.contains("NobaraHammerCombatRuntime.handleInput(player)") : "Nobara action gate must route left-click through the server contextual combat router";
+		String actions = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/NobaraAbilityRouter.java"));
+		assert actions.contains("case ATTACK_CONTEXT -> NobaraHammerCombatRuntime.handleInput(nobara)") : "Nobara's router must send the attack-context slot to the server contextual combat router";
 		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraRuntime.java"));
 		assert runtime.contains("launchHairpin(ServerPlayer player, boolean explosiveImpact)") : "Nobara runtime must expose an explosive/non-explosive launch mode";
 		assert runtime.contains("isExplosiveLaunchLocked(player)") : "Hairpin Enlarge/Boom must be gated while explosive nails are in flight";
@@ -903,25 +952,39 @@ public final class ProjectSanityTest {
 	}
 
 	private static void assertClickGuiModulesCoverEveryVessel() throws IOException {
-		// Same intent as the exhaustive switch in CharacterGeoRenderers: a new JujutsuCharacter
-		// constant must fail here until the Characters tab declares its module.
-		String characters = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/JujutsuCharacter.java"));
+		// This used to check that three modules were written out by hand and that the count matched the
+		// enum. The tab is now built by walking the client registry, so coverage is structural rather
+		// than counted: what is left to check is that it really walks it and names nobody.
 		String modules = Files.readString(CLIENT_JAVA.resolve(
 				"jujutsu/mod/client/rich/modules/jujutsu/JujutsuModules.java"));
+		assert modules.contains("JujutsuCharacterClients.all()")
+				: "The Characters tab must be built from the client registry, not from a second hand-kept list";
+		assert modules.contains("definition.moduleName()") && modules.contains("definition.moduleDescription()")
+				: "Each row's label and blurb must come from the vessel that owns them";
+		assert modules.contains("definition.moduleStartsEnabled()")
+				: "Which vessel starts switched on is the vessel's answer, not this file's";
+		String characters = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/JujutsuCharacter.java"));
 		Matcher vessels = VESSEL_CONSTANT.matcher(characters);
 		int vesselCount = 0;
+		int defaults = 0;
 		while (vessels.find()) {
 			vesselCount++;
+			// The registry's exhaustive switch already forces a definition to exist for this constant;
+			// what a switch cannot say is that the definition it returns fills the card in.
 			String vessel = vessels.group(1);
-			String moduleName = vessel.charAt(0) + vessel.substring(1).toLowerCase(Locale.ROOT);
-			assert modules.contains("\"" + moduleName + "\"")
-					: "ClickGui Characters tab has no module for vessel " + vessel;
-			assert modules.contains(".add(" + moduleName.toLowerCase(Locale.ROOT) + ")")
-					: "Vessel module " + moduleName + " must be registered in the module repository";
+			String file = "jujutsu/mod/client/character/" + (vessel.equals("NONE") ? "NoneClientDefinition.java"
+					: vessel.toLowerCase(Locale.ROOT) + "/" + vessel.charAt(0)
+							+ vessel.substring(1).toLowerCase(Locale.ROOT) + "ClientDefinition.java");
+			String definition = Files.readString(CLIENT_JAVA.resolve(file));
+			assert definition.contains("public String moduleName()") && definition.contains("public int accent()")
+					: vessel + " must declare its own module label and accent colour";
+			if (definition.contains("public boolean moduleStartsEnabled()")) {
+				defaults++;
+			}
 		}
 		assert vesselCount >= 3 : "Vessel constants must be discoverable in JujutsuCharacter";
-		assert CLICKGUI_MODULE.matcher(modules).results().count() == vesselCount
-				: "The Characters tab must declare exactly one module per playable vessel, including NONE";
+		assert defaults == 1
+				: "Exactly one vessel may start switched on in the Characters tab, found " + defaults;
 	}
 
 	private static void assertGeckoLibNobaraPlayerModelWired() throws IOException {
@@ -967,7 +1030,7 @@ public final class ProjectSanityTest {
 		String geo = Files.readString(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json"));
 		assert geo.contains("\"name\": \"bb_main\",\n\t\t\t\t\t\"parent\": \"skirt\"") : "Nobara skirt/coat panels must follow the body instead of floating as a root bone";
 		String card = Files.readString(CLIENT_JAVA.resolve(
-				"jujutsu/mod/client/rich/screens/clickgui/impl/character/CharacterRosterPanel.java"));
+				"jujutsu/mod/client/character/nobara/NobaraClientDefinition.java"));
 		assert card.contains("textures/entity/character/nobara.png") : "Character select portrait must keep using the player-skin head, not the GeckoLib NPC texture";
 	}
 

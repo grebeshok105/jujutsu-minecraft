@@ -19,7 +19,6 @@ import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
-import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuSounds;
@@ -107,7 +106,7 @@ public final class TodoBoogieWoogieRuntime {
 		restoreMotionAndRotation(target, targetSnapshot);
 
 		CharacterAbilityCooldowns.start(todo, CharacterAbility.PRIMARY, TodoProfile.BOOGIE_WOOGIE_COOLDOWN_TICKS);
-		JujutsuNetworking.sendAbilityCooldown(todo, JujutsuCharacter.TODO, CharacterAbility.PRIMARY, TodoProfile.BOOGIE_WOOGIE_COOLDOWN_TICKS);
+		JujutsuNetworking.sendAbilityCooldown(todo, CharacterAbility.PRIMARY, TodoProfile.BOOGIE_WOOGIE_COOLDOWN_TICKS);
 		emitSwapFeedback(level, todo, todoSnapshot.position(), targetSnapshot.position());
 		JujutsuMod.LOGGER.debug("Todo Boogie Woogie success player={} target={} from={} to={}",
 				todo.getGameProfile().getName(), target.getName().getString(), todoSnapshot.position(), plan.get().firstDestination());

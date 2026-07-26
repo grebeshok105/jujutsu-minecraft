@@ -5,8 +5,8 @@ import java.util.Map;
 
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import jujutsu.mod.character.JujutsuCharacter;
-import jujutsu.mod.client.render.nobara.NobaraPlayerGeoRenderer;
-import jujutsu.mod.client.render.todo.TodoPlayerGeoRenderer;
+import jujutsu.mod.client.character.CharacterClientDefinition;
+import jujutsu.mod.client.character.JujutsuCharacterClients;
 
 /** Single place that decides which vessel gets a GeckoLib replaced-player renderer. */
 public final class CharacterGeoRenderers {
@@ -15,19 +15,17 @@ public final class CharacterGeoRenderers {
 	/**
 	 * Builds one renderer instance per vessel that replaces the vanilla player model.
 	 * Vessels absent from the returned map keep the vanilla renderer.
+	 *
+	 * <p>This file used to hold the switch itself. It now asks each definition, because a vessel deciding
+	 * how it is drawn belongs beside the vessel deciding what colour it paints the menu — and the
+	 * exhaustiveness that made this switch worth having lives in the client registry now.
 	 */
 	public static Map<JujutsuCharacter, CharacterGeoRenderer> create(EntityRendererProvider.Context context) {
 		EnumMap<JujutsuCharacter, CharacterGeoRenderer> renderers = new EnumMap<>(JujutsuCharacter.class);
-		for (JujutsuCharacter character : JujutsuCharacter.values()) {
-			// Exhaustive switch with no default on purpose: a new JujutsuCharacter constant must fail
-			// compilation here until it either declares a renderer or explicitly opts into vanilla.
-			CharacterGeoRenderer renderer = switch (character) {
-				case NOBARA -> new NobaraPlayerGeoRenderer<>(context);
-				case TODO -> new TodoPlayerGeoRenderer<>(context);
-				case NONE -> null;
-			};
+		for (CharacterClientDefinition definition : JujutsuCharacterClients.all()) {
+			CharacterGeoRenderer renderer = definition.createRenderer(context);
 			if (renderer != null) {
-				renderers.put(character, renderer);
+				renderers.put(definition.id(), renderer);
 			}
 		}
 		return renderers;

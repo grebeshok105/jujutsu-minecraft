@@ -28,15 +28,16 @@ This block is the single owner of current-slice facts. `README.md` keeps only th
 
 - Playable vessels: **Nobara** (nails, hammer, Hairpin, Resonance, traps, Black Flash path), **Todo** (Boogie Woogie swap, heavy vanilla melee, shared Black Flash bridge), and **None**
 - Nobara controls: `R` directed Hairpin, `B` mass Hairpin, `Shift+R` Self Resonance, `Shift+B` Nail Trap, hammer left click contextual melee
-- Todo controls: `R` Boogie Woogie (server-authoritative self↔target swap, falling back to a live thrown mark when nothing eligible is under the crosshair), `Shift+R` feint clap (the full clap performance with no swap behind it; the modifier is the sneak key, so the cast is visibly crouched — an accepted tradeoff recorded in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)), `B` pair swap (first cast marks a bystander, second swaps the pair while Todo stays put); vanilla melee with Todo attribute modifiers
-- Todo's slots are mapped by `TodoAbilityRouter` over an exhaustive `CharacterAbility` switch, so a new slot fails compilation instead of falling into the swap. `CharacterAbility` network ids are wire format: append, never renumber
-- Todo has no starter loadout in this slice; the `todo_swap_marker` item is obtainable only by giving it. Baseline tuning lives in `TodoProfile`
-- Both vessels render through GeckoLib replaced-player renderers resolved by `CharacterGeoRenderers` and dispatched from `CharacterRenderDispatchMixin`
+- Todo controls: `R` Boogie Woogie (server-authoritative self↔target swap, falling back to a live thrown mark when nothing eligible is under the crosshair), `Shift+R` feint clap (the full clap performance with no swap behind it; the modifier is the sneak key, so the cast is visibly crouched — an accepted tradeoff recorded in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)), `B` pair swap (first cast marks a bystander, second swaps the pair while Todo stays put; `Shift+B` folds onto `B` for him via `canonicalSlot`, so crouching between the two presses does not lose one); vanilla melee with Todo attribute modifiers
+- Each vessel binds one server definition (`CharacterDefinition` in `JujutsuCharacters`) and one client definition (`CharacterClientDefinition` in `JujutsuCharacterClients`); the two exhaustive registry switches are the only places that name every vessel, and `registerServerHooks`/`registerClientHooks` mean neither mod init file is ever edited for a new vessel — contract owned by the Codex note `02-architecture/Vessel-definitions.md`
+- Each vessel's slots are mapped by its own router — `NobaraAbilityRouter`, `TodoAbilityRouter`, reached through the vessel's definition — over an exhaustive `CharacterAbility` switch, so a new slot fails compilation instead of falling into whichever arm a `default` would have picked. Nobara's router additionally owns her stagger check and her single fallback message, because both are hers alone and neither belongs in the shared executor. `CharacterAbility` network ids are wire format: append, never renumber. `CharacterAbilityPayload` also carries the vessel the client believed in, and the server refuses a cast whose claim disagrees with the stored selection
+- Todo has no starter loadout in this slice; the `todo_swap_marker` item is obtainable only by giving it, and only Todo can throw it — `TodoSwapMarkerItem.use` refuses other vessels on both sides through `CharacterSelectionView`. Baseline tuning lives in `TodoProfile`
+- Both vessels render through GeckoLib replaced-player renderers declared by each vessel's client definition, collected by `CharacterGeoRenderers` and dispatched from `CharacterRenderDispatchMixin`
 - Vessel render code is shared: `CharacterPlayerGeoRenderer` (render entry + pose-stack guard), `CharacterPlayerGeoModel` (arm pose + clamped head look), `CharacterHeldItemLayer` (hand attachments). A new vessel supplies assets and hooks, not a copied render stack
-- Transient combat VFX: **VFX Core** only (`VfxCue` → director → recipes), registered through `JujutsuVfxRecipes.registerAll()`
+- Transient combat VFX: **VFX Core** only (`VfxCue` → director → recipes); each vessel registers its own recipe pack from its client definition's `registerClientHooks()` — the aggregate `JujutsuVfxRecipes` is deleted
 - Player menu: **Key N → ClickGui**; sidebar **Characters** (live) + **Soon...** placeholders (non-clickable); the panel drags by its header band with left mouse or anywhere on it with middle mouse, its position is session-only, and the vanilla crosshair is declined while the menu owns the screen
-- Character apply: `SelectCharacterPayload` C2S, server-authoritative; selection persists via Fabric Data Attachment API and starter loadout claims are one-time
-- UI theme: orange/slate via `ClickGuiTheme`
+- Character apply: `SelectCharacterPayload` C2S, server-authoritative; selection persists via Fabric Data Attachment API. Nobara's starter loadout is deliberately re-applied on **every** selection — it is idempotent, filling only a missing hammer, doll or nails, so a lost kit is restored without duplicating held items. The persisted starter claim is recorded for every vessel and currently read by nothing (see E12 in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md))
+- UI theme: `ClickGuiTheme` owns only the easing; the accent/warmth it eases toward come from each vessel's client definition (Nobara orange, None slate)
 - Ordinary loaded embedded nails: 1200-tick TTL, maximum 30 per owner, resolved through `EmbeddedNailRegistry`
 - Resonance global server hit-stop: see the accepted decision in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md), which owns that rationale
 - **No** cursed-energy resource bar in the current kit
@@ -170,7 +171,7 @@ No code-first experiments in the main product path unless the user explicitly as
 
 - Read vault note `jujutsumod-codebase-codex/04-client-vfx/VFX-core.md` before designing, implementing, or reviewing combat visuals.
 - Every transient combat effect must use: server-confirmed action → `VfxCue` → `VfxDirector` → `<Character>VfxRecipes` → director-owned channels; cues are visual-only.
-- For each character, add `<Character>VfxIds` and `<Character>VfxRecipes`, then register them from the single explicit `JujutsuVfxRecipes.registerAll()` entry point called by `JujutsuModClient`.
+- For each character, add `<Character>VfxIds` and `<Character>VfxRecipes`, then register them from that vessel's `CharacterClientDefinition.registerClientHooks()` — installed once by `JujutsuCharacterClients.registerAll()` at client init, after `VfxDirector.initialize()`.
 - Persistent visuals that follow a real entity/state stay on that entity/state renderer, not a transient timeline.
 - Do not create per-effect receivers, render/HUD callbacks, camera/HUD managers, lifecycle managers, or effect-specific mixins; add a shared director channel only after an approved design shows existing channels are insufficient.
 
@@ -237,10 +238,11 @@ Do not invent empty packages. Prefer existing roots; add packages only when a fe
 
 Typical live areas:
 
-- `jujutsu.mod.character` / `…nobara.projectjjk` / `…character.todo` — vessels and combat runtimes
+- `jujutsu.mod.character` / `…nobara.projectjjk` / `…character.todo` — server vessel definitions (`CharacterDefinition`, `JujutsuCharacters`), vessels and combat runtimes
 - `jujutsu.mod.vfx` + `jujutsu.mod.client.vfx` — cues, director, recipes, channels
 - `jujutsu.mod.network` — typed payloads
 - `jujutsu.mod.registry` — items, entities, particles, sounds
+- `jujutsu.mod.client.character` — client vessel definitions (`CharacterClientDefinition`, `JujutsuCharacterClients`), roster entries, client selection mirror
 - `jujutsu.mod.client.rich` — ClickGui / modules / theme
 - `jujutsu.mod.client.ui.msdf` + `…ui.neon.render` — MSDF + SDF backends
 - `jujutsu.mod.client.input` — keybinds
@@ -280,7 +282,7 @@ The full build owns all custom verification programs through `check`. Do not cla
 4. No universal cursed-energy bar in the current kit.
 5. Transient combat VFX: **VFX Core only**.
 6. Product menu: **ClickGui (N)** with Characters select; Neon V dashboard retired.
-7. Character selection and one-time starter claims persist through Fabric Data Attachment API.
+7. Character selection persists through Fabric Data Attachment API; starter kits are restored idempotently on every selection rather than claimed once (the persisted claim is recorded but unread — see E12).
 8. Loaded ordinary embedded nails use a TTL, a per-owner cap, and an owner index — exact numbers in “Current slice (facts)” above.
 9. Resonance global server hit-stop stays intentional unless the product target changes — rationale in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
 10. Todo differs from Nobara on positioning and raw melee, not on a second projectile kit; he intentionally ships without a starter loadout.

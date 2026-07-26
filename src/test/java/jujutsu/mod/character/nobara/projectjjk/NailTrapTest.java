@@ -28,12 +28,12 @@ public final class NailTrapTest {
 	private static void testServerIntegrationContract() {
 		try {
 			String runtime = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/NailTrapRuntime.java"));
-			String actions = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraActions.java"));
+			String router = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/NobaraAbilityRouter.java"));
 			String nail = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkNailEntity.java"));
 			String ids = Files.readString(Path.of("src/main/java/jujutsu/mod/vfx/NobaraVfxIds.java"));
 			String ritual = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
 			String recipes = Files.readString(Path.of("src/client/java/jujutsu/mod/client/vfx/nobara/NobaraVfxRecipes.java"));
-			assert actions.contains("case NAIL_TRAP -> NailTrapRuntime.tryPlace(player)") : "Shift+B must route to the trap runtime";
+			assert router.contains("case SECONDARY_SNEAK -> NailTrapRuntime.tryPlace(nobara)") : "Shift+B must route to the trap runtime";
 			assert runtime.contains("NAIL_TRAP_DAMAGE") && runtime.contains("NobaraDamageSources.hairpin") : "trap impact must use one Hairpin damage event";
 			assert runtime.contains("CombatStagger.GLOBAL.apply") && runtime.contains("NAIL_TRAP_INTERRUPT_TICKS") : "trap must use shared action interrupt";
 			assert runtime.contains("attachToEntity") && nail.contains("public void attachToEntity") : "trap must embed through the canonical nail entity path";

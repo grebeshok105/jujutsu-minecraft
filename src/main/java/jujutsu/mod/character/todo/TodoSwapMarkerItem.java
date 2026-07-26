@@ -8,6 +8,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import jujutsu.mod.character.CharacterSelectionView;
+import jujutsu.mod.character.JujutsuCharacter;
 
 /**
  * The thrown Boogie Woogie marker.
@@ -23,6 +25,15 @@ public class TodoSwapMarkerItem extends Item {
 
 	@Override
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
+		// The marker is his technique made physical, so only he can throw it. Checked on both sides
+		// through the shared view, because a server-only check would let the client predict a throw that
+		// never happens and then take back the item and the sound.
+		//
+		// Without this, anyone could leave a mark in the world that only Todo could ever use, and leaving
+		// a vessel would not clean it up — his cleanup hook fires for him, not for whoever threw it.
+		if (CharacterSelectionView.of(player) != JujutsuCharacter.TODO) {
+			return InteractionResult.PASS;
+		}
 		ItemStack stack = player.getItemInHand(hand);
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.SNOWBALL_THROW, SoundSource.PLAYERS,
 				TodoProfile.MARKER_THROW_VOLUME, TodoProfile.MARKER_THROW_PITCH);

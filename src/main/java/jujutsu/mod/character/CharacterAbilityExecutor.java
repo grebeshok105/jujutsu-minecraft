@@ -2,9 +2,13 @@ package jujutsu.mod.character;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import jujutsu.mod.character.todo.TodoAbilityRouter;
 
-/** Server-only dispatcher for shared active-ability slots. */
+/**
+ * Server-only dispatcher for shared active-ability slots.
+ *
+ * <p>It owns the two checks that are the same for everyone — having a vessel at all, and the slot's
+ * cooldown — and then asks the vessel. It names no vessel, so a new one never edits this file.
+ */
 public final class CharacterAbilityExecutor {
 	private CharacterAbilityExecutor() {}
 
@@ -16,15 +20,16 @@ public final class CharacterAbilityExecutor {
 			}
 			return false;
 		}
-		if (!CharacterAbilityCooldowns.isReady(player, ability)) {
+		// Folded first, so a vessel that treats two inputs as one shares their cooldown instead of having
+		// the second quietly bypass the first.
+		CharacterDefinition definition = JujutsuCharacters.definition(character);
+		CharacterAbility slot = definition.canonicalSlot(ability);
+		if (!CharacterAbilityCooldowns.isReady(player, slot)) {
 			if (notify) {
 				player.displayClientMessage(Component.translatable("message.jujutsumod.character.action.cooldown"), true);
 			}
 			return false;
 		}
-		return switch (character) {
-			case TODO -> TodoAbilityRouter.tryCast(player, ability, notify);
-			case NOBARA, NONE -> false;
-		};
+		return definition.tryCast(player, slot, notify);
 	}
 }

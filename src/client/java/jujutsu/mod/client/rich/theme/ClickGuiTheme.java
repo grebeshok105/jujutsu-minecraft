@@ -1,20 +1,16 @@
 package jujutsu.mod.client.rich.theme;
 
 import jujutsu.mod.character.JujutsuCharacter;
+import jujutsu.mod.client.character.CharacterClientDefinition;
+import jujutsu.mod.client.character.JujutsuCharacterClients;
 import jujutsu.mod.client.ui.UiEase;
 
 /**
  * Smooth accent / surface palette for the ClickGui shell.
- * Orange for Nobara, cool slate for None.
+ *
+ * <p>Which colour belongs to which vessel is the vessel's business — this file owns only the easing.
  */
 public final class ClickGuiTheme {
-	public static final int NOBARA_ACCENT = 0xFFE48A36;
-	public static final int NOBARA_DEEP = 0xFF8B3F1C;
-	public static final int TODO_ACCENT = 0xFFA56CFF;
-	public static final int TODO_DEEP = 0xFF4B2A85;
-	public static final int NONE_ACCENT = 0xFF7A8796;
-	public static final int NONE_DEEP = 0xFF3A4450;
-
 	private static float accentR = 0.48f, accentG = 0.53f, accentB = 0.59f;
 	private static float targetR = accentR, targetG = accentG, targetB = accentB;
 	private static float warm = 0f;
@@ -23,23 +19,16 @@ public final class ClickGuiTheme {
 	private ClickGuiTheme() {}
 
 	public static void setCharacter(JujutsuCharacter character) {
-		int accent = switch (character) {
-			case NOBARA -> NOBARA_ACCENT;
-			case TODO -> TODO_ACCENT;
-			case NONE -> NONE_ACCENT;
-		};
+		CharacterClientDefinition definition = JujutsuCharacterClients.definition(character);
+		int accent = definition.accent();
 		targetR = ((accent >> 16) & 0xFF) / 255f;
 		targetG = ((accent >> 8) & 0xFF) / 255f;
 		targetB = (accent & 0xFF) / 255f;
-		targetWarm = character == JujutsuCharacter.NOBARA ? 1f : character == JujutsuCharacter.TODO ? 0.45f : 0f;
+		targetWarm = definition.warmth();
 	}
 
 	public static int accentFor(JujutsuCharacter character) {
-		return switch (character) {
-			case NOBARA -> NOBARA_ACCENT;
-			case TODO -> TODO_ACCENT;
-			case NONE -> NONE_ACCENT;
-		};
+		return JujutsuCharacterClients.definition(character).accent();
 	}
 
 	public static void snapTo(JujutsuCharacter character) {

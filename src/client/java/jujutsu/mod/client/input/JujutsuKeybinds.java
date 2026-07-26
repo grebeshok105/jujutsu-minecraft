@@ -16,15 +16,14 @@ import jujutsu.mod.client.character.ClientCharacterSelectionManager;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.network.CharacterAbilityPayload;
-import jujutsu.mod.network.NobaraActionPayload;
 import jujutsu.mod.registry.JujutsuItems;
 
 public final class JujutsuKeybinds {
 	private static final Logger LOG = LoggerFactory.getLogger("jujutsumod/keys");
 
 	private static KeyMapping modernMenu;
-	private static KeyMapping nobaraEnlarge;
-	private static KeyMapping nobaraExplosion;
+	private static KeyMapping techniqueKey;
+	private static KeyMapping secondTechniqueKey;
 	private static boolean attackWasDown;
 	private static boolean modernMenuWasDown;
 
@@ -38,13 +37,16 @@ public final class JujutsuKeybinds {
 				InputConstants.KEY_N,
 				"key.categories.jujutsumod"
 		));
-		nobaraEnlarge = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+		// The two technique keys are shared by every vessel. Their ids still read "nobara_hairpin_*"
+		// because that string is what vanilla writes into options.txt — renaming it would silently reset
+		// everyone's binding. The displayed names are already vessel-neutral.
+		techniqueKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
 				"key.jujutsumod.nobara_hairpin_enlarge",
 				InputConstants.Type.KEYSYM,
 				InputConstants.KEY_R,
 				"key.categories.jujutsumod"
 		));
-		nobaraExplosion = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+		secondTechniqueKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
 				"key.jujutsumod.nobara_hairpin_explosion",
 				InputConstants.Type.KEYSYM,
 				InputConstants.KEY_B,
@@ -67,36 +69,21 @@ public final class JujutsuKeybinds {
 			}
 			modernMenuWasDown = modernDown;
 
-			while (nobaraEnlarge.consumeClick()) {
-				JujutsuCharacter character = selectedCharacter(client);
-				if (character == JujutsuCharacter.TODO) {
-					// Same key as the real clap: no hold threshold and no double tap, because the real
-					// swap has to stay instant and both casts have to be typed identically fast.
-					sendCharacterAbility(character, client.player.isShiftKeyDown()
-							? CharacterAbility.SECONDARY
-							: CharacterAbility.PRIMARY);
-				} else if (character == JujutsuCharacter.NOBARA) {
-					sendNobaraAction(client.player.isShiftKeyDown()
-							? NobaraActionPayload.SELF_RESONANCE
-							: NobaraActionPayload.HAIRPIN_DIRECTED);
-				}
+			// No hold threshold and no double tap on the sneak variants: a cast has to stay instant, and
+			// two casts on one key have to be typed identically fast.
+			while (techniqueKey.consumeClick()) {
+				sendCharacterAbility(client, slot(client, CharacterAbility.PRIMARY, CharacterAbility.PRIMARY_SNEAK));
 			}
-			while (nobaraExplosion.consumeClick()) {
-				JujutsuCharacter character = selectedCharacter(client);
-				if (character == JujutsuCharacter.TODO) {
-					// Two casts on one key: the first marks a participant, the second swaps the pair.
-					sendCharacterAbility(character, CharacterAbility.TERTIARY);
-				} else if (character == JujutsuCharacter.NOBARA) {
-					sendNobaraAction(client.player.isShiftKeyDown()
-							? NobaraActionPayload.NAIL_TRAP
-							: NobaraActionPayload.HAIRPIN_MASS);
-				}
+			while (secondTechniqueKey.consumeClick()) {
+				sendCharacterAbility(client, slot(client, CharacterAbility.SECONDARY, CharacterAbility.SECONDARY_SNEAK));
 			}
 
 			boolean attackDown = client.options.keyAttack.isDown();
+			// The weapon check is the last vessel-specific thing left in this file. It stays until the
+			// client-side vessel definitions can answer "is this stack my technique weapon".
 			if (attackDown && !attackWasDown && client.screen == null
-					&& isHoldingNobaraHammer(client.player.getMainHandItem(), client.player.getOffhandItem())) {
-				sendNobaraAction(NobaraActionPayload.HAMMER_CONTEXT);
+					&& isTechniqueWeapon(client.player.getMainHandItem(), client.player.getOffhandItem())) {
+				sendCharacterAbility(client, CharacterAbility.ATTACK_CONTEXT);
 			}
 			attackWasDown = attackDown;
 		});
@@ -140,30 +127,43 @@ public final class JujutsuKeybinds {
 		}
 	}
 
+	/**
+	 * The input contract, in one expression: a technique key plus whether the player is sneaking names a
+	 * slot. Nothing here knows what any vessel does with the slot it names — that belongs to the vessel's
+	 * own router on the server. A vessel with nothing on a slot simply answers {@code false} there.
+	 */
+	private static CharacterAbility slot(Minecraft client, CharacterAbility tap, CharacterAbility sneak) {
+		return client.player != null && client.player.isShiftKeyDown() ? sneak : tap;
+	}
+
 	private static JujutsuCharacter selectedCharacter(Minecraft client) {
 		return client.player == null ? JujutsuCharacter.NONE : ClientCharacterSelectionManager.characterOrNone(client.player.getUUID());
 	}
 
-	private static void sendCharacterAbility(JujutsuCharacter character, CharacterAbility ability) {
+	/**
+	 * The only vessel question this file asks: am I one at all. Staying silent for {@code NONE} keeps a
+	 * stray key press from earning a "pick a character first" line the player did not ask for.
+	 */
+	private static void sendCharacterAbility(Minecraft client, CharacterAbility ability) {
+		JujutsuCharacter character = selectedCharacter(client);
+		if (character == JujutsuCharacter.NONE) {
+			return;
+		}
 		if (!ClientAbilityCooldowns.isReady(character, ability)) {
 			return;
 		}
 		if (ClientPlayNetworking.canSend(CharacterAbilityPayload.TYPE)) {
-			ClientPlayNetworking.send(new CharacterAbilityPayload(ability.networkId()));
+			// Stamped with the vessel the player can see, so a press made in the gap between applying a
+			// switch locally and the server confirming it is refused rather than cast by the old vessel.
+			ClientPlayNetworking.send(new CharacterAbilityPayload(ability.networkId(), character.id()));
 		}
 	}
 
-	private static void sendNobaraAction(int action) {
-		if (ClientPlayNetworking.canSend(NobaraActionPayload.TYPE)) {
-			ClientPlayNetworking.send(new NobaraActionPayload(action));
-		}
+	private static boolean isTechniqueWeapon(ItemStack mainHand, ItemStack offHand) {
+		return isTechniqueWeapon(mainHand) || isTechniqueWeapon(offHand);
 	}
 
-	private static boolean isHoldingNobaraHammer(ItemStack mainHand, ItemStack offHand) {
-		return isNobaraHammer(mainHand) || isNobaraHammer(offHand);
-	}
-
-	private static boolean isNobaraHammer(ItemStack stack) {
+	private static boolean isTechniqueWeapon(ItemStack stack) {
 		return stack.is(JujutsuItems.STRAW_DOLL_HAMMER) || stack.is(JujutsuItems.PROJECTJJK_STRAW_DOLL_HAMMER);
 	}
 }

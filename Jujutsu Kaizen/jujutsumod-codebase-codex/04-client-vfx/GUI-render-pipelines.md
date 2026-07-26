@@ -101,9 +101,9 @@ So raising the scrim alpha could never have fixed it. An opaque scrim is still j
 
 ## Modules
 
-`JujutsuModules.registerAll` registers **three** `ModuleStructure` entries — `Nobara`, `Todo`, and `None`, all in `ModuleCategory.COMBAT` (the sidebar renders that category as "Characters"). Their in-source purpose is to keep the module repository non-empty; the visible roster is drawn by `CharacterRosterPanel`, which is the only path that sends `SelectCharacterPayload`. Module toggles are UI state and are not server-authoritative.
+`JujutsuModules.registerAll` registers one `ModuleStructure` per vessel — three today (`Nobara`, `Todo`, `None`), all in `ModuleCategory.COMBAT` (the sidebar renders that category as "Characters") — built by walking `JujutsuCharacterClients.all()` rather than written out, with each row's label, blurb and starting state coming from that vessel's `moduleName`/`moduleDescription`/`moduleStartsEnabled`. Their in-source purpose is to keep the module repository non-empty; the visible roster is drawn by `CharacterRosterPanel`, which is the only path that sends `SelectCharacterPayload`. Module toggles are UI state and are not server-authoritative.
 
-The old asymmetry — two modules against three roster cards, which read like a bug — is gone. `ProjectSanityTest.assertClickGuiModulesCoverEveryVessel` now derives the expected vessel list from `JujutsuCharacter` source rather than hardcoding it, so a new constant fails that check the way a missing renderer already fails compilation in `CharacterGeoRenderers`, and the count catches the reverse case of a module with no vessel.
+The old asymmetry — two modules against three roster cards, which read like a bug — is gone, and coverage is now structural rather than counted: `ProjectSanityTest.assertClickGuiModulesCoverEveryVessel` checks that the tab really walks the client registry and names nobody, that every vessel's client definition declares its own module label and accent, and that exactly one vessel starts switched on.
 
 ## Shaders present but not live
 

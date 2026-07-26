@@ -5,7 +5,6 @@ import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraLoadout;
 import jujutsu.mod.network.CharacterSelectionSyncPayload;
 import jujutsu.mod.registry.JujutsuAttachments;
 
@@ -14,22 +13,18 @@ public final class CharacterSelectionManager {
 
 	public static void select(ServerPlayer player, JujutsuCharacter character) {
 		CharacterPlayerState current = state(player);
-		boolean firstNobaraClaim = character == JujutsuCharacter.NOBARA && !current.hasClaimedStarter(character);
-		CharacterPlayerState updated = current.withSelectedCharacter(character);
-		if (firstNobaraClaim) {
-			updated = updated.claimStarter(character);
-		}
+		JujutsuCharacter previous = current.selectedCharacter();
+		CharacterDefinition arriving = JujutsuCharacters.definition(character);
+		// The old vessel packs up before the new one is stored, so its hook still sees itself selected.
+		// Every switch runs it, including re-selecting the same vessel, which is what the unconditional
+		// Todo cleanup this replaced did.
+		JujutsuCharacters.definition(previous).onDeselected(player);
+		// Recorded for every vessel, not just the ones that hand something out: "has been this vessel at
+		// least once" is a fact about the player, and claimStarter is idempotent.
+		CharacterPlayerState updated = current.withSelectedCharacter(character).claimStarter(character);
 		attachments(player).setAttached(JujutsuAttachments.CHARACTER_STATE, updated);
 		CharacterCombatModifiers.applyForSelection(player, character);
-		// ensureStarterTools is idempotent (only fills missing hammer/doll/nails). Always run on Nobara
-		// select so re-select after Todo/None or after losing items still restores the kit.
-		if (character == JujutsuCharacter.NOBARA) {
-			ProjectJjkNobaraLoadout.ensureStarterTools(player);
-		}
-		// Leaving the vessel mid-setup must not leave anything behind for a later cast to consume, nor a
-		// glowing body or a resting marker in the world with no owner who can use it.
-		jujutsu.mod.character.todo.TodoPairSwapRuntime.forget(player.getUUID());
-		jujutsu.mod.character.todo.TodoSwapMarks.clear(player.getServer(), player.getUUID());
+		arriving.onSelected(player);
 		broadcast(player.getServer(), player.getUUID(), character);
 	}
 

@@ -4,7 +4,7 @@ Status: CURRENT LIVE REGISTER
 
 Last code verification: 2026-07-26. Entries carrying a "Verified 2026-07-26" line were re-checked against source on that date. E3, E4, and E6 were last checked on 2026-07-23 and were not re-verified in this pass; treat their detail as older than the rest.
 
-Applies to: main and the active branch feat/clickgui-drag-and-todo-fake-clap. The earlier branch fix/persistence-nail-lifecycle-docs-sync no longer exists; its work is in main.
+Applies to: main and the active branch feat/todo-input-slots. The earlier branch fix/persistence-nail-lifecycle-docs-sync no longer exists; its work is in main.
 
 Owner hierarchy: current code/tests → AGENTS.md → SESSION.md → Codebase Codex → this register
 
@@ -94,7 +94,9 @@ Action: add narrow server/world tests around the real runtimes — valid swap, b
 
 Verified 2026-07-26 against `src/main/java/jujutsu/mod/character/CharacterAbilityCooldowns.java`.
 
-`READY_AT` is keyed by player UUID and is pruned only on `ServerPlayConnectionEvents.DISCONNECT` and `SERVER_STOPPING`. There is no death or respawn hook, so a running cooldown survives respawn but is cleared by a disconnect/rejoin. For a 60-tick cooldown this is harmless.
+`READY_AT` is keyed by `(player UUID, vessel, slot)` and is pruned only on `ServerPlayConnectionEvents.DISCONNECT` and `SERVER_STOPPING`. There is no death or respawn hook, so a running cooldown survives respawn but is cleared by a disconnect/rejoin. For a 60-tick cooldown this is harmless.
+
+The vessel is part of the key because a slot names an input position, so the same slot is a different ability for each vessel; without it one vessel's cooldown refused another's ability after a switch. `CHARACTER_STATE` is `copyOnDeath()`, so the vessel resolves identically after respawn and the policy above is unchanged. Switching away and back does not reset a cooldown: the stored value is an absolute game time, so it resumes where it left off.
 
 This is recorded as the intended policy rather than a defect, so that a future refactor cannot change it silently. Confirm it during the next manual smoke; if the desired policy is different, change it deliberately and update this entry.
 
@@ -136,7 +138,7 @@ Clients outside the broadcast radius at cast time do not receive a cue. This is 
 
 ### E5 — Localization parity is not enforced automatically
 
-Verified 2026-07-26: both `en_us.json` and `ru_ru.json` now hold 92 keys with an empty difference in both directions, no duplicates, and matching format specifiers. The key gap this entry originally tracked is closed. Its earlier figures (88 / 54) were themselves stale by the time they were checked; the real pre-fix counts were 92 / 58.
+Verified 2026-07-26: both `en_us.json` and `ru_ru.json` now hold 95 keys with an empty difference in both directions, no duplicates, and matching format specifiers. The key gap this entry originally tracked is closed. Its earlier figures (88 / 54) were themselves stale by the time they were checked; the real pre-fix counts were 92 / 58.
 
 What remains is the half that keeps it from reopening: nothing in `check` compares the two key sets, so the next English key added will silently drift again. Note also that `ru_ru.json` uses a leading-comma style from line 20 onward, which a naive generator would break.
 
@@ -146,15 +148,22 @@ Action: add a key-set parity check to the verification suite. Two smaller judgem
 
 Render2D immediately begins and flushes SDF for each shape to preserve MSDF ordering. SdfRenderer allocates/uploads per flush. Profile in-game before redesigning; if material, batch by render layer and reuse staging buffers.
 
-### E7 — Second-character integration is still Nobara-shaped
+### E7 — Closed: shared code no longer branches on a vessel
 
-Verified 2026-07-26: 17 direct `JujutsuCharacter.NOBARA` references remain across src/. The shared vessel render stack removed the per-character branching in rendering, but not elsewhere.
+Closed 2026-07-26 on feat/todo-input-slots by the vessel definition seam: every `JujutsuCharacter` constant binds one server definition (`CharacterDefinition` in `JujutsuCharacters`) and one client definition (`CharacterClientDefinition` in `JujutsuCharacterClients`), and the shared files that used to name vessels — mod init, client init, `CharacterAbilityExecutor`, `CharacterCombatModifiers`, `CharacterGeoRenderers`, `ClickGuiTheme`, `JujutsuModules`, `CharacterRosterPanel`, `CharacterSkinMixin` — now ask the registries. The contract is owned by the Codex note `Jujutsu Kaizen/jujutsumod-codebase-codex/02-architecture/Vessel-definitions.md`.
 
-Selection, UI cards, action payloads, loadout dispatch, and VFX registration contain direct Nobara branches. Do not build a giant abstraction early, but extract CharacterDefinition/handler boundaries when the second real kit is approved.
+Recounted 2026-07-26: exactly seven direct `JujutsuCharacter.NOBARA`/`.TODO` references remain across `src/main` and `src/client`, one per file, all deliberate:
+
+- Four are the `id()` declarations in the vessel definitions themselves (`NobaraDefinition`, `TodoDefinition`, `NobaraClientDefinition`, `TodoClientDefinition`) — a definition naming the constant it speaks for is the seam working, not a leak.
+- `JujutsuCommands` refuses the `hairpin` debug commands unless Nobara is selected, because a slot is an input position and `PRIMARY` cast as Todo would fire his swap while reporting a hairpin.
+- `TodoBlackFlashRuntime` filters its own damage listener for Todo — a vessel's own hook checking for itself.
+- `TodoSwapMarkerItem.use` refuses a non-Todo thrower on both sides through `CharacterSelectionView` — the E12 fix.
+
+One vessel-specific line survives in shared code without naming an enum constant: `JujutsuKeybinds.isTechniqueWeapon` still spells out Nobara's two hammers to decide whether left click counts as `ATTACK_CONTEXT`. It leaves when the client definition can answer "is this stack my technique weapon".
 
 ### E8 — Standard test reporting is weak
 
-Verified 2026-07-26: `build.gradle` registers 27 custom JavaExec verification programs.
+Verified 2026-07-26: `build.gradle` registers 30 custom JavaExec verification programs.
 
 They use main methods and Java assertions. They are useful and green, but do not provide normal per-test JUnit reports or GameTest world integration — see E1 for the coverage gap that follows from having no world-level tests.
 
@@ -163,6 +172,36 @@ They use main methods and Java assertions. They are useful and green, but do not
 Verified 2026-07-26: `gradle.properties` still pins `loom_version=1.17-SNAPSHOT`.
 
 CI now tests Java 21. Pin a stable Loom release when available, add dependency locking if releases become important, and add a second supported-JDK matrix only after it is proven compatible.
+
+### E10 — Nobara's generic fallback erases five specific diagnostics
+
+Verified 2026-07-26 against `NobaraAbilityRouter`, `NailTrapRuntime` and `SelfResonanceRuntime`.
+
+`NailTrapRuntime.tryPlace` and `SelfResonanceRuntime.tryCast` display a specific reason and then return `false`. The router's fallback immediately writes `message.jujutsumod.nobara.action.no_target` into the same action-bar slot, which replaces the text and resets its timer. So `trap.no_ground`, `trap.unsupported`, `trap.no_nails`, `trap.failed` and `self_resonance.no_link` are authored and translated in both languages but never actually read by a player.
+
+Pre-existing: inherited verbatim from the int-keyed gate the router replaced, so this is not migration damage. It is recorded rather than fixed because the fix changes what players see, and the router cannot currently tell "the runtime already explained itself" from "nothing was found". The honest shapes are either a tri-state return from each runtime, or dropping the fallback for the slots whose runtimes speak.
+
+Worth being exact about the cost of waiting, because it is smaller than it looks: the blocker is not `CharacterDefinition.tryCast`'s `boolean`. Widening that alone would change nothing, since the router still could not tell the two failures apart. The information has to come from `NailTrapRuntime` and `SelfResonanceRuntime` themselves, so the fix reaches into the runtimes whenever it is done, and the shared interface can be widened at that point at no extra cost.
+
+`NobaraAbilitySlotsTest` deliberately scopes its message count to the router and says so, rather than claiming a property it cannot establish across files.
+
+### E11 — The shared cooldown message now precedes Nobara's silent stagger check
+
+Verified 2026-07-26 against `CharacterAbilityExecutor` and `NobaraAbilityRouter`.
+
+The gate this router replaced ran selection, then stagger as a silent early return, then the ability. The shared executor now checks the cooldown between selection and dispatch, and that check is not silent — it displays `message.jujutsumod.character.action.cooldown`. A player who is both staggered and recharging would therefore be told about the cooldown where the old order said nothing.
+
+Inert today: no Nobara ability writes to `CharacterAbilityCooldowns`, so she never has one to be told about. It becomes reachable the first time one of her abilities takes a cooldown, which makes this a decision to take deliberately at that moment rather than a bug to fix now. The clean resolution is to let a vessel own the ordering of its own gates.
+
+### E12 — Closed: the swap marker item now has a vessel gate
+
+Closed 2026-07-26 on feat/todo-input-slots, verified against `TodoSwapMarkerItem` and `CharacterSelectionView`.
+
+`TodoSwapMarkerItem.use` now refuses any thrower who is not Todo, checked on **both** sides through `CharacterSelectionView` — the server reads its own selection, the client reads the mirror handed in at client init. Both sides matter because vanilla calls an item's `use` on the client too; a server-only gate would let the client predict a throw the server then refuses, taking back a consumed item and a played sound.
+
+For the history: the gap existed because `TodoDefinition.onDeselected` correctly cleans up only for the vessel being left, where the old every-selection clear had hidden the missing gate by destroying stray markers as a side effect. A player who was Nobara, or nobody, could leave a mark in the world that only Todo could ever use.
+
+Still open, related: `CharacterPlayerState.hasClaimedStarter` has no production callers at all. The starter claim is recorded and persisted for every vessel, but nothing reads it, because the loadout is deliberately re-applied on every selection so a lost kit can be restored. Either give the claim a job or delete it; leaving persisted state that nothing consumes invites someone to trust it later.
 
 ## Low-priority product debt
 
@@ -175,10 +214,10 @@ CI now tests Java 21. Pin a stable Loom release when available, add dependency l
 These are closed. They are kept as a short list only so a reader does not reopen them; the live behavior is described in AGENTS.md under "Current slice (facts)".
 
 - Character selection persists through Fabric Data Attachment API and is copied on death.
-- Nobara starter tools are claimed once per player instead of being refilled on every selection.
+- Nobara's starter kit is restored idempotently on every selection — it fills only a missing hammer, doll or nails, so re-selection cannot duplicate held tools. (This deliberately reversed the earlier one-time-claim rule; the persisted claim is now recorded for every vessel and read by nothing — see E12.)
 - Loaded ordinary embedded nails have a TTL and a per-owner cap.
 - Hairpin R/B resolve nails through EmbeddedNailRegistry instead of level.getAllEntities().
-- VFX recipe registration goes through the single `JujutsuVfxRecipes.registerAll()` aggregator.
+- VFX recipe registration goes through each vessel's `CharacterClientDefinition.registerClientHooks()`; the `JujutsuVfxRecipes` aggregator is deleted so the list of who has recipes cannot drift from the list of who exists.
 - `TodoProfile.SAFE_POSITION_HORIZONTAL_RADIUS` and `WORLD_BORDER_MARGIN` are wired into `TodoBoogieWoogieRuntime` instead of being dead constants.
 - Todo has a GeckoLib model, animations, and a player renderer; the `ability.boogie_woogie` hook is live, not a no-op.
 - Todo roster labels are localized.

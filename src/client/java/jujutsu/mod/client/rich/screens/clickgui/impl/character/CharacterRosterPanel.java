@@ -10,7 +10,10 @@ import net.minecraft.client.resources.language.I18n;
 import net.minecraft.resources.ResourceLocation;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.JujutsuCharacter;
+import jujutsu.mod.client.character.CharacterClientDefinition;
+import jujutsu.mod.client.character.CharacterRosterEntry;
 import jujutsu.mod.client.character.ClientCharacterSelectionManager;
+import jujutsu.mod.client.character.JujutsuCharacterClients;
 import jujutsu.mod.client.rich.theme.ClickGuiTheme;
 import jujutsu.mod.client.rich.util.render.Render2D;
 import jujutsu.mod.client.rich.util.render.font.Fonts;
@@ -19,43 +22,9 @@ import jujutsu.mod.network.SelectCharacterPayload;
 
 /** Character selection surface shared by every current playable vessel. */
 public final class CharacterRosterPanel {
-	private static final ResourceLocation NOBARA_SKIN = JujutsuMod.id("textures/entity/character/nobara.png");
-	private static final ResourceLocation TODO_SKIN = JujutsuMod.id("textures/entity/character/todo.png");
-	private static final ResourceLocation EMOJI_BUST = JujutsuMod.id("textures/gui/dashboard/emoji_bust.png");
-	private static final ResourceLocation EMOJI_FIST = JujutsuMod.id("textures/gui/dashboard/emoji_fist.png");
-	private static final ResourceLocation EMOJI_PIN = JujutsuMod.id("textures/gui/dashboard/emoji_pin.png");
-	private static final ResourceLocation EMOJI_BOOM = JujutsuMod.id("textures/gui/dashboard/emoji_boom.png");
-	private static final ResourceLocation EMOJI_LINK = JujutsuMod.id("textures/gui/dashboard/emoji_link.png");
-	private static final ResourceLocation EMOJI_BOLT = JujutsuMod.id("textures/gui/dashboard/emoji_bolt.png");
-	private static final CharacterCard[] CARDS = {
-			new CharacterCard(JujutsuCharacter.NOBARA,
-					"screen.jujutsumod.character_select.nobara.full",
-					"screen.jujutsumod.character_select.nobara.role",
-					"screen.jujutsumod.character_select.nobara.grade",
-					NOBARA_SKIN, true,
-					new ResourceLocation[] {EMOJI_PIN, EMOJI_BOOM, EMOJI_LINK, EMOJI_BOLT},
-					new String[] {
-							"screen.jujutsumod.character_select.ability.piercing_nail",
-							"screen.jujutsumod.character_select.ability.hairpin_enlarge",
-							"screen.jujutsumod.character_select.ability.resonance",
-							"screen.jujutsumod.character_select.ability.hairpin_explosion"
-					},
-					new String[] {"R", "B", "⇧R", "LMB"}),
-			new CharacterCard(JujutsuCharacter.TODO,
-					"screen.jujutsumod.character_select.todo",
-					"screen.jujutsumod.character_select.todo.technique",
-					"screen.jujutsumod.character_select.todo.role",
-					TODO_SKIN, true,
-					new ResourceLocation[] {EMOJI_FIST},
-					new String[] {"screen.jujutsumod.character_select.ability.boogie_woogie"},
-					new String[] {"R"}),
-			new CharacterCard(JujutsuCharacter.NONE,
-					"screen.jujutsumod.character_select.default.name",
-					"screen.jujutsumod.character_select.default.role",
-					"screen.jujutsumod.character_select.default",
-					EMOJI_BUST, false,
-					new ResourceLocation[0], new String[0], new String[0])
-	};
+	// Cards come from the client registry, so this screen holds no vessel's data at all. Adding a vessel
+	// puts it on the menu with no edit here.
+	private static final CharacterClientDefinition[] CARDS = JujutsuCharacterClients.inRosterOrder();
 
 	private JujutsuCharacter preview = JujutsuCharacter.NONE;
 	private final float[] hover = new float[CARDS.length];
@@ -79,9 +48,9 @@ public final class CharacterRosterPanel {
 		preview = minecraft.player == null ? JujutsuCharacter.NONE : ClientCharacterSelectionManager.characterOrNone(minecraft.player.getUUID());
 		ClickGuiTheme.snapTo(preview);
 		for (int index = 0; index < CARDS.length; index++) {
-			select[index] = CARDS[index].character() == preview ? 1.0f : 0.0f;
+			select[index] = CARDS[index].id() == preview ? 1.0f : 0.0f;
 		}
-		stripReveal = abilitiesFor(preview).labelKeys().length == 0 ? 0.0f : 1.0f;
+		stripReveal = abilitiesFor(preview).rosterEntry().abilities().isEmpty() ? 0.0f : 1.0f;
 		openProgress = 0.0f;
 		if (lastPanelW <= 1.0f) {
 			lastPanelW = 298.0f;
@@ -94,9 +63,9 @@ public final class CharacterRosterPanel {
 	public void tick(float deltaTicks) {
 		openProgress = UiEase.approach(openProgress, 1.0f, 0.28f, deltaTicks);
 		for (int index = 0; index < CARDS.length; index++) {
-			select[index] = UiEase.approach(select[index], CARDS[index].character() == preview ? 1.0f : 0.0f, 0.28f, deltaTicks);
+			select[index] = UiEase.approach(select[index], CARDS[index].id() == preview ? 1.0f : 0.0f, 0.28f, deltaTicks);
 		}
-		stripReveal = UiEase.approach(stripReveal, abilitiesFor(preview).labelKeys().length == 0 ? 0.0f : 1.0f, 0.24f, deltaTicks);
+		stripReveal = UiEase.approach(stripReveal, abilitiesFor(preview).rosterEntry().abilities().isEmpty() ? 0.0f : 1.0f, 0.24f, deltaTicks);
 	}
 
 	public void updateHover(float mouseX, float mouseY) {
@@ -128,7 +97,8 @@ public final class CharacterRosterPanel {
 		renderConfirm(graphics, visibleAlpha, yLift);
 	}
 
-	private void renderCard(GuiGraphics graphics, int index, CharacterCard card, float alpha, float yLift) {
+	private void renderCard(GuiGraphics graphics, int index, CharacterClientDefinition definition, float alpha, float yLift) {
+		CharacterRosterEntry card = definition.rosterEntry();
 		float[] bounds = cardBounds(index);
 		float cardX = bounds[0];
 		float cardY = bounds[1] + yLift;
@@ -139,7 +109,7 @@ public final class CharacterRosterPanel {
 		float drawH = cardH * pop;
 		float drawX = cardX - (drawW - cardW) * 0.5f;
 		float drawY = cardY - (drawH - cardH) * 0.5f;
-		int accent = ClickGuiTheme.accentFor(card.character());
+		int accent = ClickGuiTheme.accentFor(definition.id());
 		int fill = mix(0xFF1C1C1C, accent, 0.08f + 0.22f * select[index] + 0.10f * hover[index]);
 		int border = mix(0xFF373737, accent, 0.35f + 0.55f * select[index] + 0.20f * hover[index]);
 		Render2D.rect(drawX, drawY, drawW, drawH, withAlpha(fill, alpha), 9.0f);
@@ -153,7 +123,7 @@ public final class CharacterRosterPanel {
 		int head = 34;
 		int headX = Math.round(wellX + (well - head) * 0.5f);
 		int headY = Math.round(wellY + (well - head) * 0.5f);
-		if (card.skin()) {
+		if (card.portraitIsSkin()) {
 			drawSkinHead(graphics, card.portrait(), headX, headY, head, alpha);
 		} else {
 			drawEmoji(graphics, card.portrait(), headX, headY, head, alpha);
@@ -161,8 +131,8 @@ public final class CharacterRosterPanel {
 
 		float textX = wellX + well + 7.0f;
 		Fonts.BOLD.draw(I18n.get(card.nameKey()), textX, wellY + 5.0f, 6.0f, withAlpha(0xFFFFFFFF, alpha));
-		Fonts.BOLD.draw(I18n.get(card.techniqueKey()), textX, wellY + 16.0f, 4.7f, withAlpha(mix(0xFFAAAAAA, accent, 0.4f + 0.5f * select[index]), alpha));
-		Fonts.BOLD.draw(I18n.get(card.gradeKey()), textX, wellY + 27.0f, 4.2f, withAlpha(0xFF888888, alpha));
+		Fonts.BOLD.draw(I18n.get(card.roleKey()), textX, wellY + 16.0f, 4.7f, withAlpha(mix(0xFFAAAAAA, accent, 0.4f + 0.5f * select[index]), alpha));
+		Fonts.BOLD.draw(I18n.get(card.subtitleKey()), textX, wellY + 27.0f, 4.2f, withAlpha(0xFF888888, alpha));
 
 		String pill = select[index] > 0.55f ? "SELECTED" : (hover[index] > 0.55f ? "HOVER" : "READY");
 		float pillW = Fonts.BOLD.getWidth(pill, 4.0f) + 7.0f;
@@ -173,8 +143,8 @@ public final class CharacterRosterPanel {
 	}
 
 	private void renderAbilityStrip(GuiGraphics graphics, float alpha, float yLift) {
-		CharacterCard card = abilitiesFor(preview);
-		if (stripReveal < 0.02f || card.labelKeys().length == 0) {
+		CharacterRosterEntry card = abilitiesFor(preview).rosterEntry();
+		if (stripReveal < 0.02f || card.abilities().isEmpty()) {
 			return;
 		}
 		float visibleAlpha = alpha * stripReveal;
@@ -187,15 +157,15 @@ public final class CharacterRosterPanel {
 		Render2D.outline(stripX, stripY, stripW, stripH, 0.6f, withAlpha(ClickGuiTheme.accent(140), visibleAlpha), 7.0f);
 
 		float gap = 6.0f;
-		int count = card.labelKeys().length;
+		int count = card.abilities().size();
 		float cellW = (stripW - gap * (count - 1)) / count;
 		for (int index = 0; index < count; index++) {
 			float cellX = stripX + index * (cellW + gap);
 			Render2D.rect(cellX + 1.0f, stripY + 3.0f, cellW - 2.0f, stripH - 6.0f, withAlpha(0xFF161616, visibleAlpha), 5.0f);
 			int icon = 14;
-			drawEmoji(graphics, card.abilityIcons()[index], Math.round(cellX + 5.0f), Math.round(stripY + 9.0f), icon, visibleAlpha);
-			Fonts.BOLD.draw(I18n.get(card.labelKeys()[index]), cellX + 22.0f, stripY + 8.0f, 4.5f, withAlpha(0xFFE0E0E0, visibleAlpha));
-			Fonts.BOLD.draw(card.abilityKeys()[index], cellX + 22.0f, stripY + 18.0f, 4.0f, withAlpha(ClickGuiTheme.accent(200), visibleAlpha));
+			drawEmoji(graphics, card.abilities().get(index).icon(), Math.round(cellX + 5.0f), Math.round(stripY + 9.0f), icon, visibleAlpha);
+			Fonts.BOLD.draw(I18n.get(card.abilities().get(index).nameKey()), cellX + 22.0f, stripY + 8.0f, 4.5f, withAlpha(0xFFE0E0E0, visibleAlpha));
+			Fonts.BOLD.draw(card.abilities().get(index).inputLabel(), cellX + 22.0f, stripY + 18.0f, 4.0f, withAlpha(ClickGuiTheme.accent(200), visibleAlpha));
 		}
 	}
 
@@ -223,7 +193,7 @@ public final class CharacterRosterPanel {
 		}
 		for (int index = 0; index < CARDS.length; index++) {
 			if (hit(mouseX, mouseY, cardBounds(index))) {
-				selectPreview(CARDS[index].character());
+				selectPreview(CARDS[index].id());
 				return true;
 			}
 		}
@@ -239,7 +209,7 @@ public final class CharacterRosterPanel {
 		ClickGuiTheme.setCharacter(character);
 		// Immediate visual selection (select[] still eases in tick for polish).
 		for (int index = 0; index < CARDS.length; index++) {
-			if (CARDS[index].character() == preview) {
+			if (CARDS[index].id() == preview) {
 				select[index] = 1.0f;
 			}
 		}
@@ -261,8 +231,8 @@ public final class CharacterRosterPanel {
 		}
 	}
 
-	private CharacterCard abilitiesFor(JujutsuCharacter character) {
-		return Arrays.stream(CARDS).filter(card -> card.character() == character).findFirst().orElse(CARDS[CARDS.length - 1]);
+	private CharacterClientDefinition abilitiesFor(JujutsuCharacter character) {
+		return Arrays.stream(CARDS).filter(definition -> definition.id() == character).findFirst().orElse(CARDS[CARDS.length - 1]);
 	}
 
 	private float[] cardBounds(int index) {
@@ -316,15 +286,4 @@ public final class CharacterRosterPanel {
 		return (((base >>> 24) & 0xFF) << 24) | (red << 16) | (green << 8) | blue;
 	}
 
-	private record CharacterCard(
-			JujutsuCharacter character,
-			String nameKey,
-			String techniqueKey,
-			String gradeKey,
-			ResourceLocation portrait,
-			boolean skin,
-			ResourceLocation[] abilityIcons,
-			String[] labelKeys,
-			String[] abilityKeys
-	) {}
 }

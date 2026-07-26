@@ -22,10 +22,10 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 - Playable vessels: Nobara, Todo (Aoi Todo), and None.
 - N opens ClickGui; Characters is live and Soon rows are inert.
 - Selection is server-authoritative and persistent through Fabric Data Attachment API.
-- Nobara starter tools are claimed once per player; Todo has no starter items in the first slice.
-- Nobara controls: R/B/Shift+R/Shift+B plus hammer left click. Todo primary: R for Boogie Woogie.
+- Nobara's starter kit is restored idempotently on every selection; Todo has no starter items in the first slice.
+- Shared input slots — R, Shift+R, B, Shift+B, and left click with a technique weapon — mean whatever the selected vessel's own router says; each vessel binds one server and one client definition. See [Vessel definitions](02-architecture/Vessel-definitions.md).
 - Vessel bodies are GeckoLib replaced-player renders behind one shared stack; NONE keeps the vanilla model.
-- Transient combat effects use VfxCue → VfxDirector → JujutsuVfxRecipes.registerAll() → character recipes.
+- Transient combat effects use VfxCue → VfxDirector → character recipes, each registered by its vessel's client definition.
 - Loaded ordinary embedded nails use a 1200-tick TTL, a 30-per-owner cap, and EmbeddedNailRegistry.
 - Resonance global server hit-stop is intentional for the private 1–2 player target.
 
@@ -33,12 +33,12 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 
 | Metric | Value |
 |---|---:|
-| Main Java files | 92 |
-| Client Java files | 158 |
-| Test Java files | 27 |
-| Verification programs | 27 |
+| Main Java files | 97 |
+| Client Java files | 164 |
+| Test Java files | 30 |
+| Verification programs | 30 |
 | Client mixins | 6 |
-| Network payloads | 9 |
+| Network payloads | 8 |
 | Nobara VFX ids | 25 |
 
 Run python3 tools/audit_docs.py after changing facts represented above.
@@ -55,6 +55,7 @@ Run python3 tools/audit_docs.py after changing facts represented above.
 
 - [Entrypoints and lifecycle](02-architecture/Entrypoints-and-lifecycle.md)
 - [Registries](02-architecture/Registries.md)
+- [Vessel definitions](02-architecture/Vessel-definitions.md)
 - [Networking](02-architecture/Networking.md)
 - [Client-server boundaries](02-architecture/Client-server-boundaries.md)
 - [Assets and resources](02-architecture/Assets-and-resources.md)

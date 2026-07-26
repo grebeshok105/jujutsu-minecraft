@@ -10,13 +10,14 @@ python3 tools/audit_docs.py
 git diff --check
 ```
 
-The current build defines 27 custom JavaExec verification programs (VERIFIED — build.gradle, `tasks.register('test…', JavaExec)`), each using a main method with assertions enabled by -ea. check depends on all 27. The standard Gradle test task remains part of build but is not the whole suite.
+The current build defines 30 custom JavaExec verification programs (VERIFIED — build.gradle, `tasks.register('test…', JavaExec)`), each using a main method with assertions enabled by -ea. check depends on all 30. The standard Gradle test task remains part of build but is not the whole suite.
 
 Focused commands:
 
 ```bash
 ./gradlew testCharacterPlayerState --no-daemon
-./gradlew testProjectJjkNobaraProfile testProjectSanity --no-daemon
+./gradlew testCharacterDefinitions testCharacterClients --no-daemon
+./gradlew testNobaraAbilitySlots testProjectJjkNobaraProfile testProjectSanity --no-daemon
 ./gradlew testTodoProfile testTodoSwapPlan testTodoTargetSafety testTodoHandsEmpty --no-daemon
 ./gradlew testTodoFakeClap testTodoPairSwap testTodoSwapMarker --no-daemon
 ./gradlew testTargetResolver testClickGuiDrag --no-daemon

@@ -55,9 +55,9 @@ Damage, attack speed, and knockback-resistance-compatible behavior use vanilla a
 ### Input and networking
 
 - Reuse the existing primary-technique key: **R**.
-- The client sends a generic `CharacterAbilityPayload(PRIMARY)` only when the confirmed server cooldown is ready.
-- Server-side `CharacterAbilityExecutor` dispatches by selected character. The current generic path has one real consumer: Todo.
-- Nobara keeps its proven legacy action payload path in this slice; migration is deferred until a third character proves it worthwhile.
+- The client sends a generic `CharacterAbilityPayload(PRIMARY)` only when the confirmed server cooldown is ready. **Superseded in one respect:** the payload now also carries the vessel the client believed it was casting as, and the server refuses the cast when that claim disagrees with the stored selection — closing the round trip where a key press just after a menu switch was executed by the vessel the player had left.
+- Server-side `CharacterAbilityExecutor` dispatches by selected character. ~~The current generic path has one real consumer: Todo.~~ **Superseded:** it is now the only path, for every vessel.
+- ~~Nobara keeps its proven legacy action payload path in this slice; migration is deferred until a third character proves it worthwhile.~~ **Superseded:** her `NobaraActionPayload` and `ProjectJjkNobaraActions` were deleted and she moved onto the shared slots. What forced it was not a third character but the slot rename: once slots were named after input position, two input paths could no longer agree on what a key meant.
 - The server alone selects and validates the target, starts cooldown only after success, performs the teleport, and emits sound/VFX cues.
 
 ### Target selection

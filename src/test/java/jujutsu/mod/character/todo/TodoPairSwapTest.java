@@ -22,6 +22,7 @@ public final class TodoPairSwapTest {
 		assertSelectionIsBoundToDimensionAndIdentity();
 		assertBystandersGetStrictPlacement();
 		assertDistanceIsMeasuredFromTodoOnly();
+		assertTheSneakVariantFoldsOntoTheSameSlot();
 		assertSelectionLifecycleIsFullyUnwired();
 		assertMarkingIsFreeAndOnlyTheSwapCosts();
 		System.out.println("TodoPairSwapTest passed");
@@ -73,31 +74,67 @@ public final class TodoPairSwapTest {
 				: "Reach must reuse the swap range rather than introduce a second number";
 	}
 
+	/**
+	 * Shift+B must reach the pair swap. It is two presses on one key and cares about neither stance nor
+	 * hands, so crouching to line up the second participant used to lose the press silently while the
+	 * mark ticked on toward an expiry nobody explained.
+	 */
+	private static void assertTheSneakVariantFoldsOntoTheSameSlot() throws Exception {
+		String definition = Files.readString(TODO.resolve("TodoDefinition.java"));
+		assert definition.contains("slot == CharacterAbility.SECONDARY_SNEAK ? CharacterAbility.SECONDARY : slot")
+				: "Shift+B must fold onto B for Todo";
+		String executor = Files.readString(Path.of("src/main/java/jujutsu/mod/character/CharacterAbilityExecutor.java"));
+		int fold = executor.indexOf("definition.canonicalSlot(ability)");
+		int cooldown = executor.indexOf("CharacterAbilityCooldowns.isReady");
+		assert fold >= 0 && cooldown > fold
+				: "Folding must precede the cooldown check, or the sneak variant would bypass the real cooldown";
+		assert executor.contains("CharacterAbilityCooldowns.isReady(player, slot)")
+				&& executor.contains("definition.tryCast(player, slot, notify)")
+				: "Both the cooldown check and the cast must use the folded slot, not the raw input";
+	}
+
 	private static void assertSelectionLifecycleIsFullyUnwired() throws Exception {
 		String pair = Files.readString(TODO.resolve("TodoPairSwapRuntime.java"));
 		for (String hook : new String[] {"END_WORLD_TICK", "DISCONNECT", "AFTER_RESPAWN", "AFTER_PLAYER_CHANGE_WORLD", "SERVER_STOPPING"}) {
 			assert pair.contains(hook) : "A pending selection must be dropped on " + hook;
 		}
-		String selection = Files.readString(Path.of("src/main/java/jujutsu/mod/character/CharacterSelectionManager.java"));
-		assert selection.contains("TodoPairSwapRuntime.forget(player.getUUID())")
+		// The cleanup moved out of the shared selection manager and into Todo's own definition, where it
+		// belongs. What matters is that leaving him still runs it, and that the manager still calls the
+		// hook for the vessel being left rather than for the one arriving.
+		String definition = Files.readString(TODO.resolve("TodoDefinition.java"));
+		assert definition.contains("public void onDeselected(ServerPlayer player)")
+				&& definition.contains("TodoPairSwapRuntime.forget(player.getUUID())")
 				: "Leaving the vessel must drop a half-finished pair selection";
+		String selection = Files.readString(Path.of("src/main/java/jujutsu/mod/character/CharacterSelectionManager.java"));
+		assert selection.contains("JujutsuCharacters.definition(previous).onDeselected(player)")
+				: "The departing vessel's hook must run, not the arriving one's";
+		int deselect = selection.indexOf("onDeselected(player)");
+		int store = selection.indexOf("setAttached(JujutsuAttachments.CHARACTER_STATE");
+		assert deselect >= 0 && store > deselect
+				: "The departing vessel must pack up while it is still the selected one";
+		// Registration moved out of mod init and into the vessel that owns it, which is the point of the
+		// definition seam: mod init no longer names a single vessel's runtime.
+		assert definition.contains("TodoPairSwapRuntime.register()")
+				: "The pair swap lifecycle must be registered by Todo's definition";
 		String init = Files.readString(Path.of("src/main/java/jujutsu/mod/JujutsuMod.java"));
-		assert init.contains("TodoPairSwapRuntime.register()")
-				: "The pair swap lifecycle must be registered from mod init";
+		assert init.contains("definition.registerServerHooks()")
+				: "Mod init must register every vessel's hooks through the registry";
+		assert !init.contains("TodoPairSwapRuntime") && !init.contains("NailTrapRuntime")
+				: "Mod init must not hand-list any vessel's runtimes";
 	}
 
 	private static void assertMarkingIsFreeAndOnlyTheSwapCosts() throws Exception {
 		String pair = Files.readString(TODO.resolve("TodoPairSwapRuntime.java"));
-		assert pair.contains("CharacterAbilityCooldowns.start(todo, CharacterAbility.TERTIARY, TodoProfile.PAIR_SWAP_COOLDOWN_TICKS)")
+		assert pair.contains("CharacterAbilityCooldowns.start(todo, CharacterAbility.SECONDARY, TodoProfile.PAIR_SWAP_COOLDOWN_TICKS)")
 				: "A committed pair swap must take its own cooldown slot";
 		// Exactly one cooldown call: marking, cancelling and every rejection must be free.
 		assert pair.split("CharacterAbilityCooldowns\\.start", -1).length == 2
 				: "Only the committed swap may start a cooldown";
-		assert CharacterAbility.TERTIARY.networkId() == 2 : "TERTIARY must append rather than renumber";
-		assert CharacterAbility.byNetworkId(2) == CharacterAbility.TERTIARY : "Network id 2 must resolve to TERTIARY";
+		assert CharacterAbility.SECONDARY.networkId() == 2 : "The pair swap must sit on the second technique key";
+		assert CharacterAbility.byNetworkId(2) == CharacterAbility.SECONDARY : "Network id 2 must resolve to SECONDARY";
 		assert TodoProfile.PAIR_SWAP_COOLDOWN_TICKS > TodoProfile.BOOGIE_WOOGIE_COOLDOWN_TICKS
 				: "Swapping bystanders carries no personal risk, so it must cost more than Todo's own swap";
 		String router = Files.readString(TODO.resolve("TodoAbilityRouter.java"));
-		assert router.contains("case TERTIARY ->") : "The pair swap must be routed from Todo's slot map";
+		assert router.contains("case SECONDARY ->") : "The pair swap must be routed from Todo's slot map";
 	}
 }

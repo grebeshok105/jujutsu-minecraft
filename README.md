@@ -10,14 +10,14 @@ A Fabric 1.21.8 combat mod built around a small number of deeply designed Jujuts
 - Todo actions: R for Boogie Woogie (server-authoritative self↔target swap, falling back to a thrown mark when nothing is under the crosshair), Shift+R for a feint clap that looks and sounds identical but moves nobody, B twice to swap two bystanders with each other; vanilla melee with Todo modifiers and Black Flash bridge.
 - Todo can throw a Boogie Woogie Marker: where it lands becomes a swap destination for ten seconds, and a body it strikes glows and becomes one instead. Every Todo clap still needs both hands empty, which is why the marker is consumed as it leaves the hand.
 - Gameplay authority is server-side; rendering, menus, particles, camera work, and client animation stay under src/client.
-- Character selection persists through reconnects and restarts. The Nobara starter kit is granted once per player; Todo has no starter items in this slice.
+- Character selection persists through reconnects and restarts. Re-selecting Nobara restores any missing starter tools without duplicating ones still held; Todo has no starter items in this slice.
 - The current target is private play for one or two people, not a public competitive server. Several accepted tradeoffs follow from that.
 
 Exact tuning values, contracts, and accepted tradeoffs live in [AGENTS.md](AGENTS.md) under "Current slice (facts)"; unresolved debt lives in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
 
 ## Adding a vessel
 
-Start at the shared vessel render stack — `CharacterGeoRenderers` plus `CharacterPlayerGeoRenderer`, `CharacterPlayerGeoModel`, and `CharacterHeldItemLayer` under src/client. A new vessel supplies assets and hooks to those shared classes rather than copying a render stack; the exhaustive switch in `CharacterGeoRenderers` fails the build until a new character declares a renderer.
+A new vessel is one enum constant, one server definition (`CharacterDefinition`, bound in `JujutsuCharacters`), one client definition (`CharacterClientDefinition`, bound in `JujutsuCharacterClients`), and assets — no shared file changes, because each definition installs its own hooks at init. The two registries' exhaustive switches fail the build until both halves exist. Rendering goes through the shared vessel stack (`CharacterPlayerGeoRenderer`, `CharacterPlayerGeoModel`, `CharacterHeldItemLayer` under src/client) rather than a copied one. The full procedure lives in the Codex note [How to add the next character](Jujutsu%20Kaizen/jujutsumod-codebase-codex/06-maintenance/How-to-add-next-character.md); the contract itself in [Vessel definitions](Jujutsu%20Kaizen/jujutsumod-codebase-codex/02-architecture/Vessel-definitions.md).
 
 ## Requirements
 
