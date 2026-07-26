@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -52,12 +53,19 @@ VFX_ID_PATTERN = re.compile(r"public static final ResourceLocation [A-Z0-9_]+ = 
 TEST_TASK_PATTERN = re.compile(r"tasks\.register\('test[A-Za-z0-9]+'\s*,\s*JavaExec\)")
 
 
-def markdown_files() -> list[Path]:
-    return sorted(
-        path
-        for path in ROOT.rglob("*.md")
-        if ".git" not in path.parts and "build" not in path.parts
+def tracked_paths(pattern: str) -> list[Path]:
+    result = subprocess.run(
+        ["git", "ls-files", "-z", "--", pattern],
+        cwd=ROOT,
+        capture_output=True,
+        check=True,
+        text=True,
     )
+    return [ROOT / entry for entry in result.stdout.split("\0") if entry]
+
+
+def markdown_files() -> list[Path]:
+    return sorted(path for path in tracked_paths("*.md") if path.exists())
 
 
 def code_metrics() -> dict[str, int]:
@@ -95,8 +103,8 @@ def main() -> int:
             errors.append(f"missing current document: {path.relative_to(ROOT)}")
 
     for directory in REMOVED_DOC_DIRS:
-        if directory.exists():
-            errors.append(f"removed documentation directory exists: {directory.relative_to(ROOT)}")
+        if tracked_paths(f"{directory.relative_to(ROOT).as_posix()}/*"):
+            errors.append(f"removed documentation directory is tracked again: {directory.relative_to(ROOT)}")
 
     for path in files:
         text = path.read_text(encoding="utf-8", errors="ignore")
