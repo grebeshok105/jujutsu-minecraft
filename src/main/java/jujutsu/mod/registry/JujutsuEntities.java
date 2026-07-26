@@ -8,14 +8,29 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEntity;
+import jujutsu.mod.character.todo.TodoSwapMarkerEntity;
 
 public final class JujutsuEntities {
 	public static final EntityType<ProjectJjkNailEntity> PROJECTJJK_NAIL = createProjectJjkNail("projectjjk_nail");
+	public static final EntityType<TodoSwapMarkerEntity> TODO_SWAP_MARKER = createTodoSwapMarker("todo_swap_marker");
 
 	private JujutsuEntities() {}
 
 	public static void register() {
 		register("projectjjk_nail", PROJECTJJK_NAIL);
+		register("todo_swap_marker", TODO_SWAP_MARKER);
+	}
+
+	private static EntityType<TodoSwapMarkerEntity> createTodoSwapMarker(String path) {
+		ResourceKey<EntityType<?>> key = ResourceKey.create(Registries.ENTITY_TYPE, JujutsuMod.id(path));
+		return EntityType.Builder
+				.<TodoSwapMarkerEntity>of(TodoSwapMarkerEntity::new, MobCategory.MISC)
+				.sized(0.25f, 0.25f)
+				.clientTrackingRange(96)
+				.updateInterval(4)
+				// A mark is transient by design: it must not outlive the session that threw it.
+				.noSave()
+				.build(key);
 	}
 
 	private static EntityType<ProjectJjkNailEntity> createProjectJjkNail(String path) {

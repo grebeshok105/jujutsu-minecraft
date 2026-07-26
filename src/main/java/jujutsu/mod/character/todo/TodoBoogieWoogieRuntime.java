@@ -54,6 +54,11 @@ public final class TodoBoogieWoogieRuntime {
 		TargetResolver.Result aimed = TargetResolver.resolve(level, todo, TodoProfile.BOOGIE_WOOGIE_RANGE,
 				candidate -> isEligibleTarget(todo, candidate));
 		if (aimed.mode() != TargetResolver.Mode.ENTITY || aimed.entityId().isEmpty()) {
+			// Nothing eligible under the crosshair: fall back to a live thrown mark before refusing. An
+			// enemy in the crosshair is what the player meant, so the mark only ever gets what is left.
+			if (TodoMarkerSwapRuntime.hasMark(todo, level)) {
+				return TodoMarkerSwapRuntime.swapWithMark(todo, level, notify);
+			}
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.no_target",
 					"no aimed target mode=" + aimed.mode());
 		}

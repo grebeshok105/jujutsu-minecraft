@@ -43,6 +43,21 @@ public final class TodoProfile {
 	 * rather than repeating the literal.
 	 */
 	public static final int PAIR_SELECTION_TTL_TICKS = 100;
+	/** Thrown marker: a little slower than an ender pearl, so it can be placed rather than launched. */
+	public static final float MARKER_THROW_POWER = 1.35f;
+	public static final float MARKER_THROW_VOLUME = 0.6f;
+	public static final float MARKER_THROW_PITCH = 0.85f;
+	/** Three seconds of flight is more than enough for a 32-block throw; after that it is a stray. */
+	public static final int MARKER_FLIGHT_TICKS = 60;
+	/** Ten seconds of mark, about two swap cooldowns, so a mark is worth at most that much tempo. */
+	public static final int MARKER_MARK_TTL_TICKS = 200;
+	/** Nudge out of the struck face so the resting marker is visible against the surface. */
+	public static final double MARKER_SURFACE_OFFSET = 0.15;
+	/**
+	 * Longer reach than the aimed swap: the player paid an item, a throw and a visible telegraph for it,
+	 * and a public mark is something an opponent can play around.
+	 */
+	public static final double MARKER_SWAP_RANGE = 32.0;
 	/** Shared Black Flash chance for Todo's vanilla melee bridge. */
 	public static final float BLACK_FLASH_CHANCE = 0.10f;
 	public static final float BLACK_FLASH_DAMAGE_MULTIPLIER = 1.75f;

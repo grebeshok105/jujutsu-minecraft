@@ -2,6 +2,7 @@ package jujutsu.mod.client;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.minecraft.client.renderer.entity.ThrownItemRenderer;
 import jujutsu.mod.client.vfx.JujutsuVfxRecipes;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.input.JujutsuKeybinds;
@@ -21,6 +22,8 @@ public class JujutsuModClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		ProjectJjkStrawDollItem.setRendererFactory(ProjectJjkStrawDollRenderer::provider);
 		EntityRendererRegistry.register(JujutsuEntities.PROJECTJJK_NAIL, ProjectJjkNailRenderer::new);
+		// The resting marker is the mark, so vanilla thrown-item rendering is exactly what it needs.
+		EntityRendererRegistry.register(JujutsuEntities.TODO_SWAP_MARKER, ThrownItemRenderer::new);
 		JujutsuClientParticles.registerFactories();
 		VfxDirector.initialize();
 		JujutsuVfxRecipes.registerAll();
