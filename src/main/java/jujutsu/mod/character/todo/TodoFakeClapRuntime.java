@@ -46,9 +46,10 @@ public final class TodoFakeClapRuntime {
 		CharacterAbilityCooldowns.start(todo, CharacterAbility.SECONDARY, TodoProfile.FAKE_CLAP_COOLDOWN_TICKS);
 		JujutsuNetworking.sendAbilityCooldown(todo, JujutsuCharacter.TODO, CharacterAbility.SECONDARY,
 				TodoProfile.FAKE_CLAP_COOLDOWN_TICKS);
-		// An aim vector rather than zero: a real swap sends the normalized caster-to-target delta, which
-		// points roughly where the caster is looking, so the cues stay alike even to a future recipe that
-		// reads that field.
+		// An aim vector rather than zero. A real swap passes the raw caster-to-target delta, which VfxCue's
+		// compact constructor normalizes, so what arrives on the wire is a unit vector pointing roughly
+		// where the caster looks. Matching that keeps the cues alike even to a future recipe that reads the
+		// field -- and note the likeness depends on VfxCue keeping that normalization.
 		TodoBoogieWoogieRuntime.emitClapPerformance(level, todo, origin, todo.getLookAngle());
 		JujutsuNetworking.sendVfxCue(todo, new VfxCue(TodoVfxIds.FEINT_TELL, origin, todo.getId(), Vec3.ZERO, 1,
 				level.getGameTime(), todo.getRandom().nextLong(), Vec3.ZERO));

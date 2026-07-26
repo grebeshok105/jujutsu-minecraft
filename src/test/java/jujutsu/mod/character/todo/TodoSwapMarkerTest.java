@@ -25,6 +25,9 @@ public final class TodoSwapMarkerTest {
 		assertBothFormsShareOneCleanupPath();
 		assertMarkSwapIsStrictAndCostsThePrimaryCooldown();
 		assertMarkerFallbackNeverOutranksTheCrosshair();
+		assertMarkedBodyIsStillSafeToMoveAtSwapTime();
+		assertRemarkingTheSameBodyKeepsItsGlow();
+		assertTheMarkerIsObtainable();
 		System.out.println("TodoSwapMarkerTest passed");
 	}
 
@@ -107,6 +110,39 @@ public final class TodoSwapMarkerTest {
 		assert swap.contains("TodoSwapPlan.preflight")
 				: "Moving a marked body must use the same atomic two-destination rule";
 		assert swap.contains("rollback incomplete") : "A failed mark swap must log the incomplete restore";
+	}
+
+	private static void assertMarkedBodyIsStillSafeToMoveAtSwapTime() throws Exception {
+		// A mark lasts ten seconds. In that window the marked body can be mounted, boarded or leashed, and
+		// teleporting it then is exactly what TodoTargetSafety exists to prevent. Liveness alone is not
+		// enough -- the other two swap paths re-check eligibility, and so must this one.
+		String swap = Files.readString(TODO.resolve("TodoMarkerSwapRuntime.java"));
+		assert swap.contains("TodoBoogieWoogieRuntime.isEligibleTarget(todo, marked)")
+				: "The marked body must be re-checked for transport safety before it is teleported";
+		int resolve = swap.indexOf("private static LivingEntity resolveMarked(");
+		assert resolve > 0 && swap.indexOf("isEligibleTarget", resolve) > resolve
+				: "The eligibility re-check belongs in the marked-body resolution, not after the teleport";
+		// Line of sight is deliberately absent here: a thrown mark may sit somewhere the caster can no
+		// longer see. If that ever changes it must be a decision, not a drive-by consistency edit.
+		assert !swap.contains("hasLineOfSight")
+				: "A thrown mark must not require line of sight; that is the point of throwing it";
+	}
+
+	private static void assertRemarkingTheSameBodyKeepsItsGlow() throws Exception {
+		String entity = Files.readString(TODO.resolve("TodoSwapMarkerEntity.java"));
+		int release = entity.indexOf("TodoSwapMarks.clear(level.getServer(), owner.getUUID())");
+		int readGlow = entity.indexOf("boolean glowApplied = !struck.hasGlowingTag()");
+		assert release > 0 && readGlow > 0 && release < readGlow
+				: "The previous mark must be released before the glow is read, or re-marking the same body "
+						+ "reads its own glow as foreign and then switches it off";
+	}
+
+	private static void assertTheMarkerIsObtainable() throws Exception {
+		// Todo ships without a starter loadout by decision, so without this the whole mechanic would be
+		// reachable only through /give -- shipped, tested, and invisible to players.
+		String items = Files.readString(Path.of("src/main/java/jujutsu/mod/registry/JujutsuItems.java"));
+		assert items.contains("ItemGroupEvents.modifyEntriesEvent") && items.contains("TODO_SWAP_MARKER))")
+				: "The marker must be reachable in game, not only through a command";
 	}
 
 	private static void assertMarkerFallbackNeverOutranksTheCrosshair() throws Exception {

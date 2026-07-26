@@ -35,7 +35,7 @@ public final class TodoMarkerSwapRuntime {
 		if (mark == null) {
 			return false;
 		}
-		LivingEntity marked = mark.form() == TodoSwapMark.Form.ENTITY ? resolveMarked(level, mark) : null;
+		LivingEntity marked = mark.form() == TodoSwapMark.Form.ENTITY ? resolveMarked(todo, level, mark) : null;
 		if (mark.form() == TodoSwapMark.Form.ENTITY && marked == null) {
 			TodoSwapMarks.clear(level.getServer(), todo.getUUID());
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.invalid_target", "marked body is gone");
@@ -112,10 +112,19 @@ public final class TodoMarkerSwapRuntime {
 				todo.getGameProfile().getName(), todoOrigin, markOrigin);
 	}
 
-	private static LivingEntity resolveMarked(ServerLevel level, TodoSwapMark mark) {
+	/**
+	 * The id finds it, the UUID proves it is the same body, and {@code isEligibleTarget} proves it is still
+	 * safe to move — a marked body can be mounted, leashed or boarded during the mark's ten seconds, and
+	 * teleporting it then is exactly what {@code TodoTargetSafety} exists to prevent.
+	 *
+	 * <p>Line of sight is deliberately <em>not</em> required. A thrown mark's value includes reaching a
+	 * spot the caster can no longer see, which is why this is the one swap path that does not check it.
+	 */
+	private static LivingEntity resolveMarked(ServerPlayer todo, ServerLevel level, TodoSwapMark mark) {
 		Entity entity = level.getEntity(mark.entityId());
 		if (!(entity instanceof LivingEntity marked) || !marked.getUUID().equals(mark.entityUuid())
-				|| marked.isRemoved() || !marked.isAlive() || marked.isSpectator()) {
+				|| marked.isRemoved() || !marked.isAlive() || marked.isSpectator()
+				|| !TodoBoogieWoogieRuntime.isEligibleTarget(todo, marked)) {
 			return null;
 		}
 		return marked;

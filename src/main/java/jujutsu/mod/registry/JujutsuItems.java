@@ -2,7 +2,9 @@ package jujutsu.mod.registry;
 
 import java.util.List;
 
+import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -36,6 +38,10 @@ public final class JujutsuItems {
 		register("resonance_remnant", RESONANCE_REMNANT);
 		register("straw_doll", STRAW_DOLL);
 		register("todo_swap_marker", TODO_SWAP_MARKER);
+		// Todo ships without a starter loadout by decision, so the marker would otherwise be reachable
+		// only through /give. A creative entry makes the technique usable without deciding its survival
+		// acquisition, which is still open.
+		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.COMBAT).register(entries -> entries.accept(TODO_SWAP_MARKER));
 	}
 
 	private static Item createProjectJjkNail(String path, Item.Properties properties) {

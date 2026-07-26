@@ -58,7 +58,8 @@ public final class TodoSwapMarks {
 		return mark;
 	}
 
-	static void clear(MinecraftServer server, UUID owner) {
+	/** Also the hook for leaving the vessel mid-mark, from the character-selection path. */
+	public static void clear(MinecraftServer server, UUID owner) {
 		TodoSwapMark previous = MARKS.remove(owner);
 		if (previous != null) {
 			release(server, previous);
