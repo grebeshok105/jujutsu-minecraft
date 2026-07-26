@@ -41,10 +41,18 @@
   "screen.jujutsumod.character_select.ability.piercing_nail": "Piercing",
   "screen.jujutsumod.character_select.ability.resonance": "Resonance",
   "screen.jujutsumod.character_select.confirm": "Confirm",
+  "screen.jujutsumod.character_select.confirm_vessel": "Confirm vessel",
   "screen.jujutsumod.character_select.default": "Default",
+  "screen.jujutsumod.character_select.default.name": "None",
   "screen.jujutsumod.character_select.default.role": "No Technique",
   "screen.jujutsumod.character_select.nobara": "Nobara",
-  "screen.jujutsumod.character_select.nobara.role": "Straw Doll Technique",
+  "screen.jujutsumod.character_select.nobara.full": "Nobara Kugisaki",
+  "screen.jujutsumod.character_select.nobara.role": "Straw Doll",
+  "screen.jujutsumod.character_select.nobara.grade": "Grade 3",
+  "screen.jujutsumod.character_select.todo": "Aoi Todo",
+  "screen.jujutsumod.character_select.todo.technique": "Boogie Woogie",
+  "screen.jujutsumod.character_select.todo.role": "Heavy Melee",
+  "screen.jujutsumod.character_select.ability.boogie_woogie": "Boogie Woogie",
   "screen.jujutsumod.character_select.subtitle": "Bind a technique to your soul",
   "screen.jujutsumod.character_select.title": "Choose Your Sorcerer",
   "subtitles.jujutsumod.hairpin.afterglow": "Hairpin residue fades",
@@ -77,5 +85,6 @@
   "message.jujutsumod.todo.boogie.no_target": "No valid target in sight.",
   "message.jujutsumod.todo.boogie.invalid_target": "Target is no longer valid.",
   "message.jujutsumod.todo.boogie.out_of_range": "Target is out of range.",
-  "message.jujutsumod.todo.boogie.unsafe": "No safe swap destination was found."
+  "message.jujutsumod.todo.boogie.unsafe": "No safe swap destination was found.",
+  "message.jujutsumod.todo.boogie.hands_full": "Boogie Woogie needs both hands empty."
 }

@@ -9,12 +9,12 @@ public final class TodoProfile {
 	/** Incoming stagger durations are multiplied by 0.50. */
 	public static final double STAGGER_DURATION_MULTIPLIER = 0.50;
 	/** Boogie Woogie server-side directed target reach. */
-	public static final double BOOGIE_WOOGIE_RANGE = 24.0;
+	public static final double BOOGIE_WOOGIE_RANGE = 20.0;
 	/** Three seconds at the vanilla 20 TPS baseline. */
 	public static final int BOOGIE_WOOGIE_COOLDOWN_TICKS = 60;
-	/** Deterministic local horizontal fallback around a blocked exact destination. */
+	/** Local horizontal nudge only when the exact destination is inside solid blocks. */
 	public static final double SAFE_POSITION_HORIZONTAL_RADIUS = 1.0;
-	/** Maximum upward fallback for a blocked exact destination. */
+	/** Local upward nudge only when the exact destination is inside solid blocks. */
 	public static final int SAFE_POSITION_UPWARD_BLOCKS = 3;
 	/** Keeps targets comfortably inside the world border. */
 	public static final double WORLD_BORDER_MARGIN = 0.05;

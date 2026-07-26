@@ -2,61 +2,59 @@
 
 ## Current branch
 
-- Branch: fix/persistence-nail-lifecycle-docs-sync
-- Base: main at 2faa275
-- Change commits:
-  - fix(character): persist selection and starter claims
-  - fix(nobara): bound embedded nail lifecycle
-  - test(nobara): verify indexed trap exclusion
-  - docs(project): synchronize current source of truth
-  - chore(project): add local documentation audit
-  - ci(project): build with supported Java 21
-  - docs(project): prune legacy documentation
+- Branch: refactor/shared-vessel-render-stack
+- Base: main at 21ebefe (merge of PR #4)
+- PR #4 merged only the first Todo slice (c8e48dd) plus its review note (b3b4605)
+- This branch rebases the remaining eight commits onto that merge: the GeckoLib model pass and review fixes (85792d8) and the shared vessel render stack (5be077b, 17d4a65, 69b9358, f4ccdea, 350aa86)
 - Product target: private play for one or two people
 
-## Current product state
+Durable product state lives in AGENTS.md under "Current slice (facts)". This file records only what changed on this branch. Documentation authority order is owned by AGENTS.md; asset and provenance policy is owned by docs/PROVENANCE.md and docs/THIRD_PARTY_NOTICES.md.
 
-- Fabric 1.21.8, Java 21, mod id jujutsumod.
-- Playable vessels: Nobara and None.
-- N opens the single ClickGui product menu. The Neon Dashboard and Key V path are retired.
-- Character selection is sent through SelectCharacterPayload and remains server-authoritative.
-- Selection persists across reconnects/restarts through the Fabric Data Attachment API.
-- The Nobara starter hammer, doll, and nails are granted once per player; re-selecting Nobara does not refill them.
-- Nobara controls: R directed Hairpin, B mass Hairpin, Shift+R Self Resonance, Shift+B Nail Trap, hammer left click contextual melee.
-- Transient combat presentation uses VfxCue → VfxDirector → NobaraVfxRecipes and shared director channels.
-- Resonance intentionally changes the global server tick rate for hit-stop. This is accepted for the current 1–2 player target.
-- Ordinary loaded embedded nails expire after 1200 ticks, are capped at 30 per owner, and are resolved through EmbeddedNailRegistry rather than level.getAllEntities().
+## What changed on this branch
 
-## Asset and provenance decisions
+- Vessel rendering is now shared. CharacterGeoRenderers resolves one renderer per vessel through an exhaustive switch, so a new JujutsuCharacter constant fails compilation until it declares a renderer or opts into vanilla. CharacterPlayerGeoRenderer owns the render entry and pose-stack guard, CharacterPlayerGeoModel owns the arm pose and clamped head look, CharacterHeldItemLayer owns hand attachments.
+- The three shared render mixins were renamed for their real scope: CharacterRenderDispatchMixin, PlayerRenderContextMixin, FirstPersonHandFxMixin. No behavior change.
+- Todo gained a GeckoLib model, animations, and a player renderer (see below).
 
-- ProjectJJK placeholder models/assets are used with permission from the author and are intended to be replaced later.
-- They are not automatically covered by the repository CC0 declaration.
-- Rich-Modern-derived code/assets still need a provenance review before a public release.
-- Do not remove the ProjectJJK placeholders as an unapproved cleanup; do not expand the imported set casually.
+## Review-fix pass
 
-## Documentation authority
+Landed:
 
-1. Current code and passing tests.
-2. AGENTS.md for durable rules.
-3. This SESSION.md for the active handoff.
-4. Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md for current architecture.
-5. docs/KNOWN_ISSUES.md for live debt.
+- A1 docs metrics / Todo source-of-truth updates
+- A2 `JujutsuVfxRecipes.registerAll()`
+- A5 TodoProfile horizontal radius + world-border margin wired into `TodoBoogieWoogieRuntime`
+- A6 roster labels localized
+- A7 trailing whitespace removed from the design doc
+- B1 Black Flash bonus clears invulnerableTime for the bonus hit only
+- B2 rollback logs incomplete restore
 
-Use docs/README.md for the current-document map. Historical documentation has been intentionally removed. Run python3 tools/audit_docs.py after documentation changes.
+Not landed, and deliberately so:
+
+- A3 entity-occupancy collision in safe destinations was **not** implemented. An earlier revision of this file claimed it as landed; that claim was false and has been removed. `TodoBoogieWoogieRuntime.findSafeDestination` still gates only on world bounds, chunk load, world border, and solid-block collision, and its own doc comment states "No floor, no third-party entity occupancy gates." The behavior is intentional for the current 1–2 player target. The remaining residue — an unused `otherSwapParticipant` parameter — is recorded as open debt in docs/KNOWN_ISSUES.md.
+
+## Todo GeckoLib model pass
+
+- Assets → `geckolib/models/todo/todo_aoi`, `geckolib/animations/todo/todo_aoi`, texture `textures/entity/character/todo_aoi.png`
+- Client: `TodoPlayerGeoAnimatable` / `TodoPlayerGeoModel` / `TodoPlayerGeoRenderer`, plus the shared held-item layer
+- Animations: idle, walk, attack, `ability.boogie_woogie` (triggered via VFX cue anchor on cast)
+
+## Render debt pass
+
+- CharacterGeoRenderer / CharacterGeoRenderers replace the per-character `if` chain; verified fail-closed by temporarily adding a fourth JujutsuCharacter constant and confirming the build fails at CharacterGeoRenderers
+- CharacterHeldItemLayer, CharacterPlayerGeoRenderer, CharacterPlayerGeoModel absorb the duplicated vessel render stack
+- Sanity-test guards repointed to the shared files and extended to assert no vessel redefines the head-look clamps or hand-rolls the pose-stack guard
 
 ## Verification status
 
-Completed on 2026-07-23:
+- `gradlew.bat build --no-daemon` — BUILD SUCCESSFUL
+- `python tools/audit_docs.py` — passing
+- In-game client smoke — **NOT yet run on this branch.**
 
-- ./gradlew build --no-daemon --rerun-tasks — BUILD SUCCESSFUL, 30 tasks executed, all 19 custom verification programs passed.
-- python3 tools/audit_docs.py — passed for 39 current Markdown files; all legacy documentation directories are absent.
-- git diff --check — passed.
-
-A real client smoke test was not run, so rendering and gameplay feel remain unverified in-game.
+Compilation and the audit prove neither rendering nor gameplay feel. Run the client-smoke checklist in docs/BUILDING_IN_SANDBOX.md before treating this branch as verified.
 
 ## Next product steps
 
-1. In-game smoke test selection persistence, one-time starter claims, nail TTL/cap, directed Hairpin, and mass Hairpin.
-2. Decide the second character only after the current Nobara slice is stable.
+1. Run the client-smoke checklist in docs/BUILDING_IN_SANDBOX.md.
+2. Add world/GameTest coverage for `TodoBoogieWoogieRuntime.tryCast` and its rollback path; nothing exercises them today (E1/E8 in docs/KNOWN_ISSUES.md).
 3. Replace temporary ProjectJJK placeholders when original assets are available.
 4. Resolve Rich-Modern provenance before any public distribution.

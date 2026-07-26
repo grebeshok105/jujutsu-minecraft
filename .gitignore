@@ -41,3 +41,9 @@ replay_*.log
 *.hprof
 *.jfr
 
+# local agent/editor workspaces
+
+.qoder/
+.obsidian/
+lightrag.log
+

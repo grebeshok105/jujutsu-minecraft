@@ -104,6 +104,14 @@ public final class VfxDirector {
 		return FIRST_PERSON.currentPose();
 	}
 
+	public static VfxFirstPersonChannel.Style firstPersonStyle() {
+		return FIRST_PERSON.style();
+	}
+
+	public static VfxFirstPersonChannel.Pose firstPersonClapArmPose(net.minecraft.world.entity.HumanoidArm arm) {
+		return FIRST_PERSON.clapArmPose(arm);
+	}
+
 	private static void renderWorld(WorldRenderContext context) {
 		WORLD.render(context);
 		POST_PROCESS.render(Minecraft.getInstance());

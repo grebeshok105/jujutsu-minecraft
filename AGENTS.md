@@ -7,12 +7,12 @@
 - Minecraft version: `1.21.8`
 - Java version: `21`
 - Mod id: `jujutsumod`
-- Status: **Nobara vertical slice live** (combat + VFX + character menu), not an empty template
+- Status: **Nobara + Todo vertical slices live** (combat + VFX + character menu), not an empty template
 - Core fantasy: a Minecraft mod inspired by the *Jujutsu Kaisen / Магическая битва* idea space — polished combat, strong visual identity, repeatable workflow for deeply designed characters
 
 ## Current Product Direction
 
-Ship a small number of fully polished characters. Do not rush a huge roster. Nobara is the first template character.
+Ship a small number of fully polished characters. Do not rush a huge roster. Nobara is the template character; Todo is the first kit built by copying that template.
 
 Primary priorities:
 
@@ -24,15 +24,44 @@ Primary priorities:
 
 ### Current slice (facts)
 
-- Playable vessel: **Nobara** (nails, hammer, Hairpin, Resonance, traps, Black Flash path) + **None**
-- Transient combat VFX: **VFX Core** only (`VfxCue` → director → recipes)
+This block is the single owner of current-slice facts. `README.md` keeps only the user-facing pitch and controls; `SESSION.md` keeps only what changed on the active branch.
+
+- Playable vessels: **Nobara** (nails, hammer, Hairpin, Resonance, traps, Black Flash path), **Todo** (Boogie Woogie swap, heavy vanilla melee, shared Black Flash bridge), and **None**
+- Nobara controls: `R` directed Hairpin, `B` mass Hairpin, `Shift+R` Self Resonance, `Shift+B` Nail Trap, hammer left click contextual melee
+- Todo controls: `R` Boogie Woogie (server-authoritative self↔target swap); vanilla melee with Todo attribute modifiers
+- Todo has no starter loadout in this slice; baseline tuning lives in `TodoProfile`
+- Both vessels render through GeckoLib replaced-player renderers resolved by `CharacterGeoRenderers` and dispatched from `CharacterRenderDispatchMixin`
+- Vessel render code is shared: `CharacterPlayerGeoRenderer` (render entry + pose-stack guard), `CharacterPlayerGeoModel` (arm pose + clamped head look), `CharacterHeldItemLayer` (hand attachments). A new vessel supplies assets and hooks, not a copied render stack
+- Transient combat VFX: **VFX Core** only (`VfxCue` → director → recipes), registered through `JujutsuVfxRecipes.registerAll()`
 - Player menu: **Key N → ClickGui**; sidebar **Characters** (live) + **Soon...** placeholders (non-clickable)
 - Character apply: `SelectCharacterPayload` C2S, server-authoritative; selection persists via Fabric Data Attachment API and starter loadout claims are one-time
 - UI theme: orange/slate via `ClickGuiTheme`
 - Ordinary loaded embedded nails: 1200-tick TTL, maximum 30 per owner, resolved through `EmbeddedNailRegistry`
-- Resonance global server hit-stop is intentional for the current private 1–2 player target; do not silently remove it as a multiplayer optimization
+- Resonance global server hit-stop: see the accepted decision in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md), which owns that rationale
 - **No** cursed-energy resource bar in the current kit
 - **No** Neon Dashboard / Key V menu; that path is retired
+
+#### Todo baseline numbers (from `TodoProfile`)
+
+| Parameter | Value |
+|---|---:|
+| `BOOGIE_WOOGIE_RANGE` | 20.0 blocks |
+| `BOOGIE_WOOGIE_COOLDOWN_TICKS` | 60 (3 s) |
+| `MELEE_DAMAGE_MULTIPLIER` | 1.50 |
+| `ATTACK_SPEED_MULTIPLIER` | 0.85 |
+| `STAGGER_DURATION_MULTIPLIER` | 0.50 |
+| `BLACK_FLASH_CHANCE` | 0.10 |
+| `BLACK_FLASH_DAMAGE_MULTIPLIER` | 1.75 |
+| `BLACK_FLASH_STAGGER_TICKS` | 14 |
+| `SAFE_POSITION_HORIZONTAL_RADIUS` | 1.0 block |
+| `SAFE_POSITION_UPWARD_BLOCKS` | 3 |
+| `WORLD_BORDER_MARGIN` | 0.05 |
+
+`TodoProfile` is the source of truth for these values; do not restate them elsewhere.
+
+#### Boogie Woogie destination policy (deliberate)
+
+`TodoBoogieWoogieRuntime.findSafeDestination` checks only world bounds, chunk load, world border, and solid-block collision. There is **no floor requirement** and **no third-party entity-occupancy gate** — air, water, crawl, and flight destinations are all valid by design. This is intentional for the current 1–2 player target, not an oversight; the residual debt is tracked in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md). Do not add an occupancy gate without a product decision.
 
 ## Non-Negotiable Workflow
 
@@ -57,7 +86,7 @@ Do not load everything every turn. Prefer the lightest tool that answers the que
 | **Skills** | Match task → skill (for example `minecraft-mod-dev`, `using-git-worktrees`, `systematic-debugging`, `verification-before-completion`) and follow an available skill's checklist. Do not assume a named skill exists without checking. |
 | **mcp-runner** | Launch a narrowly relevant public MCP server in the sandbox when it adds real capability; Context7 is useful for current library APIs. Do not install arbitrary servers just for quantity. |
 | **mcpvault** | Optional external Obsidian vault. Use it when connected, but never treat an unavailable local vault as a blocker or as newer than the versioned repo Codex. |
-| **codegraph** | Structural “where is / who calls / architecture” questions on indexed code when `.codegraph/` exists. |
+| **codegraph** | Structural “where is / who calls / architecture” questions when `.codegraph/` exists. Build the index with `codegraph init`; query with `codegraph explore "<question or symbol names>"` for the relevant symbols' source plus the call paths between them, or `codegraph node <symbol-or-file>` for one symbol's source and callers. Prefer it over grep for “who calls this”. The index is local-only and never committed — only `.codegraph/.gitignore` is tracked. Re-run `codegraph init` after a refactor, or the graph answers from stale symbols. |
 | **filesystem/search** | Authoritative fallback for current implementation facts. |
 | **Repo docs** | `AGENTS.md`, active `SESSION.md`, `docs/README.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`. |
 
@@ -124,7 +153,7 @@ No code-first experiments in the main product path unless the user explicitly as
 
 - Read vault note `jujutsumod-codebase-codex/04-client-vfx/VFX-core.md` before designing, implementing, or reviewing combat visuals.
 - Every transient combat effect must use: server-confirmed action → `VfxCue` → `VfxDirector` → `<Character>VfxRecipes` → director-owned channels; cues are visual-only.
-- For each character, add `<Character>VfxIds` and `<Character>VfxRecipes`; when the second character arrives, register recipes through one explicit `JujutsuVfxRecipes.registerAll()`.
+- For each character, add `<Character>VfxIds` and `<Character>VfxRecipes`, then register them from the single explicit `JujutsuVfxRecipes.registerAll()` entry point called by `JujutsuModClient`.
 - Persistent visuals that follow a real entity/state stay on that entity/state renderer, not a transient timeline.
 - Do not create per-effect receivers, render/HUD callbacks, camera/HUD managers, lifecycle managers, or effect-specific mixins; add a shared director channel only after an approved design shows existing channels are insufficient.
 
@@ -166,7 +195,9 @@ Avoid:
 
 **Done for v1 slice:** one playable character (Nobara), server-authoritative combat path, VFX Core, ability inputs, character select menu, repeatable pattern to copy.
 
-**Next milestone focus:** polish feel/visuals of the current kit, then the **second** character using the same contracts (VFX ids/recipes, selection, networking) — not a broad unfinished framework.
+**Done for v2 slice:** the second character (Todo) built on the same contracts — proving the template is reusable, not just theoretical.
+
+**Next milestone focus:** polish feel/visuals of both kits, then the third vessel on the now-shared render contracts — not a broad unfinished framework.
 
 ## Suggested Character Workflow
 
@@ -189,14 +220,14 @@ Do not invent empty packages. Prefer existing roots; add packages only when a fe
 
 Typical live areas:
 
-- `jujutsu.mod.character` / `…nobara.projectjjk` — vessels and combat runtimes
+- `jujutsu.mod.character` / `…nobara.projectjjk` / `…character.todo` — vessels and combat runtimes
 - `jujutsu.mod.vfx` + `jujutsu.mod.client.vfx` — cues, director, recipes, channels
 - `jujutsu.mod.network` — typed payloads
 - `jujutsu.mod.registry` — items, entities, particles, sounds
 - `jujutsu.mod.client.rich` — ClickGui / modules / theme
 - `jujutsu.mod.client.ui.msdf` + `…ui.neon.render` — MSDF + SDF backends
 - `jujutsu.mod.client.input` — keybinds
-- `jujutsu.mod.client.render` — entity/player/item renderers
+- `jujutsu.mod.client.render` + `…render.nobara` / `…render.todo` — entity/player/item and GeckoLib character renderers
 
 ## Asset Policy
 
@@ -206,19 +237,13 @@ Typical live areas:
 - VFX must read in motion, not only in screenshots.
 - Never copy anime assets into the repo unless licensing is explicit.
 - Prefer original/inspired designs over copyrighted rips.
-- Current ProjectJJK-named runtime models/assets are temporary placeholders used with the author's permission. Preserve provenance, do not relabel them as CC0, do not expand the imported set casually, and replace or document release permission before public distribution.
-- Rich-Modern-derived code/assets require a separate provenance review before public release.
+- ProjectJJK placeholder policy, the retained upstream notice, and the Rich-Modern provenance question are owned by [docs/PROVENANCE.md](docs/PROVENANCE.md) and [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md). Read them before touching anything under a `projectjjk` path or under `client/rich`.
 
 ## Verification Policy
 
-Before claiming work is done, run the narrowest command that proves the changed behavior.
+Before claiming work is done, run the narrowest command that proves the changed behavior. Never claim a verification you did not run.
 
-Baseline:
-
-- Windows: `gradlew.bat build --no-daemon`
-- Unix: `./gradlew build --no-daemon`
-- Documentation: `python3 tools/audit_docs.py`
-- Client smoke when UI/gameplay changed: `gradlew.bat runClient --no-daemon`
+[docs/BUILDING_IN_SANDBOX.md](docs/BUILDING_IN_SANDBOX.md) owns the full command recipe — baseline build, documentation audit, focused verification tasks, and the client-smoke checklist. Use it instead of restating commands here.
 
 The full build owns all custom verification programs through `check`. Do not claim in-game behavior from compilation alone.
 
@@ -234,17 +259,19 @@ The full build owns all custom verification programs through `check`. Do not cla
 
 1. Hybrid fidelity: Minecraft-native feel + ProjectJJK-inspired Nobara contracts where verified.
 2. Multiplayer-safe networking from the start (typed payloads, server authority).
-3. First template character: **Nobara**.
+3. First template character: **Nobara**; second vessel: **Todo**, built on the same contracts instead of a new framework.
 4. No universal cursed-energy bar in the current kit.
 5. Transient combat VFX: **VFX Core only**.
 6. Product menu: **ClickGui (N)** with Characters select; Neon V dashboard retired.
 7. Character selection and one-time starter claims persist through Fabric Data Attachment API.
-8. Loaded ordinary embedded nails use a 1200-tick TTL, a 30-per-owner cap, and an owner index.
-9. Resonance global server hit-stop stays intentional for the private 1–2 player target unless the product target changes.
+8. Loaded ordinary embedded nails use a TTL, a per-owner cap, and an owner index — exact numbers in “Current slice (facts)” above.
+9. Resonance global server hit-stop stays intentional unless the product target changes — rationale in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
+10. Todo differs from Nobara on positioning and raw melee, not on a second projectile kit; he intentionally ships without a starter loadout.
+11. Boogie Woogie destinations have no floor check and no entity-occupancy gate — see the destination policy above.
 
 ## Open Questions (real remaining)
 
-1. Who is the second character, and which kit axes must differ from Nobara.
+1. Who is the third character, and which kit axes must differ from both Nobara and Todo.
 2. Whether ClickGui grows more live tabs later or stays Characters + Soon placeholders.
 3. How far to push Rich visual parity vs keep SDF/MSDF adapters long-term.
 4. When temporary ProjectJJK placeholders are replaced and what provenance evidence is needed for a public release.

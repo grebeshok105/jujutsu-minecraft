@@ -7,6 +7,7 @@ import java.util.function.Predicate;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.AABB;
@@ -14,8 +15,17 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
+/**
+ * Server-side aim resolution for directed combat actions.
+ * Entities are picked by ray–AABB intersection (with a small aim assist inflate),
+ * not by "center near ray" approximation — the latter fails when the look ray
+ * hits the floor in front of a mob's bounding-box center.
+ */
 public final class TargetResolver {
-	private static final double ENTITY_SWEEP_RADIUS = 1.15;
+	/** Soft aim-assist padding around living hitboxes (blocks). */
+	private static final double ENTITY_HITBOX_INFLATE = 0.35;
+	/** Extra search volume around the aim segment. */
+	private static final double SEARCH_INFLATE = 2.5;
 
 	private TargetResolver() {}
 
@@ -27,7 +37,17 @@ public final class TargetResolver {
 
 	public record BlockCandidate(Vec3 point, Vec3 normal) {}
 
-	public record EntityCandidate(int entityId, Vec3 center, double radius) {}
+	/**
+	 * @param entityId entity network id
+	 * @param center bounding-box center (debug / VFX)
+	 * @param radius half-extent used by pure tests
+	 * @param hitDistance distance from eye origin to the ray–AABB hit along the segment
+	 */
+	public record EntityCandidate(int entityId, Vec3 center, double radius, double hitDistance) {
+		public EntityCandidate(int entityId, Vec3 center, double radius) {
+			this(entityId, center, radius, center.length());
+		}
+	}
 
 	public record Result(Mode mode, Vec3 point, Vec3 normal, Optional<Integer> entityId, double maxRange) {}
 
@@ -41,36 +61,46 @@ public final class TargetResolver {
 		Vec3 look = owner.getLookAngle();
 		Vec3 direction = safeDirection(look);
 		Vec3 end = origin.add(direction.scale(maxRange));
+
 		BlockHitResult blockHit = level.clip(new ClipContext(origin, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, owner));
 		Optional<BlockCandidate> blockCandidate = blockHit.getType() == HitResult.Type.MISS
 				? Optional.empty()
 				: Optional.of(new BlockCandidate(blockHit.getLocation(), directionVector(blockHit.getDirection())));
-		AABB sweepBounds = new AABB(origin, end).inflate(2.25);
-		List<EntityCandidate> entityCandidates = level.getEntities(owner, sweepBounds,
-				entity -> entity instanceof LivingEntity living && living.isAlive() && eligible.test(living)).stream()
-				.map(entity -> {
-					AABB bounds = entity.getBoundingBox();
-					double radius = Math.max(bounds.getXsize(), Math.max(bounds.getYsize(), bounds.getZsize())) * 0.5;
-					return new EntityCandidate(entity.getId(), bounds.getCenter(), radius);
-				})
+		double blockDistance = blockCandidate
+				.map(candidate -> Math.min(maxRange, origin.distanceTo(candidate.point())))
+				.orElse(maxRange);
+
+		AABB sweepBounds = new AABB(origin, end).inflate(SEARCH_INFLATE);
+		List<EntityCandidate> entityCandidates = level.getEntities(owner, sweepBounds, entity -> isCandidate(entity, eligible)).stream()
+				.map(entity -> toCandidate(entity, origin, end, blockDistance))
+				.flatMap(Optional::stream)
 				.toList();
+
 		return resolveForTests(origin, look, maxRange, blockCandidate, entityCandidates, owner.getId());
 	}
 
-	public static Result resolveForTests(Vec3 origin, Vec3 look, double maxRange, Optional<BlockCandidate> blockCandidate, List<EntityCandidate> entityCandidates, int ownerEntityId) {
+	public static Result resolveForTests(
+			Vec3 origin,
+			Vec3 look,
+			double maxRange,
+			Optional<BlockCandidate> blockCandidate,
+			List<EntityCandidate> entityCandidates,
+			int ownerEntityId
+	) {
 		Vec3 direction = safeDirection(look);
 		double blockDistance = blockCandidate
-				.map(candidate -> Math.min(maxRange, Math.max(0.0, candidate.point().subtract(origin).dot(direction))))
+				.map(candidate -> Math.min(maxRange, Math.max(0.0, origin.distanceTo(candidate.point()))))
 				.orElse(maxRange);
 
 		Optional<EntityCandidate> entity = entityCandidates.stream()
 				.filter(candidate -> candidate.entityId() != ownerEntityId)
-				.filter(candidate -> distanceAlongRay(origin, direction, candidate.center()) <= blockDistance)
-				.filter(candidate -> distanceAlongRay(origin, direction, candidate.center()) <= maxRange)
-				.filter(candidate -> perpendicularDistance(origin, direction, candidate.center()) <= candidate.radius() + ENTITY_SWEEP_RADIUS)
+				.filter(candidate -> candidate.hitDistance() > 1.0E-3)
+				.filter(candidate -> candidate.hitDistance() <= maxRange + 1.0E-3)
+				// Must be reached before the first solid block along the aim segment.
+				.filter(candidate -> candidate.hitDistance() <= blockDistance + 1.0E-3)
 				.min(Comparator
-							.comparingDouble((EntityCandidate candidate) -> perpendicularDistance(origin, direction, candidate.center()))
-							.thenComparingDouble(candidate -> distanceAlongRay(origin, direction, candidate.center())));
+						.comparingDouble(EntityCandidate::hitDistance)
+						.thenComparingDouble(candidate -> perpendicularDistance(origin, direction, candidate.center())));
 
 		if (entity.isPresent()) {
 			EntityCandidate candidate = entity.get();
@@ -86,8 +116,23 @@ public final class TargetResolver {
 		return new Result(Mode.MISS, origin.add(direction.scale(maxRange)), direction.scale(-1.0), Optional.empty(), maxRange);
 	}
 
-	private static double distanceAlongRay(Vec3 origin, Vec3 direction, Vec3 point) {
-		return Math.max(0.0, point.subtract(origin).dot(direction));
+	private static boolean isCandidate(Entity entity, Predicate<LivingEntity> eligible) {
+		return entity instanceof LivingEntity living && living.isAlive() && eligible.test(living);
+	}
+
+	private static Optional<EntityCandidate> toCandidate(Entity entity, Vec3 origin, Vec3 end, double blockDistance) {
+		AABB box = entity.getBoundingBox().inflate(ENTITY_HITBOX_INFLATE);
+		Optional<Vec3> hit = box.clip(origin, end);
+		if (hit.isEmpty()) {
+			return Optional.empty();
+		}
+		double hitDistance = origin.distanceTo(hit.get());
+		if (hitDistance > blockDistance + 1.0E-3) {
+			return Optional.empty();
+		}
+		AABB bounds = entity.getBoundingBox();
+		double radius = Math.max(bounds.getXsize(), Math.max(bounds.getYsize(), bounds.getZsize())) * 0.5;
+		return Optional.of(new EntityCandidate(entity.getId(), bounds.getCenter(), radius, hitDistance));
 	}
 
 	private static double perpendicularDistance(Vec3 origin, Vec3 direction, Vec3 point) {

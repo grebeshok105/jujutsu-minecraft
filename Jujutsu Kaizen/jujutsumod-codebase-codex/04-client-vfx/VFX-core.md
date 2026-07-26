@@ -1,15 +1,48 @@
-# VFX Core — Nobara Reference Implementation
+# VFX Core
 
 Status: CURRENT
 
 Canonical path:
 
-server-confirmed action → VfxCue/VfxCuePayload → JujutsuClientNetworking → VfxDirector → NobaraVfxRecipes → director-owned channels
+server-confirmed action → VfxCue/VfxCuePayload → JujutsuClientNetworking → VfxDirector → character recipes → director-owned channels
+
+Client bootstrap calls `JujutsuVfxRecipes.registerAll()`, which registers `NobaraVfxRecipes` and `TodoVfxRecipes` into the shared `VfxDirector`.
 
 VfxDirector owns recipe registration, active-instance cap 64, cue age/expiry, world identity, disconnect cleanup, render callbacks, and shared channels. Unknown ids are logged once and ignored.
 
-NobaraVfxIds defines 25 ids. ProjectSanityTest currently requires 44 age-aware real-time channel calls and rejects removed legacy managers/mixins. Six client mixins are configured; VfxDeltaTrackerMixin is intentionally absent.
+NobaraVfxIds defines 25 ids. TodoVfxIds currently defines Boogie Woogie. ProjectSanityTest requires age-aware real-time channel calls and rejects removed legacy managers/mixins. Six client mixins are configured; VfxDeltaTrackerMixin is intentionally absent.
 
 VfxTimeChannel is a bounded client VFX primitive, but production code must not scale global Minecraft DeltaTracker time. Resonance gameplay hit-stop is separately and intentionally server-global through ServerTimeDilation.
 
-When a second character arrives, add its ids/recipes and introduce one explicit aggregate recipe-registration entrypoint rather than per-effect receivers.
+Effects use cue age to reject or seek late playback rather than replaying stale beats from the start. Persistent visuals are not VFX Core's job: nails are drawn by `ProjectJjkNailRenderer` (see [Nail rendering](Nail-rendering.md)), while transient compression, snap, burst, residue, camera, and sound beats belong to recipes and channels.
+
+## HUD is not a Screen
+
+"HUD" in this Codex means in-world combat overlays owned by `VfxDirector`, never the ClickGui menu. Do not merge the concepts: menus are Screens with input focus, HUD draws are one registered element that never takes input.
+
+`VfxDirector` registers exactly one HUD element — `HudElementRegistry.attachElementAfter(VanillaHudElements.MISC_OVERLAYS, jujutsumod:vfx_overlay, VfxDirector::renderHud)` (VERIFIED). Adding a second `HudRenderCallback` for one ability, or a per-effect HUD singleton, is forbidden by this contract; so is a new mixin for a single flash, and so is sending any gameplay packet from HUD code.
+
+### VfxHudChannel API
+
+Source: `client/vfx/VfxHudChannel.java`. Status: VERIFIED API surface.
+
+| API | Effect |
+|---|---|
+| `triggerSwing(proximity[, initialAgeTicks])` | short cinematic plus flash scaled by proximity |
+| `triggerImpact(proximity[, initialAgeTicks])` | impact cinematic plus proximity-scaled flash |
+| `triggerFlash(durationMillis, maxAlpha[, initialAgeTicks])` | full-screen flash alpha envelope |
+| `triggerNausea(strength[, durationMillis], initialAgeTicks)` | nausea overlay, e.g. Resonance target-local |
+| `render` | called only from the director's HUD registration |
+| `clear` | on level change and disconnect |
+
+Timing, seed, and intensity all come from the server cue. The client never damages, never applies marks, and never opens a menu from HUD code. Late packets pass `initialAgeTicks` into the channel starts, which is why most methods have an age-aware overload.
+
+There is no cursed-energy resource bar in the current kit.
+
+`NobaraHudState` is a client-side predicate — "is this player holding a kit item?" — not a renderer and not a Screen.
+
+## Adding a character
+
+Additional characters add `<Character>VfxIds` / `<Character>VfxRecipes` and wire them through the same aggregate entrypoint. Own your cue ids: `TodoBlackFlashRuntime` currently broadcasts `NobaraVfxIds.BLACK_FLASH`, which is a known cross-character seam and not a pattern to copy — see [Todo Boogie Woogie](../03-systems/Todo-Boogie-Woogie.md).
+
+First-person hand styles are a shared channel, not a per-vessel mixin: `VfxFirstPersonChannel.Style` currently has SNAP (Nobara) and CLAP (Todo), both handled in `FirstPersonHandFxMixin`. See [Vessel render stack](Vessel-render-stack.md).

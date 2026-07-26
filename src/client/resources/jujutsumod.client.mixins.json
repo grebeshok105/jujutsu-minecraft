@@ -3,12 +3,12 @@
   "package": "jujutsu.mod.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "CharacterRenderDispatchMixin",
     "CharacterSkinMixin",
+    "FirstPersonHandFxMixin",
     "HairpinCameraMixin",
     "HairpinGameRendererMixin",
-    "NobaraFirstPersonSnapMixin",
-    "NobaraLivingEntityRendererMixin",
-    "NobaraPlayerRendererMixin"
+    "PlayerRenderContextMixin"
   ],
   "injectors": {
     "defaultRequire": 1
