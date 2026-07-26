@@ -7,9 +7,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import jujutsu.mod.JujutsuMod;
-import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.client.character.ClientCharacterSelectionManager;
+import jujutsu.mod.client.character.JujutsuCharacterClients;
 
 /**
  * Replaces the vanilla player skin (including first-person hands) for selected vessels.
@@ -17,9 +16,6 @@ import jujutsu.mod.client.character.ClientCharacterSelectionManager;
  */
 @Mixin(AbstractClientPlayer.class)
 public abstract class CharacterSkinMixin {
-	private static final ResourceLocation NOBARA_SKIN = JujutsuMod.id("textures/entity/character/nobara.png");
-	private static final ResourceLocation TODO_SKIN = JujutsuMod.id("textures/entity/character/todo.png");
-
 	@Inject(method = "getSkin", at = @At("RETURN"), cancellable = true)
 	private void jujutsumod$replaceCharacterSkin(CallbackInfoReturnable<PlayerSkin> cir) {
 		AbstractClientPlayer player = (AbstractClientPlayer) (Object) this;
@@ -27,11 +23,7 @@ public abstract class CharacterSkinMixin {
 		if (selection == null) {
 			return;
 		}
-		ResourceLocation skin = switch (selection.character()) {
-			case NOBARA -> NOBARA_SKIN;
-			case TODO -> TODO_SKIN;
-			case NONE -> null;
-		};
+		ResourceLocation skin = JujutsuCharacterClients.definition(selection.character()).playerSkin();
 		if (skin == null) {
 			return;
 		}

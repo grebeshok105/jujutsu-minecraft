@@ -334,7 +334,18 @@ tasks.register('testCharacterDefinitions', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testCharacterClients', JavaExec) {
+	group = 'verification'
+	description = 'Runs the client vessel registry and server/client boundary tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.client.character.CharacterClientRegistryTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.named('check') {
+	dependsOn tasks.named('testCharacterClients')
 	dependsOn tasks.named('testCharacterDefinitions')
 	dependsOn tasks.named('testNobaraAbilitySlots')
 	dependsOn tasks.named('testClickGuiDrag')
