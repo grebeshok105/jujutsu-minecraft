@@ -378,7 +378,7 @@ public final class ProjectSanityTest {
 				: "Nobara keeps her own stagger gate; the shared executor has none";
 		assert actionRuntime.contains("startDirectedHairpin(nobara)") : "R must call the directed Hairpin runtime";
 		assert actionRuntime.contains("startMassHairpin(nobara)") : "B must call the mass Hairpin runtime";
-		assert !actionRuntime.contains("default ->")
+		assert !Pattern.compile("default\\s*->").matcher(actionRuntime).find()
 				: "The slot switch must stay exhaustive so a new slot cannot fall into an existing ability";
 		// Taken from the enum rather than spelled out, so a new slot cannot leave this loop testing five.
 		for (CharacterAbility slot : CharacterAbility.values()) {
@@ -415,9 +415,15 @@ public final class ProjectSanityTest {
 		assert keybinds.contains("CharacterAbility.PRIMARY") && keybinds.contains("CharacterAbility.SECONDARY")
 				: "Both technique keys must name shared slots rather than per-vessel actions";
 		assert !keybinds.contains("JujutsuCharacter.TODO") && !keybinds.contains("JujutsuCharacter.NOBARA")
-				: "The ability dispatcher must not compare against any single vessel";
+				: "The ability dispatcher must not compare against any single vessel by name";
 		assert keybinds.contains("character == JujutsuCharacter.NONE")
 				: "The one vessel question the input layer may ask is whether the player has a vessel at all";
+		// One exception, and it is named rather than hidden: the attack-context slot is only sent while a
+		// technique weapon is held, and today that check spells out Nobara's two hammers. It is still
+		// per-vessel branching, expressed as item ids instead of the enum, and it leaves in step 5 when a
+		// client-side vessel definition can answer the question.
+		assert keybinds.contains("STRAW_DOLL_HAMMER") && keybinds.contains("isTechniqueWeapon")
+				: "The remaining per-vessel weapon check must stay in one named helper, not spread out";
 		String roster = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/rich/screens/clickgui/impl/character/CharacterRosterPanel.java"));
 		assert roster.contains("JujutsuCharacter.TODO")
 				&& roster.contains("screen.jujutsumod.character_select.todo")

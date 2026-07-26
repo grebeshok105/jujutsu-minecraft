@@ -25,7 +25,30 @@ public final class NobaraAbilitySlotsTest {
 		assertExactlyOneFallbackMessage();
 		assertTheSharedGateOwnsSelection();
 		assertCooldownsCannotCrossVessels();
+		assertAStaleVesselCannotCast();
 		System.out.println("NobaraAbilitySlotsTest passed");
+	}
+
+	/**
+	 * The character menu applies a switch locally and closes before the server confirms it. Because a slot
+	 * is an input position rather than an ability, a press inside that window used to be executed by the
+	 * vessel the player had just left — casting Todo's teleport where a hairpin was asked for, and taking
+	 * his cooldown for it. The request now names the vessel the client believed in, and the server checks.
+	 */
+	private static void assertAStaleVesselCannotCast() throws Exception {
+		String payload = Files.readString(MAIN.resolve("jujutsu/mod/network/CharacterAbilityPayload.java"));
+		assert payload.contains("record CharacterAbilityPayload(int abilityId, String characterId)")
+				: "An ability request must name the vessel the client believed it was casting as";
+		String networking = Files.readString(MAIN.resolve("jujutsu/mod/network/JujutsuNetworking.java"));
+		assert networking.contains("JujutsuCharacter.byId(payload.characterId()) != CharacterSelectionManager.selected(player)")
+				: "The server must refuse a request whose named vessel is not the one it has selected";
+		int guard = networking.indexOf("byId(payload.characterId())");
+		int cast = networking.indexOf("CharacterAbilityExecutor.tryCast(player, ability, true)");
+		assert guard >= 0 && cast > guard
+				: "The stale-vessel check must run before dispatch, not after something has already fired";
+		String keybinds = Files.readString(Path.of("src/client/java/jujutsu/mod/client/input/JujutsuKeybinds.java"));
+		assert keybinds.contains("new CharacterAbilityPayload(ability.networkId(), character.id())")
+				: "The client must stamp the vessel it is showing the player, not a constant";
 	}
 
 	/**
@@ -37,10 +60,21 @@ public final class NobaraAbilitySlotsTest {
 		String server = Files.readString(MAIN.resolve("jujutsu/mod/character/CharacterAbilityCooldowns.java"));
 		assert server.contains("record Key(UUID playerId, JujutsuCharacter character, CharacterAbility ability)")
 				: "The server cooldown key must include the vessel, not just the player and the slot";
+		// The shape alone proves nothing — a constant vessel would keep the shape and lose the property.
+		// What matters is that the value comes from the live selection.
+		assert server.contains("new Key(player.getUUID(), CharacterSelectionManager.selected(player), ability)")
+				: "The key's vessel must be read from the player's selection, not supplied by the caller";
 		String client = Files.readString(Path.of(
 				"src/client/java/jujutsu/mod/client/character/ClientAbilityCooldowns.java"));
 		assert client.contains("record Key(JujutsuCharacter character, CharacterAbility ability)")
 				: "The client mirror keys on the vessel too; the two must agree or prediction desyncs";
+		// The mirror is filled from the payload, so the payload's vessel has to come from the same read.
+		// Letting a caller name it is how the two sides came to disagree in the first place.
+		String networking = Files.readString(MAIN.resolve("jujutsu/mod/network/JujutsuNetworking.java"));
+		assert networking.contains("sendAbilityCooldown(ServerPlayer player, CharacterAbility ability, int remainingTicks)")
+				: "The cooldown mirror must not take a vessel argument";
+		assert networking.contains("JujutsuCharacter character = CharacterSelectionManager.selected(player)")
+				: "The mirrored vessel must be resolved the same way the server key resolves it";
 	}
 
 	private static void assertTheBespokePathIsGone() throws Exception {
@@ -70,17 +104,40 @@ public final class NobaraAbilitySlotsTest {
 		};
 		assert map.length == CharacterAbility.values().length
 				: "Nobara fills every input slot, so a new slot must be given a meaning here on purpose";
+		// Each call is looked for INSIDE its own arm. Searching the whole file instead would pass with two
+		// arms transposed — every string would still be present, just bound to the wrong input.
 		for (Slot entry : map) {
-			assert countOf(router, "case " + entry.slot().name() + " ->") == 1
-					: "Exactly one arm may answer " + entry.slot() + ", found " + countOf(router, "case " + entry.slot().name() + " ->");
-			assert router.contains(entry.call())
-					: entry.slot() + " must reach " + entry.call();
+			String arm = armOf(router, entry.slot());
+			assert arm.contains(entry.call())
+					: entry.slot() + " must reach " + entry.call() + ", its arm reads: " + arm.strip();
+			for (Slot other : map) {
+				assert other == entry || !arm.contains(other.call())
+						: entry.slot() + "'s arm must not also reach " + other.slot() + "'s runtime";
+			}
 		}
-		assert !router.contains("default ->")
+		assert !Pattern.compile("default\\s*->").matcher(router).find()
 				: "The slot switch must stay exhaustive so a new slot cannot fall into an existing ability";
-		// Both Hairpin slots share one precondition. If only one of them checks it they diverge silently.
-		assert countOf(router, "ProjectJjkNobaraRuntime.canCastMarkedHairpin(nobara)") == 2
-				: "Both Hairpin slots must keep the marked-target precondition";
+		// Both Hairpin slots share one precondition, and it has to be in both arms rather than twice in one.
+		String precondition = "ProjectJjkNobaraRuntime.canCastMarkedHairpin(nobara)";
+		for (CharacterAbility hairpin : new CharacterAbility[] {CharacterAbility.PRIMARY, CharacterAbility.SECONDARY}) {
+			assert countOf(armOf(router, hairpin), precondition) == 1
+					: hairpin + " must check the marked-target precondition exactly once";
+		}
+	}
+
+	/**
+	 * The text of one switch arm, from its {@code ->} to the next {@code case} or the closing brace.
+	 *
+	 * <p>Label matching requires the arrow immediately after the name, so {@code PRIMARY} cannot match
+	 * {@code PRIMARY_SNEAK}. Anything that binds a slot to a call has to be measured within one arm; a
+	 * whole-file substring search proves only that the call exists somewhere.
+	 */
+	private static String armOf(String source, CharacterAbility slot) {
+		Matcher label = Pattern.compile("case\\s+" + slot.name() + "\\s*->").matcher(source);
+		assert label.find() : "Nobara's router must answer " + slot + " in an arm of its own";
+		int from = label.end();
+		Matcher end = Pattern.compile("\\n\\s*(case\\s|\\};)").matcher(source);
+		return source.substring(from, end.find(from) ? end.start() : source.length());
 	}
 
 	private static void assertStaggerGuardsTheWholeSwitch() throws Exception {
@@ -94,10 +151,15 @@ public final class NobaraAbilitySlotsTest {
 				: "Stagger is Nobara's rule, not every vessel's; do not promote it into the shared gate";
 	}
 
+	/**
+	 * Scoped to the router on purpose. It cannot claim the player sees exactly one line, because some of
+	 * her runtimes speak for themselves before returning false and this fallback then overwrites them —
+	 * see E10 in KNOWN_ISSUES. What it does pin is that the router adds no second line of its own.
+	 */
 	private static void assertExactlyOneFallbackMessage() throws Exception {
 		String router = Files.readString(ROUTER);
 		assert countOf(router, "displayClientMessage") == 1
-				: "A failed cast must produce exactly one line, not one per rejection reason";
+				: "The router must add at most one line, not one per rejection reason";
 		assert router.contains("message.jujutsumod.nobara.action.no_target")
 				: "The single fallback line must stay the one players already know";
 		assert router.contains("if (!cast && notify)")
@@ -116,7 +178,7 @@ public final class NobaraAbilitySlotsTest {
 		String executor = Files.readString(MAIN.resolve("jujutsu/mod/character/CharacterAbilityExecutor.java"));
 		assert executor.contains("case NOBARA -> NobaraAbilityRouter.tryCast(player, ability, notify)")
 				: "Nobara must be dispatched from the shared gate like every other vessel";
-		assert !executor.contains("default ->")
+		assert !Pattern.compile("default\\s*->").matcher(executor).find()
 				: "A new vessel must fail compilation here rather than silently casting nothing";
 		String commands = Files.readString(MAIN.resolve("jujutsu/mod/command/JujutsuCommands.java"));
 		assert commands.contains("CharacterAbilityExecutor.tryCast(player, slot, true)")

@@ -166,6 +166,24 @@ Verified 2026-07-26: `gradle.properties` still pins `loom_version=1.17-SNAPSHOT`
 
 CI now tests Java 21. Pin a stable Loom release when available, add dependency locking if releases become important, and add a second supported-JDK matrix only after it is proven compatible.
 
+### E10 — Nobara's generic fallback erases five specific diagnostics
+
+Verified 2026-07-26 against `NobaraAbilityRouter`, `NailTrapRuntime` and `SelfResonanceRuntime`.
+
+`NailTrapRuntime.tryPlace` and `SelfResonanceRuntime.tryCast` display a specific reason and then return `false`. The router's fallback immediately writes `message.jujutsumod.nobara.action.no_target` into the same action-bar slot, which replaces the text and resets its timer. So `trap.no_ground`, `trap.unsupported`, `trap.no_nails`, `trap.failed` and `self_resonance.no_link` are authored and translated in both languages but never actually read by a player.
+
+Pre-existing: inherited verbatim from the int-keyed gate the router replaced, so this is not migration damage. It is recorded rather than fixed because the fix changes what players see, and the router cannot currently tell "the runtime already explained itself" from "nothing was found". The honest shapes are either a tri-state return from each runtime, or dropping the fallback for the slots whose runtimes speak.
+
+`NobaraAbilitySlotsTest` deliberately scopes its message count to the router and says so, rather than claiming a property it cannot establish across files.
+
+### E11 — The shared cooldown message now precedes Nobara's silent stagger check
+
+Verified 2026-07-26 against `CharacterAbilityExecutor` and `NobaraAbilityRouter`.
+
+The gate this router replaced ran selection, then stagger as a silent early return, then the ability. The shared executor now checks the cooldown between selection and dispatch, and that check is not silent — it displays `message.jujutsumod.character.action.cooldown`. A player who is both staggered and recharging would therefore be told about the cooldown where the old order said nothing.
+
+Inert today: no Nobara ability writes to `CharacterAbilityCooldowns`, so she never has one to be told about. It becomes reachable the first time one of her abilities takes a cooldown, which makes this a decision to take deliberately at that moment rather than a bug to fix now. The clean resolution is to let a vessel own the ordering of its own gates.
+
 ## Low-priority product debt
 
 - Crafting recipes and broader datapack content are intentionally absent.

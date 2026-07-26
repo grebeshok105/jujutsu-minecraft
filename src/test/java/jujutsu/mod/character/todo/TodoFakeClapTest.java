@@ -104,7 +104,7 @@ public final class TodoFakeClapTest {
 			assert router.contains(slot.name())
 					: "Every input slot must be answered explicitly by Todo's router, missing: " + slot;
 		}
-		assert !router.contains("default ->")
+		assert !Pattern.compile("default\\s*->").matcher(router).find()
 				: "The slot switch must stay exhaustive so a new ability cannot fall into the swap";
 		String executor = Files.readString(Path.of("src/main/java/jujutsu/mod/character/CharacterAbilityExecutor.java"));
 		assert executor.contains("TodoAbilityRouter.tryCast(player, ability, notify)")

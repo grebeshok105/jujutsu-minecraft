@@ -153,7 +153,9 @@ public final class JujutsuKeybinds {
 			return;
 		}
 		if (ClientPlayNetworking.canSend(CharacterAbilityPayload.TYPE)) {
-			ClientPlayNetworking.send(new CharacterAbilityPayload(ability.networkId()));
+			// Stamped with the vessel the player can see, so a press made in the gap between applying a
+			// switch locally and the server confirming it is refused rather than cast by the old vessel.
+			ClientPlayNetworking.send(new CharacterAbilityPayload(ability.networkId(), character.id()));
 		}
 	}
 

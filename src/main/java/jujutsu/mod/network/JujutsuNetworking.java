@@ -40,9 +40,17 @@ public final class JujutsuNetworking {
 
 	private static void handleCharacterAbility(ServerPlayer player, CharacterAbilityPayload payload) {
 		CharacterAbility ability = CharacterAbility.byNetworkId(payload.abilityId());
-		if (ability != null) {
-			CharacterAbilityExecutor.tryCast(player, ability, true);
+		if (ability == null) {
+			return;
 		}
+		// The menu applies a vessel switch locally and closes before the server has confirmed it. A key
+		// press inside that window names the vessel the player had already left, and since a slot means a
+		// different ability for each vessel, casting it would fire the wrong one. Refuse silently: the
+		// player asked the vessel they can see for something it will do a tick later anyway.
+		if (JujutsuCharacter.byId(payload.characterId()) != CharacterSelectionManager.selected(player)) {
+			return;
+		}
+		CharacterAbilityExecutor.tryCast(player, ability, true);
 	}
 
 	public static int broadcastVfxCue(ServerLevel level, Vec3 center, double radius, VfxCue cue) {
