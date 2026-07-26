@@ -184,6 +184,18 @@ The gate this router replaced ran selection, then stagger as a silent early retu
 
 Inert today: no Nobara ability writes to `CharacterAbilityCooldowns`, so she never has one to be told about. It becomes reachable the first time one of her abilities takes a cooldown, which makes this a decision to take deliberately at that moment rather than a bug to fix now. The clean resolution is to let a vessel own the ordering of its own gates.
 
+### E12 — The swap marker item has no vessel gate
+
+Verified 2026-07-26 against `TodoSwapMarkerItem` and `TodoSwapMarks`.
+
+`TodoSwapMarkerItem.use` checks nothing about who is throwing it, and the item sits in the vanilla combat creative tab. So a player who is Nobara, or who has no vessel at all, can throw Todo's marker and register an entry in `TodoSwapMarks` — a resting projectile or a glowing body they can never swap to, since the swap itself only reaches them through Todo's router.
+
+This was hidden while `CharacterSelectionManager.select` cleared Todo's marks on *every* selection change, including selecting the same vessel again. That clear now runs only when Todo is the vessel being left, which is the correct rule, and the gap it was papering over is visible: a marker thrown while Nobara survives a switch to Todo instead of being destroyed. Nothing is orphaned — the mark still expires after its ten-second TTL and is released on disconnect, respawn and dimension change.
+
+Fixing it properly means the item refusing to throw for a non-Todo player, and doing that without a client/server desync needs the client to be able to read the selection, which is what the client-side vessel definitions introduce. Deferred to there rather than bolted on with a server-only check that the client would mispredict.
+
+Related: `CharacterPlayerState.hasClaimedStarter` now has no production callers at all. The starter claim is still recorded and persisted, but nothing reads it, because the loadout is deliberately re-applied on every selection so a lost kit can be restored. Either give the claim a job or delete it; leaving persisted state that nothing consumes invites someone to trust it later.
+
 ## Low-priority product debt
 
 - Crafting recipes and broader datapack content are intentionally absent.

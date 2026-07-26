@@ -106,9 +106,12 @@ public final class TodoFakeClapTest {
 		}
 		assert !Pattern.compile("default\\s*->").matcher(router).find()
 				: "The slot switch must stay exhaustive so a new ability cannot fall into the swap";
+		String definition = Files.readString(TODO.resolve("TodoDefinition.java"));
+		assert definition.contains("TodoAbilityRouter.tryCast(player, slot, notify)")
+				: "Todo's definition must send casts to his slot router";
 		String executor = Files.readString(Path.of("src/main/java/jujutsu/mod/character/CharacterAbilityExecutor.java"));
-		assert executor.contains("TodoAbilityRouter.tryCast(player, ability, notify)")
-				: "The executor must dispatch Todo through the slot router";
+		assert !executor.contains("Todo")
+				: "The shared gate reaches Todo through the registry and must not name him";
 		String keybinds = Files.readString(Path.of("src/client/java/jujutsu/mod/client/input/JujutsuKeybinds.java"));
 		assert keybinds.contains("CharacterAbility.PRIMARY_SNEAK") && keybinds.contains("isShiftKeyDown()")
 				: "The feint must ride the existing technique key with a shift modifier, not a new keybind";

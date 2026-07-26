@@ -371,8 +371,8 @@ public final class ProjectSanityTest {
 		String executor = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/CharacterAbilityExecutor.java"));
 		assert executor.contains("CharacterSelectionManager.selected(player)") && executor.contains("JujutsuCharacter.NONE")
 				: "The shared gate owns the selection check for every vessel";
-		assert executor.contains("case NOBARA -> NobaraAbilityRouter.tryCast(player, ability, notify)")
-				: "Nobara must be dispatched through her slot router";
+		assert executor.contains("JujutsuCharacters.definition(character).tryCast(player, ability, notify)")
+				: "The shared gate must ask the vessel's definition instead of naming vessels";
 		String actionRuntime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/NobaraAbilityRouter.java"));
 		assert actionRuntime.contains("CombatStagger.GLOBAL.isStaggered")
 				: "Nobara keeps her own stagger gate; the shared executor has none";

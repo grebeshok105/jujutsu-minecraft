@@ -176,10 +176,18 @@ public final class NobaraAbilitySlotsTest {
 		assert !router.contains("CharacterSelectionManager")
 				: "Selection is checked once, in the shared gate, before any router is reached";
 		String executor = Files.readString(MAIN.resolve("jujutsu/mod/character/CharacterAbilityExecutor.java"));
-		assert executor.contains("case NOBARA -> NobaraAbilityRouter.tryCast(player, ability, notify)")
-				: "Nobara must be dispatched from the shared gate like every other vessel";
-		assert !Pattern.compile("default\\s*->").matcher(executor).find()
-				: "A new vessel must fail compilation here rather than silently casting nothing";
+		assert executor.contains("JujutsuCharacters.definition(character).tryCast(player, ability, notify)")
+				: "The shared gate must ask the vessel's definition rather than name any vessel";
+		assert !executor.contains("JujutsuCharacter.NOBARA") && !executor.contains("JujutsuCharacter.TODO")
+				: "The shared gate must not single out a vessel";
+		String definition = Files.readString(MAIN.resolve("jujutsu/mod/character/nobara/NobaraDefinition.java"));
+		assert definition.contains("NobaraAbilityRouter.tryCast(player, slot, notify)")
+				: "Nobara's definition must send casts to her slot router";
+		String registry = Files.readString(MAIN.resolve("jujutsu/mod/character/JujutsuCharacters.java"));
+		assert registry.contains("case NOBARA -> NOBARA")
+				: "The registry must bind her constant to her definition";
+		assert !Pattern.compile("default\\s*->").matcher(registry).find()
+				: "A new vessel must fail compilation in the registry rather than inheriting a catch-all";
 		String commands = Files.readString(MAIN.resolve("jujutsu/mod/command/JujutsuCommands.java"));
 		assert commands.contains("CharacterAbilityExecutor.tryCast(player, slot, true)")
 				: "The debug commands must share the gate so they cannot bypass its checks";

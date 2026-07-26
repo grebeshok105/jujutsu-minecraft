@@ -324,7 +324,18 @@ tasks.register('testNobaraAbilitySlots', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testCharacterDefinitions', JavaExec) {
+	group = 'verification'
+	description = 'Runs the vessel definition registry fail-closed tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.CharacterDefinitionRegistryTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.named('check') {
+	dependsOn tasks.named('testCharacterDefinitions')
 	dependsOn tasks.named('testNobaraAbilitySlots')
 	dependsOn tasks.named('testClickGuiDrag')
 	dependsOn tasks.named('testCharacterPlayerState')

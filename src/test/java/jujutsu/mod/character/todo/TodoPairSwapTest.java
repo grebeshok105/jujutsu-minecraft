@@ -78,9 +78,20 @@ public final class TodoPairSwapTest {
 		for (String hook : new String[] {"END_WORLD_TICK", "DISCONNECT", "AFTER_RESPAWN", "AFTER_PLAYER_CHANGE_WORLD", "SERVER_STOPPING"}) {
 			assert pair.contains(hook) : "A pending selection must be dropped on " + hook;
 		}
-		String selection = Files.readString(Path.of("src/main/java/jujutsu/mod/character/CharacterSelectionManager.java"));
-		assert selection.contains("TodoPairSwapRuntime.forget(player.getUUID())")
+		// The cleanup moved out of the shared selection manager and into Todo's own definition, where it
+		// belongs. What matters is that leaving him still runs it, and that the manager still calls the
+		// hook for the vessel being left rather than for the one arriving.
+		String definition = Files.readString(TODO.resolve("TodoDefinition.java"));
+		assert definition.contains("public void onDeselected(ServerPlayer player)")
+				&& definition.contains("TodoPairSwapRuntime.forget(player.getUUID())")
 				: "Leaving the vessel must drop a half-finished pair selection";
+		String selection = Files.readString(Path.of("src/main/java/jujutsu/mod/character/CharacterSelectionManager.java"));
+		assert selection.contains("JujutsuCharacters.definition(previous).onDeselected(player)")
+				: "The departing vessel's hook must run, not the arriving one's";
+		int deselect = selection.indexOf("onDeselected(player)");
+		int store = selection.indexOf("setAttached(JujutsuAttachments.CHARACTER_STATE");
+		assert deselect >= 0 && store > deselect
+				: "The departing vessel must pack up while it is still the selected one";
 		String init = Files.readString(Path.of("src/main/java/jujutsu/mod/JujutsuMod.java"));
 		assert init.contains("TodoPairSwapRuntime.register()")
 				: "The pair swap lifecycle must be registered from mod init";
