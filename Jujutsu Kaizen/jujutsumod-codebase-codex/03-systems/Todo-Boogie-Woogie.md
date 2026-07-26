@@ -163,22 +163,77 @@ Vanilla owns the flight: `ThrowableItemProjectile` gives authoritative movement,
 
 Two mark forms, genuinely different lifetimes, one record and one release path:
 
-| Form | Trigger | The projectile | Readability | What ending the mark undoes |
-|---|---|---|---|---|
-| `POSITION` | block hit | **stays alive** — it *is* the mark, resting `MARKER_SURFACE_OFFSET` off the struck face | rendered by vanilla `ThrownItemRenderer` | discards the projectile |
-| `ENTITY` | body hit | removed immediately | vanilla glowing on the struck body | clears the glow, but only if the mark applied it |
+| Form | Trigger | Lifetime | Spent by a swap? | The projectile | What ending the mark undoes |
+|---|---|---|---|---|---|
+| `POSITION` | block hit | **none** (`TodoSwapMark.NEVER`) | no — reusable anchor | **stays alive** — it *is* the mark, resting `MARKER_SURFACE_OFFSET` off the struck face | discards the projectile |
+| `ENTITY` | body hit | `MARKER_BODY_MARK_TTL_TICKS` | yes | removed immediately | clears the glow, but only if the mark applied it |
+
+The two lifetimes are enforced by the record, not by remembering: `atPosition` takes no expiry parameter at all, so giving a landed mark a clock does not compile, and the canonical constructor rejects either form holding the other's lifetime. `TodoSwapMarks.onUsed` is the single place that decides what a swap costs its mark — separate from `clear`, which is the unconditional teardown every other path uses. A charge limit or any other price lands in that one method.
+
+**What "permanent" means, exactly:** permanent until explicitly cleared or until the marker is lost, and **never persistent between server sessions**. It ends on death, on changing vessel, on changing dimension, on disconnect, on server stop, and when the projectile goes missing from a *loaded* chunk. `NEVER` is the absence of a timer, not eternity.
+
+That last clause is load-bearing and only became reachable with permanence. The entity type is `noSave()`, so an unloaded chunk removes the projectile and never returns it, while the mark sweep deliberately refuses to read an unresolvable entity as dead ("an unloaded chunk is not a death"). Under a ten-second TTL that window was unreachable; with a permanent anchor, walking out of render distance and back would have left a working teleport anchor with no marker anywhere in the world. `landedMarkerIsGone` checks the chunk **before** the entity, which ends the mark exactly when its projectile is really gone and covers an explosion, a `/kill` and third-party cleanup with the same rule. Losing an anchor is announced; expiry stays silent.
 
 `glowApplied` is false when the body was already glowing, so ending a mark can never extinguish another system's highlight — Nobara's target marks use the same vanilla glow. Every way a mark can end funnels through one `release` method, and a test asserts there is exactly one, because "each cleanup path must handle both forms" is where this feature's bugs would otherwise live. Released on expiry, marked-body death, disconnect, respawn, dimension change and server stop; the sweep applies the same unloaded-chunk-is-not-a-death rule as the pair selection.
 
 A landed marker's `tick()` returns before `super.tick()`. That is deliberate: a resting mark must take no physics and must not re-enter hit detection, and its lifetime belongs to `TodoSwapMarks` rather than a second clock on the entity.
 
-Both forms swap under `STRICT` placement. The `POSITION` form moves one body, so atomicity is trivial — either Todo's destination is safe or nothing happens; the `ENTITY` form runs the ordinary two-destination plan. Reach is `MARKER_SWAP_RANGE`, longer than the aimed swap, because the mark cost an item, a throw and a public telegraph an opponent can play around. A mark is **consumed** by the swap it enables; it is not a reusable anchor. The swap takes the ordinary `PRIMARY` cooldown, because it is the primary swap.
+Both forms swap under `STRICT` placement. The `POSITION` form moves one body, so atomicity is trivial — either Todo's destination is safe or nothing happens; the `ENTITY` form runs the ordinary two-destination plan. Reach is `MARKER_SWAP_RANGE`, longer than the aimed swap, because the mark cost an item, a throw and a public telegraph an opponent can play around. The cooldown is `MARKER_SWAP_COOLDOWN_TICKS` on the `PRIMARY` slot — equal to the aimed swap's today, and split from it deliberately: a reusable thirty-two block return is the strongest thing in the kit, and pricing it differently should be one number rather than a rewrite.
+
+Consequence worth stating: while a landed mark exists, every `PRIMARY` press that finds nothing under the crosshair becomes a teleport instead of a `no_target` line. That is the fallback working as designed, but it changes how the key feels, which is why the arrival now has visuals of its own.
 
 Coverage is the same honest limit as the feint: pure record logic plus source-text contracts. No test teleports anything. Whether a resting marker reads clearly in world, and whether either mark form leaks a projectile or a glow in real play, is UNKNOWN.
 
+## The impact sequence — and why it lives on its own cues
+
+`TodoBoogieWoogieRuntime.emitSwapImpact` is the single emission point for all four routes: the aimed swap, both marker swaps and the pair swap. They used to hand-copy the same five calls, which is a shape that drifts, and the copy that drifts is the one nobody plays often enough to notice.
+
+**The feint sends the same `BOOGIE_WOOGIE` cue as a real swap** (`TodoFakeClapRuntime` → `emitClapPerformance`). That single fact decides the whole layout: anything added to the clap recipe is something a feint does too. So the clap keeps only what a feint must also have — the camera snap, the HUD flash, the animation — and everything a completed swap earns rides on cues the feint never emits.
+
+| Beat | Carrier | Notes |
+|---|---|---|
+| clap sound, camera snap for every observer, HUD flash | `BOOGIE_WOOGIE` | shared with the feint on purpose |
+| ribbon between the two ends of the geometry | `SWAP_ENDPOINT` (leading only) | the trailing cue no longer claims a flash slot to draw nothing |
+| burst and body silhouette where each body stood | `SWAP_AFTERIMAGE`, one per moved body | 4 ticks |
+| inward gather, landing column, velocity streak; camera snap for the participant; sound duck | `SWAP_ARRIVAL`, one per moved body | 6 ticks |
+| displacement whoosh at both ends (+1 tick), low landing report at the arrival midpoint (+3) | server sound scheduler | one report, not two — Minecraft audio has no propagation delay |
+
+The two new cues carry data the renderer cannot get any other way. `SWAP_AFTERIMAGE` takes `(bbWidth, bbHeight, yaw)` in its `anchorOffset` because by render time the live entity is standing somewhere else in a different pose; `SWAP_ARRIVAL` takes `(speed, bbWidth, bbHeight)` because `VfxCue` normalizes `direction`, so magnitude cannot survive there — one vector, two useful forms. Both keep `NO_ANCHOR`, which is what lets `VfxContext.resolveOrigin` stay honest about what it returns.
+
+The silhouette is an outline, not a fill, and that is physics rather than taste: `RenderType.lightning()` blends additively, so a filled body at any readable alpha blows out toward white. The only solid piece is a torso wash at a sixth of the outline's alpha. It holds four ticks because it stands exactly where the *other* body is arriving — longer and it stops reading as "you see who left" and starts reading as a rendering bug.
+
+`ImpactStyle` now carries `worldFixed` on the enum constructor rather than in a boolean expression at the call site. An afterimage that followed its anchor entity would chase the body that left, which is the one thing it must never do, and the compiler now refuses to let a new style skip the question.
+
+**Sound duck.** `VfxSoundChannel` pauses every category except `PLAYERS` and `UI` for six ticks through the vanilla `SoundManager.pauseAllExcept` / `resume` pair — no mixin, and nothing written to the player's own volume settings. Because that switch is shared with vanilla's pause menu, the channel tracks who owns the pause (`VfxSoundDuck.State`) and lifts only its own; opening a screen ends the duck on the same tick, a second duck extends rather than restarts, and every existing teardown path already reaches `clear()`. `VfxDirector.timeScale()` remains dead and unused, so no slow-motion is involved.
+
+**Momentum.** `place` teleports absolutely with an empty `Relative` set, so the transition carries `Vec3.ZERO` and the client is told its velocity is nothing — the server-side `setDeltaMovement` was a fiction for a player, who owns his own movement. `restoreMotionAndRotation` now sets `hurtMarked`, which makes `ServerEntity#sendChanges` emit `ClientboundSetEntityMotionPacket` through `broadcastAndSend`, reaching the trackers and the moved player's own connection. One line inside the shared helper covers all four routes and the rollback path.
+
+## Swap momentum — one heavier hit
+
+`TodoSwapMomentum` (pure policy), `TodoSwapMomentumRuntime`, `JujutsuEffects.TODO_SWAP_MOMENTUM`.
+
+A completed swap opens a 24-tick window; the next confirmed melee hit lands harder, staggers for `SWAP_MOMENTUM_STAGGER_TICKS`, and gets its own `MOMENTUM_STRIKE` cue. A miss, a shielded hit or a hit that dealt nothing leave it untouched; it lapses on its own.
+
+The damage rides on the effect's own `ATTACK_DAMAGE` modifier, not on a second `hurtServer` call. That is what makes it impossible to double-apply — the vanilla swing is simply bigger, so there is no extra damage instance to fight with Black Flash's bonus, pierce invulnerability, or fire the damage event twice. `ADD_MULTIPLIED_TOTAL` composes with Todo's standing `+0.50` as `base × 1.50 × 1.25`; `ADD_MULTIPLIED_BASE` would silently have meant `×1.75`.
+
+Three non-obvious constraints the runtime exists to satisfy:
+
+- **`AFTER_DAMAGE` does not fire on a killing blow.** A kill would have silently refunded the window and shown nothing, so `ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY` is a second entry into one spend path (no stagger — there is nobody left to interrupt).
+- **Black Flash re-enters the damage event** to apply its bonus, so the listener sees one swing twice. Without the `BlackFlashStrike.isApplyingBonus` guard the window is spent on the nested pass, tying the stagger and the cue to a hidden ten-percent roll. The stagger is additionally guarded on `isAlive()`, because that bonus hit can kill the target inside the same swing.
+- **The spend path checks the attacker is still Todo**, so leaving the vessel mid-window would strand a live `+25%` modifier nothing could remove. `onDeselected` takes it off; the attribute sweeps do not reach it, because it belongs to the effect rather than to the definition.
+
+Grant sites are exactly two: past the last `return false` in `TodoBoogieWoogieRuntime.tryCast`, and in `TodoMarkerSwapRuntime.finish` (one site for both mark routes). **Not** the pair swap — Todo does not move and takes no positional risk, which is why its cooldown is already 100 against 60 — and **not** the feint, whose 20-tick cooldown would make it a threefold-cheaper way to buy the window.
+
+Two limits recorded rather than hidden, both in the runtime's javadoc:
+
+1. A **sweeping attack** keeps the boosted damage on its later victims after the window is spent on the first: `Player.attack` captures the damage into a local before the sweep block, so removing the modifier mid-swing cannot shrink a float already on the stack. Stagger and cue do not duplicate. It costs a deliberate hotbar swap, since both hands must be empty to clap.
+2. On **bare fists** `×1.25` is worth about a third of a heart. The stagger is the payload; the damage matters only if the player draws a weapon inside the window, which is the intended loop — displace, arm, hit.
+
+`SWAP_MOMENTUM_WINDOW_TICKS` (24) is deliberately below both swap cooldowns, which makes "refreshes rather than stacks" structurally unreachable instead of merely unlikely. That inequality is what the test asserts, rather than trying to exercise a refresh that cannot happen.
+
 ## Seam: Todo does not own a Black Flash cue id
 
-`TodoVfxIds` defines `todo/boogie_woogie`, `todo/swap_endpoint`, and `todo/feint_tell` — and no Black Flash id. `TodoBlackFlashRuntime.afterDamage` broadcasts `NobaraVfxIds.BLACK_FLASH` instead of a Todo-owned id (VERIFIED — `import jujutsu.mod.vfx.NobaraVfxIds`).
+`TodoVfxIds` defines `todo/boogie_woogie`, `todo/swap_endpoint`, `todo/swap_afterimage`, `todo/swap_arrival`, `todo/momentum_strike`, `todo/feint_tell` and `todo/pair_mark` — and no Black Flash id. `TodoBlackFlashRuntime.afterDamage` broadcasts `NobaraVfxIds.BLACK_FLASH` instead of a Todo-owned id (VERIFIED — `import jujutsu.mod.vfx.NobaraVfxIds`).
 
 This is a real cross-character coupling, not a shared-effects abstraction: the id lives in a Nobara-named class and is registered by `NobaraVfxRecipes`. Retuning Nobara's Black Flash presentation silently retunes Todo's. Either promote Black Flash to a shared id or give Todo its own; until then, treat `NobaraVfxIds` as roster-shared in practice and vessel-named in code. A third vessel should not copy this.
 

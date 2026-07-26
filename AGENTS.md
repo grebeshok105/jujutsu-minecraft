@@ -32,6 +32,9 @@ This block is the single owner of current-slice facts. `README.md` keeps only th
 - Each vessel binds one server and one client definition — see "The Vessel Seam" below, which owns that rule
 - Each vessel's slots are mapped by its own router — `NobaraAbilityRouter`, `TodoAbilityRouter`, reached through the vessel's definition — over an exhaustive `CharacterAbility` switch, so a new slot fails compilation instead of falling into whichever arm a `default` would have picked. Nobara's router additionally owns her stagger check and her single fallback message, because both are hers alone and neither belongs in the shared executor. `CharacterAbility` network ids are wire format: append, never renumber. `CharacterAbilityPayload` also carries the vessel the client believed in, and the server refuses a cast whose claim disagrees with the stored selection
 - Todo has no starter loadout in this slice; the `todo_swap_marker` item is obtainable only by giving it, and only Todo can throw it — `TodoSwapMarkerItem.use` refuses other vessels on both sides through `CharacterSelectionView`. Baseline tuning lives in `TodoProfile`
+- A **landed** swap marker is a reusable anchor: no timer, and a swap onto it does not spend it. A marker that struck a **body** keeps its ten seconds and is still consumed. Permanent here means until cleared or until the projectile is lost — it ends on death, vessel change, dimension change, disconnect, server stop, and when the projectile goes missing from a *loaded* chunk; it is never persistent between sessions. `TodoSwapMarks.onUsed` is the single place that decides what a swap costs a mark
+- A completed swap opens a 24-tick window through the `todo_swap_momentum` effect: the next confirmed melee hit lands at ×1.25 and staggers for 8 ticks, then the window closes. A miss or a blocked hit does not spend it. The damage is an `ATTACK_DAMAGE` modifier on the effect itself, never a second damage instance. Granted only by the aimed swap and the mark swap — never by the pair swap or the feint
+- Everything a **completed** swap shows rides on `SWAP_AFTERIMAGE` / `SWAP_ARRIVAL` cues that `TodoFakeClapRuntime` never emits. The feint shares the `BOOGIE_WOOGIE` clap cue by design, so nothing that only a real swap earns may be added to that recipe
 - Both vessels render through GeckoLib replaced-player renderers declared by each vessel's client definition, collected by `CharacterGeoRenderers` and dispatched from `CharacterRenderDispatchMixin`
 - Vessel render code is shared: `CharacterPlayerGeoRenderer` (render entry + pose-stack guard), `CharacterPlayerGeoModel` (arm pose + clamped head look), `CharacterHeldItemLayer` (hand attachments). A new vessel supplies assets and hooks, not a copied render stack
 - Transient combat VFX: **VFX Core** only (`VfxCue` → director → recipes); each vessel registers its own recipe pack from its client definition's `registerClientHooks()` — the aggregate `JujutsuVfxRecipes` is deleted
@@ -54,9 +57,13 @@ This block is the single owner of current-slice facts. `README.md` keeps only th
 | `PAIR_SELECTION_TTL_TICKS` | 100 (5 s) |
 | `MARKER_THROW_POWER` | 1.35 |
 | `MARKER_FLIGHT_TICKS` | 60 |
-| `MARKER_MARK_TTL_TICKS` | 200 (10 s) |
+| `MARKER_BODY_MARK_TTL_TICKS` | 200 (10 s) — body marks only; a landed mark has no clock |
 | `MARKER_SURFACE_OFFSET` | 0.15 |
 | `MARKER_SWAP_RANGE` | 32.0 blocks |
+| `MARKER_SWAP_COOLDOWN_TICKS` | 60 (3 s) |
+| `SWAP_MOMENTUM_DAMAGE_MULTIPLIER` | 1.25 |
+| `SWAP_MOMENTUM_WINDOW_TICKS` | 24 (1.2 s) |
+| `SWAP_MOMENTUM_STAGGER_TICKS` | 8 |
 | `MELEE_DAMAGE_MULTIPLIER` | 1.50 |
 | `ATTACK_SPEED_MULTIPLIER` | 0.85 |
 | `STAGGER_DURATION_MULTIPLIER` | 0.50 |
@@ -298,6 +305,8 @@ The full build owns all custom verification programs through `check`. Do not cla
 9. Resonance global server hit-stop stays intentional unless the product target changes — rationale in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
 10. Todo differs from Nobara on positioning and raw melee, not on a second projectile kit; he intentionally ships without a starter loadout.
 11. Boogie Woogie destinations have no floor check and no entity-occupancy gate — see the destination policy above.
+12. A landed swap marker is a permanent reusable anchor; a marker on a body is not. Rebalancing levers are already split out (`MARKER_SWAP_COOLDOWN_TICKS`, `MARKER_SWAP_RANGE`, `TodoSwapMarks.onUsed`) so pricing it later is a number, not a rewrite.
+13. The swap's momentum bonus is carried by a `MobEffect` attribute modifier, not by a second damage instance. Two known limits are accepted and documented in `TodoSwapMomentumRuntime`: a sweeping attack keeps the boost on later victims after the window is spent, and on bare fists ×1.25 is worth about a third of a heart, so the stagger is the payload.
 
 ## Open Questions (real remaining)
 
