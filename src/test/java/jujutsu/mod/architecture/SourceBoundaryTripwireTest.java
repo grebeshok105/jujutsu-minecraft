@@ -69,13 +69,16 @@ class SourceBoundaryTripwireTest {
 			"src/client/java/jujutsu/mod/client/character/JujutsuCharacterClients.java");
 
 	/**
-	 * The two shared files that name a vessel for reasons that are debt rather than design. Pinned to the
-	 * exact type names, so neither can quietly acquire a third reference, and so fixing either fails this
-	 * test and forces its entry to be deleted with it.
+	 * The shared files that name a vessel for reasons that are debt rather than design. Pinned to the exact
+	 * type names, so none can quietly acquire another reference, and so fixing one fails this test and
+	 * forces its entry to be deleted with it.
+	 *
+	 * <p>{@code JujutsuNetworking} was the second entry and is gone: E13 is closed, and the grep half of
+	 * that proof is this map shrinking. It named {@code SelfResonanceRuntime} through an inline fully
+	 * qualified name, which is precisely the shape a source-text tripwire catches and an import-based one
+	 * does not.
 	 */
 	private static final Map<String, Set<String>> TRACKED_DEBT = Map.of(
-			"src/main/java/jujutsu/mod/network/JujutsuNetworking.java",
-			Set.of("SelfResonanceRuntime", "<package nobara>"),
 			"src/client/java/jujutsu/mod/client/render/ProjectJjkNailRenderer.java",
 			Set.of("ProjectJjkNailEmbedding", "ProjectJjkNailEntity", "<package nobara>"));
 
@@ -145,7 +148,7 @@ class SourceBoundaryTripwireTest {
 						+ unexpected);
 		assertEquals(new TreeMap<>(TRACKED_DEBT), debtFound,
 				"the tracked shared-code references to vessel types changed. Growing one means a new leak; "
-						+ "shrinking one means a leak was fixed and its entry here should go with it (E13, E14).");
+						+ "shrinking one means a leak was fixed and its entry here should go with it (E14).");
 	}
 
 	@Test

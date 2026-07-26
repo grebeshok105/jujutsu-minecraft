@@ -1,5 +1,6 @@
 package jujutsu.mod.character;
 
+import java.util.UUID;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
@@ -75,6 +76,23 @@ public interface CharacterDefinition {
 	 */
 	default int adjustIncomingStaggerTicks(int requestedTicks) {
 		return requestedTicks;
+	}
+
+	/**
+	 * Answers a curse-link choice the player just made, or {@code false} if this vessel asked no question.
+	 *
+	 * <p>A curse link is a shared concept — {@code jujutsu.mod.curse} is a shared package that
+	 * {@code JujutsuCommands} reads too — so the intent arriving from the client is neutral: <i>the player
+	 * picked link X</i>. What that means is the vessel's business, and only the vessel may answer.
+	 *
+	 * <p>The default refusal is the point. The receiver used to call one vessel's runtime by name, so the
+	 * packet was honoured no matter who sent it; routing it here means a player who is not the vessel that
+	 * opened the picker is refused by the same seam that already refuses a stale-vessel ability cast.
+	 *
+	 * @param linkId the link the client chose; unvalidated, so an implementation must check ownership
+	 */
+	default boolean selectCurseLink(ServerPlayer player, UUID linkId) {
+		return false;
 	}
 
 	/** Runs after the player becomes this vessel, once the selection is already stored. */

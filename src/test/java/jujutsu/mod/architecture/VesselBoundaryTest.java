@@ -72,9 +72,8 @@ class VesselBoundaryTest {
 	private static final String SERVER_VESSEL_REGISTRY = "jujutsu.mod.character.JujutsuCharacters";
 	private static final String CLIENT_VESSEL_REGISTRY = "jujutsu.mod.client.character.JujutsuCharacterClients";
 
-	/** See E13. A defect, tracked for removal, pinned by {@link #theOneKnownNetworkLeakDoesNotGrow()}. */
+	/** Pinned by {@link #theNetworkLayerTouchesNoVesselCode()}; held at zero since E13 was closed. */
 	private static final String NETWORK_LAYER = "jujutsu.mod.network.JujutsuNetworking";
-	private static final String KNOWN_NETWORK_LEAK = "jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime";
 
 	/** See E14. Renders a Nobara entity from the shared render package; belongs under render.nobara. */
 	private static final String MISPLACED_NAIL_RENDERER = "jujutsu.mod.client.render.ProjectJjkNailRenderer";
@@ -282,19 +281,25 @@ class VesselBoundaryTest {
 	}
 
 	@Test
-	void theOneKnownNetworkLeakDoesNotGrow() {
+	void theNetworkLayerTouchesNoVesselCode() {
 		// Matched by package now, not by substring: `.nobara.` also matched nothing in `.nobaranet.`,
 		// which is exactly how the review smuggled a second path past this test.
+		//
+		// This used to allow exactly one entry — SelfResonanceRuntime, reached by an inline fully qualified
+		// name, tracked as E13. That call now goes through CharacterDefinition.selectCurseLink like every
+		// other per-vessel decision, so the allowance is gone and the expected set is empty. Asserting zero
+		// is worth strictly more than deleting the rule: a receiver wired straight to a vessel runtime is
+		// the single easiest seam breach to write, and this is the only check that sees it.
 		Set<String> vesselDependencies = mainClasses.get(NETWORK_LAYER).getDirectDependenciesFromSelf().stream()
 				.map(dependency -> dependency.getTargetClass())
 				.filter(resideInAnyPackage(VESSEL_PACKAGES))
 				.map(JavaClass::getName)
 				.collect(Collectors.toCollection(TreeSet::new));
 
-		assertEquals(Set.of(KNOWN_NETWORK_LEAK), vesselDependencies,
-				"JujutsuNetworking may touch exactly one vessel class, the known SelfResonanceRuntime leak "
-						+ "(E13). If this set is empty the leak is fixed: delete this test and the allowlist "
-						+ "entry beside it. If it grew, a second vessel just acquired a private network path.");
+		assertEquals(Set.of(), vesselDependencies,
+				"the network layer reached into a vessel package. A packet's handler must name a shared seam "
+						+ "— CharacterAbilityExecutor or a CharacterDefinition hook — never a vessel runtime, "
+						+ "or that vessel has acquired a private input path no other vessel can be given.");
 	}
 
 	private static JavaClasses importOnly(Path output, int atLeast) {

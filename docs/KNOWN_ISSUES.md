@@ -164,14 +164,6 @@ An adversarial review of the architecture rules ran 16 attacks against a green b
 
 ## Medium-priority work
 
-### E13 — the curse-link receiver is installed from the shared network layer
-
-`JujutsuNetworking.registerServerReceivers` registers the `SelectCurseLinkPayload` receiver by calling `jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime.select` through an inline fully qualified name. That is a vessel runtime reached directly from shared code, which the vessel seam forbids; it belongs in `NobaraDefinition.registerServerHooks`, beside the seven runtimes already installed there.
-
-It survived every source-text check for two reasons. The inline fully qualified name means no `import` line to grep, and `NobaraAbilitySlotsTest` asserted the call was present — protecting the packet from deletion, but pinning its registration site as a side effect. That half of the assertion is gone; the packet itself is still required to exist.
-
-Found by the first ArchUnit pass, not by review. `VesselBoundaryTest#theOneKnownNetworkLeakDoesNotGrow` pins the exact set of vessel classes the network layer may touch, so a second vessel cannot follow, and the test fails once this is fixed — which is the signal to delete both it and the allowlist entry beside it.
-
 ### E4 — VFX delivery is transient and radius-filtered
 
 Clients outside the broadcast radius at cast time do not receive a cue. This is acceptable for most short effects, but critical long-lived visuals need explicit state or catch-up rather than wider blind broadcast.
@@ -242,6 +234,20 @@ Closed 2026-07-26 on feat/todo-input-slots, verified against `TodoSwapMarkerItem
 For the history: the gap existed because `TodoDefinition.onDeselected` correctly cleans up only for the vessel being left, where the old every-selection clear had hidden the missing gate by destroying stray markers as a side effect. A player who was Nobara, or nobody, could leave a mark in the world that only Todo could ever use.
 
 Still open, related: `CharacterPlayerState.hasClaimedStarter` has no production callers at all. The starter claim is recorded and persisted for every vessel, but nothing reads it, because the loadout is deliberately re-applied on every selection so a lost kit can be restored. Either give the claim a job or delete it; leaving persisted state that nothing consumes invites someone to trust it later.
+
+### E13 — Closed: the network layer no longer names a vessel
+
+Closed 2026-07-27 on `fix/e13-network-vessel-seam`. `JujutsuNetworking.registerServerReceivers` used to register the `SelectCurseLinkPayload` receiver by calling `jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime.select` through an inline fully qualified name — a vessel runtime reached directly from shared code, which the vessel seam forbids.
+
+The receiver now hands a neutral intent to the seam that already existed: `JujutsuCharacters.of(player).selectCurseLink(player, linkId)`. A curse link is a shared concept — `jujutsu.mod.curse` is a shared package that `JujutsuCommands` reads too — so what travels is *the player picked link X*, and only the player's own vessel decides what that means. `CharacterDefinition.selectCurseLink` defaults to refusing, `NobaraDefinition` overrides it, and the Self Resonance logic never left her package.
+
+**It fixed a second defect that was not the one being tracked.** The old receiver honoured the packet from any sender, because it named one vessel's runtime instead of asking who the sender is. Routing it through the definition means a player who is not the vessel that opened the picker is refused by the same seam that already refuses a stale-vessel ability cast.
+
+Why it survived every source-text check until ArchUnit found it: an inline fully qualified name leaves no `import` line to grep, and `NobaraAbilitySlotsTest` asserted the call was present — protecting the packet from deletion, but pinning its registration site as a side effect. That half of the assertion is gone; the packet itself is still required to exist.
+
+Both allowlist entries went with it. `VesselBoundaryTest#theOneKnownNetworkLeakDoesNotGrow` is now `#theNetworkLayerTouchesNoVesselCode` and asserts the empty set rather than one permitted class; the `JujutsuNetworking` entry in `SourceBoundaryTripwireTest#TRACKED_DEBT` is deleted. The rule was tightened rather than deleted, against the instruction this entry used to carry: a receiver wired straight to a vessel runtime is the easiest seam breach in the codebase to write, and this is the only check that can see it. Proven by mutation rather than by a green run — the mutation and its failure message are in the commit body.
+
+**One residue, recorded rather than hidden.** `selectCurseLink` is a shared extension point with exactly one implementer, which "Limits of the build-time gate" above lists as a thing no structural rule can tell from a genuine shared hook. `canonicalSlot` sits in the same position and is accepted for the same reason: the alternative is shared code that knows which vessel asked.
 
 ## Low-priority product debt
 
