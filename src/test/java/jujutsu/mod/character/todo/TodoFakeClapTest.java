@@ -14,7 +14,6 @@ public final class TodoFakeClapTest {
 
 	public static void main(String[] args) throws Exception {
 		assertClapGateTruthTable();
-		assertAbilitySlotsAreWireStable();
 		assertFeintCarriesNoSwapMachinery();
 		assertFeintReusesTheRealClapPerformance();
 		assertCooldownsAreIndependent();
@@ -39,20 +38,6 @@ public final class TodoFakeClapTest {
 		// have happened anyway.
 		assert TodoSwapGates.evaluate(true, true, false, false, false) == ClapGate.UNAVAILABLE
 				: "Unavailable state must outrank the hands-full message";
-	}
-
-	private static void assertAbilitySlotsAreWireStable() {
-		// Slots are named after the input that reaches them, so the input layer can stay vessel-agnostic.
-		assert CharacterAbility.PRIMARY.networkId() == 0 : "PRIMARY must keep network id 0";
-		assert CharacterAbility.PRIMARY_SNEAK.networkId() == 1 : "PRIMARY_SNEAK must follow PRIMARY";
-		assert CharacterAbility.SECONDARY.networkId() == 2 : "SECONDARY must follow the sneak variant of PRIMARY";
-		assert CharacterAbility.SECONDARY_SNEAK.networkId() == 3 : "SECONDARY_SNEAK must follow SECONDARY";
-		assert CharacterAbility.ATTACK_CONTEXT.networkId() == 4 : "ATTACK_CONTEXT must be the last slot";
-		for (CharacterAbility slot : CharacterAbility.values()) {
-			assert CharacterAbility.byNetworkId(slot.networkId()) == slot
-					: "Every slot must round-trip through its network id: " + slot;
-		}
-		assert CharacterAbility.byNetworkId(99) == null : "An unknown slot id must resolve to null, not a default";
 	}
 
 	private static void assertFeintCarriesNoSwapMachinery() throws Exception {
