@@ -20,12 +20,16 @@ public final class CharacterAbilityExecutor {
 			}
 			return false;
 		}
-		if (!CharacterAbilityCooldowns.isReady(player, ability)) {
+		// Folded first, so a vessel that treats two inputs as one shares their cooldown instead of having
+		// the second quietly bypass the first.
+		CharacterDefinition definition = JujutsuCharacters.definition(character);
+		CharacterAbility slot = definition.canonicalSlot(ability);
+		if (!CharacterAbilityCooldowns.isReady(player, slot)) {
 			if (notify) {
 				player.displayClientMessage(Component.translatable("message.jujutsumod.character.action.cooldown"), true);
 			}
 			return false;
 		}
-		return JujutsuCharacters.definition(character).tryCast(player, ability, notify);
+		return definition.tryCast(player, slot, notify);
 	}
 }

@@ -98,6 +98,21 @@ public final class TodoSwapMarkerTest {
 		String definition = Files.readString(TODO.resolve("TodoDefinition.java"));
 		assert definition.contains("TodoSwapMarks.register()")
 				: "The mark lifecycle must be registered by the vessel that owns it";
+		// Only he can throw it. Anyone else leaving a mark in the world would leave one his cleanup hook
+		// never sees, because that hook fires for the vessel being left, not for whoever threw the item.
+		String item = Files.readString(TODO.resolve("TodoSwapMarkerItem.java"));
+		assert item.contains("CharacterSelectionView.of(player) != JujutsuCharacter.TODO")
+				: "The marker must refuse to throw for anyone who is not Todo";
+		int gate = item.indexOf("CharacterSelectionView.of(player)");
+		int effect = item.indexOf("level.playSound(");
+		assert gate >= 0 && effect > gate
+				: "The vessel check must run before the sound and the item consumption, not after";
+		String view = Files.readString(Path.of("src/main/java/jujutsu/mod/character/CharacterSelectionView.java"));
+		assert view.contains("player instanceof ServerPlayer server")
+				: "The shared view must read the server's own selection when it has one";
+		String clientInit = Files.readString(Path.of("src/client/java/jujutsu/mod/client/JujutsuModClient.java"));
+		assert clientInit.contains("CharacterSelectionView.setClientLookup(")
+				: "The client must hand its mirror in, or an item check would pass server-side and mispredict";
 	}
 
 	private static void assertMarkSwapIsStrictAndCostsThePrimaryCooldown() throws Exception {

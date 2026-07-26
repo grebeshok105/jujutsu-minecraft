@@ -20,6 +20,16 @@ public final class TodoDefinition implements CharacterDefinition {
 		return JujutsuCharacter.TODO;
 	}
 
+	/**
+	 * Shift+B is B for him. The pair swap takes two presses on one key and cares about neither stance nor
+	 * hands, so crouching to line up the second participant used to lose the press — and silently, since
+	 * the mark then ticked on toward an expiry the player never saw explained.
+	 */
+	@Override
+	public CharacterAbility canonicalSlot(CharacterAbility slot) {
+		return slot == CharacterAbility.SECONDARY_SNEAK ? CharacterAbility.SECONDARY : slot;
+	}
+
 	@Override
 	public boolean tryCast(ServerPlayer player, CharacterAbility slot, boolean notify) {
 		return TodoAbilityRouter.tryCast(player, slot, notify);

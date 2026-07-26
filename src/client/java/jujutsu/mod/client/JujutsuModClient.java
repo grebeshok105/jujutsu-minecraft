@@ -1,6 +1,8 @@
 package jujutsu.mod.client;
 
 import net.fabricmc.api.ClientModInitializer;
+import jujutsu.mod.character.CharacterSelectionView;
+import jujutsu.mod.client.character.ClientCharacterSelectionManager;
 import jujutsu.mod.client.character.JujutsuCharacterClients;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.input.JujutsuKeybinds;
@@ -14,6 +16,9 @@ import jujutsu.mod.client.ui.neon.render.SdfPipelines;
 public class JujutsuModClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
+		// Lets shared code that runs on both sides ask which vessel a player is without this source set
+		// ever touching a client class.
+		CharacterSelectionView.setClientLookup(ClientCharacterSelectionManager::characterOrNone);
 		JujutsuClientParticles.registerFactories();
 		VfxDirector.initialize();
 		// Each vessel installs its own renderers and VFX recipes. Must follow VfxDirector.initialize(),

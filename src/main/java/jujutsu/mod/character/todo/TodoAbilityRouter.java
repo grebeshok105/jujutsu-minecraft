@@ -19,7 +19,10 @@ public final class TodoAbilityRouter {
 			case PRIMARY -> TodoBoogieWoogieRuntime.tryCast(todo, ability, notify);
 			case PRIMARY_SNEAK -> TodoFakeClapRuntime.tryCast(todo, ability, notify);
 			case SECONDARY -> TodoPairSwapRuntime.tryCast(todo, ability, notify);
-			// Todo's melee is plain vanilla with attribute modifiers, and he carries no technique weapon.
+			// SECONDARY_SNEAK never arrives: TodoDefinition folds it onto SECONDARY, because Shift+B is
+			// B for him. The arm stays so the switch remains exhaustive without a default.
+			// ATTACK_CONTEXT is genuinely empty — his melee is plain vanilla with attribute modifiers,
+			// and he carries no technique weapon.
 			case SECONDARY_SNEAK, ATTACK_CONTEXT -> false;
 		};
 	}

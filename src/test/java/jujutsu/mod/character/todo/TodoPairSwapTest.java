@@ -22,6 +22,7 @@ public final class TodoPairSwapTest {
 		assertSelectionIsBoundToDimensionAndIdentity();
 		assertBystandersGetStrictPlacement();
 		assertDistanceIsMeasuredFromTodoOnly();
+		assertTheSneakVariantFoldsOntoTheSameSlot();
 		assertSelectionLifecycleIsFullyUnwired();
 		assertMarkingIsFreeAndOnlyTheSwapCosts();
 		System.out.println("TodoPairSwapTest passed");
@@ -71,6 +72,25 @@ public final class TodoPairSwapTest {
 				: "The distance between the two participants must never be limited";
 		assert pair.contains("TodoProfile.BOOGIE_WOOGIE_RANGE")
 				: "Reach must reuse the swap range rather than introduce a second number";
+	}
+
+	/**
+	 * Shift+B must reach the pair swap. It is two presses on one key and cares about neither stance nor
+	 * hands, so crouching to line up the second participant used to lose the press silently while the
+	 * mark ticked on toward an expiry nobody explained.
+	 */
+	private static void assertTheSneakVariantFoldsOntoTheSameSlot() throws Exception {
+		String definition = Files.readString(TODO.resolve("TodoDefinition.java"));
+		assert definition.contains("slot == CharacterAbility.SECONDARY_SNEAK ? CharacterAbility.SECONDARY : slot")
+				: "Shift+B must fold onto B for Todo";
+		String executor = Files.readString(Path.of("src/main/java/jujutsu/mod/character/CharacterAbilityExecutor.java"));
+		int fold = executor.indexOf("definition.canonicalSlot(ability)");
+		int cooldown = executor.indexOf("CharacterAbilityCooldowns.isReady");
+		assert fold >= 0 && cooldown > fold
+				: "Folding must precede the cooldown check, or the sneak variant would bypass the real cooldown";
+		assert executor.contains("CharacterAbilityCooldowns.isReady(player, slot)")
+				&& executor.contains("definition.tryCast(player, slot, notify)")
+				: "Both the cooldown check and the cast must use the folded slot, not the raw input";
 	}
 
 	private static void assertSelectionLifecycleIsFullyUnwired() throws Exception {

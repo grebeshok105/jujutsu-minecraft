@@ -35,6 +35,19 @@ public interface CharacterDefinition {
 	default void registerServerHooks() {}
 
 	/**
+	 * Folds an input position onto the one this vessel actually answers, if the two are the same thing
+	 * to it. The default keeps them distinct.
+	 *
+	 * <p>Todo's pair swap is two presses of B and needs neither hand nor stance, so crouching between
+	 * them should not silently do nothing — for him Shift+B <i>is</i> B. Folding has to happen before the
+	 * cooldown check rather than inside the router, or the sneak variant would be a slot with no cooldown
+	 * of its own and pressing it would bypass the real one.
+	 */
+	default CharacterAbility canonicalSlot(CharacterAbility slot) {
+		return slot;
+	}
+
+	/**
 	 * Runs whatever this vessel puts on that input position, or {@code false} if it puts nothing there.
 	 *
 	 * <p>Selection and the slot cooldown are already checked by {@link CharacterAbilityExecutor}; rules

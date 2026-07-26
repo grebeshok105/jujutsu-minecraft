@@ -176,7 +176,8 @@ public final class NobaraAbilitySlotsTest {
 		assert !router.contains("CharacterSelectionManager")
 				: "Selection is checked once, in the shared gate, before any router is reached";
 		String executor = Files.readString(MAIN.resolve("jujutsu/mod/character/CharacterAbilityExecutor.java"));
-		assert executor.contains("JujutsuCharacters.definition(character).tryCast(player, ability, notify)")
+		assert executor.contains("JujutsuCharacters.definition(character)")
+				&& executor.contains("definition.tryCast(player, slot, notify)")
 				: "The shared gate must ask the vessel's definition rather than name any vessel";
 		assert !executor.contains("JujutsuCharacter.NOBARA") && !executor.contains("JujutsuCharacter.TODO")
 				: "The shared gate must not single out a vessel";
