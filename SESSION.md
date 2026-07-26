@@ -2,11 +2,21 @@
 
 ## Current state
 
-- `main` = the vessel definition seam and the add-vessel skill (PR #9, #10, #11), plus the quality gate
-- Active branch: `feat/todo-swap-impact`, rebased onto that `main`, **not merged** — the Boogie Woogie gameplay pass
+- `main` = the vessel definition seam and the add-vessel skill (PR #9, #10, #11), the quality gate, and the Boogie Woogie impact pass
+- Active branch: `chore/junit-foundation`, rebased onto that `main`, **not merged** — stage 2 of the build-time barrier
 - Product target: private play for one or two people
 
 Durable product state lives in AGENTS.md under "Current slice (facts)" and, for the seam, under "The Vessel Seam". This file records only what changed recently and what is still unproven. Documentation authority order is owned by AGENTS.md; asset and provenance policy by docs/PROVENANCE.md and docs/THIRD_PARTY_NOTICES.md.
+
+## On the active branch — the JUnit foundation
+
+Stage 2 of the barrier plan. Foundation only: **no existing `JavaExec` program was migrated**, so all 34 keep running exactly as before.
+
+- **`fabric-loader-junit` boots the loader for the test JVM.** It carries JUnit Jupiter 5.10.0 transitively, so no other test dependency was added. This is the capability the JavaExec programs never had: a test can now call `Bootstrap.bootStrap()` and touch real registries, codecs and buffers.
+- **`failOnNoDiscoveredTests` flipped to `true`.** It was `false`, which was harmless while no JUnit existed and poisonous the moment it did: a misconfigured platform discovers zero tests and the task passes green, exactly like a `JavaExec` task that lost its `-ea`.
+- **First JUnit test covers a real gap, not a demo.** `SelectionPayloadCodecTest` round-trips `CharacterSelectionSyncPayload` and `SelectCharacterPayload`, which carry the vessel selection and had **no coverage of any kind**. Both write two strings back to back, so a transposition compiles, keeps the build green, and shows up in game as the wrong skin or the wrong vessel.
+- **Known consequence, recorded before it bites:** the 34 `JavaExec` programs each run in their own JVM, so static state cannot leak between them. A shared JUnit JVM removes that. `CharacterAbilityCooldowns`, `CombatStagger`, `EmbeddedNailRegistry` and `ProjectJjkNailMarks` therefore migrate last.
+- **`CharacterAbilityCooldowns` is not unit-testable as written** — its key resolves the vessel from a live `ServerPlayer` and the key record is private. The vessel-keyed cooldown, the contract most worth covering, needs a small pure core extracted before a test can reach it. Not done here; that is a deliberate scope call, not an oversight.
 
 ## Landed on main — the single merge gate
 
@@ -61,6 +71,7 @@ Nine commits. The through-line: **shared code stopped asking which character a p
 ## Verification status
 
 - 33 JavaExec verification programs wired into `check`, all green. Three added by the seam work (`testCharacterDefinitions`, `testCharacterClients`, `testNobaraAbilitySlots`) and three by the impact pass (`testTodoSwapMomentum`, `testVfxSoundDuck`, `testVfxSilhouette`). All 33 confirmed to enable assertions by `verifyAssertionsEnabled`.
+- Plus one JUnit class, 4 tests, run by the standard `test` task inside `check`. `failOnNoDiscoveredTests` is `true`, so a suite that discovers nothing fails instead of passing.
 - The documentation audit is **inside `./gradlew qualityGate`** now, and no longer a hand-run step. The impact pass moved all four audited counters at once.
 - Two checks proven able to fail by mutation rather than only observed green: transposing two router arms, and binding a constant to the wrong definition.
 - Jar built from `main` and installed at `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar`.
@@ -104,7 +115,7 @@ Nothing below has been run in game. The build proves shape, not behaviour.
 
 ## Next product steps
 
-1. Merge `chore/quality-gate`, then continue the barrier plan: JUnit 5, then ArchUnit, then SpotBugs, then PIT, then GameTest. Stage 2 is deliberately held until the parallel branch in flight lands.
+1. Merge `chore/junit-foundation`, then continue the barrier plan: ArchUnit, then SpotBugs, then PIT, then GameTest.
 2. Run the in-game pass above — items 1–3 are the ones the seam work put at real risk.
 3. Decide the fate of `CharacterPlayerState.hasClaimedStarter`: give the persisted claim a job or delete it (E12 residue).
 4. Decide E10 (Nobara's fallback erases five translated diagnostics) and E11 (cooldown message precedes her silent stagger check) deliberately, not inside a refactor.

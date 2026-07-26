@@ -42,6 +42,11 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok:1.18.36'
 	clientCompileOnly 'org.projectlombok:lombok:1.18.36'
 	clientAnnotationProcessor 'org.projectlombok:lombok:1.18.36'
+
+	// Minecraft is transformed at runtime, so a bare JUnit run cannot touch it. fabric-loader-junit
+	// boots the loader for the test JVM, which is what makes registry- and buffer-level tests possible
+	// at all. The 30 JavaExec programs keep running unchanged beside this.
+	testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
 }
 
 tasks.register('testCharacterPlayerState', JavaExec) {
@@ -522,7 +527,11 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 tasks.named('test') {
-	failOnNoDiscoveredTests = false
+	useJUnitPlatform()
+	// A JUnit setup that discovers nothing is the same silent pass as a JavaExec task without -ea:
+	// the task is green because it ran no assertions, not because the assertions held. Proven able to
+	// fail — see the commit that introduced it.
+	failOnNoDiscoveredTests = true
 }
 
 java {

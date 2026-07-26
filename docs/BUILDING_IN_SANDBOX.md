@@ -12,7 +12,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 
 qualityGate is the canonical check and the only command whose green result may be called verified. CI runs this exact task, so a green local run and a green CI run mean the same thing. It is composed of three parts:
 
-- check — compiles the main and client source sets, runs the Gradle test task, and runs every custom JavaExec verification program. The current branch has 30 of them.
+- check — compiles the main and client source sets, runs the Gradle test task, and runs every custom JavaExec verification program. The current branch has 33 of them plus the JUnit suite described below.
 - auditDocumentation — runs tools/audit_docs.py, which used to exist only as a CI step, so a documentation break was found after a push instead of before a commit.
 - verifyAssertionsEnabled — reads the real Gradle task model and fails, listing the offenders, if any verification JavaExec task would run with assertions disabled. JavaExec defaults enableAssertions to false, and the verification programs are plain main() classes guarded by assert, so a task that loses its -ea does not fail: it passes unconditionally and silently.
 
@@ -68,7 +68,13 @@ Typical dependency domains are services.gradle.org, maven.fabricmc.net, repo.mav
 ./gradlew check --no-daemon
 ```
 
-The test sources use main methods with Java assertions, not a conventional JUnit suite. The named JavaExec tasks enable assertions with -ea and are the authoritative automated checks; verifyAssertionsEnabled enforces that flag so a new task cannot silently ship without it. The standard test task remains part of build but is not the whole test suite.
+Two kinds of automated test live side by side, and both run inside check.
+
+The older kind is a plain class with a main method guarded by Java assertions, run by a named JavaExec task. Those tasks enable assertions with -ea, and verifyAssertionsEnabled enforces the flag so a new task cannot silently ship without it.
+
+The newer kind is a JUnit 5 class run by the standard test task. It exists because the JavaExec programs cannot boot Minecraft: fabric-loader-junit starts the loader for the test JVM, so a JUnit test may call SharedConstants.tryDetectVersion() and Bootstrap.bootStrap() in @BeforeAll and then exercise registries, codecs and buffers for real instead of reading source text. Write new tests here by default. failOnNoDiscoveredTests is true, because a JUnit run that discovers nothing is green for the same reason a JavaExec task without -ea is green: it asserted nothing.
+
+Migration of the existing JavaExec programs is deliberate and gradual. The four classes that own mutable static state — CharacterAbilityCooldowns, CombatStagger, EmbeddedNailRegistry, ProjectJjkNailMarks — must move last: today each JavaExec program is its own JVM, so state cannot leak between tests, and a shared JUnit JVM removes that guarantee.
 
 ## Client verification
 
