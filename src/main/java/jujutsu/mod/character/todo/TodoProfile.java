@@ -18,6 +18,15 @@ public final class TodoProfile {
 	public static final int SAFE_POSITION_UPWARD_BLOCKS = 3;
 	/** Keeps targets comfortably inside the world border. */
 	public static final double WORLD_BORDER_MARGIN = 0.05;
+	/** Radius the swap cues are broadcast over, around each endpoint. */
+	public static final double BOOGIE_WOOGIE_CUE_RADIUS = 64.0;
+	/** Clap lands on the swap tick itself, never trailing the visual. */
+	public static final float BOOGIE_WOOGIE_CLAP_VOLUME = 0.95f;
+	public static final float BOOGIE_WOOGIE_CLAP_PITCH = 1.28f;
+	/** Short displacement whoosh at both original positions, one tick behind the clap. */
+	public static final int BOOGIE_WOOGIE_MOVE_SOUND_DELAY_TICKS = 1;
+	public static final float BOOGIE_WOOGIE_MOVE_SOUND_VOLUME = 0.7f;
+	public static final float BOOGIE_WOOGIE_MOVE_SOUND_PITCH = 1.45f;
 	/** Shared Black Flash chance for Todo's vanilla melee bridge. */
 	public static final float BLACK_FLASH_CHANCE = 0.10f;
 	public static final float BLACK_FLASH_DAMAGE_MULTIPLIER = 1.75f;
