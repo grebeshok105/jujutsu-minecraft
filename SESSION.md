@@ -2,12 +2,18 @@
 
 ## Current state
 
-- `main` = the vessel definition seam and the add-vessel skill (PR #9, #10, #11), the quality gate, and the Boogie Woogie impact pass
-- Everything below is **merged into `main`**; no branch is in flight. Barrier stages 1 and 2 are done, stage 3 is ArchUnit
-- One thing on `main` has **never been run in game**: the sixth input slot, `USE_CONTEXT` — two right clicks marking a body. The in-game pass covered the six commits before it
+- `main` = the vessel definition seam and the add-vessel skill (PR #9, #10, #11), the quality gate, the JUnit foundation, and the Boogie Woogie impact pass. Pushed; local and remote agree
+- **Start any new work from `main`.** Everything is merged, and every branch that was fully contained in `main` has been deleted locally and on the remote. Two local branches survive on purpose, and neither is pending work — see "Leftover branches" below
+- Barrier stages 1 and 2 are done. **Stage 3 is ArchUnit**: port only structural rules out of `ProjectSanityTest` — side separation, package isolation between vessels, which layer may hold a payload. Asset, JSON, localization and image checks stay as file reads. Claims about what a method does with a value belong in JUnit or later in GameTest, never in ArchUnit
 - Product target: private play for one or two people
 
 Durable product state lives in AGENTS.md under "Current slice (facts)" and, for the seam, under "The Vessel Seam". This file records only what changed recently and what is still unproven. Documentation authority order is owned by AGENTS.md; asset and provenance policy by docs/PROVENANCE.md and docs/THIRD_PARTY_NOTICES.md.
+
+### Leftover branches — neither is pending work
+
+- `feat/todo-boogie-woogie` holds eight commits that are not in `main` by hash. Their content is the earlier version of the Todo kit and the shared vessel render stack, which reached `main` by another route. Merging it would roll `ProjectSanityTest` and `TargetResolverTest` back to older versions. Delete it when you are comfortable; do not merge it.
+- `codex/vfx-director-prototype` holds one commit adding a standalone HTML sandbox under a documentation directory the audit forbids. Merging it fails `qualityGate` on the spot. Keep it as a scratch reference or delete it; it cannot land as is.
+- `worktree-neon-gui` is checked out by an editor workspace outside this repository's `.worktrees`, so git will not let it go. It is fully contained in `main`.
 
 ## Landed on main — the JUnit foundation
 
@@ -21,7 +27,7 @@ Stage 2 of the barrier plan. Foundation only: **no existing `JavaExec` program w
 
 ## Landed on main — the single merge gate
 
-Stage 1 of an agreed six-stage plan for the build-time barrier: `qualityGate → JUnit 5 → ArchUnit → SpotBugs → PIT → GameTest`. Stage 2 is written and waiting on `chore/junit-foundation`.
+Stage 1 of an agreed six-stage plan for the build-time barrier: `qualityGate → JUnit 5 → ArchUnit → SpotBugs → PIT → GameTest`. Stages 1 and 2 are both on `main`.
 
 - **`./gradlew qualityGate`** is now the one command. It runs `check`, `auditDocumentation` and `verifyAssertionsEnabled`. AGENTS.md makes a green run of exactly this task the condition for the word "verified", and states in the same place what a green run does **not** prove.
 - **The documentation audit stopped being CI-only.** It was a separate workflow step, so a documentation break surfaced after a push rather than before a commit.
@@ -91,7 +97,9 @@ Run by the user at commit `d9df2b5`: Nobara's kit confirmed working (abilities a
 
 ## Must be checked in game before the impact pass is trusted
 
-The user ran this pass in game through the sixth commit and it held. **The seventh commit was added afterwards and is untested:** the `USE_CONTEXT` slot, reached by two right clicks in quick succession. It is the only slot whose key vanilla already owns, so it is exactly the kind of input that build-time cannot judge — check that an ordinary right click still does its ordinary thing, that a pair marks the body under the crosshair, and that the pair is not triggered by normal interaction with blocks, containers or items.
+The user ran this pass in game through the sixth commit and it held.
+
+**The seventh commit shipped without an in-game pass, deliberately.** The user was told what was unverified and chose to merge anyway, so this is an accepted risk rather than a forgotten step. What was skipped: the `USE_CONTEXT` slot, reached by two right clicks in quick succession. It is the only slot whose key vanilla already owns, so a defect there does not look like a broken ability — it looks like ordinary right clicks misbehaving. If block, container or item interaction ever starts feeling wrong, check this first: that a single right click still does its ordinary thing, that a pair marks the body under the crosshair, and that normal interaction never trips the pair.
 
 1. **A normal swap** reads as one physical beat: clap, snap, two silhouettes, two arrivals, a fraction of a second of quiet, then the low report. Movement continues instead of stopping dead.
 2. **Every rejection is silent** — hands full, no target with no mark, nowhere safe to stand: no sound, no flash, no duck.
@@ -116,7 +124,7 @@ The user ran this pass in game through the sixth commit and it held. **The seven
 
 ## Next product steps
 
-1. Merge `chore/junit-foundation`, then continue the barrier plan: ArchUnit, then SpotBugs, then PIT, then GameTest.
+1. Barrier stage 3 — ArchUnit, scoped as described under "Current state". Then SpotBugs, then PIT, then GameTest.
 2. Run the in-game pass above — items 1–3 are the ones the seam work put at real risk.
 3. Decide the fate of `CharacterPlayerState.hasClaimedStarter`: give the persisted claim a job or delete it (E12 residue).
 4. Decide E10 (Nobara's fallback erases five translated diagnostics) and E11 (cooldown message precedes her silent stagger check) deliberately, not inside a refactor.
