@@ -6,6 +6,7 @@ Fantasy: battlefield setup through physical nails, hammer timing, remote Hairpin
 
 Core systems:
 
+- NobaraAbilityRouter — her slot map: what each shared input position casts, plus her own stagger check and single fallback message.
 - ProjectJjkNobaraRuntime — nail preparation, launch, impact, and common feedback.
 - ProjectJjkRitualRuntime — marks, directed/mass Hairpin, chains, and detonation.
 - NobaraHammerCombatRuntime — contextual melee and embedded-nail drive.

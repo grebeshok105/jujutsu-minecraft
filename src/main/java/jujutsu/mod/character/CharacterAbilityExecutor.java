@@ -2,6 +2,7 @@ package jujutsu.mod.character;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import jujutsu.mod.character.nobara.NobaraAbilityRouter;
 import jujutsu.mod.character.todo.TodoAbilityRouter;
 
 /** Server-only dispatcher for shared active-ability slots. */
@@ -23,8 +24,10 @@ public final class CharacterAbilityExecutor {
 			return false;
 		}
 		return switch (character) {
+			case NOBARA -> NobaraAbilityRouter.tryCast(player, ability, notify);
 			case TODO -> TodoAbilityRouter.tryCast(player, ability, notify);
-			case NOBARA, NONE -> false;
+			// NONE is already refused above; the arm exists so the switch stays exhaustive without a default.
+			case NONE -> false;
 		};
 	}
 }

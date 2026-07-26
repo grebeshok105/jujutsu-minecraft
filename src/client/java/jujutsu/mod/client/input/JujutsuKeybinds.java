@@ -16,7 +16,6 @@ import jujutsu.mod.client.character.ClientCharacterSelectionManager;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.network.CharacterAbilityPayload;
-import jujutsu.mod.network.NobaraActionPayload;
 import jujutsu.mod.registry.JujutsuItems;
 
 public final class JujutsuKeybinds {
@@ -70,33 +69,21 @@ public final class JujutsuKeybinds {
 			}
 			modernMenuWasDown = modernDown;
 
+			// No hold threshold and no double tap on the sneak variants: a cast has to stay instant, and
+			// two casts on one key have to be typed identically fast.
 			while (techniqueKey.consumeClick()) {
-				JujutsuCharacter character = selectedCharacter(client);
-				if (character == JujutsuCharacter.TODO) {
-					// No hold threshold and no double tap on the sneak variant: the real swap has to stay
-					// instant and both casts have to be typed identically fast.
-					sendCharacterAbility(character, slot(client, CharacterAbility.PRIMARY, CharacterAbility.PRIMARY_SNEAK));
-				} else if (character == JujutsuCharacter.NOBARA) {
-					sendNobaraAction(client.player.isShiftKeyDown()
-							? NobaraActionPayload.SELF_RESONANCE
-							: NobaraActionPayload.HAIRPIN_DIRECTED);
-				}
+				sendCharacterAbility(client, slot(client, CharacterAbility.PRIMARY, CharacterAbility.PRIMARY_SNEAK));
 			}
 			while (secondTechniqueKey.consumeClick()) {
-				JujutsuCharacter character = selectedCharacter(client);
-				if (character == JujutsuCharacter.TODO) {
-					sendCharacterAbility(character, slot(client, CharacterAbility.SECONDARY, CharacterAbility.SECONDARY_SNEAK));
-				} else if (character == JujutsuCharacter.NOBARA) {
-					sendNobaraAction(client.player.isShiftKeyDown()
-							? NobaraActionPayload.NAIL_TRAP
-							: NobaraActionPayload.HAIRPIN_MASS);
-				}
+				sendCharacterAbility(client, slot(client, CharacterAbility.SECONDARY, CharacterAbility.SECONDARY_SNEAK));
 			}
 
 			boolean attackDown = client.options.keyAttack.isDown();
+			// The weapon check is the last vessel-specific thing left in this file. It stays until the
+			// client-side vessel definitions can answer "is this stack my technique weapon".
 			if (attackDown && !attackWasDown && client.screen == null
-					&& isHoldingNobaraHammer(client.player.getMainHandItem(), client.player.getOffhandItem())) {
-				sendNobaraAction(NobaraActionPayload.HAMMER_CONTEXT);
+					&& isTechniqueWeapon(client.player.getMainHandItem(), client.player.getOffhandItem())) {
+				sendCharacterAbility(client, CharacterAbility.ATTACK_CONTEXT);
 			}
 			attackWasDown = attackDown;
 		});
@@ -153,7 +140,15 @@ public final class JujutsuKeybinds {
 		return client.player == null ? JujutsuCharacter.NONE : ClientCharacterSelectionManager.characterOrNone(client.player.getUUID());
 	}
 
-	private static void sendCharacterAbility(JujutsuCharacter character, CharacterAbility ability) {
+	/**
+	 * The only vessel question this file asks: am I one at all. Staying silent for {@code NONE} keeps a
+	 * stray key press from earning a "pick a character first" line the player did not ask for.
+	 */
+	private static void sendCharacterAbility(Minecraft client, CharacterAbility ability) {
+		JujutsuCharacter character = selectedCharacter(client);
+		if (character == JujutsuCharacter.NONE) {
+			return;
+		}
 		if (!ClientAbilityCooldowns.isReady(character, ability)) {
 			return;
 		}
@@ -162,17 +157,11 @@ public final class JujutsuKeybinds {
 		}
 	}
 
-	private static void sendNobaraAction(int action) {
-		if (ClientPlayNetworking.canSend(NobaraActionPayload.TYPE)) {
-			ClientPlayNetworking.send(new NobaraActionPayload(action));
-		}
+	private static boolean isTechniqueWeapon(ItemStack mainHand, ItemStack offHand) {
+		return isTechniqueWeapon(mainHand) || isTechniqueWeapon(offHand);
 	}
 
-	private static boolean isHoldingNobaraHammer(ItemStack mainHand, ItemStack offHand) {
-		return isNobaraHammer(mainHand) || isNobaraHammer(offHand);
-	}
-
-	private static boolean isNobaraHammer(ItemStack stack) {
+	private static boolean isTechniqueWeapon(ItemStack stack) {
 		return stack.is(JujutsuItems.STRAW_DOLL_HAMMER) || stack.is(JujutsuItems.PROJECTJJK_STRAW_DOLL_HAMMER);
 	}
 }

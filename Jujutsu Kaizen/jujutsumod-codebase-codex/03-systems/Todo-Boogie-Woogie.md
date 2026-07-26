@@ -2,7 +2,7 @@
 
 Status: CURRENT
 
-Todo's playable slice: the Boogie Woogie swap on the shared PRIMARY slot, a feint clap on SECONDARY, passive attribute modifiers, and a Black Flash bridge on vanilla melee. All claims VERIFIED against `src/main/java/jujutsu/mod/character/todo/**` unless labelled otherwise.
+Todo's playable slice: the Boogie Woogie swap on the shared PRIMARY slot, a feint clap on PRIMARY_SNEAK, a pair swap on SECONDARY, passive attribute modifiers, and a Black Flash bridge on vanilla melee. All claims VERIFIED against `src/main/java/jujutsu/mod/character/todo/**` unless labelled otherwise.
 
 ## Tuning constants
 
@@ -24,7 +24,7 @@ Every number lives in `TodoProfile`. Nothing else should hold a Todo magic numbe
 
 ## Entry gate
 
-`CharacterAbilityExecutor.tryCast` handles the not-selected and cooldown rejections, then routes `TODO` to `TodoAbilityRouter.tryCast` — not to a runtime directly. The router's switch over `CharacterAbility` is exhaustive on purpose: a future slot constant fails compilation there instead of silently falling into the swap, which is exactly what happened while the executor called `TodoBoogieWoogieRuntime` for every slot. `PRIMARY` → `TodoBoogieWoogieRuntime`, `SECONDARY` → `TodoFakeClapRuntime`, and each runtime still re-checks that it was handed its own slot.
+`CharacterAbilityExecutor.tryCast` handles the not-selected and cooldown rejections, then routes `TODO` to `TodoAbilityRouter.tryCast` — not to a runtime directly. The router's switch over `CharacterAbility` is exhaustive on purpose: a future slot constant fails compilation there instead of silently falling into the swap, which is exactly what happened while the executor called `TodoBoogieWoogieRuntime` for every slot. `PRIMARY` → `TodoBoogieWoogieRuntime`, `PRIMARY_SNEAK` → `TodoFakeClapRuntime`, `SECONDARY` → `TodoPairSwapRuntime`, while `SECONDARY_SNEAK` and `ATTACK_CONTEXT` answer `false` explicitly because Todo has nothing on those inputs. Each runtime still re-checks that it was handed its own slot.
 
 The gate checks themselves no longer live in either runtime; they live in `TodoSwapGates`. `evaluate(spectator, alive, unsafeTransport, staggered, handsEmpty)` is pure policy and returns one of three answers:
 
@@ -91,13 +91,13 @@ The first-person clap is gated on the local anchor. A recipe runs on every clien
 
 Sound is server-authoritative: `JujutsuSounds.PROJECTJJK_CLAP` plays with the swap, and a movement sound follows one tick later at both original positions through the static pending-sound queue drained by `TodoBoogieWoogieRuntime.register()`'s END_WORLD_TICK listener, which now clears on `SERVER_STOPPING`. An earlier revision of this note claimed clients timed the clap from `TodoVfxRecipes`; that was never true — no sound call existed there.
 
-## The feint clap — `Shift+R`, the SECONDARY slot
+## The feint clap — `Shift+R`, the PRIMARY_SNEAK slot
 
 A complete Boogie Woogie clap that moves nobody, so the next real one is a coin the opponent has to call. VERIFIED against `TodoFakeClapRuntime`, `TodoSwapGates`, `TodoBoogieWoogieRuntime.emitClapPerformance`, `TodoVfxRecipes`, and `TodoFakeClapTest` unless labelled otherwise.
 
 The server knows the cast is hollow from the first tick: `TodoFakeClapRuntime` never starts a swap and then cancels it, so no target is resolved, no destination is planned, and no body can be left half-moved. `TodoFakeClapTest` asserts the file mentions none of `teleportTo`, `TodoSwapPlan`, `findSafeDestination`, `TargetResolver`, or `SWAP_ENDPOINT`, so the teleport machinery cannot creep in later.
 
-Input is the existing technique key with `Shift` held — `JujutsuKeybinds` reads `client.player.isShiftKeyDown()` and picks `SECONDARY` instead of `PRIMARY`. No hold threshold and no double tap: the real swap has to stay instant, and both casts have to be typeable equally fast.
+Input is the existing technique key with `Shift` held — `JujutsuKeybinds` reads `client.player.isShiftKeyDown()` in its one `slot(...)` helper and picks `PRIMARY_SNEAK` instead of `PRIMARY`. No hold threshold and no double tap: the real swap has to stay instant, and both casts have to be typeable equally fast.
 
 ### The indistinguishability contract
 
@@ -105,12 +105,12 @@ Four things make the two casts alike by construction rather than by tuning.
 
 1. **One shared performance.** Both emit the clap through `TodoBoogieWoogieRuntime.emitClapPerformance` — same cue id `todo/boogie_woogie`, same caster anchor with a zero offset, same server-side `JujutsuSounds.PROJECTJJK_CLAP` at the same volume and pitch, on the same tick. One implementation, so the two presentations cannot drift apart in a later edit. `TodoFakeClapTest` asserts the feint does not name `TodoVfxIds.BOOGIE_WOOGIE` itself, only the shared method.
 2. **One shared gate truth table.** Both read `TodoSwapGates.evaluate`, so the set of casts that get refused — and the message each refusal produces — is identical. A feint that were allowed with a sword in hand would announce itself.
-3. **Independent cooldown slots.** `CharacterAbilityCooldowns` keys on (player, slot). The feint starts and reports `SECONDARY` with `TodoProfile.FAKE_CLAP_COOLDOWN_TICKS` and never names `PRIMARY`; the swap keeps `PRIMARY` with `BOOGIE_WOOGIE_COOLDOWN_TICKS`. A feint therefore neither spends nor postpones the real swap. There is deliberately **no** gate requiring the real swap to be ready — that was offered and declined, because a feint that only works while the swap is off cooldown is itself a tell.
+3. **Independent cooldown slots.** `CharacterAbilityCooldowns` keys on (player, vessel, slot). The feint starts and reports `PRIMARY_SNEAK` with `TodoProfile.FAKE_CLAP_COOLDOWN_TICKS` and never names `PRIMARY`; the swap keeps `PRIMARY` with `BOOGIE_WOOGIE_COOLDOWN_TICKS`. A feint therefore neither spends nor postpones the real swap. There is deliberately **no** gate requiring the real swap to be ready — that was offered and declined, because a feint that only works while the swap is off cooldown is itself a tell.
 4. **Caster-only tell.** The single unshared packet is `TodoVfxIds.FEINT_TELL`, sent through `JujutsuNetworking.sendVfxCue(todo, …)` to one player and never broadcast (`TodoFakeClapTest` asserts `broadcastVfxCue` does not appear in the file). Its recipe is a six-tick dust ring at chest height and nothing else — no sound, no HUD flash, no camera kick, since every one of those would be perceivable by the observer the feint exists to deceive.
 
 The one field that does differ carries no information: the feint puts `todo.getLookAngle()` where the swap puts the normalized caster-to-target delta, and those point the same way. INFERRED that this keeps a future recipe honest — no recipe reads that field today.
 
-`CharacterAbility` gained `SECONDARY(1)` by appending. Network ids are wire format and are never renumbered; `TodoFakeClapTest` pins `PRIMARY == 0`, `SECONDARY == 1`, and `byNetworkId(2) == null`.
+The feint's slot is `PRIMARY_SNEAK(1)`. Network ids are wire format and are never renumbered; new slots append. `TodoFakeClapTest` pins all five — `PRIMARY == 0`, `PRIMARY_SNEAK == 1`, `SECONDARY == 2`, `SECONDARY_SNEAK == 3`, `ATTACK_CONTEXT == 4` — round-trips every slot through `byNetworkId`, and asserts `byNetworkId(99) == null`.
 
 ### What is still distinguishable — the open product question
 
@@ -128,7 +128,7 @@ This is an accepted product decision, not an oversight — docs/KNOWN_ISSUES.md 
 
 Nothing in the test suite can construct a `ServerLevel`, so no test ever calls `TodoFakeClapRuntime.tryCast`. The feint is covered by pure gate logic (the `TodoSwapGates.evaluate` truth table) plus source-text contract assertions in `TodoFakeClapTest` and `TodoHandsEmptyTest`: that the shared performance method exists and is the one the feint calls, that the tell is a single-player send, that no swap machinery is present, that the cooldown slots are separate, and that the router switch carries no `default`. Whether the two casts actually read as the same event to a second player is UNKNOWN — it has not been verified in game. See E1 in docs/KNOWN_ISSUES.md.
 
-## The pair swap — `B`, the TERTIARY slot
+## The pair swap — `B`, the SECONDARY slot
 
 `TodoPairSwapRuntime`. Todo claps and two other bodies trade places; he does not move. Two casts on one key: the first marks a participant, the second resolves the pair and commits.
 
@@ -137,7 +137,7 @@ What each cast costs, and what it does not:
 | Cast | Effect | Cooldown |
 |---|---|---|
 | First, on an eligible body | marks it, caster-only cue + actionbar naming it | none — lining a swap up is free |
-| Second, on a different eligible body | commits the swap | `TERTIARY` slot, `PAIR_SWAP_COOLDOWN_TICKS` |
+| Second, on a different eligible body | commits the swap | `SECONDARY` slot, `PAIR_SWAP_COOLDOWN_TICKS` |
 | Second, back at the mark | deliberate cancel, mark dropped | none |
 | Second, at nothing | refused, **mark survives** | none — a missed click must not cost a two-cast setup |
 

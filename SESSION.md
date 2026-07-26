@@ -23,7 +23,7 @@ Two ClickGui fixes, the rest of the approved Todo plan, and two model defects.
 
 ## Verification status
 
-- `gradlew.bat build --no-daemon` — BUILD SUCCESSFUL, 27 verification programs green
+- `gradlew.bat build --no-daemon` — BUILD SUCCESSFUL, 28 verification programs green
 - `python tools/audit_docs.py` — passing
 - New coverage: `DragHandlerTest`, `TodoFakeClapTest`, `TodoPairSwapTest`, `TodoSwapMarkerTest`, plus three new `TargetResolverTest` cases for angle, distance and a stable tie-break
 - In-game client smoke — **NOT run on this branch.**

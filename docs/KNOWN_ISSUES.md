@@ -94,7 +94,9 @@ Action: add narrow server/world tests around the real runtimes — valid swap, b
 
 Verified 2026-07-26 against `src/main/java/jujutsu/mod/character/CharacterAbilityCooldowns.java`.
 
-`READY_AT` is keyed by player UUID and is pruned only on `ServerPlayConnectionEvents.DISCONNECT` and `SERVER_STOPPING`. There is no death or respawn hook, so a running cooldown survives respawn but is cleared by a disconnect/rejoin. For a 60-tick cooldown this is harmless.
+`READY_AT` is keyed by `(player UUID, vessel, slot)` and is pruned only on `ServerPlayConnectionEvents.DISCONNECT` and `SERVER_STOPPING`. There is no death or respawn hook, so a running cooldown survives respawn but is cleared by a disconnect/rejoin. For a 60-tick cooldown this is harmless.
+
+The vessel is part of the key because a slot names an input position, so the same slot is a different ability for each vessel; without it one vessel's cooldown refused another's ability after a switch. `CHARACTER_STATE` is `copyOnDeath()`, so the vessel resolves identically after respawn and the policy above is unchanged. Switching away and back does not reset a cooldown: the stored value is an absolute game time, so it resumes where it left off.
 
 This is recorded as the intended policy rather than a defect, so that a future refactor cannot change it silently. Confirm it during the next manual smoke; if the desired policy is different, change it deliberately and update this entry.
 
@@ -148,13 +150,13 @@ Render2D immediately begins and flushes SDF for each shape to preserve MSDF orde
 
 ### E7 — Second-character integration is still Nobara-shaped
 
-Verified 2026-07-26: 17 direct `JujutsuCharacter.NOBARA` references remain across src/. The shared vessel render stack removed the per-character branching in rendering, but not elsewhere.
+Verified 2026-07-26: 15 direct `JujutsuCharacter.NOBARA` references remain across src/. The shared vessel render stack removed the per-character branching in rendering, and the shared ability slot removed it from the ability path, but not elsewhere.
 
-Selection, UI cards, action payloads, loadout dispatch, and VFX registration contain direct Nobara branches. Do not build a giant abstraction early, but extract CharacterDefinition/handler boundaries when the second real kit is approved.
+Selection, UI cards, theme, loadout dispatch, and the debug commands contain direct Nobara branches. The ability path no longer does: every vessel's abilities arrive over `CharacterAbilityPayload` and are dispatched by `CharacterAbilityExecutor`, and the one remaining Nobara comparison there is the deliberate "this is Nobara's" guard on the `hairpin` commands. Do not build a giant abstraction early, but extract CharacterDefinition/handler boundaries when the second real kit is approved.
 
 ### E8 — Standard test reporting is weak
 
-Verified 2026-07-26: `build.gradle` registers 27 custom JavaExec verification programs.
+Verified 2026-07-26: `build.gradle` registers 28 custom JavaExec verification programs.
 
 They use main methods and Java assertions. They are useful and green, but do not provide normal per-test JUnit reports or GameTest world integration — see E1 for the coverage gap that follows from having no world-level tests.
 

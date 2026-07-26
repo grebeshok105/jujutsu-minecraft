@@ -10,7 +10,6 @@ import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
-import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.network.JujutsuNetworking;
 
 /**
@@ -99,7 +98,7 @@ public final class TodoMarkerSwapRuntime {
 	private static void finish(ServerPlayer todo, ServerLevel level, Vec3 todoOrigin, Vec3 markOrigin) {
 		TodoSwapMarks.clear(level.getServer(), todo.getUUID());
 		CharacterAbilityCooldowns.start(todo, CharacterAbility.PRIMARY, TodoProfile.BOOGIE_WOOGIE_COOLDOWN_TICKS);
-		JujutsuNetworking.sendAbilityCooldown(todo, JujutsuCharacter.TODO, CharacterAbility.PRIMARY,
+		JujutsuNetworking.sendAbilityCooldown(todo, CharacterAbility.PRIMARY,
 				TodoProfile.BOOGIE_WOOGIE_COOLDOWN_TICKS);
 		Vec3 pairDelta = markOrigin.subtract(todoOrigin);
 		TodoBoogieWoogieRuntime.emitClapPerformance(level, todo, todoOrigin, pairDelta);

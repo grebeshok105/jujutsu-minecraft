@@ -10,7 +10,6 @@ import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityExecutor;
 import jujutsu.mod.character.CharacterSelectionManager;
 import jujutsu.mod.character.JujutsuCharacter;
-import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraActions;
 import jujutsu.mod.vfx.VfxCue;
 
 public final class JujutsuNetworking {
@@ -20,7 +19,6 @@ public final class JujutsuNetworking {
 		PayloadTypeRegistry.playS2C().register(VfxCuePayload.TYPE, VfxCuePayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(CharacterSelectionSyncPayload.TYPE, CharacterSelectionSyncPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(SelectCharacterPayload.TYPE, SelectCharacterPayload.STREAM_CODEC);
-		PayloadTypeRegistry.playC2S().register(NobaraActionPayload.TYPE, NobaraActionPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(CharacterAbilityPayload.TYPE, CharacterAbilityPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(AbilityCooldownPayload.TYPE, AbilityCooldownPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(CurseLinkOptionsPayload.TYPE, CurseLinkOptionsPayload.STREAM_CODEC);
@@ -32,18 +30,12 @@ public final class JujutsuNetworking {
 	private static void registerServerReceivers() {
 		ServerPlayNetworking.registerGlobalReceiver(SelectCharacterPayload.TYPE, (payload, context) ->
 				context.server().execute(() -> CharacterSelectionManager.select(context.player(), JujutsuCharacter.byId(payload.characterId()))));
-		ServerPlayNetworking.registerGlobalReceiver(NobaraActionPayload.TYPE, (payload, context) ->
-				context.server().execute(() -> handleNobaraAction(context.player(), payload)));
 		ServerPlayNetworking.registerGlobalReceiver(CharacterAbilityPayload.TYPE, (payload, context) ->
 				context.server().execute(() -> handleCharacterAbility(context.player(), payload)));
 		ServerPlayNetworking.registerGlobalReceiver(SelectCurseLinkPayload.TYPE, (payload, context) ->
 				context.server().execute(() -> jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime.select(context.player(), payload.linkId())));
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> { CharacterSelectionManager.syncOnJoin(handler.player); jujutsu.mod.combat.BlackFlashFocus.sync(handler.player); });
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> CharacterSelectionManager.disconnect(handler.player));
-	}
-
-	private static void handleNobaraAction(ServerPlayer player, NobaraActionPayload payload) {
-		ProjectJjkNobaraActions.tryCast(player, payload.action(), true);
 	}
 
 	private static void handleCharacterAbility(ServerPlayer player, CharacterAbilityPayload payload) {
@@ -77,10 +69,17 @@ public final class JujutsuNetworking {
 		return true;
 	}
 
-	public static boolean sendAbilityCooldown(ServerPlayer player, JujutsuCharacter character, CharacterAbility ability, int remainingTicks) {
+	/**
+	 * Mirrors a started cooldown to its owner. The vessel is resolved here from the same source the
+	 * server-side cooldown key uses, rather than named by the caller: the client suppresses input on
+	 * {@code (vessel, slot)} and the server gates on it, so a caller naming the wrong vessel would
+	 * silence one slot while refusing another.
+	 */
+	public static boolean sendAbilityCooldown(ServerPlayer player, CharacterAbility ability, int remainingTicks) {
 		if (!ServerPlayNetworking.canSend(player, AbilityCooldownPayload.TYPE)) {
 			return false;
 		}
+		JujutsuCharacter character = CharacterSelectionManager.selected(player);
 		ServerPlayNetworking.send(player, new AbilityCooldownPayload(character.id(), ability.networkId(), Math.max(0, remainingTicks)));
 		return true;
 	}

@@ -7,7 +7,6 @@ import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
-import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.vfx.TodoVfxIds;
 import jujutsu.mod.vfx.VfxCue;
@@ -44,7 +43,7 @@ public final class TodoFakeClapRuntime {
 		Vec3 origin = todo.position();
 		// Its own cooldown slot, so a feint neither spends nor postpones the real swap.
 		CharacterAbilityCooldowns.start(todo, CharacterAbility.PRIMARY_SNEAK, TodoProfile.FAKE_CLAP_COOLDOWN_TICKS);
-		JujutsuNetworking.sendAbilityCooldown(todo, JujutsuCharacter.TODO, CharacterAbility.PRIMARY_SNEAK,
+		JujutsuNetworking.sendAbilityCooldown(todo, CharacterAbility.PRIMARY_SNEAK,
 				TodoProfile.FAKE_CLAP_COOLDOWN_TICKS);
 		// An aim vector rather than zero. A real swap passes the raw caster-to-target delta, which VfxCue's
 		// compact constructor normalizes, so what arrives on the wire is a unit vector pointing roughly

@@ -12,7 +12,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
-import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraActions;
+import jujutsu.mod.character.CharacterAbility;
+import jujutsu.mod.character.CharacterAbilityExecutor;
+import jujutsu.mod.character.CharacterSelectionManager;
+import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.registry.JujutsuParticles;
 import jujutsu.mod.curse.CurseLinkRegistry;
@@ -110,16 +113,28 @@ public final class JujutsuCommands {
 	}
 
 	private static int castHairpinEnlarge(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-		return castNobaraAction(source, ProjectJjkNobaraActions.HAIRPIN_ENLARGE, "Hairpin Enlarge");
+		return castAbilitySlot(source, CharacterAbility.PRIMARY, "Hairpin Enlarge");
 	}
 
 	private static int castHairpinExplosion(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-		return castNobaraAction(source, ProjectJjkNobaraActions.HAIRPIN_EXPLOSION, "Hairpin Explosion");
+		return castAbilitySlot(source, CharacterAbility.SECONDARY, "Hairpin Explosion");
 	}
 
-	private static int castNobaraAction(CommandSourceStack source, int action, String label) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+	/**
+	 * These go through the shared gate rather than straight into a runtime, so they exercise the same
+	 * selection, cooldown and stagger checks a key press does.
+	 *
+	 * <p>They stay Nobara's, though. A slot is an input position, so {@code PRIMARY} means a hairpin for
+	 * her and a teleport for Todo — without this check a command that says "Hairpin" would fire Todo's
+	 * swap and then report it as a hairpin.
+	 */
+	private static int castAbilitySlot(CommandSourceStack source, CharacterAbility slot, String label) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
 		ServerPlayer player = source.getPlayerOrException();
-		boolean cast = ProjectJjkNobaraActions.tryCast(player, action, true);
+		if (CharacterSelectionManager.selected(player) != JujutsuCharacter.NOBARA) {
+			source.sendSuccess(() -> Component.literal(label + " did not cast: it is Nobara's."), false);
+			return 0;
+		}
+		boolean cast = CharacterAbilityExecutor.tryCast(player, slot, true);
 		source.sendSuccess(() -> Component.literal(cast ? "Cast " + label + "." : label + " did not cast."), false);
 		return cast ? 1 : 0;
 	}

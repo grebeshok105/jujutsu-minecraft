@@ -12,6 +12,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import javax.imageio.ImageIO;
+import jujutsu.mod.character.CharacterAbility;
 
 public final class ProjectSanityTest {
 	private static final Path ROOT = Path.of("").toAbsolutePath();
@@ -43,7 +44,7 @@ public final class ProjectSanityTest {
 		assertItemDefinitionsResolveToTextures();
 		assertDefaultNobaraItemsUseProjectJjkModels();
 		assertItemRegistryUsesKeyedProperties();
-		assertExplicitNobaraActionsAreVisible();
+		assertNobaraCastsThroughTheSharedSlotPath();
 		assertTodoSecondCharacterContracts();
 		assertProjectJjkHairpinFinisherNumbers();
 		assertHairpinFinishersSnapWithoutMarks();
@@ -341,11 +342,17 @@ public final class ProjectSanityTest {
 				: "The compact hammer must retain its Blockbench source";
 	}
 
-	private static void assertExplicitNobaraActionsAreVisible() throws IOException {
-		Path payload = MAIN_JAVA.resolve("jujutsu/mod/network/NobaraActionPayload.java");
-		assert Files.exists(payload) : "Nobara Enlarge/Explosion must have an explicit client->server action payload";
+	private static void assertNobaraCastsThroughTheSharedSlotPath() throws IOException {
+		// Nobara casts over the shared slot packet now. The bespoke int-keyed pair must stay deleted:
+		// a second input path is what let her and Todo drift apart in the first place.
+		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/network/NobaraActionPayload.java"))
+				: "Nobara must not carry a private ability packet beside the shared one";
+		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraActions.java"))
+				: "Nobara must not carry a private int-keyed ability gate beside the shared executor";
 		String networking = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/network/JujutsuNetworking.java"));
-		assert networking.contains("NobaraActionPayload.TYPE") : "Nobara action payload must be registered server-side";
+		assert !networking.contains("NobaraActionPayload") : "The removed Nobara packet must not be registered server-side";
+		assert networking.contains("CharacterAbilityPayload.TYPE") && networking.contains("CharacterAbilityExecutor.tryCast(player, ability, true)")
+				: "Every vessel's abilities must arrive through the one shared slot packet";
 		String keybinds = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/input/JujutsuKeybinds.java"));
 		assert keybinds.contains("key.jujutsumod.nobara_hairpin_enlarge") : "Hairpin Enlarge must be a visible keybind";
 		assert keybinds.contains("key.jujutsumod.nobara_hairpin_explosion") : "Hairpin Explosion must be a visible keybind";
@@ -359,11 +366,25 @@ public final class ProjectSanityTest {
 				: "Character roster must expose Enlarge/Boom ability icons";
 		String commands = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/command/JujutsuCommands.java"));
 		assert commands.contains("\"enlarge\"") && commands.contains("\"explosion\"") : "Hairpin Enlarge/Explosion must have test commands";
-		assert commands.contains("ProjectJjkNobaraActions.tryCast") : "Hairpin commands must use the shared Nobara selection gate";
-		String actionRuntime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraActions.java"));
-		assert actionRuntime.contains("CharacterSelectionManager.selected(player) != JujutsuCharacter.NOBARA") : "Nobara actions must reject non-Nobara players";
-		assert actionRuntime.contains("startDirectedHairpin(player)") : "R must call the directed Hairpin runtime";
-		assert actionRuntime.contains("startMassHairpin(player)") : "B must call the mass Hairpin runtime";
+		assert commands.contains("CharacterAbilityExecutor.tryCast(player, slot, true)")
+				: "Hairpin commands must go through the shared gate so they see the same selection and stagger checks";
+		String executor = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/CharacterAbilityExecutor.java"));
+		assert executor.contains("CharacterSelectionManager.selected(player)") && executor.contains("JujutsuCharacter.NONE")
+				: "The shared gate owns the selection check for every vessel";
+		assert executor.contains("case NOBARA -> NobaraAbilityRouter.tryCast(player, ability, notify)")
+				: "Nobara must be dispatched through her slot router";
+		String actionRuntime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/NobaraAbilityRouter.java"));
+		assert actionRuntime.contains("CombatStagger.GLOBAL.isStaggered")
+				: "Nobara keeps her own stagger gate; the shared executor has none";
+		assert actionRuntime.contains("startDirectedHairpin(nobara)") : "R must call the directed Hairpin runtime";
+		assert actionRuntime.contains("startMassHairpin(nobara)") : "B must call the mass Hairpin runtime";
+		assert !actionRuntime.contains("default ->")
+				: "The slot switch must stay exhaustive so a new slot cannot fall into an existing ability";
+		// Taken from the enum rather than spelled out, so a new slot cannot leave this loop testing five.
+		for (CharacterAbility slot : CharacterAbility.values()) {
+			assert actionRuntime.contains("case " + slot.name() + " ->")
+					: "Nobara's router must answer every input slot explicitly, missing: " + slot;
+		}
 		String hammer = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkHammerItem.java"));
 		assert !hammer.contains("tryEnlargeMarkedTarget") : "Hammer must not hide Hairpin Enlarge as a fallback action";
 		assert !hammer.contains("detonateMarks") : "Hammer must not hide Hairpin Explosion as a fallback action";
@@ -389,8 +410,14 @@ public final class ProjectSanityTest {
 		assert networking.contains("CharacterAbilityPayload.TYPE") && networking.contains("AbilityCooldownPayload.TYPE")
 				: "Todo must use typed shared ability and cooldown packets";
 		String keybinds = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/input/JujutsuKeybinds.java"));
-		assert keybinds.contains("JujutsuCharacter.TODO") && keybinds.contains("CharacterAbility.PRIMARY")
-				: "Todo must reuse the primary technique key instead of adding a new keybind";
+		// The point of the slot names: the input layer reuses the two technique keys for every vessel and
+		// asks only "am I a vessel at all", so adding one never edits this file.
+		assert keybinds.contains("CharacterAbility.PRIMARY") && keybinds.contains("CharacterAbility.SECONDARY")
+				: "Both technique keys must name shared slots rather than per-vessel actions";
+		assert !keybinds.contains("JujutsuCharacter.TODO") && !keybinds.contains("JujutsuCharacter.NOBARA")
+				: "The ability dispatcher must not compare against any single vessel";
+		assert keybinds.contains("character == JujutsuCharacter.NONE")
+				: "The one vessel question the input layer may ask is whether the player has a vessel at all";
 		String roster = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/rich/screens/clickgui/impl/character/CharacterRosterPanel.java"));
 		assert roster.contains("JujutsuCharacter.TODO")
 				&& roster.contains("screen.jujutsumod.character_select.todo")
@@ -605,15 +632,16 @@ public final class ProjectSanityTest {
 	}
 
 	private static void assertNobaraHammerHasExplosiveAndPiercingLaunchModes() throws IOException {
-		String payload = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/network/NobaraActionPayload.java"));
-		assert payload.contains("HAMMER_CONTEXT") : "Left-click hammer combat needs an explicit contextual action payload";
 		String keybinds = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/input/JujutsuKeybinds.java"));
 		assert keybinds.contains("keyAttack.isDown()") : "Client input must edge-detect left-click attack for explosive hammer launches";
-		assert keybinds.contains("HAMMER_CONTEXT") : "Left-click hammer combat must send the contextual payload";
+		assert keybinds.contains("CharacterAbility.ATTACK_CONTEXT")
+				: "Left-click hammer combat must reach the server through the shared attack-context slot";
+		assert keybinds.contains("isTechniqueWeapon(client.player.getMainHandItem(), client.player.getOffhandItem())")
+				: "The attack-context slot must only be sent while a technique weapon is held, in either hand";
 		String hammer = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkHammerItem.java"));
 		assert hammer.contains("launchHairpin(serverPlayer, stack, hand, false)") : "Right-click hammer use must launch non-explosive piercing nails";
-		String actions = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraActions.java"));
-		assert actions.contains("HAMMER_CONTEXT") && actions.contains("NobaraHammerCombatRuntime.handleInput(player)") : "Nobara action gate must route left-click through the server contextual combat router";
+		String actions = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/NobaraAbilityRouter.java"));
+		assert actions.contains("case ATTACK_CONTEXT -> NobaraHammerCombatRuntime.handleInput(nobara)") : "Nobara's router must send the attack-context slot to the server contextual combat router";
 		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraRuntime.java"));
 		assert runtime.contains("launchHairpin(ServerPlayer player, boolean explosiveImpact)") : "Nobara runtime must expose an explosive/non-explosive launch mode";
 		assert runtime.contains("isExplosiveLaunchLocked(player)") : "Hairpin Enlarge/Boom must be gated while explosive nails are in flight";

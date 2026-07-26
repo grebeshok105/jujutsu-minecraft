@@ -11,7 +11,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 python3 tools/audit_docs.py
 ```
 
-The full build compiles main and client source sets, runs the Gradle test task, and runs every custom JavaExec verification program wired into check. The current branch has 23 custom verification programs. A successful remapped jar is written to build/libs/jujutsumod-1.0.0.jar.
+The full build compiles main and client source sets, runs the Gradle test task, and runs every custom JavaExec verification program wired into check. The current branch has 28 custom verification programs. A successful remapped jar is written to build/libs/jujutsumod-1.0.0.jar.
 
 For a clean proof rather than an up-to-date result:
 

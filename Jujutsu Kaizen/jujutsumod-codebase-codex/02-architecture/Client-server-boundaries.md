@@ -13,7 +13,7 @@ src/client owns keybinds, ClickGui, particles, camera/HUD feedback, MSDF/SDF ren
 ## Boundary contracts
 
 - Character selection persists in a server-owned Fabric attachment and syncs through CharacterSelectionSyncPayload.
-- Nobara actions are validated server-side through ProjectJjkNobaraActions.
+- Every vessel's abilities are validated server-side through CharacterAbilityExecutor, which owns the selection and cooldown checks, then routes the slot to that vessel's own router (NobaraAbilityRouter, TodoAbilityRouter).
 - VfxCue is presentation-only; clients never decide damage or resources.
 - Client-only imports must not appear in src/main.
 - Six client mixins are declared; no VfxDeltaTrackerMixin is present.

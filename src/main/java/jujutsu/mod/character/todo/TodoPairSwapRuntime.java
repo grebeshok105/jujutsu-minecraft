@@ -18,7 +18,6 @@ import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
-import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.vfx.TodoVfxIds;
@@ -168,7 +167,7 @@ public final class TodoPairSwapRuntime {
 
 		PENDING.remove(todo.getUUID());
 		CharacterAbilityCooldowns.start(todo, CharacterAbility.SECONDARY, TodoProfile.PAIR_SWAP_COOLDOWN_TICKS);
-		JujutsuNetworking.sendAbilityCooldown(todo, JujutsuCharacter.TODO, CharacterAbility.SECONDARY,
+		JujutsuNetworking.sendAbilityCooldown(todo, CharacterAbility.SECONDARY,
 				TodoProfile.PAIR_SWAP_COOLDOWN_TICKS);
 		emitPairFeedback(level, todo, firstSnapshot.position(), secondSnapshot.position());
 		JujutsuMod.LOGGER.debug("Todo pair swap success caster={} first={} second={}",

@@ -314,7 +314,18 @@ tasks.register('testClickGuiDrag', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testNobaraAbilitySlots', JavaExec) {
+	group = 'verification'
+	description = 'Runs Nobara input-slot routing, stagger-order and single-message tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.nobara.NobaraAbilitySlotsTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.named('check') {
+	dependsOn tasks.named('testNobaraAbilitySlots')
 	dependsOn tasks.named('testClickGuiDrag')
 	dependsOn tasks.named('testCharacterPlayerState')
 	dependsOn tasks.named('testTodoProfile')

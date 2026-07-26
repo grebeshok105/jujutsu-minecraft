@@ -33,7 +33,7 @@ GeckoLib 5 indexes only `assets/<ns>/geckolib/models/**` and `assets/<ns>/geckol
 
 ## 5. Server behaviour
 
-- Route active techniques through the shared slot: `CharacterAbility` + `CharacterAbilityExecutor.tryCast`, which already owns the not-selected and cooldown gates. Add a `<New>Runtime.tryCast` arm; do not add a parallel payload per ability.
+- Route active techniques through the shared slot: `CharacterAbility` + `CharacterAbilityExecutor.tryCast`, which already owns the not-selected and cooldown gates. Add a `case <NEW> -> <New>AbilityRouter.tryCast(...)` arm and write that router as your own slot map, the pattern both shipped vessels now follow (`NobaraAbilityRouter`, `TodoAbilityRouter`): switch on `CharacterAbility` **exhaustively with no `default`** so a new slot fails compilation instead of falling into whichever arm a `default` would have picked, and answer `false` explicitly on the input positions your vessel does not use. Anything that is yours alone belongs in your router rather than the shared executor — Nobara's stagger check and her single fallback message are the shipped example. Do not add a parallel payload per ability; every vessel's abilities arrive over `CharacterAbilityPayload`.
 - Put tuning constants in one `<New>Profile` class, following `TodoProfile` / `ProjectJjkNobaraProfile`.
 - Register any tick/disconnect/stop lifecycle from `JujutsuMod.onInitialize`, and clear static state on `SERVER_STOPPING` — this is existing debt, do not add to it.
 
@@ -49,4 +49,4 @@ Add a `CharacterCard` entry to `CharacterRosterPanel.CARDS` and localized string
 
 ## 8. Verification
 
-Deterministic unit tests as JavaExec verification programs (there are 23; add yours and it joins `check`), plus real `runClient` smoke — rendering, animation, and combat feel are not provable by compilation. Then update SESSION.md for the handoff, AGENTS.md only for durable decisions, and the Codex notes that the change makes stale.
+Deterministic unit tests as JavaExec verification programs (there are 28; add yours and it joins `check`), plus real `runClient` smoke — rendering, animation, and combat feel are not provable by compilation. Then update SESSION.md for the handoff, AGENTS.md only for durable decisions, and the Codex notes that the change makes stale.
