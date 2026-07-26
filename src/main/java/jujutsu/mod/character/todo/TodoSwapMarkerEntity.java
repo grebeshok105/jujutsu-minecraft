@@ -58,6 +58,19 @@ public class TodoSwapMarkerEntity extends ThrowableItemProjectile {
 	@Override
 	protected void onHitBlock(BlockHitResult hit) {
 		super.onHitBlock(hit);
+		// Nudge out along the struck face so the marker rests visibly against the surface, not inside it.
+		Direction face = hit.getDirection();
+		Vec3 rest = hit.getLocation().add(
+				face.getStepX() * TodoProfile.MARKER_SURFACE_OFFSET,
+				face.getStepY() * TodoProfile.MARKER_SURFACE_OFFSET,
+				face.getStepZ() * TodoProfile.MARKER_SURFACE_OFFSET);
+		// Landing is settled on BOTH sides. `landed` is not synched, so if only the server stopped the
+		// physics the client would keep applying gravity between position updates and the resting marker
+		// would visibly sag and snap back once per update interval.
+		landed = true;
+		setDeltaMovement(Vec3.ZERO);
+		setNoGravity(true);
+		snapTo(rest.x, rest.y, rest.z);
 		if (!(level() instanceof ServerLevel level)) {
 			return;
 		}
@@ -65,16 +78,6 @@ public class TodoSwapMarkerEntity extends ThrowableItemProjectile {
 			discard();
 			return;
 		}
-		// Nudge out along the struck face so the marker rests visibly against the surface, not inside it.
-		Direction face = hit.getDirection();
-		Vec3 rest = hit.getLocation().add(
-				face.getStepX() * TodoProfile.MARKER_SURFACE_OFFSET,
-				face.getStepY() * TodoProfile.MARKER_SURFACE_OFFSET,
-				face.getStepZ() * TodoProfile.MARKER_SURFACE_OFFSET);
-		landed = true;
-		setDeltaMovement(Vec3.ZERO);
-		setNoGravity(true);
-		snapTo(rest.x, rest.y, rest.z);
 		TodoSwapMarks.mark(level, owner.getUUID(),
 				TodoSwapMark.atPosition(level.dimension(), rest, getId(), level.getGameTime() + TodoProfile.MARKER_MARK_TTL_TICKS));
 	}
