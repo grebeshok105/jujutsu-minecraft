@@ -36,13 +36,15 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 |---|---:|
 | Main Java files | 100 |
 | Client Java files | 165 |
-| Test Java files | 34 |
+| Test Java files | 35 |
 | Verification programs | 34 |
 | Client mixins | 6 |
 | Network payloads | 8 |
 | Nobara VFX ids | 25 |
 
-Run python3 tools/audit_docs.py after changing facts represented above.
+Verification programs counts JavaExec main() programs only. Since the JUnit foundation landed, a test class may instead be a JUnit class run by the standard test task; those are counted under Test Java files and not by that row. Both kinds run inside ./gradlew qualityGate.
+
+The audit runs inside ./gradlew qualityGate, so these counters are checked before a commit rather than after a push.
 
 ## Meta
 
