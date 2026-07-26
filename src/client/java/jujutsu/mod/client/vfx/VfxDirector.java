@@ -141,6 +141,9 @@ public final class VfxDirector {
 			return;
 		}
 		bindLevel(client);
+		// After bindLevel, so a level change has already restored the duck through clear() before this
+		// looks at a deadline that no longer belongs to anything.
+		SOUND.tick(client);
 		Iterator<ActiveInstance> iterator = ACTIVE_INSTANCES.iterator();
 		while (iterator.hasNext()) {
 			ActiveInstance active = iterator.next();
