@@ -88,16 +88,16 @@ public final class TodoPairSwapTest {
 
 	private static void assertMarkingIsFreeAndOnlyTheSwapCosts() throws Exception {
 		String pair = Files.readString(TODO.resolve("TodoPairSwapRuntime.java"));
-		assert pair.contains("CharacterAbilityCooldowns.start(todo, CharacterAbility.TERTIARY, TodoProfile.PAIR_SWAP_COOLDOWN_TICKS)")
+		assert pair.contains("CharacterAbilityCooldowns.start(todo, CharacterAbility.SECONDARY, TodoProfile.PAIR_SWAP_COOLDOWN_TICKS)")
 				: "A committed pair swap must take its own cooldown slot";
 		// Exactly one cooldown call: marking, cancelling and every rejection must be free.
 		assert pair.split("CharacterAbilityCooldowns\\.start", -1).length == 2
 				: "Only the committed swap may start a cooldown";
-		assert CharacterAbility.TERTIARY.networkId() == 2 : "TERTIARY must append rather than renumber";
-		assert CharacterAbility.byNetworkId(2) == CharacterAbility.TERTIARY : "Network id 2 must resolve to TERTIARY";
+		assert CharacterAbility.SECONDARY.networkId() == 2 : "The pair swap must sit on the second technique key";
+		assert CharacterAbility.byNetworkId(2) == CharacterAbility.SECONDARY : "Network id 2 must resolve to SECONDARY";
 		assert TodoProfile.PAIR_SWAP_COOLDOWN_TICKS > TodoProfile.BOOGIE_WOOGIE_COOLDOWN_TICKS
 				: "Swapping bystanders carries no personal risk, so it must cost more than Todo's own swap";
 		String router = Files.readString(TODO.resolve("TodoAbilityRouter.java"));
-		assert router.contains("case TERTIARY ->") : "The pair swap must be routed from Todo's slot map";
+		assert router.contains("case SECONDARY ->") : "The pair swap must be routed from Todo's slot map";
 	}
 }

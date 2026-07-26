@@ -56,7 +56,7 @@ public final class TodoPairSwapRuntime {
 	}
 
 	public static boolean tryCast(ServerPlayer todo, CharacterAbility ability, boolean notify) {
-		if (ability != CharacterAbility.TERTIARY) {
+		if (ability != CharacterAbility.SECONDARY) {
 			return false;
 		}
 		switch (TodoSwapGates.evaluate(todo)) {
@@ -167,8 +167,8 @@ public final class TodoPairSwapRuntime {
 		TodoBoogieWoogieRuntime.restoreMotionAndRotation(aimed, secondSnapshot);
 
 		PENDING.remove(todo.getUUID());
-		CharacterAbilityCooldowns.start(todo, CharacterAbility.TERTIARY, TodoProfile.PAIR_SWAP_COOLDOWN_TICKS);
-		JujutsuNetworking.sendAbilityCooldown(todo, JujutsuCharacter.TODO, CharacterAbility.TERTIARY,
+		CharacterAbilityCooldowns.start(todo, CharacterAbility.SECONDARY, TodoProfile.PAIR_SWAP_COOLDOWN_TICKS);
+		JujutsuNetworking.sendAbilityCooldown(todo, JujutsuCharacter.TODO, CharacterAbility.SECONDARY,
 				TodoProfile.PAIR_SWAP_COOLDOWN_TICKS);
 		emitPairFeedback(level, todo, firstSnapshot.position(), secondSnapshot.position());
 		JujutsuMod.LOGGER.debug("Todo pair swap success caster={} first={} second={}",

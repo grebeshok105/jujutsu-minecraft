@@ -1,14 +1,29 @@
 package jujutsu.mod.character;
 
 /**
- * Shared slots for character-owned active techniques.
+ * Shared active-technique slots, named after the <b>input position</b> that reaches them rather than
+ * after what any one vessel does with them.
  *
- * <p>Network ids are part of the wire format and are never renumbered; new slots append.
+ * <p>That naming is the whole point. It lets the input layer be a translator — a key plus whether the
+ * player is sneaking maps to a slot, with no knowledge of who is selected — and leaves "what does my
+ * {@code PRIMARY_SNEAK} do" to each vessel's own router. Adding a vessel then touches no shared input
+ * code at all.
+ *
+ * <p>New slots append rather than renumber. These ids travel only in {@code CharacterAbilityPayload}
+ * and {@code AbilityCooldownPayload} and are kept in memory, never written to disk — the persisted
+ * value is the character id — which is why the slots could be renamed and renumbered at all.
  */
 public enum CharacterAbility {
+	/** The technique key. */
 	PRIMARY(0),
-	SECONDARY(1),
-	TERTIARY(2);
+	/** The technique key while sneaking. */
+	PRIMARY_SNEAK(1),
+	/** The second technique key. */
+	SECONDARY(2),
+	/** The second technique key while sneaking. */
+	SECONDARY_SNEAK(3),
+	/** Left click while holding a technique weapon. */
+	ATTACK_CONTEXT(4);
 
 	private final int networkId;
 
