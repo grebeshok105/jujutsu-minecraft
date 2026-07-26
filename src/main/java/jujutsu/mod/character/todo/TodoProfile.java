@@ -28,6 +28,14 @@ public final class TodoProfile {
 	public static final float BOOGIE_WOOGIE_MOVE_SOUND_VOLUME = 0.7f;
 	public static final float BOOGIE_WOOGIE_MOVE_SOUND_PITCH = 1.45f;
 	/**
+	 * One low report where the bodies landed, two ticks behind the whoosh so the pair reads as a single
+	 * impact rather than a flam. Deliberately one sound at the midpoint and not one per endpoint: Minecraft
+	 * audio has no propagation delay, so two of these arrive together and only muddy each other.
+	 */
+	public static final int BOOGIE_WOOGIE_IMPACT_SOUND_DELAY_TICKS = 3;
+	public static final float BOOGIE_WOOGIE_IMPACT_SOUND_VOLUME = 0.85f;
+	public static final float BOOGIE_WOOGIE_IMPACT_SOUND_PITCH = 0.8f;
+	/**
 	 * Feint clap cooldown: one second, a third of the real swap, on its own slot so a feint never
 	 * spends or delays Boogie Woogie. Long enough for the clap to finish before the next one starts.
 	 */

@@ -1,5 +1,6 @@
 package jujutsu.mod.character.todo;
 
+import java.util.List;
 import java.util.Optional;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -61,7 +62,8 @@ public final class TodoMarkerSwapRuntime {
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.unsafe", "authoritative teleport failed");
 		}
 		TodoBoogieWoogieRuntime.restoreMotionAndRotation(todo, snapshot);
-		finish(todo, level, snapshot.position(), safe);
+		// One body between two points: the ribbon still spans the throw, but only Todo landed anywhere.
+		finish(todo, level, snapshot.position(), safe, List.of(new TodoBoogieWoogieRuntime.MovedBody(snapshot, safe)));
 		return true;
 	}
 
@@ -90,23 +92,21 @@ public final class TodoMarkerSwapRuntime {
 		}
 		TodoBoogieWoogieRuntime.restoreMotionAndRotation(todo, todoSnapshot);
 		TodoBoogieWoogieRuntime.restoreMotionAndRotation(marked, markedSnapshot);
-		finish(todo, level, todoSnapshot.position(), markedSnapshot.position());
+		finish(todo, level, todoSnapshot.position(), markedSnapshot.position(),
+				List.of(new TodoBoogieWoogieRuntime.MovedBody(todoSnapshot, plan.get().firstDestination()),
+						new TodoBoogieWoogieRuntime.MovedBody(markedSnapshot, plan.get().secondDestination())));
 		return true;
 	}
 
 	/** Consumes the mark, takes the ordinary swap cooldown, and presents an ordinary swap. */
-	private static void finish(ServerPlayer todo, ServerLevel level, Vec3 todoOrigin, Vec3 markOrigin) {
+	private static void finish(ServerPlayer todo, ServerLevel level, Vec3 todoOrigin, Vec3 markOrigin,
+			List<TodoBoogieWoogieRuntime.MovedBody> moved) {
 		TodoSwapMarks.clear(level.getServer(), todo.getUUID());
 		CharacterAbilityCooldowns.start(todo, CharacterAbility.PRIMARY, TodoProfile.BOOGIE_WOOGIE_COOLDOWN_TICKS);
 		JujutsuNetworking.sendAbilityCooldown(todo, CharacterAbility.PRIMARY,
 				TodoProfile.BOOGIE_WOOGIE_COOLDOWN_TICKS);
-		Vec3 pairDelta = markOrigin.subtract(todoOrigin);
-		TodoBoogieWoogieRuntime.emitClapPerformance(level, todo, todoOrigin, pairDelta);
-		long gameTime = level.getGameTime();
-		TodoBoogieWoogieRuntime.broadcastSwapEndpoint(level, todo, todoOrigin, pairDelta, gameTime);
-		TodoBoogieWoogieRuntime.broadcastSwapEndpoint(level, todo, markOrigin, Vec3.ZERO, gameTime);
-		TodoBoogieWoogieRuntime.scheduleMoveSound(level, todoOrigin);
-		TodoBoogieWoogieRuntime.scheduleMoveSound(level, markOrigin);
+		TodoBoogieWoogieRuntime.emitSwapImpact(level, todo, todoOrigin, markOrigin.subtract(todoOrigin),
+				todoOrigin, markOrigin, moved);
 		JujutsuMod.LOGGER.debug("Todo marker swap success player={} from={} to={}",
 				todo.getGameProfile().getName(), todoOrigin, markOrigin);
 	}
