@@ -146,6 +146,20 @@ CombatStagger, preparation state, anchor-removal tracking, and related maps use 
 
 Action: centralize per-server state or add lifecycle/TTL cleanup with tests.
 
+## Limits of the build-time gate
+
+An adversarial review of the architecture rules ran 16 attacks against a green build; 15 are now caught, and the boundary below is where a structural rule stops being able to help. **This list is the honest edge of what a green `qualityGate` proves.** It is not a to-do list — each entry needs a different kind of test, not a better rule.
+
+- **A vessel registering a callback into shared mutable state.** Every reference points vessel → shared, the permitted direction, yet shared dispatch becomes vessel-specific after init. Confirmed green against every rule. Catching it needs a unit test over the dispatcher, not a dependency rule.
+- **A class name assembled from fragments at runtime.** `Class.forName` on a literal is caught by `SourceBoundaryTripwireTest`; a name built by concatenation at runtime is not, and never will be.
+- **A constant copied by hand.** Reading `TodoProfile.BOOGIE_WOOGIE_RANGE` is caught. Typing `20.0` with a comment saying where it came from is indistinguishable from any other number.
+- **A shared extension point with exactly one implementer.** A method on `CharacterDefinition` that only one vessel overrides is structurally identical to a genuine shared hook. Catching it needs a test that counts implementers per method.
+- **In-world behaviour of any kind.** Nothing in the suite constructs a `ServerLevel`. See the Verification Policy in AGENTS.md.
+
+### E14 — four vessel-named classes live in shared packages
+
+`NobaraVfxIds` and `TodoVfxIds` sit in `jujutsu.mod.vfx`, which is the `<Character>VfxIds` shape AGENTS.md prescribes, so those two are deliberate. `NobaraHudState` in `jujutsu.mod.client.fx` and `ProjectJjkNailRenderer` in `jujutsu.mod.client.render` are not: both are vessel code in a shared package while `client.render.nobara` already exists. `VesselBoundaryTest#vesselNamedClassesStayInTheirVesselPackage` pins the set of four, so moving either one fails the test and forces this entry to shrink with it.
+
 ## Medium-priority work
 
 ### E13 — the curse-link receiver is installed from the shared network layer
