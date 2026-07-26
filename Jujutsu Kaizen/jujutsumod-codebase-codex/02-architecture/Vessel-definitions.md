@@ -82,8 +82,9 @@ Not everything per-vessel is a defect, and these stay on purpose:
 - `JujutsuCommands` gates the `hairpin` debug commands on Nobara. A slot is an input position, so `PRIMARY` run as Todo is a teleport; a command named "Hairpin" firing his swap and reporting it as a hairpin is worse than a per-vessel check in a debug command.
 - `TodoBlackFlashRuntime` checks that the damaging player is Todo. That is a vessel's own listener filtering for itself, not shared code branching on a vessel.
 - `JujutsuKeybinds` still spells out Nobara's two hammers to decide whether left click counts as `ATTACK_CONTEXT`. It is the last vessel-specific line in the input layer and it leaves when the client definition answers "is this stack my technique weapon".
+- `TodoSwapMarkerItem` refuses a thrower who is not Todo, on both sides through `CharacterSelectionView`. The item is his technique made physical, and only the server knows the selection authoritatively — the client half of that view exists so the client does not predict a throw the server refuses.
 
-Open edges are tracked as E10, E11 and E12 in [KNOWN_ISSUES](../../../docs/KNOWN_ISSUES.md).
+The seam closed E7 and E12 in [KNOWN_ISSUES](../../../docs/KNOWN_ISSUES.md). E10 and E11 stay open there: both are inherited message-ordering edges the migration made visible, and both change what a player sees, so neither belongs in a refactor.
 
 ## Adding a vessel
 
