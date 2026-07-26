@@ -1,7 +1,9 @@
-# Automatically build the project and run any configured tests for every push
-# and submitted pull request. This can help catch issues that only occur on
-# certain platforms or Java versions, and provides a first line of defence
-# against bad commits.
+# Run the canonical merge gate for every push and pull request.
+#
+# CI keeps no hand-maintained list of verification commands. It runs the same `./gradlew qualityGate`
+# a contributor runs locally, so a green CI and a green local run mean exactly the same thing.
+# Anything the gate should cover belongs inside the qualityGate task in build.gradle, never as an
+# extra step here.
 
 name: build
 on: [pull_request, push]
@@ -19,12 +21,12 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-      - name: audit documentation
-        run: python3 tools/audit_docs.py
       - name: make gradle wrapper executable
         run: chmod +x ./gradlew
-      - name: build
-        run: ./gradlew build --no-daemon
+      - name: quality gate
+        run: ./gradlew qualityGate --no-daemon
+      - name: assemble artifacts
+        run: ./gradlew assemble --no-daemon
       - name: capture build artifacts
         uses: actions/upload-artifact@v7
         with:

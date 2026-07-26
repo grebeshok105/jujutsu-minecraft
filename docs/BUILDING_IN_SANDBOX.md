@@ -7,17 +7,28 @@ This project targets Java 21, Minecraft 1.21.8, Gradle 9.5.1, and Fabric Loom. S
 ```bash
 export JAVA_HOME=/path/to/jdk-21
 export PATH="$JAVA_HOME/bin:$PATH"
-./gradlew build --no-daemon
-python3 tools/audit_docs.py
+./gradlew qualityGate --no-daemon
 ```
 
-The full build compiles main and client source sets, runs the Gradle test task, and runs every custom JavaExec verification program wired into check. The current branch has 30 custom verification programs. A successful remapped jar is written to build/libs/jujutsumod-1.0.0.jar.
+qualityGate is the canonical check and the only command whose green result may be called verified. CI runs this exact task, so a green local run and a green CI run mean the same thing. It is composed of three parts:
+
+- check — compiles the main and client source sets, runs the Gradle test task, and runs every custom JavaExec verification program. The current branch has 30 of them.
+- auditDocumentation — runs tools/audit_docs.py, which used to exist only as a CI step, so a documentation break was found after a push instead of before a commit.
+- verifyAssertionsEnabled — reads the real Gradle task model and fails, listing the offenders, if any verification JavaExec task would run with assertions disabled. JavaExec defaults enableAssertions to false, and the verification programs are plain main() classes guarded by assert, so a task that loses its -ea does not fail: it passes unconditionally and silently.
+
+The gate does not build a jar. For the remapped artifact at build/libs/jujutsumod-1.0.0.jar:
+
+```bash
+./gradlew assemble --no-daemon
+```
 
 For a clean proof rather than an up-to-date result:
 
 ```bash
-./gradlew build --no-daemon --rerun-tasks
+./gradlew qualityGate --no-daemon --rerun-tasks
 ```
+
+A green gate proves shape, contracts and pure logic. It proves nothing about behaviour inside a running world — see the client-smoke checklist below.
 
 ## Installing JDK 21 without root
 
@@ -57,7 +68,7 @@ Typical dependency domains are services.gradle.org, maven.fabricmc.net, repo.mav
 ./gradlew check --no-daemon
 ```
 
-The test sources use main methods with Java assertions, not a conventional JUnit suite. The named JavaExec tasks enable assertions with -ea and are the authoritative automated checks. The standard test task remains part of build but is not the whole test suite.
+The test sources use main methods with Java assertions, not a conventional JUnit suite. The named JavaExec tasks enable assertions with -ea and are the authoritative automated checks; verifyAssertionsEnabled enforces that flag so a new task cannot silently ship without it. The standard test task remains part of build but is not the whole test suite.
 
 ## Client verification
 

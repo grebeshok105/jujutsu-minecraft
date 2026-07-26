@@ -118,7 +118,7 @@ Use this order when documents disagree:
 4. Versioned Codebase Codex MOC for architecture and maintenance navigation.
 5. `docs/KNOWN_ISSUES.md` for unresolved debt.
 
-The repository intentionally keeps only current documentation. If a past decision still matters, summarize its durable conclusion in the relevant current document rather than restoring an archive. Run `python3 tools/audit_docs.py` after documentation changes.
+The repository intentionally keeps only current documentation. If a past decision still matters, summarize its durable conclusion in the relevant current document rather than restoring an archive. The documentation audit runs inside `./gradlew qualityGate`; for a faster loop after documentation-only changes, run `./gradlew auditDocumentation` or `python3 tools/audit_docs.py` directly.
 
 ## Brainstorming Gate
 
@@ -271,11 +271,19 @@ Typical live areas:
 
 ## Verification Policy
 
-Before claiming work is done, run the narrowest command that proves the changed behavior. Never claim a verification you did not run.
+One command owns the word "verified":
 
-[docs/BUILDING_IN_SANDBOX.md](docs/BUILDING_IN_SANDBOX.md) owns the full command recipe — baseline build, documentation audit, focused verification tasks, and the client-smoke checklist. Use it instead of restating commands here.
+```bash
+./gradlew qualityGate
+```
 
-The full build owns all custom verification programs through `check`. Do not claim in-game behavior from compilation alone.
+It runs `check` (both source sets compiled, the Gradle test task, and every custom verification program), the documentation audit `tools/audit_docs.py`, and an audit that every verification `JavaExec` task actually enables assertions. Nothing may be called done, fixed, passing or verified without a green run of exactly this command. While working, run the narrowest task that proves the change; run the gate before any handoff. Never claim a verification you did not run.
+
+**What a green gate proves, and what it does not.** It proves the shape of the code, the contracts between vessels, and the pure logic reachable without a world. It does **not** prove behaviour inside a running Minecraft world: nothing in the suite constructs a `ServerLevel`, so no automated check casts an ability, moves a body, or renders a frame. Until GameTest coverage exists (E1 in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)), in-world behaviour is proven only by the client-smoke checklist. Do not claim in-game behavior from a green gate.
+
+**Every new gate rule ships with proof that it can fail.** A check only ever observed green may be vacuous — a misspelled package in an architecture rule passes against zero classes. Break the thing the rule guards, record the mutation and the resulting failure message in the commit body, then restore. A rule with no recorded red run is not a rule.
+
+[docs/BUILDING_IN_SANDBOX.md](docs/BUILDING_IN_SANDBOX.md) owns the full command recipe — gate composition, focused verification tasks, sandbox setup, and the client-smoke checklist. Use it instead of restating commands here.
 
 ## Communication
 
