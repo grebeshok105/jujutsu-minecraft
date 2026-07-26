@@ -112,5 +112,13 @@ public final class TodoFakeClapTest {
 		String keybinds = Files.readString(Path.of("src/client/java/jujutsu/mod/client/input/JujutsuKeybinds.java"));
 		assert keybinds.contains("CharacterAbility.PRIMARY_SNEAK") && keybinds.contains("isShiftKeyDown()")
 				: "The feint must ride the existing technique key with a shift modifier, not a new keybind";
+		// Both technique keys go through the same translation, so the input layer picks slots by input
+		// position only. Selecting by meaning is what forced every new vessel to edit this file.
+		assert keybinds.contains("slot(client, CharacterAbility.PRIMARY, CharacterAbility.PRIMARY_SNEAK)")
+				: "The technique key must name its slot from the sneak state, not from what Todo does with it";
+		assert keybinds.contains("slot(client, CharacterAbility.SECONDARY, CharacterAbility.SECONDARY_SNEAK)")
+				: "The second technique key must name its slot the same way, sneak variant included";
+		assert !keybinds.contains("Todo")
+				: "No vessel's runtime, profile or ability name may be visible from the input layer";
 	}
 }

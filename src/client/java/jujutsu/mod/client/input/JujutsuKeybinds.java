@@ -23,8 +23,8 @@ public final class JujutsuKeybinds {
 	private static final Logger LOG = LoggerFactory.getLogger("jujutsumod/keys");
 
 	private static KeyMapping modernMenu;
-	private static KeyMapping nobaraEnlarge;
-	private static KeyMapping nobaraExplosion;
+	private static KeyMapping techniqueKey;
+	private static KeyMapping secondTechniqueKey;
 	private static boolean attackWasDown;
 	private static boolean modernMenuWasDown;
 
@@ -38,13 +38,16 @@ public final class JujutsuKeybinds {
 				InputConstants.KEY_N,
 				"key.categories.jujutsumod"
 		));
-		nobaraEnlarge = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+		// The two technique keys are shared by every vessel. Their ids still read "nobara_hairpin_*"
+		// because that string is what vanilla writes into options.txt — renaming it would silently reset
+		// everyone's binding. The displayed names are already vessel-neutral.
+		techniqueKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
 				"key.jujutsumod.nobara_hairpin_enlarge",
 				InputConstants.Type.KEYSYM,
 				InputConstants.KEY_R,
 				"key.categories.jujutsumod"
 		));
-		nobaraExplosion = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+		secondTechniqueKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
 				"key.jujutsumod.nobara_hairpin_explosion",
 				InputConstants.Type.KEYSYM,
 				InputConstants.KEY_B,
@@ -67,25 +70,22 @@ public final class JujutsuKeybinds {
 			}
 			modernMenuWasDown = modernDown;
 
-			while (nobaraEnlarge.consumeClick()) {
+			while (techniqueKey.consumeClick()) {
 				JujutsuCharacter character = selectedCharacter(client);
 				if (character == JujutsuCharacter.TODO) {
-					// Same key as the real clap: no hold threshold and no double tap, because the real
-					// swap has to stay instant and both casts have to be typed identically fast.
-					sendCharacterAbility(character, client.player.isShiftKeyDown()
-							? CharacterAbility.PRIMARY_SNEAK
-							: CharacterAbility.PRIMARY);
+					// No hold threshold and no double tap on the sneak variant: the real swap has to stay
+					// instant and both casts have to be typed identically fast.
+					sendCharacterAbility(character, slot(client, CharacterAbility.PRIMARY, CharacterAbility.PRIMARY_SNEAK));
 				} else if (character == JujutsuCharacter.NOBARA) {
 					sendNobaraAction(client.player.isShiftKeyDown()
 							? NobaraActionPayload.SELF_RESONANCE
 							: NobaraActionPayload.HAIRPIN_DIRECTED);
 				}
 			}
-			while (nobaraExplosion.consumeClick()) {
+			while (secondTechniqueKey.consumeClick()) {
 				JujutsuCharacter character = selectedCharacter(client);
 				if (character == JujutsuCharacter.TODO) {
-					// Two casts on one key: the first marks a participant, the second swaps the pair.
-					sendCharacterAbility(character, CharacterAbility.SECONDARY);
+					sendCharacterAbility(character, slot(client, CharacterAbility.SECONDARY, CharacterAbility.SECONDARY_SNEAK));
 				} else if (character == JujutsuCharacter.NOBARA) {
 					sendNobaraAction(client.player.isShiftKeyDown()
 							? NobaraActionPayload.NAIL_TRAP
@@ -138,6 +138,15 @@ public final class JujutsuKeybinds {
 		} else {
 			LOG.error("ClickGui failed to initialize");
 		}
+	}
+
+	/**
+	 * The input contract, in one expression: a technique key plus whether the player is sneaking names a
+	 * slot. Nothing here knows what any vessel does with the slot it names — that belongs to the vessel's
+	 * own router on the server. A vessel with nothing on a slot simply answers {@code false} there.
+	 */
+	private static CharacterAbility slot(Minecraft client, CharacterAbility tap, CharacterAbility sneak) {
+		return client.player != null && client.player.isShiftKeyDown() ? sneak : tap;
 	}
 
 	private static JujutsuCharacter selectedCharacter(Minecraft client) {
