@@ -57,8 +57,18 @@ public final class TodoProfile {
 	public static final float MARKER_THROW_PITCH = 0.85f;
 	/** Three seconds of flight is more than enough for a 32-block throw; after that it is a stray. */
 	public static final int MARKER_FLIGHT_TICKS = 60;
-	/** Ten seconds of mark, about two swap cooldowns, so a mark is worth at most that much tempo. */
-	public static final int MARKER_MARK_TTL_TICKS = 200;
+	/**
+	 * Ten seconds of mark on a <em>body</em>, about two swap cooldowns, so following someone is worth at
+	 * most that much tempo. A landed mark has no clock at all — the name says "body" because the scope of
+	 * this number shrank to one of the two forms.
+	 */
+	public static final int MARKER_BODY_MARK_TTL_TICKS = 200;
+	/**
+	 * Cooldown for the swap onto a mark. Equal to the aimed swap's today, and separate from it on purpose:
+	 * a reusable anchor is the strongest thing in the kit, and pricing it differently must not mean
+	 * rewriting the runtime.
+	 */
+	public static final int MARKER_SWAP_COOLDOWN_TICKS = 60;
 	/** Nudge out of the struck face so the resting marker is visible against the surface. */
 	public static final double MARKER_SURFACE_OFFSET = 0.15;
 	/**

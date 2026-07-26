@@ -39,6 +39,7 @@
   ,"message.jujutsumod.todo.boogie.unsafe": "Не удалось найти безопасную позицию для обмена."
   ,"message.jujutsumod.todo.boogie.hands_full": "Для Буги-вуги нужны обе пустые руки."
   ,"item.jujutsumod.todo_swap_marker": "Метка Буги-вуги"
+  ,"message.jujutsumod.todo.mark.lost": "Ваша метка Буги-вуги потеряна."
   ,"message.jujutsumod.todo.pair.marked": "Цель %s отмечена для обмена."
   ,"message.jujutsumod.todo.pair.cancelled": "Метка обмена снята."
   ,"message.jujutsumod.todo.pair.lost": "Отмеченная цель потеряна."
