@@ -58,7 +58,10 @@ public final class TodoFakeClapTest {
 	private static void assertFeintCarriesNoSwapMachinery() throws Exception {
 		String feint = Files.readString(TODO.resolve("TodoFakeClapRuntime.java"));
 		// The server must know the cast is hollow from the start; there is no swap to cancel.
-		for (String forbidden : new String[] {"teleportTo", "TodoSwapPlan", "findSafeDestination", "TargetResolver", "SWAP_ENDPOINT"}) {
+		// SwapMomentum belongs here for two reasons: a mechanical payload is a tell, and the feint's own
+		// cooldown is a third of the swap's, so a feint that granted it would be the cheap way to buy the
+		// window and would make the real swap pointless as an opener.
+		for (String forbidden : new String[] {"teleportTo", "TodoSwapPlan", "findSafeDestination", "TargetResolver", "SWAP_ENDPOINT", "SwapMomentum"}) {
 			assert !feint.contains(forbidden)
 					: "The feint must not reach for " + forbidden + "; it never starts a swap";
 		}

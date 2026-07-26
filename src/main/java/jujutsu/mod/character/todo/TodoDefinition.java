@@ -9,6 +9,7 @@ import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterDefinition;
 import jujutsu.mod.character.JujutsuCharacter;
+import jujutsu.mod.registry.JujutsuEffects;
 
 /** Todo on the server: a heavier melee that shrugs off stagger, and three casts on the shared slots. */
 public final class TodoDefinition implements CharacterDefinition {
@@ -50,6 +51,9 @@ public final class TodoDefinition implements CharacterDefinition {
 	@Override
 	public void registerServerHooks() {
 		TodoBlackFlashRuntime.register();
+		// After the Black Flash, so its re-entrant bonus hit is already inside APPLYING_BONUS by the time
+		// the momentum listener sees the nested pass and declines to spend on it.
+		TodoSwapMomentumRuntime.register();
 		TodoBoogieWoogieRuntime.register();
 		TodoPairSwapRuntime.register();
 		TodoSwapMarks.register();
@@ -76,6 +80,10 @@ public final class TodoDefinition implements CharacterDefinition {
 	public void onDeselected(ServerPlayer player) {
 		TodoPairSwapRuntime.forget(player.getUUID());
 		TodoSwapMarks.clear(player.getServer(), player.getUUID());
+		// The spend path checks that the attacker is still Todo, so leaving mid-window would strand a live
+		// +25% attack modifier on another vessel with nothing left that could ever take it off. Attribute
+		// sweeps do not reach it either: it belongs to the effect, not to this definition.
+		player.removeEffect(JujutsuEffects.TODO_SWAP_MOMENTUM);
 	}
 
 	private static void addMultiplier(AttributeInstance attribute, ResourceLocation id, double amount) {

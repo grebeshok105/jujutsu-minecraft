@@ -110,6 +110,9 @@ public final class TodoMarkerSwapRuntime {
 		CharacterAbilityCooldowns.start(todo, CharacterAbility.PRIMARY, TodoProfile.MARKER_SWAP_COOLDOWN_TICKS);
 		JujutsuNetworking.sendAbilityCooldown(todo, CharacterAbility.PRIMARY,
 				TodoProfile.MARKER_SWAP_COOLDOWN_TICKS);
+		// One site for both mark routes. Granting in the two callers instead would be two places to keep
+		// in step, which is the shape this method exists to avoid.
+		TodoSwapMomentumRuntime.grant(todo);
 		TodoBoogieWoogieRuntime.emitSwapImpact(level, todo, todoOrigin, markOrigin.subtract(todoOrigin),
 				todoOrigin, markOrigin, moved);
 		JujutsuMod.LOGGER.debug("Todo marker swap success player={} from={} to={}",

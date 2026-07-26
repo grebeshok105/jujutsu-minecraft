@@ -35,6 +35,11 @@ public final class TodoVfxIds {
 	 * {@code direction}, so magnitude cannot survive there — one vector, two useful forms.
 	 */
 	public static final ResourceLocation SWAP_ARRIVAL = JujutsuMod.id("todo/swap_arrival");
+	/**
+	 * The hit a landed swap bought. Its own id so a heavier strike is visibly not an ordinary one, and
+	 * deliberately cheap: it can land on the same tick as a Black Flash, and it must not compete with it.
+	 */
+	public static final ResourceLocation MOMENTUM_STRIKE = JujutsuMod.id("todo/momentum_strike");
 
 	private TodoVfxIds() {}
 }
