@@ -67,7 +67,7 @@ public final class ProjectSanityTest {
 		assertHairpinScreenOverlayUsesSmoothGradientVignette();
 		assertCharacterSelectUsesCheapUiPrimitives();
 		assertClickGuiModulesCoverEveryVessel();
-		assertClickGuiPanelIsDraggable();
+		assertClickGuiPanelIsDraggableAndOwnsTheCrosshair();
 		assertGeckoLibNobaraPlayerModelWired();
 		assertNobaraHeldItemsAndArmPosesWired();
 		assertNobaraGeoHeadLookIsSafeAndEnabled();
@@ -865,7 +865,7 @@ public final class ProjectSanityTest {
 				: "Character roster panel must exist for the Characters tab";
 	}
 
-	private static void assertClickGuiPanelIsDraggable() throws IOException {
+	private static void assertClickGuiPanelIsDraggableAndOwnsTheCrosshair() throws IOException {
 		String clickGui = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/rich/screens/clickgui/ClickGui.java"));
 		assert clickGui.contains("panelOriginX()") && clickGui.contains("panelOriginY()")
 				: "Render and hit testing must read the panel origin from one place, or the drag offset desynchronizes";
@@ -883,6 +883,20 @@ public final class ProjectSanityTest {
 				: "The drag handler must stay pure geometry so the release path is the screen's alone";
 		assert drag.contains("public void clampTo(")
 				: "The drag handler must expose clamping for drags and window resizes alike";
+		String clickGuiHud = Files.readString(CLIENT_JAVA.resolve(
+				"jujutsu/mod/client/rich/screens/clickgui/ClickGuiHud.java"));
+		assert clickGuiHud.contains("HudElementRegistry.replaceElement") && clickGuiHud.contains("VanillaHudElements.CROSSHAIR")
+				: "The ClickGui must suppress only the vanilla crosshair, through the Fabric HUD element API";
+		assert clickGuiHud.contains("instanceof ClickGui")
+				: "Crosshair suppression must be conditional on the ClickGui being open, so it restores itself";
+		assert !clickGuiHud.contains("removeElement") && !clickGuiHud.contains("hideGui")
+				: "Crosshair suppression must not permanently remove the element or hide the whole HUD";
+		String clientInit = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/JujutsuModClient.java"));
+		assert clientInit.contains("ClickGuiHud.register()")
+				: "Crosshair suppression must be registered once from client init";
+		String mixins = Files.readString(ROOT.resolve("src/client/resources/jujutsumod.client.mixins.json"));
+		assert !mixins.contains("Crosshair") && !mixins.contains("GuiMixin")
+				: "Crosshair suppression must not add a HUD mixin when the Fabric API covers it";
 	}
 
 	private static void assertClickGuiModulesCoverEveryVessel() throws IOException {

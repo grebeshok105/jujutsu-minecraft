@@ -11,6 +11,7 @@ import jujutsu.mod.client.render.ProjectJjkNailRenderer;
 import jujutsu.mod.client.render.nobara.doll.ProjectJjkStrawDollRenderer;
 import jujutsu.mod.client.ui.msdf.MsdfFonts;
 import jujutsu.mod.client.rich.Initialization;
+import jujutsu.mod.client.rich.screens.clickgui.ClickGuiHud;
 import jujutsu.mod.client.ui.neon.render.SdfPipelines;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollItem;
 import jujutsu.mod.registry.JujutsuEntities;
@@ -32,6 +33,7 @@ public class JujutsuModClient implements ClientModInitializer {
 		// ClickGui MSDF type + slim Rich host (key N).
 		MsdfFonts.bootstrap();
 		Initialization.getInstance();
+		ClickGuiHud.register();
 	}
 }
 
