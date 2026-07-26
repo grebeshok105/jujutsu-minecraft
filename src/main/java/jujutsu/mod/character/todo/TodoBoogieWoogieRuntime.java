@@ -195,6 +195,13 @@ public final class TodoBoogieWoogieRuntime {
 		entity.setYHeadRot(snapshot.headYaw());
 		entity.setDeltaMovement(snapshot.velocity());
 		entity.resetFallDistance();
+		// `place` teleports absolutely with no Relative flags, so the transition carries Vec3.ZERO and the
+		// client is told its velocity is nothing -- the line above would otherwise be a server-side fiction
+		// for a player, who owns his own movement. `hurtMarked` makes ServerEntity#sendChanges emit
+		// ClientboundSetEntityMotionPacket through broadcastAndSend, which reaches the trackers and, for a
+		// ServerPlayer, that player's own connection. Same primitive CombatStagger already uses, and putting
+		// it here rather than at the call sites fixes every swap path at once, rollback included.
+		entity.hurtMarked = true;
 	}
 
 	private static void emitSwapFeedback(ServerLevel level, ServerPlayer todo, Vec3 todoOrigin, Vec3 targetOrigin) {
