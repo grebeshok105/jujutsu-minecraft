@@ -878,11 +878,12 @@ public final class ProjectSanityTest {
 		assert playerMixin.contains("rememberEntity(player, partialTick)") : "Player render extraction must remember the actual player entity for GeckoLib replaced-entity rendering";
 		String livingMixin = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/CharacterRenderDispatchMixin.java"));
 		assert livingMixin.contains("renderContextByEntityId(playerState.id)") : "Character geo render dispatch must resolve the player entity before rendering";
-		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoRenderer.java"));
-		assert renderer.contains("fillRenderState(getAnimatable(), player") : "Nobara geo render must fill GeckoLib render data before rendering";
-		assert renderer.contains("DataTickets.PACKED_LIGHT") : "Nobara geo render must provide GeckoLib packed light data outside the dispatcher path";
-		assert !renderer.contains("render(cast(state), matrices") : "Nobara geo render must not render a raw vanilla PlayerRenderState without GeckoLib data";
-		assert !renderer.contains("catch (IllegalArgumentException") : "Nobara geo render must not silently fall back to the old player skin when GeckoLib data is missing";
+		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterPlayerGeoRenderer.java"));
+		assert renderer.contains("fillRenderState(getAnimatable(), player") : "Character geo render must fill GeckoLib render data before rendering";
+		assert renderer.contains("DataTickets.PACKED_LIGHT") : "Character geo render must provide GeckoLib packed light data outside the dispatcher path";
+		assert renderer.contains("restorePoseStack(matrices, guardPose)") : "Character geo render must unwind its own pose stack even when rendering throws";
+		assert !renderer.contains("render(cast(state), matrices") : "Character geo render must not render a raw vanilla PlayerRenderState without GeckoLib data";
+		assert !renderer.contains("catch (IllegalArgumentException") : "Character geo render must not silently fall back to the old player skin when GeckoLib data is missing";
 		String animatable = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoAnimatable.java"));
 		assert animatable.contains("state.isMoving()") : "Nobara idle/walk/run must use GeckoLib movement data";
 		assert animatable.contains("DataTickets.SPRINTING") && animatable.contains("DataTickets.VELOCITY") : "Nobara run animation must use real player movement tickets";
@@ -900,8 +901,9 @@ public final class ProjectSanityTest {
 		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoRenderer.java"));
 		assert renderer.contains("addRenderLayer(new NobaraHeldItemLayer<>(this))")
 				: "Nobara renderer must attach the held-item layer";
-		assert renderer.contains("vanillaPoseModel.setupAnim(renderState)") && renderer.contains("DataTickets.HUMANOID_MODEL")
-				: "Nobara renderer must derive arm poses from the current vanilla player render state";
+		String sharedRenderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterPlayerGeoRenderer.java"));
+		assert sharedRenderer.contains("vanillaPoseModel.setupAnim(renderState)") && sharedRenderer.contains("DataTickets.HUMANOID_MODEL")
+				: "Character renderers must derive arm poses from the current vanilla player render state";
 		String geoModel = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoModel.java"));
 		assert geoModel.contains("applyVanillaArmPose") && geoModel.contains("DataTickets.HUMANOID_MODEL")
 				: "Nobara model must apply vanilla-equivalent held-item arm rotations";
@@ -939,10 +941,16 @@ public final class ProjectSanityTest {
 	}
 
 	private static void assertNobaraGeoRenderRestoresPoseStack() throws IOException {
-		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoRenderer.java"));
-		assert renderer.contains("restorePoseStack") : "Nobara GeckoLib replacement render must restore PoseStack depth after rendering";
-		assert renderer.contains("matrices.pushPose()") : "Nobara GeckoLib replacement render needs a local guard pose";
+		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterPlayerGeoRenderer.java"));
+		assert renderer.contains("restorePoseStack") : "GeckoLib replacement render must restore PoseStack depth after rendering";
+		assert renderer.contains("matrices.pushPose()") : "GeckoLib replacement render needs a local guard pose";
 		assert renderer.contains("finally") : "PoseStack restoration must run even when GeckoLib render exits unusually";
+		// The guard lives on the shared base so no vessel renderer can opt out of it.
+		for (String vessel : new String[] {"nobara/NobaraPlayerGeoRenderer.java", "todo/TodoPlayerGeoRenderer.java"}) {
+			String subclass = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/").resolve(vessel));
+			assert subclass.contains("extends CharacterPlayerGeoRenderer")
+					: vessel + " must inherit the shared pose-stack guard instead of hand-rolling render entry";
+		}
 	}
 
 	private static void assertNobaraSkinUsesWideArms() throws IOException {
