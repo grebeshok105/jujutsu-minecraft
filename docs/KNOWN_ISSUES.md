@@ -43,6 +43,20 @@ Why it stands: the input scheme is a product decision — one key, no hold thres
 
 Reopen if live PvP shows the pose tell makes the feint worthless, or if a fourth keybind becomes acceptable. Do not "fix" it by adding a hold threshold or a double tap — those were rejected because they would delay the real swap.
 
+### Swap momentum survives a sweeping attack, and is nearly worthless on a fist
+
+Decided 2026-07-26 with the impact pass. Both are recorded in `TodoSwapMomentumRuntime`'s javadoc as well, because both look like bugs to anyone reading the class cold.
+
+1. **Sweep keeps the boost after the window is spent.** `Player.attack` reads `ATTACK_DAMAGE` into a local before the sweeping block runs, and computes sweep damage as `1.0 + SWEEPING_DAMAGE_RATIO × that local`. Removing the effect during the primary victim's `AFTER_DAMAGE` cannot shrink a float already on the stack, so later victims of the same swing take boosted damage from a spent window. The stagger and the cue do **not** duplicate — the effect is already gone when later victims arrive. It also costs a deliberate hotbar swap, because sweeping needs a sword and both hands must be empty to clap. The only fixes are a mixin into `Player.attack` or abandoning the attribute for a re-entrant bonus hit; the second would reintroduce exactly the double-application the attribute exists to prevent.
+2. **On bare fists ×1.25 is worth about a third of a heart.** A fist is 1.0 attack damage, Todo's is 1.5, boosted 1.875. The eight-tick stagger is the real payload, and the damage only matters if the player draws a weapon inside the 24-tick window. That is the intended loop — displace, arm, hit — not an oversight. Reopen if play shows the window is too short to arm in.
+
+### A permanent mark shadows the primary key, and is the kit's strongest tool
+
+Accepted 2026-07-26. Two consequences of making a landed marker reusable, neither of them a defect:
+
+1. While a mark exists, every `R` press that finds nothing under the crosshair becomes a 32-block teleport instead of a `no_target` message. That is the fallback behaving as specified, but it changes how the key feels; the arrival now has its own visuals so the two casts are at least distinguishable.
+2. One thrown item buys an unlimited return on a 60-tick cooldown — in practice a personal evacuation point behind a wall. Nothing is limited today. The levers are already separated so that limiting it later is a number rather than a rewrite: `MARKER_SWAP_COOLDOWN_TICKS` (split from the aimed swap's and equal to it), `MARKER_SWAP_RANGE`, `TodoSwapMarks.onUsed` for a charge count, and making the projectile damageable for counterplay — the mark already ends when its projectile leaves a loaded chunk, so destroying it needs only an entity change.
+
 ### ProjectJJK placeholder assets
 
 Owned by [PROVENANCE.md](PROVENANCE.md) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Those files hold the permission scope, the retained upstream notice, and the replacement policy. Only the release-blocking consequences are tracked here, as R3.
@@ -78,6 +92,8 @@ Private author permission is sufficient for current development. A public releas
 Verified 2026-07-26. Still open.
 
 CI compiles and runs assertion programs but does not boot a client or dedicated server. Renderer, mixin, packet, UI, and gameplay integration regressions can survive a green build. `grep -rln GameTest src/` returns nothing — there are no GameTest classes at all.
+
+Widened again 2026-07-26 by the Boogie Woogie impact pass. Nothing in it can be tested by the current harness beyond pure helpers: the sound duck's actual effect on `SoundManager`, the afterimage's readability against a real body, whether `hurtMarked` genuinely restores visible momentum for a moved player, and whether the momentum window is spent by the hit the player thinks it was. The client-smoke checklist for all of it is in `SESSION.md`.
 
 Specifically for Todo: no test calls any of the four `tryCast` entry points (`TodoBoogieWoogieRuntime`, `TodoFakeClapRuntime`, `TodoPairSwapRuntime`, `TodoMarkerSwapRuntime`). The Todo tests (`TodoProfileTest`, `TodoSwapPlanTest`, `TodoTargetSafetyTest`, `TodoHandsEmptyTest`, `TodoFakeClapTest`, `TodoPairSwapTest`, `TodoSwapMarkerTest`) cover profile constants, `TodoSwapPlan.preflight` null-handling, boolean truth tables including the shared `TodoSwapGates` clap gate, the pure `TodoPendingSelection` and `TodoSwapMark` predicates, and — for the three newest mechanics — source-text contract assertions rather than behaviour. Nothing constructs a `ServerLevel` or exercises an actual teleport.
 

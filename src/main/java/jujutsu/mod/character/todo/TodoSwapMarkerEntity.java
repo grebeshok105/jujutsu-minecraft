@@ -64,9 +64,12 @@ public class TodoSwapMarkerEntity extends ThrowableItemProjectile {
 				face.getStepX() * TodoProfile.MARKER_SURFACE_OFFSET,
 				face.getStepY() * TodoProfile.MARKER_SURFACE_OFFSET,
 				face.getStepZ() * TodoProfile.MARKER_SURFACE_OFFSET);
-		// Landing is settled on BOTH sides. `landed` is not synched, so if only the server stopped the
-		// physics the client would keep applying gravity between position updates and the resting marker
-		// would visibly sag and snap back once per update interval.
+		// Landing is settled on both sides for every client that witnessed the hit, because `landed` is not
+		// synched: if only the server stopped the physics, a witnessing client would keep applying gravity
+		// between position updates and the resting marker would sag and snap back once per interval.
+		// A client that enters tracking range later constructs this with `landed = false` and never sees
+		// onHitBlock -- harmless, because zero delta plus the synched noGravity flag means no movement, and
+		// a landed mark now outlives its old ten-second window often enough for that to be the normal case.
 		landed = true;
 		setDeltaMovement(Vec3.ZERO);
 		setNoGravity(true);
@@ -78,8 +81,7 @@ public class TodoSwapMarkerEntity extends ThrowableItemProjectile {
 			discard();
 			return;
 		}
-		TodoSwapMarks.mark(level, owner.getUUID(),
-				TodoSwapMark.atPosition(level.dimension(), rest, getId(), level.getGameTime() + TodoProfile.MARKER_MARK_TTL_TICKS));
+		TodoSwapMarks.mark(level, owner.getUUID(), TodoSwapMark.atPosition(level.dimension(), rest, getId()));
 	}
 
 	@Override
@@ -94,17 +96,9 @@ public class TodoSwapMarkerEntity extends ThrowableItemProjectile {
 			discard();
 			return;
 		}
-		// Release the previous mark BEFORE reading the glow. Re-marking the same body would otherwise see
-		// the glow the old mark had applied, decide it was not ours, and then the old mark's release would
-		// switch it off -- leaving the new mark live with no highlight at all.
-		TodoSwapMarks.clear(level.getServer(), owner.getUUID());
-		// Only clear a glow we switched on, so marking never extinguishes another system's highlight.
-		boolean glowApplied = !struck.hasGlowingTag();
-		if (glowApplied) {
-			struck.setGlowingTag(true);
-		}
-		TodoSwapMarks.mark(level, owner.getUUID(), TodoSwapMark.onEntity(level.dimension(), struck.position(),
-				struck.getId(), struck.getUUID(), glowApplied, level.getGameTime() + TodoProfile.MARKER_MARK_TTL_TICKS));
+		// The release-then-read-glow order lives in TodoSwapMarks, shared with the ability that marks a
+		// body without a throw. Two copies of that order would eventually stop matching.
+		TodoSwapMarks.markBody(level, owner.getUUID(), struck);
 		discard();
 	}
 }

@@ -118,5 +118,12 @@
 		"sounds": [
 			"jujutsumod:projectjjk/whoosh_vortex"
 		]
+	},
+	"projectjjk.aec_boom": {
+		"sounds": [
+			"jujutsumod:projectjjk/aec_boom_01v1",
+			"jujutsumod:projectjjk/aec_boom_01v2"
+		],
+		"subtitle": "subtitles.jujutsumod.projectjjk.aec_boom"
 	}
 }

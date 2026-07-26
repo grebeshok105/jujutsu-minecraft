@@ -2,6 +2,8 @@ package jujutsu.mod.character.nobara;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jujutsu.mod.character.CharacterAbility;
@@ -102,8 +104,20 @@ public final class NobaraAbilitySlotsTest {
 				new Slot(CharacterAbility.SECONDARY_SNEAK, "NailTrapRuntime.tryPlace(nobara)"),
 				new Slot(CharacterAbility.ATTACK_CONTEXT, "NobaraHammerCombatRuntime.handleInput(nobara)"),
 		};
-		assert map.length == CharacterAbility.values().length
-				: "Nobara fills every input slot, so a new slot must be given a meaning here on purpose";
+		// She used to fill every slot; USE_CONTEXT is the first one she refuses. So the claim is no longer
+		// "the map covers everything" but the stronger "every slot is accounted for" — each constant either
+		// reaches a runtime below or is refused in its own arm. A new slot still lands here on purpose.
+		Set<CharacterAbility> mapped = new HashSet<>();
+		for (Slot entry : map) {
+			mapped.add(entry.slot());
+		}
+		for (CharacterAbility slot : CharacterAbility.values()) {
+			if (mapped.contains(slot)) {
+				continue;
+			}
+			assert armOf(router, slot).contains("false")
+					: slot + " is neither routed to a runtime nor explicitly refused; decide which it is";
+		}
 		// Each call is looked for INSIDE its own arm. Searching the whole file instead would pass with two
 		// arms transposed — every string would still be present, just bound to the wrong input.
 		for (Slot entry : map) {

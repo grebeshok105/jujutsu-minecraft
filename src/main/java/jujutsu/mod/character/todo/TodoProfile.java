@@ -28,6 +28,14 @@ public final class TodoProfile {
 	public static final float BOOGIE_WOOGIE_MOVE_SOUND_VOLUME = 0.7f;
 	public static final float BOOGIE_WOOGIE_MOVE_SOUND_PITCH = 1.45f;
 	/**
+	 * One low report where the bodies landed, two ticks behind the whoosh so the pair reads as a single
+	 * impact rather than a flam. Deliberately one sound at the midpoint and not one per endpoint: Minecraft
+	 * audio has no propagation delay, so two of these arrive together and only muddy each other.
+	 */
+	public static final int BOOGIE_WOOGIE_IMPACT_SOUND_DELAY_TICKS = 3;
+	public static final float BOOGIE_WOOGIE_IMPACT_SOUND_VOLUME = 0.85f;
+	public static final float BOOGIE_WOOGIE_IMPACT_SOUND_PITCH = 0.8f;
+	/**
 	 * Feint clap cooldown: one second, a third of the real swap, on its own slot so a feint never
 	 * spends or delays Boogie Woogie. Long enough for the clap to finish before the next one starts.
 	 */
@@ -49,8 +57,23 @@ public final class TodoProfile {
 	public static final float MARKER_THROW_PITCH = 0.85f;
 	/** Three seconds of flight is more than enough for a 32-block throw; after that it is a stray. */
 	public static final int MARKER_FLIGHT_TICKS = 60;
-	/** Ten seconds of mark, about two swap cooldowns, so a mark is worth at most that much tempo. */
-	public static final int MARKER_MARK_TTL_TICKS = 200;
+	/**
+	 * Ten seconds of mark on a <em>body</em>, about two swap cooldowns, so following someone is worth at
+	 * most that much tempo. A landed mark has no clock at all — the name says "body" because the scope of
+	 * this number shrank to one of the two forms.
+	 */
+	public static final int MARKER_BODY_MARK_TTL_TICKS = 200;
+	/**
+	 * Cooldown for marking a body by hand. Short: the cast costs no item and moves nobody, and its whole
+	 * value is set-up. Long enough that a held right click cannot repaint the mark every tick.
+	 */
+	public static final int ENTITY_MARK_COOLDOWN_TICKS = 20;
+	/**
+	 * Cooldown for the swap onto a mark. Equal to the aimed swap's today, and separate from it on purpose:
+	 * a reusable anchor is the strongest thing in the kit, and pricing it differently must not mean
+	 * rewriting the runtime.
+	 */
+	public static final int MARKER_SWAP_COOLDOWN_TICKS = 60;
 	/** Nudge out of the struck face so the resting marker is visible against the surface. */
 	public static final double MARKER_SURFACE_OFFSET = 0.15;
 	/**
@@ -58,6 +81,19 @@ public final class TodoProfile {
 	 * and a public mark is something an opponent can play around.
 	 */
 	public static final double MARKER_SWAP_RANGE = 32.0;
+	/**
+	 * What a landed swap buys: one heavier hit, taken through an ATTACK_DAMAGE modifier so the vanilla
+	 * swing is simply bigger and no second damage instance exists to double-count or double-consume.
+	 *
+	 * <p>Read the multiplier honestly. Both hands must be empty to clap, so a fist that swings inside the
+	 * window gains about a third of a heart. <b>The stagger is the payload</b>; the damage only matters if
+	 * the player deliberately draws a weapon inside the window, which is the intended loop — displace,
+	 * arm, hit. The window is shorter than the swap's own cooldown, so two grants can never overlap.
+	 */
+	public static final double SWAP_MOMENTUM_DAMAGE_MULTIPLIER = 1.25;
+	public static final int SWAP_MOMENTUM_WINDOW_TICKS = 24;
+	/** Between Nobara's light stagger and the Black Flash's: an opening, not a free hit. */
+	public static final int SWAP_MOMENTUM_STAGGER_TICKS = 8;
 	/** Shared Black Flash chance for Todo's vanilla melee bridge. */
 	public static final float BLACK_FLASH_CHANCE = 0.10f;
 	public static final float BLACK_FLASH_DAMAGE_MULTIPLIER = 1.75f;

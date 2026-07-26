@@ -70,6 +70,20 @@ public final class VfxCameraChannel {
 		addFovImpulse(startedAtMillis + 250L, 450, 8.0f * strength, 0.35f);
 	}
 
+	/**
+	 * A displacement, not a blow. High frequency, short duration and a small FOV dip, so it reads as a body
+	 * being moved rather than something exploding: about a third of {@link #triggerHeavyImpact} and a sixth
+	 * of {@link #triggerBlackFlash} at the peak, and fully settled inside 240 ms.
+	 */
+	public void triggerSwapSnap(int intensity, float proximity, float initialAgeTicks) {
+		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
+		float strength = strength(intensity, proximity, 0.62f);
+		addImpulse(startedAtMillis, 95, 2.1f * strength, -1.5f * strength, 158.0f);
+		addImpulse(startedAtMillis + 60L, 75, -0.85f * strength, 0.55f * strength, 205.0f);
+		addFovImpulse(startedAtMillis, 130, -2.8f * strength, 0.06f);
+		addFovImpulse(startedAtMillis + 70L, 170, 1.2f * strength, 0.16f);
+	}
+
 	public float yawOffset() {
 		return clamp(sample(true), -9.0f, 9.0f);
 	}

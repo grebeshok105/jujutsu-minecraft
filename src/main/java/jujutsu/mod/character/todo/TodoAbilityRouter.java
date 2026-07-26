@@ -23,6 +23,7 @@ public final class TodoAbilityRouter {
 			// B for him. The arm stays so the switch remains exhaustive without a default.
 			// ATTACK_CONTEXT is genuinely empty — his melee is plain vanilla with attribute modifiers,
 			// and he carries no technique weapon.
+			case USE_CONTEXT -> TodoEntityMarkRuntime.tryCast(todo, ability, notify);
 			case SECONDARY_SNEAK, ATTACK_CONTEXT -> false;
 		};
 	}

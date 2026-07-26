@@ -63,6 +63,7 @@
   "subtitles.jujutsumod.hairpin.hammer_snap": "Hammer snaps",
   "subtitles.jujutsumod.hairpin.nail_ignite": "Nail ignites",
   "subtitles.jujutsumod.hairpin.prep": "Cursed nails align",
+  "subtitles.jujutsumod.projectjjk.aec_boom": "Displacement lands",
   "subtitles.jujutsumod.projectjjk.black_flash_impact": "ProjectJJK impact cracks",
   "subtitles.jujutsumod.projectjjk.black_flash_impact2": "ProjectJJK impact cracks",
   "subtitles.jujutsumod.projectjjk.chime": "Cursed energy resonates",
@@ -91,6 +92,10 @@
   "message.jujutsumod.todo.boogie.unsafe": "No safe swap destination was found.",
   "message.jujutsumod.todo.boogie.hands_full": "Boogie Woogie needs both hands empty.",
   "item.jujutsumod.todo_swap_marker": "Boogie Woogie Marker",
+  "effect.jujutsumod.todo_swap_momentum": "Swap Momentum",
+  "message.jujutsumod.todo.mark.lost": "Your Boogie Woogie marker is gone.",
+  "message.jujutsumod.todo.mark.placed": "Marked %s.",
+  "screen.jujutsumod.character_select.ability.entity_mark": "Mark a body",
   "message.jujutsumod.todo.pair.marked": "Marked %s for the swap.",
   "message.jujutsumod.todo.pair.cancelled": "Swap mark cleared.",
   "message.jujutsumod.todo.pair.lost": "The marked target is gone."

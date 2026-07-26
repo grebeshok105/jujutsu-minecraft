@@ -57,6 +57,11 @@ public final class VfxWorldChannel {
 	private static final int BF_SPARK_G = VfxPalette.BLACK_FLASH_SPARK_G;
 	private static final int BF_SPARK_B = VfxPalette.BLACK_FLASH_SPARK_B;
 	private static final Vec3 NORTH = new Vec3(0.0, 0.0, -1.0);
+	private static final float SILHOUETTE_PEAK_ALPHA = 168.0f;
+	/** How far the residue slides after the body, in blocks, over its whole life. */
+	private static final double SILHOUETTE_DRIFT = 0.30;
+	/** Blocks per tick below which an arrival gets no streak, because it did not really keep moving. */
+	private static final double ARRIVAL_STREAK_MIN_SPEED = 0.06;
 	private final List<ImpactFlash> impactFlashes = new ArrayList<>();
 
 	public void triggerImpact(VfxCue cue, ImpactStyle style, int durationTicks) {
@@ -90,12 +95,7 @@ public final class VfxWorldChannel {
 			}
 			float progress = Math.max(0.0f, Math.min(1.0f, age / flash.durationTicks()));
 			float fade = 1.0f - progress;
-			// Resonance struck + Black Flash stay planted at the immutable cue origin (world-fixed).
-			boolean worldFixed = flash.style() == ImpactStyle.DOLL_STRIKE
-					|| flash.style() == ImpactStyle.RESONANCE_RELEASE
-					|| flash.style() == ImpactStyle.BLACK_FLASH
-					|| flash.style() == ImpactStyle.BOOGIE_WOOGIE;
-			Vec3 origin = worldFixed
+			Vec3 origin = flash.style().isWorldFixed()
 					? flash.cue().origin()
 					: VfxAnchorResolver.resolve(flash.cue(), entityId -> {
 						Entity anchor = context.world().getEntity(entityId);
@@ -111,7 +111,9 @@ public final class VfxWorldChannel {
 				case DOLL_STRIKE -> renderDollStrike(consumer, center, intensity, progress, fade);
 				case RESONANCE_RELEASE -> renderResonanceRelease(consumer, center, intensity, progress, fade);
 				case BLACK_FLASH -> renderBlackFlash(consumer, center, intensity, progress, fade, flash.cue());
-					case BOOGIE_WOOGIE -> renderBoogieWoogie(consumer, center, intensity, progress, fade, flash.cue());
+				case BOOGIE_WOOGIE -> renderBoogieWoogie(consumer, center, intensity, progress, fade, flash.cue());
+				case SWAP_AFTERIMAGE -> renderSwapAfterimage(consumer, center, progress, flash.cue());
+				case SWAP_ARRIVAL -> renderSwapArrival(consumer, center, progress, fade, flash.cue());
 			}
 		}
 	}
@@ -142,6 +144,149 @@ public final class VfxWorldChannel {
 		float pulse = 0.22f + (1.0f - progress) * 0.18f;
 		addTodoPulse(consumer, center, pulse, alpha);
 		addTodoPulse(consumer, target, pulse, alpha);
+	}
+
+	/**
+	 * The residue of a body that was somewhere else a moment ago.
+	 *
+	 * <p>Outline, not fill. {@link RenderType#lightning()} blends additively, so a filled body at any
+	 * readable alpha blows out toward white and reads as a bright box rather than a person — which is why
+	 * the only solid piece here is a torso wash at a sixth of the outline's alpha.
+	 *
+	 * <p>Held for four ticks and no longer: the residue stands exactly where the <em>other</em> body is now
+	 * arriving, and a longer overlap stops reading as "you see who left" and starts reading as a bug.
+	 */
+	private static void renderSwapAfterimage(VertexConsumer consumer, Vec3 center, float progress, VfxCue cue) {
+		int alpha = Math.round(SILHOUETTE_PEAK_ALPHA * silhouetteAlpha(progress));
+		if (alpha <= 0) {
+			return;
+		}
+		float width = silhouetteWidth(cue.anchorOffset().x);
+		float height = silhouetteHeight(cue.anchorOffset().y) * (1.0f - progress * 0.06f);
+		// The residue slides after the body that left. This is the departure half of keeping the motion
+		// readable: without it a swap reads as two bodies blinking, with no sense of which way either went.
+		Vec3 feet = center.add(cue.direction().scale(progress * SILHOUETTE_DRIFT));
+		Vec3 view = feet.lengthSqr() < 1.0E-4 ? NORTH : feet.normalize();
+		Vec3 right = UP.cross(view);
+		right = right.lengthSqr() < 1.0E-5 ? EAST : right.normalize();
+
+		float viewYaw = (float) Math.toDegrees(Math.atan2(-feet.x, feet.z));
+		float halfWidth = width * 0.5f * facingScale((float) cue.anchorOffset().z, viewYaw);
+		float thickness = Math.max(0.028f, width * 0.085f);
+
+		Vec3 hipJoint = feet.add(UP.scale(height * 0.48));
+		Vec3 waist = feet.add(UP.scale(height * 0.26));
+		Vec3 neck = feet.add(UP.scale(height * 0.78));
+		Vec3 headCentre = feet.add(UP.scale(height * 0.905));
+		float headRadius = height * 0.075f;
+
+		addSilhouetteBone(consumer, waist, neck, thickness, alpha, false);
+		// A diamond rather than a ring: four ribbons read as a head at a glance and cost a fifth as much.
+		Vec3 headTop = headCentre.add(UP.scale(headRadius));
+		Vec3 headBottom = headCentre.subtract(UP.scale(headRadius));
+		Vec3 headRight = headCentre.add(right.scale(headRadius));
+		Vec3 headLeft = headCentre.subtract(right.scale(headRadius));
+		addSilhouetteBone(consumer, headTop, headRight, thickness * 0.8f, alpha, true);
+		addSilhouetteBone(consumer, headRight, headBottom, thickness * 0.8f, alpha, true);
+		addSilhouetteBone(consumer, headBottom, headLeft, thickness * 0.8f, alpha, true);
+		addSilhouetteBone(consumer, headLeft, headTop, thickness * 0.8f, alpha, true);
+
+		Vec3 shoulderRight = neck.add(right.scale(halfWidth));
+		Vec3 shoulderLeft = neck.subtract(right.scale(halfWidth));
+		addSilhouetteBone(consumer, shoulderLeft, shoulderRight, thickness, alpha, true);
+		addSilhouetteBone(consumer, shoulderRight, feet.add(right.scale(halfWidth * 1.05)).add(UP.scale(height * 0.42)),
+				thickness * 0.8f, alpha, false);
+		addSilhouetteBone(consumer, shoulderLeft, feet.subtract(right.scale(halfWidth * 1.05)).add(UP.scale(height * 0.42)),
+				thickness * 0.8f, alpha, false);
+
+		Vec3 hipRight = hipJoint.add(right.scale(halfWidth * 0.62));
+		Vec3 hipLeft = hipJoint.subtract(right.scale(halfWidth * 0.62));
+		addSilhouetteBone(consumer, hipLeft, hipRight, thickness * 0.9f, alpha, false);
+		addSilhouetteBone(consumer, hipJoint.add(right.scale(halfWidth * 0.55)), feet.add(right.scale(halfWidth * 0.45)),
+				thickness * 0.9f, alpha, false);
+		addSilhouetteBone(consumer, hipJoint.subtract(right.scale(halfWidth * 0.55)), feet.subtract(right.scale(halfWidth * 0.45)),
+				thickness * 0.9f, alpha, false);
+
+		// The only filled piece, and deliberately barely there: enough mass that the outline is a body.
+		addRibbon(consumer, waist, neck, right.scale(halfWidth * 0.92),
+				TODO_DEEP_R, TODO_DEEP_G, TODO_DEEP_B, Math.round(alpha * 0.16f));
+	}
+
+	/**
+	 * The landing. Gathers inward where the departure threw outward, so the two ends of a swap never read
+	 * as the same event happening twice.
+	 */
+	private static void renderSwapArrival(VertexConsumer consumer, Vec3 center, float progress, float fade, VfxCue cue) {
+		int alpha = Math.min(200, Math.round(200.0f * fade));
+		if (alpha <= 0) {
+			return;
+		}
+		double speed = cue.anchorOffset().x;
+		float width = silhouetteWidth(cue.anchorOffset().y);
+		float height = silhouetteHeight(cue.anchorOffset().z);
+		Vec3 chest = center.add(UP.scale(height * 0.45));
+
+		renderDirectionalRing(consumer, chest, EAST, NORTH, width * (1.45f - progress * 1.0f), 1.0f,
+				Math.round(alpha * 0.9f), progress * 1.6f,
+				TODO_DEEP_R, TODO_DEEP_G, TODO_DEEP_B, TODO_EDGE_R, TODO_EDGE_G, TODO_EDGE_B);
+		addSilhouetteBone(consumer, center, center.add(UP.scale(height * (0.25f + fade * 0.75f))),
+				Math.max(0.03f, width * 0.09f), Math.round(alpha * 0.7f), true);
+
+		// A streak only when the body genuinely kept moving. One that always draws is a lie, and it would
+		// tell that lie far more often than the truth -- most swaps end with someone standing still.
+		if (speed < ARRIVAL_STREAK_MIN_SPEED) {
+			return;
+		}
+		Vec3 direction = cue.direction();
+		double length = Math.min(1.6, speed * 2.4) * (1.0 - progress * 0.6);
+		Vec3[] basis = directionalBasis(direction);
+		for (int lane = -1; lane <= 1; lane++) {
+			Vec3 head = chest.add(basis[0].scale(lane * width * 0.30));
+			addSilhouetteBone(consumer, head.subtract(direction.scale(length)), head, 0.026f,
+					Math.round(alpha * (lane == 0 ? 0.85f : 0.5f)), lane == 0);
+		}
+	}
+
+	private static void addSilhouetteBone(VertexConsumer consumer, Vec3 start, Vec3 end, float width, int alpha, boolean highlight) {
+		if (alpha <= 0) {
+			return;
+		}
+		Vec3 side = sideVector(end.subtract(start), start.add(end).scale(0.5), width);
+		addRibbon(consumer, start, end, side.scale(2.6f), TODO_DEEP_R, TODO_DEEP_G, TODO_DEEP_B, Math.round(alpha * 0.40f));
+		addRibbon(consumer, start, end, side, TODO_VIOLET_R, TODO_VIOLET_G, TODO_VIOLET_B, alpha);
+		if (highlight) {
+			addRibbon(consumer, start.lerp(end, 0.15), end, side.scale(0.45f),
+					TODO_EDGE_R, TODO_EDGE_G, TODO_EDGE_B, Math.round(alpha * 0.55f));
+		}
+	}
+
+	/** A cue with no dimensions must still draw a person, and a giant must not draw a scarecrow. */
+	static float silhouetteWidth(double raw) {
+		return raw <= 0.05 ? 0.6f : (float) Math.min(2.0, raw);
+	}
+
+	static float silhouetteHeight(double raw) {
+		return raw <= 0.05 ? 1.8f : (float) Math.min(4.0, raw);
+	}
+
+	/** Full for the first quarter so the eye catches it at all, then convex: a residue, not a fade-out. */
+	static float silhouetteAlpha(float progress) {
+		float clamped = Math.max(0.0f, Math.min(1.0f, progress));
+		if (clamped <= 0.25f) {
+			return 1.0f;
+		}
+		float fall = (clamped - 0.25f) / 0.75f;
+		return (float) Math.pow(1.0 - fall, 1.8);
+	}
+
+	/**
+	 * The body's own yaw widens or narrows the shoulders instead of turning the figure, which keeps it
+	 * billboarded: a truly yaw-aligned silhouette collapses to a vertical line when seen edge-on, and it
+	 * would spend its whole 200 ms unreadable.
+	 */
+	static float facingScale(float bodyYawDegrees, float viewYawDegrees) {
+		double delta = Math.toRadians(bodyYawDegrees - viewYawDegrees);
+		return (float) (0.45 + 0.55 * Math.abs(Math.cos(delta)));
 	}
 
 	private static void addTodoPulse(VertexConsumer consumer, Vec3 center, float radius, int alpha) {
@@ -496,15 +641,33 @@ public final class VfxWorldChannel {
 		consumer.addVertex((float) (start.x - side.x), (float) (start.y - side.y), (float) (start.z - side.z)).setColor(red, green, blue, alpha);
 	}
 
+	/**
+	 * Whether a flash stays at the immutable cue origin is a property of the style, not a list kept
+	 * somewhere else: a new style cannot be declared without answering the question, because the
+	 * constructor demands it. Getting it wrong on an afterimage would make the residue follow the body
+	 * that left, which is the one thing an afterimage must never do.
+	 */
 	public enum ImpactStyle {
-		HAMMER_SEND,
-		ENLARGE,
-		EXPLOSION,
-		RITUAL_BIND,
-		DOLL_STRIKE,
-		RESONANCE_RELEASE,
-		BLACK_FLASH,
-		BOOGIE_WOOGIE
+		HAMMER_SEND(false),
+		ENLARGE(false),
+		EXPLOSION(false),
+		RITUAL_BIND(false),
+		DOLL_STRIKE(true),
+		RESONANCE_RELEASE(true),
+		BLACK_FLASH(true),
+		BOOGIE_WOOGIE(true),
+		SWAP_AFTERIMAGE(true),
+		SWAP_ARRIVAL(true);
+
+		private final boolean worldFixed;
+
+		ImpactStyle(boolean worldFixed) {
+			this.worldFixed = worldFixed;
+		}
+
+		public boolean isWorldFixed() {
+			return worldFixed;
+		}
 	}
 
 	private record ImpactFlash(VfxCue cue, ImpactStyle style, int durationTicks) {}

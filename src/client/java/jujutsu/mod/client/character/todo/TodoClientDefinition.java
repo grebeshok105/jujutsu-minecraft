@@ -42,7 +42,9 @@ public final class TodoClientDefinition implements CharacterClientDefinition {
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOLT,
 								"screen.jujutsumod.character_select.ability.fake_clap", "⇧R"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.LINK,
-								"screen.jujutsumod.character_select.ability.pair_swap", "B")));
+								"screen.jujutsumod.character_select.ability.pair_swap", "B"),
+						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOLT,
+								"screen.jujutsumod.character_select.ability.entity_mark", "RMB×2")));
 	}
 
 	@Override

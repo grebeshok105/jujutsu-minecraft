@@ -1,5 +1,6 @@
 package jujutsu.mod.character.todo;
 
+import java.util.List;
 import java.util.Optional;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -20,7 +21,10 @@ import jujutsu.mod.network.JujutsuNetworking;
  * <p>Both mark forms are STRICT on placement. The last-resort fallback exists for Todo's own snap swaps;
  * a mark swap is planned and telegraphed, so there is no reason to force a point for it.
  *
- * <p>A mark is consumed by the swap it enables. It is not a reusable anchor.
+ * <p>The two forms are priced differently, and {@code TodoSwapMarks.onUsed} owns that decision. A mark on
+ * a body is consumed — following a living target is worth one trip. A landed mark is a reusable anchor and
+ * survives the swap it enabled; permanent until cleared or until its projectile is lost, and never
+ * persistent across server sessions.
  */
 public final class TodoMarkerSwapRuntime {
 	private TodoMarkerSwapRuntime() {}
@@ -44,12 +48,12 @@ public final class TodoMarkerSwapRuntime {
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.out_of_range", "mark is out of reach");
 		}
 		return marked == null
-				? swapWithPosition(todo, level, destination, notify)
-				: swapWithMarkedBody(todo, level, marked, notify);
+				? swapWithPosition(todo, level, mark, destination, notify)
+				: swapWithMarkedBody(todo, level, mark, marked, notify);
 	}
 
 	/** One body moves, so atomicity is trivial: either Todo's destination is safe or nothing happens. */
-	private static boolean swapWithPosition(ServerPlayer todo, ServerLevel level, Vec3 destination, boolean notify) {
+	private static boolean swapWithPosition(ServerPlayer todo, ServerLevel level, TodoSwapMark mark, Vec3 destination, boolean notify) {
 		Vec3 safe = TodoBoogieWoogieRuntime.findSafeDestination(level, todo, destination,
 				TodoBoogieWoogieRuntime.Strictness.STRICT);
 		if (safe == null) {
@@ -61,12 +65,13 @@ public final class TodoMarkerSwapRuntime {
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.unsafe", "authoritative teleport failed");
 		}
 		TodoBoogieWoogieRuntime.restoreMotionAndRotation(todo, snapshot);
-		finish(todo, level, snapshot.position(), safe);
+		// One body between two points: the ribbon still spans the throw, but only Todo landed anywhere.
+		finish(todo, level, mark, snapshot.position(), safe, List.of(new TodoBoogieWoogieRuntime.MovedBody(snapshot, safe)));
 		return true;
 	}
 
 	/** Two bodies move, so it runs the ordinary atomic plan with no fallback for either side. */
-	private static boolean swapWithMarkedBody(ServerPlayer todo, ServerLevel level, LivingEntity marked, boolean notify) {
+	private static boolean swapWithMarkedBody(ServerPlayer todo, ServerLevel level, TodoSwapMark mark, LivingEntity marked, boolean notify) {
 		TodoBoogieWoogieRuntime.Snapshot todoSnapshot = TodoBoogieWoogieRuntime.Snapshot.capture(todo);
 		TodoBoogieWoogieRuntime.Snapshot markedSnapshot = TodoBoogieWoogieRuntime.Snapshot.capture(marked);
 		Optional<TodoSwapPlan> plan = TodoSwapPlan.preflight(
@@ -90,23 +95,26 @@ public final class TodoMarkerSwapRuntime {
 		}
 		TodoBoogieWoogieRuntime.restoreMotionAndRotation(todo, todoSnapshot);
 		TodoBoogieWoogieRuntime.restoreMotionAndRotation(marked, markedSnapshot);
-		finish(todo, level, todoSnapshot.position(), markedSnapshot.position());
+		finish(todo, level, mark, todoSnapshot.position(), markedSnapshot.position(),
+				List.of(new TodoBoogieWoogieRuntime.MovedBody(todoSnapshot, plan.get().firstDestination()),
+						new TodoBoogieWoogieRuntime.MovedBody(markedSnapshot, plan.get().secondDestination())));
 		return true;
 	}
 
-	/** Consumes the mark, takes the ordinary swap cooldown, and presents an ordinary swap. */
-	private static void finish(ServerPlayer todo, ServerLevel level, Vec3 todoOrigin, Vec3 markOrigin) {
-		TodoSwapMarks.clear(level.getServer(), todo.getUUID());
-		CharacterAbilityCooldowns.start(todo, CharacterAbility.PRIMARY, TodoProfile.BOOGIE_WOOGIE_COOLDOWN_TICKS);
+	/** Prices the mark, takes the marker swap's cooldown, and presents an ordinary swap. */
+	private static void finish(ServerPlayer todo, ServerLevel level, TodoSwapMark mark, Vec3 todoOrigin, Vec3 markOrigin,
+			List<TodoBoogieWoogieRuntime.MovedBody> moved) {
+		// Whether this spends the mark belongs to TodoSwapMarks, not here. Not TodoSwapMarks.clear, which
+		// is the unconditional teardown that disconnect, respawn and leaving the vessel all go through.
+		TodoSwapMarks.onUsed(level.getServer(), todo.getUUID(), mark);
+		CharacterAbilityCooldowns.start(todo, CharacterAbility.PRIMARY, TodoProfile.MARKER_SWAP_COOLDOWN_TICKS);
 		JujutsuNetworking.sendAbilityCooldown(todo, CharacterAbility.PRIMARY,
-				TodoProfile.BOOGIE_WOOGIE_COOLDOWN_TICKS);
-		Vec3 pairDelta = markOrigin.subtract(todoOrigin);
-		TodoBoogieWoogieRuntime.emitClapPerformance(level, todo, todoOrigin, pairDelta);
-		long gameTime = level.getGameTime();
-		TodoBoogieWoogieRuntime.broadcastSwapEndpoint(level, todo, todoOrigin, pairDelta, gameTime);
-		TodoBoogieWoogieRuntime.broadcastSwapEndpoint(level, todo, markOrigin, Vec3.ZERO, gameTime);
-		TodoBoogieWoogieRuntime.scheduleMoveSound(level, todoOrigin);
-		TodoBoogieWoogieRuntime.scheduleMoveSound(level, markOrigin);
+				TodoProfile.MARKER_SWAP_COOLDOWN_TICKS);
+		// One site for both mark routes. Granting in the two callers instead would be two places to keep
+		// in step, which is the shape this method exists to avoid.
+		TodoSwapMomentumRuntime.grant(todo);
+		TodoBoogieWoogieRuntime.emitSwapImpact(level, todo, todoOrigin, markOrigin.subtract(todoOrigin),
+				todoOrigin, markOrigin, moved);
 		JujutsuMod.LOGGER.debug("Todo marker swap success player={} from={} to={}",
 				todo.getGameProfile().getName(), todoOrigin, markOrigin);
 	}
