@@ -18,6 +18,7 @@ If two documents disagree, use the higher source in this list and update the low
 - KNOWN_ISSUES.md — live risk and debt register.
 - PROVENANCE.md — ProjectJJK placeholder permission and replacement policy.
 - THIRD_PARTY_NOTICES.md — retained third-party notices that apply to current runtime assets.
+- TODO_BOOGIE_WOOGIE.md — approved design for the Aoi Todo / Boogie Woogie vertical slice.
 
 ## Maintenance
 

@@ -4,7 +4,7 @@ Status: CURRENT
 
 ## Common entrypoint
 
-JujutsuMod.onInitialize registers entities, persistent attachments, data components, items, particles, sounds, effects, networking, ritual/runtime systems, EmbeddedNailRegistry, NailAnchorLifecycle, commands, and debug Black Flash support.
+JujutsuMod.onInitialize registers entities, persistent attachments, data components, items, particles, sounds, effects, networking, CharacterAbilityCooldowns, CharacterCombatModifiers, Todo Black Flash bridge, ritual/runtime systems, EmbeddedNailRegistry, NailAnchorLifecycle, commands, and debug Black Flash support.
 
 Important lifecycle owners:
 
@@ -15,4 +15,4 @@ Important lifecycle owners:
 
 ## Client entrypoint
 
-JujutsuModClient registers entity/GeckoLib renderers, particle factories, VfxDirector, Nobara recipes, client payload receivers, keybinds, SDF/MSDF pipelines, and the ClickGui host.
+JujutsuModClient registers entity/GeckoLib renderers, particle factories, VfxDirector, JujutsuVfxRecipes.registerAll() (Nobara + Todo), client payload receivers, keybinds, SDF/MSDF pipelines, and the ClickGui host.

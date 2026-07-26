@@ -1,14 +1,16 @@
 # Jujutsu Minecraft
 
-A Fabric 1.21.8 combat mod built around a small number of deeply designed Jujutsu-inspired character kits. The current playable vertical slice is Nobara: nails, hammer combat, directed and mass Hairpin, Resonance, nail traps, Black Flash, a character menu, and a shared cinematic VFX pipeline.
+A Fabric 1.21.8 combat mod built around a small number of deeply designed Jujutsu-inspired character kits. The current playable vessels are Nobara (nails, hammer, Hairpin, Resonance, traps, Black Flash) and Todo (Boogie Woogie swap, heavy melee, shared Black Flash bridge), plus a shared cinematic VFX pipeline and character menu.
 
 ## Current product
 
-- Playable vessels: Nobara and None.
+- Playable vessels: Nobara, Todo, and None.
 - Menu: press N to open ClickGui, choose a vessel, then confirm it.
 - Nobara actions: R for directed Hairpin, B for mass Hairpin, Shift+R for Self Resonance, Shift+B for Nail Trap, and left click with the hammer for contextual melee.
+- Todo actions: R for Boogie Woogie (server-authoritative self↔target swap); vanilla melee with Todo modifiers and Black Flash bridge.
 - Gameplay authority is server-side; rendering, menus, particles, camera work, and client animation stay under src/client.
-- Character selection persists through reconnects and restarts. The Nobara starter kit is granted once per player.
+- Character selection persists through reconnects and restarts. The Nobara starter kit is granted once per player; Todo has no starter items in this slice.
+- Transient combat VFX use VfxCue → VfxDirector → JujutsuVfxRecipes.registerAll().
 - Loaded ordinary embedded nails expire after 1200 ticks and are capped at 30 per owner.
 - Resonance intentionally applies global server hit-stop. The current target is private play for one or two people, not a public competitive server.
 

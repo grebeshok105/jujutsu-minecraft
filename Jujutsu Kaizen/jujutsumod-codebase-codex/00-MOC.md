@@ -2,7 +2,7 @@
 
 Status: CURRENT
 
-Verified: 2026-07-23
+Verified: 2026-07-26
 
 Code target: current checkout of main or the active feature branch
 
@@ -19,12 +19,12 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 ## Current product snapshot
 
 - Fabric 1.21.8, Java 21, mod id jujutsumod.
-- Playable vessels: Nobara and None.
+- Playable vessels: Nobara, Todo (Aoi Todo), and None.
 - N opens ClickGui; Characters is live and Soon rows are inert.
 - Selection is server-authoritative and persistent through Fabric Data Attachment API.
-- Nobara starter tools are claimed once per player.
-- R/B/Shift+R/Shift+B plus hammer left click drive the current kit.
-- Transient combat effects use VfxCue → VfxDirector → NobaraVfxRecipes.
+- Nobara starter tools are claimed once per player; Todo has no starter items in the first slice.
+- Nobara controls: R/B/Shift+R/Shift+B plus hammer left click. Todo primary: R for Boogie Woogie.
+- Transient combat effects use VfxCue → VfxDirector → JujutsuVfxRecipes.registerAll() → character recipes.
 - Loaded ordinary embedded nails use a 1200-tick TTL, a 30-per-owner cap, and EmbeddedNailRegistry.
 - Resonance global server hit-stop is intentional for the private 1–2 player target.
 
@@ -32,12 +32,12 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 
 | Metric | Value |
 |---|---:|
-| Main Java files | 68 |
-| Client Java files | 144 |
-| Test Java files | 19 |
-| Verification programs | 19 |
+| Main Java files | 81 |
+| Client Java files | 152 |
+| Test Java files | 23 |
+| Verification programs | 23 |
 | Client mixins | 6 |
-| Network payloads | 7 |
+| Network payloads | 9 |
 | Nobara VFX ids | 25 |
 
 Run python3 tools/audit_docs.py after changing facts represented above.

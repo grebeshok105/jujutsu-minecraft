@@ -28,7 +28,8 @@ Primary priorities:
 - Nobara controls: `R` directed Hairpin, `B` mass Hairpin, `Shift+R` Self Resonance, `Shift+B` Nail Trap, hammer left click contextual melee
 - Todo controls: `R` Boogie Woogie (server-authoritative self↔target swap); vanilla melee with Todo attribute modifiers
 - Todo has no starter loadout in this slice; baseline tuning lives in `TodoProfile`
-- Both vessels render through GeckoLib replaced-player renderers selected by the shared `LivingEntityRenderer` mixin dispatch
+- Both vessels render through GeckoLib replaced-player renderers resolved by `CharacterGeoRenderers` and dispatched from `CharacterRenderDispatchMixin`
+- Vessel render code is shared: `CharacterPlayerGeoRenderer` (render entry + pose-stack guard), `CharacterPlayerGeoModel` (arm pose + clamped head look), `CharacterHeldItemLayer` (hand attachments). A new vessel supplies assets and hooks, not a copied render stack
 - Transient combat VFX: **VFX Core** only (`VfxCue` → director → recipes), registered through `JujutsuVfxRecipes.registerAll()`
 - Player menu: **Key N → ClickGui**; sidebar **Characters** (live) + **Soon...** placeholders (non-clickable)
 - Character apply: `SelectCharacterPayload` C2S, server-authoritative; selection persists via Fabric Data Attachment API and starter loadout claims are one-time
@@ -172,7 +173,7 @@ Avoid:
 
 **Done for v2 slice:** the second character (Todo) built on the same contracts — proving the template is reusable, not just theoretical.
 
-**Next milestone focus:** polish feel/visuals of both kits and pay down the duplication the second character exposed (shared character render dispatch, shared held-item layer, `Nobara`-prefixed shared mixins) before adding a third vessel — not a broad unfinished framework.
+**Next milestone focus:** polish feel/visuals of both kits, then the third vessel on the now-shared render contracts — not a broad unfinished framework.
 
 ## Suggested Character Workflow
 
@@ -251,7 +252,7 @@ The full build owns all custom verification programs through `check`. Do not cla
 
 ## Open Questions (real remaining)
 
-1. Who is the third character, and whether the shared render/mixin dispatch is refactored before that kit starts.
+1. Who is the third character, and which kit axes must differ from both Nobara and Todo.
 2. Whether ClickGui grows more live tabs later or stays Characters + Soon placeholders.
 3. How far to push Rich visual parity vs keep SDF/MSDF adapters long-term.
 4. When temporary ProjectJJK placeholders are replaced and what provenance evidence is needed for a public release.

@@ -2,30 +2,28 @@
 
 ## Current branch
 
-- Branch: fix/persistence-nail-lifecycle-docs-sync
-- Base: main at 2faa275
-- Change commits:
-  - fix(character): persist selection and starter claims
-  - fix(nobara): bound embedded nail lifecycle
-  - test(nobara): verify indexed trap exclusion
-  - docs(project): synchronize current source of truth
-  - chore(project): add local documentation audit
-  - ci(project): build with supported Java 21
-  - docs(project): prune legacy documentation
+- Branch: feat/todo-boogie-woogie
+- Base: main at 710b24e
+- Feature commit: c8e48dd feat(todo): add playable Aoi Todo
+- Follow-up: review fixes + GeckoLib model pass, now committed as 9763b57
+- Render debt pass: shared vessel render stack and fail-closed dispatch (026e804, 281c009, 7507e64, 8acd89d, 3ef4c10)
 - Product target: private play for one or two people
 
 ## Current product state
 
 - Fabric 1.21.8, Java 21, mod id jujutsumod.
-- Playable vessels: Nobara and None.
+- Playable vessels: Nobara, Todo (Aoi Todo), and None.
 - N opens the single ClickGui product menu. The Neon Dashboard and Key V path are retired.
 - Character selection is sent through SelectCharacterPayload and remains server-authoritative.
 - Selection persists across reconnects/restarts through the Fabric Data Attachment API.
 - The Nobara starter hammer, doll, and nails are granted once per player; re-selecting Nobara does not refill them.
+- Todo has no starter items; vanilla melee + Boogie Woogie (R) + shared Black Flash bridge.
 - Nobara controls: R directed Hairpin, B mass Hairpin, Shift+R Self Resonance, Shift+B Nail Trap, hammer left click contextual melee.
-- Transient combat presentation uses VfxCue → VfxDirector → NobaraVfxRecipes and shared director channels.
+- Transient combat presentation uses VfxCue → VfxDirector → JujutsuVfxRecipes.registerAll() → character recipes and shared director channels.
 - Resonance intentionally changes the global server tick rate for hit-stop. This is accepted for the current 1–2 player target.
 - Ordinary loaded embedded nails expire after 1200 ticks, are capped at 30 per owner, and are resolved through EmbeddedNailRegistry rather than level.getAllEntities().
+- Vessel rendering is shared. CharacterGeoRenderers resolves one renderer per vessel through an exhaustive switch, so a new JujutsuCharacter constant fails compilation until it declares a renderer or opts into vanilla. CharacterPlayerGeoRenderer owns the render entry and pose-stack guard, CharacterPlayerGeoModel owns the arm pose and clamped head look, CharacterHeldItemLayer owns hand attachments.
+- The three shared render mixins are named for their real scope: CharacterRenderDispatchMixin, PlayerRenderContextMixin, FirstPersonHandFxMixin.
 
 ## Asset and provenance decisions
 
@@ -37,7 +35,7 @@
 ## Documentation authority
 
 1. Current code and passing tests.
-2. AGENTS.md for durable rules.
+2. AGENTS.md for durable product direction.
 3. This SESSION.md for the active handoff.
 4. Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md for current architecture.
 5. docs/KNOWN_ISSUES.md for live debt.
@@ -46,17 +44,40 @@ Use docs/README.md for the current-document map. Historical documentation has be
 
 ## Verification status
 
-Completed on 2026-07-23:
+Branch implementation verified earlier on c8e48dd (build + live smoke for Todo swap).
 
-- ./gradlew build --no-daemon --rerun-tasks — BUILD SUCCESSFUL, 30 tasks executed, all 19 custom verification programs passed.
-- python3 tools/audit_docs.py — passed for 39 current Markdown files; all legacy documentation directories are absent.
-- git diff --check — passed.
+Review-fix pass (this session):
 
-A real client smoke test was not run, so rendering and gameplay feel remain unverified in-game.
+- A1 docs metrics / Todo source-of-truth updates
+- A2 JujutsuVfxRecipes.registerAll()
+- A3 non-living pickable collision in safe destinations
+- B1 Black Flash bonus clears invulnerableTime for the bonus hit only
+- B2 rollback logs incomplete restore
+- A5 TodoProfile horizontal radius + world-border margin wired
+- A6 roster labels localized
+- A7 trailing whitespace removed from design doc
+
+Todo GeckoLib model pass:
+
+- Assets from `TODO_AOI_READY.zip` → `geckolib/models/todo/todo_aoi`, `geckolib/animations/todo/todo_aoi`, texture `textures/entity/character/todo_aoi.png`
+- Client: `TodoPlayerGeoAnimatable` / `Model` / `Renderer` / `HeldItemLayer`; player render mixin branches for Todo
+- Animations: idle, walk, attack, `ability.boogie_woogie` (triggered via VFX cue anchor on cast)
+- `gradlew.bat build --no-daemon` — BUILD SUCCESSFUL
+- Installed jar: `D:\Games\instances\Jujutsu\mods\jujutsumod-1.0.0.jar`
+
+Render debt pass (this session):
+
+- Renamed the three shared render mixins; no behavior change
+- CharacterGeoRenderer / CharacterGeoRenderers replace the per-character `if` chain; verified fail-closed by temporarily adding a fourth JujutsuCharacter constant and confirming the build fails at CharacterGeoRenderers
+- CharacterHeldItemLayer, CharacterPlayerGeoRenderer, CharacterPlayerGeoModel absorb the duplicated vessel render stack
+- Sanity-test guards repointed to the shared files and extended to assert no vessel redefines the head-look clamps or hand-rolls the pose-stack guard
+- `gradlew.bat build --no-daemon` — BUILD SUCCESSFUL
+
+In-game smoke still required, and now covers both the original Todo slice and the render refactor: model/animations, clap timing, swap occupancy, BF bonus, Nobara targeting, plus third-person Nobara and Todo held items and head look.
 
 ## Next product steps
 
-1. In-game smoke test selection persistence, one-time starter claims, nail TTL/cap, directed Hairpin, and mass Hairpin.
-2. Decide the second character only after the current Nobara slice is stable.
+1. In-game smoke: Todo select, R swap, boat/minecart blocked dest, BF damage numbers, Nobara Hairpin targeting.
+2. Optional world/GameTest coverage for tryCast/rollback.
 3. Replace temporary ProjectJJK placeholders when original assets are available.
 4. Resolve Rich-Modern provenance before any public distribution.

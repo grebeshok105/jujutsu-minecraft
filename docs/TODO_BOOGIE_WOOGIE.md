@@ -1,7 +1,7 @@
 # Aoi Todo — Boogie Woogie vertical slice
 
-Status: APPROVED IMPLEMENTATION DESIGN  
-Target branch: `feat/todo-boogie-woogie`  
+Status: APPROVED IMPLEMENTATION DESIGN
+Target branch: `feat/todo-boogie-woogie`
 Scope: second playable character, minimal stable multiplayer-safe kit.
 
 ## Product goal
@@ -42,7 +42,7 @@ All values live in `TodoProfile`.
 | Attack speed multiplier | 0.85 | Slightly slower attacks |
 | Stagger duration multiplier | 0.50 | Higher resistance, not immunity |
 | Movement speed modifier | 0.00 | Normal movement |
-| Boogie Woogie range | 24 blocks | User requirement |
+| Boogie Woogie range | 20 blocks | User requirement |
 | Boogie Woogie cooldown | 60 ticks | 3 seconds |
 | Safe horizontal search | 1 block | Small local fallback only |
 | Safe upward search | 3 blocks | Escape low obstruction without long relocation |
@@ -61,7 +61,7 @@ Damage, attack speed, and knockback-resistance-compatible behavior use vanilla a
 
 Boogie Woogie calls the shared `TargetResolver` with Todo-specific validation.
 
-Allowed: other players and ordinary living mobs.  
+Allowed: other players and ordinary living mobs.
 Rejected: Todo, dead entities, spectators, armor stands, removed/technical entities, passengers, vehicles, leashed entities, different-world entities, out-of-range entities, blocked line-of-sight candidates, and invalid positions.
 
 Selection is server-side from Todo's eye ray. Candidates must be before the first solid block hit, inside the 24-block reach, inside the ray sweep, and are ranked by closest perpendicular distance to the crosshair, then depth along the ray.
@@ -71,8 +71,8 @@ Selection is server-side from Todo's eye ray. Candidates must be before the firs
 1. Snapshot both entities: world, position, yaw, pitch, head yaw, velocity, and fall state.
 2. Require the same `ServerLevel`.
 3. Resolve Todo-at-target and target-at-Todo independently.
-4. Test the complete destination bounding box against world bounds, world border, loaded chunk availability, block collision, non-participant entity collision, a safe floor, and a small deterministic offset/upward fallback search.
-5. Abort entirely if either destination is invalid.
+4. Prefer destinations free of solid-block collision; air, water, crawl, jump, and flight are all valid (no floor requirement, no third-party occupancy gate). Small offset/upward nudge only if the exact point is inside solid blocks; otherwise use the exact requested point when in-world.
+5. Abort entirely only if neither side can resolve an in-world destination.
 6. Teleport through the mapped server teleport API; never mutate player coordinates directly.
 7. Restore each entity's own yaw, pitch, head yaw, velocity, and reset fall distance.
 8. Roll back Todo if the second authoritative teleport unexpectedly fails.
