@@ -14,14 +14,16 @@ public final class CharacterSelectionManager {
 
 	public static void select(ServerPlayer player, JujutsuCharacter character) {
 		CharacterPlayerState current = state(player);
-		boolean claimStarter = character == JujutsuCharacter.NOBARA && !current.hasClaimedStarter(character);
+		boolean firstNobaraClaim = character == JujutsuCharacter.NOBARA && !current.hasClaimedStarter(character);
 		CharacterPlayerState updated = current.withSelectedCharacter(character);
-		if (claimStarter) {
+		if (firstNobaraClaim) {
 			updated = updated.claimStarter(character);
 		}
 		attachments(player).setAttached(JujutsuAttachments.CHARACTER_STATE, updated);
 		CharacterCombatModifiers.applyForSelection(player, character);
-		if (claimStarter) {
+		// ensureStarterTools is idempotent (only fills missing hammer/doll/nails). Always run on Nobara
+		// select so re-select after Todo/None or after losing items still restores the kit.
+		if (character == JujutsuCharacter.NOBARA) {
 			ProjectJjkNobaraLoadout.ensureStarterTools(player);
 		}
 		broadcast(player.getServer(), player.getUUID(), character);

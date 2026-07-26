@@ -51,9 +51,13 @@ public final class TodoBlackFlashRuntime {
 		float bonus = baseDamageTaken * Math.max(0.0f, TodoProfile.BLACK_FLASH_DAMAGE_MULTIPLIER - 1.0f);
 		if (bonus > 0.0f) {
 			APPLYING_BONUS.add(target.getUUID());
+			// AFTER_DAMAGE runs after vanilla sets invulnerableTime; clear it only for the bonus hit.
+			int previousInvulnerable = target.invulnerableTime;
+			target.invulnerableTime = 0;
 			try {
 				target.hurtServer(todo.level(), JujutsuDamageSources.blackFlash(todo.level(), todo), bonus);
 			} finally {
+				target.invulnerableTime = Math.max(target.invulnerableTime, previousInvulnerable);
 				APPLYING_BONUS.remove(target.getUUID());
 			}
 		}

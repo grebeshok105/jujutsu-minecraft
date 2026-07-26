@@ -84,6 +84,16 @@ tasks.register('testTodoTargetSafety', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testTodoHandsEmpty', JavaExec) {
+	group = 'verification'
+	description = 'Runs Todo empty-hands Boogie Woogie gate checks'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.todo.TodoHandsEmptyTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.register('testProjectSanity', JavaExec) {
 	group = 'verification'
 	description = 'Runs resource and side-separation sanity checks'
@@ -269,6 +279,7 @@ tasks.named('check') {
 	dependsOn tasks.named('testTodoProfile')
 	dependsOn tasks.named('testTodoSwapPlan')
 	dependsOn tasks.named('testTodoTargetSafety')
+	dependsOn tasks.named('testTodoHandsEmpty')
 	dependsOn tasks.named('testProjectSanity')
 	dependsOn tasks.named('testTargetResolver')
 	dependsOn tasks.named('testProjectJjkNobaraProfile')
