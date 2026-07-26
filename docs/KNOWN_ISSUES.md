@@ -30,6 +30,19 @@ Residual, and inherent to the policy: two swapped entities can end up interpenet
 
 Reopen only if the product target becomes public/competitive play, or if a live smoke test shows a concrete stuck/suffocation case.
 
+### The feint clap's input scheme leaks the caster's pose
+
+Decided 2026-07-26. This register owns the rationale; the Codex note points here.
+
+`Shift+R` casts the feint and plain `R` casts the real swap, which means the modifier is the **sneak key**. `LocalPlayer.isShiftKeyDown()` reads that key, and it is also what drives `crouching` → `Pose.CROUCHING`, which is synchronized to every tracking client. Two consequences follow, and both are accepted rather than fixed:
+
+1. An observer can tell a feint from a real swap by watching Todo's pose alone — standing means real, crouched means feint — without reading a single cue, sound or timing. That defeats the presentation-level indistinguishability the feint was built for, which is genuinely airtight everywhere else: one shared `emitClapPerformance`, one shared gate table, field-identical cues.
+2. A sneaking Todo cannot cast the real swap at all. Every press while crouched feints.
+
+Why it stands: the input scheme is a product decision — one key, no hold threshold, no double tap, because the real swap has to stay instant. Every alternative costs something the decision rejected. A dedicated `KeyMapping` fixes both consequences completely and is the cheapest technical fix, but adds a fourth key to a two-key kit. Inverting the pair moves the tell onto the real cast instead of removing it. A non-sneak modifier still needs a new `KeyMapping` or a raw GLFW poll.
+
+Reopen if live PvP shows the pose tell makes the feint worthless, or if a fourth keybind becomes acceptable. Do not "fix" it by adding a hold threshold or a double tap — those were rejected because they would delay the real swap.
+
 ### ProjectJJK placeholder assets
 
 Owned by [PROVENANCE.md](PROVENANCE.md) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Those files hold the permission scope, the retained upstream notice, and the replacement policy. Only the release-blocking consequences are tracked here, as R3.

@@ -116,7 +116,13 @@ The one field that does differ carries no information: the feint puts `todo.getL
 
 The real swap teleports both bodies at cast time, but the clap's palm contact is at `VfxFirstPersonChannel.CLAP_CONTACT_PROGRESS` = 0.39 of the 0.72 s `ability.boogie_woogie` animation. An observer therefore sees a real swap **before** the palms meet, which means a feint is already distinguishable at t = 0 by the absence of a teleport — and, in the same instant, by the absence of the two `todo/swap_endpoint` bursts and of the movement sounds that follow one tick later at both origins.
 
-Delaying the swap to the contact frame was **not** done. It would change `TodoBoogieWoogieRuntime`'s commit path — the most safety-critical method in the kit, the one that owns the two-sided preflight and the best-effort rollback — and that is not in the approved plan. This is the feint's main open product question. Decide it deliberately, not as a side effect of a VFX pass.
+Delaying the swap to the contact frame was **not** done. It would change `TodoBoogieWoogieRuntime`'s commit path — the most safety-critical method in the kit, the one that owns the two-sided preflight and the best-effort rollback — and that is not in the approved plan. Decide it deliberately, not as a side effect of a VFX pass.
+
+### The bigger tell is the input, not the timing
+
+The modifier is the sneak key, so `Shift+R` casts while crouched and the pose is synchronized to every observer: standing means real, crouched means feint, readable without any of the cue work above. A sneaking Todo also cannot cast the real swap at all.
+
+This is an accepted product decision, not an oversight — docs/KNOWN_ISSUES.md owns the rationale and the reopen conditions under "The feint clap's input scheme leaks the caster's pose". Note what it means for anyone tuning this: the presentation is already indistinguishable, so tightening cues, sounds or timings further buys nothing while the pose tell stands. Work on the input scheme or on the teleport timing instead.
 
 ### Coverage — the honest limit
 
