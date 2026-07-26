@@ -2,7 +2,9 @@ package jujutsu.mod.character;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -37,13 +39,16 @@ public final class CharacterDefinitionRegistryTest {
 	 * class under a vessel's package that exposes {@code register()} must be called by its definition.
 	 */
 	private static void assertEveryVesselRuntimeIsRegistered() throws Exception {
-		String[][] vessels = {
-				{"jujutsu/mod/character/nobara", "jujutsu/mod/character/nobara/NobaraDefinition.java"},
-				{"jujutsu/mod/character/todo", "jujutsu/mod/character/todo/TodoDefinition.java"},
-		};
-		for (String[] vessel : vessels) {
-			String definition = Files.readString(MAIN.resolve(vessel[1]));
-			try (Stream<Path> tree = Files.walk(MAIN.resolve(vessel[0]))) {
+		for (JujutsuCharacter character : JujutsuCharacter.values()) {
+			if (character == JujutsuCharacter.NONE) {
+				// No vessel, no package, no runtimes.
+				continue;
+			}
+			Path vesselPackage = MAIN.resolve("jujutsu/mod/character").resolve(character.id());
+			assert Files.isDirectory(vesselPackage)
+					: character + " must keep its runtimes in jujutsu/mod/character/" + character.id();
+			String definition = Files.readString(vesselPackage.resolve(definitionFileName(character)));
+			try (Stream<Path> tree = Files.walk(vesselPackage)) {
 				for (Path source : tree.filter(path -> path.toString().endsWith(".java")).toList()) {
 					String body = Files.readString(source);
 					if (!body.contains("public static void register()")) {
@@ -58,10 +63,19 @@ public final class CharacterDefinitionRegistryTest {
 		String init = Files.readString(Path.of("src/main/java/jujutsu/mod/JujutsuMod.java"));
 		assert init.contains("definition.registerServerHooks()")
 				: "Mod init must install vessel listeners through the registry";
-		for (String vesselPackage : new String[] {"character.nobara", "character.todo"}) {
-			assert !init.contains(vesselPackage)
-					: "Mod init must not reach into " + vesselPackage + "; that is what the hook replaced";
+		for (JujutsuCharacter character : JujutsuCharacter.values()) {
+			if (character == JujutsuCharacter.NONE) {
+				continue;
+			}
+			assert !init.contains("character." + character.id())
+					: "Mod init must not reach into character." + character.id() + "; that is what the hook replaced";
 		}
+	}
+
+	/** {@code NOBARA} → {@code NobaraDefinition.java}. Convention, so a new vessel needs no edit here. */
+	private static String definitionFileName(JujutsuCharacter character) {
+		String id = character.id();
+		return Character.toUpperCase(id.charAt(0)) + id.substring(1) + "Definition.java";
 	}
 
 	/**
@@ -108,18 +122,23 @@ public final class CharacterDefinitionRegistryTest {
 	 * from the line that caused it.
 	 */
 	private static void assertNothingClientOnlyLeakedIn() throws Exception {
-		String[] shared = {
-				"jujutsu/mod/character/CharacterDefinition.java",
-				"jujutsu/mod/character/JujutsuCharacters.java",
-				"jujutsu/mod/character/NoneDefinition.java",
-				"jujutsu/mod/character/nobara/NobaraDefinition.java",
-				"jujutsu/mod/character/todo/TodoDefinition.java",
-		};
 		// Split so this file's own assertion text cannot match the pattern it is searching for.
 		String minecraftClient = "net.minecraft." + "client";
 		String modClient = "jujutsu.mod." + "client";
-		for (String file : shared) {
-			String source = Files.readString(MAIN.resolve(file));
+		// The seam's own files, derived rather than listed: a new vessel is covered without editing this.
+		// CharacterClientRegistryTest walks the whole shared tree; this is the focused, named half.
+		List<Path> seam = new ArrayList<>(List.of(
+				MAIN.resolve("jujutsu/mod/character/CharacterDefinition.java"),
+				MAIN.resolve("jujutsu/mod/character/JujutsuCharacters.java"),
+				MAIN.resolve("jujutsu/mod/character/NoneDefinition.java")));
+		for (JujutsuCharacter character : JujutsuCharacter.values()) {
+			if (character != JujutsuCharacter.NONE) {
+				seam.add(MAIN.resolve("jujutsu/mod/character").resolve(character.id())
+						.resolve(definitionFileName(character)));
+			}
+		}
+		for (Path file : seam) {
+			String source = Files.readString(file);
 			assert !source.contains(minecraftClient) && !source.contains(modClient)
 					: file + " must not reference a client-only type; it is loaded on a dedicated server";
 		}

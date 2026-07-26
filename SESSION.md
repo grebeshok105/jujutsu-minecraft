@@ -1,55 +1,72 @@
 # Session Handoff — Jujutsu Minecraft
 
-## Current branch
+## Current state
 
-- Branch: feat/todo-input-slots
-- Base: main at 00e6846 (merge of PR #8)
+- `main` = `c9e4904` — the vessel definition seam, merged as PR #9 and PR #10
+- Active branch: `docs/add-vessel-skill` at `805c8a3`, **not merged**
 - Product target: private play for one or two people
 
-Durable product state lives in AGENTS.md under "Current slice (facts)". This file records only what changed on this branch. Documentation authority order is owned by AGENTS.md; asset and provenance policy is owned by docs/PROVENANCE.md and docs/THIRD_PARTY_NOTICES.md.
+Durable product state lives in AGENTS.md under "Current slice (facts)" and, for the seam, under "The Vessel Seam". This file records only what changed recently and what is still unproven. Documentation authority order is owned by AGENTS.md; asset and provenance policy by docs/PROVENANCE.md and docs/THIRD_PARTY_NOTICES.md.
 
-## What changed on this branch
+## Landed on main — the vessel definition seam
 
-One asset commit, then the vessel definition seam in seven steps. The through-line: shared code stops asking which character a player is and asks the vessel. The contract is written up in the Codex note `Jujutsu Kaizen/jujutsumod-codebase-codex/02-architecture/Vessel-definitions.md`.
+Nine commits. The through-line: **shared code stopped asking which character a player is and asks the vessel.** Contract: `Jujutsu Kaizen/jujutsumod-codebase-codex/02-architecture/Vessel-definitions.md`. Reasoning and before/after: `docs/VESSEL_DEFINITION_REFACTOR.md`.
 
-- **Todo's animations re-exported from the live Blockbench project.** The clap is substantially reworked (leftArm to [-80, 40, -50], head and hair_bun motion added, the contact-frame position nudge dropped); idle and attack gained head channels the repo never received.
-- **Slots renamed after input positions.** `CharacterAbility` is now PRIMARY (R), PRIMARY_SNEAK (Shift+R), SECONDARY (B), SECONDARY_SNEAK (Shift+B), ATTACK_CONTEXT (left click with a technique weapon). Safe to renumber because the ids are transient — only the character id persists. Todo's feint moved to PRIMARY_SNEAK and his pair swap to SECONDARY.
-- **The input layer became a translator.** `JujutsuKeybinds` maps (key, sneak) to a slot in one `slot(...)` helper and no longer knows who is selected. The registered keybind ids keep reading `nobara_hairpin_*` on purpose — vanilla writes that string into options.txt, and renaming it would silently reset every player's binding.
-- **Nobara moved onto the shared slots.** Her private int-keyed gate and private C2S packet are deleted; `NobaraAbilityRouter` maps the five slots to her runtimes and keeps the two rules that are hers alone (the silent stagger check, the single fallback line). This exposed and fixed two defects: the server cooldown key gained the vessel — `(player, vessel, slot)` on both sides, where before Todo's pair-swap cooldown could refuse her mass Hairpin after a switch — and the `hairpin` debug commands now refuse a non-Nobara caster instead of firing Todo's swap and calling it a hairpin.
-- **Stale-vessel casts are refused.** `CharacterAbilityPayload` is now `(abilityId, characterId)`: the client stamps the vessel it believed in, and the server refuses when the claim disagrees with the stored selection. Closes the round-trip window where switching Todo → Nobara and pressing R fired a real Boogie Woogie and took its cooldown. The claim is only compared, never trusted.
-- **Server definitions.** `CharacterDefinition` + `JujutsuCharacters` (exhaustive switch, no `default`). Hooks: `id`, `tryCast`, and defaults `registerServerHooks`, `canonicalSlot`, `applyAttributes`/`removeAttributes`, `adjustIncomingStaggerTicks`, `onSelected`/`onDeselected`. Mod init loops the registry instead of hand-listing twelve per-vessel `register()` calls. Todo's attribute modifiers and stagger resistance moved into `TodoDefinition`; his mark cleanup moved to `onDeselected` (runs only when he is left). Nobara's starter kit is deliberately re-applied on **every** selection — idempotent, so a lost kit is restored without duplicating held tools; the persisted starter claim is now recorded for every vessel and read by nothing (E12's residue note).
-- **Client definitions.** `CharacterClientDefinition` + `JujutsuCharacterClients` (same exhaustive switch). Each vessel owns its renderer, skin path (declared once — the skin mixin and roster both read it), roster card, accent/warmth, module row, and client hooks. `JujutsuVfxRecipes` is deleted; each vessel registers its own recipes. Five shared client files stopped naming a vessel: `CharacterGeoRenderers`, `ClickGuiTheme`, `JujutsuModules`, `CharacterRosterPanel`, `JujutsuModClient` (plus `CharacterSkinMixin`). The roster's input strips were stale and are now honest: Nobara lists all five filled slots (the nail trap was missing and left click was mislabeled "Boom"), Todo lists his three.
-- **Two gaps the seam exposed, closed in the last commit.** `TodoSwapMarkerItem.use` now refuses a non-Todo thrower on both sides through the new `CharacterSelectionView` (server reads its own selection, client reads the mirror handed in at init) — closes E12. And Shift+B reaches Todo's pair swap again: `canonicalSlot` lets a vessel fold two inputs into one, applied in the executor before the cooldown check so the sneak variant cannot bypass the real cooldown.
+- **Slots renamed after input positions** — PRIMARY (R), PRIMARY_SNEAK (Shift+R), SECONDARY (B), SECONDARY_SNEAK (Shift+B), ATTACK_CONTEXT (left click with a technique weapon). Safe to renumber: the ids are transient, only the character id persists.
+- **The input layer became a translator.** `JujutsuKeybinds` maps `(key, sneak)` to a slot and knows no vessel. Keybind ids still read `nobara_hairpin_*` on purpose — vanilla writes that string into options.txt.
+- **Nobara moved onto the shared slots**; her private packet and int gate are deleted. This exposed two defects, both fixed: the cooldown key gained the vessel (`(player, vessel, slot)` on both sides), and the `hairpin` debug commands refuse a non-Nobara caster instead of firing Todo's swap under a hairpin's name.
+- **Stale-vessel casts refused.** `CharacterAbilityPayload` carries the vessel the client believed in; the server compares and refuses. Closes the menu round-trip window where a key press was executed by the vessel the player had just left.
+- **Server definitions** — `CharacterDefinition` + `JujutsuCharacters`. Mod init loops the registry instead of hand-listing twelve per-vessel `register()` calls.
+- **Client definitions** — `CharacterClientDefinition` + `JujutsuCharacterClients`. `JujutsuVfxRecipes` deleted; each vessel registers its own. Six shared client files stopped naming a vessel. The roster's input strips were stale and are now honest.
+- **E7 and E12 closed.** Seven direct vessel references remain in `src/`, one per file, all deliberate.
 
-Documentation: E7 (shared code is Nobara-shaped) and E12 (marker vessel gate) are closed in docs/KNOWN_ISSUES.md; E10/E11 record the two inherited message-ordering edges the migration made visible, deliberately not fixed in a refactor.
+## On the active branch — the add-vessel skill
+
+- `.claude/skills/add-vessel/SKILL.md` — repo-local, versioned with the architecture it describes. Six phases, prohibitions, readiness checklist, commit order. References the Codex notes rather than restating them.
+- **Both registry tests now derive their expectations** instead of hand-keeping per-vessel lists: vessels from the enum, packages from the vessel id, and each card's expected length from the arms its router does not refuse. Before this, a new vessel would have shipped with three guarantees silently absent — which contradicted the skill's central claim.
+- AGENTS.md gained "The Vessel Seam" as a first-class rule and lost the ten-step character workflow the skill now owns.
+- The claim was verified, not argued: adding a `JujutsuCharacter` constant produces **exactly two** compile errors, one per registry, and none elsewhere; binding it to the wrong definition compiles and fails `testCharacterDefinitions`.
 
 ## Verification status
 
-- Verification suite: 30 JavaExec programs wired into `check`, three new on this branch — `testCharacterDefinitions`, `testCharacterClients`, `testNobaraAbilitySlots`. The registry tests derive expectations from the enum and the source tree (a vessel runtime exposing `register()` that nothing calls fails the build; a definition bound to the wrong constant fails; client types reaching `src/main` fail).
-- `python tools/audit_docs.py` — passing after the documentation sync.
-- The remapped jar in build/libs was rebuilt at the final code commit (20b5b15) and installed into the play instance.
-- In-game client smoke — **NOT run on this branch.**
+- 30 JavaExec verification programs wired into `check`, all green. Three added by the seam work: `testCharacterDefinitions`, `testCharacterClients`, `testNobaraAbilitySlots`.
+- `python tools/audit_docs.py` passing. It is a **CI step, not part of `gradlew build`** — run it by hand after documentation changes.
+- Two checks proven able to fail by mutation rather than only observed green: transposing two router arms, and binding a constant to the wrong definition.
+- Jar built from `main` and installed at `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar`.
 
-Nothing in the test suite constructs a `ServerLevel`, so no test casts anything for real. The whole input path was rewired; treat the build as proof of shape, not of behaviour.
+**Nothing in the suite constructs a `ServerLevel`,** so no test casts anything for real. Treat the build as proof of shape, not of behaviour.
+
+### In-game smoke — partial, and here is exactly how partial
+
+Run by the user at commit `d9df2b5`: Nobara's kit confirmed working (abilities activate, nails fly correctly), Todo confirmed on `R` and `B`.
+
+**Not re-run since.** Everything below landed after that test:
+
+- server definitions (`29dd4c4`, `8561cf7`) — attributes, stagger and selection hooks moved into definitions, and every vessel runtime now installs through `registerServerHooks` instead of mod init
+- client definitions (`53a4dcd`) — renderers, skins, roster cards, theme accents and VFX packs all moved behind the client registry
+- the marker's vessel gate and Todo's Shift+B fold (`20b5b15`)
 
 ## Must be checked in game before this is trusted
 
-The full checklist is in docs/BUILDING_IN_SANDBOX.md. What this branch specifically put at risk:
-
-1. **Every Nobara slot through the shared gate.** R directed Hairpin, Shift+R Self Resonance, B mass Boom, Shift+B nail trap, hammer left click — her entire input path was replaced; a wiring mistake here is invisible to the suite.
-2. **The stale-vessel refusal.** Switch vessels in the menu and press R inside the confirmation round trip: nothing should fire from the old vessel, and the new vessel's cast should work a moment later.
-3. **Cooldowns keyed by vessel.** Cast Todo's pair swap, switch to Nobara, and confirm B works immediately — and that the client's greyed-out state agrees with the server everywhere.
-4. **Shift+B as Todo.** It must reach the pair swap (both presses, including crouched). Known un-predicted edge: Shift+B during the B cooldown earns the recharging message instead of being suppressed locally.
-5. **The marker gate on both sides.** As Nobara or None, right click the marker: no throw, no sound, no consumed item, on client and server alike. As Todo it throws normally.
-6. **Nobara kit restore.** Drop the hammer, re-select her: it comes back, and held tools are not duplicated.
-7. **Roster cards.** Nobara's strip shows five inputs, Todo's three, localized in both languages; accents ease per vessel.
-8. **Todo's reworked clap.** The re-exported animation (bigger arm travel, no position nudge) has to read well in real play — that was the point of taking it from the live project.
+1. **Both vessels still load and render.** The renderer map, skin mixin and roster are now registry-driven; a wiring mistake shows as a vanilla body or a missing card, not as a failed build.
+2. **Every runtime still installs.** Mod init no longer names them. Nail traps, straw doll, resonance, hammer combat, Todo's marks — if a `registerServerHooks` call were dropped the ability would simply do nothing, silently. The build-time test covers the call existing, not the listener firing.
+3. **Attributes and stagger.** Todo should still hit harder, swing slower and shrug off stagger — those moved from a shared file into `TodoDefinition`.
+4. **Nobara kit restore.** Drop the hammer, re-select her: it returns, and held tools are not duplicated.
+5. **Shift+B as Todo** reaches the pair swap, including crouched between the two presses. Known un-predicted edge: Shift+B during the B cooldown earns the recharging message rather than being suppressed locally.
+6. **The marker gate on both sides.** As Nobara or None, right click the marker: no throw, no sound, no consumed item. As Todo it throws normally.
+7. **Roster cards.** Nobara's strip shows five inputs, Todo's three, in both languages; accents ease per vessel; None sits last.
+8. **The stale-vessel refusal.** Switch vessels and press R inside the confirmation round trip: nothing fires from the old vessel.
 
 ## Next product steps
 
-1. Run the client-smoke checklist above and in docs/BUILDING_IN_SANDBOX.md.
-2. Decide the fate of `CharacterPlayerState.hasClaimedStarter` — give the persisted claim a job or delete it (E12 residue).
-3. Decide E10 (Nobara's fallback message erases five translated diagnostics) and E11 (cooldown message vs. her silent stagger check) deliberately, not inside a refactor.
-4. Move the "is this stack my technique weapon" question from `JujutsuKeybinds` into the client definition — the last vessel-specific line in the input layer.
-5. Add world/GameTest coverage for the swap runtimes and their rollback paths; nothing exercises them (E1/E8 in docs/KNOWN_ISSUES.md).
-6. Replace temporary ProjectJJK placeholders when original assets are available; resolve Rich-Modern provenance before any public distribution.
+1. Merge `docs/add-vessel-skill`, or say what should change in the skill first.
+2. Run the in-game pass above — items 1–3 are the ones the seam work put at real risk.
+3. Decide the fate of `CharacterPlayerState.hasClaimedStarter`: give the persisted claim a job or delete it (E12 residue).
+4. Decide E10 (Nobara's fallback erases five translated diagnostics) and E11 (cooldown message precedes her silent stagger check) deliberately, not inside a refactor.
+5. Move "is this stack my technique weapon" out of `JujutsuKeybinds` into the client definition — the last vessel-specific line in the input layer, and the one thing blocking a melee vessel from using `ATTACK_CONTEXT`.
+6. Add world/GameTest coverage for the swap runtimes and their rollback paths (E1/E8).
+7. Replace temporary ProjectJJK placeholders; resolve Rich-Modern provenance before any public distribution.
+
+## Open decisions left for the user
+
+- AGENTS.md restates twenty `TodoProfile` constants in a table while itself saying `TodoProfile` is the source of truth and must not be restated. Removing the table would drop the file under the 300-line hygiene target; keeping it is defensible for at-a-glance reference. Not changed unilaterally.
