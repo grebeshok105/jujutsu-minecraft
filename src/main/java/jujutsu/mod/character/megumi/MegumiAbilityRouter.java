@@ -16,7 +16,7 @@ public final class MegumiAbilityRouter {
 	}
 
 	private static boolean tryDivineDogs(ServerPlayer player, boolean notify) {
-		return false;
+		return MegumiSummonRuntime.tryToggle(player, notify);
 	}
 
 	private static boolean trySic(ServerPlayer player, boolean notify) {

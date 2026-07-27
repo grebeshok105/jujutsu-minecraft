@@ -16,10 +16,20 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.animal.wolf.WolfVariant;
+import net.minecraft.world.entity.animal.wolf.WolfVariants;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.network.JujutsuNetworking;
+import jujutsu.mod.registry.JujutsuEntities;
 
 /** Owns every Divine Dog pack, including its single authoritative cross-level teardown. */
 public final class MegumiSummonRuntime {
@@ -64,6 +74,70 @@ public final class MegumiSummonRuntime {
 
 	static MegumiDivineDogPack pack(UUID ownerId) {
 		return PACKS.get(ownerId);
+	}
+
+	public static boolean tryToggle(ServerPlayer player, boolean notify) {
+		UUID ownerId = player.getUUID();
+		MegumiDivineDogPack existing = PACKS.get(ownerId);
+		long gameTime = player.level().getGameTime();
+		if (existing != null) {
+			if (existing.wasSummonedAt(gameTime)) {
+				return true;
+			}
+			teardown(player.getServer(), ownerId, TeardownReason.RECALL);
+			return true;
+		}
+
+		ServerLevel level = player.level();
+		MegumiGroundSafety.SpawnPair positions = MegumiGroundSafety.findSummonPair(
+				level, player.position(), player.getLookAngle(), JujutsuEntities.MEGUMI_DIVINE_DOG.getDimensions())
+				.orElse(null);
+		if (positions == null) {
+			return rejectNoRoom(player, notify);
+		}
+
+		long token = nextSummonToken();
+		MegumiDivineDogEntity white = createDog(level, player, token, positions.white(), WolfVariants.SNOWY, DyeColor.BLACK);
+		MegumiDivineDogEntity black = createDog(level, player, token, positions.black(), WolfVariants.BLACK, DyeColor.WHITE);
+		if (!level.addFreshEntity(white)) {
+			black.discard();
+			return rejectNoRoom(player, notify);
+		}
+		if (!level.addFreshEntity(black)) {
+			teardown(player.getServer(), ownerId, TeardownReason.SUMMON_ROLLBACK);
+			return rejectNoRoom(player, notify);
+		}
+		PACKS.put(ownerId, new MegumiDivineDogPack(
+				level.dimension(), white.getUUID(), black.getUUID(), token, gameTime));
+		return true;
+	}
+
+	private static MegumiDivineDogEntity createDog(
+			ServerLevel level,
+			ServerPlayer owner,
+			long token,
+			Vec3 position,
+			ResourceKey<WolfVariant> variantKey,
+			DyeColor collar) {
+		MegumiDivineDogEntity dog = new MegumiDivineDogEntity(JujutsuEntities.MEGUMI_DIVINE_DOG, level);
+		dog.setPos(position);
+		dog.setYRot(owner.getYRot());
+		dog.setTame(true, false);
+		dog.setOwner(owner);
+		dog.configureSummon(owner.getUUID(), token);
+		Holder<WolfVariant> variant = level.registryAccess()
+				.lookupOrThrow(Registries.WOLF_VARIANT)
+				.getOrThrow(variantKey);
+		dog.setComponent(DataComponents.WOLF_VARIANT, variant);
+		dog.setComponent(DataComponents.WOLF_COLLAR, collar);
+		return dog;
+	}
+
+	private static boolean rejectNoRoom(ServerPlayer player, boolean notify) {
+		if (notify) {
+			player.displayClientMessage(Component.translatable("message.jujutsumod.megumi.dogs.no_room"), true);
+		}
+		return false;
 	}
 
 	static boolean isCurrent(MegumiDivineDogEntity dog) {
@@ -147,7 +221,8 @@ public final class MegumiSummonRuntime {
 		DIMENSION_CHANGE(MegumiProfile.RECALL_COOLDOWN_TICKS),
 		DISCONNECT(0),
 		SERVER_STOPPING(0),
-		DESELECTED(MegumiProfile.RECALL_COOLDOWN_TICKS);
+		DESELECTED(MegumiProfile.RECALL_COOLDOWN_TICKS),
+		SUMMON_ROLLBACK(0);
 
 		private final int cooldownTicks;
 
