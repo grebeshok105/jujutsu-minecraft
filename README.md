@@ -1,19 +1,20 @@
 # Jujutsu Minecraft
 
-A Fabric 1.21.8 combat mod built around a small number of deeply designed Jujutsu-inspired character kits. The current playable vessels are Nobara (nails, hammer, Hairpin, Resonance, traps, Black Flash) and Todo (Boogie Woogie swap, heavy melee, shared Black Flash bridge), plus a shared cinematic VFX pipeline and character menu.
+A Fabric 1.21.8 combat mod built around a small number of deeply designed Jujutsu-inspired character kits. The current playable vessels are Nobara (nails, hammer, Hairpin, Resonance, traps, Black Flash), Todo (Boogie Woogie swap, heavy melee, shared Black Flash bridge), and Megumi (two independently mortal Divine Dogs), plus a shared cinematic VFX pipeline and character menu.
 
 **New here, or on a new machine? Read [docs/START_HERE.md](docs/START_HERE.md) first** — clone, one command to prove the checkout, and what to read in which order.
 
 ## Current product
 
-- Playable vessels: Nobara, Todo, and None.
+- Playable vessels: Nobara, Todo, Megumi, and None.
 - Menu: press N to open ClickGui, choose a vessel, then confirm it.
 - Nobara actions: R for directed Hairpin, B for mass Hairpin, Shift+R for Self Resonance, Shift+B for Nail Trap, and left click with the hammer for contextual melee.
 - Todo actions: R for Boogie Woogie (server-authoritative self↔target swap, falling back to a thrown mark when nothing is under the crosshair), Shift+R for a feint clap that looks and sounds identical but moves nobody, B twice to swap two bystanders with each other; vanilla melee with Todo modifiers and Black Flash bridge.
+- Megumi actions: R summons both Divine Dogs atomically or recalls the surviving pack; Shift+R commands every living dog to attack the aimed eligible target. Summoning has no cooldown, recall has a 12-second cooldown, and losing the final dog has a 30-second cooldown.
 - Todo can throw a Boogie Woogie Marker: where it lands becomes a lasting swap destination you can return to as often as you like, and a body it strikes glows and becomes one for ten seconds instead, spent by the swap it enables. A landed marker survives until it is destroyed, until you die or change vessel or dimension, or until the game is restarted. Every Todo clap still needs both hands empty, which is why the marker is consumed as it leaves the hand.
 - A completed swap is a short physical beat: a camera snap on the clap, a compact burst and a brief afterimage where each body stood, an inward gather where each one lands, the world's own noise stepping back for a fraction of a second, and a low report when it settles. A feint gets the clap and nothing else. Landing a swap also opens a short window — the next hit that connects lands harder and staggers, and a miss does not spend it.
 - Gameplay authority is server-side; rendering, menus, particles, camera work, and client animation stay under src/client.
-- Character selection persists through reconnects and restarts. Re-selecting Nobara restores any missing starter tools without duplicating ones still held; Todo has no starter items in this slice.
+- Character selection persists through reconnects and restarts. Re-selecting Nobara restores any missing starter tools without duplicating ones still held; Todo and Megumi have no starter items in this slice.
 - The current target is private play for one or two people, not a public competitive server. Several accepted tradeoffs follow from that.
 
 Exact tuning values, contracts, and accepted tradeoffs live in [AGENTS.md](AGENTS.md) under "Current slice (facts)"; unresolved debt lives in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).

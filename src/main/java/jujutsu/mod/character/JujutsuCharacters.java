@@ -1,6 +1,7 @@
 package jujutsu.mod.character;
 
 import net.minecraft.server.level.ServerPlayer;
+import jujutsu.mod.character.megumi.MegumiDefinition;
 import jujutsu.mod.character.nobara.NobaraDefinition;
 import jujutsu.mod.character.todo.TodoDefinition;
 
@@ -22,6 +23,7 @@ public final class JujutsuCharacters {
 	private static final CharacterDefinition NONE_DEFINITION = new NoneDefinition();
 	private static final CharacterDefinition NOBARA_DEFINITION = new NobaraDefinition();
 	private static final CharacterDefinition TODO_DEFINITION = new TodoDefinition();
+	private static final CharacterDefinition MEGUMI_DEFINITION = new MegumiDefinition();
 
 	private JujutsuCharacters() {}
 
@@ -30,6 +32,7 @@ public final class JujutsuCharacters {
 			case NONE -> NONE_DEFINITION;
 			case NOBARA -> NOBARA_DEFINITION;
 			case TODO -> TODO_DEFINITION;
+			case MEGUMI -> MEGUMI_DEFINITION;
 		};
 	}
 

@@ -101,7 +101,22 @@ Nine commits. The through-line: **shared code stopped asking which character a p
 - AGENTS.md gained "The Vessel Seam" as a first-class rule and lost the ten-step character workflow the skill now owns.
 - The claim was verified, not argued: adding a `JujutsuCharacter` constant produces **exactly two** compile errors, one per registry, and none elsewhere; binding it to the wrong definition compiles and fails `testCharacterDefinitions`.
 
+## Third-vessel architecture preflight
+
+- `VesselBoundaryTest` derives vessel class-name prefixes from `JujutsuCharacter` (with Nobara's documented legacy `ProjectJjk` prefix retained explicitly), and `CharacterClientRegistryTest` derives both enum and class names from the same enum. Both checks therefore cover a third vessel when it is registered.
+- Megumi is registered through both vessel definitions with a GeckoLib replaced-player renderer. His router exposes live `PRIMARY` and `PRIMARY_SNEAK` handlers to a two-entry roster card.
+- `megumi_divine_dog` is a transient `.noSave()` `Wolf` subclass with vessel-owned goals, explicit 20 HP / 3 damage / 0.30 speed attributes, no breeding or player interaction, and the vanilla wolf renderer.
+- Divine Dog ownership is runtime-only: one owner-keyed pack record uses entity UUIDs plus a summon token. `teardown` removes the record before a guarded cross-level class-and-owner sweep; removal callbacks cannot turn a planned recall into pack loss, and `reconcile` keeps a living sibling.
+- Megumi `PRIMARY` now atomically resolves and spawns one snowy and one black dog, starts no cooldown on summon, ignores a duplicate packet only on the summon tick, and routes every later press through unconditional recall. Partial insertion is rolled back with no cooldown.
+- Megumi `PRIMARY_SNEAK` uses the unchanged shared `TargetResolver`, an explicit line-of-sight check and one eligibility predicate shared with command assignment, wolf owner-defense goals and periodic target revalidation. It commands every living sibling together and has its own 30-tick cooldown.
+- Divine Dogs farther than 32 blocks get one deterministic safe-ground search every 10 ticks. Recovery accepts only loaded, floor-supported, collision-free, non-fire/non-lava positions within radius 3; when none exists it leaves ordinary pathing and the current target untouched.
+- Megumi presentation owns exactly three VFX Core ids and recipes: summon, recall and target-anchored Sic. His custom player body uses exported idle/walk/run, a per-player `punch_1` -> `punch_2` -> `kick` swing cycle and the server-confirmed summon clip. The vanilla wolf renderer and 1.21.8 `WolfSoundVariant` audio remain reused; no sound asset, payload or VFX channel was added.
+- Eight Megumi JUnit classes cover the approved profile/attributes, two-slot router shape, UUID-token-dimension pack identity, one-sibling retention, cooldown non-shortening, teardown/reconcile race decisions, target truth table, deterministic follow safety and player presentation assets/routing. Each new presentation check was observed red before its implementation.
+
 ## Verification status
+
+- Megumi implementation and animated player presentation through `c63ce84d334595264232fadbc66bb9a5b185dfe0` passed `./gradlew qualityGate --no-daemon` on 2026-07-27: 42 tasks, 34 assertion-enabled JavaExec checks, all JUnit tests and the documentation audit. Automation proves source-set/vessel boundaries, payload inventory, pure Megumi policies, presentation asset presence and animation routing; it does not render a frame or prove world spawning, AI, teleporting, sound or animation timing in game.
+- Megumi still requires in-game smoke for model scale and offsets, first-person arms, held items and shield, head look, idle/walk/run transitions, the `punch_1` -> `punch_2` -> `kick` swing cycle, local and remote summon playback, Divine Dog lifecycle/safety, and Nobara/Todo renderer regression.
 
 - 34 JavaExec verification programs wired into `check`, all green. Three added by the seam work (`testCharacterDefinitions`, `testCharacterClients`, `testNobaraAbilitySlots`), three by the impact pass (`testTodoSwapMomentum`, `testVfxSoundDuck`, `testVfxSilhouette`). All 34 confirmed to enable assertions by `verifyAssertionsEnabled`.
 - Plus four JUnit classes, 22 tests, run by the standard `test` task inside `check`: `VesselBoundaryTest` (10), `CharacterAbilityWireFormatTest` (5), `SelectionPayloadCodecTest` (4), `SourceBoundaryTripwireTest` (3). `failOnNoDiscoveredTests` is `true`, so a suite that discovers nothing fails instead of passing.

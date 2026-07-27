@@ -7,18 +7,32 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import jujutsu.mod.JujutsuMod;
+import jujutsu.mod.character.megumi.MegumiDivineDogEntity;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEntity;
 import jujutsu.mod.character.todo.TodoSwapMarkerEntity;
 
 public final class JujutsuEntities {
 	public static final EntityType<ProjectJjkNailEntity> PROJECTJJK_NAIL = createProjectJjkNail("projectjjk_nail");
 	public static final EntityType<TodoSwapMarkerEntity> TODO_SWAP_MARKER = createTodoSwapMarker("todo_swap_marker");
+	public static final EntityType<MegumiDivineDogEntity> MEGUMI_DIVINE_DOG = createMegumiDivineDog("megumi_divine_dog");
 
 	private JujutsuEntities() {}
 
 	public static void register() {
 		register("projectjjk_nail", PROJECTJJK_NAIL);
 		register("todo_swap_marker", TODO_SWAP_MARKER);
+		register("megumi_divine_dog", MEGUMI_DIVINE_DOG);
+	}
+
+	private static EntityType<MegumiDivineDogEntity> createMegumiDivineDog(String path) {
+		ResourceKey<EntityType<?>> key = ResourceKey.create(Registries.ENTITY_TYPE, JujutsuMod.id(path));
+		return EntityType.Builder
+				.<MegumiDivineDogEntity>of(MegumiDivineDogEntity::new, MobCategory.MISC)
+				.sized(0.6f, 0.85f)
+				.clientTrackingRange(96)
+				.updateInterval(2)
+				.noSave()
+				.build(key);
 	}
 
 	private static EntityType<TodoSwapMarkerEntity> createTodoSwapMarker(String path) {

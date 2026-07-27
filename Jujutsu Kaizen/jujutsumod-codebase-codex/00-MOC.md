@@ -2,7 +2,7 @@
 
 Status: CURRENT
 
-Verified: 2026-07-26
+Verified: 2026-07-27
 
 Code target: current checkout of main or the active feature branch
 
@@ -19,12 +19,12 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 ## Current product snapshot
 
 - Fabric 1.21.8, Java 21, mod id jujutsumod.
-- Playable vessels: Nobara, Todo (Aoi Todo), and None.
+- Playable vessels: Nobara, Todo (Aoi Todo), Megumi, and None.
 - N opens ClickGui; Characters is live and Soon rows are inert.
 - Selection is server-authoritative and persistent through Fabric Data Attachment API.
-- Nobara's starter kit is restored idempotently on every selection; Todo has no starter items in the first slice.
+- Nobara's starter kit is restored idempotently on every selection; Todo and Megumi have no starter items in their current slices.
 - Shared input slots — R, Shift+R, B, Shift+B, and left click with a technique weapon — mean whatever the selected vessel's own router says; each vessel binds one server and one client definition. See [Vessel definitions](02-architecture/Vessel-definitions.md).
-- Vessel bodies are GeckoLib replaced-player renders behind one shared stack; NONE keeps the vanilla model.
+- Nobara, Todo and Megumi use GeckoLib replaced-player renders behind one shared stack; NONE keeps the vanilla player model.
 - Transient combat effects use VfxCue → VfxDirector → character recipes, each registered by its vessel's client definition.
 - A completed Boogie Woogie emits its own cues — afterimage and arrival — which the feint does not, and opens a 24-tick window on Todo's next hit. A landed marker is a reusable anchor; a mark on a body still expires and is still consumed.
 - Loaded ordinary embedded nails use a 1200-tick TTL, a 30-per-owner cap, and EmbeddedNailRegistry.
@@ -34,9 +34,9 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 
 | Metric | Value |
 |---|---:|
-| Main Java files | 101 |
-| Client Java files | 165 |
-| Test Java files | 38 |
+| Main Java files | 113 |
+| Client Java files | 172 |
+| Test Java files | 46 |
 | Verification programs | 34 |
 | Client mixins | 6 |
 | Network payloads | 8 |
@@ -75,6 +75,7 @@ The audit runs inside ./gradlew qualityGate, so these counters are checked befor
 - [Combat timing and Black Flash](03-systems/Combat-timing-and-black-flash.md)
 - [Curse links](03-systems/Curse-links.md)
 - [Todo Boogie Woogie](03-systems/Todo-Boogie-Woogie.md)
+- [Megumi Divine Dogs](03-systems/Megumi-Divine-Dogs.md)
 
 ## Client and VFX
 

@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jujutsu.mod.character.JujutsuCharacter;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,16 @@ class VesselBoundaryTest {
 	private static final String[] VESSEL_PACKAGES = VESSEL_IDS.stream()
 			.map(id -> ".." + id + "..")
 			.toArray(String[]::new);
+
+	/**
+	 * Class-name prefixes follow the registered vessels. ProjectJjk is Nobara's documented legacy
+	 * prefix from the pre-vessel-seam package and remains an explicit exception until that debt is
+	 * retired.
+	 */
+	private static final List<String> VESSEL_CLASS_NAME_PREFIXES = Stream.concat(
+				VESSEL_IDS.stream().map(VesselBoundaryTest::capitalized),
+				Stream.of("ProjectJjk"))
+			.toList();
 
 	/** Package roots whose next segment must name a registered vessel. Fail-closed, so a new one fails. */
 	private static final List<String> VESSEL_PARENTS = List.of(
@@ -179,7 +190,7 @@ class VesselBoundaryTest {
 				if (type.getSimpleName().isEmpty() || type.getName().contains("$")) {
 					continue;
 				}
-				if (!type.getSimpleName().matches("^(Nobara|Todo|ProjectJjk).*")) {
+				if (VESSEL_CLASS_NAME_PREFIXES.stream().noneMatch(type.getSimpleName()::startsWith)) {
 					continue;
 				}
 				if (resideInAnyPackage(VESSEL_PACKAGES).test(type)) {
@@ -309,5 +320,9 @@ class VesselBoundaryTest {
 				() -> "only " + imported.size() + " classes imported from " + output
 						+ "; the rules below would check almost nothing");
 		return imported;
+	}
+
+	private static String capitalized(String id) {
+		return Character.toUpperCase(id.charAt(0)) + id.substring(1);
 	}
 }
