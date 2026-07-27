@@ -115,7 +115,8 @@ Nine commits. The through-line: **shared code stopped asking which character a p
 
 ## Verification status
 
-- Megumi implementation through `8799ae4` passed `./gradlew qualityGate --no-daemon` on 2026-07-27: 42 tasks, 34 assertion-enabled JavaExec checks, all JUnit tests and the documentation audit. Automation proves source-set/vessel boundaries, payload inventory and pure Megumi policies; it does not prove world spawning, AI, teleporting, sound or rendering.
+- Megumi implementation and animated player presentation through `c63ce84d334595264232fadbc66bb9a5b185dfe0` passed `./gradlew qualityGate --no-daemon` on 2026-07-27: 42 tasks, 34 assertion-enabled JavaExec checks, all JUnit tests and the documentation audit. Automation proves source-set/vessel boundaries, payload inventory, pure Megumi policies, presentation asset presence and animation routing; it does not render a frame or prove world spawning, AI, teleporting, sound or animation timing in game.
+- Megumi still requires in-game smoke for model scale and offsets, first-person arms, held items and shield, head look, idle/walk/run transitions, the `punch_1` -> `punch_2` -> `kick` swing cycle, local and remote summon playback, Divine Dog lifecycle/safety, and Nobara/Todo renderer regression.
 
 - 34 JavaExec verification programs wired into `check`, all green. Three added by the seam work (`testCharacterDefinitions`, `testCharacterClients`, `testNobaraAbilitySlots`), three by the impact pass (`testTodoSwapMomentum`, `testVfxSoundDuck`, `testVfxSilhouette`). All 34 confirmed to enable assertions by `verifyAssertionsEnabled`.
 - Plus four JUnit classes, 22 tests, run by the standard `test` task inside `check`: `VesselBoundaryTest` (10), `CharacterAbilityWireFormatTest` (5), `SelectionPayloadCodecTest` (4), `SourceBoundaryTripwireTest` (3). `failOnNoDiscoveredTests` is `true`, so a suite that discovers nothing fails instead of passing.
