@@ -13,6 +13,7 @@ Owned by the root AGENTS.md under "Documentation Authority". If two documents di
 - PROVENANCE.md — ProjectJJK placeholder permission and replacement policy.
 - THIRD_PARTY_NOTICES.md — retained third-party notices that apply to current runtime assets.
 - TODO_BOOGIE_WOOGIE.md — approved design for the Aoi Todo / Boogie Woogie slice, now implemented and merged. Kept for rationale, superseded by the code where they differ.
+- TODO_COMPLETION_CHECKLIST.md — the finite plan for finishing Aoi Todo: what the 2026-07-27 audit confirmed, the eight defects it found, and the measurable definition of done. Point-in-time by design; delete it when its last item closes.
 
 ## Maintenance
 

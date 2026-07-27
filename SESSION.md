@@ -5,6 +5,7 @@
 - `main` = the vessel definition seam and the add-vessel skill (PR #9, #10, #11), the quality gate, the JUnit foundation, and the Boogie Woogie impact pass. Pushed; local and remote agree
 - **Start any new work from `main`.** Everything is merged, and every branch that was fully contained in `main` has been deleted locally and on the remote. Two local branches survive on purpose, and neither is pending work — see "Leftover branches" below
 - Barrier stages 1 and 2 are done. **Stage 3 is ArchUnit**: port only structural rules out of `ProjectSanityTest` — side separation, package isolation between vessels, which layer may hold a payload. Asset, JSON, localization and image checks stay as file reads. Claims about what a method does with a value belong in JUnit or later in GameTest, never in ArchUnit
+- **Finishing Todo is planned in one place: [docs/TODO_COMPLETION_CHECKLIST.md](docs/TODO_COMPLETION_CHECKLIST.md).** Audited 2026-07-27 against `97dd526`. Its finding in one line: the approved scope is implemented and wired end to end, everything except the mark mechanics has been played but never recorded, and eight defects were found by reading — four behavioural, four documentation claims the code contradicts. None of the four behavioural ones is a shape a play session would have surfaced. Use it as the Todo work list; this file keeps only the handoff history
 - Product target: private play for one or two people
 
 Durable product state lives in AGENTS.md under "Current slice (facts)" and, for the seam, under "The Vessel Seam". This file records only what changed recently and what is still unproven. Documentation authority order is owned by AGENTS.md; asset and provenance policy by docs/PROVENANCE.md and docs/THIRD_PARTY_NOTICES.md.
@@ -111,6 +112,8 @@ Run by the user at commit `d9df2b5`: Nobara's kit confirmed working (abilities a
 
 ## Must be checked in game before the impact pass is trusted
 
+Still accurate and still unrun. Which of these gate calling Todo finished is decided by section 1 of [docs/TODO_COMPLETION_CHECKLIST.md](docs/TODO_COMPLETION_CHECKLIST.md); the step-by-step procedure stays owned by [docs/BUILDING_IN_SANDBOX.md](docs/BUILDING_IN_SANDBOX.md). Neither list is superseded — the checklist points at both rather than restating them.
+
 The user ran this pass in game through the sixth commit and it held.
 
 **The seventh commit shipped without an in-game pass, deliberately.** The user was told what was unverified and chose to merge anyway, so this is an accepted risk rather than a forgotten step. What was skipped: the `USE_CONTEXT` slot, reached by two right clicks in quick succession. It is the only slot whose key vanilla already owns, so a defect there does not look like a broken ability — it looks like ordinary right clicks misbehaving. If block, container or item interaction ever starts feeling wrong, check this first: that a single right click still does its ordinary thing, that a pair marks the body under the crosshair, and that normal interaction never trips the pair.
@@ -139,12 +142,13 @@ The user ran this pass in game through the sixth commit and it held.
 ## Next product steps
 
 1. Barrier stage 3 — ArchUnit, scoped as described under "Current state". Then SpotBugs, then PIT, then GameTest.
-2. Run the in-game pass above — items 1–3 are the ones the seam work put at real risk.
-3. Decide the fate of `CharacterPlayerState.hasClaimedStarter`: give the persisted claim a job or delete it (E12 residue).
-4. Decide E10 (Nobara's fallback erases five translated diagnostics) and E11 (cooldown message precedes her silent stagger check) deliberately, not inside a refactor.
-5. Move "is this stack my technique weapon" out of `JujutsuKeybinds` into the client definition — the last vessel-specific line in the input layer, and the one thing blocking a melee vessel from using `ATTACK_CONTEXT`.
-6. Add world/GameTest coverage for the swap runtimes and their rollback paths (E1/E8).
-7. Replace temporary ProjectJJK placeholders; resolve Rich-Modern provenance before any public distribution.
+2. Finish Todo per [docs/TODO_COMPLETION_CHECKLIST.md](docs/TODO_COMPLETION_CHECKLIST.md) — its section 9 is the measurable definition of done. Start with the four behavioural defects (D1–D4), because two of them are only observable in the in-game pass and it is cheaper to fix first and verify once.
+3. Run the in-game pass above — items 1–3 are the ones the seam work put at real risk.
+4. Decide the fate of `CharacterPlayerState.hasClaimedStarter`: give the persisted claim a job or delete it (E12 residue).
+5. Decide E10 (Nobara's fallback erases five translated diagnostics) and E11 (cooldown message precedes her silent stagger check) deliberately, not inside a refactor.
+6. Move "is this stack my technique weapon" out of `JujutsuKeybinds` into the client definition — the last vessel-specific line in the input layer, and the one thing blocking a melee vessel from using `ATTACK_CONTEXT`.
+7. Add world/GameTest coverage for the swap runtimes and their rollback paths (E1/E8).
+8. Replace temporary ProjectJJK placeholders; resolve Rich-Modern provenance before any public distribution.
 
 ## Open decisions left for the user
 
