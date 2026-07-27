@@ -1,5 +1,7 @@
 package jujutsu.mod.character.megumi;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.core.BlockPos;
@@ -7,6 +9,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -15,6 +18,8 @@ import net.minecraft.server.level.ServerLevel;
 /** Floor-supported placement policy shared by initial spawn and later leash recovery. */
 final class MegumiGroundSafety {
 	private static final int[] VERTICAL_OFFSETS = {0, 1, -1, 2, -2, 3, -3};
+	private static final List<HorizontalOffset> LEASH_OFFSETS = buildLeashOffsets(
+			(int) MegumiProfile.LEASH_SAFE_SEARCH_RADIUS);
 
 	private MegumiGroundSafety() {}
 
@@ -47,6 +52,45 @@ final class MegumiGroundSafety {
 		return Optional.empty();
 	}
 
+	static Optional<Vec3> findLeashPosition(
+			ServerLevel level, Vec3 ownerPosition, MegumiDivineDogEntity dog) {
+		EntityDimensions dimensions = dog.getDimensions(Pose.STANDING);
+		for (HorizontalOffset offset : LEASH_OFFSETS) {
+			Vec3 desired = ownerPosition.add(offset.x(), 0.0, offset.z());
+			int baseY = BlockPos.containing(desired).getY();
+			for (int verticalOffset : VERTICAL_OFFSETS) {
+				Vec3 candidate = new Vec3(desired.x, baseY + verticalOffset, desired.z);
+				if (isSafe(level, candidate, dimensions)
+						&& level.getEntities(dog, dimensions.makeBoundingBox(candidate), entity -> !entity.isSpectator()).isEmpty()) {
+					return Optional.of(candidate);
+				}
+			}
+		}
+		return Optional.empty();
+	}
+
+	static List<HorizontalOffset> buildLeashOffsets(int radius) {
+		List<HorizontalOffset> offsets = new ArrayList<>();
+		offsets.add(new HorizontalOffset(0, 0));
+		Comparator<HorizontalOffset> order = Comparator
+				.comparingInt(HorizontalOffset::distanceSquared)
+				.thenComparingInt(HorizontalOffset::x)
+				.thenComparingInt(HorizontalOffset::z);
+		for (int ring = 1; ring <= radius; ring++) {
+			List<HorizontalOffset> ringOffsets = new ArrayList<>();
+			for (int x = -ring; x <= ring; x++) {
+				for (int z = -ring; z <= ring; z++) {
+					if (Math.max(Math.abs(x), Math.abs(z)) == ring) {
+						ringOffsets.add(new HorizontalOffset(x, z));
+					}
+				}
+			}
+			ringOffsets.sort(order);
+			offsets.addAll(ringOffsets);
+		}
+		return List.copyOf(offsets);
+	}
+
 	static boolean isSafe(ServerLevel level, Vec3 candidate, EntityDimensions dimensions) {
 		BlockPos feet = BlockPos.containing(candidate);
 		BlockPos floor = feet.below();
@@ -77,4 +121,10 @@ final class MegumiGroundSafety {
 	}
 
 	record SpawnPair(Vec3 white, Vec3 black) {}
+
+	record HorizontalOffset(int x, int z) {
+		int distanceSquared() {
+			return x * x + z * z;
+		}
+	}
 }

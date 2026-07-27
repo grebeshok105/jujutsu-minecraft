@@ -26,6 +26,7 @@ import net.minecraft.world.entity.animal.wolf.WolfVariant;
 import net.minecraft.world.entity.animal.wolf.WolfVariants;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Relative;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.phys.Vec3;
@@ -245,6 +246,28 @@ public final class MegumiSummonRuntime {
 	private static void tick(MinecraftServer server) {
 		for (UUID ownerId : Set.copyOf(PACKS.keySet())) {
 			reconcile(server, ownerId, RemovalCause.TICK);
+			MegumiDivineDogPack pack = PACKS.get(ownerId);
+			if (pack != null) {
+				recoverLeash(server, ownerId, pack);
+			}
+		}
+	}
+
+	private static void recoverLeash(MinecraftServer server, UUID ownerId, MegumiDivineDogPack pack) {
+		ServerLevel level = server.getLevel(pack.dimension());
+		ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
+		if (level == null || owner == null || owner.level() != level
+				|| level.getGameTime() % MegumiProfile.LEASH_RETRY_TICKS != 0) {
+			return;
+		}
+		double leashDistanceSquared = MegumiProfile.LEASH_DISTANCE * MegumiProfile.LEASH_DISTANCE;
+		for (MegumiDivineDogEntity dog : livingDogs(server, ownerId, pack)) {
+			if (dog.distanceToSqr(owner) <= leashDistanceSquared) {
+				continue;
+			}
+			MegumiGroundSafety.findLeashPosition(level, owner.position(), dog).ifPresent(destination ->
+					dog.teleportTo(level, destination.x, destination.y, destination.z, Set.<Relative>of(),
+							dog.getYRot(), dog.getXRot(), false));
 		}
 	}
 

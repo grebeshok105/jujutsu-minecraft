@@ -109,6 +109,7 @@ Nine commits. The through-line: **shared code stopped asking which character a p
 - Divine Dog ownership is runtime-only: one owner-keyed pack record uses entity UUIDs plus a summon token. `teardown` removes the record before a guarded cross-level class-and-owner sweep; removal callbacks cannot turn a planned recall into pack loss, and `reconcile` keeps a living sibling.
 - Megumi `PRIMARY` now atomically resolves and spawns one snowy and one black dog, starts no cooldown on summon, ignores a duplicate packet only on the summon tick, and routes every later press through unconditional recall. Partial insertion is rolled back with no cooldown.
 - Megumi `PRIMARY_SNEAK` uses the unchanged shared `TargetResolver`, an explicit line-of-sight check and one eligibility predicate shared with command assignment, wolf owner-defense goals and periodic target revalidation. It commands every living sibling together and has its own 30-tick cooldown.
+- Divine Dogs farther than 32 blocks get one deterministic safe-ground search every 10 ticks. Recovery accepts only loaded, floor-supported, collision-free, non-fire/non-lava positions within radius 3; when none exists it leaves ordinary pathing and the current target untouched.
 
 ## Verification status
 
