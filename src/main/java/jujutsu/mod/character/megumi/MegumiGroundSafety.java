@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.tags.BlockTags;
@@ -17,7 +18,7 @@ import net.minecraft.server.level.ServerLevel;
 
 /** Floor-supported placement policy shared by initial spawn and later leash recovery. */
 final class MegumiGroundSafety {
-	private static final int[] VERTICAL_OFFSETS = {0, 1, -1, 2, -2, 3, -3};
+	private static final List<Integer> VERTICAL_OFFSETS = List.of(0, 1, -1, 2, -2, 3, -3);
 	private static final List<HorizontalOffset> LEASH_OFFSETS = buildLeashOffsets(
 			(int) MegumiProfile.LEASH_SAFE_SEARCH_RADIUS);
 
@@ -55,18 +56,31 @@ final class MegumiGroundSafety {
 	static Optional<Vec3> findLeashPosition(
 			ServerLevel level, Vec3 ownerPosition, MegumiDivineDogEntity dog) {
 		EntityDimensions dimensions = dog.getDimensions(Pose.STANDING);
+		return firstSafe(leashCandidates(ownerPosition), candidate -> {
+			boolean entityCollision = !level.getEntities(
+					dog, dimensions.makeBoundingBox(candidate), entity -> !entity.isSpectator()).isEmpty();
+			return isSafe(level, candidate, dimensions, entityCollision);
+		});
+	}
+
+	private static List<Vec3> leashCandidates(Vec3 ownerPosition) {
+		List<Vec3> candidates = new ArrayList<>(LEASH_OFFSETS.size() * VERTICAL_OFFSETS.size());
 		for (HorizontalOffset offset : LEASH_OFFSETS) {
 			Vec3 desired = ownerPosition.add(offset.x(), 0.0, offset.z());
 			int baseY = BlockPos.containing(desired).getY();
 			for (int verticalOffset : VERTICAL_OFFSETS) {
-				Vec3 candidate = new Vec3(desired.x, baseY + verticalOffset, desired.z);
-				if (isSafe(level, candidate, dimensions)
-						&& level.getEntities(dog, dimensions.makeBoundingBox(candidate), entity -> !entity.isSpectator()).isEmpty()) {
-					return Optional.of(candidate);
-				}
+				candidates.add(new Vec3(desired.x, baseY + verticalOffset, desired.z));
 			}
 		}
-		return Optional.empty();
+		return List.copyOf(candidates);
+	}
+
+	static List<Integer> verticalOffsets() {
+		return VERTICAL_OFFSETS;
+	}
+
+	static Optional<Vec3> firstSafe(List<Vec3> candidates, Predicate<Vec3> safe) {
+		return candidates.stream().filter(safe).findFirst();
 	}
 
 	static List<HorizontalOffset> buildLeashOffsets(int radius) {
@@ -92,25 +106,38 @@ final class MegumiGroundSafety {
 	}
 
 	static boolean isSafe(ServerLevel level, Vec3 candidate, EntityDimensions dimensions) {
+		return isSafe(level, candidate, dimensions, false);
+	}
+
+	private static boolean isSafe(
+			ServerLevel level, Vec3 candidate, EntityDimensions dimensions, boolean entityCollision) {
 		BlockPos feet = BlockPos.containing(candidate);
 		BlockPos floor = feet.below();
 		if (!level.isLoaded(feet) || !level.isLoaded(floor)) {
-			return false;
+			return accepts(new SafetyFacts(false, false, false, false, entityCollision));
 		}
 		BlockState floorState = level.getBlockState(floor);
-		if (!floorState.isFaceSturdy(level, floor, Direction.UP) || isHazard(level, floor)) {
-			return false;
-		}
+		boolean sturdyFloor = floorState.isFaceSturdy(level, floor, Direction.UP);
+		boolean hazard = isHazard(level, floor);
 		AABB bounds = dimensions.makeBoundingBox(candidate);
-		if (!level.noCollision(bounds)) {
-			return false;
-		}
+		boolean collisionFree = level.noCollision(bounds);
+		boolean loaded = true;
 		for (BlockPos occupied : BlockPos.betweenClosed(bounds)) {
-			if (!level.isLoaded(occupied) || isHazard(level, occupied)) {
-				return false;
+			if (!level.isLoaded(occupied)) {
+				loaded = false;
+			} else if (isHazard(level, occupied)) {
+				hazard = true;
 			}
 		}
-		return true;
+		return accepts(new SafetyFacts(loaded, sturdyFloor, hazard, collisionFree, entityCollision));
+	}
+
+	static boolean accepts(SafetyFacts facts) {
+		return facts.loaded()
+				&& facts.sturdyFloor()
+				&& !facts.hazard()
+				&& facts.collisionFree()
+				&& !facts.entityCollision();
 	}
 
 	private static boolean isHazard(ServerLevel level, BlockPos position) {
@@ -127,4 +154,12 @@ final class MegumiGroundSafety {
 			return x * x + z * z;
 		}
 	}
+
+	record SafetyFacts(
+			boolean loaded,
+			boolean sturdyFloor,
+			boolean hazard,
+			boolean collisionFree,
+			boolean entityCollision
+	) {}
 }

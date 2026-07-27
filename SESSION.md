@@ -111,6 +111,7 @@ Nine commits. The through-line: **shared code stopped asking which character a p
 - Megumi `PRIMARY_SNEAK` uses the unchanged shared `TargetResolver`, an explicit line-of-sight check and one eligibility predicate shared with command assignment, wolf owner-defense goals and periodic target revalidation. It commands every living sibling together and has its own 30-tick cooldown.
 - Divine Dogs farther than 32 blocks get one deterministic safe-ground search every 10 ticks. Recovery accepts only loaded, floor-supported, collision-free, non-fire/non-lava positions within radius 3; when none exists it leaves ordinary pathing and the current target untouched.
 - Megumi presentation owns exactly three VFX Core ids and recipes: summon, recall and target-anchored Sic. The vanilla wolf renderer and 1.21.8 `WolfSoundVariant` audio are reused; no model, texture, sound asset, payload or VFX channel was added.
+- Seven Megumi JUnit classes cover the approved profile/attributes, two-slot router shape, UUID-token-dimension pack identity, one-sibling retention, cooldown non-shortening, teardown/reconcile race decisions, target truth table and deterministic follow safety. Each check was observed red under its own mutation before restoration.
 
 ## Verification status
 

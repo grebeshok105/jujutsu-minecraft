@@ -90,7 +90,7 @@ public final class MegumiSummonRuntime {
 		MegumiDivineDogPack existing = PACKS.get(ownerId);
 		long gameTime = player.level().getGameTime();
 		if (existing != null) {
-			if (existing.wasSummonedAt(gameTime)) {
+			if (MegumiSummonState.isSameTickDuplicate(existing, gameTime)) {
 				return true;
 			}
 			teardown(player.getServer(), ownerId, TeardownReason.RECALL);
@@ -160,13 +160,14 @@ public final class MegumiSummonRuntime {
 	}
 
 	static boolean isEligibleTarget(LivingEntity owner, LivingEntity target) {
-		return target != owner
-				&& target.isAlive()
-				&& !target.isRemoved()
-				&& target.level() == owner.level()
-				&& (!(target instanceof Player player) || !player.isSpectator())
-				&& (!(target instanceof MegumiDivineDogEntity dog) || !owner.getUUID().equals(dog.ownerUuid()))
-				&& !owner.isAlliedTo(target);
+		return MegumiTargetPolicy.accepts(new MegumiTargetPolicy.Facts(
+				target == owner,
+				target.isAlive(),
+				!target.isRemoved(),
+				target.level() == owner.level(),
+				target instanceof Player player && player.isSpectator(),
+				target instanceof MegumiDivineDogEntity dog && owner.getUUID().equals(dog.ownerUuid()),
+				owner.isAlliedTo(target)));
 	}
 
 	private static MegumiDivineDogEntity createDog(
@@ -200,19 +201,24 @@ public final class MegumiSummonRuntime {
 	static boolean isCurrent(MegumiDivineDogEntity dog) {
 		UUID ownerId = dog.ownerUuid();
 		MegumiDivineDogPack pack = ownerId == null ? null : PACKS.get(ownerId);
-		return pack != null && pack.contains(dog.getUUID(), dog.summonToken(), dog.level().dimension());
+		return MegumiSummonState.belongsToPack(
+				pack, dog.getUUID(), dog.summonToken(), dog.level().dimension());
 	}
 
 	static void reconcile(MinecraftServer server, UUID ownerId, RemovalCause cause) {
-		if (server == null || TEARDOWN_IN_PROGRESS.contains(ownerId)) {
+		if (server == null) {
 			return;
 		}
 		MegumiDivineDogPack pack = PACKS.get(ownerId);
-		if (pack == null) {
+		if (MegumiLifecyclePolicy.reconcileAction(
+				TEARDOWN_IN_PROGRESS.contains(ownerId), pack != null, 0)
+				== MegumiLifecyclePolicy.ReconcileAction.IGNORE) {
 			return;
 		}
 		List<MegumiDivineDogEntity> livingDogs = livingDogs(server, ownerId, pack);
-		if (!livingDogs.isEmpty()) {
+		MegumiLifecyclePolicy.ReconcileAction action = MegumiLifecyclePolicy.reconcileAction(
+				false, true, livingDogs.size());
+		if (action == MegumiLifecyclePolicy.ReconcileAction.RETAIN) {
 			ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
 			for (MegumiDivineDogEntity dog : livingDogs) {
 				LivingEntity target = dog.getTarget();
@@ -224,7 +230,7 @@ public final class MegumiSummonRuntime {
 		}
 		if (PACKS.remove(ownerId, pack)) {
 			startCooldownIfLonger(server.getPlayerList().getPlayer(ownerId), CharacterAbility.PRIMARY,
-					MegumiProfile.PACK_DEATH_COOLDOWN_TICKS);
+					MegumiCooldownPolicy.duration(MegumiCooldownPolicy.Cause.FINAL_LOSS));
 		}
 	}
 
@@ -251,7 +257,7 @@ public final class MegumiSummonRuntime {
 		} finally {
 			TEARDOWN_IN_PROGRESS.remove(ownerId);
 		}
-		if (pack != null || foundDog) {
+		if (MegumiLifecyclePolicy.shouldApplyTeardownCooldown(pack != null, foundDog)) {
 			ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
 			if (reason == TeardownReason.RECALL && owner != null) {
 				ServerLevel level = owner.level();
@@ -320,7 +326,11 @@ public final class MegumiSummonRuntime {
 	}
 
 	static void startCooldownIfLonger(ServerPlayer player, CharacterAbility ability, int durationTicks) {
-		if (player == null || durationTicks <= CharacterAbilityCooldowns.remainingTicks(player, ability)) {
+		if (player == null) {
+			return;
+		}
+		int remaining = CharacterAbilityCooldowns.remainingTicks(player, ability);
+		if (MegumiCooldownPolicy.preservedRemaining(remaining, durationTicks) == remaining) {
 			return;
 		}
 		CharacterAbilityCooldowns.start(player, ability, durationTicks);
@@ -334,19 +344,19 @@ public final class MegumiSummonRuntime {
 	}
 
 	public enum TeardownReason {
-		RECALL(MegumiProfile.RECALL_COOLDOWN_TICKS),
-		OWNER_DEATH(MegumiProfile.PACK_DEATH_COOLDOWN_TICKS),
-		RESPAWN(0),
-		DIMENSION_CHANGE(MegumiProfile.RECALL_COOLDOWN_TICKS),
-		DISCONNECT(0),
-		SERVER_STOPPING(0),
-		DESELECTED(MegumiProfile.RECALL_COOLDOWN_TICKS),
-		SUMMON_ROLLBACK(0);
+		RECALL(MegumiCooldownPolicy.Cause.RECALL),
+		OWNER_DEATH(MegumiCooldownPolicy.Cause.FINAL_LOSS),
+		RESPAWN(MegumiCooldownPolicy.Cause.NONE),
+		DIMENSION_CHANGE(MegumiCooldownPolicy.Cause.RECALL),
+		DISCONNECT(MegumiCooldownPolicy.Cause.NONE),
+		SERVER_STOPPING(MegumiCooldownPolicy.Cause.NONE),
+		DESELECTED(MegumiCooldownPolicy.Cause.RECALL),
+		SUMMON_ROLLBACK(MegumiCooldownPolicy.Cause.NONE);
 
 		private final int cooldownTicks;
 
-		TeardownReason(int cooldownTicks) {
-			this.cooldownTicks = cooldownTicks;
+		TeardownReason(MegumiCooldownPolicy.Cause cause) {
+			this.cooldownTicks = MegumiCooldownPolicy.duration(cause);
 		}
 
 		int cooldownTicks() {
