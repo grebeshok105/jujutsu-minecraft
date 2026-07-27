@@ -115,6 +115,8 @@ Nine commits. The through-line: **shared code stopped asking which character a p
 
 ## Verification status
 
+- Megumi implementation through `8799ae4` passed `./gradlew qualityGate --no-daemon` on 2026-07-27: 42 tasks, 34 assertion-enabled JavaExec checks, all JUnit tests and the documentation audit. Automation proves source-set/vessel boundaries, payload inventory and pure Megumi policies; it does not prove world spawning, AI, teleporting, sound or rendering.
+
 - 34 JavaExec verification programs wired into `check`, all green. Three added by the seam work (`testCharacterDefinitions`, `testCharacterClients`, `testNobaraAbilitySlots`), three by the impact pass (`testTodoSwapMomentum`, `testVfxSoundDuck`, `testVfxSilhouette`). All 34 confirmed to enable assertions by `verifyAssertionsEnabled`.
 - Plus four JUnit classes, 22 tests, run by the standard `test` task inside `check`: `VesselBoundaryTest` (10), `CharacterAbilityWireFormatTest` (5), `SelectionPayloadCodecTest` (4), `SourceBoundaryTripwireTest` (3). `failOnNoDiscoveredTests` is `true`, so a suite that discovers nothing fails instead of passing.
 - The documentation audit is **inside `./gradlew qualityGate`** now, and no longer a hand-run step. The impact pass moved all four audited counters at once.
