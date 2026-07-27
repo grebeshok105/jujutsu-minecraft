@@ -1,6 +1,7 @@
 package jujutsu.mod.character.megumi;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -23,11 +24,15 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.animal.wolf.WolfVariant;
 import net.minecraft.world.entity.animal.wolf.WolfVariants;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
+import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuEntities;
 
@@ -112,6 +117,48 @@ public final class MegumiSummonRuntime {
 		return true;
 	}
 
+	public static boolean trySic(ServerPlayer player, boolean notify) {
+		MegumiDivineDogPack pack = PACKS.get(player.getUUID());
+		List<MegumiDivineDogEntity> dogs = pack == null ? List.of() : livingDogs(player.getServer(), player.getUUID(), pack);
+		if (dogs.isEmpty()) {
+			if (pack != null) {
+				reconcile(player.getServer(), player.getUUID(), RemovalCause.TICK);
+			}
+			if (notify) {
+				player.displayClientMessage(Component.translatable("message.jujutsumod.megumi.dogs.none_out"), true);
+			}
+			return false;
+		}
+
+		ServerLevel level = player.level();
+		TargetResolver.Result result = TargetResolver.resolve(
+				level, player, MegumiProfile.SIC_RANGE, target -> isEligibleTarget(player, target));
+		if (result.mode() != TargetResolver.Mode.ENTITY || result.entityId().isEmpty()) {
+			return false;
+		}
+		Entity resolved = level.getEntity(result.entityId().get());
+		if (!(resolved instanceof LivingEntity target)
+				|| !isEligibleTarget(player, target)
+				|| !player.hasLineOfSight(target)) {
+			return false;
+		}
+		for (MegumiDivineDogEntity dog : dogs) {
+			dog.setTarget(target);
+		}
+		startCooldownIfLonger(player, CharacterAbility.PRIMARY_SNEAK, MegumiProfile.SIC_COOLDOWN_TICKS);
+		return true;
+	}
+
+	static boolean isEligibleTarget(LivingEntity owner, LivingEntity target) {
+		return target != owner
+				&& target.isAlive()
+				&& !target.isRemoved()
+				&& target.level() == owner.level()
+				&& (!(target instanceof Player player) || !player.isSpectator())
+				&& (!(target instanceof MegumiDivineDogEntity dog) || !owner.getUUID().equals(dog.ownerUuid()))
+				&& !owner.isAlliedTo(target);
+	}
+
 	private static MegumiDivineDogEntity createDog(
 			ServerLevel level,
 			ServerPlayer owner,
@@ -154,12 +201,20 @@ public final class MegumiSummonRuntime {
 		if (pack == null) {
 			return;
 		}
-		ServerLevel level = server.getLevel(pack.dimension());
-		if (level != null && pack.dogIds().stream().anyMatch(id -> isLivePackDog(level, id, ownerId, pack.summonToken()))) {
+		List<MegumiDivineDogEntity> livingDogs = livingDogs(server, ownerId, pack);
+		if (!livingDogs.isEmpty()) {
+			ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
+			for (MegumiDivineDogEntity dog : livingDogs) {
+				LivingEntity target = dog.getTarget();
+				if (target != null && (owner == null || !isEligibleTarget(owner, target))) {
+					dog.setTarget(null);
+				}
+			}
 			return;
 		}
 		if (PACKS.remove(ownerId, pack)) {
-			startCooldownIfLonger(server.getPlayerList().getPlayer(ownerId), MegumiProfile.PACK_DEATH_COOLDOWN_TICKS);
+			startCooldownIfLonger(server.getPlayerList().getPlayer(ownerId), CharacterAbility.PRIMARY,
+					MegumiProfile.PACK_DEATH_COOLDOWN_TICKS);
 		}
 	}
 
@@ -182,7 +237,8 @@ public final class MegumiSummonRuntime {
 			TEARDOWN_IN_PROGRESS.remove(ownerId);
 		}
 		if (pack != null || foundDog) {
-			startCooldownIfLonger(server.getPlayerList().getPlayer(ownerId), reason.cooldownTicks());
+			startCooldownIfLonger(server.getPlayerList().getPlayer(ownerId), CharacterAbility.PRIMARY,
+					reason.cooldownTicks());
 		}
 	}
 
@@ -200,12 +256,26 @@ public final class MegumiSummonRuntime {
 				&& dog.summonToken() == summonToken;
 	}
 
-	static void startCooldownIfLonger(ServerPlayer player, int durationTicks) {
-		if (player == null || durationTicks <= CharacterAbilityCooldowns.remainingTicks(player, CharacterAbility.PRIMARY)) {
+	private static List<MegumiDivineDogEntity> livingDogs(
+			MinecraftServer server, UUID ownerId, MegumiDivineDogPack pack) {
+		ServerLevel level = server.getLevel(pack.dimension());
+		if (level == null) {
+			return List.of();
+		}
+		return pack.dogIds().stream()
+				.map(level::getEntity)
+				.filter(MegumiDivineDogEntity.class::isInstance)
+				.map(MegumiDivineDogEntity.class::cast)
+				.filter(dog -> isLivePackDog(level, dog.getUUID(), ownerId, pack.summonToken()))
+				.toList();
+	}
+
+	static void startCooldownIfLonger(ServerPlayer player, CharacterAbility ability, int durationTicks) {
+		if (player == null || durationTicks <= CharacterAbilityCooldowns.remainingTicks(player, ability)) {
 			return;
 		}
-		CharacterAbilityCooldowns.start(player, CharacterAbility.PRIMARY, durationTicks);
-		JujutsuNetworking.sendAbilityCooldown(player, CharacterAbility.PRIMARY, durationTicks);
+		CharacterAbilityCooldowns.start(player, ability, durationTicks);
+		JujutsuNetworking.sendAbilityCooldown(player, ability, durationTicks);
 	}
 
 	enum RemovalCause {

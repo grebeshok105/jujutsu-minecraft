@@ -108,6 +108,7 @@ Nine commits. The through-line: **shared code stopped asking which character a p
 - `megumi_divine_dog` is a transient `.noSave()` `Wolf` subclass with vessel-owned goals, explicit 20 HP / 3 damage / 0.30 speed attributes, no breeding or player interaction, and the vanilla wolf renderer. No ability spawns it yet.
 - Divine Dog ownership is runtime-only: one owner-keyed pack record uses entity UUIDs plus a summon token. `teardown` removes the record before a guarded cross-level class-and-owner sweep; removal callbacks cannot turn a planned recall into pack loss, and `reconcile` keeps a living sibling.
 - Megumi `PRIMARY` now atomically resolves and spawns one snowy and one black dog, starts no cooldown on summon, ignores a duplicate packet only on the summon tick, and routes every later press through unconditional recall. Partial insertion is rolled back with no cooldown.
+- Megumi `PRIMARY_SNEAK` uses the unchanged shared `TargetResolver`, an explicit line-of-sight check and one eligibility predicate shared with command assignment, wolf owner-defense goals and periodic target revalidation. It commands every living sibling together and has its own 30-tick cooldown.
 
 ## Verification status
 

@@ -20,6 +20,6 @@ public final class MegumiAbilityRouter {
 	}
 
 	private static boolean trySic(ServerPlayer player, boolean notify) {
-		return false;
+		return MegumiSummonRuntime.trySic(player, notify);
 	}
 }

@@ -98,6 +98,6 @@ public final class MegumiDivineDogEntity extends Wolf {
 
 	@Override
 	public boolean wantsToAttack(LivingEntity target, LivingEntity owner) {
-		return target != this && target != owner && target.isAlive() && !owner.isAlliedTo(target);
+		return target != this && MegumiSummonRuntime.isEligibleTarget(owner, target);
 	}
 }
