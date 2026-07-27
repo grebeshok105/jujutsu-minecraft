@@ -9,7 +9,6 @@ import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterDefinition;
 import jujutsu.mod.character.JujutsuCharacter;
-import jujutsu.mod.registry.JujutsuEffects;
 
 /** Todo on the server: a heavier melee that shrugs off stagger, and three casts on the shared slots. */
 public final class TodoDefinition implements CharacterDefinition {
@@ -57,6 +56,7 @@ public final class TodoDefinition implements CharacterDefinition {
 		TodoBoogieWoogieRuntime.register();
 		TodoPairSwapRuntime.register();
 		TodoSwapMarks.register();
+		TodoStateLifecycle.register();
 	}
 
 	/** Halves it, but never rounds a real stagger away, and never invents one from nothing. */
@@ -74,16 +74,17 @@ public final class TodoDefinition implements CharacterDefinition {
 	 *
 	 * <p>This used to run on every selection change rather than only on leaving him, which also destroyed
 	 * a marker thrown by someone who was never Todo — see E12. Running it only for the vessel being left
-	 * is the honest rule; the stray marker it no longer destroys expires on its own.
+	 * is the honest rule.
+	 *
+	 * <p>The teardown itself lives in {@link TodoStateLifecycle}, because death needs exactly the same one
+	 * and two copies of a five-line cleanup are two chances to forget the fifth line. That includes the
+	 * momentum effect: the spend path checks the attacker is still Todo, so leaving mid-window would
+	 * otherwise strand a live {@code +25%} attack modifier on another vessel with nothing left that could
+	 * take it off — the attribute sweeps do not reach it, since it belongs to the effect rather than here.
 	 */
 	@Override
 	public void onDeselected(ServerPlayer player) {
-		TodoPairSwapRuntime.forget(player.getUUID());
-		TodoSwapMarks.clear(player.getServer(), player.getUUID());
-		// The spend path checks that the attacker is still Todo, so leaving mid-window would strand a live
-		// +25% attack modifier on another vessel with nothing left that could ever take it off. Attribute
-		// sweeps do not reach it either: it belongs to the effect, not to this definition.
-		player.removeEffect(JujutsuEffects.TODO_SWAP_MOMENTUM);
+		TodoStateLifecycle.dropEverything(player);
 	}
 
 	private static void addMultiplier(AttributeInstance attribute, ResourceLocation id, double amount) {

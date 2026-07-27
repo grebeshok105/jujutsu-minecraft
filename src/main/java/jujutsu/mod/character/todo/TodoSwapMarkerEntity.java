@@ -1,5 +1,6 @@
 package jujutsu.mod.character.todo;
 
+import java.util.UUID;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -12,6 +13,8 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
+import jujutsu.mod.character.CharacterSelectionManager;
+import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.registry.JujutsuItems;
 
@@ -26,6 +29,12 @@ import jujutsu.mod.registry.JujutsuItems;
 public class TodoSwapMarkerEntity extends ThrowableItemProjectile {
 	private int flightTicks;
 	private boolean landed;
+	/**
+	 * Captured at the throw so a sweep can still find this after the thrower is gone. {@code getOwner()}
+	 * resolves a live entity and returns null once it is not one, which is precisely the moment
+	 * {@link TodoStateLifecycle} needs to identify what to discard.
+	 */
+	private UUID thrownBy;
 
 	public TodoSwapMarkerEntity(EntityType<? extends TodoSwapMarkerEntity> type, Level level) {
 		super(type, level);
@@ -33,6 +42,12 @@ public class TodoSwapMarkerEntity extends ThrowableItemProjectile {
 
 	public TodoSwapMarkerEntity(Level level, LivingEntity owner, ItemStack stack) {
 		super(JujutsuEntities.TODO_SWAP_MARKER, owner, level, stack);
+		this.thrownBy = owner.getUUID();
+	}
+
+	/** The thrower's id, or null on a client-constructed copy that never saw the throw. */
+	UUID thrownBy() {
+		return thrownBy;
 	}
 
 	@Override
@@ -77,11 +92,28 @@ public class TodoSwapMarkerEntity extends ThrowableItemProjectile {
 		if (!(level() instanceof ServerLevel level)) {
 			return;
 		}
-		if (!(getOwner() instanceof LivingEntity owner)) {
+		ServerPlayer owner = todoOwner();
+		if (owner == null) {
 			discard();
 			return;
 		}
 		TodoSwapMarks.mark(level, owner.getUUID(), TodoSwapMark.atPosition(level.dimension(), rest, getId()));
+	}
+
+	/**
+	 * The thrower, but only while he is still Todo.
+	 *
+	 * <p>The throw is gated on the vessel and the landing was not, so switching vessel inside the flight
+	 * window let this create a mark after the leaving-the-vessel teardown had already run — a mark in the
+	 * world belonging to a player who is not Todo, which is the shape E12 was closed to prevent.
+	 * Re-reading the selection here rather than trusting the throw is what makes the gate hold for the
+	 * whole flight instead of only its first tick.
+	 */
+	private ServerPlayer todoOwner() {
+		return getOwner() instanceof ServerPlayer owner
+				&& CharacterSelectionManager.selected(owner) == JujutsuCharacter.TODO
+				? owner
+				: null;
 	}
 
 	@Override
@@ -90,7 +122,8 @@ public class TodoSwapMarkerEntity extends ThrowableItemProjectile {
 		if (!(level() instanceof ServerLevel level)) {
 			return;
 		}
-		if (!(getOwner() instanceof ServerPlayer owner)
+		ServerPlayer owner = todoOwner();
+		if (owner == null
 				|| !(hit.getEntity() instanceof LivingEntity struck)
 				|| !TodoBoogieWoogieRuntime.isEligibleTarget(owner, struck)) {
 			discard();

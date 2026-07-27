@@ -407,7 +407,11 @@ public final class ProjectSanityTest {
 		assert Files.exists(todoRuntime) : "Todo needs the server-authoritative Boogie Woogie runtime";
 		String runtime = Files.readString(todoRuntime);
 		assert runtime.contains("TodoProfile.BOOGIE_WOOGIE_RANGE") : "Todo range must come from the profile";
-		assert runtime.contains("TodoSwapPlan.preflight") && runtime.contains("restore(todo, todoSnapshot)")
+		// The rollback used to be pinned as the literal `restore(todo, todoSnapshot)`, which named one call
+		// site rather than the property. Four commit paths roll back and only three reported a failed
+		// restore, so they were folded into one helper — and this assertion had to follow the property
+		// instead of the old spelling.
+		assert runtime.contains("TodoSwapPlan.preflight") && runtime.contains("rollback(\"boogie woogie\"")
 				: "Boogie Woogie must require an atomic destination plan and roll back a partial authoritative move";
 		assert Files.exists(MAIN_JAVA.resolve("jujutsu/mod/character/todo/TodoSwapPlan.java"))
 				: "Todo must keep the two-party swap preflight in a testable atomic plan";

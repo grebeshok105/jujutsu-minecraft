@@ -61,7 +61,7 @@ public final class TodoMarkerSwapRuntime {
 		}
 		TodoBoogieWoogieRuntime.Snapshot snapshot = TodoBoogieWoogieRuntime.Snapshot.capture(todo);
 		if (!TodoBoogieWoogieRuntime.place(todo, level, safe, snapshot)) {
-			TodoBoogieWoogieRuntime.restore(todo, snapshot);
+			TodoBoogieWoogieRuntime.rollback("marker swap", todo, todo, snapshot, null, null);
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.unsafe", "authoritative teleport failed");
 		}
 		TodoBoogieWoogieRuntime.restoreMotionAndRotation(todo, snapshot);
@@ -84,13 +84,7 @@ public final class TodoMarkerSwapRuntime {
 		boolean todoPlaced = TodoBoogieWoogieRuntime.place(todo, level, plan.get().firstDestination(), todoSnapshot);
 		boolean markedPlaced = todoPlaced && TodoBoogieWoogieRuntime.place(marked, level, plan.get().secondDestination(), markedSnapshot);
 		if (!todoPlaced || !markedPlaced) {
-			boolean todoRestored = TodoBoogieWoogieRuntime.restore(todo, todoSnapshot);
-			boolean markedRestored = TodoBoogieWoogieRuntime.restore(marked, markedSnapshot);
-			if (!todoRestored || !markedRestored) {
-				JujutsuMod.LOGGER.error(
-						"Todo marker swap rollback incomplete player={} marked={} todoRestored={} markedRestored={}",
-						todo.getGameProfile().getName(), marked.getName().getString(), todoRestored, markedRestored);
-			}
+			TodoBoogieWoogieRuntime.rollback("marker swap", todo, todo, todoSnapshot, marked, markedSnapshot);
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.unsafe", "authoritative teleport failed");
 		}
 		TodoBoogieWoogieRuntime.restoreMotionAndRotation(todo, todoSnapshot);

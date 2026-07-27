@@ -81,7 +81,11 @@ This block is the single owner of current-slice facts. `README.md` keeps only th
 
 `TodoBoogieWoogieRuntime.findSafeDestination` checks only world bounds, chunk load, world border, and solid-block collision. There is **no floor requirement** and **no third-party entity-occupancy gate** — air, water, crawl, and flight destinations are all valid by design. This is intentional for the current 1–2 player target, not an oversight; the residual debt is tracked in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md). Do not add an occupancy gate without a product decision.
 
-Strictness is the line between Todo's own feel and everyone else's safety. `SOFT` keeps the last-resort fallback to the exact requested point, and only Todo's aimed self↔target swap uses it — that fallback is why mid-air swaps feel good. Every cast that moves a body which did not ask to be moved uses `STRICT` and cancels instead: the pair swap, and both forms of the thrown-mark swap. Do not relax that to make a cast succeed more often.
+Strictness is the line between Todo's own feel and everyone else's safety, and it is drawn per **body**, not per cast. `SOFT` keeps the last-resort fallback to the exact requested point, which skips `noBlockCollision`; exactly one destination in the whole kit uses it — Todo's own arrival in the aimed swap, because that fallback is why mid-air swaps feel good and the risk is his to take.
+
+Every other body gets `STRICT`, including the aimed swap's **target**: the pair swap's two participants, both forms of the thrown-mark swap, and the target itself. `STRICT` is not a floor requirement — air, water and crawl spaces stay valid — it only refuses a point inside geometry, judged by the body's own bounding box and inside the world border. When no such point exists the whole cast cancels through `TodoSwapPlan.preflight` rather than forcing anyone into a wall.
+
+There is deliberately **no defaulting overload** of `findSafeDestination`. One existed and silently supplied `SOFT`, which is how the target came to be placed through the unchecked fallback for the whole first slice. Every caller states its strictness at the call site, so the unsafe choice cannot be made by omission. Do not reintroduce a default, and do not relax `STRICT` to make a cast succeed more often.
 
 #### The empty-hands gate is absolute (deliberate)
 

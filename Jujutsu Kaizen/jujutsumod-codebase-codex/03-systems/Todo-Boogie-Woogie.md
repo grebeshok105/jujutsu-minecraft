@@ -61,7 +61,13 @@ There is **no floor check** and **no third-party entity-occupancy gate**. A swap
 
 The search order is `up` 0..3 outer, then a 13-entry horizontal offset ring (origin, ±0.5 axis, ±1.0 axis, ±0.7 diagonals) inner — so the exact requested point wins when it is usable.
 
-`findSafeDestination` takes a `Strictness`. Under `SOFT`, used by this ability, a last-resort fallback accepts the exact requested point when it passes `isInWorldDestination` — finite coordinates, world bounds, chunk loaded, and now the world border, which moved into that test so both paths enforce it. Block collision is still skipped on that path, so the fallback can place a participant clipping geometry, which vanilla resolves by pushing it out. `STRICT` has no fallback: if no candidate passes, the destination is null and the whole swap cancels. It exists for swaps that move third parties, where relaxing safety for a bystander is not justified by Todo's own mid-air feel.
+`findSafeDestination` takes a `Strictness`, and every caller states it — the defaulting overload that used to supply `SOFT` is deleted, because it applied the fallback to bodies nobody had chosen to expose to it.
+
+Under `SOFT` a last-resort fallback accepts the exact requested point when it passes `isInWorldDestination` — finite coordinates, world bounds, chunk loaded, and the world border, which moved into that test so both paths enforce it. Block collision is skipped on that path, so the fallback can place a body clipping geometry, which vanilla resolves by pushing it out. **Exactly one destination in the kit uses it: Todo's own arrival in the aimed swap.**
+
+`STRICT` has no fallback: if no candidate passes, the destination is null and the whole cast cancels through the preflight. It covers every body that is not Todo — the aimed swap's target, both pair-swap participants, and both forms of the thrown-mark swap. Note what it is not: `STRICT` imposes no floor and no occupancy gate, so air, water and crawl destinations stay legal for a third party. It refuses one thing, a point inside geometry, measured with the body's own posed bounding box.
+
+The aimed swap's target used to take `SOFT` along with Todo, through the defaulting overload. That was the one place where a body which did not ask to be moved could be forced into a wall, and it was decided in favour of the safety principle rather than the shipped behaviour: Todo keeps his fallback, everyone else is placed only where collision passed, and a cast that cannot do that fails instead.
 
 An earlier in-source comment justified the fallback by claiming `noBlockCollision` is picky about the swap partner's old volume. That is false — `Level.noBlockCollision(Entity, AABB)` tests block shapes only and never consults entities. The dead `otherSwapParticipant` parameter that comment referred to has been deleted.
 

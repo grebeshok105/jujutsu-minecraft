@@ -12,6 +12,7 @@ public final class TodoSwapMomentumTest {
 	public static void main(String[] args) {
 		assertOnlyAConfirmedMeleeHitSpendsIt();
 		assertTheBlackFlashBonusCannotEatIt();
+		assertAKillIsHeldToTheSameTable();
 		assertTheWindowClosesBeforeAnotherSwapCanOpenOne();
 		assertTheBonusIsAnOpeningRatherThanAKill();
 		System.out.println("TodoSwapMomentumTest passed");
@@ -47,6 +48,27 @@ public final class TodoSwapMomentumTest {
 				: "the re-entrant bonus hit is the same swing and must not eat the window";
 		assert decide(true) == Spend.SPEND
 				: "the base pass of that same swing must still spend it";
+	}
+
+	/**
+	 * A kill needs its own entry because AFTER_DAMAGE does not fire on a killing blow. It must not get its
+	 * own policy. The kill path used to check three things and spend — killer is a player, is Todo, has the
+	 * effect — which meant any kill inside the window took it: a bow, a snowball, an attributed burn tick.
+	 * The window is bought by a swap and paid out on a hit Todo lands himself.
+	 */
+	private static void assertAKillIsHeldToTheSameTable() {
+		assert TodoSwapMomentum.decideOnKill(false, true, true, true, true) == Spend.SPEND
+				: "a finishing blow Todo landed himself must spend the window";
+		assert TodoSwapMomentum.decideOnKill(false, false, true, true, true) == Spend.IGNORE
+				: "a ranged kill is not the melee this window is for, and killing does not change that";
+		assert TodoSwapMomentum.decideOnKill(true, true, true, true, true) == Spend.IGNORE
+				: "a kill dealt by the re-entrant Black Flash bonus is the same swing seen twice";
+		assert TodoSwapMomentum.decideOnKill(false, true, false, true, true) == Spend.IGNORE
+				: "a player who is no longer Todo must not spend a Todo window on a kill either";
+		assert TodoSwapMomentum.decideOnKill(false, true, true, false, true) == Spend.IGNORE
+				: "a dead or spectating killer must not spend it";
+		assert TodoSwapMomentum.decideOnKill(false, true, true, true, false) == Spend.IGNORE
+				: "with no window open a kill has nothing to spend";
 	}
 
 	private static void assertTheWindowClosesBeforeAnotherSwapCanOpenOne() {

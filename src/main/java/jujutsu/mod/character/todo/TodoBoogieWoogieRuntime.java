@@ -76,9 +76,13 @@ public final class TodoBoogieWoogieRuntime {
 		if (todoSnapshot.level() != targetSnapshot.level()) {
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.invalid_target", "cross-level target");
 		}
+		// Todo keeps SOFT for his own arrival: that fallback is what makes a mid-air swap feel right, and
+		// the risk is his to take. The target never gets it. A body that did not ask to be moved is only
+		// ever placed somewhere that passed noBlockCollision, and if there is no such point the whole cast
+		// cancels through the preflight below rather than forcing anyone into geometry.
 		Optional<TodoSwapPlan> plan = TodoSwapPlan.preflight(
-				findSafeDestination(level, todo, targetSnapshot.position()),
-				findSafeDestination(level, target, todoSnapshot.position())
+				findSafeDestination(level, todo, targetSnapshot.position(), Strictness.SOFT),
+				findSafeDestination(level, target, todoSnapshot.position(), Strictness.STRICT)
 		);
 		if (plan.isEmpty()) {
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.unsafe", "no atomic safe destination");
@@ -91,16 +95,7 @@ public final class TodoBoogieWoogieRuntime {
 		boolean todoPlaced = place(todo, level, plan.get().firstDestination(), todoSnapshot);
 		boolean targetPlaced = todoPlaced && place(target, level, plan.get().secondDestination(), targetSnapshot);
 		if (!todoPlaced || !targetPlaced) {
-			boolean todoRestored = restore(todo, todoSnapshot);
-			boolean targetRestored = restore(target, targetSnapshot);
-			if (!todoRestored || !targetRestored) {
-				JujutsuMod.LOGGER.error(
-						"Todo Boogie Woogie rollback incomplete player={} target={} todoRestored={} targetRestored={}",
-						todo.getGameProfile().getName(),
-						target.getName().getString(),
-						todoRestored,
-						targetRestored);
-			}
+			rollback("boogie woogie", todo, todo, todoSnapshot, target, targetSnapshot);
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.unsafe", "authoritative teleport failed");
 		}
 		restoreMotionAndRotation(todo, todoSnapshot);
@@ -133,14 +128,23 @@ public final class TodoBoogieWoogieRuntime {
 				&& hasFinitePosition(target.position());
 	}
 
-	/** SOFT keeps the shipped fallback to the exact requested point; STRICT cancels instead. */
+	/**
+	 * SOFT keeps the fallback to the exact requested point; STRICT cancels instead.
+	 *
+	 * <p>There is deliberately no defaulting overload of {@link #findSafeDestination}. One used to exist and
+	 * quietly supplied SOFT, which is how the aimed swap came to place its <em>target</em> — a body that did
+	 * not ask to be moved — through a fallback that skips {@code noBlockCollision}. Every caller now says
+	 * which it wants at the call site, so choosing the unsafe one is a visible decision rather than an
+	 * omission.
+	 *
+	 * <p>STRICT is not a floor requirement. It is {@code isInWorldDestination} plus {@code noBlockCollision},
+	 * so air, water and crawl spaces all remain valid destinations for a third party; what it refuses is a
+	 * point inside geometry. The bounding box comes from the entity's own pose, so a large body is held to
+	 * its real size, and the world border is tested against that same inflated box.
+	 */
 	public enum Strictness {
 		SOFT,
 		STRICT
-	}
-
-	private static Vec3 findSafeDestination(ServerLevel level, LivingEntity entity, Vec3 requested) {
-		return findSafeDestination(level, entity, requested, Strictness.SOFT);
 	}
 
 	/**
@@ -184,6 +188,35 @@ public final class TodoBoogieWoogieRuntime {
 
 	static boolean place(LivingEntity entity, ServerLevel level, Vec3 destination, Snapshot snapshot) {
 		return entity.teleportTo(level, destination.x, destination.y, destination.z, Set.<Relative>of(), snapshot.yaw(), snapshot.pitch(), false);
+	}
+
+	/**
+	 * Restores the participants of a failed commit, and reports a restore that itself failed.
+	 *
+	 * <p>Four commit paths roll back and they used to hand-copy this: two restores, a two-flag check, an
+	 * error log. The single-body marker swap copied only the restore and discarded its result, so the one
+	 * route with no second participant was also the one where a failed rollback was invisible. Best-effort
+	 * rollback is an accepted design; an unreported one is not, because that log line is the only evidence
+	 * that a body ended up somewhere neither the plan nor the snapshot describes.
+	 *
+	 * @param route what to call this cast in the log; the four are told apart by nothing else
+	 * @param second the other participant, or {@code null} when the cast moved only one body
+	 */
+	static void rollback(String route, ServerPlayer caster, LivingEntity first, Snapshot firstSnapshot,
+			LivingEntity second, Snapshot secondSnapshot) {
+		boolean firstRestored = restore(first, firstSnapshot);
+		boolean secondRestored = second == null || restore(second, secondSnapshot);
+		if (firstRestored && secondRestored) {
+			return;
+		}
+		JujutsuMod.LOGGER.error(
+				"Todo {} rollback incomplete caster={} first={} firstRestored={} second={} secondRestored={}",
+				route,
+				caster.getGameProfile().getName(),
+				first.getName().getString(),
+				firstRestored,
+				second == null ? "-" : second.getName().getString(),
+				secondRestored);
 	}
 
 	static boolean restore(LivingEntity entity, Snapshot snapshot) {
