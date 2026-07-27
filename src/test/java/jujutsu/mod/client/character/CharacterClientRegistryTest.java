@@ -25,6 +25,14 @@ public final class CharacterClientRegistryTest {
 	private static final Path MAIN = Path.of("src/main/java");
 	private static final Path CLIENT = Path.of("src/client/java");
 	private static final Path REGISTRY = CLIENT.resolve("jujutsu/mod/client/character/JujutsuCharacterClients.java");
+	private static final String[] VESSEL_ENUM_NAMES = Stream.of(JujutsuCharacter.values())
+			.filter(character -> character != JujutsuCharacter.NONE)
+			.map(JujutsuCharacter::name)
+			.toArray(String[]::new);
+	private static final String[] VESSEL_CLASS_NAMES = Stream.of(JujutsuCharacter.values())
+			.filter(character -> character != JujutsuCharacter.NONE)
+			.map(CharacterClientRegistryTest::capitalized)
+			.toArray(String[]::new);
 
 	private CharacterClientRegistryTest() {}
 
@@ -76,7 +84,8 @@ public final class CharacterClientRegistryTest {
 		};
 		for (String file : shared) {
 			String body = Files.readString(CLIENT.resolve(file));
-			for (String vessel : new String[] {"NOBARA", "TODO", "Nobara", "Todo"}) {
+			for (String vessel : Stream.concat(Stream.of(VESSEL_ENUM_NAMES), Stream.of(VESSEL_CLASS_NAMES))
+					.toList()) {
 				assert !body.contains(vessel)
 						: file + " must not name " + vessel + "; it should ask the vessel's client definition";
 			}

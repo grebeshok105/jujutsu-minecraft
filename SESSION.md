@@ -101,6 +101,10 @@ Nine commits. The through-line: **shared code stopped asking which character a p
 - AGENTS.md gained "The Vessel Seam" as a first-class rule and lost the ten-step character workflow the skill now owns.
 - The claim was verified, not argued: adding a `JujutsuCharacter` constant produces **exactly two** compile errors, one per registry, and none elsewhere; binding it to the wrong definition compiles and fails `testCharacterDefinitions`.
 
+## Third-vessel architecture preflight
+
+- `VesselBoundaryTest` derives vessel class-name prefixes from `JujutsuCharacter` (with Nobara's documented legacy `ProjectJjk` prefix retained explicitly), and `CharacterClientRegistryTest` derives both enum and class names from the same enum. Both checks therefore cover a third vessel when it is registered.
+
 ## Verification status
 
 - 34 JavaExec verification programs wired into `check`, all green. Three added by the seam work (`testCharacterDefinitions`, `testCharacterClients`, `testNobaraAbilitySlots`), three by the impact pass (`testTodoSwapMomentum`, `testVfxSoundDuck`, `testVfxSilhouette`). All 34 confirmed to enable assertions by `verifyAssertionsEnabled`.
