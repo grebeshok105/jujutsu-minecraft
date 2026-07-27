@@ -1,12 +1,15 @@
 package jujutsu.mod.client.character.megumi;
 
 import java.util.List;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.entity.WolfRenderer;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.client.character.CharacterClientDefinition;
 import jujutsu.mod.client.character.CharacterRosterEntry;
 import jujutsu.mod.client.character.JujutsuCharacterIcons;
 import jujutsu.mod.client.render.CharacterGeoRenderer;
+import jujutsu.mod.registry.JujutsuEntities;
 
 /** Megumi's client presentation, deliberately using the vanilla player model in this slice. */
 public final class MegumiClientDefinition implements CharacterClientDefinition {
@@ -49,6 +52,11 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 	@Override
 	public float warmth() {
 		return 0.15f;
+	}
+
+	@Override
+	public void registerClientHooks() {
+		EntityRendererRegistry.register(JujutsuEntities.MEGUMI_DIVINE_DOG, WolfRenderer::new);
 	}
 
 	@Override
