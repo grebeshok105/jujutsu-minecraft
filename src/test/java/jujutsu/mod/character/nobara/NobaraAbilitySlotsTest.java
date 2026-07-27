@@ -92,10 +92,10 @@ public final class NobaraAbilitySlotsTest {
 		// the player answers it, and only the next cast reads the answer.
 		//
 		// This used to also require that JujutsuNetworking calls SelfResonanceRuntime.select, which
-		// pinned *where* the receiver is installed as well as *that* the packet exists. The receiver
-		// belongs in Nobara's registerServerHooks, and keeping that half would have made the fix fail a
-		// test. VesselBoundaryTest#theOneKnownNetworkLeakDoesNotGrow now tracks the real placement
-		// structurally, and fails when it is corrected so the exception is removed with it.
+		// pinned *where* the answer is handled as well as *that* the packet exists — the E13 defect.
+		// That half is gone: the receiver hands a neutral intent to CharacterDefinition.selectCurseLink,
+		// and VesselBoundaryTest#theNetworkLayerTouchesNoVesselCode holds the network layer at zero
+		// vessel dependencies. Only the packet's continued existence is asserted here.
 		assert networking.contains("SelectCurseLinkPayload.TYPE")
 				: "The curse-link selection packet is not part of the ability path and must stay registered";
 	}

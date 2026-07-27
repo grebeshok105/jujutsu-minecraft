@@ -1,5 +1,6 @@
 package jujutsu.mod.character.nobara;
 
+import java.util.UUID;
 import net.minecraft.server.level.ServerPlayer;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterDefinition;
@@ -37,6 +38,15 @@ public final class NobaraDefinition implements CharacterDefinition {
 		NobaraActionGuard.register();
 		SelfResonanceRuntime.register();
 		NailTrapRuntime.register();
+	}
+
+	/**
+	 * Self Resonance is the only cast that asks a question, so she is the only vessel that answers one.
+	 * The runtime still validates the link itself — this hook decides who may be heard, not what is true.
+	 */
+	@Override
+	public boolean selectCurseLink(ServerPlayer player, UUID linkId) {
+		return SelfResonanceRuntime.select(player, linkId);
 	}
 
 	@Override

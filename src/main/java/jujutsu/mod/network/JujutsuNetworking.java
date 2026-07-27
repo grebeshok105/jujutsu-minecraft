@@ -10,6 +10,7 @@ import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityExecutor;
 import jujutsu.mod.character.CharacterSelectionManager;
 import jujutsu.mod.character.JujutsuCharacter;
+import jujutsu.mod.character.JujutsuCharacters;
 import jujutsu.mod.vfx.VfxCue;
 
 public final class JujutsuNetworking {
@@ -32,8 +33,11 @@ public final class JujutsuNetworking {
 				context.server().execute(() -> CharacterSelectionManager.select(context.player(), JujutsuCharacter.byId(payload.characterId()))));
 		ServerPlayNetworking.registerGlobalReceiver(CharacterAbilityPayload.TYPE, (payload, context) ->
 				context.server().execute(() -> handleCharacterAbility(context.player(), payload)));
+		// Neutral intent: the client says which link was picked, and the player's own vessel decides what
+		// that means. This used to name one vessel's runtime through an inline fully qualified name — the
+		// shape that has no import line for a grep to find, and the defect tracked as E13.
 		ServerPlayNetworking.registerGlobalReceiver(SelectCurseLinkPayload.TYPE, (payload, context) ->
-				context.server().execute(() -> jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime.select(context.player(), payload.linkId())));
+				context.server().execute(() -> JujutsuCharacters.of(context.player()).selectCurseLink(context.player(), payload.linkId())));
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> { CharacterSelectionManager.syncOnJoin(handler.player); jujutsu.mod.combat.BlackFlashFocus.sync(handler.player); });
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> CharacterSelectionManager.disconnect(handler.player));
 	}

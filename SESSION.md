@@ -2,10 +2,11 @@
 
 ## Current state
 
-- `main` = the vessel definition seam and the add-vessel skill (PR #9, #10, #11), the quality gate, the JUnit foundation, and the Boogie Woogie impact pass. Pushed; local and remote agree
+- `main` = the vessel definition seam and the add-vessel skill (PR #9, #10, #11), the quality gate, the JUnit foundation, the Boogie Woogie impact pass, and the ArchUnit boundaries. Pushed; local and remote agree
 - **Start any new work from `main`.** Everything is merged, and every branch that was fully contained in `main` has been deleted locally and on the remote. Two local branches survive on purpose, and neither is pending work — see "Leftover branches" below
-- Barrier stages 1 and 2 are done. **Stage 3 is ArchUnit**: port only structural rules out of `ProjectSanityTest` — side separation, package isolation between vessels, which layer may hold a payload. Asset, JSON, localization and image checks stay as file reads. Claims about what a method does with a value belong in JUnit or later in GameTest, never in ArchUnit
-- **Finishing Todo is planned in one place: [docs/TODO_COMPLETION_CHECKLIST.md](docs/TODO_COMPLETION_CHECKLIST.md).** Audited 2026-07-27 against `97dd526`. Its finding in one line: the approved scope is implemented and wired end to end, everything except the mark mechanics has been played but never recorded, and eight defects were found by reading — four behavioural, four documentation claims the code contradicts. None of the four behavioural ones is a shape a play session would have surfaced. Use it as the Todo work list; this file keeps only the handoff history
+- Barrier stages 1, 2 and 3 are done. **The order after them was re-planned on 2026-07-27 and is no longer the original stage list.** The Todo audit measured where the gate is blind, so behaviour coverage moved ahead of the static tools: in-game smoke for Todo → the first GameTests → an inventory pass over the 34 `JavaExec` programs → SpotBugs, then PIT
+- **Finishing Todo is planned in one place: [docs/TODO_COMPLETION_CHECKLIST.md](docs/TODO_COMPLETION_CHECKLIST.md).** Audited 2026-07-27. Its finding in one line: the approved scope is implemented and wired end to end, everything except the mark mechanics has been played but never recorded, and eight defects were found by reading — four behavioural, four documentation claims the code contradicts. All eight are now fixed in code and none is verified in game. None of the four behavioural ones is a shape a play session would have surfaced. Use it as the Todo work list; this file keeps only the handoff history
+- **What the gate does and does not prove, measured rather than assumed.** `qualityGate` confirms compilation, architectural boundaries, wire contracts, assets and documentation. It proved nothing about Todo's in-world behaviour, and could not have: the eight defects were all found by reading. Most of the 34 `JavaExec` programs still assert source text. The missing layer has a name and it is `ServerLevel`
 - Product target: private play for one or two people
 
 Durable product state lives in AGENTS.md under "Current slice (facts)" and, for the seam, under "The Vessel Seam". This file records only what changed recently and what is still unproven. Documentation authority order is owned by AGENTS.md; asset and provenance policy by docs/PROVENANCE.md and docs/THIRD_PARTY_NOTICES.md.
@@ -16,7 +17,17 @@ Durable product state lives in AGENTS.md under "Current slice (facts)" and, for 
 - `codex/vfx-director-prototype` holds one commit adding a standalone HTML sandbox under a documentation directory the audit forbids. Merging it fails `qualityGate` on the spot. Keep it as a scratch reference or delete it; it cannot land as is.
 - `worktree-neon-gui` is checked out by an editor workspace outside this repository's `.worktrees`, so git will not let it go. It is fully contained in `main`.
 
-## On the active branch — ArchUnit boundaries, after an adversarial review
+## On the active branch — E13 closed, and the rule that found it tightened to zero
+
+The one defect ArchUnit found on its first pass, fixed. `JujutsuNetworking` registered the `SelectCurseLinkPayload` receiver by calling `SelfResonanceRuntime.select` through an inline fully qualified name — shared code reaching into a vessel runtime, which the seam forbids.
+
+- **The seam it now uses already existed.** `JujutsuCharacters.of(player).selectCurseLink(player, linkId)`, a default-refusing hook on `CharacterDefinition` that only Nobara overrides. No new payload, no `if` on a vessel, and the Self Resonance logic never left her package.
+- **The obvious fix was the wrong one.** `docs/KNOWN_ISSUES.md` had prescribed moving the receiver into `NobaraDefinition.registerServerHooks`. That removes the dependency but keeps the real defect: a receiver that names one vessel's runtime honours the packet from **any** sender. Only the seam route asks who is asking, which is the same refusal `CharacterAbilityPayload` already performs for a stale vessel.
+- **The allowlist is gone and the rule is stronger, not absent.** `theOneKnownNetworkLeakDoesNotGrow` allowed exactly one class; it is now `theNetworkLayerTouchesNoVesselCode` and asserts the empty set. KNOWN_ISSUES had said to delete the test along with its entry — deliberately not done, because a receiver wired straight to a vessel runtime is the cheapest seam breach to write and this is the only check that sees it. The `SourceBoundaryTripwireTest#TRACKED_DEBT` entry for `JujutsuNetworking` is deleted outright, leaving only E14's renderer.
+- **Verified by mutation, not by a green run.** Reintroducing the direct call reddens both halves — the bytecode rule and the grep — which is what proves the grep half was doing work rather than passing over nothing. Messages recorded in the commit body.
+- **Accepted residue, written down rather than left implied.** `selectCurseLink` has exactly one implementer, which KNOWN_ISSUES itself lists as invisible to every structural rule. `canonicalSlot` is the precedent.
+
+## Landed on main — ArchUnit boundaries, after an adversarial review
 
 Stage 3. Ten structural rules over compiled bytecode, three source-text tripwires named as the greps they are, and a recorded list of what neither can prove.
 
@@ -28,7 +39,7 @@ The first version of the rules was reviewed by three independent judges instruct
 - **The registry allowlist narrowed from a class to a direction.** Building a vessel's content is registration; calling a vessel method from a registry is shared code running vessel logic, and two judges independently smuggled dispatch in that way.
 - **Two things bytecode cannot see, confirmed and covered honestly.** javac folds `static final` constants into the caller, so `TodoProfile.BOOGIE_WOOGIE_RANGE` read from shared code leaves no dependency at all — verified with `javap`. The same is true of `Class.forName`. Both are caught by source-text tripwires that say in their own name and javadoc that they are greps.
 - **Rule 5 was deleted, not kept for the count.** Its subject set was a strict subset of rule 3's with the same assertion, so no mutation could redden it alone.
-- **What is still open is written down.** The limits of the gate are listed in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md), together with E13 and E14.
+- **What is still open is written down.** The limits of the gate are listed in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md), together with E14. E13 was the other entry and is closed on the active branch above.
 
 ## Landed on main — the JUnit foundation
 
@@ -92,10 +103,10 @@ Nine commits. The through-line: **shared code stopped asking which character a p
 
 ## Verification status
 
-- 33 JavaExec verification programs wired into `check`, all green. Three added by the seam work (`testCharacterDefinitions`, `testCharacterClients`, `testNobaraAbilitySlots`) and three by the impact pass (`testTodoSwapMomentum`, `testVfxSoundDuck`, `testVfxSilhouette`). All 33 confirmed to enable assertions by `verifyAssertionsEnabled`.
-- Plus one JUnit class, 4 tests, run by the standard `test` task inside `check`. `failOnNoDiscoveredTests` is `true`, so a suite that discovers nothing fails instead of passing.
+- 34 JavaExec verification programs wired into `check`, all green. Three added by the seam work (`testCharacterDefinitions`, `testCharacterClients`, `testNobaraAbilitySlots`), three by the impact pass (`testTodoSwapMomentum`, `testVfxSoundDuck`, `testVfxSilhouette`). All 34 confirmed to enable assertions by `verifyAssertionsEnabled`.
+- Plus four JUnit classes, 22 tests, run by the standard `test` task inside `check`: `VesselBoundaryTest` (10), `CharacterAbilityWireFormatTest` (5), `SelectionPayloadCodecTest` (4), `SourceBoundaryTripwireTest` (3). `failOnNoDiscoveredTests` is `true`, so a suite that discovers nothing fails instead of passing.
 - The documentation audit is **inside `./gradlew qualityGate`** now, and no longer a hand-run step. The impact pass moved all four audited counters at once.
-- Two checks proven able to fail by mutation rather than only observed green: transposing two router arms, and binding a constant to the wrong definition.
+- Three checks proven able to fail by mutation rather than only observed green: transposing two router arms, binding a constant to the wrong definition, and reintroducing the E13 network call — which reddens the bytecode rule and the source-text tripwire independently.
 - Jar built from `main` and installed at `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar`.
 
 **Nothing in the suite constructs a `ServerLevel`,** so no test casts anything for real. Treat the build as proof of shape, not of behaviour.
@@ -141,14 +152,17 @@ The user ran this pass in game through the sixth commit and it held.
 
 ## Next product steps
 
-1. Barrier stage 3 — ArchUnit, scoped as described under "Current state". Then SpotBugs, then PIT, then GameTest.
-2. Finish Todo per [docs/TODO_COMPLETION_CHECKLIST.md](docs/TODO_COMPLETION_CHECKLIST.md) — its section 9 is the measurable definition of done. Start with the four behavioural defects (D1–D4), because two of them are only observable in the in-game pass and it is cheaper to fix first and verify once.
-3. Run the in-game pass above — items 1–3 are the ones the seam work put at real risk.
-4. Decide the fate of `CharacterPlayerState.hasClaimedStarter`: give the persisted claim a job or delete it (E12 residue).
-5. Decide E10 (Nobara's fallback erases five translated diagnostics) and E11 (cooldown message precedes her silent stagger check) deliberately, not inside a refactor.
-6. Move "is this stack my technique weapon" out of `JujutsuKeybinds` into the client definition — the last vessel-specific line in the input layer, and the one thing blocking a melee vessel from using `ATTACK_CONTEXT`.
-7. Add world/GameTest coverage for the swap runtimes and their rollback paths (E1/E8).
-8. Replace temporary ProjectJJK placeholders; resolve Rich-Modern provenance before any public distribution.
+Re-ordered 2026-07-27. SpotBugs and PIT moved down the list, not because they stopped being worth doing but because the Todo audit measured which layer is actually missing, and it is behaviour rather than static analysis. Eight defects were found by reading and none by the suite.
+
+1. **Run the in-game smoke for Todo**, per section 1 of [docs/TODO_COMPLETION_CHECKLIST.md](docs/TODO_COMPLETION_CHECKLIST.md). Four scenarios go first because the code behind them changed and has never been played: death before respawn with a live mark, a vessel switch inside a marker's flight, a bow kill inside the momentum window, and an aimed swap at a target flush against a wall — that last one is D5's new refusal. The curse-link picker joins the list too: E13's fix changed who the server will listen to, and no test opens a picker.
+2. **Record what passed, and at which commit** (checklist item 1.8). The stale `d9df2b5` line in this file is what made the audit conclude in-game coverage was zero when it was not.
+3. **First GameTests**, narrowly scoped to what the smoke just proved by hand: death clears every piece of Todo state; a vessel switch mid-flight creates no mark; a ranged kill does not spend the melee window while a finishing blow does; `STRICT` cancels a swap whose target does not fit; a collision-safe aerial swap still succeeds; the pair swap stays atomic; marks clear on a dimension change.
+4. **Inventory the 34 `JavaExec` programs** rather than theatrically breaking each one to fill a table. Sort them by what they actually prove — behaviour, dependencies, asset presence, or source spelling — record which already have a red mutation on record, and mark the source-text ones as candidates for JUnit or GameTest. Delete any that duplicate another outright.
+5. Barrier stages 4 and 5 — SpotBugs, then PIT.
+6. Decide the fate of `CharacterPlayerState.hasClaimedStarter`: give the persisted claim a job or delete it (E12 residue).
+7. Decide E10 (Nobara's fallback erases five translated diagnostics) and E11 (cooldown message precedes her silent stagger check) deliberately, not inside a refactor.
+8. Move "is this stack my technique weapon" out of `JujutsuKeybinds` into the client definition — the last vessel-specific line in the input layer, and the one thing blocking a melee vessel from using `ATTACK_CONTEXT`.
+9. Replace temporary ProjectJJK placeholders; resolve Rich-Modern provenance before any public distribution.
 
 ## Open decisions left for the user
 
