@@ -119,7 +119,7 @@ public final class MegumiSummonRuntime {
 		PACKS.put(ownerId, new MegumiDivineDogPack(
 				level.dimension(), white.getUUID(), black.getUUID(), token, gameTime));
 		white.playSummonSound();
-		broadcastCue(level, player, MegumiVfxIds.DOGS_SUMMON, player.position(), VfxCue.NO_ANCHOR, Vec3.ZERO);
+		broadcastCue(level, player, MegumiVfxIds.DOGS_SUMMON, player.position(), player.getId(), Vec3.ZERO);
 		return true;
 	}
 

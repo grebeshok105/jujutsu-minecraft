@@ -8,3 +8,9 @@ Status: CURRENT PROVENANCE NOTE
 - The placeholders are intended to be replaced with original assets when feasible.
 - Do not expand the imported set casually. Before public redistribution, preserve the permission scope in a durable form or replace the remaining imported assets.
 - Current implementation truth lives in the repository code, current docs, and the permission/replacement policy in this file.
+
+## Megumi player assets
+
+- The Megumi Blockbench model, animation set, and 128 x 128 model texture were delivered locally by the project owner as project-specific work. Authorship and redistribution evidence are not bundled in the repository.
+- The separate 64 x 64 skin used for first-person hands and the roster was also supplied locally by the project owner; its original source and license were not independently verified.
+- Treat both inputs as private-development assets. Record their redistribution permission or replace them before a public release.

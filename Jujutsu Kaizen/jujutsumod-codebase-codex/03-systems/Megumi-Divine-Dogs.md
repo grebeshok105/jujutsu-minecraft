@@ -4,7 +4,7 @@ Status: CURRENT
 
 ## Slice boundary
 
-Megumi is the third vessel and uses the vanilla player model. `PRIMARY` (`R`) summons or recalls one pack containing two separately mortal `MegumiDivineDogEntity` wolves; `PRIMARY_SNEAK` (`Shift+R`) issues Sic to every living sibling. There are no items, persistent Ten Shadows state, GeckoLib assets, new payloads, mixins, or shared summon abstraction in this slice.
+Megumi is the third vessel. `PRIMARY` (`R`) summons or recalls one pack containing two separately mortal `MegumiDivineDogEntity` wolves; `PRIMARY_SNEAK` (`Shift+R`) issues Sic to every living sibling. There are no items, persistent Ten Shadows state, new payloads, mixins, or shared summon abstraction in this slice.
 
 The server definition, router, profile, entity, placement policy and runtime live under `jujutsu.mod.character.megumi`. The client definition and recipes live under `jujutsu.mod.client.character.megumi`. `JujutsuEntities` is the only content registry changed for the transient `.noSave()` entity.
 
@@ -28,6 +28,8 @@ Every 10 ticks, a dog farther than 32 blocks gets a deterministic safe-ground se
 
 ## Presentation and evidence boundary
 
-The vanilla wolf renderer draws both bodies. Three VFX Core cues (`DOGS_SUMMON`, `DOGS_RECALL`, `DOGS_SIC`) resolve through `MegumiVfxRecipes` and existing particle channels. Minecraft 1.21.8 removed the standalone wolf howl constant in favor of `WolfSoundVariant`; summon and recall therefore use the active vanilla ambient variant at distinct pitches, while Sic uses that variant's growl. No sound assets are added.
+Megumi's client definition supplies a GeckoLib replaced-player renderer through the existing vessel render stack. The 128 x 128 model atlas belongs only to that body; a separate vanilla-layout 64 x 64 skin drives first-person hands and the roster portrait. Base movement selects `idle`, `walk` and `run`. A weak per-player render record advances ordinary swing clips deterministically through `punch_1`, `punch_2` and `kick`; it sends no packet and changes no combat behavior. The exported `combat_idle` clip remains unrouted because the slice has no combat-mode state.
 
-JUnit and architecture checks prove pure policies, constants and vessel boundaries. They do not construct a `ServerLevel`, spawn a dog, move it, run AI, play audio or render a frame. Those behaviours remain owned by the Megumi in-game smoke pass.
+A confirmed summon carries the caster entity id on the existing `DOGS_SUMMON` cue, and the recipe uses it to trigger `summon_divine_dogs` on that player's model. Recall and Sic do not reuse the clip. The vanilla wolf renderer still draws both dog bodies. Three VFX Core cues (`DOGS_SUMMON`, `DOGS_RECALL`, `DOGS_SIC`) resolve through `MegumiVfxRecipes` and existing particle channels. Minecraft 1.21.8 removed the standalone wolf howl constant in favor of `WolfSoundVariant`; summon and recall therefore use the active vanilla ambient variant at distinct pitches, while Sic uses that variant's growl. No sound assets are added.
+
+JUnit and architecture checks prove pure policies, constants, runtime asset shape and vessel boundaries. They do not construct a `ServerLevel`, spawn a dog, move it, run AI, play audio or render a frame. Model scale, held-item alignment, animation timing and those world behaviours remain owned by the Megumi in-game smoke pass.

@@ -7,7 +7,7 @@
 - Minecraft version: `1.21.8`
 - Java version: `21`
 - Mod id: `jujutsumod`
-- Status: **Nobara + Todo vertical slices live** (combat + VFX + character menu), not an empty template
+- Status: **Nobara + Todo + Megumi vertical slices live** (combat + VFX + character menu), not an empty template
 - Core fantasy: a Minecraft mod inspired by the *Jujutsu Kaisen / Магическая битва* idea space — polished combat, strong visual identity, repeatable workflow for deeply designed characters
 
 ## Current Product Direction
@@ -38,7 +38,7 @@ This block is the single owner of current-slice facts. `README.md` keeps only th
 - A **landed** swap marker is a reusable anchor: no timer, and a swap onto it does not spend it. A marker that struck a **body** keeps its ten seconds and is still consumed. Permanent here means until cleared or until the projectile is lost — it ends on death, vessel change, dimension change, disconnect, server stop, and when the projectile goes missing from a *loaded* chunk; it is never persistent between sessions. `TodoSwapMarks.onUsed` is the single place that decides what a swap costs a mark
 - A completed swap opens a 24-tick window through the `todo_swap_momentum` effect: the next confirmed melee hit lands at ×1.25 and staggers for 8 ticks, then the window closes. A miss or a blocked hit does not spend it. The damage is an `ATTACK_DAMAGE` modifier on the effect itself, never a second damage instance. Granted only by the aimed swap and the mark swap — never by the pair swap or the feint
 - Everything a **completed** swap shows rides on `SWAP_AFTERIMAGE` / `SWAP_ARRIVAL` cues that `TodoFakeClapRuntime` never emits. The feint shares the `BOOGIE_WOOGIE` clap cue by design, so nothing that only a real swap earns may be added to that recipe
-- Nobara and Todo render through GeckoLib replaced-player renderers declared by their client definitions; Megumi deliberately keeps the vanilla player model in this slice. Vessel renderers are collected by `CharacterGeoRenderers` and dispatched from `CharacterRenderDispatchMixin`
+- Nobara, Todo and Megumi render through GeckoLib replaced-player renderers declared by their client definitions. Megumi cycles `punch_1`, `punch_2` and `kick` on ordinary client-side swings, and his server-confirmed summon cue triggers `summon_divine_dogs`; this presentation state changes no melee gameplay. Vessel renderers are collected by `CharacterGeoRenderers` and dispatched from `CharacterRenderDispatchMixin`
 - Vessel render code is shared: `CharacterPlayerGeoRenderer` (render entry + pose-stack guard), `CharacterPlayerGeoModel` (arm pose + clamped head look), `CharacterHeldItemLayer` (hand attachments). A new vessel supplies assets and hooks, not a copied render stack
 - Transient combat VFX: **VFX Core** only (`VfxCue` → director → recipes); each vessel registers its own recipe pack from its client definition's `registerClientHooks()` — the aggregate `JujutsuVfxRecipes` is deleted
 - Player menu: **Key N → ClickGui**; sidebar **Characters** (live) + **Soon...** placeholders (non-clickable); the panel drags by its header band with left mouse or anywhere on it with middle mouse, its position is session-only, and the vanilla crosshair is declined while the menu owns the screen

@@ -4,16 +4,20 @@ import java.util.List;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.WolfRenderer;
+import net.minecraft.resources.ResourceLocation;
+import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.client.character.CharacterClientDefinition;
 import jujutsu.mod.client.character.CharacterRosterEntry;
 import jujutsu.mod.client.character.JujutsuCharacterIcons;
 import jujutsu.mod.client.character.megumi.vfx.MegumiVfxRecipes;
 import jujutsu.mod.client.render.CharacterGeoRenderer;
+import jujutsu.mod.client.render.megumi.MegumiPlayerGeoRenderer;
 import jujutsu.mod.registry.JujutsuEntities;
 
-/** Megumi's client presentation, deliberately using the vanilla player model in this slice. */
+/** Megumi's client presentation: his player body, Divine Dog renderer, and VFX recipe pack. */
 public final class MegumiClientDefinition implements CharacterClientDefinition {
+	private static final ResourceLocation SKIN = JujutsuMod.id("textures/entity/character/megumi.png");
 	private static final int ACCENT = 0xFF2F8F83;
 
 	@Override
@@ -27,7 +31,7 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 				"screen.jujutsumod.character_select.megumi",
 				"screen.jujutsumod.character_select.megumi.role",
 				"screen.jujutsumod.character_select.megumi.technique",
-				JujutsuCharacterIcons.BUST, false,
+				SKIN, true,
 				List.of(
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BUST,
 								"screen.jujutsumod.character_select.ability.divine_dogs", "R"),
@@ -37,7 +41,12 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 
 	@Override
 	public CharacterGeoRenderer createRenderer(EntityRendererProvider.Context context) {
-		return null;
+		return new MegumiPlayerGeoRenderer<>(context);
+	}
+
+	@Override
+	public ResourceLocation playerSkin() {
+		return SKIN;
 	}
 
 	@Override

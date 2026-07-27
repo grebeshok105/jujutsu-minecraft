@@ -24,7 +24,7 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 - Selection is server-authoritative and persistent through Fabric Data Attachment API.
 - Nobara's starter kit is restored idempotently on every selection; Todo and Megumi have no starter items in their current slices.
 - Shared input slots — R, Shift+R, B, Shift+B, and left click with a technique weapon — mean whatever the selected vessel's own router says; each vessel binds one server and one client definition. See [Vessel definitions](02-architecture/Vessel-definitions.md).
-- Nobara and Todo use GeckoLib replaced-player renders behind one shared stack; Megumi and NONE keep the vanilla player model.
+- Nobara, Todo and Megumi use GeckoLib replaced-player renders behind one shared stack; NONE keeps the vanilla player model.
 - Transient combat effects use VfxCue → VfxDirector → character recipes, each registered by its vessel's client definition.
 - A completed Boogie Woogie emits its own cues — afterimage and arrival — which the feint does not, and opens a 24-tick window on Todo's next hit. A landed marker is a reusable anchor; a mark on a body still expires and is still consumed.
 - Loaded ordinary embedded nails use a 1200-tick TTL, a 30-per-owner cap, and EmbeddedNailRegistry.
@@ -35,8 +35,8 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 | Metric | Value |
 |---|---:|
 | Main Java files | 113 |
-| Client Java files | 167 |
-| Test Java files | 45 |
+| Client Java files | 172 |
+| Test Java files | 46 |
 | Verification programs | 34 |
 | Client mixins | 6 |
 | Network payloads | 8 |

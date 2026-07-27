@@ -5,6 +5,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.character.megumi.vfx.MegumiVfxIds;
+import jujutsu.mod.client.character.megumi.MegumiAnimationHooks;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.vfx.VfxInstance;
 import jujutsu.mod.vfx.VfxCue;
@@ -28,6 +29,7 @@ public final class MegumiVfxRecipes {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				return;
 			}
+			MegumiAnimationHooks.triggerDivineDogs(cue);
 			Vec3 origin = context.resolveOrigin(cue);
 			RandomSource random = random(cue, 0xD0655A11L);
 			context.burst(SHADOW_DARK, origin.add(0.0, 0.15, 0.0), 20, 0.65, 0.20, random);
