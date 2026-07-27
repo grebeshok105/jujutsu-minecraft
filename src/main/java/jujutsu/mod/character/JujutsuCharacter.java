@@ -5,7 +5,8 @@ import java.util.Locale;
 public enum JujutsuCharacter {
 	NONE("none", "wide"),
 	NOBARA("nobara", "wide"),
-	TODO("todo", "wide");
+	TODO("todo", "wide"),
+	MEGUMI("megumi", "wide");
 
 	private final String id;
 	private final String modelId;

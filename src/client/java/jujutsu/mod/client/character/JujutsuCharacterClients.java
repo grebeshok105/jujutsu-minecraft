@@ -3,6 +3,7 @@ package jujutsu.mod.client.character;
 import java.util.Arrays;
 import java.util.Comparator;
 import jujutsu.mod.character.JujutsuCharacter;
+import jujutsu.mod.client.character.megumi.MegumiClientDefinition;
 import jujutsu.mod.client.character.nobara.NobaraClientDefinition;
 import jujutsu.mod.client.character.todo.TodoClientDefinition;
 
@@ -18,6 +19,7 @@ public final class JujutsuCharacterClients {
 	private static final CharacterClientDefinition NONE_DEFINITION = new NoneClientDefinition();
 	private static final CharacterClientDefinition NOBARA_DEFINITION = new NobaraClientDefinition();
 	private static final CharacterClientDefinition TODO_DEFINITION = new TodoClientDefinition();
+	private static final CharacterClientDefinition MEGUMI_DEFINITION = new MegumiClientDefinition();
 
 	private JujutsuCharacterClients() {}
 
@@ -26,6 +28,7 @@ public final class JujutsuCharacterClients {
 			case NONE -> NONE_DEFINITION;
 			case NOBARA -> NOBARA_DEFINITION;
 			case TODO -> TODO_DEFINITION;
+			case MEGUMI -> MEGUMI_DEFINITION;
 		};
 	}
 

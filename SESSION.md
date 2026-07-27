@@ -104,6 +104,7 @@ Nine commits. The through-line: **shared code stopped asking which character a p
 ## Third-vessel architecture preflight
 
 - `VesselBoundaryTest` derives vessel class-name prefixes from `JujutsuCharacter` (with Nobara's documented legacy `ProjectJjk` prefix retained explicitly), and `CharacterClientRegistryTest` derives both enum and class names from the same enum. Both checks therefore cover a third vessel when it is registered.
+- Megumi is registered through both vessel definitions and is selectable with the vanilla player renderer. His router exposes `PRIMARY` and `PRIMARY_SNEAK` to a two-entry roster card, but both temporary handlers still refuse until the Divine Dog runtime lands.
 
 ## Verification status
 
