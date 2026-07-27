@@ -57,6 +57,14 @@ public final class MegumiDivineDogEntity extends Wolf {
 	}
 
 	@Override
+	public void tick() {
+		super.tick();
+		if (!level().isClientSide() && !MegumiSummonRuntime.isCurrent(this)) {
+			discard();
+		}
+	}
+
+	@Override
 	protected void applyTamingSideEffects() {
 		AttributeInstance health = getAttribute(Attributes.MAX_HEALTH);
 		if (health != null) {

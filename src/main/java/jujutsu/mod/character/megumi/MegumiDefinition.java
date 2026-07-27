@@ -27,5 +27,12 @@ public final class MegumiDefinition implements CharacterDefinition {
 						.add(Attributes.MAX_HEALTH, MegumiProfile.DOG_HEALTH)
 						.add(Attributes.ATTACK_DAMAGE, MegumiProfile.DOG_ATTACK_DAMAGE)
 						.add(Attributes.MOVEMENT_SPEED, MegumiProfile.DOG_MOVEMENT_SPEED));
+		MegumiSummonRuntime.register();
+	}
+
+	@Override
+	public void onDeselected(ServerPlayer player) {
+		MegumiSummonRuntime.teardown(player.getServer(), player.getUUID(),
+				MegumiSummonRuntime.TeardownReason.DESELECTED);
 	}
 }
