@@ -22,6 +22,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.animal.wolf.WolfVariant;
 import net.minecraft.world.entity.animal.wolf.WolfVariants;
 import net.minecraft.world.entity.Entity;
@@ -33,9 +34,11 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
+import jujutsu.mod.character.megumi.vfx.MegumiVfxIds;
 import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuEntities;
+import jujutsu.mod.vfx.VfxCue;
 
 /** Owns every Divine Dog pack, including its single authoritative cross-level teardown. */
 public final class MegumiSummonRuntime {
@@ -115,6 +118,8 @@ public final class MegumiSummonRuntime {
 		}
 		PACKS.put(ownerId, new MegumiDivineDogPack(
 				level.dimension(), white.getUUID(), black.getUUID(), token, gameTime));
+		white.playSummonSound();
+		broadcastCue(level, player, MegumiVfxIds.DOGS_SUMMON, player.position(), VfxCue.NO_ANCHOR, Vec3.ZERO);
 		return true;
 	}
 
@@ -146,6 +151,10 @@ public final class MegumiSummonRuntime {
 		for (MegumiDivineDogEntity dog : dogs) {
 			dog.setTarget(target);
 		}
+		MegumiDivineDogEntity voice = dogs.getFirst();
+		voice.playSicSound();
+		broadcastCue(level, player, MegumiVfxIds.DOGS_SIC, target.position(), target.getId(),
+				new Vec3(0.0, target.getBbHeight() * 0.55, 0.0));
 		startCooldownIfLonger(player, CharacterAbility.PRIMARY_SNEAK, MegumiProfile.SIC_COOLDOWN_TICKS);
 		return true;
 	}
@@ -225,12 +234,17 @@ public final class MegumiSummonRuntime {
 		}
 		MegumiDivineDogPack pack = PACKS.remove(ownerId);
 		boolean foundDog = false;
+		boolean playedRecall = false;
 		try {
 			for (ServerLevel level : server.getAllLevels()) {
 				for (MegumiDivineDogEntity dog : new ArrayList<>(level.getEntities(
 						EntityTypeTest.forClass(MegumiDivineDogEntity.class),
 						candidate -> ownerId.equals(candidate.ownerUuid())))) {
 					foundDog = true;
+					if (reason == TeardownReason.RECALL && !playedRecall) {
+						dog.playRecallSound();
+						playedRecall = true;
+					}
 					dog.discard();
 				}
 			}
@@ -238,9 +252,21 @@ public final class MegumiSummonRuntime {
 			TEARDOWN_IN_PROGRESS.remove(ownerId);
 		}
 		if (pack != null || foundDog) {
-			startCooldownIfLonger(server.getPlayerList().getPlayer(ownerId), CharacterAbility.PRIMARY,
-					reason.cooldownTicks());
+			ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
+			if (reason == TeardownReason.RECALL && owner != null) {
+				ServerLevel level = owner.level();
+				broadcastCue(level, owner, MegumiVfxIds.DOGS_RECALL, owner.position(), VfxCue.NO_ANCHOR, Vec3.ZERO);
+			}
+			startCooldownIfLonger(owner, CharacterAbility.PRIMARY, reason.cooldownTicks());
 		}
+	}
+
+	private static void broadcastCue(
+			ServerLevel level, ServerPlayer owner, ResourceLocation effectId,
+			Vec3 origin, int anchorEntityId, Vec3 anchorOffset) {
+		JujutsuNetworking.broadcastVfxCue(level, origin, MegumiProfile.VFX_CUE_RADIUS,
+				new VfxCue(effectId, origin, anchorEntityId, anchorOffset, 1, level.getGameTime(),
+						owner.getRandom().nextLong(), Vec3.ZERO));
 	}
 
 	private static void tick(MinecraftServer server) {

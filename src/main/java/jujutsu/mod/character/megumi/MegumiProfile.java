@@ -14,6 +14,7 @@ public final class MegumiProfile {
 	public static final int RECALL_COOLDOWN_TICKS = 240;
 	public static final int PACK_DEATH_COOLDOWN_TICKS = 600;
 	public static final int SIC_COOLDOWN_TICKS = 30;
+	public static final double VFX_CUE_RADIUS = 48.0;
 
 	private MegumiProfile() {}
 }

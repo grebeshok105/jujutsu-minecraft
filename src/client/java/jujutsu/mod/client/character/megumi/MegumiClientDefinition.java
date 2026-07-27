@@ -8,6 +8,7 @@ import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.client.character.CharacterClientDefinition;
 import jujutsu.mod.client.character.CharacterRosterEntry;
 import jujutsu.mod.client.character.JujutsuCharacterIcons;
+import jujutsu.mod.client.character.megumi.vfx.MegumiVfxRecipes;
 import jujutsu.mod.client.render.CharacterGeoRenderer;
 import jujutsu.mod.registry.JujutsuEntities;
 
@@ -57,6 +58,7 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 	@Override
 	public void registerClientHooks() {
 		EntityRendererRegistry.register(JujutsuEntities.MEGUMI_DIVINE_DOG, WolfRenderer::new);
+		MegumiVfxRecipes.register();
 	}
 
 	@Override

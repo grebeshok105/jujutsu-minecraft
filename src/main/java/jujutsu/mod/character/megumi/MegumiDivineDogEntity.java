@@ -1,6 +1,8 @@
 package jujutsu.mod.character.megumi;
 
 import java.util.UUID;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -18,6 +20,7 @@ import net.minecraft.world.entity.ai.goal.target.OwnerHurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.OwnerHurtTargetGoal;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.wolf.Wolf;
+import net.minecraft.world.entity.animal.wolf.WolfSoundVariant;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
@@ -54,6 +57,19 @@ public final class MegumiDivineDogEntity extends Wolf {
 
 	public long summonToken() {
 		return summonToken;
+	}
+
+	void playSummonSound() {
+		playSound(getAmbientSound(), 0.9f, 0.82f);
+	}
+
+	void playRecallSound() {
+		playSound(getAmbientSound(), 0.65f, 0.58f);
+	}
+
+	void playSicSound() {
+		Holder<WolfSoundVariant> soundVariant = get(DataComponents.WOLF_SOUND_VARIANT);
+		playSound(soundVariant == null ? getAmbientSound() : soundVariant.value().growlSound().value(), 0.9f, 0.9f);
 	}
 
 	@Override

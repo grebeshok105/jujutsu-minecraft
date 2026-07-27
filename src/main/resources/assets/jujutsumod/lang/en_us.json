@@ -55,7 +55,12 @@
   "screen.jujutsumod.character_select.todo": "Aoi Todo",
   "screen.jujutsumod.character_select.todo.technique": "Boogie Woogie",
   "screen.jujutsumod.character_select.todo.role": "Heavy Melee",
+  "screen.jujutsumod.character_select.megumi": "Megumi Fushiguro",
+  "screen.jujutsumod.character_select.megumi.technique": "Ten Shadows",
+  "screen.jujutsumod.character_select.megumi.role": "Shikigami Summoner",
   "screen.jujutsumod.character_select.ability.boogie_woogie": "Boogie Woogie",
+  "screen.jujutsumod.character_select.ability.divine_dogs": "Divine Dogs",
+  "screen.jujutsumod.character_select.ability.sic": "Sic",
   "screen.jujutsumod.character_select.subtitle": "Bind a technique to your soul",
   "screen.jujutsumod.character_select.title": "Choose Your Sorcerer",
   "subtitles.jujutsumod.hairpin.afterglow": "Hairpin residue fades",
@@ -98,5 +103,8 @@
   "screen.jujutsumod.character_select.ability.entity_mark": "Mark a body",
   "message.jujutsumod.todo.pair.marked": "Marked %s for the swap.",
   "message.jujutsumod.todo.pair.cancelled": "Swap mark cleared.",
-  "message.jujutsumod.todo.pair.lost": "The marked target is gone."
+  "message.jujutsumod.todo.pair.lost": "The marked target is gone.",
+  "message.jujutsumod.megumi.dogs.no_room": "The Divine Dogs need safe ground nearby.",
+  "message.jujutsumod.megumi.dogs.none_out": "No Divine Dogs are summoned.",
+  "entity.jujutsumod.megumi_divine_dog": "Divine Dog"
 }

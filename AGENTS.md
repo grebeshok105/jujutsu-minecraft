@@ -26,17 +26,19 @@ Primary priorities:
 
 This block is the single owner of current-slice facts. `README.md` keeps only the user-facing pitch and controls; `SESSION.md` keeps only what changed on the active branch.
 
-- Playable vessels: **Nobara** (nails, hammer, Hairpin, Resonance, traps, Black Flash path), **Todo** (Boogie Woogie swap, heavy vanilla melee, shared Black Flash bridge), and **None**
+- Playable vessels: **Nobara** (nails, hammer, Hairpin, Resonance, traps, Black Flash path), **Todo** (Boogie Woogie swap, heavy vanilla melee, shared Black Flash bridge), **Megumi** (two independently mortal Divine Dogs), and **None**
 - Nobara controls: `R` directed Hairpin, `B` mass Hairpin, `Shift+R` Self Resonance, `Shift+B` Nail Trap, hammer left click contextual melee
 - Todo controls: `R` Boogie Woogie (server-authoritative self↔target swap, falling back to a live thrown mark when nothing eligible is under the crosshair), `Shift+R` feint clap (the full clap performance with no swap behind it; the modifier is the sneak key, so the cast is visibly crouched — an accepted tradeoff recorded in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)), `B` pair swap (first cast marks a bystander, second swaps the pair while Todo stays put; `Shift+B` folds onto `B` for him via `canonicalSlot`, so crouching between the two presses does not lose one), **two right clicks** mark the body under the crosshair without a thrown marker; vanilla melee with Todo attribute modifiers
+- Megumi controls: `R` atomically summons both Divine Dogs or recalls the surviving pack; `Shift+R` commands every living dog to attack one server-selected eligible target. Summon has no cooldown; recall is 240 ticks; final pack loss is 600 ticks; Sic is 30 ticks
 - Each vessel binds one server and one client definition — see "The Vessel Seam" below, which owns that rule
-- Each vessel's slots are mapped by its own router — `NobaraAbilityRouter`, `TodoAbilityRouter`, reached through the vessel's definition — over an exhaustive `CharacterAbility` switch, so a new slot fails compilation instead of falling into whichever arm a `default` would have picked. Nobara's router additionally owns her stagger check and her single fallback message, because both are hers alone and neither belongs in the shared executor. `CharacterAbility` network ids are wire format: append, never renumber. `CharacterAbilityPayload` also carries the vessel the client believed in, and the server refuses a cast whose claim disagrees with the stored selection
+- Each vessel's slots are mapped by its own router — `NobaraAbilityRouter`, `TodoAbilityRouter`, or `MegumiAbilityRouter`, reached through the vessel's definition — over an exhaustive `CharacterAbility` switch, so a new slot fails compilation instead of falling into whichever arm a `default` would have picked. Nobara's router additionally owns her stagger check and her single fallback message, because both are hers alone and neither belongs in the shared executor. `CharacterAbility` network ids are wire format: append, never renumber. `CharacterAbilityPayload` also carries the vessel the client believed in, and the server refuses a cast whose claim disagrees with the stored selection
+- Megumi's pack is runtime-only and identified by owner UUID plus summon token, never entity id. One guarded teardown owns every destructive cleanup. A living sibling survives reconcile; a final loss starts the longer cooldown. Leash recovery checks every 10 ticks beyond 32 blocks and teleports only onto a loaded, floor-supported, collision-free, non-fire/non-lava point within radius 3; without one, normal pathing continues unchanged
 - Todo has no starter loadout in this slice; the `todo_swap_marker` item is obtainable only by giving it, and only Todo can throw it — `TodoSwapMarkerItem.use` refuses other vessels on both sides through `CharacterSelectionView`. Baseline tuning lives in `TodoProfile`
 - `CharacterAbility.USE_CONTEXT` is the sixth slot and the only one whose key the game already owns. The **first** right click of a pair is vanilla's and is handled before the mod sees it — accepted, not worked around; the input layer sends the slot only once a pair completes, so an ordinary right click costs no packet. `TodoEntityMarkRuntime` produces the same `ENTITY` mark the thrown marker produces, through the same `TodoSwapMarks.markBody`, under the same `TodoSwapGates`
 - A **landed** swap marker is a reusable anchor: no timer, and a swap onto it does not spend it. A marker that struck a **body** keeps its ten seconds and is still consumed. Permanent here means until cleared or until the projectile is lost — it ends on death, vessel change, dimension change, disconnect, server stop, and when the projectile goes missing from a *loaded* chunk; it is never persistent between sessions. `TodoSwapMarks.onUsed` is the single place that decides what a swap costs a mark
 - A completed swap opens a 24-tick window through the `todo_swap_momentum` effect: the next confirmed melee hit lands at ×1.25 and staggers for 8 ticks, then the window closes. A miss or a blocked hit does not spend it. The damage is an `ATTACK_DAMAGE` modifier on the effect itself, never a second damage instance. Granted only by the aimed swap and the mark swap — never by the pair swap or the feint
 - Everything a **completed** swap shows rides on `SWAP_AFTERIMAGE` / `SWAP_ARRIVAL` cues that `TodoFakeClapRuntime` never emits. The feint shares the `BOOGIE_WOOGIE` clap cue by design, so nothing that only a real swap earns may be added to that recipe
-- Both vessels render through GeckoLib replaced-player renderers declared by each vessel's client definition, collected by `CharacterGeoRenderers` and dispatched from `CharacterRenderDispatchMixin`
+- Nobara and Todo render through GeckoLib replaced-player renderers declared by their client definitions; Megumi deliberately keeps the vanilla player model in this slice. Vessel renderers are collected by `CharacterGeoRenderers` and dispatched from `CharacterRenderDispatchMixin`
 - Vessel render code is shared: `CharacterPlayerGeoRenderer` (render entry + pose-stack guard), `CharacterPlayerGeoModel` (arm pose + clamped head look), `CharacterHeldItemLayer` (hand attachments). A new vessel supplies assets and hooks, not a copied render stack
 - Transient combat VFX: **VFX Core** only (`VfxCue` → director → recipes); each vessel registers its own recipe pack from its client definition's `registerClientHooks()` — the aggregate `JujutsuVfxRecipes` is deleted
 - Player menu: **Key N → ClickGui**; sidebar **Characters** (live) + **Soon...** placeholders (non-clickable); the panel drags by its header band with left mouse or anywhere on it with middle mouse, its position is session-only, and the vanilla crosshair is declined while the menu owns the screen
@@ -247,7 +249,7 @@ Avoid:
 
 **Done for v2 slice:** the second character (Todo) built on the same contracts — proving the template is reusable, not just theoretical.
 
-**Next milestone focus:** polish feel/visuals of both kits, then the third vessel through the seam and the `add-vessel` skill — not a broad unfinished framework. The third vessel is the first real test of whether the seam holds; if it forces a shared-file edit, fix the seam rather than the vessel.
+**Next milestone focus:** in-game smoke and feel polish for the three shipped vessels, not a broad unfinished framework. Megumi is the third-vessel seam proof and deliberately adds no universal summon abstraction.
 
 ## Adding a Character
 
@@ -322,10 +324,10 @@ It runs `check` (both source sets compiled, the JUnit suite, and every custom `J
 11. Boogie Woogie destinations have no floor check and no entity-occupancy gate — see the destination policy above.
 12. A landed swap marker is a permanent reusable anchor; a marker on a body is not. Rebalancing levers are already split out (`MARKER_SWAP_COOLDOWN_TICKS`, `MARKER_SWAP_RANGE`, `TodoSwapMarks.onUsed`) so pricing it later is a number, not a rewrite.
 13. The swap's momentum bonus is carried by a `MobEffect` attribute modifier, not by a second damage instance. Two known limits are accepted and documented in `TodoSwapMomentumRuntime`: a sweeping attack keeps the boost on later victims after the window is spent, and on bare fists ×1.25 is worth about a third of a heart, so the stagger is the payload.
+14. Megumi is the third vessel. Divine Dogs are two transient vanilla `Wolf` bodies in one runtime pack; the slice adds no persistent Ten Shadows state or shared summon hierarchy.
 
 ## Open Questions (real remaining)
 
-1. Who is the third character, and which kit axes must differ from both Nobara and Todo.
-2. Whether ClickGui grows more live tabs later or stays Characters + Soon placeholders.
-3. How far to push Rich visual parity vs keep SDF/MSDF adapters long-term.
-4. When temporary ProjectJJK placeholders are replaced and what provenance evidence is needed for a public release.
+1. Whether ClickGui grows more live tabs later or stays Characters + Soon placeholders.
+2. How far to push Rich visual parity vs keep SDF/MSDF adapters long-term.
+3. When temporary ProjectJJK placeholders are replaced and what provenance evidence is needed for a public release.
