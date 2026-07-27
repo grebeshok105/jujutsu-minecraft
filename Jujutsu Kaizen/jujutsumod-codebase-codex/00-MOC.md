@@ -93,3 +93,4 @@ The audit runs inside ./gradlew qualityGate, so these counters are checked befor
 - [One-to-one checklist](05-reference/One-to-one-checklist.md)
 - [How to add the next character](06-maintenance/How-to-add-next-character.md)
 - [Risks and technical debt](06-maintenance/Risks-and-tech-debt.md)
+- [Todo completion checklist](../../docs/TODO_COMPLETION_CHECKLIST.md) — the finite plan for finishing Aoi Todo, audited 2026-07-27 against `97dd526`. Lives under `docs/` rather than in this Codex because it is a work plan, not architecture, and is meant to be deleted when it closes.
