@@ -18,6 +18,57 @@ public final class TodoSwapMarkerTest {
 
 	private TodoSwapMarkerTest() {}
 
+	/**
+	 * A best-effort rollback is an accepted design; a silent one is not.
+	 *
+	 * <p>Three of the four commit paths hand-copied the same restore-and-log block and the fourth — the
+	 * single-body marker swap, the only one with no second participant — copied the restore alone and threw
+	 * the result away. A failed restore there left a body somewhere neither the plan nor the snapshot
+	 * describes, with nothing anywhere to say so. All four now go through one helper, and this asserts they
+	 * do rather than asserting each one logs, because the point is that there is one implementation.
+	 */
+	private static void assertEveryCommitPathReportsAFailedRollback() throws Exception {
+		String shared = Files.readString(TODO.resolve("TodoBoogieWoogieRuntime.java"));
+		assert shared.contains("static void rollback(") && shared.contains("rollback incomplete")
+				: "the rollback report must be one helper, not a block each path remembers to copy";
+
+		// Exactly one implementation, counted across the package: a second one is a copy that will drift,
+		// and drift is how the silent path came about in the first place.
+		assert occurrences(shared, "rollback incomplete") == 1
+				: "the shared helper must own the only rollback report";
+		assert occurrences(Files.readString(TODO.resolve("TodoPairSwapRuntime.java")), "rollback incomplete") == 0
+				&& occurrences(Files.readString(TODO.resolve("TodoMarkerSwapRuntime.java")), "rollback incomplete") == 0
+				: "no commit path may keep its own copy of the report";
+
+		// Both marker forms, including the single-body one whose failed restore used to be discarded.
+		assert occurrences(Files.readString(TODO.resolve("TodoMarkerSwapRuntime.java")), "TodoBoogieWoogieRuntime.rollback(") == 2
+				: "both marker swap forms must report, including the single-body one that used to be silent";
+		assert occurrences(Files.readString(TODO.resolve("TodoPairSwapRuntime.java")), "TodoBoogieWoogieRuntime.rollback(") == 1
+				: "the pair swap must report through the same helper";
+	}
+
+	/**
+	 * The throw is gated on the vessel; the landing was not.
+	 *
+	 * <p>Switching vessel inside the 60-tick flight let the projectile land and create a mark after the
+	 * leaving-the-vessel teardown had already run — a mark in the world owned by a player who is not Todo,
+	 * which is the shape E12 was closed to prevent. The selection is re-read at landing so the gate covers
+	 * the whole flight rather than only its first tick.
+	 */
+	private static void assertALandingCannotOutliveTheVessel() throws Exception {
+		String entity = Files.readString(TODO.resolve("TodoSwapMarkerEntity.java"));
+		assert entity.contains("CharacterSelectionManager.selected(owner) == JujutsuCharacter.TODO")
+				: "the landing must re-read the vessel rather than trust the throw that started the flight";
+		assert occurrences(entity, "todoOwner()") >= 3
+				: "both onHitBlock and onHitEntity must go through the gated owner, not getOwner() directly";
+		assert !entity.contains("getOwner() instanceof LivingEntity owner")
+				: "an ungated owner at landing is exactly the hole this closes";
+	}
+
+	private static int occurrences(String source, String needle) {
+		return source.split(java.util.regex.Pattern.quote(needle), -1).length - 1;
+	}
+
 	public static void main(String[] args) throws Exception {
 		assertPositionMarkIsFixedAndOwnsItsProjectile();
 		assertEntityMarkFollowsItsBody();
@@ -29,6 +80,8 @@ public final class TodoSwapMarkerTest {
 		assertMarkedBodyIsStillSafeToMoveAtSwapTime();
 		assertRemarkingTheSameBodyKeepsItsGlow();
 		assertTheMarkerIsObtainable();
+		assertEveryCommitPathReportsAFailedRollback();
+		assertALandingCannotOutliveTheVessel();
 		System.out.println("TodoSwapMarkerTest passed");
 	}
 
@@ -158,7 +211,10 @@ public final class TodoSwapMarkerTest {
 				: "clear() is the unconditional teardown; on the success path it would spend a landed anchor";
 		assert swap.contains("TodoSwapPlan.preflight")
 				: "Moving a marked body must use the same atomic two-destination rule";
-		assert swap.contains("rollback incomplete") : "A failed mark swap must log the incomplete restore";
+		// The report itself now lives in the shared helper; both forms reaching it is asserted by
+		// assertEveryCommitPathReportsAFailedRollback, which counts the call sites rather than the message.
+		assert swap.contains("TodoBoogieWoogieRuntime.rollback(\"marker swap\"")
+				: "A failed mark swap must report the incomplete restore through the shared helper";
 	}
 
 	private static void assertMarkedBodyIsStillSafeToMoveAtSwapTime() throws Exception {

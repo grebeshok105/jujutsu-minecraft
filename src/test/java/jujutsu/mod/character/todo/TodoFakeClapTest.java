@@ -16,6 +16,7 @@ public final class TodoFakeClapTest {
 		assertClapGateTruthTable();
 		assertFeintCarriesNoSwapMachinery();
 		assertFeintReusesTheRealClapPerformance();
+		assertTheSharedPerformanceIsClapOnly();
 		assertCooldownsAreIndependent();
 		assertSlotRoutingIsExhaustive();
 		System.out.println("TodoFakeClapTest passed");
@@ -46,10 +47,57 @@ public final class TodoFakeClapTest {
 		// SwapMomentum belongs here for two reasons: a mechanical payload is a tell, and the feint's own
 		// cooldown is a third of the swap's, so a feint that granted it would be the cheap way to buy the
 		// window and would make the real swap pointless as an opener.
-		for (String forbidden : new String[] {"teleportTo", "TodoSwapPlan", "findSafeDestination", "TargetResolver", "SWAP_ENDPOINT", "SwapMomentum"}) {
+		for (String forbidden : new String[] {"teleportTo", "TodoSwapPlan", "findSafeDestination", "TargetResolver",
+				"SWAP_ENDPOINT", "SWAP_ARRIVAL", "SWAP_AFTERIMAGE", "MOMENTUM_STRIKE", "SwapMomentum", "emitSwapImpact"}) {
 			assert !feint.contains(forbidden)
 					: "The feint must not reach for " + forbidden + "; it never starts a swap";
 		}
+	}
+
+	/**
+	 * The other half of the deception, and the half the list above cannot reach.
+	 *
+	 * <p>Scanning the feint's own file proves it adds nothing. It does not prove the feint stays hollow,
+	 * because the feint calls {@code emitClapPerformance} and inherits whatever that method does. An arrival
+	 * cue added <em>there</em> would hand the feint a camera kick and six ticks of world silence — the two
+	 * loudest things a completed swap owns — while every assertion above stayed green. So the shared method
+	 * is scanned too, and by body rather than by file: those cues legitimately appear elsewhere in the class.
+	 */
+	private static void assertTheSharedPerformanceIsClapOnly() throws Exception {
+		String swap = Files.readString(TODO.resolve("TodoBoogieWoogieRuntime.java"));
+		String body = methodBody(swap, "static void emitClapPerformance(");
+		for (String forbidden : new String[] {"SWAP_ARRIVAL", "SWAP_AFTERIMAGE", "SWAP_ENDPOINT", "MOMENTUM_STRIKE",
+				"emitSwapImpact", "scheduleDisplacementWhoosh", "scheduleLandingReport"}) {
+			assert !body.contains(forbidden)
+					: "emitClapPerformance is shared with the feint, so " + forbidden
+							+ " in it would be given to a cast that moved nobody";
+		}
+		// The converse, so the method cannot be hollowed out instead of overfilled: it must still be the clap.
+		assert body.contains("TodoVfxIds.BOOGIE_WOOGIE") && body.contains("JujutsuSounds.PROJECTJJK_CLAP")
+				: "the shared performance must still carry the cue and the clap sound";
+	}
+
+	/**
+	 * The source text of one method, brace-counted from its signature.
+	 *
+	 * <p>This is a grep and says so: it cannot see a swap cue reached through a helper the method calls,
+	 * only one written into the method itself.
+	 */
+	private static String methodBody(String source, String signature) {
+		int at = source.indexOf(signature);
+		assert at >= 0 : "method not found, so the assertions over it would pass over nothing: " + signature;
+		int open = source.indexOf('{', at);
+		assert open >= 0 : "no method body found for " + signature;
+		int depth = 0;
+		for (int i = open; i < source.length(); i++) {
+			char c = source.charAt(i);
+			if (c == '{') {
+				depth++;
+			} else if (c == '}' && --depth == 0) {
+				return source.substring(open, i + 1);
+			}
+		}
+		throw new AssertionError("unbalanced braces while reading " + signature);
 	}
 
 	private static void assertFeintReusesTheRealClapPerformance() throws Exception {

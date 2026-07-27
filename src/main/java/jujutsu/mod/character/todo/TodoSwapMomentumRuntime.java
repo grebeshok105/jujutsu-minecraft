@@ -77,14 +77,34 @@ public final class TodoSwapMomentumRuntime {
 		}
 	}
 
+	/**
+	 * The kill entry, held to the same table as {@link #afterDamage}.
+	 *
+	 * <p>This used to check three things — killer is a player, is Todo, has the effect — and spend. That
+	 * omitted the melee test the damage path insists on, so any kill inside the window spent it: a bow, a
+	 * snowball, a trident, an attributed burn tick. The window is bought by a swap and paid out on a hit
+	 * Todo makes himself, and a projectile is not that hit.
+	 *
+	 * <p>The event carries no {@code DamageSource}, so the killing blow comes from the victim's own record
+	 * of it. A missing record answers {@code false} and the window survives, which is the safe direction:
+	 * a window that outlives a kill it should have paid for lapses on its own in under 24 ticks, while one
+	 * spent wrongly is gone.
+	 */
 	private static void afterKill(ServerLevel level, Entity killer, LivingEntity victim) {
-		if (!(killer instanceof ServerPlayer todo)
-				|| CharacterSelectionManager.selected(todo) != JujutsuCharacter.TODO
-				|| !todo.hasEffect(JujutsuEffects.TODO_SWAP_MOMENTUM)) {
+		if (!(killer instanceof ServerPlayer todo)) {
 			return;
 		}
-		// The window was spent, so it is spent. No stagger: there is nobody left to interrupt.
-		consume(todo, victim, false);
+		DamageSource killingBlow = victim.getLastDamageSource();
+		TodoSwapMomentum.Spend spend = TodoSwapMomentum.decideOnKill(
+				BlackFlashStrike.isApplyingBonus(victim),
+				killingBlow != null && killingBlow.getDirectEntity() == todo,
+				CharacterSelectionManager.selected(todo) == JujutsuCharacter.TODO,
+				todo.isAlive() && !todo.isSpectator(),
+				todo.hasEffect(JujutsuEffects.TODO_SWAP_MOMENTUM));
+		if (spend == TodoSwapMomentum.Spend.SPEND) {
+			// No stagger: there is nobody left to interrupt.
+			consume(todo, victim, false);
+		}
 	}
 
 	/**

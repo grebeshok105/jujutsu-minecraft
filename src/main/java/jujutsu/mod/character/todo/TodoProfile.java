@@ -86,7 +86,8 @@ public final class TodoProfile {
 	 * swing is simply bigger and no second damage instance exists to double-count or double-consume.
 	 *
 	 * <p>Read the multiplier honestly. Both hands must be empty to clap, so a fist that swings inside the
-	 * window gains about a third of a heart. <b>The stagger is the payload</b>; the damage only matters if
+	 * window gains 0.375 damage — a fist is 1.0, Todo's is 1.5, boosted 1.875 — which against a two-point
+	 * heart is under a fifth of one. <b>The stagger is the payload</b>; the damage only matters if
 	 * the player deliberately draws a weapon inside the window, which is the intended loop — displace,
 	 * arm, hit. The window is shorter than the swap's own cooldown, so two grants can never overlap.
 	 */

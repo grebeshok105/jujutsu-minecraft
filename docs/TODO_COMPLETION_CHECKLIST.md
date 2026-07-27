@@ -4,6 +4,8 @@ Status: CURRENT
 
 Audited: 2026-07-27 against `main` at `97dd526`, which equalled `origin/main` with a clean tree.
 
+Updated: 2026-07-27, same day, when all eight defects were fixed in code. **The fixes are unverified in a running game and Todo is not complete** — see section 9, and read `NOT VERIFIED` in the table below as the load-bearing word.
+
 This is the single finite plan for taking Todo from where he is to "done". It supersedes scattered Todo to-dos in [../SESSION.md](../SESSION.md) as the *completion plan*; it does not replace any owner document. Durable product facts stay in [../AGENTS.md](../AGENTS.md), accepted tradeoffs in [KNOWN_ISSUES.md](KNOWN_ISSUES.md), the manual smoke procedure in [BUILDING_IN_SANDBOX.md](BUILDING_IN_SANDBOX.md), and the behaviour contract in the Codex note [Todo Boogie Woogie](../Jujutsu%20Kaizen/jujutsumod-codebase-codex/03-systems/Todo-Boogie-Woogie.md). Where this file and the code disagree, the code wins.
 
 ## What the audit actually found
@@ -20,20 +22,32 @@ The repository records none of that. `SESSION.md` still names commit `d9df2b5` a
 
 **A passed smoke does not retire any of them, and that is not a hedge.** Each of the four behavioural defects has a shape a normal play session does not surface. D1 only shows in the window between a killing blow and clicking Respawn, while a mark is live — a state a player has little reason to sit in. D2 needs a bow kill inside a 24-tick window opened by a swap. D3 needs a vessel switch inside a 60-tick projectile flight. D4 is invisible by construction: it is a missing log line on a failure path. Three of the four also touch the mark system, which is the untested part.
 
-So: closer to "built, largely played, and carrying four defects that play would not have found" than to "60–70% built". The remaining work is defect closure plus one narrow smoke pass, not construction.
+So: closer to "built, largely played, and carrying four defects that play would not have found" than to "60–70% built". The remaining work was defect closure plus one narrow smoke pass, not construction — and the closure half is now done, leaving the pass.
 
 ### Confirmed defects, referenced by id throughout this document
 
-| Id | Defect | Confirmed at |
-|---|---|---|
-| D1 | Player death runs no Todo cleanup at all — no `AFTER_DEATH` listener exists in the package | `character/todo/` has none; `nobara/projectjjk/NailAnchorLifecycle.java:17` and `ProjectJjkStrawDollRuntime.java:56` show the pattern exists |
-| D2 | `afterKill` bypasses the momentum policy table entirely | `TodoSwapMomentumRuntime.java:80-88` vs `:67-74` |
-| D3 | An in-flight marker outlives its vessel gate | `TodoSwapMarkerEntity.java:77-101`, `TodoDefinition.java:80-87` |
-| D4 | The marker swap's single-body rollback discards its failure result | `TodoMarkerSwapRuntime.java:63-66` vs `TodoBoogieWoogieRuntime.java:96-103` |
-| D5 | The aimed swap plans the *target's* destination under `SOFT` | `TodoBoogieWoogieRuntime.java:81` → `:142-144` → `:162-164` |
-| D6 | `PAIR_MARK`'s javadoc asserts caster-only secrecy that one of its two emitters breaks | `TodoVfxIds.java:17-19` vs `TodoEntityMarkRuntime.java:61-63` |
-| D7 | `TodoSwapMark`'s javadoc says a mark "ends on death"; no death listener backs that clause | `TodoSwapMark.java:24-25` |
-| D8 | "About a third of a heart" overstates the fist-damage gain by roughly 2× | `TodoProfile.java:88-90`, `KNOWN_ISSUES.md:51` |
+All eight are **fixed in code** as of 2026-07-27, in the commit this update ships beside. **None is verified in a running game.** The two states are tracked apart on purpose: three of these fixes change what happens to a body in a live world, and nothing in the build can observe that.
+
+| Id | Defect, as found | Fix | In game |
+|---|---|---|---|
+| D1 | Player death ran no Todo cleanup at all — no `AFTER_DEATH` listener existed in the package | `TodoStateLifecycle` runs one teardown on death, on leaving the vessel, and for projectiles on disconnect | NOT VERIFIED |
+| D2 | `afterKill` bypassed the momentum policy table entirely | both entries route through `TodoSwapMomentum.decide`; the killing blow is read from the victim's own record | NOT VERIFIED |
+| D3 | An in-flight marker outlived its vessel gate | the landing re-reads the selection instead of trusting the throw | NOT VERIFIED |
+| D4 | The marker swap's single-body rollback discarded its failure result | all four commit paths call one `rollback` helper | NOT VERIFIED |
+| D5 | The aimed swap planned the *target's* destination under `SOFT` | target moved to `STRICT`; the defaulting overload deleted | **NOT VERIFIED — behaviour changed, see below** |
+| D6 | `PAIR_MARK`'s javadoc asserted caster-only secrecy that one of its two emitters breaks | the contract now describes both emitters; the broadcast is deliberate and stays | n/a — prose |
+| D7 | `TodoSwapMark`'s javadoc said a mark "ends on death" with no listener behind it | true by construction once D1 landed; no prose edit was needed | NOT VERIFIED |
+| D8 | "About a third of a heart" overstated the fist-damage gain by roughly 2× | corrected to 0.375 damage against a two-point heart | n/a — prose |
+
+Also closed: the feint guard's hole. `TodoFakeClapTest` now scans `emitClapPerformance`'s own body, so a swap cue added to the shared method can no longer hand the feint a camera kick and an audio duck while every test stays green. Each new rule shipped with a recorded red mutation.
+
+**Todo is not complete.** Section 9 is unchanged in what it demands: the fixes move eight blockers from "open" to "awaiting proof", and proof is the smoke pass, not the build.
+
+#### D5 changed behaviour, not only wording
+
+This is the one fix that is not a pure repair, and it is the thing to watch in play. The aimed swap's **target** used to be placed through `SOFT`'s last resort, which returns the exact requested point with `noBlockCollision` skipped — so a target could be put inside geometry and vanilla would shove it back out. It now takes `STRICT`, which has no fallback at all.
+
+The consequence is real and intended: **some aimed swaps that used to succeed will now be refused**, with the existing `no safe destination` message, whenever no collision-free point exists for the target. Todo himself keeps `SOFT`, so his own mid-air feel is untouched. Whether the new refusal rate is acceptable in play is an open question and belongs to item 1.9 — it cannot be answered from the build, because `STRICT` and `SOFT` differ only in a branch no test can reach without a world.
 
 ### Effort scale used below
 
@@ -141,6 +155,16 @@ Two statuses are used below and they are not the same thing. **REPORTED PASSED**
 - **Risks:** none. This is the cheapest item here and it is the one that prevents repeating the mistake.
 - **Basis:** `SESSION.md` "In-game smoke — partial", author report 2026-07-27.
 
+### 1.9 — What D5 cost: the aimed swap's new refusal rate
+
+- **Current state:** UNRUN, and it exists because of a fix rather than a defect. The target now takes `STRICT`, so a swap with no collision-free point for the target is refused outright instead of forcing it into geometry.
+- **What remains:** play normally and judge how often the refusal fires, then check the three cases that decide whether `STRICT` is the right instrument: a target standing flush against a wall, a target whose own body is large enough that a gap Todo would fit through is not one it fits through, and a target near the world border. Also confirm the intended non-case: a swap in open air still succeeds, because `STRICT` has no floor requirement.
+- **How to verify:** in game only. The four properties live inside `isPlaceableDestination`, which needs a real `ServerLevel`; the build can prove the target reaches that predicate and nothing more.
+- **Blocks release:** yes. Not because the fix is doubtful, but because it changed a shipped success rate on the character's primary technique and nobody has felt the new one.
+- **Size:** 1 session, shares a sitting with 1.1.
+- **Risks:** if refusals turn out too frequent, the levers are the search ring and the upward ceiling in `TodoProfile`, not a return to the unchecked fallback — that was decided in favour of the safety principle.
+- **Basis:** D5, `TodoBoogieWoogieRuntime.findSafeDestination`, `AGENTS.md` "Boogie Woogie destination policy".
+
 ---
 
 ## 2. Model and animations
@@ -209,7 +233,7 @@ Two statuses are used below and they are not the same thing. **REPORTED PASSED**
 
 ### 3.2 — Correct the `PAIR_MARK` contract (D6)
 
-- **Current state:** DEFECT. `TodoVfxIds.java:17-19` documents `PAIR_MARK` as "Sent to one player: only the caster may know who is marked." `TodoPairSwapRuntime.java:92-93` honours that with `sendVfxCue`; `TodoEntityMarkRuntime.java:61-63` broadcasts the same id to 64 blocks. The broadcast is deliberate and reasoned in its own file (the glow it applies is public anyway) — the id's contract was simply never updated.
+- **Current state:** **FIXED IN CODE 2026-07-27.** The contract now names both emitters and why their reach differs; the broadcast was always deliberate and is unchanged. As found: `TodoVfxIds.java:17-19` documented `PAIR_MARK` as "Sent to one player: only the caster may know who is marked." `TodoPairSwapRuntime.java:92-93` honours that with `sendVfxCue`; `TodoEntityMarkRuntime.java:61-63` broadcasts the same id to 64 blocks. The broadcast is deliberate and reasoned in its own file (the glow it applies is public anyway) — the id's contract was simply never updated.
 - **What remains:** rewrite the javadoc to state both emitters and why they differ. Do not change the emission — the reasoning at `TodoEntityMarkRuntime.java:28-30` is sound.
 - **How to verify:** read both call sites; confirm the doc names both.
 - **Blocks release:** no. Wrong prose, correct behaviour.
@@ -273,7 +297,7 @@ Two statuses are used below and they are not the same thing. **REPORTED PASSED**
 
 ### 4.1 — Resolve the `SOFT` placement contradiction (D5)
 
-- **Current state:** DEFECT (documentation), CONFIRMED by reading. `AGENTS.md` states the principle "Every cast that moves a body which did not ask to be moved uses `STRICT` and cancels instead", then enumerates the pair swap and both mark forms. The enumeration matches the code. The principle does not: `TodoBoogieWoogieRuntime.java:81` plans the *aimed target's* destination through the three-argument overload at `:142-144`, which hardcodes `SOFT`, whose last resort at `:162-164` returns the exact requested point while skipping `noBlockCollision` at `:169-170`. The aimed target did not ask to be moved either.
+- **Current state:** **RESOLVED IN FAVOUR OF THE SAFETY PRINCIPLE, 2026-07-27. Behaviour changed — see 1.9.** The target takes `STRICT`, and the defaulting overload that supplied `SOFT` without any caller choosing it is deleted, so the unsafe choice cannot be made by omission again. Todo keeps `SOFT` for his own arrival. `AGENTS.md` now states the rule per body rather than per cast, which is where the wording was actually wrong. Proven able to fail by mutation. As found: `AGENTS.md` stated the principle "Every cast that moves a body which did not ask to be moved uses `STRICT` and cancels instead", then enumerates the pair swap and both mark forms. The enumeration matches the code. The principle does not: `TodoBoogieWoogieRuntime.java:81` plans the *aimed target's* destination through the three-argument overload at `:142-144`, which hardcodes `SOFT`, whose last resort at `:162-164` returns the exact requested point while skipping `noBlockCollision` at `:169-170`. The aimed target did not ask to be moved either.
 - **What remains:** a product decision, then one edit. Either narrow the stated principle to match the code — "SOFT applies to both bodies of the aimed swap, because that fallback is what makes mid-air swaps feel good" — or pass `STRICT` for the target at `:81` and accept that some aimed swaps will start cancelling.
 - **How to verify:** whichever way it is decided, `./gradlew qualityGate`, plus an in-game check that aiming at a target standing against a wall behaves as chosen.
 - **Blocks release:** depends. If the principle is what is wanted, this is a live gameplay defect — a target can be forced into geometry. If the code is what is wanted, it is a prose fix.
@@ -283,7 +307,7 @@ Two statuses are used below and they are not the same thing. **REPORTED PASSED**
 
 ### 4.2 — Log the marker swap's failed rollback (D4)
 
-- **Current state:** DEFECT, CONFIRMED. The single-body marker swap at `TodoMarkerSwapRuntime.java:63-66` calls `TodoBoogieWoogieRuntime.restore(todo, snapshot)` and discards the boolean. Every other rollback in the kit logs at error level on failure — `TodoBoogieWoogieRuntime.java:96-103`, `TodoPairSwapRuntime.java:155-163`, and this same file's two-body form at `:89-93`. A failed restore on this one path is completely invisible.
+- **Current state:** **FIXED IN CODE 2026-07-27.** All four commit paths call one `TodoBoogieWoogieRuntime.rollback` helper, and a test counts the call sites rather than the message. Proven able to fail by mutation. As found: the single-body marker swap at `TodoMarkerSwapRuntime.java:63-66` called `TodoBoogieWoogieRuntime.restore(todo, snapshot)` and discarded the boolean. Every other rollback in the kit logs at error level on failure — `TodoBoogieWoogieRuntime.java:96-103`, `TodoPairSwapRuntime.java:155-163`, and this same file's two-body form at `:89-93`. A failed restore on this one path is completely invisible.
 - **What remains:** capture the result and log it in the same shape as the other three.
 - **How to verify:** `./gradlew qualityGate`. Behavioural proof needs a forced teleport failure, which is not reachable without a world.
 - **Blocks release:** yes. Silence here means a body stranded somewhere neither the plan nor the snapshot describes, with no evidence it happened — and the project treats that log line as a bug report rather than noise.
@@ -293,7 +317,7 @@ Two statuses are used below and they are not the same thing. **REPORTED PASSED**
 
 ### 4.3 — Close the feint's test gap
 
-- **Current state:** PARTIAL. The indistinguishability contract holds today: the feint emits only `BOOGIE_WOOGIE` (shared, via `emitClapPerformance`) plus the caster-only `FEINT_TELL`, and neither `scheduleDisplacementWhoosh` nor `scheduleLandingReport` is reachable from it. But the test guarding this is a string match with a hole. `TodoFakeClapTest.java:43-53` forbids `SWAP_ENDPOINT` in the feint's own file and omits `SWAP_ARRIVAL` and `SWAP_AFTERIMAGE`; nothing asserts that `emitClapPerformance` itself stays free of swap cues. Adding `SWAP_ARRIVAL` to the shared method would give the feint a camera kick and an audio duck — destroying the deception — with every test still green.
+- **Current state:** **FIXED IN CODE 2026-07-27.** The forbidden-token list gained `SWAP_ARRIVAL`, `SWAP_AFTERIMAGE`, `MOMENTUM_STRIKE` and `emitSwapImpact`, and a new assertion reads `emitClapPerformance`'s own body by brace count, with the converse asserted so the method cannot be hollowed out instead. Proven able to fail by the mutation this item asked for. As found, the contract held but its guard did not: the feint emits only `BOOGIE_WOOGIE` (shared, via `emitClapPerformance`) plus the caster-only `FEINT_TELL`, and neither `scheduleDisplacementWhoosh` nor `scheduleLandingReport` is reachable from it. But the test guarding this is a string match with a hole. `TodoFakeClapTest.java:43-53` forbids `SWAP_ENDPOINT` in the feint's own file and omits `SWAP_ARRIVAL` and `SWAP_AFTERIMAGE`; nothing asserts that `emitClapPerformance` itself stays free of swap cues. Adding `SWAP_ARRIVAL` to the shared method would give the feint a camera kick and an audio duck — destroying the deception — with every test still green.
 - **What remains:** extend the forbidden-token list, and add an assertion against `emitClapPerformance`'s own body rather than only the feint's.
 - **How to verify:** `./gradlew qualityGate`, plus the mutation the project's own rule requires — add `SWAP_ARRIVAL` to `emitClapPerformance`, confirm the new assertion reddens, revert.
 - **Blocks release:** yes. The feint's whole value is the deception, and the guard on it currently has a documented hole.
@@ -337,7 +361,7 @@ Two statuses are used below and they are not the same thing. **REPORTED PASSED**
 
 ### 5.1 — Route `afterKill` through the policy table (D2)
 
-- **Current state:** DEFECT, CONFIRMED. `TodoSwapMomentumRuntime.afterDamage` (`:62-78`) builds a seven-argument call to `TodoSwapMomentum.decide` — blocked, damage taken, re-entrancy, direct-entity, vessel, liveness, effect. `afterKill` (`:80-88`) checks three things — killer is a `ServerPlayer`, is Todo, has the effect — and calls `consume` directly, bypassing `decide` entirely. So a ranged or indirect kill inside the window (bow, snowball, trident, an attributed fire or potion tick) spends the melee window and fires the `MOMENTUM_STRIKE` cue. `TodoSwapMomentum` exists precisely so this truth table can be tested rather than argued about, and this path does not consult it.
+- **Current state:** **FIXED IN CODE 2026-07-27, NOT VERIFIED IN GAME.** `decideOnKill` delegates to the same `decide`, and the killing blow is read from `victim.getLastDamageSource()` because the event carries none; a missing record answers `false` and the window survives. Locked down by six new rows in `TodoSwapMomentumTest` and proven able to fail by mutation. As found: `TodoSwapMomentumRuntime.afterDamage` (`:62-78`) built a seven-argument call to `TodoSwapMomentum.decide` — blocked, damage taken, re-entrancy, direct-entity, vessel, liveness, effect. `afterKill` (`:80-88`) checks three things — killer is a `ServerPlayer`, is Todo, has the effect — and calls `consume` directly, bypassing `decide` entirely. So a ranged or indirect kill inside the window (bow, snowball, trident, an attributed fire or potion tick) spends the melee window and fires the `MOMENTUM_STRIKE` cue. `TodoSwapMomentum` exists precisely so this truth table can be tested rather than argued about, and this path does not consult it.
 - **What remains:** give `afterKill` the same direct-entity and re-entrancy checks, routed through `decide` with a flag for the kill case (which legitimately skips the stagger, since there is nobody left to interrupt).
 - **How to verify:** extend `TodoSwapMomentumTest` to cover the kill path, then the project's mutation rule — make a ranged kill spend, confirm the new assertion reddens, revert. In game: open a window, kill a mob with a bow, confirm the effect survives.
 - **Blocks release:** yes. The window is the payoff of the character's primary technique, and it can currently be consumed by an action the player did not intend to spend it on.
@@ -356,7 +380,7 @@ Two statuses are used below and they are not the same thing. **REPORTED PASSED**
 
 ### 5.3 — Fix the "third of a heart" figure (D8)
 
-- **Current state:** DEFECT (documentation). `TodoProfile.java:88-90` and `KNOWN_ISSUES.md:51` both say the fist gain is "about a third of a heart", giving the arithmetic as 1.0 → 1.5 → 1.875. The arithmetic is right; the gloss is not. The delta is 0.375 damage points and a heart is 2 points, so the gain is ≈0.19 hearts — about a third of a *half*-heart. The conclusion ("nearly worthless, the stagger is the payload") is unaffected and stands.
+- **Current state:** **FIXED IN CODE 2026-07-27** in both places, with the design conclusion unchanged. As found: `TodoProfile.java:88-90` and `KNOWN_ISSUES.md:51` both said the fist gain is "about a third of a heart", giving the arithmetic as 1.0 → 1.5 → 1.875. The arithmetic is right; the gloss is not. The delta is 0.375 damage points and a heart is 2 points, so the gain is ≈0.19 hearts — about a third of a *half*-heart. The conclusion ("nearly worthless, the stagger is the payload") is unaffected and stands.
 - **What remains:** correct the phrasing in both places.
 - **How to verify:** arithmetic, then `./gradlew qualityGate` for the doc audit.
 - **Blocks release:** no.
@@ -380,7 +404,7 @@ Two statuses are used below and they are not the same thing. **REPORTED PASSED**
 
 ### 6.1 — Add death cleanup (D1)
 
-- **Current state:** ABSENT, CONFIRMED. There is no `ServerLivingEntityEvents.AFTER_DEATH` or `ALLOW_DEATH` listener anywhere in `character/todo/`. Nobara's package has two (`NailAnchorLifecycle.java:17`, `ProjectJjkStrawDollRuntime.java:56`), so the pattern exists and Todo simply does not use it. All of Todo's death-adjacent cleanup is keyed on *respawn*. Between the killing blow and the player clicking Respawn — a window the player holds open at will — the mark stays live, the resting projectile stays in the world, and a marked body keeps glowing for everyone. A landed mark never expires, and neither sweep predicate looks at the owner's state.
+- **Current state:** **FIXED IN CODE 2026-07-27, NOT VERIFIED IN GAME.** `TodoStateLifecycle` registers `AFTER_DEATH` and drops the pair selection, the mark and its world trace, projectiles still in the air, and the momentum window; `TodoDefinition.onDeselected` delegates to the same method. Proven able to fail by mutation. What follows is how it was found. There was no `ServerLivingEntityEvents.AFTER_DEATH` or `ALLOW_DEATH` listener anywhere in `character/todo/`. Nobara's package has two (`NailAnchorLifecycle.java:17`, `ProjectJjkStrawDollRuntime.java:56`), so the pattern exists and Todo simply does not use it. All of Todo's death-adjacent cleanup is keyed on *respawn*. Between the killing blow and the player clicking Respawn — a window the player holds open at will — the mark stays live, the resting projectile stays in the world, and a marked body keeps glowing for everyone. A landed mark never expires, and neither sweep predicate looks at the owner's state.
 - **What remains:** register a death listener clearing the same state the respawn listener clears.
 - **How to verify:** `./gradlew qualityGate` for wiring; the real proof is in game — die with a live mark and a marked body, do not respawn, and confirm the glow and projectile end at death rather than at respawn. That is smoke item 1.4.
 - **Blocks release:** yes. It is a visible-world artefact with an unbounded window, and a documentation claim (D7) already asserts the behaviour exists.
@@ -390,7 +414,7 @@ Two statuses are used below and they are not the same thing. **REPORTED PASSED**
 
 ### 6.2 — Discard in-flight markers on vessel change (D3)
 
-- **Current state:** DEFECT, CONFIRMED. `TodoSwapMarkerItem.use` gates the throw on being Todo (the E12 fix), but `TodoSwapMarkerEntity.onHitBlock` (`:77-84`) and `onHitEntity` (`:90-101`) re-check only that the owner is a live entity — never that the owner is *still* Todo — and `TodoDefinition.onDeselected` (`:80-87`) does not discard projectiles in flight. Throw a marker, switch vessel inside the 60-tick flight window, and the projectile lands and creates a mark after the deselect cleanup has already run. The same shape applies to a disconnect-and-reconnect inside the flight window.
+- **Current state:** **FIXED IN CODE 2026-07-27, NOT VERIFIED IN GAME.** Both landings go through `todoOwner()`, which re-reads the selection, and `dropEverything` sweeps in-flight markers on death, vessel change and disconnect. Proven able to fail by mutation. As found: `TodoSwapMarkerItem.use` gated the throw on being Todo (the E12 fix), but `TodoSwapMarkerEntity.onHitBlock` (`:77-84`) and `onHitEntity` (`:90-101`) re-checked only that the owner is a live entity — never that the owner is *still* Todo — and `TodoDefinition.onDeselected` (`:80-87`) does not discard projectiles in flight. Throw a marker, switch vessel inside the 60-tick flight window, and the projectile lands and creates a mark after the deselect cleanup has already run. The same shape applies to a disconnect-and-reconnect inside the flight window.
 - **What remains:** either re-check the vessel at landing, or discard owned projectiles in `onDeselected`. The first is narrower.
 - **How to verify:** in game — throw, switch vessel mid-flight, confirm no mark is created. Part of 1.4.
 - **Blocks release:** yes. It reopens exactly the class of hole E12 was closed to fix: a mark existing in the world for a player who is not Todo.
@@ -400,7 +424,7 @@ Two statuses are used below and they are not the same thing. **REPORTED PASSED**
 
 ### 6.3 — Correct the "ends on death" claim (D7)
 
-- **Current state:** DEFECT (documentation), and a direct consequence of 6.1. `TodoSwapMark.java:24-25` states a landed mark "ends on death, on changing vessel, on changing dimension, on disconnect, on server stop, and when the projectile goes missing from a loaded chunk." Five of those six clauses map to a real listener. The death clause maps to the *respawn* listener, which is a different moment.
+- **Current state:** **CLOSED BY CONSTRUCTION 2026-07-27.** Once 6.1 landed the sentence became true, so no prose edit was needed — which is the outcome this item predicted. As found: `TodoSwapMark.java:24-25` stated a landed mark "ends on death, on changing vessel, on changing dimension, on disconnect, on server stop, and when the projectile goes missing from a loaded chunk." Five of those six clauses map to a real listener. The death clause maps to the *respawn* listener, which is a different moment.
 - **What remains:** if 6.1 is done, this becomes true and needs no edit. If 6.1 is deferred, correct the sentence so it does not assert cleanup that does not happen.
 - **How to verify:** re-read after 6.1 lands.
 - **Blocks release:** no on its own; it is 6.1's paperwork.
@@ -511,7 +535,7 @@ Only tests that lock down existing behaviour or a defect found above are listed.
 
 ### 8.2 — Test for the `afterKill` policy bypass (D2)
 
-- **Current state:** ABSENT. `TodoSwapMomentumTest` covers `decide` thoroughly but nothing covers `afterKill`, which never calls `decide`.
+- **Current state:** **DONE 2026-07-27.** `assertAKillIsHeldToTheSameTable` covers six rows through `decideOnKill`, including the ranged kill that used to spend the window and the finishing blow that must. As found: `TodoSwapMomentumTest` covered `decide` thoroughly but nothing covered `afterKill`, which never called `decide`.
 - **What remains:** extend the pure policy test to cover the kill case once 5.1 routes it through `decide`, so the fix is locked down rather than merely applied.
 - **How to verify:** `./gradlew qualityGate`, plus the mutation the project requires — restore the bypass, confirm red, revert.
 - **Blocks release:** yes, as part of 5.1.
@@ -521,8 +545,8 @@ Only tests that lock down existing behaviour or a defect found above are listed.
 
 ### 8.3 — Close the feint guard's hole (D-adjacent, see 4.3)
 
-- **Current state:** PARTIAL, described in 4.3.
-- **What remains:** extend `TodoFakeClapTest`'s forbidden-token list and add an assertion over `emitClapPerformance`'s own body.
+- **Current state:** **DONE 2026-07-27**, described in 4.3.
+- **What remains:** nothing. Both halves landed and the mutation is recorded.
 - **How to verify:** mutation — add `SWAP_ARRIVAL` to `emitClapPerformance`, confirm red, revert.
 - **Blocks release:** yes.
 - **Size:** S.
@@ -541,8 +565,8 @@ Only tests that lock down existing behaviour or a defect found above are listed.
 
 ### 8.5 — Regression test for death cleanup (D1)
 
-- **Current state:** ABSENT.
-- **What remains:** once 6.1 lands, a test asserting the death listener is registered. Behaviour needs 8.4; registration does not.
+- **Current state:** **DONE 2026-07-27.** `TodoPairSwapTest` asserts `TodoStateLifecycle` registers `AFTER_DEATH` and that the teardown covers the mark, the projectiles still in the air and the momentum window. Removing the listener reddens it, recorded as a mutation.
+- **What remains:** nothing at this level. It proves the hook exists and what it calls, not that the world ends up clean — that is 8.4 and item 1.4.
 - **How to verify:** `./gradlew qualityGate`, with a mutation removing the listener.
 - **Blocks release:** no on its own; it is 6.1's guard.
 - **Size:** S.
@@ -555,20 +579,20 @@ Only tests that lock down existing behaviour or a defect found above are listed.
 
 Todo is complete when **all** of the following are true. Each is checkable; none is a judgement call by itself.
 
-**Release-blocking, must all be satisfied:**
+**Release-blocking. The code half of items 2–7 is done; none of it is proven.**
 
-1. Items 1.1 through 1.7 have each been run at a real client **after D1–D4 land**, and the result recorded in `SESSION.md` with the commit they were run at (1.8). Earlier passes are evidence about earlier code and do not carry forward across a lifecycle change. A green build is not a substitute and never becomes one.
-2. D1 is fixed (6.1) and confirmed in game (1.4) — death clears marks, glow and resting projectiles.
-3. D2 is fixed (5.1) and locked down by a test (8.2) — no ranged or indirect kill spends the melee window.
-4. D3 is fixed (6.2) and confirmed in game (1.4) — no marker landing after its owner stopped being Todo.
-5. D4 is fixed (4.2) — the marker swap's failed rollback logs like every other rollback in the kit.
-6. The feint guard's hole is closed (4.3 / 8.3) with a recorded red mutation.
-7. D5 is decided (4.1) — either the stated principle is narrowed to match the code, or the code is changed to match the principle. Not left contradictory.
-8. `./gradlew qualityGate` is green at the commit where the above is claimed.
+1. **OPEN.** Items 1.1 through 1.7 and 1.9 have each been run at a real client **after** the D1–D5 commit, and the result recorded in `SESSION.md` with the commit they were run at (1.8). Earlier passes are evidence about earlier code and do not carry forward across a lifecycle change. A green build is not a substitute and never becomes one.
+2. **CODE DONE, UNVERIFIED.** D1 is fixed (6.1); death must be seen in game to clear marks, glow and resting projectiles (1.4).
+3. **CODE DONE.** D2 is fixed (5.1) and locked down by a test (8.2). The ranged-kill and finishing-blow cases still need 1.7, because the event's firing for projectile kills is not confirmable without a world.
+4. **CODE DONE, UNVERIFIED.** D3 is fixed (6.2); no marker may land after its owner stopped being Todo (1.4).
+5. **CODE DONE.** D4 is fixed (4.2) — every commit path reports a failed rollback through one helper.
+6. **CODE DONE.** The feint guard's hole is closed (4.3 / 8.3) with a recorded red mutation.
+7. **DECIDED AND IMPLEMENTED.** D5 went to the safety principle: the target takes `STRICT` and the defaulting overload is gone. This **changed behaviour**, so 1.9 is now a release-blocking item in its own right.
+8. **OPEN.** `./gradlew qualityGate` is green at the commit where the above is claimed. It was green at the fix commit; it must be green again at whatever commit the smoke pass is recorded against.
 
-**Documentation-blocking, must all be satisfied:**
+**Documentation-blocking:**
 
-9. D6, D7 and D8 are corrected (3.2, 6.3, 5.3).
+9. **DONE.** D6 and D8 are corrected (3.2, 5.3); D7 closed by construction with 6.1 (6.3).
 10. Every UNRUN line in this document has become either a recorded pass or a recorded accepted risk with a named reason, and no REPORTED PASSED line is still resting on testimony alone. No line stays silent.
 11. `KNOWN_ISSUES.md` carries any residual Todo item that is being accepted rather than fixed, and this checklist's corresponding entry points at it instead of restating it.
 
@@ -577,5 +601,7 @@ Todo is complete when **all** of the following are true. Each is checkable; none
 - 8.4, world-level coverage. It is the project's barrier stage 6 and is scoped beyond Todo. Its absence means every future Todo change re-incurs the manual smoke cost — that is a known, accepted, recorded consequence, not a gap in Todo.
 - 2.4 (sprint clip), 3.7 (sound variants), 7.4 (Black Flash id ownership). Each is a decision that must be *recorded*; only recording is required, not acting.
 - Any balance change. Numbers may only move after section 1 produces observations, and the two existing reopen conditions in `KNOWN_ISSUES.md` are the trigger.
+
+**Status right now: not complete, and not close to it in the way that matters.** Eight defects and a test hole are closed in code, which moved the written half of this plan almost to the end. The measured half has not started: section 1 has nine items and not one of them has been run against the current code. Do not read the number of struck items as progress toward "done" — the definition above deliberately makes proof, not repair, the gate.
 
 **How to tell this document is finished with:** every item above is either struck or has moved to `KNOWN_ISSUES.md` as accepted debt, and section 1 has no unrun line. At that point this file should be deleted rather than kept — the project keeps no documentation archive, and a completion plan for a completed character is exactly the kind of point-in-time material `docs/README.md` says does not stay here.

@@ -21,6 +21,7 @@ public final class TodoPairSwapTest {
 		assertSelectionExpiresOnItsOwnClock();
 		assertSelectionIsBoundToDimensionAndIdentity();
 		assertBystandersGetStrictPlacement();
+		assertOnlyTodoHimselfMayReachTheFallback();
 		assertDistanceIsMeasuredFromTodoOnly();
 		assertTheSneakVariantFoldsOntoTheSameSlot();
 		assertSelectionLifecycleIsFullyUnwired();
@@ -59,8 +60,41 @@ public final class TodoPairSwapTest {
 				: "The fallback must stay gated on SOFT so STRICT genuinely cancels";
 		assert pair.contains("TodoSwapPlan.preflight")
 				: "The pair swap must use the same atomic two-destination rule as the self swap";
-		assert pair.contains("rollback incomplete")
-				: "A failed pair placement must log the incomplete restore, as the self swap does";
+		assert pair.contains("TodoBoogieWoogieRuntime.rollback(\"pair swap\"")
+				: "A failed pair placement must report the incomplete restore through the shared helper";
+	}
+
+	/**
+	 * No body but Todo's own may reach the unchecked fallback.
+	 *
+	 * <p>The pair swap and both mark swaps always passed {@code STRICT} explicitly. The aimed swap did not
+	 * pass anything: a defaulting overload supplied {@code SOFT} for <em>both</em> destinations, so the
+	 * target — the one participant who did not ask to be moved — could be placed at the exact requested
+	 * point with {@code noBlockCollision} skipped. The overload is deleted rather than merely bypassed, so
+	 * the unsafe choice cannot be made by omission again.
+	 *
+	 * <p>The properties this protects — a wall refuses the placement, a large body is judged by its own
+	 * bounding box, the world border is enforced, and open air is still a legal destination — live inside
+	 * {@code isPlaceableDestination} and need a real {@code ServerLevel} to exercise. Nothing here can do
+	 * that; they are in-game checks. What is checkable is that a third party reaches that predicate at all,
+	 * which is exactly what the defect removed.
+	 */
+	private static void assertOnlyTodoHimselfMayReachTheFallback() throws Exception {
+		String swap = Files.readString(TODO.resolve("TodoBoogieWoogieRuntime.java"));
+		assert !swap.contains("findSafeDestination(ServerLevel level, LivingEntity entity, Vec3 requested) {")
+				: "the defaulting overload must stay deleted; it is how SOFT was applied without anyone choosing it";
+		assert swap.contains("findSafeDestination(level, todo, targetSnapshot.position(), Strictness.SOFT)")
+				: "Todo's own arrival keeps the fallback: the risk is his and it is what makes a mid-air swap feel right";
+		assert swap.contains("findSafeDestination(level, target, todoSnapshot.position(), Strictness.STRICT)")
+				: "the aimed target must be placed only where noBlockCollision passed, or the cast must cancel";
+		// One SOFT site in the whole package, and it is the line above.
+		int soft = swap.split(java.util.regex.Pattern.quote("Strictness.SOFT"), -1).length - 1;
+		assert soft == 2
+				: "SOFT must appear exactly twice in this file: the one call site, and the gate inside the search";
+		for (String path : new String[] {"TodoPairSwapRuntime.java", "TodoMarkerSwapRuntime.java"}) {
+			assert !Files.readString(TODO.resolve(path)).contains("Strictness.SOFT")
+					: path + " moves bodies that are not Todo and must never reach the fallback";
+		}
 	}
 
 	private static void assertDistanceIsMeasuredFromTodoOnly() throws Exception {
@@ -102,9 +136,25 @@ public final class TodoPairSwapTest {
 		// belongs. What matters is that leaving him still runs it, and that the manager still calls the
 		// hook for the vessel being left rather than for the one arriving.
 		String definition = Files.readString(TODO.resolve("TodoDefinition.java"));
+		// The three calls that used to be listed here moved into TodoStateLifecycle, because death needs
+		// exactly the same teardown and two copies of it are two chances to forget one line. So the check
+		// follows the property through the delegation rather than pinning the old spelling.
 		assert definition.contains("public void onDeselected(ServerPlayer player)")
-				&& definition.contains("TodoPairSwapRuntime.forget(player.getUUID())")
-				: "Leaving the vessel must drop a half-finished pair selection";
+				&& definition.contains("TodoStateLifecycle.dropEverything(player)")
+				: "Leaving the vessel must run the shared teardown";
+		String lifecycle = Files.readString(TODO.resolve("TodoStateLifecycle.java"));
+		assert lifecycle.contains("TodoPairSwapRuntime.forget(player.getUUID())")
+				: "and that teardown must drop a half-finished pair selection";
+		// Death, not respawn. Every teardown Todo had was keyed on AFTER_RESPAWN, so between the killing
+		// blow and clicking the button — a stretch the player controls and can hold open indefinitely — a
+		// live mark, a glowing body and a resting projectile all survived. Nobara's package has had a death
+		// listener since the nail work; Todo's simply had none.
+		assert lifecycle.contains("ServerLivingEntityEvents.AFTER_DEATH.register")
+				: "Todo state must end at death, not at whatever moment the player chooses to respawn";
+		assert lifecycle.contains("TodoSwapMarks.clear(player.getServer(), player.getUUID())")
+				&& lifecycle.contains("discardMarkersInFlight(player.getServer(), player.getUUID())")
+				&& lifecycle.contains("removeEffect(JujutsuEffects.TODO_SWAP_MOMENTUM)")
+				: "the teardown must cover the mark, the projectiles still in the air, and the momentum window";
 		String selection = Files.readString(Path.of("src/main/java/jujutsu/mod/character/CharacterSelectionManager.java"));
 		assert selection.contains("JujutsuCharacters.definition(previous).onDeselected(player)")
 				: "The departing vessel's hook must run, not the arriving one's";

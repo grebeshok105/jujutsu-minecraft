@@ -150,17 +150,7 @@ public final class TodoPairSwapRuntime {
 		boolean firstPlaced = TodoBoogieWoogieRuntime.place(first, level, plan.get().firstDestination(), firstSnapshot);
 		boolean secondPlaced = firstPlaced && TodoBoogieWoogieRuntime.place(aimed, level, plan.get().secondDestination(), secondSnapshot);
 		if (!firstPlaced || !secondPlaced) {
-			boolean firstRestored = TodoBoogieWoogieRuntime.restore(first, firstSnapshot);
-			boolean secondRestored = TodoBoogieWoogieRuntime.restore(aimed, secondSnapshot);
-			if (!firstRestored || !secondRestored) {
-				JujutsuMod.LOGGER.error(
-						"Todo pair swap rollback incomplete caster={} first={} second={} firstRestored={} secondRestored={}",
-						todo.getGameProfile().getName(),
-						first.getName().getString(),
-						aimed.getName().getString(),
-						firstRestored,
-						secondRestored);
-			}
+			TodoBoogieWoogieRuntime.rollback("pair swap", todo, first, firstSnapshot, aimed, secondSnapshot);
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.unsafe", "authoritative teleport failed");
 		}
 		TodoBoogieWoogieRuntime.restoreMotionAndRotation(first, firstSnapshot);
