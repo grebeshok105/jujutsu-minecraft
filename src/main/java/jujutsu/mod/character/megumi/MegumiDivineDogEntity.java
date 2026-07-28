@@ -8,6 +8,8 @@ import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
@@ -29,6 +31,7 @@ import net.minecraft.world.entity.animal.wolf.Wolf;
 import net.minecraft.world.entity.animal.wolf.WolfSoundVariant;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import jujutsu.mod.registry.JujutsuSounds;
 
 /** One transient Divine Dog body. Pack identity is the stored owner UUID plus summon token. */
 public final class MegumiDivineDogEntity extends Wolf {
@@ -101,17 +104,28 @@ public final class MegumiDivineDogEntity extends Wolf {
 				&& recallDimension.equals(level().dimension());
 	}
 
-	void playSummonSound() {
-		playSound(getAmbientSound(), 0.9f, 0.82f);
+	void playShadowOpenSound() {
+		playSpatial(JujutsuSounds.PROJECTJJK_GOO_FOLEY, 0.52f, 0.62f);
 	}
 
 	void playRecallSound() {
-		playSound(getAmbientSound(), 0.65f, 0.58f);
+		playSpatial(JujutsuSounds.PROJECTJJK_IMPLODE, 0.62f, 0.58f);
 	}
 
 	void playSicSound() {
 		Holder<WolfSoundVariant> soundVariant = get(DataComponents.WOLF_SOUND_VARIANT);
-		playSound(soundVariant == null ? getAmbientSound() : soundVariant.value().growlSound().value(), 0.9f, 0.9f);
+		playSpatial(soundVariant == null ? getAmbientSound() : soundVariant.value().growlSound().value(), 0.9f, 0.9f);
+	}
+
+	private void playEmergenceSounds() {
+		playSpatial(JujutsuSounds.PROJECTJJK_WHOOSH_HIT, 0.42f, 0.82f);
+		playSpatial(getAmbientSound(), 0.72f, 0.96f);
+	}
+
+	private void playSpatial(SoundEvent sound, float volume, float pitch) {
+		if (sound != null && level() instanceof ServerLevel serverLevel) {
+			serverLevel.playSound(null, getX(), getY(), getZ(), sound, SoundSource.PLAYERS, volume, pitch);
+		}
 	}
 
 	@Override
@@ -143,6 +157,9 @@ public final class MegumiDivineDogEntity extends Wolf {
 				MegumiDogPresentationPolicy.phaseAfterTick(phase, nextTicks);
 		if (nextPhase != phase) {
 			setPresentationPhase(nextPhase);
+			if (nextPhase == MegumiDogPresentationPolicy.Phase.ACTIVE) {
+				playEmergenceSounds();
+			}
 		}
 	}
 

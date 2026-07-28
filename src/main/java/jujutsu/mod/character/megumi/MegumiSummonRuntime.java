@@ -24,6 +24,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.animal.wolf.WolfVariant;
 import net.minecraft.world.entity.animal.wolf.WolfVariants;
 import net.minecraft.world.entity.Entity;
@@ -39,6 +40,7 @@ import jujutsu.mod.character.megumi.vfx.MegumiVfxIds;
 import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuEntities;
+import jujutsu.mod.registry.JujutsuSounds;
 import jujutsu.mod.vfx.VfxCue;
 
 /** Owns every Divine Dog pack, including its single authoritative cross-level teardown. */
@@ -128,7 +130,8 @@ public final class MegumiSummonRuntime {
 		}
 		PACKS.put(ownerId, new MegumiDivineDogPack(
 				level.dimension(), white.getUUID(), black.getUUID(), token, gameTime));
-		white.playSummonSound();
+		white.playShadowOpenSound();
+		black.playShadowOpenSound();
 		broadcastCue(level, player, MegumiVfxIds.DOGS_SUMMON, player.position(), player.getId(), Vec3.ZERO);
 		broadcastDogCue(level, player, MegumiVfxIds.DOGS_SUMMON, white);
 		broadcastDogCue(level, player, MegumiVfxIds.DOGS_SUMMON, black);
@@ -170,6 +173,8 @@ public final class MegumiSummonRuntime {
 		for (MegumiDivineDogEntity dog : dogs) {
 			dog.setTarget(target);
 		}
+		player.level().playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP,
+				SoundSource.PLAYERS, 0.66f, 0.88f);
 		MegumiDivineDogEntity voice = dogs.getFirst();
 		voice.playSicSound();
 		broadcastCue(level, player, MegumiVfxIds.DOGS_SIC, target.position(), target.getId(),
