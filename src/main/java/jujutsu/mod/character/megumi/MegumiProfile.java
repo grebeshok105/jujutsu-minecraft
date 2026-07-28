@@ -16,6 +16,14 @@ public final class MegumiProfile {
 	public static final int RECALL_COOLDOWN_TICKS = 240;
 	public static final int PACK_DEATH_COOLDOWN_TICKS = 600;
 	public static final int SIC_COOLDOWN_TICKS = 30;
+	public static final double POUNCE_MIN_RANGE = 3.0;
+	public static final double POUNCE_MAX_RANGE = 8.0;
+	public static final int POUNCE_COOLDOWN_TICKS = 80;
+	public static final int POUNCE_TIMEOUT_TICKS = 16;
+	public static final double POUNCE_HORIZONTAL_SPEED = 0.72;
+	public static final double POUNCE_VERTICAL_SPEED = 0.42;
+	public static final float POUNCE_BONUS_DAMAGE = 2.0f;
+	public static final int POUNCE_STAGGER_TICKS = 6;
 	public static final double VFX_CUE_RADIUS = 48.0;
 
 	private MegumiProfile() {}

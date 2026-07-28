@@ -38,6 +38,7 @@ import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.character.megumi.vfx.MegumiVfxIds;
 import jujutsu.mod.combat.TargetResolver;
+import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.registry.JujutsuSounds;
@@ -171,7 +172,7 @@ public final class MegumiSummonRuntime {
 			return false;
 		}
 		for (MegumiDivineDogEntity dog : dogs) {
-			dog.setTarget(target);
+			dog.assignSicTarget(target);
 		}
 		player.level().playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP,
 				SoundSource.PLAYERS, 0.66f, 0.88f);
@@ -253,6 +254,7 @@ public final class MegumiSummonRuntime {
 			for (MegumiDivineDogEntity dog : livingDogs) {
 				LivingEntity target = dog.getTarget();
 				if (target != null && (owner == null || !isEligibleTarget(owner, target))) {
+					dog.clearSicCommand();
 					dog.setTarget(null);
 				}
 			}
@@ -329,6 +331,112 @@ public final class MegumiSummonRuntime {
 				recoverLeash(server, ownerId, pack);
 			}
 		}
+	}
+
+	static void tickPounce(MegumiDivineDogEntity dog) {
+		if (!(dog.level() instanceof ServerLevel level)) {
+			return;
+		}
+		UUID ownerId = dog.ownerUuid();
+		ServerPlayer owner = ownerId == null ? null : level.getServer().getPlayerList().getPlayer(ownerId);
+		LivingEntity currentTarget = dog.getTarget();
+		UUID assignedId = dog.sicTargetUuid();
+		LivingEntity assignedTarget = assignedId == null ? null : resolveLiving(level, assignedId);
+		boolean currentPack = ownerId != null && isCurrentPackDog(dog, ownerId);
+		boolean active = dog.presentationPhase() == MegumiDogPresentationPolicy.Phase.ACTIVE;
+		boolean validOwner = isValidPounceOwner(owner, level);
+		boolean assignedMatches = assignedTarget != null && assignedId.equals(assignedTarget.getUUID());
+		boolean currentMatches = assignedTarget != null && currentTarget == assignedTarget;
+		boolean eligible = validOwner && assignedTarget != null && isEligibleTarget(owner, assignedTarget);
+
+		long gameTime = level.getGameTime();
+		if (dog.pounceInFlight()) {
+			MegumiPouncePolicy.InFlightAction action = MegumiPouncePolicy.inFlightAction(
+					new MegumiPouncePolicy.InFlightFacts(
+							active,
+							currentPack,
+							validOwner,
+							assignedMatches,
+							currentMatches,
+							eligible,
+							assignedId != null && assignedId.equals(dog.pounceTargetUuid()),
+							MegumiPouncePolicy.timedOut(gameTime, dog.pounceDeadlineGameTime())));
+			switch (action) {
+				case CLEAR_SIC -> dog.clearSicCommand();
+				case FINISH_POUNCE -> dog.finishPounce();
+				case CONTINUE -> {
+					if (dog.getBoundingBox().inflate(0.30).intersects(assignedTarget.getBoundingBox())) {
+						resolvePounceImpact(level, dog, owner, assignedTarget);
+					}
+				}
+			}
+			return;
+		}
+
+		if (!active || !currentPack || !validOwner || !assignedMatches || !currentMatches || !eligible) {
+			dog.clearSicCommand();
+			return;
+		}
+
+		double distance = dog.distanceTo(assignedTarget);
+		MegumiPouncePolicy.LaunchFacts facts = new MegumiPouncePolicy.LaunchFacts(
+				active,
+				currentPack,
+				validOwner,
+				assignedMatches,
+				currentMatches,
+				assignedTarget.level() == level,
+				assignedTarget.isAlive(),
+				!assignedTarget.isRemoved(),
+				eligible,
+				dog.hasLineOfSight(assignedTarget),
+				distance,
+				dog.pounceReady(gameTime));
+		if (!MegumiPouncePolicy.canLaunch(facts)) {
+			return;
+		}
+		Vec3 horizontal = assignedTarget.position().subtract(dog.position()).multiply(1.0, 0.0, 1.0);
+		if (horizontal.lengthSqr() < 1.0E-6) {
+			return;
+		}
+		Vec3 velocity = horizontal.normalize().scale(MegumiProfile.POUNCE_HORIZONTAL_SPEED)
+				.add(0.0, MegumiProfile.POUNCE_VERTICAL_SPEED, 0.0);
+		dog.launchPounce(assignedTarget, gameTime, velocity);
+	}
+
+	private static void resolvePounceImpact(
+			ServerLevel level, MegumiDivineDogEntity dog, ServerPlayer owner, LivingEntity target) {
+		dog.finishPounce();
+		if (!isValidPounceOwner(owner, level)
+				|| !target.isAlive() || target.isRemoved() || target.level() != level
+				|| dog.getTarget() != target || !target.getUUID().equals(dog.sicTargetUuid())
+				|| !isEligibleTarget(owner, target)) {
+			return;
+		}
+		float damage = (float) MegumiProfile.DOG_ATTACK_DAMAGE + MegumiProfile.POUNCE_BONUS_DAMAGE;
+		if (!target.hurtServer(level, level.damageSources().playerAttack(owner), damage)) {
+			return;
+		}
+		CombatStagger.GLOBAL.apply(target, level.getGameTime(), MegumiProfile.POUNCE_STAGGER_TICKS);
+		level.playSound(null, target.getX(), target.getY(), target.getZ(), JujutsuSounds.PROJECTJJK_AEC_BOOM,
+				SoundSource.PLAYERS, 0.72f, 1.08f);
+		broadcastCue(level, owner, MegumiVfxIds.DOGS_POUNCE, target.position(), target.getId(),
+				new Vec3(0.0, target.getBbHeight() * 0.45, 0.0));
+	}
+
+	private static LivingEntity resolveLiving(ServerLevel level, UUID entityId) {
+		Entity entity = level.getEntity(entityId);
+		return entity instanceof LivingEntity living ? living : null;
+	}
+
+	private static boolean isValidPounceOwner(ServerPlayer owner, ServerLevel level) {
+		return owner != null && owner.isAlive() && !owner.isRemoved() && owner.level() == level;
+	}
+
+	private static boolean isCurrentPackDog(MegumiDivineDogEntity dog, UUID ownerId) {
+		MegumiDivineDogPack pack = PACKS.get(ownerId);
+		return MegumiSummonState.belongsToPack(
+				pack, dog.getUUID(), dog.summonToken(), dog.level().dimension());
 	}
 
 	private static void recoverLeash(MinecraftServer server, UUID ownerId, MegumiDivineDogPack pack) {

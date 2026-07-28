@@ -25,6 +25,7 @@ public final class MegumiVfxRecipes {
 		VfxDirector.register(MegumiVfxIds.DOGS_SUMMON, MegumiVfxRecipes::summon);
 		VfxDirector.register(MegumiVfxIds.DOGS_RECALL, MegumiVfxRecipes::recall);
 		VfxDirector.register(MegumiVfxIds.DOGS_SIC, MegumiVfxRecipes::sic);
+		VfxDirector.register(MegumiVfxIds.DOGS_POUNCE, MegumiVfxRecipes::pounce);
 	}
 
 	private static VfxInstance summon(VfxCue cue) {
@@ -69,6 +70,18 @@ public final class MegumiVfxRecipes {
 			RandomSource random = random(cue, 0x51C7A26E7L);
 			context.ring(SHADOW_TEAL, target, 14, 0.55, 0.0, -0.05, random);
 			context.burst(SHADOW_DARK, target, 7, 0.18, 0.06, random);
+		});
+	}
+
+	private static VfxInstance pounce(VfxCue cue) {
+		return VfxInstance.of(6, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 target = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0xD065B00FL);
+			context.ring(SHADOW_TEAL, target, 18, 0.72, 0.02, 0.06, random);
+			context.burst(SHADOW_DARK, target.add(0.0, 0.18, 0.0), 12, 0.28, 0.12, random);
 		});
 	}
 

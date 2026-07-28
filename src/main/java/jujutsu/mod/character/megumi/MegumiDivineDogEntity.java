@@ -31,6 +31,7 @@ import net.minecraft.world.entity.animal.wolf.Wolf;
 import net.minecraft.world.entity.animal.wolf.WolfSoundVariant;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.registry.JujutsuSounds;
 
 /** One transient Divine Dog body. Pack identity is the stored owner UUID plus summon token. */
@@ -43,6 +44,10 @@ public final class MegumiDivineDogEntity extends Wolf {
 	private UUID ownerUuid;
 	private long summonToken;
 	private ResourceKey<Level> recallDimension;
+	private UUID sicTargetUuid;
+	private UUID pounceTargetUuid;
+	private long nextPounceReadyGameTime;
+	private long pounceDeadlineGameTime;
 
 	public MegumiDivineDogEntity(EntityType<? extends Wolf> type, Level level) {
 		super(type, level);
@@ -93,6 +98,7 @@ public final class MegumiDivineDogEntity extends Wolf {
 
 	void beginRecall() {
 		if (!isRemoved() && presentationPhase() != MegumiDogPresentationPolicy.Phase.RECALLING) {
+			clearSicCommand();
 			recallDimension = level().dimension();
 			setPresentationPhase(MegumiDogPresentationPolicy.Phase.RECALLING);
 		}
@@ -117,6 +123,55 @@ public final class MegumiDivineDogEntity extends Wolf {
 		playSpatial(soundVariant == null ? getAmbientSound() : soundVariant.value().growlSound().value(), 0.9f, 0.9f);
 	}
 
+	void assignSicTarget(LivingEntity target) {
+		finishPounce();
+		sicTargetUuid = target.getUUID();
+		super.setTarget(target);
+	}
+
+	UUID sicTargetUuid() {
+		return sicTargetUuid;
+	}
+
+	UUID pounceTargetUuid() {
+		return pounceTargetUuid;
+	}
+
+	long pounceDeadlineGameTime() {
+		return pounceDeadlineGameTime;
+	}
+
+	boolean pounceInFlight() {
+		return pounceTargetUuid != null;
+	}
+
+	boolean pounceReady(long gameTime) {
+		return MegumiPouncePolicy.deadlineReady(gameTime, nextPounceReadyGameTime);
+	}
+
+	void launchPounce(LivingEntity target, long gameTime, Vec3 velocity) {
+		pounceTargetUuid = target.getUUID();
+		pounceDeadlineGameTime = gameTime + MegumiProfile.POUNCE_TIMEOUT_TICKS;
+		nextPounceReadyGameTime = gameTime + MegumiProfile.POUNCE_COOLDOWN_TICKS;
+		getNavigation().stop();
+		setNoAi(true);
+		setDeltaMovement(velocity);
+		hurtMarked = true;
+	}
+
+	void finishPounce() {
+		pounceTargetUuid = null;
+		pounceDeadlineGameTime = 0L;
+		if (!isRemoved() && presentationPhase() == MegumiDogPresentationPolicy.Phase.ACTIVE) {
+			setNoAi(false);
+		}
+	}
+
+	void clearSicCommand() {
+		sicTargetUuid = null;
+		finishPounce();
+	}
+
 	private void playEmergenceSounds() {
 		playSpatial(JujutsuSounds.PROJECTJJK_WHOOSH_HIT, 0.42f, 0.82f);
 		playSpatial(getAmbientSound(), 0.72f, 0.96f);
@@ -137,6 +192,10 @@ public final class MegumiDivineDogEntity extends Wolf {
 		tickPresentationPhase();
 		if (!isRemoved() && MegumiSummonRuntime.shouldHardDiscard(this)) {
 			discard();
+			return;
+		}
+		if (!isRemoved()) {
+			MegumiSummonRuntime.tickPounce(this);
 		}
 	}
 
@@ -169,6 +228,7 @@ public final class MegumiDivineDogEntity extends Wolf {
 		boolean combatEnabled = MegumiDogPresentationPolicy.combatEnabled(phase);
 		setNoAi(!combatEnabled);
 		if (!combatEnabled) {
+			clearSicCommand();
 			super.setTarget(null);
 			getNavigation().stop();
 		}
@@ -189,7 +249,7 @@ public final class MegumiDivineDogEntity extends Wolf {
 
 	@Override
 	public boolean doHurtTarget(ServerLevel level, Entity target) {
-		return combatEnabled() && super.doHurtTarget(level, target);
+		return combatEnabled() && !pounceInFlight() && super.doHurtTarget(level, target);
 	}
 
 	@Override
