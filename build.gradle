@@ -45,7 +45,7 @@ dependencies {
 
 	// Minecraft is transformed at runtime, so a bare JUnit run cannot touch it. fabric-loader-junit
 	// boots the loader for the test JVM, which is what makes registry- and buffer-level tests possible
-	// at all. The 30 JavaExec programs keep running unchanged beside this.
+	// at all. The JavaExec verification programs keep running unchanged beside this.
 	testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
 
 	// Structural rules read compiled bytecode, so they survive renames and formatting in a way the
@@ -396,40 +396,9 @@ tasks.register('testVfxSilhouette', JavaExec) {
 }
 
 tasks.named('check') {
-	dependsOn tasks.named('testTodoEntityMark')
-	dependsOn tasks.named('testTodoSwapMomentum')
-	dependsOn tasks.named('testVfxSoundDuck')
-	dependsOn tasks.named('testVfxSilhouette')
-	dependsOn tasks.named('testCharacterClients')
-	dependsOn tasks.named('testCharacterDefinitions')
-	dependsOn tasks.named('testNobaraAbilitySlots')
-	dependsOn tasks.named('testClickGuiDrag')
-	dependsOn tasks.named('testCharacterPlayerState')
-	dependsOn tasks.named('testTodoProfile')
-	dependsOn tasks.named('testTodoSwapPlan')
-	dependsOn tasks.named('testTodoTargetSafety')
-	dependsOn tasks.named('testTodoHandsEmpty')
-	dependsOn tasks.named('testTodoFakeClap')
-	dependsOn tasks.named('testTodoPairSwap')
-	dependsOn tasks.named('testTodoSwapMarker')
-	dependsOn tasks.named('testProjectSanity')
-	dependsOn tasks.named('testTargetResolver')
-	dependsOn tasks.named('testProjectJjkNobaraProfile')
-	dependsOn tasks.named('testNobaraRemnant')
-	dependsOn tasks.named('testRemnantVisualType')
-	dependsOn tasks.named('testNobaraRitual')
-	dependsOn tasks.named('testNailAnchor')
-	dependsOn tasks.named('testBlackFlash')
-	dependsOn tasks.named('testCurseLinks')
-	dependsOn tasks.named('testVfxCore')
-	dependsOn tasks.named('testVfxTimeline')
-	dependsOn tasks.named('testVfxQuality')
-	dependsOn tasks.named('testVfxAnchor')
-	dependsOn tasks.named('testVfxTime')
-	dependsOn tasks.named('testHairpinChain')
-	dependsOn tasks.named('testNailTrap')
-	dependsOn tasks.named('testResonantMomentum')
-	dependsOn tasks.named('testServerTimeDilation')
+	dependsOn tasks.withType(JavaExec).matching {
+		it.group == 'verification'
+	}
 }
 
 // The verification programs are plain main() classes guarded by `assert`, so a task that forgets to

@@ -216,11 +216,11 @@ One vessel-specific line survives in shared code without naming an enum constant
 
 ### E8 — Standard test reporting is weak
 
-Verified 2026-07-26: `build.gradle` registers 30 custom JavaExec verification programs.
+Verified 2026-07-28: `./gradlew verifyAssertionsEnabled` is the live inventory of custom JavaExec verification programs.
 
 They use main methods and Java assertions. They are useful and green, but do not provide normal per-test JUnit reports or GameTest world integration — see E1 for the coverage gap that follows from having no world-level tests.
 
-Stale figure, flagged 2026-07-28: the count of 30 above predates the current tree and is no longer correct. It is deliberately left as written rather than replaced with a second guess. Recount it from `./gradlew verifyAssertionsEnabled`, which logs the number of verification `JavaExec` tasks it audited, and correct it in the same change that wires `check` to the task group (see E15), after which the number stops being maintained by hand in two places.
+`check` dynamically depends on every verification `JavaExec`; add a program to that group once. Run `./gradlew verifyAssertionsEnabled` whenever the current inventory matters instead of maintaining a count in prose.
 
 Do not recount it from `./gradlew tasks --group verification`: that group also contains `verifyAssertionsEnabled`, `auditDocumentation` and `qualityGate`, so its listing is not a count of verification programs. `verifyAssertionsEnabled` filters with the same expression the wiring change will use, so its number and the gate's set cannot drift apart.
 

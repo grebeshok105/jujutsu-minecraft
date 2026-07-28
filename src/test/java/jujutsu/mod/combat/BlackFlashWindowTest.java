@@ -4,6 +4,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 
+import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraProfile;
+
 public final class BlackFlashWindowTest {
 	private BlackFlashWindowTest() {}
 
@@ -30,13 +32,18 @@ public final class BlackFlashWindowTest {
 			String hammer = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/NobaraHammerCombatRuntime.java"));
 			String runtime = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraRuntime.java"));
 			String nail = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkNailEntity.java"));
-			String profile = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraProfile.java"));
 			assert hammer.contains("LivingEntity firstSuccessful = null") : "horizontal Black Flash must bind to first accepted hit";
 			assert hammer.contains("tryProcLivingBlackFlash") : "Black Flash must roll on accepted living impacts";
-			assert hammer.contains("BLACK_FLASH_CHANCE") || profile.contains("BLACK_FLASH_CHANCE = 0.10f")
-					: "Black Flash chance must be a flat 10% roll";
+			assert ProjectJjkNobaraProfile.BLACK_FLASH_CHANCE == 0.10f
+					: "Black Flash chance must stay at 10%";
+			assert hammer.contains("BLACK_FLASH_CHANCE")
+					: "hammer runtime must use the centralized Black Flash chance";
 			assert !hammer.contains("WINDOWS.put") : "second-click Black Flash timing windows must be removed";
-			assert runtime.indexOf("isSuccessfulOrdinaryHit(damageAccepted") < runtime.indexOf("openNailEmbedWindow(owner")
+			int acceptedHit = runtime.indexOf("isSuccessfulOrdinaryHit(damageAccepted");
+			int openEmbedWindow = runtime.indexOf("openNailEmbedWindow(owner");
+			assert acceptedHit >= 0 : "missing accepted-hit gate before the embed Black Flash window";
+			assert openEmbedWindow >= 0 : "missing embed Black Flash window call";
+			assert acceptedHit < openEmbedWindow
 					: "embed Black Flash requires an accepted ordinary hit";
 			assert nail.contains("flightMultiplier *= multiplier")
 					&& nail.contains("launchVelocity(direction).scale(flightMultiplier)")

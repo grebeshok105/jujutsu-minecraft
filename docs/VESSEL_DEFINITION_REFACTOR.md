@@ -281,7 +281,7 @@ JujutsuCharacters.definition(selected).applyAttributes(player);
 
 ### Проверки
 
-30 программ верификации, все зелёные. Три из них новые: `NobaraAbilitySlotsTest`, `CharacterDefinitionRegistryTest`, `CharacterClientRegistryTest`. Два ключевых теста подтверждены **мутацией**, а не только зелёным прогоном:
+JavaExec-программы верификации подтверждаются `./gradlew verifyAssertionsEnabled`; три из них — `NobaraAbilitySlotsTest`, `CharacterDefinitionRegistryTest`, `CharacterClientRegistryTest`. Два ключевых теста подтверждены **мутацией**, а не только зелёным прогоном:
 
 - перестановка веток роутера → падение с «PRIMARY must reach startDirectedHairpin»
 - `case TODO -> NOBARA` в реестре → падение с «The registry bound TODO to a definition that claims to be NOBARA»

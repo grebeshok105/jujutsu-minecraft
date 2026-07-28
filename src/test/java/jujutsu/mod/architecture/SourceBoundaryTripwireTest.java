@@ -1,6 +1,8 @@
 package jujutsu.mod.architecture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -9,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +46,8 @@ import org.junit.jupiter.api.Test;
  * papered over here.
  */
 class SourceBoundaryTripwireTest {
+	private static final int MIN_SHARED_PRODUCTION_FILES = 195;
+
 	private static final List<String> VESSEL_IDS = Arrays.stream(JujutsuCharacter.values())
 			.map(JujutsuCharacter::id)
 			.filter(id -> !id.equals(JujutsuCharacter.NONE.id()))
@@ -50,6 +55,12 @@ class SourceBoundaryTripwireTest {
 
 	private static final List<Path> PRODUCTION_ROOTS = List.of(
 			Path.of("src/main/java"), Path.of("src/client/java"));
+
+	private static final List<String> VESSEL_PACKAGE_PARENTS = List.of(
+			"jujutsu/mod/character/",
+			"jujutsu/mod/client/character/",
+			"jujutsu/mod/client/render/",
+			"jujutsu/mod/client/vfx/");
 
 	/** Runtime class resolution, which erases the evidence a structural rule needs. */
 	private static final Pattern DYNAMIC_LOADING = Pattern.compile(
@@ -81,6 +92,31 @@ class SourceBoundaryTripwireTest {
 	private static final Map<String, Set<String>> TRACKED_DEBT = Map.of(
 			"src/client/java/jujutsu/mod/client/render/ProjectJjkNailRenderer.java",
 			Set.of("ProjectJjkNailEmbedding", "ProjectJjkNailEntity", "<package nobara>"));
+
+	@Test
+	void vesselPackageClassifierAcceptsOnlyRegisteredVesselRoots() {
+		assertTrue(isInsideVesselPackage(Path.of("src/main/java/jujutsu/mod/character/megumi/MegumiProfile.java"), "megumi"));
+		assertTrue(isInsideVesselPackage(Path.of("src\\main\\java\\jujutsu\\mod\\character\\megumi\\vfx\\MegumiVfxIds.java"), "megumi"));
+		assertTrue(isInsideVesselPackage(Path.of("src/client/java/jujutsu/mod/client/character/megumi/MegumiClientDefinition.java"), "megumi"));
+		assertTrue(isInsideVesselPackage(Path.of("src\\client\\java\\jujutsu\\mod\\client\\character\\megumi\\vfx\\MegumiVfxRecipes.java"), "megumi"));
+		assertTrue(isInsideVesselPackage(Path.of("src/client/java/jujutsu/mod/client/character/megumi/particle/MegumiShadowMoteParticle.java"), "megumi"));
+		assertTrue(isInsideVesselPackage(Path.of("src\\client\\java\\jujutsu\\mod\\client\\render\\megumi\\MegumiDivineDogRenderer.java"), "megumi"));
+		assertTrue(isInsideVesselPackage(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraProfile.java"), "nobara"));
+		assertTrue(isInsideVesselPackage(Path.of("src/client/java/jujutsu/mod/client/character/todo/TodoClientDefinition.java"), "todo"));
+
+		assertTrue(!isInsideVesselPackage(Path.of("src/client/java/jujutsu/mod/client/rich/megumi/Anything.java"), "megumi"));
+		assertTrue(!isInsideVesselPackage(Path.of("src/main/java/jujutsu/mod/vfx/TodoVfxIds.java"), "todo"));
+		assertTrue(!isInsideVesselPackage(Path.of("src/client/java/jujutsu/mod/client/fx/NobaraHudState.java"), "nobara"));
+		assertTrue(!isInsideVesselPackage(Path.of("src/client/java/jujutsu/mod/client/render/ProjectJjkNailRenderer.java"), "nobara"));
+	}
+
+	@Test
+	void sharedProductionFileFloorRejectsOneLessThanTheMeasuredTree() {
+		assertThrows(AssertionError.class,
+				() -> requireMinimumSharedFiles(Collections.nCopies(MIN_SHARED_PRODUCTION_FILES - 1, Path.of("synthetic.java"))));
+		assertDoesNotThrow(
+				() -> requireMinimumSharedFiles(Collections.nCopies(MIN_SHARED_PRODUCTION_FILES, Path.of("synthetic.java"))));
+	}
 
 	@Test
 	void sharedProductionCodeResolvesNoClassAtRuntime() {
@@ -218,8 +254,13 @@ class SourceBoundaryTripwireTest {
 				}
 			}
 		}
-		assertTrue(shared.size() > 100, () -> "only " + shared.size() + " shared files scanned; this tripwire is not seeing the tree");
-		return shared;
+		return requireMinimumSharedFiles(shared);
+	}
+
+	private static List<Path> requireMinimumSharedFiles(List<Path> files) {
+		assertTrue(files.size() >= MIN_SHARED_PRODUCTION_FILES,
+				() -> "only " + files.size() + " shared files scanned; this tripwire is not seeing the tree");
+		return files;
 	}
 
 	private static List<Path> javaFilesUnder(Path root) {
@@ -232,7 +273,17 @@ class SourceBoundaryTripwireTest {
 	}
 
 	private static boolean isInsideVesselPackage(Path file, String vesselId) {
-		return file.toString().replace('\\', '/').contains("/" + vesselId + "/");
+		String path = file.toString().replace('\\', '/');
+		for (Path root : PRODUCTION_ROOTS) {
+			String rootPrefix = root.toString().replace('\\', '/') + "/";
+			if (!path.startsWith(rootPrefix)) {
+				continue;
+			}
+			String packagePath = path.substring(rootPrefix.length());
+			return VESSEL_PACKAGE_PARENTS.stream()
+					.anyMatch(parent -> packagePath.startsWith(parent + vesselId + "/"));
+		}
+		return false;
 	}
 
 	private static String fileName(Path file) {
