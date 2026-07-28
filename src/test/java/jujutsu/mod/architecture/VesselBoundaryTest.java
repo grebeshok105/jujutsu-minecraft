@@ -5,6 +5,8 @@ import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyP
 import static com.tngtech.archunit.core.domain.properties.HasOwner.Predicates.With.owner;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -41,6 +43,9 @@ import org.junit.jupiter.api.Test;
  * success just as loudly as one running over the real tree.
  */
 class VesselBoundaryTest {
+	private static final int MIN_MAIN_CLASSES = 194;
+	private static final int MIN_CLIENT_CLASSES = 214;
+
 	/** Vessel identities, derived rather than spelled, so a third vessel is covered the day it exists. */
 	private static final List<String> VESSEL_IDS = Arrays.stream(JujutsuCharacter.values())
 			.map(JujutsuCharacter::id)
@@ -117,8 +122,16 @@ class VesselBoundaryTest {
 
 	@BeforeAll
 	static void importEachOutputOnItsOwn() {
-		mainClasses = importOnly(Path.of("build/classes/java/main"), 90);
-		clientClasses = importOnly(Path.of("build/classes/java/client"), 150);
+		mainClasses = importOnly(Path.of("build/classes/java/main"), MIN_MAIN_CLASSES);
+		clientClasses = importOnly(Path.of("build/classes/java/client"), MIN_CLIENT_CLASSES);
+	}
+
+	@Test
+	void scanCompletenessFloorsRejectOneLessThanTheMeasuredTree() {
+		assertThrows(AssertionError.class, () -> assertMinimumSize(MIN_MAIN_CLASSES - 1, MIN_MAIN_CLASSES, "main"));
+		assertDoesNotThrow(() -> assertMinimumSize(MIN_MAIN_CLASSES, MIN_MAIN_CLASSES, "main"));
+		assertThrows(AssertionError.class, () -> assertMinimumSize(MIN_CLIENT_CLASSES - 1, MIN_CLIENT_CLASSES, "client"));
+		assertDoesNotThrow(() -> assertMinimumSize(MIN_CLIENT_CLASSES, MIN_CLIENT_CLASSES, "client"));
 	}
 
 	@Test
@@ -316,10 +329,14 @@ class VesselBoundaryTest {
 	private static JavaClasses importOnly(Path output, int atLeast) {
 		assertTrue(Files.isDirectory(output), () -> "compiled output missing: " + output.toAbsolutePath());
 		JavaClasses imported = new ClassFileImporter().importPath(output);
-		assertTrue(imported.size() >= atLeast,
-				() -> "only " + imported.size() + " classes imported from " + output
-						+ "; the rules below would check almost nothing");
+		assertMinimumSize(imported.size(), atLeast, output.toString());
 		return imported;
+	}
+
+	private static void assertMinimumSize(int actual, int floor, String source) {
+		assertTrue(actual >= floor,
+				() -> "only " + actual + " classes imported from " + source
+						+ "; the rules below would check almost nothing");
 	}
 
 	private static String capitalized(String id) {

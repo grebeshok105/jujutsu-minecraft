@@ -15,3 +15,4 @@
 - T2.1 is complete: `check` dynamically depends on every verification `JavaExec`. `check`, `verifyAssertionsEnabled`, and `check --dry-run` passed; a temporary group member appeared in the dry-run without manual wiring.
 - The stale verification-program counts were removed from current documentation; `verifyAssertionsEnabled` is the single live inventory source and `auditDocumentation` passed.
 - T2.2 is complete: the classifier derives a source-relative package path and accepts only registered vessel roots. Direct JUnit coverage passed after a RED synthetic shared-path mutation; the strict and prior shared-file inventories both contain 195 files.
+- T2.3 is complete: floors are 194 main classes, 214 client classes and 195 shared source files. Each `floor + 1` mutation failed; direct boundary tests prove `floor - 1` fails and `floor` passes.

@@ -1,6 +1,8 @@
 package jujutsu.mod.architecture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -43,6 +45,8 @@ import org.junit.jupiter.api.Test;
  * papered over here.
  */
 class SourceBoundaryTripwireTest {
+	private static final int MIN_SHARED_PRODUCTION_FILES = 195;
+
 	private static final List<String> VESSEL_IDS = Arrays.stream(JujutsuCharacter.values())
 			.map(JujutsuCharacter::id)
 			.filter(id -> !id.equals(JujutsuCharacter.NONE.id()))
@@ -103,6 +107,12 @@ class SourceBoundaryTripwireTest {
 		assertTrue(!isInsideVesselPackage(Path.of("src/main/java/jujutsu/mod/vfx/TodoVfxIds.java"), "todo"));
 		assertTrue(!isInsideVesselPackage(Path.of("src/client/java/jujutsu/mod/client/fx/NobaraHudState.java"), "nobara"));
 		assertTrue(!isInsideVesselPackage(Path.of("src/client/java/jujutsu/mod/client/render/ProjectJjkNailRenderer.java"), "nobara"));
+	}
+
+	@Test
+	void sharedProductionFileFloorRejectsOneLessThanTheMeasuredTree() {
+		assertThrows(AssertionError.class, () -> assertMinimumSharedFiles(MIN_SHARED_PRODUCTION_FILES - 1));
+		assertDoesNotThrow(() -> assertMinimumSharedFiles(MIN_SHARED_PRODUCTION_FILES));
 	}
 
 	@Test
@@ -241,8 +251,13 @@ class SourceBoundaryTripwireTest {
 				}
 			}
 		}
-		assertTrue(shared.size() > 100, () -> "only " + shared.size() + " shared files scanned; this tripwire is not seeing the tree");
+		assertMinimumSharedFiles(shared.size());
 		return shared;
+	}
+
+	private static void assertMinimumSharedFiles(int count) {
+		assertTrue(count >= MIN_SHARED_PRODUCTION_FILES,
+				() -> "only " + count + " shared files scanned; this tripwire is not seeing the tree");
 	}
 
 	private static List<Path> javaFilesUnder(Path root) {
