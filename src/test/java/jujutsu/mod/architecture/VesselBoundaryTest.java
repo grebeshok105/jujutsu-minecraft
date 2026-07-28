@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jujutsu.mod.character.JujutsuCharacter;
@@ -128,10 +129,14 @@ class VesselBoundaryTest {
 
 	@Test
 	void scanCompletenessFloorsRejectOneLessThanTheMeasuredTree() {
-		assertThrows(AssertionError.class, () -> assertMinimumSize(MIN_MAIN_CLASSES - 1, MIN_MAIN_CLASSES, "main"));
-		assertDoesNotThrow(() -> assertMinimumSize(MIN_MAIN_CLASSES, MIN_MAIN_CLASSES, "main"));
-		assertThrows(AssertionError.class, () -> assertMinimumSize(MIN_CLIENT_CLASSES - 1, MIN_CLIENT_CLASSES, "client"));
-		assertDoesNotThrow(() -> assertMinimumSize(MIN_CLIENT_CLASSES, MIN_CLIENT_CLASSES, "client"));
+		Path mainOutput = Path.of("build/classes/java/main");
+		assertThrows(AssertionError.class,
+				() -> assertImportedClassFloor(mainOutput, MIN_MAIN_CLASSES, ignored -> MIN_MAIN_CLASSES - 1));
+		assertDoesNotThrow(() -> assertImportedClassFloor(mainOutput, MIN_MAIN_CLASSES, ignored -> MIN_MAIN_CLASSES));
+		Path clientOutput = Path.of("build/classes/java/client");
+		assertThrows(AssertionError.class,
+				() -> assertImportedClassFloor(clientOutput, MIN_CLIENT_CLASSES, ignored -> MIN_CLIENT_CLASSES - 1));
+		assertDoesNotThrow(() -> assertImportedClassFloor(clientOutput, MIN_CLIENT_CLASSES, ignored -> MIN_CLIENT_CLASSES));
 	}
 
 	@Test
@@ -329,13 +334,14 @@ class VesselBoundaryTest {
 	private static JavaClasses importOnly(Path output, int atLeast) {
 		assertTrue(Files.isDirectory(output), () -> "compiled output missing: " + output.toAbsolutePath());
 		JavaClasses imported = new ClassFileImporter().importPath(output);
-		assertMinimumSize(imported.size(), atLeast, output.toString());
+		assertImportedClassFloor(output, atLeast, ignored -> imported.size());
 		return imported;
 	}
 
-	private static void assertMinimumSize(int actual, int floor, String source) {
+	private static void assertImportedClassFloor(Path output, int floor, ToIntFunction<Path> classCount) {
+		int actual = classCount.applyAsInt(output);
 		assertTrue(actual >= floor,
-				() -> "only " + actual + " classes imported from " + source
+				() -> "only " + actual + " classes imported from " + output
 						+ "; the rules below would check almost nothing");
 	}
 

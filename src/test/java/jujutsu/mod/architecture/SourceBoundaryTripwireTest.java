@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -111,8 +112,10 @@ class SourceBoundaryTripwireTest {
 
 	@Test
 	void sharedProductionFileFloorRejectsOneLessThanTheMeasuredTree() {
-		assertThrows(AssertionError.class, () -> assertMinimumSharedFiles(MIN_SHARED_PRODUCTION_FILES - 1));
-		assertDoesNotThrow(() -> assertMinimumSharedFiles(MIN_SHARED_PRODUCTION_FILES));
+		assertThrows(AssertionError.class,
+				() -> requireMinimumSharedFiles(Collections.nCopies(MIN_SHARED_PRODUCTION_FILES - 1, Path.of("synthetic.java"))));
+		assertDoesNotThrow(
+				() -> requireMinimumSharedFiles(Collections.nCopies(MIN_SHARED_PRODUCTION_FILES, Path.of("synthetic.java"))));
 	}
 
 	@Test
@@ -251,13 +254,13 @@ class SourceBoundaryTripwireTest {
 				}
 			}
 		}
-		assertMinimumSharedFiles(shared.size());
-		return shared;
+		return requireMinimumSharedFiles(shared);
 	}
 
-	private static void assertMinimumSharedFiles(int count) {
-		assertTrue(count >= MIN_SHARED_PRODUCTION_FILES,
-				() -> "only " + count + " shared files scanned; this tripwire is not seeing the tree");
+	private static List<Path> requireMinimumSharedFiles(List<Path> files) {
+		assertTrue(files.size() >= MIN_SHARED_PRODUCTION_FILES,
+				() -> "only " + files.size() + " shared files scanned; this tripwire is not seeing the tree");
+		return files;
 	}
 
 	private static List<Path> javaFilesUnder(Path root) {
