@@ -158,9 +158,30 @@ An adversarial review of the architecture rules ran 16 attacks against a green b
 - **A shared extension point with exactly one implementer.** A method on `CharacterDefinition` that only one vessel overrides is structurally identical to a genuine shared hook. Catching it needs a test that counts implementers per method.
 - **In-world behaviour of any kind.** Nothing in the suite constructs a `ServerLevel`. See the Verification Policy in AGENTS.md.
 
+One more limit was found on 2026-07-28 and is tracked separately as E15: a rule can only help if the gate actually runs it, and a check can be green while proving nothing. Neither failure is visible from inside the rule set.
+
 ### E14 — four vessel-named classes live in shared packages
 
 `NobaraVfxIds` and `TodoVfxIds` sit in `jujutsu.mod.vfx`, which is the `<Character>VfxIds` shape AGENTS.md prescribes, so those two are deliberate. `NobaraHudState` in `jujutsu.mod.client.fx` and `ProjectJjkNailRenderer` in `jujutsu.mod.client.render` are not: both are vessel code in a shared package while `client.render.nobara` already exists. `VesselBoundaryTest#vesselNamedClassesStayInTheirVesselPackage` pins the set of four, so moving either one fails the test and forces this entry to shrink with it.
+
+### E15 — Test-suite defects and cleanup are tracked in PR #17
+
+Opened 2026-07-28. Documentation only so far; nothing has been fixed yet.
+
+A full read of `src/test/java/jujutsu/mod/**` and the verification half of `build.gradle` produced an ordered remediation plan, which lives in [TEST_ARCHITECTURE_PLAN.md](TEST_ARCHITECTURE_PLAN.md) and is proposed in **[PR #17](https://github.com/grebeshok105/jujutsu-minecraft/pull/17)**. That file is the detail; this entry exists so the register does not have to be read alongside a pull request to know the suite has open defects.
+
+Two of the findings are recorded here in full, because they are not "work to schedule" — they are checks that are green today while proving nothing, and a reader of this register should not have to open a pull request to learn that:
+
+1. **`BlackFlashWindowTest` does not check the Black Flash chance.** The assertion is `hammer.contains("BLACK_FLASH_CHANCE") || profile.contains("BLACK_FLASH_CHANCE = 0.10f")`. The left operand is true whenever the runtime names the constant, which it always does, so the operand that pins the value never runs. Setting the chance to `0.99f` leaves the suite green. The fix is two independent assertions — read the constant directly for the number, keep the grep for "the runtime uses the shared constant rather than an inline literal" — because neither implies the other.
+2. **The call-order checks in the same file pass when their subject is deleted.** They compare `runtime.indexOf(A) < runtime.indexOf(B)` without checking that either fragment was found. A missing `A` gives `-1 < n`, which is true. The failure mode is asymmetric: losing `B` fails correctly, losing `A` is a false green.
+
+The rest of the plan, in the order it should be done: wire `check` to the `verification` task group instead of re-listing the tasks by hand; fix the fail-open `isInsideVesselPackage` path classifier; then remeasure and raise only the three real scan floors. The vessel-map `>= 2` check is not part of that work: its apparent exact replacement is tautological, while missing vessel trees already fail independently. Tier 3 keeps the no-`default` switch assertion because it protects the compiler guarantee's precondition; only genuinely redundant greps are deferred for later review. The long-running items remain splitting `ProjectSanityTest`, migrating the `main()`+`assert` programs to JUnit one class at a time, covering `CharacterAbilityExecutor`, and evaluating mutation testing on pure policies.
+
+Two of those connect directly to entries already in this register. The `CharacterAbilityExecutor` gap is the same one "Limits of the build-time gate" describes as needing "a unit test over the dispatcher, not a dependency rule". The hand-maintained `check` list is the reason a new verification program can exist, carry `-ea`, satisfy `verifyAssertionsEnabled`, and still never run — that task audits assertion flags, not invocation.
+
+One ordering constraint is load-bearing and is stated in the plan rather than implied: nothing may be deleted from `ProjectSanityTest` on duplication grounds until that file has been inventoried. Which of its checks ArchUnit already proves is not known, and cutting on a guess is how coverage disappears quietly.
+
+The plan marks as UNVERIFIED anything that needs a local build or a checkout-wide count, including the new floor values and whether `CharacterAbilityExecutor` already has indirect coverage. Its documentation inventory identifies five stale verification-program claims, including a `VERIFIED` entry in the claim-source index; all must be sourced from `verifyAssertionsEnabled` when the implementation branch updates prose. Dynamic Gradle wiring does not update prose by itself. Do not lift numbers out of the plan into this register without counting them first.
 
 ## Medium-priority work
 
@@ -198,6 +219,12 @@ One vessel-specific line survives in shared code without naming an enum constant
 Verified 2026-07-26: `build.gradle` registers 30 custom JavaExec verification programs.
 
 They use main methods and Java assertions. They are useful and green, but do not provide normal per-test JUnit reports or GameTest world integration — see E1 for the coverage gap that follows from having no world-level tests.
+
+Stale figure, flagged 2026-07-28: the count of 30 above predates the current tree and is no longer correct. It is deliberately left as written rather than replaced with a second guess. Recount it from `./gradlew verifyAssertionsEnabled`, which logs the number of verification `JavaExec` tasks it audited, and correct it in the same change that wires `check` to the task group (see E15), after which the number stops being maintained by hand in two places.
+
+Do not recount it from `./gradlew tasks --group verification`: that group also contains `verifyAssertionsEnabled`, `auditDocumentation` and `qualityGate`, so its listing is not a count of verification programs. `verifyAssertionsEnabled` filters with the same expression the wiring change will use, so its number and the gate's set cannot drift apart.
+
+The rest of this entry still holds: the migration path off `main()`+`assert` is E15's Tier 4.
 
 ### E9 — Build reproducibility can improve
 
