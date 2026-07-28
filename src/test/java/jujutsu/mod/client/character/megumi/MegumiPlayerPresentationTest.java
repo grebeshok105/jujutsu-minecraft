@@ -24,6 +24,10 @@ class MegumiPlayerPresentationTest {
 			"src/client/java/jujutsu/mod/client/render/megumi/MegumiPlayerGeoAnimatable.java");
 	private static final Path RENDERER_SOURCE = Path.of(
 			"src/client/java/jujutsu/mod/client/render/megumi/MegumiPlayerGeoRenderer.java");
+	private static final Path DIVINE_DOG_RENDERER_SOURCE = Path.of(
+			"src/client/java/jujutsu/mod/client/render/megumi/MegumiDivineDogRenderer.java");
+	private static final Path MODEL_SOURCE = Path.of(
+			"src/client/java/jujutsu/mod/client/render/megumi/MegumiPlayerGeoModel.java");
 	private static final Path CLIENT_DEFINITION_SOURCE = Path.of(
 			"src/client/java/jujutsu/mod/client/character/megumi/MegumiClientDefinition.java");
 	private static final Path SUMMON_RUNTIME_SOURCE = Path.of(
@@ -94,6 +98,28 @@ class MegumiPlayerPresentationTest {
 		String recipes = Files.readString(VFX_RECIPES_SOURCE);
 		assertTrue(recipes.contains("MegumiAnimationHooks.triggerDivineDogs(cue)"),
 				"The existing summon recipe must trigger the model animation without a new receiver");
+	}
+
+	@Test
+	void clientDefinitionOwnsADedicatedVanillaDogRendererSeam() throws Exception {
+		String definition = Files.readString(CLIENT_DEFINITION_SOURCE);
+		assertTrue(definition.contains("MegumiDivineDogRenderer::new"),
+				"Only Megumi's client definition may register his dedicated Divine Dog renderer");
+
+		String renderer = Files.readString(DIVINE_DOG_RENDERER_SOURCE);
+		assertTrue(renderer.contains("extends WolfRenderer"),
+				"The dedicated Divine Dog renderer must retain vanilla wolf rendering until its later presentation pass");
+	}
+
+	@Test
+	void modelUsesHorizontalOnlyScaleAndKeepsItsHeadFacingForward() throws Exception {
+		String renderer = Files.readString(RENDERER_SOURCE);
+		assertTrue(renderer.contains("withScale(1.25f, 1.0f)"),
+				"Megumi must gain width without changing his rendered height");
+
+		String model = Files.readString(MODEL_SOURCE);
+		assertTrue(model.contains("return 0.0f;"),
+				"Megumi must opt out of the shared procedural head-look rotation");
 	}
 
 	private static void assertDimensions(Path path, int width, int height) throws Exception {

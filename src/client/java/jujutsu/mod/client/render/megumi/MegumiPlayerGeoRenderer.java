@@ -14,7 +14,7 @@ public final class MegumiPlayerGeoRenderer<R extends PlayerRenderState & GeoRend
 	public MegumiPlayerGeoRenderer(EntityRendererProvider.Context context) {
 		super(context, new MegumiPlayerGeoModel(), MegumiPlayerGeoAnimatable.INSTANCE);
 		addRenderLayer(new MegumiHeldItemLayer<>(this));
-		withScale(1.0f, 1.0f);
+		withScale(1.25f, 1.0f);
 	}
 
 	@Override

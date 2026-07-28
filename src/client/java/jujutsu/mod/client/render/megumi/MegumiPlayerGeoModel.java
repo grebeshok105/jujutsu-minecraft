@@ -30,7 +30,7 @@ public final class MegumiPlayerGeoModel extends CharacterPlayerGeoModel<MegumiPl
 	@Override
 	protected float headLookWeight(AnimationState<MegumiPlayerGeoAnimatable> animationState,
 			PlayerRenderState playerState) {
-		return MegumiPlayerGeoAnimatable.headLookWeight(animationState, playerState);
+		return 0.0f;
 	}
 
 	@Override
