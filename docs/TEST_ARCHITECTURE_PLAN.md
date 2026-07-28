@@ -23,6 +23,9 @@ The test suite in this repository is unusually honest about the limits of its ow
 - Claims that require a local build, a checkout-wide count, or a Gradle run are marked **UNVERIFIED** and must be confirmed before being acted on.
 - No line counts, file counts, or effort estimates appear here unless they were counted rather than guessed.
 - Acceptance criteria must be able to fail for the right reason. A criterion that the current, unfixed code already satisfies is not a criterion — see T2.3, where the first draft of this plan got exactly that wrong.
+- When reviewers disagree, the repository source or a command result decides the question; otherwise the claim stays **UNVERIFIED**. Of equally supported formulations, choose the narrower one; preserve existing coverage until an independent replacement is demonstrated, and prefer fail-closed behaviour.
+- Paths in acceptance criteria come from the current tree. A synthetic path is permitted only when it is labelled as synthetic and tests the path classifier directly.
+- Every acceptance criterion states how the unchanged implementation turns red. If a correction proposed by this plan is disproved, delete it rather than restating it more carefully; T2.3 is the recorded example. For all other evidence policy, see `AGENTS.md`.
 
 ---
 
@@ -93,6 +96,8 @@ tasks.named('check') {
 
 The manual list is then deleted. `dependsOn` accepts a task collection. This realizes the matching tasks at configuration time; with the current number of verification programs that cost is not worth avoiding.
 
+`verifyAssertionsEnabled`, `auditDocumentation` and `qualityGate` are ordinary Gradle `Task`s, not `JavaExec` tasks, so the collection does not pull the audit or gate back into `check` and cannot form a cycle through `qualityGate -> check`.
+
 **Acceptance:** the exact Groovy above must be run, not assumed to work.
 
 1. `./gradlew check` and `./gradlew qualityGate` both pass.
@@ -118,26 +123,25 @@ Any directory anywhere in the tree whose name happens to equal a vessel id is tr
 - compare that package against the permitted vessel package prefixes under each of `VESSEL_PARENTS`;
 - handle both source roots, not just `src/main/java`.
 
-**Acceptance, both directions required:**
+**Acceptance, both directions required:** make the helper directly testable and classify both slash styles.
 
-1. A file under `src/client/java/jujutsu/mod/client/vfx/<vessel>/` is still recognized as that vessel's code.
-2. A file under `src/client/java/jujutsu/mod/client/rich/<vessel>/` — a shared package that merely contains a directory with a vessel name — is **not** recognized as vessel code and is scanned as shared.
-3. `sharedProductionCodeNamesNoVesselType` still passes on unmodified `main`.
+1. Recognize the live Megumi paths: `character/megumi/MegumiProfile.java`, `character/megumi/vfx/MegumiVfxIds.java`, `client/character/megumi/MegumiClientDefinition.java`, `client/character/megumi/vfx/MegumiVfxRecipes.java`, `client/character/megumi/particle/MegumiShadowMoteParticle.java`, and `client/render/megumi/MegumiDivineDogRenderer.java`. Retain the existing Nobara `character/nobara/projectjjk` and Todo paths too.
+2. Reject the synthetic shared path `client/rich/megumi/Anything.java`, plus the live shared paths `vfx/TodoVfxIds.java`, `client/fx/NobaraHudState.java`, and `client/render/ProjectJjkNailRenderer.java`.
+3. On the unmodified tree, `sharedProductionCodeNamesNoVesselType` and `noVesselNamesAnotherVesselsType` still pass. The set returned by `sharedProductionFiles()` must not change, so tightening has not silently reclassified a real vessel file as shared.
 
-### T2.3 — Floors no longer track the tree
+### T2.3 — Scan-completeness floors no longer track the tree
 
 `VesselBoundaryTest` and `SourceBoundaryTripwireTest` guard against "the scan silently found nothing" with lower bounds. These are **floors**: they must rise as the tree grows, and no upper bound should ever be introduced.
 
-- `assertTrue(vesselTypes.size() >= 2, ...)` — three vessels are registered (Nobara, Todo, Megumi), so an entire vessel tree could vanish without tripping this. Replace with `assertEquals(VESSEL_IDS.size(), vesselTypes.size(), ...)`, which is exact rather than merely higher.
-- The import floors in `importOnly(...)` and the `sharedProductionFiles()` floor should be raised toward the real size of the tree, leaving headroom for normal churn.
+- `vesselTypes.size() >= 2` is a harmless but unhelpful remnant, not a floor to strengthen. `vesselOwnedTypeNames()` inserts one key for every `VESSEL_IDS` entry by construction, so an equality check would be tautological; an absent vessel tree already fails independently at `assertTrue(!names.isEmpty())`. Do not change either check in this tier.
+- The real floors are `importOnly(build/classes/java/main, 90)`, `importOnly(build/classes/java/client, 150)`, and `sharedProductionFiles() > 100`. The first two count compiled classes; the third counts `.java` files. They are not comparable values and must be measured separately.
 
-**UNVERIFIED:** the correct new floor values must come from a local count on a clean checkout. Do not take numbers for the main/client class counts or the shared-file count from any document, including this one and the doc-counter lines elsewhere in the repository — those describe a build output, not a source count, and their relationship to `sharedProductionFiles()` is not one-to-one.
+**UNVERIFIED:** the correct new floor values must come from a clean checkout after the Megumi polish branch is integrated, with `./gradlew classes clientClasses`. Do not take numbers for the main/client class counts or the shared-file count from any document, CodeGraph report, or this plan.
 
 **Acceptance.** Stubbing the scan to return an empty list is **not** adequate here, and the first draft of this plan said exactly that and was wrong: the existing floors of 90, 150 and 100 all fail against an empty list too, so satisfying that criterion demonstrates nothing about whether a floor was raised. Test each floor at its new boundary instead.
 
 1. Stub the corresponding scan to return exactly `newFloor - 1` items. The test must fail.
 2. Restore the real result, or exactly `newFloor` items. The test must pass.
-3. For the vessel-type count, which becomes an exact comparison rather than a floor: remove one registered vessel from the result. `assertEquals(VESSEL_IDS.size(), ...)` must go red. This is the case an inequality could never catch, so it is the one that proves the change landed.
 
 ---
 
@@ -145,11 +149,11 @@ Any directory anywhere in the tree whose name happens to equal a vessel id is tr
 
 Nothing here is wrong. All of it costs maintenance and makes contracts harder to find.
 
-### T3.1 — Delete the switch-exhaustiveness greps in `CharacterDefinitionRegistryTest`
+### T3.1 — Narrow switch checks in `CharacterDefinitionRegistryTest`
 
 `JujutsuCharacters.definition(JujutsuCharacter)` is a switch **expression** with no `default` arm, and its javadoc states the intent outright: *"A registry map plus a test would fail the build; only an exhaustive switch fails compilation."* Adding an enum constant therefore breaks the build at the compiler, before any test runs.
 
-`assertTheSwitchCannotFallThrough` re-derives that guarantee with regular expressions over the source text. It cannot be stronger than the compiler and it is fragile to formatting.
+The compiler guarantee has a precondition: the switch has no `default`. A legal catch-all would keep compilation green when a future vessel is added, silently turning the compile-time contract into a fallback. Keep the source assertion that no `default` arm exists; it protects that precondition rather than duplicating the compiler.
 
 The clearest example is this assertion, which pins the *name of a local variable* inside `all()`:
 
@@ -159,7 +163,7 @@ assert registry.contains("JujutsuCharacter[] characters = JujutsuCharacter.value
 
 Renaming `characters` to `values` changes no behaviour whatsoever and turns the suite red. Meanwhile the property that actually matters — that the sweep and the switch agree — is already covered behaviourally by `assertTheSweepMatchesTheSwitch`.
 
-**Fix:** delete `assertTheSwitchCannotFallThrough` and the array-declaration grep. Keep `assertEveryVesselResolves` and `assertTheSweepMatchesTheSwitch`.
+**Fix:** retain the no-`default` assertion, but delete the per-constant `case` greps and the array-declaration grep. Keep `assertEveryVesselResolves` and `assertTheSweepMatchesTheSwitch`. As a separate small cleanup, rename the remaining method to `assertTheSwitchHasNoCatchAll` and scan text after comments and literals are removed, so prose cannot create a false red.
 
 ### T3.2 — Reduce the client-leak checks to two complementary mechanisms
 
@@ -209,9 +213,9 @@ The executor is the shared seam every ability passes through — selection, cano
 
 **UNVERIFIED:** whether the executor is covered indirectly by other tests. Establish this first with a local `grep -rn CharacterAbilityExecutor src/test` before writing anything; a remote code search was inconclusive.
 
-### T4.4 — Evaluate mutation testing on the pure policies only
+### T4.4 — Evaluate mutation testing on pure policies only
 
-The pure, dependency-free policy classes — `MegumiTargetPolicy`, `MegumiCooldownPolicy`, `MegumiLifecyclePolicy`, `TargetResolver`, `VfxTimeline` — are good candidates for PIT, and mutation coverage would answer the question this whole review keeps running into: which assertions actually constrain behaviour.
+The dependency-free Megumi policies and `VfxTimeline` are candidates for PIT. `TargetResolver` depends on Minecraft server and geometry types, so it requires separate classpath investigation rather than being grouped with pure policies.
 
 Treat it as an investigation, not a checklist item. A Minecraft/Fabric classpath with transformed classes needs real configuration work, and the mutation targets have to be scoped deliberately. Budget accordingly.
 
@@ -219,15 +223,23 @@ Treat it as an investigation, not a checklist item. A Minecraft/Fabric classpath
 
 ## Documentation correction found along the way
 
-KNOWN_ISSUES.md entry **E8** states that `build.gradle` registers *30* custom `JavaExec` verification programs, verified 2026-07-26. The current count on `main` is higher. Since the documentation audit already rejects stale code-derived metrics, this figure should be recounted and corrected in the same change that lands T2.1 — after which the number stops being hand-maintained in two places, which is the same failure mode T2.1 fixes in the build.
+The stale *30 verification programs* claim has this verified inventory on the current plan base:
 
-Take the number from `./gradlew verifyAssertionsEnabled`, for the reason given in T2.1: it is filtered by the same expression the wiring uses. Do not take it from `./gradlew tasks --group verification`, which lists `verifyAssertionsEnabled`, `auditDocumentation` and `qualityGate` alongside the programs.
+- `docs/KNOWN_ISSUES.md:219` — `Verified 2026-07-26`; the count is stale with a dated verification mark. Its follow-up at `:223` also refers to the same stale number.
+- `Jujutsu Kaizen/jujutsumod-codebase-codex/05-reference/Test-and-build-commands.md:13` — `VERIFIED — build.gradle`, and it additionally claims `check depends on all 30`.
+- `Jujutsu Kaizen/jujutsumod-codebase-codex/05-reference/Claim-Source-Index.md:21` — `VERIFIED`. This is the claim-source index itself, so its stale evidence statement is the highest-priority documentation correction.
+- `Jujutsu Kaizen/jujutsumod-codebase-codex/06-maintenance/How-to-add-next-character.md:69` — the third-vessel procedure says there are 30 programs.
+- `docs/VESSEL_DEFINITION_REFACTOR.md:284` — it reports 30 green verification programs.
+
+Inventory every exact verification-program count again before changing prose; do not assume this list is permanent. Since `tools/audit_docs.py` validates links, current-document presence and selected MOC metrics only, it does not inspect numeric claims in prose and cannot catch this drift.
+
+Take the number from `./gradlew verifyAssertionsEnabled`, for the reason given in T2.1: it is filtered by the same expression the wiring uses. Do not take it from `./gradlew tasks --group verification`, which lists non-program tasks alongside the programs. The target state is no count in prose: documentation points to that command and says `check` depends on every verification `JavaExec`. Prefer removing such counters to adding another audit parser.
 
 ## Order of work
 
-1. T1.1, T1.2 — false-green assertions.
-2. T2.1, T2.2, T2.3 — gate wiring, fail-open helper, floors.
-3. T3.1, T3.2 (first half only), T3.3 — duplicate and misplaced checks.
-4. T4.1 through T4.4 — incremental, no deadline implied. T4.1's inventory unblocks the second half of T3.2.
+1. Merge this corrected document, then take a new implementation branch after the Megumi polish branch is integrated.
+2. T1.1, T1.2, T2.1, the verification-count documentation update, T2.2 and the three real T2.3 floors — each in a reviewable commit.
+3. T3.1, T3.2 (first half only), and T3.3 remain deferred; T4.1's inventory still unblocks the second half of T3.2.
+4. T4.1 through T4.4 remain incremental, with no deadline implied.
 
 Tier 1 is the only tier that should be considered urgent. Everything after it is maintenance, and none of it justifies a large refactor undertaken for its own sake.
