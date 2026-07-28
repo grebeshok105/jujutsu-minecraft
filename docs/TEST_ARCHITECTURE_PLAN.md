@@ -155,13 +155,13 @@ Nothing here is wrong. All of it costs maintenance and makes contracts harder to
 
 The compiler guarantee has a precondition: the switch has no `default`. A legal catch-all would keep compilation green when a future vessel is added, silently turning the compile-time contract into a fallback. Keep the source assertion that no `default` arm exists; it protects that precondition rather than duplicating the compiler.
 
-The clearest example is this assertion, which pins the *name of a local variable* inside `all()`:
+Of the checks to delete, the most brittle pins the *name of a local variable* inside `all()`:
 
 ```java
 assert registry.contains("JujutsuCharacter[] characters = JujutsuCharacter.values()")
 ```
 
-Renaming `characters` to `values` changes no behaviour whatsoever and turns the suite red. Meanwhile the property that actually matters — that the sweep and the switch agree — is already covered behaviourally by `assertTheSweepMatchesTheSwitch`.
+Renaming `characters` to `values` changes no behaviour whatsoever and turns the suite red. The test also greps for each `JujutsuCharacter` constant with a `case\\s+NAME\\s*->` pattern. Conditional on retaining the no-`default` assertion above, those per-case greps are redundant: omitting a branch then fails compilation. Meanwhile the property that actually matters — that the sweep and the switch agree — is already covered behaviourally by `assertTheSweepMatchesTheSwitch`.
 
 **Fix:** retain the no-`default` assertion, but delete the per-constant `case` greps and the array-declaration grep. Keep `assertEveryVesselResolves` and `assertTheSweepMatchesTheSwitch`. As a separate small cleanup, rename the remaining method to `assertTheSwitchHasNoCatchAll` and scan text after comments and literals are removed, so prose cannot create a false red.
 
@@ -211,7 +211,7 @@ Each migrated class leaves the `verification` group, so T2.1 should land first �
 
 The executor is the shared seam every ability passes through — selection, canonical slot, cooldown — and KNOWN_ISSUES.md already records under "Limits of the build-time gate" that catching a vessel that registers a callback into shared dispatch *"needs a unit test over the dispatcher, not a dependency rule"*. That test does not exist as a dedicated class.
 
-**UNVERIFIED:** whether the executor is covered indirectly by other tests. Establish this first with a local `grep -rn CharacterAbilityExecutor src/test` before writing anything; a remote code search was inconclusive.
+Verified by local `rg -n "CharacterAbilityExecutor" src/test`: the executor is read indirectly by `TodoFakeClapTest`, `TodoPairSwapTest`, `NobaraAbilitySlotsTest` and `ProjectSanityTest`; `VesselBoundaryTest` mentions it only in an architecture message. That is not a dedicated dispatcher contract, so the coverage gap remains, but the first implementation step is now to identify the missing selection/canonical-slot/cooldown cases rather than rediscover existing references.
 
 ### T4.4 — Evaluate mutation testing on pure policies only
 
