@@ -19,7 +19,7 @@ class MegumiProfileTest {
 
 	@Test
 	void divineDogBaselineMatchesTheApprovedSlice() {
-		assertEquals(28.0, MegumiProfile.DOG_HEALTH);
+		assertEquals(60.0, MegumiProfile.DOG_HEALTH);
 		assertEquals(3.0, MegumiProfile.DOG_ATTACK_DAMAGE);
 		assertEquals(0.34, MegumiProfile.DOG_MOVEMENT_SPEED);
 		assertEquals(10.0, MegumiProfile.FOLLOW_START_DISTANCE);
@@ -33,9 +33,11 @@ class MegumiProfileTest {
 		assertEquals(8.0, MegumiProfile.POUNCE_MAX_RANGE);
 		assertEquals(80, MegumiProfile.POUNCE_COOLDOWN_TICKS);
 		assertEquals(16, MegumiProfile.POUNCE_TIMEOUT_TICKS);
-		assertEquals(0.72, MegumiProfile.POUNCE_HORIZONTAL_SPEED);
+		assertEquals(0.92, MegumiProfile.POUNCE_HORIZONTAL_SPEED);
 		assertEquals(0.42, MegumiProfile.POUNCE_VERTICAL_SPEED);
+		assertEquals(0.58, MegumiProfile.POUNCE_MAX_VERTICAL_SPEED);
 		assertEquals(2.0f, MegumiProfile.POUNCE_BONUS_DAMAGE);
+		assertEquals(2.4, MegumiProfile.POUNCE_KNOCKBACK);
 		assertEquals(6, MegumiProfile.POUNCE_STAGGER_TICKS);
 		assertEquals(16, MegumiProfile.DOG_MATERIALIZATION_TICKS);
 		assertEquals(12, MegumiProfile.DOG_RECALL_TICKS);

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
 
 final class MegumiPouncePolicyTest {
@@ -57,6 +58,8 @@ final class MegumiPouncePolicyTest {
 		int acceptedDamage = impact.indexOf("if (!target.hurtServer(");
 		assertTrue(acceptedDamage >= 0);
 		assertTrue(impact.indexOf("CombatStagger.GLOBAL.apply", acceptedDamage) > acceptedDamage);
+		assertTrue(impact.indexOf("target.knockback(MegumiProfile.POUNCE_KNOCKBACK", acceptedDamage) > acceptedDamage,
+				"An accepted pounce must throw the target back");
 		assertTrue(impact.indexOf("JujutsuSounds.PROJECTJJK_AEC_BOOM", acceptedDamage) > acceptedDamage);
 		assertTrue(impact.indexOf("MegumiVfxIds.DOGS_POUNCE", acceptedDamage) > acceptedDamage);
 		assertFalse(Files.readString(TARGET_RESOLVER).contains("MegumiPounce"),
@@ -94,6 +97,31 @@ final class MegumiPouncePolicyTest {
 		assertTrue(MegumiPouncePolicy.timedOut(117L, 116L));
 		assertTrue(MegumiPouncePolicy.deadlineReady(100L, 80L), "sibling A may be ready");
 		assertFalse(MegumiPouncePolicy.deadlineReady(100L, 140L), "sibling B may still be cooling down");
+	}
+
+	@Test
+	void leapMotionSteersTowardTheTargetAndStopsOnAWorldCollision() {
+		var launch = MegumiPouncePolicy.launchVelocity(new Vec3(0.0, 0.0, 0.0), new Vec3(8.0, 1.0, 0.0));
+		assertEquals(MegumiProfile.POUNCE_HORIZONTAL_SPEED, launch.x, 0.0001);
+		assertEquals(0.0, launch.z, 0.0001);
+		assertTrue(launch.y >= MegumiProfile.POUNCE_VERTICAL_SPEED);
+		assertTrue(launch.y <= MegumiProfile.POUNCE_MAX_VERTICAL_SPEED);
+
+		var steered = MegumiPouncePolicy.steerVelocity(
+				new Vec3(0.10, 0.22, 0.00), new Vec3(0.0, 0.0, 0.0), new Vec3(0.0, 0.0, 4.0));
+		assertEquals(0.0, steered.x, 0.0001);
+		assertEquals(MegumiProfile.POUNCE_HORIZONTAL_SPEED, steered.z, 0.0001);
+		assertEquals(0.22, steered.y, 0.0001, "Steering must not erase the ballistic vertical velocity");
+
+		assertEquals(MegumiPouncePolicy.FlightAction.FINISH_POUNCE,
+				MegumiPouncePolicy.flightAction(true, false, false, 2));
+		assertEquals(MegumiPouncePolicy.FlightAction.FINISH_POUNCE,
+				MegumiPouncePolicy.flightAction(false, true, false, 2));
+		assertEquals(MegumiPouncePolicy.FlightAction.FINISH_POUNCE,
+				MegumiPouncePolicy.flightAction(false, false, true, 2));
+		assertEquals(MegumiPouncePolicy.FlightAction.CONTINUE,
+				MegumiPouncePolicy.flightAction(false, false, true, 0),
+				"The launch tick must not self-cancel before physics moves the dog");
 	}
 
 	@Test

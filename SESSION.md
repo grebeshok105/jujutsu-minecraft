@@ -14,11 +14,11 @@ Durable behavior lives in `AGENTS.md`. The implementation note is `Jujutsu Kaize
 - Megumi keeps `R` summon/recall and `Shift+R` Sic. No input, payload, persistence, dependency, mixin or universal summon system was added.
 - The imported GeckoLib player body renders at width `1.25` with unchanged height and static head. Ordinary swings cycle `punch_1`, `punch_2`, `kick`; confirmed summon triggers `summon_divine_dogs`.
 - Dogs materialize for 16 ticks and manually recall for 12. Transitional phases disable AI, navigation, attacks, incoming damage and combat collision; only the renderer moves the visible body vertically.
-- Each dog receives an exact-origin shadow pool and mote burst through VFX Core. Recall contracts the pool inward. The local owner receives the shared 0.80-second first-person `SIGN`; observers receive only third-person presentation.
+- Each dog receives an exact-origin black shadow pool and mote burst through VFX Core. Recall contracts the filled pool inward; no teal edge ring remains. The local owner receives the shared 0.80-second first-person `SIGN`; observers receive only third-person presentation.
 - Sound is server-spatial at the owner, dog or accepted impact. Existing ProjectJJK events and vanilla wolf variants provide shadow open, emergence, vocal, Sic, pounce and recall beats; client recipes do not duplicate them.
 - The director-owned left cooldown HUD appears only for selected Megumi with a positive mirrored `PRIMARY` deadline. In this slice that implies no pack because summon never starts it; the HUD owns no timer or network state.
-- Dog tuning is 28 HP, 3 damage and 0.34 speed.
-- Pounce is server-only and Sic-only. Each dog independently launches at inclusive 3-8 block range with LOS, 0.72 horizontal and 0.42 vertical speed, an inclusive 16-tick deadline and 80-tick cooldown. Confirmed impact is one owner-attributed 5-damage hit; accepted damage adds 6 stagger ticks, spatial sound and target VFX.
+- Dog tuning is 60 HP, 3 damage and 0.34 speed.
+- Pounce is server-only and Sic-only. Each dog independently launches at inclusive 3-8 block range with LOS, 0.92 horizontal and 0.42-0.58 vertical speed, steers its horizontal motion toward the live target and stops cleanly on a collision or landing. The inclusive 16-tick deadline and 80-tick cooldown remain. Confirmed impact is one owner-attributed 5-damage hit; accepted damage adds 2.4-strength knockback, 6 stagger ticks, spatial sound and target VFX.
 - Ordinary inherited wolf melee attribution is unchanged; only the pounce path explicitly credits Megumi.
 
 ## Reviewable commits
@@ -36,7 +36,7 @@ Durable behavior lives in `AGENTS.md`. The implementation note is `Jujutsu Kaize
 ## External review follow-up
 
 - Owner-body and dog-pool summon cues have separate ids, so an unresolved client anchor cannot produce a duplicate pool. Launch facts retain only independently variable server gates; head-look and localization-presence tests are precise; documentation records the actual HUD invariant and inclusive pounce deadline.
-- On 2026-07-28 the follow-up tree passed `qualityGate` (42 tasks, all JUnit, 34 assertion-enabled JavaExec programs and documentation audit). Pounce physics and practical dual-dog impact timing remain in-game smoke evidence, not automated proof.
+- On 2026-07-28 the follow-up tree passed `qualityGate` (42 tasks, all JUnit, 34 assertion-enabled JavaExec programs and documentation audit). Pounce physics, practical dual-dog impact timing, knockback distance and black-pool readability remain in-game smoke evidence, not automated proof.
 
 ## Automated evidence
 
@@ -51,8 +51,8 @@ Durable behavior lives in `AGENTS.md`. The implementation note is `Jujutsu Kaize
 - Summon both dogs on flat ground, a ledge, water and a tight room; confirm 16-tick rise, inert transition and no unsafe placement.
 - Recall a full and half pack; confirm 12-tick sink, correct 240-tick cooldown and no ghost AI, collision, model, particle or sound. Kill both dogs and confirm the 600-tick loss cooldown.
 - Check owner death, respawn, disconnect, dimension change, vessel deselection/reselection and server restart cleanup.
-- Check Sic and pounce against a mob and player at 3, 8 and out-of-range distances; break LOS before launch, kill/remove the target in flight, recall during flight and let a pounce miss/timeout.
-- Confirm both siblings pounce independently, accepted impact deals one 5-damage owner-attributed hit with 6-tick stagger, and refused damage emits no impact feedback.
+- Check Sic and pounce against a mob and player at 3, 8 and out-of-range distances; break LOS before launch, kill/remove the target in flight, recall during flight, let a pounce miss/timeout, collide with a wall/ceiling and land early.
+- Confirm both siblings pounce independently, accepted impact deals one 5-damage owner-attributed hit with 2.4-strength knockback and 6-tick stagger, and refused damage emits no impact feedback. Check Iron Golem durability and that the knockback reads as roughly 5-10 blocks on flat ground.
 - Confirm owner, allied player and own pack cannot be targeted or damaged.
 - Verify cooldown HUD visibility/placement, first-person hands, third-person animation, model width/static head, held items/shield and no local/remote VFX or sound duplication.
 - Run two-client synchronization and kill-screen attribution checks, then smoke Nobara and Todo rendering, controls and combat.

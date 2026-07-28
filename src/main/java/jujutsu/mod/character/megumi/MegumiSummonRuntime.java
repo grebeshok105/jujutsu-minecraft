@@ -365,6 +365,15 @@ public final class MegumiSummonRuntime {
 				case CLEAR_SIC -> dog.clearSicCommand();
 				case FINISH_POUNCE -> dog.finishPounce();
 				case CONTINUE -> {
+					int elapsedTicks = (int) Math.max(0L, gameTime - dog.pounceStartedGameTime());
+					if (MegumiPouncePolicy.flightAction(
+							dog.horizontalCollision, dog.verticalCollision, dog.onGround(), elapsedTicks)
+							== MegumiPouncePolicy.FlightAction.FINISH_POUNCE) {
+						dog.finishPounce();
+						return;
+					}
+					dog.setDeltaMovement(MegumiPouncePolicy.steerVelocity(
+							dog.getDeltaMovement(), dog.position(), assignedTarget.position()));
 					if (assignedTarget != null
 							&& dog.getBoundingBox().inflate(0.30).intersects(assignedTarget.getBoundingBox())) {
 						resolvePounceImpact(level, dog, owner, assignedTarget);
@@ -392,12 +401,10 @@ public final class MegumiSummonRuntime {
 		if (!MegumiPouncePolicy.canLaunch(facts)) {
 			return;
 		}
-		Vec3 horizontal = assignedTarget.position().subtract(dog.position()).multiply(1.0, 0.0, 1.0);
-		if (horizontal.lengthSqr() < 1.0E-6) {
+		Vec3 velocity = MegumiPouncePolicy.launchVelocity(dog.position(), assignedTarget.position());
+		if (velocity.lengthSqr() < 1.0E-6) {
 			return;
 		}
-		Vec3 velocity = horizontal.normalize().scale(MegumiProfile.POUNCE_HORIZONTAL_SPEED)
-				.add(0.0, MegumiProfile.POUNCE_VERTICAL_SPEED, 0.0);
 		dog.launchPounce(assignedTarget, gameTime, velocity);
 	}
 
@@ -413,6 +420,10 @@ public final class MegumiSummonRuntime {
 		float damage = (float) MegumiProfile.DOG_ATTACK_DAMAGE + MegumiProfile.POUNCE_BONUS_DAMAGE;
 		if (!target.hurtServer(level, level.damageSources().playerAttack(owner), damage)) {
 			return;
+		}
+		Vec3 direction = target.position().subtract(dog.position()).multiply(1.0, 0.0, 1.0);
+		if (direction.lengthSqr() > 1.0E-6) {
+			target.knockback(MegumiProfile.POUNCE_KNOCKBACK, -direction.x, -direction.z);
 		}
 		CombatStagger.GLOBAL.apply(target, level.getGameTime(), MegumiProfile.POUNCE_STAGGER_TICKS);
 		level.playSound(null, target.getX(), target.getY(), target.getZ(), JujutsuSounds.PROJECTJJK_AEC_BOOM,
