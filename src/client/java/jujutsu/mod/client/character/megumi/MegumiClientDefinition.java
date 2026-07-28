@@ -12,6 +12,7 @@ import jujutsu.mod.client.character.CharacterRosterEntry;
 import jujutsu.mod.client.character.JujutsuCharacterIcons;
 import jujutsu.mod.client.character.megumi.vfx.MegumiVfxRecipes;
 import jujutsu.mod.client.character.megumi.particle.MegumiShadowMoteParticle;
+import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.render.CharacterGeoRenderer;
 import jujutsu.mod.client.render.megumi.MegumiDivineDogRenderer;
 import jujutsu.mod.client.render.megumi.MegumiPlayerGeoRenderer;
@@ -72,6 +73,7 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 		EntityRendererRegistry.register(JujutsuEntities.MEGUMI_DIVINE_DOG, MegumiDivineDogRenderer::new);
 		ParticleFactoryRegistry.getInstance().register(JujutsuParticles.MEGUMI_SHADOW_MOTE, MegumiShadowMoteParticle.Provider::new);
 		MegumiVfxRecipes.register();
+		VfxDirector.registerHudContribution(JujutsuMod.id("megumi_divine_dogs_cooldown"), MegumiCooldownHud::render);
 	}
 
 	@Override

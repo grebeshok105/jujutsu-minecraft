@@ -58,6 +58,10 @@ public final class VfxDirector {
 		}
 	}
 
+	public static void registerHudContribution(ResourceLocation id, VfxHudChannel.Contribution contribution) {
+		HUD.registerContribution(id, contribution);
+	}
+
 	public static void receive(VfxCue cue) {
 		Minecraft client = Minecraft.getInstance();
 		if (client.level == null || client.player == null) {

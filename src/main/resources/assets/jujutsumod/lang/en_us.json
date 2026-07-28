@@ -106,5 +106,6 @@
   "message.jujutsumod.todo.pair.lost": "The marked target is gone.",
   "message.jujutsumod.megumi.dogs.no_room": "The Divine Dogs need safe ground nearby.",
   "message.jujutsumod.megumi.dogs.none_out": "No Divine Dogs are summoned.",
-  "entity.jujutsumod.megumi_divine_dog": "Divine Dog"
+  "entity.jujutsumod.megumi_divine_dog": "Divine Dog",
+  "hud.jujutsumod.megumi.divine_dogs": "Divine Dogs"
 }
