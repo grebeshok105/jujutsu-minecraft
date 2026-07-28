@@ -4,32 +4,48 @@ Status: CURRENT
 
 ## Slice boundary
 
-Megumi is the third vessel. `PRIMARY` (`R`) summons or recalls one pack containing two separately mortal `MegumiDivineDogEntity` wolves; `PRIMARY_SNEAK` (`Shift+R`) issues Sic to every living sibling. There are no items, persistent Ten Shadows state, new payloads, mixins, or shared summon abstraction in this slice.
+Megumi is the third vessel. `PRIMARY` (`R`) summons or recalls one pack containing two separately mortal `MegumiDivineDogEntity` wolves; `PRIMARY_SNEAK` (`Shift+R`) assigns one server-selected Sic target to every living sibling. The slice adds no items, persistence, payload, input, mixin, dependency or universal summon abstraction.
 
-The server definition, router, profile, entity, placement policy and runtime live under `jujutsu.mod.character.megumi`. The client definition and recipes live under `jujutsu.mod.client.character.megumi`. `JujutsuEntities` is the only content registry changed for the transient `.noSave()` entity.
+The server definition, router, profile, entity and runtime live under `jujutsu.mod.character.megumi`. Client rendering and recipes live under `jujutsu.mod.client.character.megumi`. Shared edits are limited to existing content and presentation extension points; vessel dispatch, `TargetResolver` and `CharacterAbilityExecutor` remain unchanged.
 
 ## Pack identity and lifecycle
 
-`MegumiDivineDogPack` records the level key, white and black entity UUIDs, a monotonic summon token and summon game time. Entity ids are never identity. `MegumiSummonRuntime` keeps one owner-keyed pack map and one teardown guard set.
+`MegumiDivineDogPack` records the level key, white and black entity UUIDs, a monotonic summon token and summon game time. Runtime identity is owner UUID plus summon token, never entity id. `MegumiSummonRuntime` keeps one owner-keyed pack map and a teardown guard.
 
-`teardown` is the only destructive cleanup entry point. It removes the pack record before a cross-level sweep by entity class and stored owner UUID, discards every match, and applies at most one reason-selected cooldown. `reconcile` returns during teardown or without a pack record and retains the pack while either recorded sibling is still alive. Death, unload, owner death, respawn, level change, disconnect, server stop and vessel deselection all reach those two lifecycle paths.
+`teardown` remains the only destructive cleanup entry point. It removes the pack record before a cross-level sweep by entity class and stored owner UUID. Manual recall transitions only dogs that belonged to that removed pack into a 12-tick `RECALLING` phase; every death, stale-state, disconnect, dimension, deselection and server-stop cleanup hard-discards immediately. `reconcile` ignores nested teardown and missing records, and retains a pack while either recorded sibling is alive.
 
-## Summon, recall and cooldowns
+Summon preflights both safe positions before inserting either dog. A failed second insertion rolls back without cooldown. Summon starts no cooldown; manual recall starts 240 ticks; final pack loss starts 600. A longer active deadline is never shortened, and every server cooldown start uses the existing client mirror.
 
-Summon preflights both floor-supported positions before either body is inserted. Both dogs use direct constructors, UUID plus token ownership, snowy/black variants and contrasting collars. A failed second insertion rolls the first back without cooldown; a same-tick duplicate request is ignored. A later `R` recalls whatever remains.
+## Presentation phases
 
-Summon starts no cooldown. Manual recall starts 240 ticks and final pack loss starts 600. Sic starts 30 ticks. A new duration replaces an active one only when its deadline is later, and every actual server start is synchronized through the existing ability cooldown payload.
+Each transient dog synchronizes only presentation phase and phase age: `MATERIALIZING` for 16 ticks, `ACTIVE`, then manual `RECALLING` for 12 ticks. During materialization and recall the entity disables AI and navigation, refuses attacks and incoming damage, and is not pickable, pushable or combat-collidable. The authoritative position never moves for presentation; `MegumiDivineDogRenderer` applies only a vertical render offset from one block below the surface to the final position and back.
 
-## Sic and follow safety
+The vanilla wolf model, variants and textures remain in use. A summon emits one owner-anchored cue for Megumi's `summon_divine_dogs` GeckoLib clip and one exact-origin cue per dog for its shadow pool. Recall emits one cue per still-living dog before the phase starts. `MegumiVfxRecipes` owns four ids: `DOGS_SUMMON`, `DOGS_RECALL`, `DOGS_SIC` and `DOGS_POUNCE`. Existing VFX Core world, ring and burst channels draw bounded shadow geometry and the target impact; the reusable full-bright shadow mote reuses an existing project sprite. No fullscreen effect or new callback was added.
 
-Sic uses the unchanged `TargetResolver`, then resolves its entity id immediately and rechecks line of sight and one Megumi-owned policy. The owner, own pack dogs, allies, spectators, dead, removed, unloaded and cross-level targets are refused. Successful Sic assigns the same target to every living sibling. Owner-defense goals use the same policy; there is no general nearest-target goal or separate target state.
+The confirmed local-owner summon cue also triggers the shared first-person `SIGN` style for 0.80 seconds. Remote players receive only the third-person cue. Vessel change and VFX director cleanup cancel the shared first-person state.
 
-Every 10 ticks, a dog farther than 32 blocks gets a deterministic safe-ground search around Megumi: center, then radius rings through 3, each ring sorted by squared distance, X and Z, with Y offsets `0,+1,-1,+2,-2,+3,-3`. A point must be loaded, have a sturdy non-hazardous floor, fit the dog AABB without block or entity collision, and contain no fire or lava. Water is valid over safe ground. No result means no teleport, navigation change or target change; ordinary pathing continues until the next check.
+Server-spatial sound is emitted from the authoritative owner, dog or impact position. The sequence reuses the existing ProjectJJK sound registry and vanilla `WolfSoundVariant`: shadow open, emergence accent, post-materialization vocal, Sic command/growl, accepted pounce impact and recall suction. Client recipes do not replay these sounds.
 
-## Presentation and evidence boundary
+## HUD
 
-Megumi's client definition supplies a GeckoLib replaced-player renderer through the existing vessel render stack. The 128 x 128 model atlas belongs only to that body; a separate vanilla-layout 64 x 64 skin drives first-person hands and the roster portrait. Base movement selects `idle`, `walk` and `run`. A weak per-player render record advances ordinary swing clips deterministically through `punch_1`, `punch_2` and `kick`; it sends no packet and changes no combat behavior. The exported `combat_idle` clip remains unrouted because the slice has no combat-mode state.
+Megumi registers a contribution into the one `VfxDirector` HUD path. The compact left-side Divine Dogs cooldown appears only for the local selected Megumi, only when the pack is absent and `PRIMARY` has a positive mirrored cooldown. Remaining time is derived from `ClientAbilityCooldowns.READY_AT`; there is no second timer or pack payload. It disappears at zero and follows the existing disconnect and vessel-keyed cooldown lifecycle.
 
-A confirmed summon carries the caster entity id on the existing `DOGS_SUMMON` cue, and the recipe uses it to trigger `summon_divine_dogs` on that player's model. Recall and Sic do not reuse the clip. The vanilla wolf renderer still draws both dog bodies. Three VFX Core cues (`DOGS_SUMMON`, `DOGS_RECALL`, `DOGS_SIC`) resolve through `MegumiVfxRecipes` and existing particle channels. Minecraft 1.21.8 removed the standalone wolf howl constant in favor of `WolfSoundVariant`; summon and recall therefore use the active vanilla ambient variant at distinct pitches, while Sic uses that variant's growl. No sound assets are added.
+## Sic and pounce
 
-JUnit and architecture checks prove pure policies, constants, runtime asset shape and vessel boundaries. They do not construct a `ServerLevel`, spawn a dog, move it, run AI, play audio or render a frame. Model scale, held-item alignment, animation timing and those world behaviours remain owned by the Megumi in-game smoke pass.
+Sic uses the unchanged `TargetResolver`, then immediately re-resolves the entity and checks owner line of sight plus `MegumiTargetPolicy`. Owner, own pack dogs, allies, spectators, dead, removed, unloaded and cross-level targets are refused. Owner-defense goals may still set an ordinary wolf target, but only the separately stored Sic target UUID can authorize pounce.
+
+Each dog owns unsynchronized, non-persistent Sic/pounce UUIDs and deadlines. Immediately before launch the server requires an `ACTIVE` current-pack dog, live loaded same-level owner, exact current Sic target, eligibility, line of sight, inclusive 3.0-8.0 block range and that dog's readiness. Launch velocity is 0.72 horizontal and 0.42 vertical; flight times out after 16 ticks and starts only that dog's 80-tick cooldown.
+
+Physical AABB proximity confirms impact. The server revalidates owner, target, pack command and friendly-fire policy, then applies exactly one `playerAttack(owner)` hit for base 3.0 plus 2.0 pounce damage. Only accepted damage applies `CombatStagger.GLOBAL` for 6 ticks and emits the spatial impact sound and target-anchored `DOGS_POUNCE` cue. A miss, timeout, invalidation, phase change or teardown restores ordinary ACTIVE AI where appropriate and emits no hit feedback. Inherited ordinary wolf melee attribution remains unchanged and is outside this polish pass.
+
+## Tuning and follow safety
+
+`MegumiProfile` is authoritative: Divine Dogs have 28 health, 3 attack damage and 0.34 movement speed. Their damage was not raised; durability and approach speed improve while Sic and the per-dog pounce deadline remain the pressure controls.
+
+Every 10 ticks, a dog farther than 32 blocks gets a deterministic safe-ground search around Megumi through radius 3. A point must be loaded, floor-supported, collision-free and contain no fire or lava. Water is valid over safe ground. No result leaves position, navigation and target unchanged until the next retry; there is no exact-owner fallback.
+
+## Evidence boundary
+
+JUnit and architecture checks cover profile values, phase transitions and combat gates, delayed recall versus hard cleanup, cooldown HUD visibility/deadline math, Sic-only identity, pounce range/LOS/eligibility/deadlines, owner-attributed single-hit source shape, conditional impact feedback, VFX/sound/first-person registration, payload inventory and vessel boundaries.
+
+No automated test constructs a `ServerLevel`, renders a frame, plays audio or runs two clients. Summon/recall geometry on floors, ledges, water and tight rooms; AI/collision feel; actual pounce movement and contact; mob/player kill attribution; spatial mix and duplication; HUD placement; remote synchronization; and Nobara/Todo regression remain in-game smoke.
