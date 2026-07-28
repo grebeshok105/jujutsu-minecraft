@@ -179,6 +179,8 @@ The rest of the plan, in the order it should be done: wire `check` to the `verif
 
 Two of those connect directly to entries already in this register. The `CharacterAbilityExecutor` gap is the same one "Limits of the build-time gate" describes as needing "a unit test over the dispatcher, not a dependency rule". The hand-maintained `check` list is the reason a new verification program can exist, carry `-ea`, satisfy `verifyAssertionsEnabled`, and still never run — that task audits assertion flags, not invocation.
 
+One ordering constraint is load-bearing and is stated in the plan rather than implied: nothing may be deleted from `ProjectSanityTest` on duplication grounds until that file has been inventoried. Which of its checks ArchUnit already proves is not known, and cutting on a guess is how coverage disappears quietly.
+
 The plan marks as UNVERIFIED anything that needs a local build or a checkout-wide count, including the new floor values and whether `CharacterAbilityExecutor` already has indirect coverage. Do not lift numbers out of it into this register without counting them first.
 
 ## Medium-priority work
@@ -218,7 +220,11 @@ Verified 2026-07-26: `build.gradle` registers 30 custom JavaExec verification pr
 
 They use main methods and Java assertions. They are useful and green, but do not provide normal per-test JUnit reports or GameTest world integration — see E1 for the coverage gap that follows from having no world-level tests.
 
-Stale figure, flagged 2026-07-28: the count of 30 above predates the current tree and is no longer correct. It is deliberately left as written rather than replaced with a second guess — recount it locally with `./gradlew tasks --group verification` and correct it in the same change that wires `check` to the task group (see E15), after which the number stops being maintained by hand in two places. The rest of this entry still holds: the migration path off `main()`+`assert` is E15's Tier 4.
+Stale figure, flagged 2026-07-28: the count of 30 above predates the current tree and is no longer correct. It is deliberately left as written rather than replaced with a second guess. Recount it from `./gradlew verifyAssertionsEnabled`, which logs the number of verification `JavaExec` tasks it audited, and correct it in the same change that wires `check` to the task group (see E15), after which the number stops being maintained by hand in two places.
+
+Do not recount it from `./gradlew tasks --group verification`: that group also contains `verifyAssertionsEnabled`, `auditDocumentation` and `qualityGate`, so its listing is not a count of verification programs. `verifyAssertionsEnabled` filters with the same expression the wiring change will use, so its number and the gate's set cannot drift apart.
+
+The rest of this entry still holds: the migration path off `main()`+`assert` is E15's Tier 4.
 
 ### E9 — Build reproducibility can improve
 

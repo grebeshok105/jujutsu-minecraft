@@ -22,6 +22,7 @@ The test suite in this repository is unusually honest about the limits of its ow
 - Claims verified by reading a file on `main` are stated plainly.
 - Claims that require a local build, a checkout-wide count, or a Gradle run are marked **UNVERIFIED** and must be confirmed before being acted on.
 - No line counts, file counts, or effort estimates appear here unless they were counted rather than guessed.
+- Acceptance criteria must be able to fail for the right reason. A criterion that the current, unfixed code already satisfies is not a criterion — see T2.3, where the first draft of this plan got exactly that wrong.
 
 ---
 
@@ -95,8 +96,11 @@ The manual list is then deleted. `dependsOn` accepts a task collection. This rea
 **Acceptance:** the exact Groovy above must be run, not assumed to work.
 
 1. `./gradlew check` and `./gradlew qualityGate` both pass.
-2. `verifyAssertionsEnabled` reports the same set of verification `JavaExec` tasks as before the change.
-3. The count of verification programs actually executed by `check` matches the count registered. **UNVERIFIED:** the current registered count must be taken from a local `./gradlew tasks --group verification`, not from documentation — see the note on E8 below.
+2. `verifyAssertionsEnabled` reports the same verification `JavaExec` tasks as before the change.
+3. The **set** of verification `JavaExec` tasks that `check` invokes equals the set registered. Compare sets, not counts — a count is satisfied by swapping one task for another.
+   - Registered set: `./gradlew verifyAssertionsEnabled`. That task already logs `verifyAssertionsEnabled: ${programs.size()} verification JavaExec tasks all enable assertions`, and it builds that list with the same `tasks.withType(JavaExec).matching { it.group == 'verification' }` expression the wiring will use — so the audit and the wiring cannot disagree about what counts as a verification program.
+   - Invoked set: `./gradlew check --dry-run`.
+   - Do **not** count lines from `./gradlew tasks --group verification`. That group also holds `verifyAssertionsEnabled`, `auditDocumentation` and `qualityGate`, none of which are verification programs, so its output is not a clean count of `JavaExec` tasks.
 
 ### T2.2 — `isInsideVesselPackage` matches any path segment (fail-open)
 
@@ -129,7 +133,11 @@ Any directory anywhere in the tree whose name happens to equal a vessel id is tr
 
 **UNVERIFIED:** the correct new floor values must come from a local count on a clean checkout. Do not take numbers for the main/client class counts or the shared-file count from any document, including this one and the doc-counter lines elsewhere in the repository — those describe a build output, not a source count, and their relationship to `sharedProductionFiles()` is not one-to-one.
 
-**Acceptance:** each raised floor must fail when the corresponding scan is stubbed to return an empty list, and pass on unmodified `main`.
+**Acceptance.** Stubbing the scan to return an empty list is **not** adequate here, and the first draft of this plan said exactly that and was wrong: the existing floors of 90, 150 and 100 all fail against an empty list too, so satisfying that criterion demonstrates nothing about whether a floor was raised. Test each floor at its new boundary instead.
+
+1. Stub the corresponding scan to return exactly `newFloor - 1` items. The test must fail.
+2. Restore the real result, or exactly `newFloor` items. The test must pass.
+3. For the vessel-type count, which becomes an exact comparison rather than a floor: remove one registered vessel from the result. `assertEquals(VESSEL_IDS.size(), ...)` must go red. This is the case an inequality could never catch, so it is the one that proves the change landed.
 
 ---
 
@@ -159,7 +167,12 @@ Renaming `characters` to `values` changes no behaviour whatsoever and turns the 
 
 These are **not** redundant in pairs. The bytecode rule cannot see runtime-resolved names or constant-folded reads; the source scan can see forms that vanish at compile time; the narrow grep only produces a friendlier message. Deleting everything except ArchUnit would lose real coverage.
 
-**Fix:** keep exactly one structural check (ArchUnit, over bytecode) and exactly one honest source tripwire (whole-tree, self-documented as a grep). Remove the narrow duplicates in `CharacterDefinitionRegistryTest` and `ProjectSanityTest`, and add a comment at each surviving check naming what the other one covers, so nobody deletes the second thinking it is a copy.
+**Target state:** exactly one structural check (ArchUnit, over bytecode) and exactly one honest source tripwire (whole-tree, self-documented as a grep). Add a comment at each surviving check naming what the other one covers, so nobody later deletes the second thinking it is a copy.
+
+**Getting there, in two steps that must not be merged into one:**
+
+1. **Now:** `assertNothingClientOnlyLeakedIn` in `CharacterDefinitionRegistryTest` — a named check over a handful of files, whose own comment describes it as the focused half of a rule ArchUnit already enforces whole. It can be removed as part of this tier.
+2. **Blocked on T4.1:** whatever `ProjectSanityTest` asserts in this area. Do **not** cut it here. Which of its checks are genuinely subsumed by ArchUnit is not yet known, and that is precisely the question the T4.1 inventory answers. Removing anything from that file before the inventory exists means deleting checks on a guess, which is how coverage disappears quietly.
 
 ### T3.3 — Move contracts to the file that names them
 
@@ -176,13 +189,17 @@ Neither is incorrect; both are undiscoverable. This is the same problem that was
 
 It is a single `main()` entry point dispatching into several dozen helper methods in one very large file. The helpers mean it is not a wall of inline code, but the file is still too large to navigate, and any failure stops the whole program at the first tripped assertion.
 
-**Do the inventory before the split.** Produce a list of every property the file checks, mark which ones ArchUnit or the source tripwire already prove, and only then decide what moves and what is deleted. No assumption should be made about how much is duplicated — that number is not known.
+**Do the inventory before the split, and before any deletion.** Produce a list of every property the file checks, mark which ones ArchUnit or the source tripwire already prove, and only then decide what moves and what is deleted. No assumption should be made about how much is duplicated — that number is not known.
+
+This inventory is a hard prerequisite for the second half of T3.2. Until it exists, nothing is removed from `ProjectSanityTest` on the grounds of duplication.
 
 ### T4.2 — Migrate `main()` + `assert` programs to JUnit, one class at a time
 
 The cost of the current form is diagnostic, not correctness: each program halts at its first failed assertion, so a class covering ten scenarios reports one and skips nine, and none of the internal assertions appear as named tests in a report. `-ea` is enforced on the tasks and audited separately, so these programs do run — they just report poorly.
 
 Start with the classes that have the most independent scenarios: `TargetResolverTest`, `CharacterDefinitionRegistryTest`, `CharacterPlayerStateTest`, `CurseLinkRegistryTest`. Migrate and verify one at a time. Do not attempt a single sweeping refactor of every program at once.
+
+Each migrated class leaves the `verification` group, so T2.1 should land first — with the wiring dynamic, a migration is one deletion in `build.gradle` rather than an edit in three places.
 
 **UNVERIFIED:** the per-class effort depends on Fabric Loader classpath behaviour under `useJUnitPlatform()` for these specific classes. Confirm with the first migration before planning the rest.
 
@@ -202,13 +219,15 @@ Treat it as an investigation, not a checklist item. A Minecraft/Fabric classpath
 
 ## Documentation correction found along the way
 
-KNOWN_ISSUES.md entry **E8** states that `build.gradle` registers *30* custom `JavaExec` verification programs, verified 2026-07-26. The current count on `main` is higher. Since the documentation audit already rejects stale code-derived metrics, this figure should be recounted locally and corrected in the same change that lands T2.1 — after which the number stops being hand-maintained in two places, which is the same failure mode T2.1 fixes in the build.
+KNOWN_ISSUES.md entry **E8** states that `build.gradle` registers *30* custom `JavaExec` verification programs, verified 2026-07-26. The current count on `main` is higher. Since the documentation audit already rejects stale code-derived metrics, this figure should be recounted and corrected in the same change that lands T2.1 — after which the number stops being hand-maintained in two places, which is the same failure mode T2.1 fixes in the build.
+
+Take the number from `./gradlew verifyAssertionsEnabled`, for the reason given in T2.1: it is filtered by the same expression the wiring uses. Do not take it from `./gradlew tasks --group verification`, which lists `verifyAssertionsEnabled`, `auditDocumentation` and `qualityGate` alongside the programs.
 
 ## Order of work
 
 1. T1.1, T1.2 — false-green assertions.
 2. T2.1, T2.2, T2.3 — gate wiring, fail-open helper, floors.
-3. T3.1, T3.2, T3.3 — duplicate and misplaced checks.
-4. T4.1 through T4.4 — incremental, no deadline implied.
+3. T3.1, T3.2 (first half only), T3.3 — duplicate and misplaced checks.
+4. T4.1 through T4.4 — incremental, no deadline implied. T4.1's inventory unblocks the second half of T3.2.
 
 Tier 1 is the only tier that should be considered urgent. Everything after it is maintenance, and none of it justifies a large refactor undertaken for its own sake.
