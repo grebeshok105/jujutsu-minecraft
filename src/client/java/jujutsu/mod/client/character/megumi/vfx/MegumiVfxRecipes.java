@@ -1,17 +1,20 @@
 package jujutsu.mod.client.character.megumi.vfx;
 
+import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.character.megumi.vfx.MegumiVfxIds;
 import jujutsu.mod.client.character.megumi.MegumiAnimationHooks;
+import jujutsu.mod.client.vfx.VfxWorldChannel;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.vfx.VfxInstance;
+import jujutsu.mod.registry.JujutsuParticles;
 import jujutsu.mod.vfx.VfxCue;
 import jujutsu.mod.vfx.VfxTimeline;
 
-/** Divine Dog effects composed entirely from the existing VFX Core particle channel. */
+/** Divine Dog effects composed entirely from the existing VFX Core channels. */
 public final class MegumiVfxRecipes {
 	private static final DustParticleOptions SHADOW_TEAL = new DustParticleOptions(0x2F8F83, 1.0f);
 	private static final DustParticleOptions SHADOW_DARK = new DustParticleOptions(0x102E2B, 0.75f);
@@ -25,15 +28,20 @@ public final class MegumiVfxRecipes {
 	}
 
 	private static VfxInstance summon(VfxCue cue) {
-		return VfxInstance.of(10, (context, initialAgeTicks) -> {
+		return VfxInstance.of(16, (context, initialAgeTicks) -> {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				return;
 			}
-			MegumiAnimationHooks.triggerDivineDogs(cue);
-			Vec3 origin = context.resolveOrigin(cue);
+			Entity anchor = context.client().level == null ? null : context.client().level.getEntity(cue.anchorEntityId());
+			if (anchor instanceof AbstractClientPlayer) {
+				MegumiAnimationHooks.triggerDivineDogs(cue);
+				return;
+			}
+			Vec3 origin = cue.origin();
 			RandomSource random = random(cue, 0xD0655A11L);
-			context.burst(SHADOW_DARK, origin.add(0.0, 0.15, 0.0), 20, 0.65, 0.20, random);
-			context.ring(SHADOW_TEAL, origin.add(0.0, 0.08, 0.0), 18, 1.0, 0.0, -0.08, random);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN, 16);
+			context.burst(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.10, 0.0), 14, 0.42, 0.13, random);
+			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.04, 0.0), 10, 0.58, 0.0, 0.05, random);
 		});
 	}
 
@@ -42,11 +50,10 @@ public final class MegumiVfxRecipes {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				return;
 			}
-			Vec3 origin = context.resolveOrigin(cue);
+			Vec3 origin = cue.origin();
 			RandomSource random = random(cue, 0xD0652ECA11L);
-			context.burst(ParticleTypes.FALLING_OBSIDIAN_TEAR, origin.add(0.0, 1.25, 0.0),
-					22, 0.7, 0.025, random);
-			context.ring(SHADOW_DARK, origin.add(0.0, 0.12, 0.0), 16, 1.0, 0.0, -0.10, random);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_CLOSE, 12);
+			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.08, 0.0), 14, 0.68, 0.0, -0.08, random);
 		});
 	}
 

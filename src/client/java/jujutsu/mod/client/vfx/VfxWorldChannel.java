@@ -53,6 +53,12 @@ public final class VfxWorldChannel {
 	private static final int TODO_DEEP_R = VfxPalette.TODO_DEEP_R;
 	private static final int TODO_DEEP_G = VfxPalette.TODO_DEEP_G;
 	private static final int TODO_DEEP_B = VfxPalette.TODO_DEEP_B;
+	private static final int MEGUMI_SHADOW_R = 8;
+	private static final int MEGUMI_SHADOW_G = 22;
+	private static final int MEGUMI_SHADOW_B = 22;
+	private static final int MEGUMI_EDGE_R = 47;
+	private static final int MEGUMI_EDGE_G = 143;
+	private static final int MEGUMI_EDGE_B = 131;
 	private static final int BF_SPARK_R = VfxPalette.BLACK_FLASH_SPARK_R;
 	private static final int BF_SPARK_G = VfxPalette.BLACK_FLASH_SPARK_G;
 	private static final int BF_SPARK_B = VfxPalette.BLACK_FLASH_SPARK_B;
@@ -85,6 +91,10 @@ public final class VfxWorldChannel {
 		impactFlashes.clear();
 	}
 
+	int activeEffectCount() {
+		return impactFlashes.size();
+	}
+
 	private void renderImpactFlashes(VertexConsumer consumer, Vec3 cameraPosition, WorldRenderContext context, float partialTick) {
 		for (Iterator<ImpactFlash> iterator = impactFlashes.iterator(); iterator.hasNext();) {
 			ImpactFlash flash = iterator.next();
@@ -114,8 +124,36 @@ public final class VfxWorldChannel {
 				case BOOGIE_WOOGIE -> renderBoogieWoogie(consumer, center, intensity, progress, fade, flash.cue());
 				case SWAP_AFTERIMAGE -> renderSwapAfterimage(consumer, center, progress, flash.cue());
 				case SWAP_ARRIVAL -> renderSwapArrival(consumer, center, progress, fade, flash.cue());
+				case MEGUMI_SHADOW_OPEN -> renderMegumiShadowPool(consumer, center, progress, true);
+				case MEGUMI_SHADOW_CLOSE -> renderMegumiShadowPool(consumer, center, progress, false);
 			}
 		}
+	}
+
+	private static void renderMegumiShadowPool(VertexConsumer consumer, Vec3 center, float progress, boolean opening) {
+		float radius = shadowPoolRadius(opening, progress);
+		float alpha = opening ? 0.42f + 0.58f * Math.max(0.0f, Math.min(1.0f, progress)) : shadowPoolAlpha(progress);
+		int darkAlpha = Math.round(132.0f * alpha);
+		renderDirectionalRing(consumer, center.add(UP.scale(0.025)), EAST, NORTH, radius, 0.62f,
+				darkAlpha, progress * (opening ? 1.4f : -1.2f),
+				MEGUMI_SHADOW_R, MEGUMI_SHADOW_G, MEGUMI_SHADOW_B,
+				MEGUMI_EDGE_R, MEGUMI_EDGE_G, MEGUMI_EDGE_B);
+		for (int spoke = 0; spoke < 6; spoke++) {
+			double angle = spoke * Math.PI / 3.0 + progress * 0.35;
+			Vec3 edge = center.add(EAST.scale(Math.cos(angle) * radius * 0.82))
+					.add(NORTH.scale(Math.sin(angle) * radius * 0.52));
+			addRibbon(consumer, center, edge, UP.scale(0.024), MEGUMI_SHADOW_R, MEGUMI_SHADOW_G, MEGUMI_SHADOW_B,
+					Math.round(darkAlpha * 0.72f));
+		}
+	}
+
+	static float shadowPoolRadius(boolean opening, float progress) {
+		float clamped = Math.max(0.0f, Math.min(1.0f, progress));
+		return opening ? 0.26f + 0.68f * clamped : 0.94f - 0.68f * clamped;
+	}
+
+	static float shadowPoolAlpha(float progress) {
+		return 1.0f - Math.max(0.0f, Math.min(1.0f, progress));
 	}
 
 	private static void renderHammerSend(VertexConsumer consumer, Vec3 center, int intensity, float progress, float fade) {
@@ -657,7 +695,9 @@ public final class VfxWorldChannel {
 		BLACK_FLASH(true),
 		BOOGIE_WOOGIE(true),
 		SWAP_AFTERIMAGE(true),
-		SWAP_ARRIVAL(true);
+		SWAP_ARRIVAL(true),
+		MEGUMI_SHADOW_OPEN(true),
+		MEGUMI_SHADOW_CLOSE(true);
 
 		private final boolean worldFixed;
 

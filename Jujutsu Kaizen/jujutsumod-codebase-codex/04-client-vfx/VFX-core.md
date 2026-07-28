@@ -10,7 +10,7 @@ Each vessel registers its own recipe pack from `CharacterClientDefinition.regist
 
 VfxDirector owns recipe registration, active-instance cap 64, cue age/expiry, world identity, disconnect cleanup, render callbacks, and shared channels. Unknown ids are logged once and ignored.
 
-NobaraVfxIds defines 25 ids. TodoVfxIds defines four: `todo/boogie_woogie`, `todo/swap_endpoint`, `todo/feint_tell`, and `todo/pair_mark`. ProjectSanityTest requires age-aware real-time channel calls and rejects removed legacy managers/mixins. Six client mixins are configured; VfxDeltaTrackerMixin is intentionally absent.
+NobaraVfxIds defines 25 ids. TodoVfxIds defines four: `todo/boogie_woogie`, `todo/swap_endpoint`, `todo/feint_tell`, and `todo/pair_mark`. MegumiVfxIds defines three Divine Dog ids. `DOGS_SUMMON` keeps one player-anchored cue for the body animation and adds one exact-origin dog-anchored cue per dog for the 16-tick shadow-open pool; `DOGS_RECALL` is likewise one still-living dog cue per 12-tick shadow-close pool, never a synthetic owner pool. The shared world channel owns both bounded ground styles and Megumi's client definition registers the shadow-mote provider. ProjectSanityTest requires age-aware real-time channel calls and rejects removed legacy managers/mixins. Six client mixins are configured; VfxDeltaTrackerMixin is intentionally absent.
 
 VfxTimeChannel is a bounded client VFX primitive, but production code must not scale global Minecraft DeltaTracker time. Resonance gameplay hit-stop is separately and intentionally server-global through ServerTimeDilation.
 

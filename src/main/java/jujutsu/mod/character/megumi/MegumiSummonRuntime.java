@@ -130,6 +130,8 @@ public final class MegumiSummonRuntime {
 				level.dimension(), white.getUUID(), black.getUUID(), token, gameTime));
 		white.playSummonSound();
 		broadcastCue(level, player, MegumiVfxIds.DOGS_SUMMON, player.position(), player.getId(), Vec3.ZERO);
+		broadcastDogCue(level, player, MegumiVfxIds.DOGS_SUMMON, white);
+		broadcastDogCue(level, player, MegumiVfxIds.DOGS_SUMMON, black);
 		return true;
 	}
 
@@ -262,6 +264,9 @@ public final class MegumiSummonRuntime {
 			return;
 		}
 		MegumiDivineDogPack pack = PACKS.remove(ownerId);
+		ServerPlayer owner = reason == TeardownReason.RECALL
+				? server.getPlayerList().getPlayer(ownerId)
+				: null;
 		boolean foundCooldownOwningDog = false;
 		boolean playedRecall = false;
 		try {
@@ -277,6 +282,9 @@ public final class MegumiSummonRuntime {
 					MegumiLifecyclePolicy.DogCleanupAction cleanupAction = MegumiLifecyclePolicy
 							.dogCleanupAction(reason == TeardownReason.RECALL, belongedToRemovedPack);
 					if (cleanupAction == MegumiLifecyclePolicy.DogCleanupAction.BEGIN_RECALL) {
+						if (owner != null) {
+							broadcastDogCue(level, owner, MegumiVfxIds.DOGS_RECALL, dog);
+						}
 						if (!playedRecall) {
 							dog.playRecallSound();
 							playedRecall = true;
@@ -291,13 +299,13 @@ public final class MegumiSummonRuntime {
 			TEARDOWN_IN_PROGRESS.remove(ownerId);
 		}
 		if (MegumiLifecyclePolicy.shouldApplyTeardownCooldown(pack != null, foundCooldownOwningDog)) {
-			ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
-			if (reason == TeardownReason.RECALL && owner != null) {
-				ServerLevel level = owner.level();
-				broadcastCue(level, owner, MegumiVfxIds.DOGS_RECALL, owner.position(), VfxCue.NO_ANCHOR, Vec3.ZERO);
-			}
-			startCooldownIfLonger(owner, CharacterAbility.PRIMARY, reason.cooldownTicks());
+			startCooldownIfLonger(server.getPlayerList().getPlayer(ownerId), CharacterAbility.PRIMARY, reason.cooldownTicks());
 		}
+	}
+
+	private static void broadcastDogCue(
+			ServerLevel level, ServerPlayer owner, ResourceLocation effectId, MegumiDivineDogEntity dog) {
+		broadcastCue(level, owner, effectId, dog.position(), dog.getId(), Vec3.ZERO);
 	}
 
 	private static void broadcastCue(

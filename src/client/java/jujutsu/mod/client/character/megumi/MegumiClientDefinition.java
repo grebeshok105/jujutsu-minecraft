@@ -1,6 +1,7 @@
 package jujutsu.mod.client.character.megumi;
 
 import java.util.List;
+import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
@@ -10,10 +11,12 @@ import jujutsu.mod.client.character.CharacterClientDefinition;
 import jujutsu.mod.client.character.CharacterRosterEntry;
 import jujutsu.mod.client.character.JujutsuCharacterIcons;
 import jujutsu.mod.client.character.megumi.vfx.MegumiVfxRecipes;
+import jujutsu.mod.client.character.megumi.particle.MegumiShadowMoteParticle;
 import jujutsu.mod.client.render.CharacterGeoRenderer;
 import jujutsu.mod.client.render.megumi.MegumiDivineDogRenderer;
 import jujutsu.mod.client.render.megumi.MegumiPlayerGeoRenderer;
 import jujutsu.mod.registry.JujutsuEntities;
+import jujutsu.mod.registry.JujutsuParticles;
 
 /** Megumi's client presentation: his player body, Divine Dog renderer, and VFX recipe pack. */
 public final class MegumiClientDefinition implements CharacterClientDefinition {
@@ -67,6 +70,7 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 	@Override
 	public void registerClientHooks() {
 		EntityRendererRegistry.register(JujutsuEntities.MEGUMI_DIVINE_DOG, MegumiDivineDogRenderer::new);
+		ParticleFactoryRegistry.getInstance().register(JujutsuParticles.MEGUMI_SHADOW_MOTE, MegumiShadowMoteParticle.Provider::new);
 		MegumiVfxRecipes.register();
 	}
 
