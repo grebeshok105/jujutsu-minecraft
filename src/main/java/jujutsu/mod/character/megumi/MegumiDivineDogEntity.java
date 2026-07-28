@@ -3,10 +3,16 @@ package jujutsu.mod.character.megumi;
 import java.util.UUID;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.AgeableMob;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -26,8 +32,14 @@ import net.minecraft.world.level.Level;
 
 /** One transient Divine Dog body. Pack identity is the stored owner UUID plus summon token. */
 public final class MegumiDivineDogEntity extends Wolf {
+	private static final EntityDataAccessor<Integer> DATA_PRESENTATION_PHASE =
+			SynchedEntityData.defineId(MegumiDivineDogEntity.class, EntityDataSerializers.INT);
+	private static final EntityDataAccessor<Integer> DATA_PRESENTATION_TICKS =
+			SynchedEntityData.defineId(MegumiDivineDogEntity.class, EntityDataSerializers.INT);
+
 	private UUID ownerUuid;
 	private long summonToken;
+	private ResourceKey<Level> recallDimension;
 
 	public MegumiDivineDogEntity(EntityType<? extends Wolf> type, Level level) {
 		super(type, level);
@@ -46,9 +58,18 @@ public final class MegumiDivineDogEntity extends Wolf {
 		targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));
 	}
 
+	@Override
+	protected void defineSynchedData(SynchedEntityData.Builder builder) {
+		super.defineSynchedData(builder);
+		builder.define(DATA_PRESENTATION_PHASE, MegumiDogPresentationPolicy.Phase.MATERIALIZING.networkId());
+		builder.define(DATA_PRESENTATION_TICKS, 0);
+	}
+
 	void configureSummon(UUID ownerUuid, long summonToken) {
 		this.ownerUuid = ownerUuid;
 		this.summonToken = summonToken;
+		recallDimension = null;
+		setPresentationPhase(MegumiDogPresentationPolicy.Phase.MATERIALIZING);
 	}
 
 	public UUID ownerUuid() {
@@ -57,6 +78,27 @@ public final class MegumiDivineDogEntity extends Wolf {
 
 	public long summonToken() {
 		return summonToken;
+	}
+
+	public MegumiDogPresentationPolicy.Phase presentationPhase() {
+		return MegumiDogPresentationPolicy.Phase.fromNetworkId(entityData.get(DATA_PRESENTATION_PHASE));
+	}
+
+	public int presentationTicks() {
+		return entityData.get(DATA_PRESENTATION_TICKS);
+	}
+
+	void beginRecall() {
+		if (!isRemoved() && presentationPhase() != MegumiDogPresentationPolicy.Phase.RECALLING) {
+			recallDimension = level().dimension();
+			setPresentationPhase(MegumiDogPresentationPolicy.Phase.RECALLING);
+		}
+	}
+
+	boolean canFinishRecallWithoutPack() {
+		return presentationPhase() == MegumiDogPresentationPolicy.Phase.RECALLING
+				&& recallDimension != null
+				&& recallDimension.equals(level().dimension());
 	}
 
 	void playSummonSound() {
@@ -75,9 +117,94 @@ public final class MegumiDivineDogEntity extends Wolf {
 	@Override
 	public void tick() {
 		super.tick();
-		if (!level().isClientSide() && !MegumiSummonRuntime.isCurrent(this)) {
+		if (level().isClientSide()) {
+			return;
+		}
+		tickPresentationPhase();
+		if (!isRemoved() && MegumiSummonRuntime.shouldHardDiscard(this)) {
 			discard();
 		}
+	}
+
+	private void tickPresentationPhase() {
+		MegumiDogPresentationPolicy.Phase phase = presentationPhase();
+		if (phase == MegumiDogPresentationPolicy.Phase.ACTIVE) {
+			return;
+		}
+		int nextTicks = presentationTicks() + 1;
+		entityData.set(DATA_PRESENTATION_TICKS, nextTicks);
+		if (phase == MegumiDogPresentationPolicy.Phase.RECALLING) {
+			if (MegumiDogPresentationPolicy.recallComplete(nextTicks)) {
+				discard();
+			}
+			return;
+		}
+		MegumiDogPresentationPolicy.Phase nextPhase =
+				MegumiDogPresentationPolicy.phaseAfterTick(phase, nextTicks);
+		if (nextPhase != phase) {
+			setPresentationPhase(nextPhase);
+		}
+	}
+
+	private void setPresentationPhase(MegumiDogPresentationPolicy.Phase phase) {
+		entityData.set(DATA_PRESENTATION_PHASE, phase.networkId());
+		entityData.set(DATA_PRESENTATION_TICKS, 0);
+		boolean combatEnabled = MegumiDogPresentationPolicy.combatEnabled(phase);
+		setNoAi(!combatEnabled);
+		if (!combatEnabled) {
+			super.setTarget(null);
+			getNavigation().stop();
+		}
+	}
+
+	private boolean combatEnabled() {
+		return MegumiDogPresentationPolicy.combatEnabled(presentationPhase());
+	}
+
+	boolean acceptsSicCommand() {
+		return combatEnabled();
+	}
+
+	@Override
+	public void setTarget(LivingEntity target) {
+		super.setTarget(combatEnabled() ? target : null);
+	}
+
+	@Override
+	public boolean doHurtTarget(ServerLevel level, Entity target) {
+		return combatEnabled() && super.doHurtTarget(level, target);
+	}
+
+	@Override
+	public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
+		return combatEnabled() && super.hurtServer(level, source, amount);
+	}
+
+	@Override
+	public boolean isPickable() {
+		return combatEnabled() && super.isPickable();
+	}
+
+	@Override
+	public boolean isPushable() {
+		return combatEnabled() && super.isPushable();
+	}
+
+	@Override
+	public void push(Entity other) {
+		if (combatEnabled()) {
+			super.push(other);
+		}
+	}
+
+	@Override
+	public boolean canCollideWith(Entity other) {
+		return combatEnabled() && super.canCollideWith(other);
+	}
+
+	@Override
+	public boolean canBeCollidedWith(Entity other) {
+		return combatEnabled() && super.canBeCollidedWith(other);
 	}
 
 	@Override
@@ -114,6 +241,6 @@ public final class MegumiDivineDogEntity extends Wolf {
 
 	@Override
 	public boolean wantsToAttack(LivingEntity target, LivingEntity owner) {
-		return target != this && MegumiSummonRuntime.isEligibleTarget(owner, target);
+		return combatEnabled() && target != this && MegumiSummonRuntime.isEligibleTarget(owner, target);
 	}
 }

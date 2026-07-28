@@ -26,6 +26,8 @@ class MegumiPlayerPresentationTest {
 			"src/client/java/jujutsu/mod/client/render/megumi/MegumiPlayerGeoRenderer.java");
 	private static final Path DIVINE_DOG_RENDERER_SOURCE = Path.of(
 			"src/client/java/jujutsu/mod/client/render/megumi/MegumiDivineDogRenderer.java");
+	private static final Path DIVINE_DOG_RENDER_STATE_SOURCE = Path.of(
+			"src/client/java/jujutsu/mod/client/render/megumi/MegumiDivineDogRenderState.java");
 	private static final Path MODEL_SOURCE = Path.of(
 			"src/client/java/jujutsu/mod/client/render/megumi/MegumiPlayerGeoModel.java");
 	private static final Path CLIENT_DEFINITION_SOURCE = Path.of(
@@ -109,6 +111,24 @@ class MegumiPlayerPresentationTest {
 		String renderer = Files.readString(DIVINE_DOG_RENDERER_SOURCE);
 		assertTrue(renderer.contains("extends WolfRenderer"),
 				"The dedicated Divine Dog renderer must retain vanilla wolf rendering until its later presentation pass");
+	}
+
+	@Test
+	void divineDogRendererConsumesSynchronizedPhaseThroughVerticalTranslationOnly() throws Exception {
+		String state = Files.readString(DIVINE_DOG_RENDER_STATE_SOURCE);
+		assertTrue(state.contains("extends WolfRenderState"));
+		assertTrue(state.contains("MegumiDogPresentationPolicy.Phase phase"));
+		assertTrue(state.contains("float progress"));
+		assertTrue(state.contains("float verticalOffset"));
+
+		String renderer = Files.readString(DIVINE_DOG_RENDERER_SOURCE);
+		assertTrue(renderer.contains("dog.presentationPhase()"));
+		assertTrue(renderer.contains("dog.presentationTicks()"));
+		assertTrue(renderer.contains("MegumiDogPresentationPolicy.progress("));
+		assertTrue(renderer.contains("MegumiDogPresentationPolicy.verticalOffset("));
+		assertTrue(renderer.contains("matrices.translate(0.0f, dogState.verticalOffset, 0.0f)"));
+		assertTrue(renderer.contains("super.render(state, matrices, consumers, packedLight)"),
+				"The custom seam must preserve vanilla wolf models, layers, variants and textures");
 	}
 
 	@Test

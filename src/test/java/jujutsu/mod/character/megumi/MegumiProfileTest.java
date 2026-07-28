@@ -29,6 +29,8 @@ class MegumiProfileTest {
 		assertEquals(10, MegumiProfile.LEASH_RETRY_TICKS);
 		assertEquals(20.0, MegumiProfile.SIC_RANGE);
 		assertEquals(30, MegumiProfile.SIC_COOLDOWN_TICKS);
+		assertEquals(16, MegumiProfile.DOG_MATERIALIZATION_TICKS);
+		assertEquals(12, MegumiProfile.DOG_RECALL_TICKS);
 		assertEquals(240, MegumiProfile.RECALL_COOLDOWN_TICKS);
 		assertEquals(600, MegumiProfile.PACK_DEATH_COOLDOWN_TICKS);
 		assertTrue(MegumiProfile.FOLLOW_STOP_DISTANCE < MegumiProfile.FOLLOW_START_DISTANCE);

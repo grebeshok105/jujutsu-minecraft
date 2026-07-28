@@ -1,6 +1,7 @@
 package jujutsu.mod.character.megumi;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -69,7 +70,16 @@ public final class MegumiSummonRuntime {
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
 				teardown(server, handler.player.getUUID(), TeardownReason.DISCONNECT));
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
-			for (UUID ownerId : Set.copyOf(PACKS.keySet())) {
+			Set<UUID> ownerIds = new HashSet<>(PACKS.keySet());
+			for (ServerLevel level : server.getAllLevels()) {
+				for (MegumiDivineDogEntity dog : level.getEntities(
+						EntityTypeTest.forClass(MegumiDivineDogEntity.class), candidate -> true)) {
+					if (dog.ownerUuid() != null) {
+						ownerIds.add(dog.ownerUuid());
+					}
+				}
+			}
+			for (UUID ownerId : ownerIds) {
 				teardown(server, ownerId, TeardownReason.SERVER_STOPPING);
 			}
 			PACKS.clear();
@@ -125,14 +135,21 @@ public final class MegumiSummonRuntime {
 
 	public static boolean trySic(ServerPlayer player, boolean notify) {
 		MegumiDivineDogPack pack = PACKS.get(player.getUUID());
-		List<MegumiDivineDogEntity> dogs = pack == null ? List.of() : livingDogs(player.getServer(), player.getUUID(), pack);
-		if (dogs.isEmpty()) {
+		List<MegumiDivineDogEntity> livingPackDogs =
+				pack == null ? List.of() : livingDogs(player.getServer(), player.getUUID(), pack);
+		if (livingPackDogs.isEmpty()) {
 			if (pack != null) {
 				reconcile(player.getServer(), player.getUUID(), RemovalCause.TICK);
 			}
 			if (notify) {
 				player.displayClientMessage(Component.translatable("message.jujutsumod.megumi.dogs.none_out"), true);
 			}
+			return false;
+		}
+		List<MegumiDivineDogEntity> dogs = livingPackDogs.stream()
+				.filter(MegumiDivineDogEntity::acceptsSicCommand)
+				.toList();
+		if (dogs.isEmpty()) {
 			return false;
 		}
 
@@ -198,10 +215,16 @@ public final class MegumiSummonRuntime {
 		return false;
 	}
 
-	static boolean isCurrent(MegumiDivineDogEntity dog) {
+	static boolean shouldHardDiscard(MegumiDivineDogEntity dog) {
 		UUID ownerId = dog.ownerUuid();
-		MegumiDivineDogPack pack = ownerId == null ? null : PACKS.get(ownerId);
-		return MegumiSummonState.belongsToPack(
+		if (ownerId == null) {
+			return true;
+		}
+		MegumiDivineDogPack pack = PACKS.get(ownerId);
+		if (pack == null && dog.canFinishRecallWithoutPack()) {
+			return false;
+		}
+		return !MegumiSummonState.belongsToPack(
 				pack, dog.getUUID(), dog.summonToken(), dog.level().dimension());
 	}
 
@@ -239,25 +262,35 @@ public final class MegumiSummonRuntime {
 			return;
 		}
 		MegumiDivineDogPack pack = PACKS.remove(ownerId);
-		boolean foundDog = false;
+		boolean foundCooldownOwningDog = false;
 		boolean playedRecall = false;
 		try {
 			for (ServerLevel level : server.getAllLevels()) {
 				for (MegumiDivineDogEntity dog : new ArrayList<>(level.getEntities(
 						EntityTypeTest.forClass(MegumiDivineDogEntity.class),
-						candidate -> ownerId.equals(candidate.ownerUuid())))) {
-					foundDog = true;
-					if (reason == TeardownReason.RECALL && !playedRecall) {
-						dog.playRecallSound();
-						playedRecall = true;
+							candidate -> ownerId.equals(candidate.ownerUuid())))) {
+					if (MegumiLifecyclePolicy.dogOwnsTeardownCooldown(dog.presentationPhase())) {
+						foundCooldownOwningDog = true;
 					}
-					dog.discard();
+					boolean belongedToRemovedPack = MegumiSummonState.belongsToPack(
+							pack, dog.getUUID(), dog.summonToken(), dog.level().dimension());
+					MegumiLifecyclePolicy.DogCleanupAction cleanupAction = MegumiLifecyclePolicy
+							.dogCleanupAction(reason == TeardownReason.RECALL, belongedToRemovedPack);
+					if (cleanupAction == MegumiLifecyclePolicy.DogCleanupAction.BEGIN_RECALL) {
+						if (!playedRecall) {
+							dog.playRecallSound();
+							playedRecall = true;
+						}
+						dog.beginRecall();
+					} else {
+						dog.discard();
+					}
 				}
 			}
 		} finally {
 			TEARDOWN_IN_PROGRESS.remove(ownerId);
 		}
-		if (MegumiLifecyclePolicy.shouldApplyTeardownCooldown(pack != null, foundDog)) {
+		if (MegumiLifecyclePolicy.shouldApplyTeardownCooldown(pack != null, foundCooldownOwningDog)) {
 			ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
 			if (reason == TeardownReason.RECALL && owner != null) {
 				ServerLevel level = owner.level();

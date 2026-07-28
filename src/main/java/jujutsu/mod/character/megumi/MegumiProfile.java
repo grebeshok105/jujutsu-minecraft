@@ -11,6 +11,8 @@ public final class MegumiProfile {
 	public static final double LEASH_SAFE_SEARCH_RADIUS = 3.0;
 	public static final int LEASH_RETRY_TICKS = 10;
 	public static final double SIC_RANGE = 20.0;
+	public static final int DOG_MATERIALIZATION_TICKS = 16;
+	public static final int DOG_RECALL_TICKS = 12;
 	public static final int RECALL_COOLDOWN_TICKS = 240;
 	public static final int PACK_DEATH_COOLDOWN_TICKS = 600;
 	public static final int SIC_COOLDOWN_TICKS = 30;
