@@ -97,7 +97,8 @@ Symmetry matters for its own sake: the server must not be able to produce a pack
 
 One new JUnit 5 test class, no new gradle task; `check` already runs the JUnit suite. Cases:
 
-- round trip of a valid payload preserves every entry, in order
+- a valid payload **round-trips byte-identically**: encode, decode, re-encode, and compare the two buffers byte for byte — not merely that the entries and their order survived, since equal records can still hide an encoding difference
+- the same decode **leaves no unread bytes**: assert `readableBytes() == 0` on the input buffer afterwards, which is what actually proves the reader consumed exactly what the writer produced and nothing is silently trailing
 - a declared count above `MAX_ENTRIES` is rejected **before** a large allocation
 - a negative VarInt count is rejected
 - an over-length technique string is rejected
@@ -105,7 +106,7 @@ One new JUnit 5 test class, no new gradle task; `check` already runs the JUnit s
 - a syntactically valid but **unknown** id is dropped, while a known id in the same payload survives
 - `write` refuses an oversized list rather than truncating it
 
-The last three are the ones the previous draft did not cover. Then remove each new limit in turn, confirm the matching test goes red, restore, and paste the failure messages into the commit body.
+The unknown-id, writer-refusal and buffer-exhaustion cases are the ones earlier drafts did not cover. Then remove each new limit in turn, confirm the matching test goes red, restore, and paste the failure messages into the commit body.
 
 ## 1.4 Acceptance mapping for #20
 
@@ -114,7 +115,8 @@ The last three are the ones the previous draft did not cover. Then remove each n
 | Cap entry count without allocating from the declared count | Step 1 (`MAX_ENTRIES`) + Step 2 |
 | Cap technique-id string length | Step 1 (`MAX_TECHNIQUE_ID_LENGTH`) + Step 3.1 |
 | Unknown ids must not produce a button | Step 3.3 **only** — parsing in Step 3.2 does not close this |
-| Round trip of a valid payload | Step 5 |
+| Byte-identical round trip of a valid payload | Step 5, first case |
+| Decode leaves the input buffer fully consumed | Step 5, second case (`readableBytes() == 0`) |
 | Negative codec tests that go red when the limit is removed | Step 5, red run recorded in the commit body |
 
 ## 1.5 Decide before implementing
@@ -197,20 +199,32 @@ Each new assertion gets a recorded red run.
 
 ## 2.5 Phase B — in-world coverage (infrastructure does not exist yet)
 
-GameTest is **not** currently configured in this repository: [../build.gradle](../build.gradle) has no GameTest task and `fabric.mod.json` declares no GameTest entrypoint. Phase B is therefore a proposal to add that infrastructure, and must not be described as an existing configuration.
+GameTest is **not** currently configured in this repository: [../build.gradle](../build.gradle) has no GameTest task and `fabric.mod.json` declares no GameTest entrypoint. Phase B is therefore a proposal to add that infrastructure, and must not be described as an existing configuration. What it would cover, and what it would not, is §2.6.
 
-Scenarios, once a `ServerLevel` is reachable:
+## 2.6 Every scenario in the issue, dispositioned
 
-- geometry: which of the 52 candidates wins, per strictness, against a wall, a ceiling, water, and open air
-- range boundaries: `distanceToSqr` against `BOOGIE_WOOGIE_RANGE = 20.0`, and the marker path against `MARKER_SWAP_RANGE = 32.0`, tested on both sides of the boundary
-- routing: an eligible aimed target takes priority over a live mark; the mark route is entered only when the aimed resolve is not `Mode.ENTITY`
-- pair swap: mark, cancel by re-aiming at the mark, expiry at `PAIR_SELECTION_TTL_TICKS = 100`, participant lost
-- rollback: a failed second placement restores both bodies, and a failed restore emits the error log that is the only evidence of a body left off-plan
-- velocity and rotation restored after a completed swap, including the `hurtMarked` path that tells the client its motion
+The issue asks for each scenario to be either automated or explicitly left manual **with a reason**. "Everything else stays a manual checklist" is not an answer, so here is the row-by-row disposition. `GameTest` means Phase B automates it; `manual` means a human runs it and records the result.
 
-## 2.6 Phase C — manual smoke
+| Scenario | GameTest | Manual | Reason | Evidence location |
+|---|:---:|:---:|---|---|
+| Placement geometry — which of the 52 candidates wins, per strictness, against wall, ceiling, water, open air | yes | no | Purely server-side spatial outcome; a fixed structure makes the winning candidate deterministic and therefore assertable | `TodoBoogieWoogieRuntime.findSafeDestination` |
+| Range boundaries — both sides of `BOOGIE_WOOGIE_RANGE = 20.0` and `MARKER_SWAP_RANGE = 32.0` | yes | no | `distanceToSqr` comparison against a constant; nothing client-side participates | `TodoBoogieWoogieRuntime.tryCast`, `TodoProfile` |
+| Routing — an eligible aimed target beats a live mark; the mark route is entered only when the aimed resolve is not `Mode.ENTITY` | yes | no | Branch selection observable from final positions alone | `TodoBoogieWoogieRuntime.tryCast` |
+| Pair swap — mark, cancel by re-aiming at the mark, expiry at `PAIR_SELECTION_TTL_TICKS = 100`, participant lost | yes | no | Tick advancement is exactly what GameTest provides; expiry is currently silent, so the assertion is on state, not on a message | `TodoPairSwapRuntime.commit`, `tickSelections` |
+| Rollback — a failed second placement restores both bodies; a failed restore emits its error log | yes | no | The log line is the only evidence a body was left off-plan, so the test must assert on the log, not only on positions | `TodoBoogieWoogieRuntime.rollback` |
+| Velocity and rotation restored after a completed swap, including `hurtMarked` | yes | no | Server-side entity state; `hurtMarked` is a server flag whose effect on the client need not be observed to assert it was set | `restoreMotionAndRotation` |
+| **Player ↔ mob swap** | yes | no | A mob is spawnable inside a GameTest structure and `isEligibleTarget` accepts any `LivingEntity` that is alive, non-spectator, not removed, not an `ArmorStand`, in the same level, with a finite position | `TodoBoogieWoogieRuntime.isEligibleTarget` |
+| **Player ↔ player swap** | partly | yes | GameTest has no second real `ServerPlayer`. A fake-player stand-in covers the swap mechanics; anything depending on real connection state — client-side position correction, the receiving player's own view — needs two clients. Decide the fake-player approach before Phase B, and if it proves unrepresentative, demote this row to manual entirely | `TodoPairSwapRuntime.commit` |
+| **Full packet route** — server send → screen → C2S reply → selection applied | partly | yes | Splits into three hops with different reachability. The codec hop is already covered by the #20 JUnit tests. The server hop is a direct call to `SelfResonanceRuntime.select` and is unit-testable. Only the screen → button-click → reply hop needs a real client, because `CurseLinkSelectionScreen` exists solely in the client source set | `JujutsuNetworking`, `SelfResonanceRuntime.select`, `CurseLinkSelectionScreen` |
+| **Fake clap vs real clap, seen by a second player** | partly | yes | The assertable half is server-side: which cue and sound events are emitted, with which radius, delay, volume and pitch, and to whom. Whether the fake is *convincing* is an observer judgement about client audio and particles and cannot be asserted | `TodoFakeClapRuntime`, the `BOOGIE_WOOGIE_CUE_RADIUS` / clap sound constants in `TodoProfile` |
+| **Dimension change during pair selection** | confirm first | confirm first | Not dispositioned, because the behaviour was not read for this plan. `TodoPairSwapRuntime.PENDING` is keyed by `UUID`; whether a pending selection carries or checks a dimension is unverified. Read that first — if the selection survives a dimension change, that is a bug to file, not a test to write, and the disposition follows from the answer | `TodoPairSwapRuntime.PENDING`, `tickSelections` |
+| **Cleanup of both marker types** — the thrown position marker and the body mark | yes | no | Both lifetimes are constants (`MARKER_FLIGHT_TICKS = 60`, `MARKER_BODY_MARK_TTL_TICKS = 200`) and expiry under tick advancement is the ideal GameTest shape. Assert both that the marker is gone and that a swap attempted afterwards takes the no-mark path | `TodoProfile`, `TodoMarkerSwapRuntime` |
+| **Third-party glow preserved** | confirm first | confirm first | Not dispositioned. If the mod marks glow through a server-side entity flag, a GameTest can assert an unrelated entity keeps its own glow across a swap. If glow is applied only in client rendering, no server-side test can see it and the row is manual. The glow code was not read for this plan — read it before assigning the row | to be identified during the read |
+| **Nobara manual smoke, with the result recorded** | no | yes | The issue itself scopes this as manual, and it is a visual pass behind `runClient` — out of automation scope by the same rule that keeps PR #17 and visual work out of this issue. The requirement that bites is *recorded*: name the checklist entry in [BUILDING_IN_SANDBOX.md](BUILDING_IN_SANDBOX.md) and put the outcome in the commit body, so a later reader can tell a pass from an omission | [BUILDING_IN_SANDBOX.md](BUILDING_IN_SANDBOX.md) |
 
-Whatever Phase B does not reach stays a documented manual checklist owned by [BUILDING_IN_SANDBOX.md](BUILDING_IN_SANDBOX.md). Explicitly out of scope for this issue: PR #17, anything visual behind `runClient`, and rewriting existing pure tests that already pass.
+The three `confirm first` rows are commitments to read code before deciding, not decisions. They are left visibly undecided on purpose: a fabricated disposition would be worse than an admitted gap, and this document has already had to walk back one invented fact.
+
+Explicitly out of scope for this issue, per the issue text: PR #17, anything visual behind `runClient`, and rewriting existing pure tests that already pass.
 
 ---
 
@@ -218,6 +232,7 @@ Whatever Phase B does not reach stays a documented manual checklist owned by [BU
 
 1. #20 Steps 1–5 — small, self-contained, and it is the one with a security dimension.
 2. #21 Phase A — no infrastructure, immediate coverage gain.
-3. #21 Phase B — needs a product decision on whether GameTest enters the build at all.
+3. #21 §2.6 `confirm first` rows — cheap reads that unblock the rest of the table.
+4. #21 Phase B — needs a product decision on whether GameTest enters the build at all.
 
 Run `./gradlew qualityGate` before any handoff. Nothing in this document may be called done, fixed or verified without a green run of exactly that command.
