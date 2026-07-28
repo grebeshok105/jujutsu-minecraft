@@ -13,3 +13,4 @@
 - T1.1 is complete: Black Flash chance and centralized runtime usage have independent assertions. The required `0.99f` mutation failed with `Black Flash chance must stay at 10%`; restored source passed `testBlackFlash`.
 - T1.2 is complete: ordering checks first require both runtime fragments. Replacing the accepted-hit gate with `damageAccepted` failed with `missing accepted-hit gate before the embed Black Flash window`; restored source passed `testBlackFlash`.
 - T2.1 is complete: `check` dynamically depends on every verification `JavaExec`. `check`, `verifyAssertionsEnabled`, and `check --dry-run` passed; a temporary group member appeared in the dry-run without manual wiring.
+- The stale verification-program counts were removed from current documentation; `verifyAssertionsEnabled` is the single live inventory source and `auditDocumentation` passed.

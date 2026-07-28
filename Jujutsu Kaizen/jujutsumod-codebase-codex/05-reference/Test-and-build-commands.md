@@ -10,7 +10,7 @@ python3 tools/audit_docs.py
 git diff --check
 ```
 
-The current build defines 30 custom JavaExec verification programs (VERIFIED — build.gradle, `tasks.register('test…', JavaExec)`), each using a main method with assertions enabled by -ea. check depends on all 30. The standard Gradle test task remains part of build but is not the whole suite.
+The build defines custom JavaExec verification programs, each using a main method with assertions enabled by `-ea`. `check` dynamically depends on every one; `./gradlew verifyAssertionsEnabled` is the live inventory (VERIFIED — build.gradle). The standard Gradle test task remains part of build but is not the whole suite.
 
 Focused commands:
 

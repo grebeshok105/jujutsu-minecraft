@@ -18,7 +18,7 @@ Status: CURRENT
 | VFX uses one cue/director/recipe path | VfxDirector, JujutsuClientNetworking, NobaraVfxRecipes | VERIFIED |
 | Nobara defines 25 VFX ids | NobaraVfxIds | VERIFIED |
 | Client mixin count is 6 | jujutsumod.client.mixins.json | VERIFIED |
-| Verification programs count is 30 | build.gradle `tasks.register('test…', JavaExec)` | VERIFIED |
+| Verification program inventory | build.gradle `verifyAssertionsEnabled` | VERIFIED |
 | Roster panel has three cards (Nobara/Todo/None) | CharacterRosterPanel.CARDS, initialized from JujutsuCharacterClients.inRosterOrder | VERIFIED |
 | Vessel renderer choice sits behind a compile-time exhaustive switch | JujutsuCharacterClients.definition; CharacterGeoRenderers.create asks each definition | VERIFIED |
 | NONE means vanilla player rendering | NoneClientDefinition inherits the null createRenderer default, CharacterRenderDispatchMixin | VERIFIED |
