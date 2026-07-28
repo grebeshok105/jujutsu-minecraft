@@ -39,7 +39,11 @@ public final class BlackFlashWindowTest {
 			assert hammer.contains("BLACK_FLASH_CHANCE")
 					: "hammer runtime must use the centralized Black Flash chance";
 			assert !hammer.contains("WINDOWS.put") : "second-click Black Flash timing windows must be removed";
-			assert runtime.indexOf("isSuccessfulOrdinaryHit(damageAccepted") < runtime.indexOf("openNailEmbedWindow(owner")
+			int acceptedHit = runtime.indexOf("isSuccessfulOrdinaryHit(damageAccepted");
+			int openEmbedWindow = runtime.indexOf("openNailEmbedWindow(owner");
+			assert acceptedHit >= 0 : "missing accepted-hit gate before the embed Black Flash window";
+			assert openEmbedWindow >= 0 : "missing embed Black Flash window call";
+			assert acceptedHit < openEmbedWindow
 					: "embed Black Flash requires an accepted ordinary hit";
 			assert nail.contains("flightMultiplier *= multiplier")
 					&& nail.contains("launchVelocity(direction).scale(flightMultiplier)")
