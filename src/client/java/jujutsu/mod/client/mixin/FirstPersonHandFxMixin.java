@@ -20,8 +20,8 @@ import jujutsu.mod.client.vfx.VfxFirstPersonChannel;
  * First-person hand transforms driven by VFX Core, shared by every vessel.
  * <ul>
  *   <li>SNAP — whole-stack transform for Nobara (vanilla path continues).</li>
- *   <li>CLAP — Todo: cancel vanilla hand selection (it only draws the main arm when empty) and
- *       draw BOTH arms with equip/swing 0 plus a small on-screen meet offset.</li>
+ *   <li>CLAP/SIGN — cancel vanilla hand selection (it only draws the main arm when empty) and
+ *       draw BOTH arms with equip/swing 0 plus their style-specific dual pose.</li>
  * </ul>
  * Clap offsets stay small: parent rotations multiply {@code renderPlayerArm}'s large fixed translates.
  */
@@ -30,9 +30,11 @@ public abstract class FirstPersonHandFxMixin {
 	@Unique
 	private boolean jujutsumod$snapTransformPushed;
 	@Unique
-	private boolean jujutsumod$drawingClapArms;
+	private boolean jujutsumod$drawingDualArms;
 	@Unique
-	private float jujutsumod$clapFrameProgress = -1.0f;
+	private float jujutsumod$dualFrameProgress = -1.0f;
+	@Unique
+	private VfxFirstPersonChannel.Style jujutsumod$dualStyle;
 
 	@Shadow
 	private void renderPlayerArm(PoseStack poseStack, MultiBufferSource buffer, int combinedLight, float equippedProgress, float swingProgress, HumanoidArm side) {
@@ -49,11 +51,11 @@ public abstract class FirstPersonHandFxMixin {
 	) {
 		VfxDirector.expireFirstPerson();
 		VfxFirstPersonChannel.Style style = VfxDirector.firstPersonStyle();
-		if (style == VfxFirstPersonChannel.Style.CLAP) {
+		if (style == VfxFirstPersonChannel.Style.CLAP || style == VfxFirstPersonChannel.Style.SIGN) {
 			// Vanilla empty-hand path only ever draws the main arm. Own both arms so the off-hand
 			// is guaranteed on-screen at the same height/base pose as the main arm.
 			try {
-				jujutsumod$drawBothClapArms(matrices, buffer, player, combinedLight);
+				jujutsumod$drawBothDualArms(matrices, buffer, player, combinedLight, style);
 			} finally {
 				// Vanilla renderHandsWithItems ends with endBatch(). Arms are only submitted to the GPU
 				// there, and RenderType.draw samples the model-view at draw time, so skipping it defers
@@ -98,31 +100,34 @@ public abstract class FirstPersonHandFxMixin {
 	}
 
 	@Unique
-	private void jujutsumod$drawBothClapArms(
+	private void jujutsumod$drawBothDualArms(
 			PoseStack matrices,
 			MultiBufferSource.BufferSource buffer,
 			LocalPlayer player,
-			int combinedLight
+			int combinedLight,
+			VfxFirstPersonChannel.Style style
 	) {
 		if (player == null || player.isSpectator() || player.isInvisible()) {
 			return;
 		}
-		jujutsumod$drawingClapArms = true;
+		jujutsumod$drawingDualArms = true;
+		jujutsumod$dualStyle = style;
 		// One progress sample for the whole frame: the channel's clock is wall-time, so sampling per
 		// arm puts the two hands on different instants and can expire the pose between them.
-		jujutsumod$clapFrameProgress = VfxDirector.firstPersonProgress();
+		jujutsumod$dualFrameProgress = VfxDirector.firstPersonProgress();
 		try {
 			// Always draw right then left in fixed order so poses are independent of main-hand setting.
-			jujutsumod$drawOneClapArm(matrices, buffer, combinedLight, HumanoidArm.RIGHT);
-			jujutsumod$drawOneClapArm(matrices, buffer, combinedLight, HumanoidArm.LEFT);
+			jujutsumod$drawOneDualArm(matrices, buffer, combinedLight, HumanoidArm.RIGHT);
+			jujutsumod$drawOneDualArm(matrices, buffer, combinedLight, HumanoidArm.LEFT);
 		} finally {
-			jujutsumod$drawingClapArms = false;
-			jujutsumod$clapFrameProgress = -1.0f;
+			jujutsumod$drawingDualArms = false;
+			jujutsumod$dualFrameProgress = -1.0f;
+			jujutsumod$dualStyle = null;
 		}
 	}
 
 	@Unique
-	private void jujutsumod$drawOneClapArm(
+	private void jujutsumod$drawOneDualArm(
 			PoseStack matrices,
 			MultiBufferSource buffer,
 			int combinedLight,
@@ -140,17 +145,17 @@ public abstract class FirstPersonHandFxMixin {
 
 	/** Kill attack/item residual while clapping so both arms share the same base pose. */
 	@ModifyVariable(method = "renderPlayerArm", at = @At("HEAD"), argsOnly = true, ordinal = 0)
-	private float jujutsumod$zeroEquipDuringClap(float equippedProgress) {
-		return jujutsumod$clapActive() ? 0.0f : equippedProgress;
+	private float jujutsumod$zeroEquipDuringDualPose(float equippedProgress) {
+		return jujutsumod$dualPoseActive() ? 0.0f : equippedProgress;
 	}
 
 	@ModifyVariable(method = "renderPlayerArm", at = @At("HEAD"), argsOnly = true, ordinal = 1)
-	private float jujutsumod$zeroSwingDuringClap(float swingProgress) {
-		return jujutsumod$clapActive() ? 0.0f : swingProgress;
+	private float jujutsumod$zeroSwingDuringDualPose(float swingProgress) {
+		return jujutsumod$dualPoseActive() ? 0.0f : swingProgress;
 	}
 
 	@Inject(method = "renderPlayerArm", at = @At("HEAD"))
-	private void jujutsumod$applyClapArmTransform(
+	private void jujutsumod$applyDualArmTransform(
 			PoseStack matrices,
 			MultiBufferSource buffer,
 			int combinedLight,
@@ -159,15 +164,16 @@ public abstract class FirstPersonHandFxMixin {
 			HumanoidArm arm,
 			CallbackInfo ci
 	) {
-		if (!jujutsumod$clapActive()) {
+		if (!jujutsumod$dualPoseActive()) {
 			return;
 		}
-		VfxFirstPersonChannel.Pose pose = VfxDirector.firstPersonClapArmPose(arm, jujutsumod$clapFrameProgress);
+		VfxFirstPersonChannel.Pose pose = VfxDirector.firstPersonDualArmPose(
+				jujutsumod$dualStyle, arm, jujutsumod$dualFrameProgress);
 		if (pose == null) {
 			return;
 		}
 		float side = arm == HumanoidArm.RIGHT ? 1.0f : -1.0f;
-		// Transform only: jujutsumod$drawOneClapArm owns the matching push/pop for this arm.
+		// Transform only: jujutsumod$drawOneDualArm owns the matching push/pop for this arm.
 		// Side-mirrored meet: both palms travel toward center and slightly up into the FOV.
 		matrices.translate(pose.translateX() * side, pose.translateY(), pose.translateZ());
 		matrices.mulPose(Axis.XP.rotationDegrees(pose.rotateX()));
@@ -176,8 +182,10 @@ public abstract class FirstPersonHandFxMixin {
 	}
 
 	@Unique
-	private boolean jujutsumod$clapActive() {
-		return jujutsumod$drawingClapArms
-				|| VfxDirector.firstPersonStyle() == VfxFirstPersonChannel.Style.CLAP;
+	private boolean jujutsumod$dualPoseActive() {
+		VfxFirstPersonChannel.Style style = VfxDirector.firstPersonStyle();
+		return jujutsumod$drawingDualArms
+				|| style == VfxFirstPersonChannel.Style.CLAP
+				|| style == VfxFirstPersonChannel.Style.SIGN;
 	}
 }

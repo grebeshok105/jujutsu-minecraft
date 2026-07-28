@@ -18,9 +18,24 @@ final class MegumiLifecyclePolicy {
 		return packRecordExisted || foundOwnedDog;
 	}
 
+	static DogCleanupAction dogCleanupAction(boolean manualRecall, boolean belongsToRemovedPack) {
+		return manualRecall && belongsToRemovedPack
+				? DogCleanupAction.BEGIN_RECALL
+				: DogCleanupAction.HARD_DISCARD;
+	}
+
+	static boolean dogOwnsTeardownCooldown(MegumiDogPresentationPolicy.Phase phase) {
+		return phase != MegumiDogPresentationPolicy.Phase.RECALLING;
+	}
+
 	enum ReconcileAction {
 		IGNORE,
 		RETAIN,
 		FINAL_LOSS
+	}
+
+	enum DogCleanupAction {
+		BEGIN_RECALL,
+		HARD_DISCARD
 	}
 }

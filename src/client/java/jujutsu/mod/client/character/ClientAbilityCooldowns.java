@@ -31,6 +31,24 @@ public final class ClientAbilityCooldowns {
 		return client.level.getGameTime() >= READY_AT.getOrDefault(new Key(character, ability), 0L);
 	}
 
+	/** Read-only view of the existing server-confirmed deadline. */
+	public static int remainingTicks(JujutsuCharacter character, CharacterAbility ability) {
+		Minecraft client = Minecraft.getInstance();
+		if (client.level == null) {
+			return 0;
+		}
+		return remainingTicks(READY_AT.getOrDefault(new Key(character, ability), 0L),
+				client.level.getGameTime());
+	}
+
+	static int remainingTicks(long readyAt, long gameTime) {
+		if (readyAt <= gameTime) {
+			return 0;
+		}
+		long remaining = readyAt - gameTime;
+		return (int) Math.min(Integer.MAX_VALUE, remaining);
+	}
+
 	public static void clear() {
 		READY_AT.clear();
 	}

@@ -1,10 +1,14 @@
 package jujutsu.mod.client.vfx;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.resources.ResourceLocation;
 import jujutsu.mod.vfx.VfxTimeline;
 
 public final class VfxHudChannel {
+	private final Map<ResourceLocation, Contribution> contributions = new LinkedHashMap<>();
 	private long flashStartedAtMillis;
 	private int flashDurationMillis;
 	private int flashMaxAlpha;
@@ -15,6 +19,13 @@ public final class VfxHudChannel {
 	private long nauseaStartedAtMillis;
 	private int nauseaDurationMillis;
 	private int nauseaMaxAlpha;
+
+	void registerContribution(ResourceLocation id, Contribution contribution) {
+		Contribution previous = contributions.putIfAbsent(id, contribution);
+		if (previous != null) {
+			throw new IllegalStateException("Duplicate VFX HUD contribution: " + id);
+		}
+	}
 
 	public void triggerSwing(float proximity) {
 		triggerSwing(proximity, 0.0f);
@@ -85,6 +96,9 @@ public final class VfxHudChannel {
 		renderCinematic(graphics);
 		renderNausea(graphics);
 		renderFlash(graphics);
+		for (Contribution contribution : contributions.values()) {
+			contribution.render(graphics, tickCounter);
+		}
 	}
 
 	void clear() {
@@ -205,5 +219,10 @@ public final class VfxHudChannel {
 		graphics.fill(0, height - coreY, width, height, core);
 		graphics.fill(0, 0, coreX, height, core);
 		graphics.fill(width - coreX, 0, width, height, core);
+	}
+
+	@FunctionalInterface
+	public interface Contribution {
+		void render(GuiGraphics graphics, DeltaTracker tickCounter);
 	}
 }

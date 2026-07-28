@@ -58,6 +58,10 @@ public final class VfxDirector {
 		}
 	}
 
+	public static void registerHudContribution(ResourceLocation id, VfxHudChannel.Contribution contribution) {
+		HUD.registerContribution(id, contribution);
+	}
+
 	public static void receive(VfxCue cue) {
 		Minecraft client = Minecraft.getInstance();
 		if (client.level == null || client.player == null) {
@@ -122,8 +126,9 @@ public final class VfxDirector {
 		FIRST_PERSON.cancel();
 	}
 
-	public static VfxFirstPersonChannel.Pose firstPersonClapArmPose(net.minecraft.world.entity.HumanoidArm arm, float progress) {
-		return FIRST_PERSON.clapArmPose(arm, progress);
+	public static VfxFirstPersonChannel.Pose firstPersonDualArmPose(
+			VfxFirstPersonChannel.Style style, net.minecraft.world.entity.HumanoidArm arm, float progress) {
+		return FIRST_PERSON.dualArmPose(style, arm, progress);
 	}
 
 	private static void renderWorld(WorldRenderContext context) {

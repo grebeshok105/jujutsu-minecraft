@@ -78,14 +78,22 @@ public final class VfxWorldChannel {
 		}
 		Camera camera = context.camera();
 		VertexConsumer consumer = consumers.getBuffer(RenderType.lightning());
-		renderImpactFlashes(consumer, camera.getPosition(), context, context.tickCounter().getGameTimeDeltaPartialTick(false));
+		VertexConsumer shadowPoolConsumer = consumers.getBuffer(RenderType.debugTriangleFan());
+		renderImpactFlashes(consumer, shadowPoolConsumer, camera.getPosition(), context,
+				context.tickCounter().getGameTimeDeltaPartialTick(false));
 	}
 
 	void clear() {
 		impactFlashes.clear();
 	}
 
-	private void renderImpactFlashes(VertexConsumer consumer, Vec3 cameraPosition, WorldRenderContext context, float partialTick) {
+	int activeEffectCount() {
+		return impactFlashes.size();
+	}
+
+	private void renderImpactFlashes(
+			VertexConsumer consumer, VertexConsumer shadowPoolConsumer, Vec3 cameraPosition,
+			WorldRenderContext context, float partialTick) {
 		for (Iterator<ImpactFlash> iterator = impactFlashes.iterator(); iterator.hasNext();) {
 			ImpactFlash flash = iterator.next();
 			float age = context.world().getGameTime() - flash.cue().startGameTime() + partialTick;
@@ -114,8 +122,35 @@ public final class VfxWorldChannel {
 				case BOOGIE_WOOGIE -> renderBoogieWoogie(consumer, center, intensity, progress, fade, flash.cue());
 				case SWAP_AFTERIMAGE -> renderSwapAfterimage(consumer, center, progress, flash.cue());
 				case SWAP_ARRIVAL -> renderSwapArrival(consumer, center, progress, fade, flash.cue());
+				case MEGUMI_SHADOW_OPEN -> renderMegumiShadowPool(shadowPoolConsumer, center, progress, true);
+				case MEGUMI_SHADOW_CLOSE -> renderMegumiShadowPool(shadowPoolConsumer, center, progress, false);
 			}
 		}
+	}
+
+	private static void renderMegumiShadowPool(VertexConsumer consumer, Vec3 center, float progress, boolean opening) {
+		float radius = shadowPoolRadius(opening, progress);
+		int alpha = Math.round(255.0f * shadowPoolOpacity(opening, progress));
+		consumer.addVertex((float) center.x, (float) (center.y + 0.025), (float) center.z).setColor(0, 0, 0, alpha);
+		int segments = 20;
+		for (int segment = 0; segment <= segments; segment++) {
+			double angle = segment * Math.PI * 2.0 / segments;
+			consumer.addVertex(
+					(float) (center.x + Math.cos(angle) * radius),
+					(float) (center.y + 0.025),
+					(float) (center.z + Math.sin(angle) * radius * 0.78))
+					.setColor(0, 0, 0, alpha);
+		}
+	}
+
+	static float shadowPoolRadius(boolean opening, float progress) {
+		float clamped = Math.max(0.0f, Math.min(1.0f, progress));
+		return opening ? 0.26f + 0.68f * clamped : 0.94f - 0.68f * clamped;
+	}
+
+	static float shadowPoolOpacity(boolean opening, float progress) {
+		float clamped = Math.max(0.0f, Math.min(1.0f, progress));
+		return opening ? 0.88f + 0.08f * clamped : 0.96f * (1.0f - clamped);
 	}
 
 	private static void renderHammerSend(VertexConsumer consumer, Vec3 center, int intensity, float progress, float fade) {
@@ -657,7 +692,9 @@ public final class VfxWorldChannel {
 		BLACK_FLASH(true),
 		BOOGIE_WOOGIE(true),
 		SWAP_AFTERIMAGE(true),
-		SWAP_ARRIVAL(true);
+		SWAP_ARRIVAL(true),
+		MEGUMI_SHADOW_OPEN(true),
+		MEGUMI_SHADOW_CLOSE(true);
 
 		private final boolean worldFixed;
 
