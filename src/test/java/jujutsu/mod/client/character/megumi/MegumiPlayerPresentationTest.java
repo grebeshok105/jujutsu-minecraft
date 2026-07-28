@@ -95,7 +95,7 @@ class MegumiPlayerPresentationTest {
 				"The vanilla-layout skin must own first-person hands and the roster portrait");
 
 		String runtime = Files.readString(SUMMON_RUNTIME_SOURCE);
-		assertTrue(runtime.contains("MegumiVfxIds.DOGS_SUMMON, player.position(), player.getId(), Vec3.ZERO"),
+		assertTrue(runtime.contains("MegumiVfxIds.DOGS_SUMMON_BODY, player.position(), player.getId(), Vec3.ZERO"),
 				"A confirmed summon cue must identify the caster whose GeckoLib clip should play");
 		String recipes = Files.readString(VFX_RECIPES_SOURCE);
 		assertTrue(recipes.contains("MegumiAnimationHooks.triggerDivineDogs(cue)"),
@@ -137,9 +137,17 @@ class MegumiPlayerPresentationTest {
 		assertTrue(renderer.contains("withScale(1.25f, 1.0f)"),
 				"Megumi must gain width without changing his rendered height");
 
-		String model = Files.readString(MODEL_SOURCE);
-		assertTrue(model.contains("return 0.0f;"),
+		String headLookWeight = methodBody(Files.readString(MODEL_SOURCE), "protected float headLookWeight");
+		assertTrue(headLookWeight.contains("return 0.0f;"),
 				"Megumi must opt out of the shared procedural head-look rotation");
+	}
+
+	private static String methodBody(String source, String signature) {
+		int start = source.indexOf(signature);
+		assertTrue(start >= 0, () -> "Missing method: " + signature);
+		int end = source.indexOf("\n\t}", start);
+		assertTrue(end >= 0, () -> "Unterminated method: " + signature);
+		return source.substring(start, end);
 	}
 
 	private static void assertDimensions(Path path, int width, int height) throws Exception {

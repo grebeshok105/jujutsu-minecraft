@@ -20,7 +20,7 @@ final class MegumiCooldownHudTest {
 	}
 
 	@Test
-	void megumiRegistersIntoTheSingleDirectorOwnedHudAndLangKeysHaveParity() throws Exception {
+	void megumiRegistersIntoTheSingleDirectorOwnedHudAndLangKeysExistInBothLocales() throws Exception {
 		String definition = Files.readString(ROOT.resolve(
 				"src/client/java/jujutsu/mod/client/character/megumi/MegumiClientDefinition.java"));
 		String director = Files.readString(ROOT.resolve("src/client/java/jujutsu/mod/client/vfx/VfxDirector.java"));

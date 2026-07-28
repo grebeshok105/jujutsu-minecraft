@@ -8,11 +8,7 @@ final class MegumiPouncePolicy {
 		return facts.active()
 				&& facts.currentPack()
 				&& facts.validOwner()
-				&& facts.assignedSicTarget()
 				&& facts.currentTargetMatches()
-				&& facts.sameLevel()
-				&& facts.alive()
-				&& facts.loaded()
 				&& facts.eligible()
 				&& facts.lineOfSight()
 				&& facts.distance() >= MegumiProfile.POUNCE_MIN_RANGE
@@ -47,11 +43,7 @@ final class MegumiPouncePolicy {
 			boolean active,
 			boolean currentPack,
 			boolean validOwner,
-			boolean assignedSicTarget,
 			boolean currentTargetMatches,
-			boolean sameLevel,
-			boolean alive,
-			boolean loaded,
 			boolean eligible,
 			boolean lineOfSight,
 			double distance,

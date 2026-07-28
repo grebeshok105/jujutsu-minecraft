@@ -26,15 +26,19 @@ class MegumiShadowPresentationTest {
 	void ownerCueTriggersTheBodyOnceWhileDogCuesOwnGroundPresentation() throws Exception {
 		String runtime = Files.readString(SUMMON_RUNTIME);
 		assertTrue(runtime.contains(
-				"MegumiVfxIds.DOGS_SUMMON, player.position(), player.getId(), Vec3.ZERO"),
+				"MegumiVfxIds.DOGS_SUMMON_BODY, player.position(), player.getId(), Vec3.ZERO"),
 				"The original owner-anchored summon cue must keep driving Megumi's body clip");
 		assertEquals(2, occurrences(runtime,
 				"broadcastDogCue(level, player, MegumiVfxIds.DOGS_SUMMON"),
 				"Each Divine Dog needs its own authoritative spawn-origin cue");
 
 		String recipes = Files.readString(RECIPES);
-		assertTrue(recipes.contains("anchor instanceof AbstractClientPlayer"),
-				"The recipe must distinguish the caster anchor from Divine Dog anchors");
+		assertTrue(recipes.contains("VfxDirector.register(MegumiVfxIds.DOGS_SUMMON_BODY, MegumiVfxRecipes::summonBody)"),
+				"The owner body cue must have a distinct identity from the dog pool cue");
+		String summon = recipes.substring(recipes.indexOf("private static VfxInstance summon("),
+				recipes.indexOf("private static VfxInstance summonBody"));
+		assertTrue(!summon.contains("anchorEntityId"),
+				"A dog pool must never depend on client-side anchor resolution");
 		assertTrue(recipes.contains("MegumiAnimationHooks.triggerDivineDogs(cue)"));
 		assertTrue(recipes.contains("anchor == context.client().player"));
 		assertTrue(recipes.contains("context.firstPerson().triggerSign(0.0f)"),

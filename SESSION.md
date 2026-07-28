@@ -16,9 +16,9 @@ Durable behavior lives in `AGENTS.md`. The implementation note is `Jujutsu Kaize
 - Dogs materialize for 16 ticks and manually recall for 12. Transitional phases disable AI, navigation, attacks, incoming damage and combat collision; only the renderer moves the visible body vertically.
 - Each dog receives an exact-origin shadow pool and mote burst through VFX Core. Recall contracts the pool inward. The local owner receives the shared 0.80-second first-person `SIGN`; observers receive only third-person presentation.
 - Sound is server-spatial at the owner, dog or accepted impact. Existing ProjectJJK events and vanilla wolf variants provide shadow open, emergence, vocal, Sic, pounce and recall beats; client recipes do not duplicate them.
-- The director-owned left cooldown HUD appears only for selected Megumi with no pack and a positive mirrored `PRIMARY` deadline. It owns no timer or network state.
+- The director-owned left cooldown HUD appears only for selected Megumi with a positive mirrored `PRIMARY` deadline. In this slice that implies no pack because summon never starts it; the HUD owns no timer or network state.
 - Dog tuning is 28 HP, 3 damage and 0.34 speed.
-- Pounce is server-only and Sic-only. Each dog independently launches at inclusive 3-8 block range with LOS, 0.72 horizontal and 0.42 vertical speed, 80-tick cooldown and 16-tick timeout. Confirmed impact is one owner-attributed 5-damage hit; accepted damage adds 6 stagger ticks, spatial sound and target VFX.
+- Pounce is server-only and Sic-only. Each dog independently launches at inclusive 3-8 block range with LOS, 0.72 horizontal and 0.42 vertical speed, an inclusive 16-tick deadline and 80-tick cooldown. Confirmed impact is one owner-attributed 5-damage hit; accepted damage adds 6 stagger ticks, spatial sound and target VFX.
 - Ordinary inherited wolf melee attribution is unchanged; only the pounce path explicitly credits Megumi.
 
 ## Reviewable commits
@@ -32,6 +32,11 @@ Durable behavior lives in `AGENTS.md`. The implementation note is `Jujutsu Kaize
 7. `3bc353b` `balance(megumi): tune divine dog durability`
 8. `bd3813e` `feat(megumi): add Sic pounce`
 9. `chore(megumi): finalize divine dog polish` - this final documentation and verification commit
+
+## External review follow-up
+
+- Owner-body and dog-pool summon cues have separate ids, so an unresolved client anchor cannot produce a duplicate pool. Launch facts retain only independently variable server gates; head-look and localization-presence tests are precise; documentation records the actual HUD invariant and inclusive pounce deadline.
+- On 2026-07-28 the follow-up tree passed `qualityGate` (42 tasks, all JUnit, 34 assertion-enabled JavaExec programs and documentation audit). Pounce physics and practical dual-dog impact timing remain in-game smoke evidence, not automated proof.
 
 ## Automated evidence
 

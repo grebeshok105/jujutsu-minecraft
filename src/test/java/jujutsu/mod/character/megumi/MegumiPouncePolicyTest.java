@@ -28,25 +28,17 @@ final class MegumiPouncePolicyTest {
 		assertFalse(MegumiPouncePolicy.canLaunch(facts(8.01, true)));
 		assertFalse(MegumiPouncePolicy.canLaunch(facts(5.0, false)));
 		assertFalse(MegumiPouncePolicy.canLaunch(new MegumiPouncePolicy.LaunchFacts(
-				true, true, true, false, true, true, true, true, true, true, 5.0, true)));
+				false, true, true, true, true, true, 5.0, true)));
 		assertFalse(MegumiPouncePolicy.canLaunch(new MegumiPouncePolicy.LaunchFacts(
-				false, true, true, true, true, true, true, true, true, true, 5.0, true)));
+				true, false, true, true, true, true, 5.0, true)));
 		assertFalse(MegumiPouncePolicy.canLaunch(new MegumiPouncePolicy.LaunchFacts(
-				true, false, true, true, true, true, true, true, true, true, 5.0, true)));
+				true, true, false, true, true, true, 5.0, true)));
 		assertFalse(MegumiPouncePolicy.canLaunch(new MegumiPouncePolicy.LaunchFacts(
-				true, true, false, true, true, true, true, true, true, true, 5.0, true)));
+				true, true, true, false, true, true, 5.0, true)));
 		assertFalse(MegumiPouncePolicy.canLaunch(new MegumiPouncePolicy.LaunchFacts(
-				true, true, true, true, false, true, true, true, true, true, 5.0, true)));
+				true, true, true, true, false, true, 5.0, true)));
 		assertFalse(MegumiPouncePolicy.canLaunch(new MegumiPouncePolicy.LaunchFacts(
-				true, true, true, true, true, false, true, true, true, true, 5.0, true)));
-		assertFalse(MegumiPouncePolicy.canLaunch(new MegumiPouncePolicy.LaunchFacts(
-				true, true, true, true, true, true, false, true, true, true, 5.0, true)));
-		assertFalse(MegumiPouncePolicy.canLaunch(new MegumiPouncePolicy.LaunchFacts(
-				true, true, true, true, true, true, true, false, true, true, 5.0, true)));
-		assertFalse(MegumiPouncePolicy.canLaunch(new MegumiPouncePolicy.LaunchFacts(
-				true, true, true, true, true, true, true, true, false, true, 5.0, true)));
-		assertFalse(MegumiPouncePolicy.canLaunch(new MegumiPouncePolicy.LaunchFacts(
-				true, true, true, true, true, true, true, true, true, true, 5.0, false)));
+				true, true, true, true, true, true, 5.0, false)));
 	}
 
 	@Test
@@ -129,7 +121,7 @@ final class MegumiPouncePolicyTest {
 
 	private static MegumiPouncePolicy.LaunchFacts facts(double distance, boolean lineOfSight) {
 		return new MegumiPouncePolicy.LaunchFacts(
-				true, true, true, true, true, true, true, true, true, lineOfSight, distance, true);
+				true, true, true, true, true, lineOfSight, distance, true);
 	}
 
 	private static MegumiPouncePolicy.InFlightFacts inFlightFacts() {

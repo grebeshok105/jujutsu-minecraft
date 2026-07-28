@@ -133,7 +133,7 @@ public final class MegumiSummonRuntime {
 				level.dimension(), white.getUUID(), black.getUUID(), token, gameTime));
 		white.playShadowOpenSound();
 		black.playShadowOpenSound();
-		broadcastCue(level, player, MegumiVfxIds.DOGS_SUMMON, player.position(), player.getId(), Vec3.ZERO);
+		broadcastCue(level, player, MegumiVfxIds.DOGS_SUMMON_BODY, player.position(), player.getId(), Vec3.ZERO);
 		broadcastDogCue(level, player, MegumiVfxIds.DOGS_SUMMON, white);
 		broadcastDogCue(level, player, MegumiVfxIds.DOGS_SUMMON, black);
 		return true;
@@ -365,7 +365,8 @@ public final class MegumiSummonRuntime {
 				case CLEAR_SIC -> dog.clearSicCommand();
 				case FINISH_POUNCE -> dog.finishPounce();
 				case CONTINUE -> {
-					if (dog.getBoundingBox().inflate(0.30).intersects(assignedTarget.getBoundingBox())) {
+					if (assignedTarget != null
+							&& dog.getBoundingBox().inflate(0.30).intersects(assignedTarget.getBoundingBox())) {
 						resolvePounceImpact(level, dog, owner, assignedTarget);
 					}
 				}
@@ -383,11 +384,7 @@ public final class MegumiSummonRuntime {
 				active,
 				currentPack,
 				validOwner,
-				assignedMatches,
 				currentMatches,
-				assignedTarget.level() == level,
-				assignedTarget.isAlive(),
-				!assignedTarget.isRemoved(),
 				eligible,
 				dog.hasLineOfSight(assignedTarget),
 				distance,

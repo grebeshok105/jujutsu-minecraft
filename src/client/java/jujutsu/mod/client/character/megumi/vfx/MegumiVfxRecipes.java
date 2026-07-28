@@ -22,6 +22,7 @@ public final class MegumiVfxRecipes {
 	private MegumiVfxRecipes() {}
 
 	public static void register() {
+		VfxDirector.register(MegumiVfxIds.DOGS_SUMMON_BODY, MegumiVfxRecipes::summonBody);
 		VfxDirector.register(MegumiVfxIds.DOGS_SUMMON, MegumiVfxRecipes::summon);
 		VfxDirector.register(MegumiVfxIds.DOGS_RECALL, MegumiVfxRecipes::recall);
 		VfxDirector.register(MegumiVfxIds.DOGS_SIC, MegumiVfxRecipes::sic);
@@ -33,19 +34,26 @@ public final class MegumiVfxRecipes {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				return;
 			}
+			Vec3 origin = cue.origin();
+			RandomSource random = random(cue, 0xD0655A11L);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN, 16);
+			context.burst(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.10, 0.0), 14, 0.42, 0.13, random);
+			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.04, 0.0), 10, 0.58, 0.0, 0.05, random);
+		});
+	}
+
+	private static VfxInstance summonBody(VfxCue cue) {
+		return VfxInstance.of(1, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
 			Entity anchor = context.client().level == null ? null : context.client().level.getEntity(cue.anchorEntityId());
 			if (anchor instanceof AbstractClientPlayer) {
 				MegumiAnimationHooks.triggerDivineDogs(cue);
 				if (anchor == context.client().player) {
 					context.firstPerson().triggerSign(0.0f);
 				}
-				return;
 			}
-			Vec3 origin = cue.origin();
-			RandomSource random = random(cue, 0xD0655A11L);
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN, 16);
-			context.burst(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.10, 0.0), 14, 0.42, 0.13, random);
-			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.04, 0.0), 10, 0.58, 0.0, 0.05, random);
 		});
 	}
 
