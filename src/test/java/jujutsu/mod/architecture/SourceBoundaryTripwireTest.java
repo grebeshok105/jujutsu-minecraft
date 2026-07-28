@@ -51,6 +51,12 @@ class SourceBoundaryTripwireTest {
 	private static final List<Path> PRODUCTION_ROOTS = List.of(
 			Path.of("src/main/java"), Path.of("src/client/java"));
 
+	private static final List<String> VESSEL_PACKAGE_PARENTS = List.of(
+			"jujutsu/mod/character/",
+			"jujutsu/mod/client/character/",
+			"jujutsu/mod/client/render/",
+			"jujutsu/mod/client/vfx/");
+
 	/** Runtime class resolution, which erases the evidence a structural rule needs. */
 	private static final Pattern DYNAMIC_LOADING = Pattern.compile(
 			"\\b(Class\\s*\\.\\s*forName|ServiceLoader\\s*\\.\\s*load|MethodHandles\\s*\\.|\\.\\s*loadClass\\s*\\()");
@@ -81,6 +87,23 @@ class SourceBoundaryTripwireTest {
 	private static final Map<String, Set<String>> TRACKED_DEBT = Map.of(
 			"src/client/java/jujutsu/mod/client/render/ProjectJjkNailRenderer.java",
 			Set.of("ProjectJjkNailEmbedding", "ProjectJjkNailEntity", "<package nobara>"));
+
+	@Test
+	void vesselPackageClassifierAcceptsOnlyRegisteredVesselRoots() {
+		assertTrue(isInsideVesselPackage(Path.of("src/main/java/jujutsu/mod/character/megumi/MegumiProfile.java"), "megumi"));
+		assertTrue(isInsideVesselPackage(Path.of("src\\main\\java\\jujutsu\\mod\\character\\megumi\\vfx\\MegumiVfxIds.java"), "megumi"));
+		assertTrue(isInsideVesselPackage(Path.of("src/client/java/jujutsu/mod/client/character/megumi/MegumiClientDefinition.java"), "megumi"));
+		assertTrue(isInsideVesselPackage(Path.of("src\\client\\java\\jujutsu\\mod\\client\\character\\megumi\\vfx\\MegumiVfxRecipes.java"), "megumi"));
+		assertTrue(isInsideVesselPackage(Path.of("src/client/java/jujutsu/mod/client/character/megumi/particle/MegumiShadowMoteParticle.java"), "megumi"));
+		assertTrue(isInsideVesselPackage(Path.of("src\\client\\java\\jujutsu\\mod\\client\\render\\megumi\\MegumiDivineDogRenderer.java"), "megumi"));
+		assertTrue(isInsideVesselPackage(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraProfile.java"), "nobara"));
+		assertTrue(isInsideVesselPackage(Path.of("src/client/java/jujutsu/mod/client/character/todo/TodoClientDefinition.java"), "todo"));
+
+		assertTrue(!isInsideVesselPackage(Path.of("src/client/java/jujutsu/mod/client/rich/megumi/Anything.java"), "megumi"));
+		assertTrue(!isInsideVesselPackage(Path.of("src/main/java/jujutsu/mod/vfx/TodoVfxIds.java"), "todo"));
+		assertTrue(!isInsideVesselPackage(Path.of("src/client/java/jujutsu/mod/client/fx/NobaraHudState.java"), "nobara"));
+		assertTrue(!isInsideVesselPackage(Path.of("src/client/java/jujutsu/mod/client/render/ProjectJjkNailRenderer.java"), "nobara"));
+	}
 
 	@Test
 	void sharedProductionCodeResolvesNoClassAtRuntime() {
@@ -232,7 +255,17 @@ class SourceBoundaryTripwireTest {
 	}
 
 	private static boolean isInsideVesselPackage(Path file, String vesselId) {
-		return file.toString().replace('\\', '/').contains("/" + vesselId + "/");
+		String path = file.toString().replace('\\', '/');
+		for (Path root : PRODUCTION_ROOTS) {
+			String rootPrefix = root.toString().replace('\\', '/') + "/";
+			if (!path.startsWith(rootPrefix)) {
+				continue;
+			}
+			String packagePath = path.substring(rootPrefix.length());
+			return VESSEL_PACKAGE_PARENTS.stream()
+					.anyMatch(parent -> packagePath.startsWith(parent + vesselId + "/"));
+		}
+		return false;
 	}
 
 	private static String fileName(Path file) {
