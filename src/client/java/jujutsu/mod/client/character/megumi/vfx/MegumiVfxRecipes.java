@@ -35,6 +35,9 @@ public final class MegumiVfxRecipes {
 			Entity anchor = context.client().level == null ? null : context.client().level.getEntity(cue.anchorEntityId());
 			if (anchor instanceof AbstractClientPlayer) {
 				MegumiAnimationHooks.triggerDivineDogs(cue);
+				if (anchor == context.client().player) {
+					context.firstPerson().triggerSign(0.0f);
+				}
 				return;
 			}
 			Vec3 origin = cue.origin();

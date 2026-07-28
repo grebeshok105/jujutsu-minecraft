@@ -630,13 +630,13 @@ public final class ProjectSanityTest {
 		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxFirstPersonChannel.java")) : "Missing VFX Core first-person channel";
 		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/FirstPersonHandFxMixin.java")) : "Missing first-person hand FX render mixin";
 		String snapMixin = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/FirstPersonHandFxMixin.java"));
-		// CLAP cancels vanilla hand selection (main-arm-only when empty) and draws BOTH arms with equip/swing 0.
-		assert snapMixin.contains("Style.CLAP") && snapMixin.contains("ci.cancel()")
-				: "CLAP must cancel vanilla hand selection so both arms can be drawn";
+		// Dual styles cancel vanilla hand selection (main-arm-only when empty) and draw BOTH arms with equip/swing 0.
+		assert snapMixin.contains("Style.CLAP") && snapMixin.contains("Style.SIGN") && snapMixin.contains("ci.cancel()")
+				: "CLAP and SIGN must cancel vanilla hand selection so both arms can be drawn";
 		assert snapMixin.contains("HumanoidArm.RIGHT") && snapMixin.contains("HumanoidArm.LEFT")
 				: "CLAP must explicitly draw right and left arms";
-		assert snapMixin.contains("jujutsumod$zeroEquipDuringClap") && snapMixin.contains("jujutsumod$zeroSwingDuringClap")
-				: "CLAP must zero equip/swing residuals for stable poses";
+		assert snapMixin.contains("jujutsumod$zeroEquipDuringDualPose") && snapMixin.contains("jujutsumod$zeroSwingDuringDualPose")
+				: "Dual-arm poses must zero equip/swing residuals for stable poses";
 		assert snapMixin.contains("Style.SNAP") && snapMixin.contains("VfxDirector.firstPersonPose")
 				: "Nobara SNAP must still transform the vanilla hand stack";
 		assert snapMixin.contains("@Inject(method = \"renderHandsWithItems\", at = @At(\"HEAD\")")
@@ -647,8 +647,8 @@ public final class ProjectSanityTest {
 				: "CLAP must flush the arm batch before cancelling vanilla hand rendering";
 		assert !snapMixin.contains("jujutsumod$clapPushDepth")
 				: "Clap arms must own a matched push/pop each instead of an aggregate depth counter";
-		assert snapMixin.contains("jujutsumod$clapFrameProgress")
-				: "Both clap arms must render from one progress sample per frame";
+		assert snapMixin.contains("jujutsumod$dualFrameProgress")
+				: "Both dual-pose arms must render from one progress sample per frame";
 		String snap = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxFirstPersonChannel.java"));
 		assert snap.contains("DURATION_SECONDS = 0.75f") : "Snap timing should preserve ProjectJJK's full 0..15 scaled snap phases";
 		assert snap.contains("scaledProgress = progress * 15.0f") : "Snap timing must actually traverse the full 0..15 phase range";

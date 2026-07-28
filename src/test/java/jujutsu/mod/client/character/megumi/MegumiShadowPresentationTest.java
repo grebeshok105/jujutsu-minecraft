@@ -36,6 +36,9 @@ class MegumiShadowPresentationTest {
 		assertTrue(recipes.contains("anchor instanceof AbstractClientPlayer"),
 				"The recipe must distinguish the caster anchor from Divine Dog anchors");
 		assertTrue(recipes.contains("MegumiAnimationHooks.triggerDivineDogs(cue)"));
+		assertTrue(recipes.contains("anchor == context.client().player"));
+		assertTrue(recipes.contains("context.firstPerson().triggerSign(0.0f)"),
+				"Only the locally anchored confirmed summon may start first-person SIGN");
 		assertTrue(recipes.contains("VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN"));
 		assertTrue(recipes.contains("cue.origin()"),
 				"A dog pool must stay at the exact authoritative spawn origin");

@@ -122,8 +122,9 @@ public final class VfxDirector {
 		FIRST_PERSON.cancel();
 	}
 
-	public static VfxFirstPersonChannel.Pose firstPersonClapArmPose(net.minecraft.world.entity.HumanoidArm arm, float progress) {
-		return FIRST_PERSON.clapArmPose(arm, progress);
+	public static VfxFirstPersonChannel.Pose firstPersonDualArmPose(
+			VfxFirstPersonChannel.Style style, net.minecraft.world.entity.HumanoidArm arm, float progress) {
+		return FIRST_PERSON.dualArmPose(style, arm, progress);
 	}
 
 	private static void renderWorld(WorldRenderContext context) {
