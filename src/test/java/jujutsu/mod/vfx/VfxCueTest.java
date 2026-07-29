@@ -34,7 +34,7 @@ public final class VfxCueTest {
 
 	private static void assertNobaraEffectIdsStayStable() {
 		assert NobaraVfxIds.HAMMER.getPath().equals("nobara/hammer") : NobaraVfxIds.HAMMER;
-		assert NobaraVfxIds.RESONANCE_STRIKE.getPath().equals("nobara/resonance_strike") : NobaraVfxIds.RESONANCE_STRIKE;
+		assert NobaraVfxIds.RESONANCE_RELEASE.getPath().equals("nobara/resonance_release") : NobaraVfxIds.RESONANCE_RELEASE;
 		assert NobaraVfxIds.FIRST_PERSON_SNAP.getPath().equals("nobara/first_person_snap") : NobaraVfxIds.FIRST_PERSON_SNAP;
 	}
 

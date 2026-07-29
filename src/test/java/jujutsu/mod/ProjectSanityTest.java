@@ -595,8 +595,6 @@ public final class ProjectSanityTest {
 		assert particles.contains("burst") && particles.contains("ring") : "VFX particle channel must expose reusable burst and ring helpers";
 		String sound = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxSoundChannel.java"));
 		assert sound.contains("playNoFalloff") : "VFX sound channel must own local cinematic sound playback";
-		String time = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxTimeChannel.java"));
-		assert time.contains("triggerSlowMotion") && time.contains("activeScale") : "VFX time channel must own bounded client slow-motion";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/VfxDeltaTrackerMixin.java"))
 				: "Global DeltaTracker mixin must not exist - it corrupts game time for all consumers";
 		String mixins = Files.readString(ROOT.resolve("src/client/resources/jujutsumod.client.mixins.json"));
@@ -608,14 +606,14 @@ public final class ProjectSanityTest {
 		assert Files.exists(recipesPath) : "Nobara requires VFX Core recipes";
 		String recipes = Files.readString(recipesPath);
 		assert recipes.contains("NobaraVfxIds.HAMMER") : "Missing Nobara hammer recipe";
-		assert recipes.contains("NobaraVfxIds.RESONANCE_STRIKE") : "Missing Nobara resonance recipe";
+		assert recipes.contains("NobaraVfxIds.RESONANCE_RELEASE") : "Missing Nobara resonance recipe";
 		assert recipes.contains("NobaraVfxIds.ENLARGE") && recipes.contains("NobaraVfxIds.EXPLOSION") : "Missing Nobara finisher recipes";
 		assert recipes.contains("NobaraVfxIds.FIRST_PERSON_SNAP") : "Missing Nobara first-person snap recipe";
 		long openingBeatGuards = Pattern.compile("VfxTimeline\\.isOpeningBeat\\(initialAgeTicks\\)").matcher(recipes).results().count();
 		assert openingBeatGuards >= 8 : "Every non-seekable Nobara sound/particle opening beat must reject late playback";
-		long ageAwareChannelCalls = Pattern.compile("trigger(?:Launch|HeavyImpact|Explosion|Ritual|Swing|Impact|Snap|Blur|ResonanceImpact|SlowMotion|Nausea|BlackFlash|Flash)\\([^\\n]*initialAgeTicks\\)")
+		long ageAwareChannelCalls = Pattern.compile("trigger(?:Launch|HeavyImpact|Explosion|Ritual|Swing|Impact|Snap|Blur|ResonanceImpact|Nausea|BlackFlash|Flash)\\([^\\n]*initialAgeTicks\\)")
 				.matcher(recipes).results().count();
-		assert ageAwareChannelCalls == 44 : "All 44 Nobara realtime channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
+		assert ageAwareChannelCalls == 42 : "All 42 Nobara realtime channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
 		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/network/ProjectJjkNobaraImpulsePayload.java")) : "Legacy integer VFX payload must be removed after migration";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java")) : "Legacy Hairpin world renderer must be replaced by VFX Core";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinCinematicCamera.java")) : "Legacy Hairpin camera manager must be replaced by VFX Core";
@@ -701,13 +699,9 @@ public final class ProjectSanityTest {
 		assert director.contains("VfxPostProcessChannel POST_PROCESS") : "Director must own the post-process channel";
 		assert director.contains("POST_PROCESS.render") && director.contains("POST_PROCESS.clear()")
 				: "Director must render and clear the post-process channel";
-		assert director.contains("VfxTimeChannel TIME") && director.contains("TIME.clear()")
-				: "Director must own and clear the client time channel";
 		String context = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxContext.java"));
 		assert context.contains("VfxPostProcessChannel postProcess") && context.contains("postProcess()")
 				: "Recipes must reach blur only through VfxContext";
-		assert context.contains("VfxTimeChannel time") && context.contains("time()")
-				: "Recipes must reach slow-motion only through VfxContext";
 
 		String camera = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxCameraChannel.java"));
 		for (String profile : new String[] {"triggerLaunch", "triggerHeavyImpact", "triggerExplosion", "triggerRitual"}) {

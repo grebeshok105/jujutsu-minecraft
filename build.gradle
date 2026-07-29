@@ -235,16 +235,6 @@ tasks.register('testVfxAnchor', JavaExec) {
 	jvmArgs '-ea'
 }
 
-tasks.register('testVfxTime', JavaExec) {
-	group = 'verification'
-	description = 'Runs assertion-based tests for bounded client VFX time dilation'
-	dependsOn tasks.named('testClasses')
-	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'jujutsu.mod.client.vfx.VfxTimeChannelTest'
-	maxHeapSize = '128m'
-	jvmArgs '-ea'
-}
-
 tasks.register('testHairpinChain', JavaExec) {
 	group = 'verification'
 	description = 'Runs deterministic Nobara Hairpin chain tests'

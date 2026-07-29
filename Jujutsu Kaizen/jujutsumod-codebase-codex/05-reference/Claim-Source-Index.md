@@ -16,7 +16,7 @@ Status: CURRENT
 | Embedded nail TTL/cap are 1200/30 | ProjectJjkNobaraProfile | VERIFIED |
 | Resonance changes global server TPS | ProjectJjkStrawDollRuntime.resolveImpact, ServerTimeDilation | VERIFIED and accepted |
 | VFX uses one cue/director/recipe path | VfxDirector, JujutsuClientNetworking, NobaraVfxRecipes | VERIFIED |
-| Nobara defines 25 VFX ids | NobaraVfxIds | VERIFIED |
+| Nobara defines 21 live VFX ids | NobaraVfxIds | VERIFIED |
 | Client mixin count is 6 | jujutsumod.client.mixins.json | VERIFIED |
 | Verification program inventory | build.gradle `verifyAssertionsEnabled` | VERIFIED |
 | Roster panel has three cards (Nobara/Todo/None) | CharacterRosterPanel.CARDS, initialized from JujutsuCharacterClients.inRosterOrder | VERIFIED |

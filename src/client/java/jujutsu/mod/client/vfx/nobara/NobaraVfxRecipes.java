@@ -27,9 +27,6 @@ public final class NobaraVfxRecipes {
 		VfxDirector.register(NobaraVfxIds.HAMMER, NobaraVfxRecipes::hammer);
 		VfxDirector.register(NobaraVfxIds.IMPACT, NobaraVfxRecipes::impact);
 		VfxDirector.register(NobaraVfxIds.IMPACT_SOUND, NobaraVfxRecipes::impactSound);
-		VfxDirector.register(NobaraVfxIds.RESONANCE_CHANNEL, NobaraVfxRecipes::resonanceChannel);
-		VfxDirector.register(NobaraVfxIds.RESONANCE_STRIKE, NobaraVfxRecipes::resonanceStrike);
-		VfxDirector.register(NobaraVfxIds.LINK_BIND, NobaraVfxRecipes::linkBind);
 		VfxDirector.register(NobaraVfxIds.DETONATE, NobaraVfxRecipes::detonate);
 		VfxDirector.register(NobaraVfxIds.ENLARGE, NobaraVfxRecipes::enlarge);
 		VfxDirector.register(NobaraVfxIds.EXPLOSION, NobaraVfxRecipes::explosion);
@@ -41,7 +38,6 @@ public final class NobaraVfxRecipes {
 		VfxDirector.register(NobaraVfxIds.HAMMER_HORIZONTAL, cue -> hammerAction(cue, "hammer_horizontal", false));
 		VfxDirector.register(NobaraVfxIds.HAMMER_OVERHEAD, cue -> hammerAction(cue, "hammer_overhead", true));
 		VfxDirector.register(NobaraVfxIds.HAMMER_NAIL_LAUNCH, cue -> hammerAction(cue, "hammer_nail_launch", true));
-		VfxDirector.register(NobaraVfxIds.EMBEDDED_NAIL_DRIVE, cue -> hammerAction(cue, "hammer_embedded_drive", true));
 		VfxDirector.register(NobaraVfxIds.BLACK_FLASH, NobaraVfxRecipes::blackFlash);
 		VfxDirector.register(NobaraVfxIds.SELF_RESONANCE, cue -> hammerAction(cue, "self_resonance", true));
 		VfxDirector.register(NobaraVfxIds.NAIL_DEEPEN, NobaraVfxRecipes::nailDeepen);
@@ -231,18 +227,6 @@ public final class NobaraVfxRecipes {
 		});
 	}
 
-	private static VfxInstance resonanceChannel(VfxCue cue) {
-		return ritualBind(cue);
-	}
-
-	private static VfxInstance resonanceStrike(VfxCue cue) {
-		return resonanceRelease(cue);
-	}
-
-	private static VfxInstance linkBind(VfxCue cue) {
-		return remnantDrop(cue);
-	}
-
 	private static VfxInstance detonate(VfxCue cue) {
 		return VfxInstance.of(14, (context, initialAgeTicks) -> {
 			int marks = intensity(cue);
@@ -398,7 +382,6 @@ public final class NobaraVfxRecipes {
 				context.hud().triggerFlash(3200, Math.round(230.0f * proximity), initialAgeTicks);
 				context.postProcess().triggerBlur(Math.round(900.0f * proximity), initialAgeTicks);
 				context.hud().triggerNausea(0.9f * proximity, 3200, initialAgeTicks);
-				context.time().triggerSlowMotion(0.55f, 2000, initialAgeTicks);
 				if (proximity > 0.45f) {
 					context.firstPerson().triggerSnap(initialAgeTicks);
 				}
@@ -432,7 +415,6 @@ public final class NobaraVfxRecipes {
 				context.hud().triggerFlash(3500, Math.round(240.0f * proximity), initialAgeTicks);
 				context.hud().triggerNausea(1.0f * Math.min(1.0f, proximity * 1.1f), 3500, initialAgeTicks);
 				context.postProcess().triggerBlur(Math.round(1100.0f * proximity), initialAgeTicks);
-				context.time().triggerSlowMotion(0.5f, 2000, initialAgeTicks);
 			}
 		});
 	}
