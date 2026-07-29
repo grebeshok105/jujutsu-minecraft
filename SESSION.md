@@ -1,30 +1,29 @@
-# Session Handoff - VFX Cue Foundations
+# Session Handoff - Nail Trap Collapse
 
 ## Active branch
 
-- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/vfx-cue-foundations`
-- Branch: `feat/vfx-cue-foundations`
-- Base: `8b3ac2ea1925b1ff98ccffce2aeb1a755be2ec6a` (`origin/main`, after PR #33)
+- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/vfx-nail-trap-collapse`
+- Branch: `fix/vfx-nail-trap-collapse`
+- Base: `3358be525335fd21dd7f8b3258692ea9f424faf4` (`origin/main`, after PR #34)
 
 ## Current scope
 
-- PR 1 only: add the minimal `VfxCues` transport factory and JUnit 5 contract tests.
-- Supported shapes: world-fixed, world-fixed directed, world-fixed displacement, anchored, and anchored directed.
-- Documentation records normalized `direction`, full displacement in `anchorOffset`, delivery/presentation radius ownership, and duration ownership.
-- Existing emitters, `VfxCue`, `VfxCuePayload`, wire field order, effect ids, `VfxWorldChannel`, `VfxTimeChannel`, `ACTIVE_INSTANCES`, and visual behavior remain unchanged.
-- `VfxCuesTest` intentionally uses JUnit 5 per the PR 1 request; the legacy `VfxCueTest` JavaExec remains until the planned test migration.
+- PR 2 only: preserve Nail Trap collapse displacement in the canonical VFX cue payload.
+- `NailTrapRuntime.collapseCue` uses `VfxCues.worldFixedDisplacement`, storing `to - from` in `anchorOffset` while retaining normalized `direction` as orientation.
+- The server still broadcasts one cue with the existing radius, intensity, game time, seed, particles, timing, cadence, and gameplay behavior.
+- `NailTrapCollapseTest` covers short, long, zero-distance, and real payload codec round-trip cases.
 
 ## Changed files
 
-- `src/main/java/jujutsu/mod/vfx/VfxCues.java`
-- `src/test/java/jujutsu/mod/vfx/VfxCuesTest.java`
+- `src/main/java/jujutsu/mod/character/nobara/projectjjk/NailTrapRuntime.java`
+- `src/test/java/jujutsu/mod/character/nobara/projectjjk/NailTrapCollapseTest.java`
 - `Jujutsu Kaizen/jujutsumod-codebase-codex/04-client-vfx/VFX-core.md`
 - `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`
 - `SESSION.md`
 
 ## Verification
 
-- `./gradlew.bat test --no-daemon` — `BUILD SUCCESSFUL`
-- `./gradlew.bat qualityGate --no-daemon` — `BUILD SUCCESSFUL`
-- Red proof: removing `Math.max(1, intensity)` failed `VfxCuesTest.intensityIsClampedToTheExistingMinimum()`; reversing anchor offset failed both anchored reconstruction tests. Both mutations were restored.
-- `NailTrapRuntime` and the `NAIL_TRAP_COLLAPSE` bug are intentionally unchanged; collapse correction remains PR 2.
+- `./gradlew.bat test --tests jujutsu.mod.character.nobara.projectjjk.NailTrapCollapseTest` — `BUILD SUCCESSFUL`
+- Red proof: restoring `anchorOffset = Vec3.ZERO` failed 3 of 4 collapse tests, including the real payload codec round-trip. The mutation was restored.
+- `./gradlew.bat test` — `BUILD SUCCESSFUL`
+- `./gradlew.bat qualityGate` — `BUILD SUCCESSFUL`; documentation audit reports 56 test Java files and all 34 verification programs enable assertions.

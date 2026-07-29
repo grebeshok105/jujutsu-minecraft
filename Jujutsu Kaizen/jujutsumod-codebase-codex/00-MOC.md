@@ -2,7 +2,7 @@
 
 Status: CURRENT
 
-Verified: 2026-07-28
+Verified: 2026-07-29
 
 Code target: current checkout of main or the active feature branch
 
@@ -36,7 +36,7 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 |---|---:|
 | Main Java files | 116 |
 | Client Java files | 176 |
-| Test Java files | 55 |
+| Test Java files | 56 |
 | Verification programs | 34 |
 | Client mixins | 6 |
 | Network payloads | 8 |
