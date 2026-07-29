@@ -34,7 +34,7 @@ import jujutsu.mod.combat.CombatStagger;
 public final class ProjectJjkStrawDollRuntime {
 	private static final int REMNANT_HIT_THRESHOLD = 2;
 	private static final int RITUAL_VFX_INTENSITY = 2;
-	private static final double VFX_RADIUS = 64.0;
+	private static final Double VFX_DELIVERY_RADIUS = 64.0;
 	private static final ProjectJjkRemnantProgress REMNANT_PROGRESS = new ProjectJjkRemnantProgress(REMNANT_HIT_THRESHOLD);
 	private static final Map<UUID, PendingRitual> PENDING_RITUALS = new HashMap<>();
 	private static final ServerTimeDilation RESONANCE_TIME = new ServerTimeDilation();
@@ -93,7 +93,7 @@ public final class ProjectJjkStrawDollRuntime {
 			level.addFreshEntity(dropped);
 			vfxAt = caster.position().add(0.0, 1.0, 0.0);
 		}
-		JujutsuNetworking.broadcastVfxCue(level, vfxAt, VFX_RADIUS,
+		JujutsuNetworking.broadcastVfxCue(level, vfxAt, VFX_DELIVERY_RADIUS,
 				cue(level, NobaraVfxIds.REMNANT_DROP, 1, vfxAt, level.getGameTime(), target));
 	}
 
@@ -121,7 +121,7 @@ public final class ProjectJjkStrawDollRuntime {
 		PENDING_RITUALS.put(caster.getUUID(), pending);
 		triggerDollRitual(caster);
 		Vec3 origin = caster.getEyePosition().add(caster.getLookAngle().scale(0.45));
-		JujutsuNetworking.broadcastVfxCue(caster.level(), caster.position(), VFX_RADIUS,
+		JujutsuNetworking.broadcastVfxCue(caster.level(), caster.position(), VFX_DELIVERY_RADIUS,
 				cue(caster.level(), NobaraVfxIds.RITUAL_BIND, 1, origin, caster.level().getGameTime(), caster));
 		caster.displayClientMessage(Component.translatable(
 				"message.jujutsumod.projectjjk.resonance.casting",
@@ -253,9 +253,9 @@ public final class ProjectJjkStrawDollRuntime {
 
 		// World-fixed origins (NO_ANCHOR): effects stay planted in the world, not glued to caster/target.
 		Vec3 struckOrigin = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
-		JujutsuNetworking.broadcastVfxCue(level, struckOrigin, VFX_RADIUS,
+		JujutsuNetworking.broadcastVfxCue(level, struckOrigin, VFX_DELIVERY_RADIUS,
 				worldFixedCue(level, NobaraVfxIds.DOLL_STRIKE, RITUAL_VFX_INTENSITY, struckOrigin, gameTime));
-		JujutsuNetworking.broadcastVfxCue(level, struckOrigin, VFX_RADIUS,
+		JujutsuNetworking.broadcastVfxCue(level, struckOrigin, VFX_DELIVERY_RADIUS,
 				worldFixedCue(level, NobaraVfxIds.RESONANCE_RELEASE, RITUAL_VFX_INTENSITY, struckOrigin, gameTime));
 		caster.displayClientMessage(Component.translatable(
 				"message.jujutsumod.projectjjk.resonance.complete",

@@ -52,6 +52,19 @@ public final class VfxDirector {
 		}
 	}
 
+	static Set<ResourceLocation> registeredRecipeIdsForTest() {
+		return Set.copyOf(RECIPES.keySet());
+	}
+
+	static VfxRecipe recipeForTest(ResourceLocation effectId) {
+		return RECIPES.get(effectId);
+	}
+
+	static void resetRecipesForTest() {
+		RECIPES.clear();
+		UNKNOWN_EFFECT_IDS.clear();
+	}
+
 	public static void registerHudContribution(ResourceLocation id, VfxHudChannel.Contribution contribution) {
 		HUD.registerContribution(id, contribution);
 	}

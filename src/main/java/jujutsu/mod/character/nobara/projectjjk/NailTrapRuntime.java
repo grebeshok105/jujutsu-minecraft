@@ -44,7 +44,7 @@ import jujutsu.mod.vfx.VfxCue;
 
 /** Server-authoritative placement, arming, collapse and impact of Shift+B nail traps. */
 public final class NailTrapRuntime {
-	private static final double VFX_RADIUS = 64.0;
+	private static final Double VFX_DELIVERY_RADIUS = 64.0;
 	private static final NailTrap.Registry TRAPS = new NailTrap.Registry();
 	private static final Map<UUID, CollapseState> COLLAPSES = new HashMap<>();
 
@@ -157,7 +157,7 @@ public final class NailTrapRuntime {
 			Vec3 to = target.position().add(0.0, target.getBbHeight() * 0.45, 0.0);
 			if (nail != null) nail.discard();
 			spawnCollapseTrail(level, from, to);
-			JujutsuNetworking.broadcastVfxCue(level, from, VFX_RADIUS,
+			JujutsuNetworking.broadcastVfxCue(level, from, VFX_DELIVERY_RADIUS,
 					collapseCue(from, to, beat + 1, level.getGameTime(), level.random.nextLong()));
 		}
 		int next = collapse.elapsedTicks() + 1;
@@ -297,7 +297,7 @@ public final class NailTrapRuntime {
 	}
 
 	private static void emit(ServerLevel level, Vec3 at, ResourceLocation id, int intensity, Vec3 direction) {
-		JujutsuNetworking.broadcastVfxCue(level, at, VFX_RADIUS,
+		JujutsuNetworking.broadcastVfxCue(level, at, VFX_DELIVERY_RADIUS,
 				new VfxCue(id, at, VfxCue.NO_ANCHOR, Vec3.ZERO, intensity, level.getGameTime(), level.random.nextLong(), direction));
 	}
 

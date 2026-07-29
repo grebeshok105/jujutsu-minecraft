@@ -32,6 +32,7 @@ import jujutsu.mod.vfx.VfxCue;
  * Two Black Flashes in a row trigger a chain bonus (higher mult + heal + Resonant Momentum).
  */
 public final class NobaraHammerCombatRuntime {
+	private static final Double VFX_DELIVERY_RADIUS = 64.0;
 	private static final Map<UUID, PendingAttack> PENDING = new HashMap<>();
 	private static final Map<UUID, Boolean> OVERHEAD_NEXT = new HashMap<>();
 	/** Consecutive Black Flash procs; resets when a roll fails. */
@@ -303,13 +304,13 @@ public final class NobaraHammerCombatRuntime {
 
 	private static void emit(ServerPlayer player, net.minecraft.resources.ResourceLocation id, Vec3 origin, int intensity) {
 		long gameTime = player.level().getGameTime();
-		JujutsuNetworking.broadcastVfxCue(player.level(), player.position(), 64.0,
+		JujutsuNetworking.broadcastVfxCue(player.level(), player.position(), VFX_DELIVERY_RADIUS,
 				new VfxCue(id, origin, player.getId(), origin.subtract(player.position()), intensity, gameTime, player.getRandom().nextLong(), Vec3.ZERO));
 	}
 
 	private static void emitAt(ServerPlayer player, net.minecraft.resources.ResourceLocation id, Vec3 origin, int intensity) {
 		long gameTime = player.level().getGameTime();
-		JujutsuNetworking.broadcastVfxCue(player.level(), origin, 64.0,
+		JujutsuNetworking.broadcastVfxCue(player.level(), origin, VFX_DELIVERY_RADIUS,
 				new VfxCue(id, origin, VfxCue.NO_ANCHOR, Vec3.ZERO, intensity, gameTime, player.getRandom().nextLong(), Vec3.ZERO));
 	}
 
@@ -321,7 +322,7 @@ public final class NobaraHammerCombatRuntime {
 			Vec3 direction
 	) {
 		long gameTime = player.level().getGameTime();
-		JujutsuNetworking.broadcastVfxCue(player.level(), player.position(), 64.0,
+		JujutsuNetworking.broadcastVfxCue(player.level(), player.position(), VFX_DELIVERY_RADIUS,
 				new VfxCue(id, origin, player.getId(), origin.subtract(player.position()), intensity, gameTime, player.getRandom().nextLong(), direction));
 	}
 

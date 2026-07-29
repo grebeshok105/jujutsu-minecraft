@@ -195,16 +195,6 @@ tasks.register('testCurseLinks', JavaExec) {
 	jvmArgs '-ea'
 }
 
-tasks.register('testVfxCore', JavaExec) {
-	group = 'verification'
-	description = 'Runs assertion-based tests for shared VFX cue contracts'
-	dependsOn tasks.named('testClasses')
-	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'jujutsu.mod.vfx.VfxCueTest'
-	maxHeapSize = '128m'
-	jvmArgs '-ea'
-}
-
 tasks.register('testVfxTimeline', JavaExec) {
 	group = 'verification'
 	description = 'Runs assertion-based tests for VFX timeline timing'
@@ -493,6 +483,7 @@ tasks.withType(JavaCompile).configureEach {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	systemProperty 'vfx.main.classes', layout.buildDirectory.dir('classes/java/main').get().asFile.absolutePath
 	// The architecture rules read the two compiled outputs as separate class sets, so the client output
 	// has to exist by the time they run. Without this the client rules would import an empty directory.
 	dependsOn tasks.named('clientClasses')

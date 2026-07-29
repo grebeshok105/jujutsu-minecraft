@@ -1,7 +1,8 @@
 package jujutsu.mod.vfx;
 
-import net.minecraft.resources.ResourceLocation;
+import java.util.Set;
 import jujutsu.mod.JujutsuMod;
+import net.minecraft.resources.ResourceLocation;
 
 /** Typed VFX ids owned by Todo's character slice. */
 public final class TodoVfxIds {
@@ -45,6 +46,9 @@ public final class TodoVfxIds {
 	 * deliberately cheap: it can land on the same tick as a Black Flash, and it must not compete with it.
 	 */
 	public static final ResourceLocation MOMENTUM_STRIKE = JujutsuMod.id("todo/momentum_strike");
+	public static final Set<ResourceLocation> LIVE = Set.of(
+			BOOGIE_WOOGIE, SWAP_ENDPOINT, FEINT_TELL, PAIR_MARK, SWAP_AFTERIMAGE, SWAP_ARRIVAL, MOMENTUM_STRIKE);
+	public static final Set<ResourceLocation> PLANNED = Set.of();
 
 	private TodoVfxIds() {}
 }

@@ -51,7 +51,7 @@ public final class TodoBlackFlashRuntime {
 				TodoProfile.BLACK_FLASH_STAGGER_TICKS,
 				2.0);
 		Vec3 origin = BlackFlashStrike.impactOrigin(target);
-		JujutsuNetworking.broadcastVfxCue(todo.level(), origin, 64.0,
+		JujutsuNetworking.broadcastVfxCue(todo.level(), origin, TodoProfile.BLACK_FLASH_VFX_DELIVERY_RADIUS,
 				new VfxCue(NobaraVfxIds.BLACK_FLASH, origin, VfxCue.NO_ANCHOR, Vec3.ZERO, 2,
 						todo.level().getGameTime(), todo.getRandom().nextLong(), todo.getLookAngle()));
 	}

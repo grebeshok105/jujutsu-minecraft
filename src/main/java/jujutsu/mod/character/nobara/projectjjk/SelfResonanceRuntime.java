@@ -23,6 +23,7 @@ import jujutsu.mod.vfx.NobaraVfxIds;
 import jujutsu.mod.vfx.VfxCue;
 
 public final class SelfResonanceRuntime {
+	private static final Double VFX_DELIVERY_RADIUS = 64.0;
 	private static final Map<UUID, UUID> SELECTED = new HashMap<>();
 	private static final Map<UUID, Pending> PENDING = new HashMap<>();
 	private SelfResonanceRuntime() {}
@@ -90,11 +91,11 @@ public final class SelfResonanceRuntime {
 	private static final class Vec3Cue {
 		private static void emitCaster(ServerPlayer caster) {
 			var at = caster.getEyePosition();
-			JujutsuNetworking.broadcastVfxCue(caster.level(), caster.position(), 64.0, new VfxCue(NobaraVfxIds.SELF_RESONANCE, at, caster.getId(), at.subtract(caster.position()), 2, caster.level().getGameTime(), caster.getRandom().nextLong(), Vec3.ZERO));
+			JujutsuNetworking.broadcastVfxCue(caster.level(), caster.position(), VFX_DELIVERY_RADIUS, new VfxCue(NobaraVfxIds.SELF_RESONANCE, at, caster.getId(), at.subtract(caster.position()), 2, caster.level().getGameTime(), caster.getRandom().nextLong(), Vec3.ZERO));
 		}
 		private static void emitTarget(ServerPlayer caster, LivingEntity target) {
 			var at = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
-			JujutsuNetworking.broadcastVfxCue(caster.level(), at, 64.0, new VfxCue(NobaraVfxIds.RESONANCE_RELEASE, at, target.getId(), at.subtract(target.position()), 2, caster.level().getGameTime(), caster.getRandom().nextLong(), Vec3.ZERO));
+			JujutsuNetworking.broadcastVfxCue(caster.level(), at, VFX_DELIVERY_RADIUS, new VfxCue(NobaraVfxIds.RESONANCE_RELEASE, at, target.getId(), at.subtract(target.position()), 2, caster.level().getGameTime(), caster.getRandom().nextLong(), Vec3.ZERO));
 		}
 	}
 	private record Pending(UUID linkId, long dueGameTime) {}

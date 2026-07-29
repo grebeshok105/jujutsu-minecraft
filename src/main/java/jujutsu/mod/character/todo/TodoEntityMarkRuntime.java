@@ -58,7 +58,7 @@ public final class TodoEntityMarkRuntime {
 		CharacterAbilityCooldowns.start(todo, CharacterAbility.USE_CONTEXT, TodoProfile.ENTITY_MARK_COOLDOWN_TICKS);
 		JujutsuNetworking.sendAbilityCooldown(todo, CharacterAbility.USE_CONTEXT, TodoProfile.ENTITY_MARK_COOLDOWN_TICKS);
 		Vec3 origin = target.position();
-		JujutsuNetworking.broadcastVfxCue(level, origin, TodoProfile.BOOGIE_WOOGIE_CUE_RADIUS,
+		JujutsuNetworking.broadcastVfxCue(level, origin, TodoProfile.VFX_DELIVERY_RADIUS,
 				new VfxCue(TodoVfxIds.PAIR_MARK, origin, target.getId(), Vec3.ZERO, 1, level.getGameTime(),
 						todo.getRandom().nextLong(), Vec3.ZERO));
 		if (notify) {

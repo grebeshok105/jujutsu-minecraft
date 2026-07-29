@@ -1,55 +1,43 @@
-# Session Handoff - VFX Director Lifecycle
+# Session Handoff - VFX Contract Hardening
 
 ## Active branch
 
-- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/vfx-remove-active-instances`
-- Branch: `refactor/vfx-remove-active-instances`
-- Base: `fa3f26c0283ab4974700d2ee0661b4a334b3d04c` (`origin/main`, after PR #36)
+- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/vfx-contract-hardening`
+- Branch: `test/vfx-contract-hardening`
+- Base: `12866b9d2bcb9084cb8f67eb3ebedf5e307552ea` (`origin/main`, after PR 4)
 
 ## Current scope
 
-- PR 4 only: remove the director's fake recipe bookkeeping lifecycle.
-- Removed symbols: `MAX_ACTIVE_` + `INSTANCES`, `ACTIVE_` + `INSTANCES`, and `Active` + `Instance`; no replacement collection was introduced.
-- `receive` now resolves the recipe, creates the instance, rejects expiry, computes `initialAgeTicks`, starts once through package-private `startResolvedCue`, and retains nothing in the director.
-- Real retained state remains owned by the seven channels. `SOUND.tick(client)`, level binding/reset, disconnect cleanup, unknown-id warning policy, and `VfxWorldChannel.MAX_IMPACT_FLASHES = 48` remain intact.
+- PR 5 only: harden transport, lifecycle enumeration, recipe completeness, production emitter coverage, Hairpin packing, radius ownership, and duration ownership.
+- PR 6-9 were not started. No gameplay or visual tuning was changed.
+- The main checkout was not edited.
 
-## Changed files
+## Contracts
 
-- `src/client/java/jujutsu/mod/client/vfx/VfxDirector.java`
-- `src/test/java/jujutsu/mod/client/vfx/VfxDirectorLifecycleTest.java`
-- `src/test/java/jujutsu/mod/ProjectSanityTest.java`
-- `src/test/java/jujutsu/mod/architecture/VesselBoundaryTest.java`
-- `Jujutsu Kaizen/jujutsumod-codebase-codex/04-client-vfx/VFX-core.md`
-- `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`
-- `SESSION.md`
-
-## JUnit coverage
-
-- Accepted cue at age 0: create once, start once, age 0.
-- Late valid cue: start once with age 7.
-- Exact expiry boundary: create once, reject, never start.
-- One tick before expiry: start once with age 19.
-- Future cue: start once with clamped age 0.
-- `ProjectSanityTest` structurally checks director-side absence, one production start call, unknown-id guard, `SOUND.tick(client)`, and all seven channel clears.
+- `VfxCueTest` is JUnit 5 and uses the real `VfxCuePayload.STREAM_CODEC` for all eight fields, both anchor modes, normalized and zero directions, sentinel rejection, stable wire strings, and buffer exhaustion.
+- `NobaraVfxIds`, `TodoVfxIds`, and `MegumiVfxIds` expose `LIVE`/`PLANNED`: 21 + 7 + 5 live ids, 0 planned ids, 33 total. Wire strings and codec field order are unchanged.
+- `VfxCompletenessTest` calls the real three recipe packs against the isolated director registry and checks exact live coverage plus duplicate-registration failure.
+- The production emitter check imports the configured `build/classes/java/main` bytecode and follows method-level concrete id-field references through local helpers to cue construction/network paths; comments, strings, and unrelated class-level mentions cannot satisfy it.
+- Radius tests derive finite delivery owners from those actual network paths, preserve multi-site owners, treat direct sends separately, and use explicit `PresentationKind.NONE` for recipes without proximity attenuation. Existing values remain unchanged, including Todo delivery `64.0` versus presentation `56.0` and Megumi delivery `48.0`.
+- Duration tests check shared-owner and intentional longer-recipe relationships without source-text greps or tuning-literal pins.
+- Hairpin tests pin clamped depth and independent finale packing.
 
 ## Red mutations
 
-- Duplicate start call: 4 of 5 lifecycle tests failed; the duplicate was restored.
-- Expiry changed from `>=` to `>`: the exact-boundary test failed; `>=` was restored.
-- Structural retention mutation: adding the removed list token made `testProjectSanity` fail with `VfxDirector must not retain a fake record list`.
-- Structural unknown-id mutation: replacing `UNKNOWN_EFFECT_IDS.add` with `contains` failed with `Unknown VFX ids must still be deduplicated and warned once`.
-- Structural sound mutation: removing `SOUND.tick(client)` failed with `VfxDirector tick must retain sound-duck lifecycle work`.
-- Structural cleanup mutation: removing `WORLD.clear()` failed with `VfxDirector must clear real channel WORLD`.
-- Structural start mutation: duplicating `instance.start` failed with `Accepted VFX instances must have one production start call`.
+| Mutation | Failing test or proof | Restored |
+|---|---|---|
+| Remove one codec field | `VfxCueTest`: 3 failures, `IndexOutOfBoundsException` | yes |
+| Remove one live recipe registration | `VfxCompletenessTest.realRecipePacksRegisterEveryLiveIdExactlyOnce` | yes |
+| Remove sole production emitter reference | `VfxCompletenessTest.compiledProductionEmittersCoverEveryLiveId` | yes |
+| Add a live id without a recipe | `VfxCompletenessTest.realRecipePacksRegisterEveryLiveIdExactlyOnce` | yes |
+| Move incomplete id to `PLANNED` | live completeness and planned visibility both passed; `VfxCueTest.plannedSetsAreEmptyForTheCurrentSlice` is the current-slice pin | yes |
+| Presentation radius greater than delivery | `VfxRadiusContractTest.everyLiveIdHasOnePresentationOwnerAndFactualDeliveryOwners` | yes |
+| Change one shared duration consumer | `VfxDurationContractTest.equalLifetimeUsesOneNamedValueForRecipeAndRetainedWorldState` | yes |
+| Break Hairpin depth mask | `HairpinPackingContractTest.depthClampsToSupportedRangeAndRoundTrips` | yes |
+| Restore collapse offset to zero | `NailTrapCollapseTest`: 3 failures | yes |
 
 ## Verification
 
-- Baseline: `./gradlew.bat testProjectSanity testVfxTimeline testVfxSoundDuck --no-daemon` — `BUILD SUCCESSFUL`.
-- `./gradlew.bat test --tests jujutsu.mod.client.vfx.VfxDirectorLifecycleTest --no-daemon` — `BUILD SUCCESSFUL`.
-- `./gradlew.bat testVfxTimeline --no-daemon` — `BUILD SUCCESSFUL`.
-- `./gradlew.bat testProjectSanity --no-daemon` — `BUILD SUCCESSFUL`.
-- `./gradlew.bat testVfxSoundDuck --no-daemon` — `BUILD SUCCESSFUL`.
-- `./gradlew.bat test --no-daemon` — `BUILD SUCCESSFUL`.
-- `./gradlew.bat qualityGate --no-daemon` — `BUILD SUCCESSFUL`; documentation audit reports 116 main, 175 client, 56 test Java files, 33 verification programs, and 21 Nobara VFX ids.
-- Manual client smoke: not run; the PR body must retain the requested cue/channel/lifecycle checklist.
-- PR 5 is not started.
+- Focused JUnit run passed after the contract additions and follow-up: 20 tests, including `VfxCueTest`, `VfxCompletenessTest`, Hairpin packing, radius, duration, and `NailTrapCollapseTest` contracts.
+- The plan's `docs/VFX_CORE_REFACTORING_PLAN.md` already labels this exact scope PR 5; the base after PR 4 is `12866b9`, so no plan renumbering is needed.
+- Full `test --no-daemon --max-workers=1 --no-watch-fs` passed, followed by `qualityGate` with documentation audit, all verification programs, and `verifyAssertionsEnabled: 32/32` passing.

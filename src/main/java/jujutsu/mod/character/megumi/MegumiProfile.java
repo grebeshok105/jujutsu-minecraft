@@ -27,6 +27,7 @@ public final class MegumiProfile {
 	public static final double POUNCE_KNOCKBACK = 2.4;
 	public static final int POUNCE_STAGGER_TICKS = 6;
 	public static final double VFX_CUE_RADIUS = 48.0;
+	static final Double VFX_DELIVERY_RADIUS = VFX_CUE_RADIUS;
 
 	private MegumiProfile() {}
 }
