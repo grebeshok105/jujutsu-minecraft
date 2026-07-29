@@ -1,11 +1,11 @@
-package jujutsu.mod.client.character.megumi.vfx;
+package jujutsu.mod.client.vfx.megumi;
 
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.Vec3;
-import jujutsu.mod.character.megumi.vfx.MegumiVfxIds;
+import jujutsu.mod.vfx.MegumiVfxIds;
 import jujutsu.mod.client.character.megumi.MegumiAnimationHooks;
 import jujutsu.mod.client.vfx.VfxWorldChannel;
 import jujutsu.mod.client.vfx.VfxDirector;

@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 final class MegumiSoundRoutingTest {
 	private static final Path ENTITY = Path.of("src/main/java/jujutsu/mod/character/megumi/MegumiDivineDogEntity.java");
 	private static final Path RUNTIME = Path.of("src/main/java/jujutsu/mod/character/megumi/MegumiSummonRuntime.java");
-	private static final Path RECIPES = Path.of("src/client/java/jujutsu/mod/client/character/megumi/vfx/MegumiVfxRecipes.java");
+	private static final Path RECIPES = Path.of("src/client/java/jujutsu/mod/client/vfx/megumi/MegumiVfxRecipes.java");
 
 	@Test
 	void divineDogBeatsUseServerSpatialSoundAtTheirAuthoritativeSources() throws Exception {

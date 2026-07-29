@@ -125,7 +125,7 @@ Any directory anywhere in the tree whose name happens to equal a vessel id is tr
 
 **Acceptance, both directions required:** make the helper directly testable and classify both slash styles.
 
-1. Recognize the live Megumi paths: `character/megumi/MegumiProfile.java`, `character/megumi/vfx/MegumiVfxIds.java`, `client/character/megumi/MegumiClientDefinition.java`, `client/character/megumi/vfx/MegumiVfxRecipes.java`, `client/character/megumi/particle/MegumiShadowMoteParticle.java`, and `client/render/megumi/MegumiDivineDogRenderer.java`. Retain the existing Nobara `character/nobara/projectjjk` and Todo paths too.
+1. Recognize the live Megumi paths: `character/megumi/MegumiProfile.java`, shared `vfx/MegumiVfxIds.java`, `client/character/megumi/MegumiClientDefinition.java`, canonical `client/vfx/megumi/MegumiVfxRecipes.java`, `client/character/megumi/particle/MegumiShadowMoteParticle.java`, and `client/render/megumi/MegumiDivineDogRenderer.java`. Retain the existing Nobara `character/nobara/projectjjk` and Todo paths too.
 2. Reject the synthetic shared path `client/rich/megumi/Anything.java`, plus the live shared paths `vfx/TodoVfxIds.java`, `client/fx/NobaraHudState.java`, and `client/render/ProjectJjkNailRenderer.java`.
 3. On the unmodified tree, `sharedProductionCodeNamesNoVesselType` and `noVesselNamesAnotherVesselsType` still pass. The set returned by `sharedProductionFiles()` must not change, so tightening has not silently reclassified a real vessel file as shared.
 

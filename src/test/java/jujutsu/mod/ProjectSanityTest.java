@@ -742,8 +742,8 @@ public final class ProjectSanityTest {
 		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkStrawDollRuntime.java"));
 		assert ritual.contains("tickRateManager") && ritual.contains("RESONANCE_TIME.trigger")
 				: "Resonance impact must briefly lower server tick rate for hit-stop";
-		assert ritual.contains("worldFixedCue") && ritual.contains("VfxCue.NO_ANCHOR")
-				: "Resonance struck VFX must be world-fixed (NO_ANCHOR), not player-anchored";
+		assert ritual.contains("worldFixedCue") && ritual.contains("VfxCues.worldFixed(")
+				: "Resonance struck VFX must use the world-fixed factory, not player-anchored transport";
 		assert !dollStrike.contains("SoundEvents.ANVIL_USE") : "The doll strike must not sound like an anvil";
 		for (String sound : new String[] {"PROJECTJJK_IMPLODE", "PROJECTJJK_DEEP_EXPLOSION", "PROJECTJJK_BLACK_FLASH_IMPACT", "PROJECTJJK_LONG_WHOOSH"}) {
 			assert dollStrike.contains(sound) : "The doll strike is missing sound layer " + sound;

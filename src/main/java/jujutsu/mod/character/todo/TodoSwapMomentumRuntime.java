@@ -17,7 +17,7 @@ import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuEffects;
 import jujutsu.mod.vfx.TodoVfxIds;
-import jujutsu.mod.vfx.VfxCue;
+import jujutsu.mod.vfx.VfxCues;
 
 /**
  * The window a landed Boogie Woogie opens on Todo's next hit.
@@ -121,7 +121,7 @@ public final class TodoSwapMomentumRuntime {
 		}
 		Vec3 origin = BlackFlashStrike.impactOrigin(target);
 		JujutsuNetworking.broadcastVfxCue(todo.level(), origin, TodoProfile.VFX_DELIVERY_RADIUS,
-				new VfxCue(TodoVfxIds.MOMENTUM_STRIKE, origin, VfxCue.NO_ANCHOR, Vec3.ZERO, 1,
+				VfxCues.worldFixedDirected(TodoVfxIds.MOMENTUM_STRIKE, origin, 1,
 						todo.level().getGameTime(), todo.getRandom().nextLong(), todo.getLookAngle()));
 		JujutsuMod.LOGGER.debug("Todo swap momentum spent player={} target={}",
 				todo.getGameProfile().getName(), target.getName().getString());

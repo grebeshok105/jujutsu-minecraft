@@ -10,6 +10,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.client.vfx.todo.TodoSwapArrivalPayload;
 import jujutsu.mod.vfx.VfxAnchorResolver;
 import jujutsu.mod.vfx.VfxCue;
 
@@ -256,9 +257,10 @@ public final class VfxWorldChannel {
 		if (alpha <= 0) {
 			return;
 		}
-		double speed = cue.anchorOffset().x;
-		float width = silhouetteWidth(cue.anchorOffset().y);
-		float height = silhouetteHeight(cue.anchorOffset().z);
+		TodoSwapArrivalPayload payload = TodoSwapArrivalPayload.from(cue);
+		double speed = payload.speed();
+		float width = silhouetteWidth(payload.bodyWidth());
+		float height = silhouetteHeight(payload.bodyHeight());
 		Vec3 chest = center.add(UP.scale(height * 0.45));
 
 		renderDirectionalRing(consumer, chest, EAST, NORTH, width * (1.45f - progress * 1.0f), 1.0f,
@@ -272,7 +274,7 @@ public final class VfxWorldChannel {
 		if (speed < ARRIVAL_STREAK_MIN_SPEED) {
 			return;
 		}
-		Vec3 direction = cue.direction();
+		Vec3 direction = payload.direction();
 		double length = Math.min(1.6, speed * 2.4) * (1.0 - progress * 0.6);
 		Vec3[] basis = directionalBasis(direction);
 		for (int lane = -1; lane <= 1; lane++) {

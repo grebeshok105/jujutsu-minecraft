@@ -10,7 +10,7 @@ import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.client.character.CharacterClientDefinition;
 import jujutsu.mod.client.character.CharacterRosterEntry;
 import jujutsu.mod.client.character.JujutsuCharacterIcons;
-import jujutsu.mod.client.character.megumi.vfx.MegumiVfxRecipes;
+import jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes;
 import jujutsu.mod.client.character.megumi.particle.MegumiShadowMoteParticle;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.render.CharacterGeoRenderer;

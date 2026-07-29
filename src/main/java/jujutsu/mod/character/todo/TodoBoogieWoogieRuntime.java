@@ -25,6 +25,7 @@ import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuSounds;
 import jujutsu.mod.vfx.TodoVfxIds;
 import jujutsu.mod.vfx.VfxCue;
+import jujutsu.mod.vfx.VfxCues;
 
 /** Server-authoritative first implementation of Todo's Boogie Woogie self-to-target swap. */
 public final class TodoBoogieWoogieRuntime {
@@ -315,13 +316,14 @@ public final class TodoBoogieWoogieRuntime {
 				TodoProfile.BOOGIE_WOOGIE_CLAP_VOLUME, TodoProfile.BOOGIE_WOOGIE_CLAP_PITCH);
 		// Performance cue: caster-anchored with a zero offset, so it carries no endpoint geometry.
 		JujutsuNetworking.broadcastVfxCue(level, origin, TodoProfile.VFX_DELIVERY_RADIUS,
-				new VfxCue(TodoVfxIds.BOOGIE_WOOGIE, origin, todo.getId(), Vec3.ZERO, 1, level.getGameTime(),
-						todo.getRandom().nextLong(), aim));
+				VfxCues.anchoredDirected(TodoVfxIds.BOOGIE_WOOGIE, origin, todo.getId(), todo.position(), 1,
+						level.getGameTime(), todo.getRandom().nextLong(), aim));
 	}
 
 	static void broadcastSwapEndpoint(ServerLevel level, ServerPlayer todo, Vec3 endpoint, Vec3 pairDelta, long gameTime) {
 		JujutsuNetworking.broadcastVfxCue(level, endpoint, TodoProfile.VFX_DELIVERY_RADIUS,
-				new VfxCue(TodoVfxIds.SWAP_ENDPOINT, endpoint, VfxCue.NO_ANCHOR, pairDelta, 1, gameTime, todo.getRandom().nextLong(), pairDelta));
+				VfxCues.worldFixedDisplacement(TodoVfxIds.SWAP_ENDPOINT, endpoint, 1, gameTime,
+						todo.getRandom().nextLong(), pairDelta));
 	}
 
 	/** Short tear of air where a body used to be. */

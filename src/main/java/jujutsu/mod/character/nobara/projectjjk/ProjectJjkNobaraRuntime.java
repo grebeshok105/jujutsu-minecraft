@@ -29,6 +29,7 @@ import jujutsu.mod.registry.JujutsuParticles;
 import jujutsu.mod.registry.JujutsuSounds;
 import jujutsu.mod.vfx.NobaraVfxIds;
 import jujutsu.mod.vfx.VfxCue;
+import jujutsu.mod.vfx.VfxCues;
 
 public final class ProjectJjkNobaraRuntime {
 	private static final Double IMPULSE_BROADCAST_RADIUS = 56.0;
@@ -270,11 +271,11 @@ public final class ProjectJjkNobaraRuntime {
 	}
 
 	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 point, long gameTime) {
-		return new VfxCue(effectId, point, VfxCue.NO_ANCHOR, Vec3.ZERO, Math.max(1, intensity), gameTime, level.random.nextLong(), Vec3.ZERO);
+		return VfxCues.worldFixed(effectId, point, intensity, gameTime, level.random.nextLong());
 	}
 
 	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 point, long gameTime, Entity anchor) {
-		return new VfxCue(effectId, point, anchor.getId(), point.subtract(anchor.position()), Math.max(1, intensity), gameTime, level.random.nextLong(), Vec3.ZERO);
+		return VfxCues.anchored(effectId, point, anchor.getId(), anchor.position(), intensity, gameTime, level.random.nextLong());
 	}
 
 	private static List<ProjectJjkNailEntity> findPreparedNails(ServerLevel level, ServerPlayer player) {

@@ -1,4 +1,4 @@
-package jujutsu.mod.character.megumi.vfx;
+package jujutsu.mod.vfx;
 
 import java.util.Set;
 import jujutsu.mod.JujutsuMod;

@@ -36,13 +36,13 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
-import jujutsu.mod.character.megumi.vfx.MegumiVfxIds;
+import jujutsu.mod.vfx.MegumiVfxIds;
 import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.registry.JujutsuSounds;
-import jujutsu.mod.vfx.VfxCue;
+import jujutsu.mod.vfx.VfxCues;
 
 /** Owns every Divine Dog pack, including its single authoritative cross-level teardown. */
 public final class MegumiSummonRuntime {
@@ -319,8 +319,8 @@ public final class MegumiSummonRuntime {
 			ServerLevel level, ServerPlayer owner, ResourceLocation effectId,
 			Vec3 origin, int anchorEntityId, Vec3 anchorOffset) {
 		JujutsuNetworking.broadcastVfxCue(level, origin, MegumiProfile.VFX_DELIVERY_RADIUS,
-				new VfxCue(effectId, origin, anchorEntityId, anchorOffset, 1, level.getGameTime(),
-						owner.getRandom().nextLong(), Vec3.ZERO));
+				VfxCues.anchored(effectId, origin, anchorEntityId, origin.subtract(anchorOffset), 1,
+						level.getGameTime(), owner.getRandom().nextLong()));
 	}
 
 	private static void tick(MinecraftServer server) {

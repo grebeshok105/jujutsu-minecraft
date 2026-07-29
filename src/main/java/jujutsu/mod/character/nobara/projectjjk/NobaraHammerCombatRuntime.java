@@ -24,7 +24,7 @@ import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.vfx.NobaraVfxIds;
-import jujutsu.mod.vfx.VfxCue;
+import jujutsu.mod.vfx.VfxCues;
 
 /**
  * Hammer combat + Black Flash.
@@ -305,13 +305,13 @@ public final class NobaraHammerCombatRuntime {
 	private static void emit(ServerPlayer player, net.minecraft.resources.ResourceLocation id, Vec3 origin, int intensity) {
 		long gameTime = player.level().getGameTime();
 		JujutsuNetworking.broadcastVfxCue(player.level(), player.position(), VFX_DELIVERY_RADIUS,
-				new VfxCue(id, origin, player.getId(), origin.subtract(player.position()), intensity, gameTime, player.getRandom().nextLong(), Vec3.ZERO));
+				VfxCues.anchored(id, origin, player.getId(), player.position(), intensity, gameTime, player.getRandom().nextLong()));
 	}
 
 	private static void emitAt(ServerPlayer player, net.minecraft.resources.ResourceLocation id, Vec3 origin, int intensity) {
 		long gameTime = player.level().getGameTime();
 		JujutsuNetworking.broadcastVfxCue(player.level(), origin, VFX_DELIVERY_RADIUS,
-				new VfxCue(id, origin, VfxCue.NO_ANCHOR, Vec3.ZERO, intensity, gameTime, player.getRandom().nextLong(), Vec3.ZERO));
+				VfxCues.worldFixed(id, origin, intensity, gameTime, player.getRandom().nextLong()));
 	}
 
 	private static void emitDirected(
@@ -323,7 +323,8 @@ public final class NobaraHammerCombatRuntime {
 	) {
 		long gameTime = player.level().getGameTime();
 		JujutsuNetworking.broadcastVfxCue(player.level(), player.position(), VFX_DELIVERY_RADIUS,
-				new VfxCue(id, origin, player.getId(), origin.subtract(player.position()), intensity, gameTime, player.getRandom().nextLong(), direction));
+				VfxCues.anchoredDirected(id, origin, player.getId(), player.position(), intensity, gameTime,
+						player.getRandom().nextLong(), direction));
 	}
 
 	private static void clear() {

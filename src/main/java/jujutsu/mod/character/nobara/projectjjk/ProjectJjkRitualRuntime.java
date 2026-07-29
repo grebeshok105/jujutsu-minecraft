@@ -37,6 +37,7 @@ import jujutsu.mod.registry.JujutsuParticles;
 import jujutsu.mod.registry.JujutsuSounds;
 import jujutsu.mod.vfx.NobaraVfxIds;
 import jujutsu.mod.vfx.VfxCue;
+import jujutsu.mod.vfx.VfxCues;
 
 /**
  * Owns Nobara's server-authoritative nail marks and Hairpin detonation tasks. The physical
@@ -460,11 +461,11 @@ public final class ProjectJjkRitualRuntime {
 	}
 
 	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 at, long gameTime) {
-		return new VfxCue(effectId, at, VfxCue.NO_ANCHOR, Vec3.ZERO, Math.max(1, intensity), gameTime, level.random.nextLong(), Vec3.ZERO);
+		return VfxCues.worldFixed(effectId, at, intensity, gameTime, level.random.nextLong());
 	}
 
 	private static VfxCue cue(ServerLevel level, ResourceLocation effectId, int intensity, Vec3 at, long gameTime, Entity anchor) {
-		return new VfxCue(effectId, at, anchor.getId(), at.subtract(anchor.position()), Math.max(1, intensity), gameTime, level.random.nextLong(), Vec3.ZERO);
+		return VfxCues.anchored(effectId, at, anchor.getId(), anchor.position(), intensity, gameTime, level.random.nextLong());
 	}
 
 	private static void playCasterSnap(ServerLevel level, ServerPlayer caster, int marks, long gameTime) {
