@@ -1,10 +1,7 @@
 package jujutsu.mod.client.vfx;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -23,9 +20,7 @@ import jujutsu.mod.vfx.VfxCue;
 import jujutsu.mod.vfx.VfxTimeline;
 
 public final class VfxDirector {
-	private static final int MAX_ACTIVE_INSTANCES = 64;
 	private static final Map<ResourceLocation, VfxRecipe> RECIPES = new HashMap<>();
-	private static final List<ActiveInstance> ACTIVE_INSTANCES = new ArrayList<>();
 	private static final Set<ResourceLocation> UNKNOWN_EFFECT_IDS = new HashSet<>();
 	private static final VfxWorldChannel WORLD = new VfxWorldChannel();
 	private static final VfxHudChannel HUD = new VfxHudChannel();
@@ -75,16 +70,17 @@ public final class VfxDirector {
 			return;
 		}
 
+		startResolvedCue(cue, recipe, client.level.getGameTime(), context(client));
+	}
+
+	static boolean startResolvedCue(VfxCue cue, VfxRecipe recipe, long gameTime, VfxContext context) {
 		VfxInstance instance = recipe.create(cue);
-		if (VfxTimeline.isExpired(cue, client.level.getGameTime(), instance.durationTicks())) {
-			return;
+		if (VfxTimeline.isExpired(cue, gameTime, instance.durationTicks())) {
+			return false;
 		}
-		if (ACTIVE_INSTANCES.size() >= MAX_ACTIVE_INSTANCES) {
-			ACTIVE_INSTANCES.remove(0);
-		}
-		float initialAgeTicks = VfxTimeline.ageTicks(cue, client.level.getGameTime(), 0.0f);
-		instance.start(context(client), initialAgeTicks);
-		ACTIVE_INSTANCES.add(new ActiveInstance(cue, instance));
+		float initialAgeTicks = VfxTimeline.ageTicks(cue, gameTime, 0.0f);
+		instance.start(context, initialAgeTicks);
+		return true;
 	}
 
 	public static float yawOffset() {
@@ -144,13 +140,6 @@ public final class VfxDirector {
 		// After bindLevel, so a level change has already restored the duck through clear() before this
 		// looks at a deadline that no longer belongs to anything.
 		SOUND.tick(client);
-		Iterator<ActiveInstance> iterator = ACTIVE_INSTANCES.iterator();
-		while (iterator.hasNext()) {
-			ActiveInstance active = iterator.next();
-			if (VfxTimeline.isExpired(active.cue(), client.level.getGameTime(), active.instance().durationTicks())) {
-				iterator.remove();
-			}
-		}
 	}
 
 	private static VfxContext context(Minecraft client) {
@@ -171,7 +160,6 @@ public final class VfxDirector {
 	}
 
 	private static void clear() {
-		ACTIVE_INSTANCES.clear();
 		WORLD.clear();
 		HUD.clear();
 		CAMERA.clear();
@@ -180,6 +168,4 @@ public final class VfxDirector {
 		SOUND.clear();
 		POST_PROCESS.clear();
 	}
-
-	private record ActiveInstance(VfxCue cue, VfxInstance instance) {}
 }

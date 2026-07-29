@@ -558,7 +558,18 @@ public final class ProjectSanityTest {
 		assert director.contains("WorldRenderEvents.AFTER_ENTITIES.register") : "VfxDirector must own the transient world render callback";
 		assert director.contains("HudElementRegistry.attachElementAfter") : "VfxDirector must own the VFX HUD overlay callback";
 		assert director.contains("ClientPlayConnectionEvents.DISCONNECT") : "VfxDirector must clear active scenes on disconnect";
+		String fakeRecordList = "ACTIVE_" + "INSTANCES";
+		assert !director.contains("MAX_" + "ACTIVE_" + "INSTANCES") : "VfxDirector must not retain the fake bookkeeping cap";
+		assert !director.contains(fakeRecordList) : "VfxDirector must not retain a fake record list";
+		assert !director.contains("Active" + "Instance") : "VfxDirector must not retain fake records";
+		assert director.contains("UNKNOWN_EFFECT_IDS.add") : "Unknown VFX ids must still be deduplicated and warned once";
 		assert director.contains("VfxTimeline.isExpired") : "VfxDirector must discard expired late cues";
+		assert director.contains("SOUND.tick(client)") : "VfxDirector tick must retain sound-duck lifecycle work";
+		assert Pattern.compile("instance\\.start\\(").matcher(director).results().count() == 1
+			: "Accepted VFX instances must have one production start call";
+		for (String channel : new String[] {"WORLD", "HUD", "CAMERA", "FIRST_PERSON", "PARTICLES", "SOUND", "POST_PROCESS"}) {
+			assert director.contains(channel + ".clear()") : "VfxDirector must clear real channel " + channel;
+		}
 		assert director.contains("private static ClientLevel activeLevel") : "VfxDirector must track the active client world identity";
 		assert director.contains("if (activeLevel != client.level)") : "VfxDirector must clear scenes when the ClientLevel object changes";
 		assert Pattern.compile("if\\s*\\(activeLevel\\s*!=\\s*client\\.level\\)\\s*\\{\\s*clear\\s*\\(\\s*\\)\\s*;").matcher(director).find()
