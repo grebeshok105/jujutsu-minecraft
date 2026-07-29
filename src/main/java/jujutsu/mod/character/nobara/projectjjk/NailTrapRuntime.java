@@ -38,6 +38,7 @@ import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.registry.JujutsuParticles;
 import jujutsu.mod.registry.JujutsuSounds;
+import jujutsu.mod.vfx.VfxCues;
 import jujutsu.mod.vfx.NobaraVfxIds;
 import jujutsu.mod.vfx.VfxCue;
 
@@ -156,7 +157,8 @@ public final class NailTrapRuntime {
 			Vec3 to = target.position().add(0.0, target.getBbHeight() * 0.45, 0.0);
 			if (nail != null) nail.discard();
 			spawnCollapseTrail(level, from, to);
-			emit(level, from, NobaraVfxIds.NAIL_TRAP_COLLAPSE, beat + 1, to.subtract(from));
+			JujutsuNetworking.broadcastVfxCue(level, from, VFX_RADIUS,
+					collapseCue(from, to, beat + 1, level.getGameTime(), level.random.nextLong()));
 		}
 		int next = collapse.elapsedTicks() + 1;
 		if (trap.impactDue(next)) {
@@ -287,6 +289,11 @@ public final class NailTrapRuntime {
 			Vec3 at = from.lerp(to, step / 8.0);
 			level.sendParticles(JujutsuParticles.HAIRPIN_SPARK, at.x, at.y, at.z, 2, 0.04, 0.04, 0.04, 0.02);
 		}
+	}
+
+	static VfxCue collapseCue(Vec3 from, Vec3 to, int intensity, long startGameTime, long seed) {
+		return VfxCues.worldFixedDisplacement(
+				NobaraVfxIds.NAIL_TRAP_COLLAPSE, from, intensity, startGameTime, seed, to.subtract(from));
 	}
 
 	private static void emit(ServerLevel level, Vec3 at, ResourceLocation id, int intensity, Vec3 direction) {

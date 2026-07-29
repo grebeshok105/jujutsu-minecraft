@@ -20,6 +20,8 @@ The supported shapes are:
 
 `VfxCue` normalizes `direction`. It is therefore orientation only; it must never be the sole owner of a meaningful distance, speed, size, or displacement. `worldFixedDisplacement` stores the complete displacement in `anchorOffset`, including zero displacement as `Vec3.ZERO`; its `direction` is only the normalized orientation derived from that displacement. Packed offsets with an independent direction remain explicit emitter-level transport shapes until a later migration gives them a named factory.
 
+Nobara's `NailTrapRuntime.collapseCue` uses `worldFixedDisplacement` for `NAIL_TRAP_COLLAPSE`: the origin is the nail position and `anchorOffset` is the full `target - nail` displacement. The collapse recipe may therefore reconstruct the exact target endpoint; the server particle trail remains an independent presentation detail.
+
 The existing minimum intensity policy is preserved: factory output clamps intensity to at least `1` and does not add a maximum clamp. The factory is the minimum-clamp owner for callers that adopt it; existing recipes may retain a defensive read-side clamp during staged migration, and the later migration must prove when that duplicate can be removed. Factories pass `effectId`, origin, anchor data, intensity, game time, seed, and orientation through without changing wire order or adding protocol fields.
 
 Delivery and presentation radii are separate owners. Delivery is the server radius used to decide which clients receive a cue; presentation is the client attenuation radius used by a recipe or channel. For every effect family:
