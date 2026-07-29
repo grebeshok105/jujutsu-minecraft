@@ -1,19 +1,30 @@
-# Session Handoff - Test Architecture Tier 1-2
+# Session Handoff - VFX Cue Foundations
 
 ## Active branch
 
-- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/test-architecture-tier1-tier2`
-- Branch: `fix/test-architecture-tier1-tier2`
-- Base: `2a37974250d8acaf8bdb735dc54b55680ea17bd5` (`main`, after PR #17)
+- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/vfx-cue-foundations`
+- Branch: `feat/vfx-cue-foundations`
+- Base: `8b3ac2ea1925b1ff98ccffce2aeb1a755be2ec6a` (`origin/main`, after PR #33)
 
 ## Current scope
 
-- Implement only T1.1, T1.2, T2.1, verification-count documentation correction, T2.2 and T2.3 from `docs/TEST_ARCHITECTURE_PLAN.md`.
-- Tier 3 and Tier 4 remain deferred. Megumi gameplay and polish are out of scope.
-- T1.1 is complete: Black Flash chance and centralized runtime usage have independent assertions. The required `0.99f` mutation failed with `Black Flash chance must stay at 10%`; restored source passed `testBlackFlash`.
-- T1.2 is complete: ordering checks first require both runtime fragments. Replacing the accepted-hit gate with `damageAccepted` failed with `missing accepted-hit gate before the embed Black Flash window`; restored source passed `testBlackFlash`.
-- T2.1 is complete: `check` dynamically depends on every verification `JavaExec`. `check`, `verifyAssertionsEnabled`, and `check --dry-run` passed; a temporary group member appeared in the dry-run without manual wiring.
-- The stale verification-program counts were removed from current documentation; `verifyAssertionsEnabled` is the single live inventory source and `auditDocumentation` passed.
-- T2.2 is complete: the classifier derives a source-relative package path and accepts only registered vessel roots. Direct JUnit coverage passed after a RED synthetic shared-path mutation; the strict and prior shared-file inventories both contain 195 files.
-- T2.3 is complete: floors are 194 main classes, 214 client classes and 195 shared source files. Each `floor + 1` mutation failed; scanner seams now prove `floor - 1` fails and `floor` passes through the same gates used by production scans.
-- Independent final review approved the Tier 1-2 diff. A final `qualityGate` run is required before integration; Tier 3 and Tier 4 remain deferred.
+- PR 1 only: add the minimal `VfxCues` transport factory and JUnit 5 contract tests.
+- Supported shapes: world-fixed, world-fixed directed, world-fixed displacement, anchored, and anchored directed.
+- Documentation records normalized `direction`, full displacement in `anchorOffset`, delivery/presentation radius ownership, and duration ownership.
+- Existing emitters, `VfxCue`, `VfxCuePayload`, wire field order, effect ids, `VfxWorldChannel`, `VfxTimeChannel`, `ACTIVE_INSTANCES`, and visual behavior remain unchanged.
+- `VfxCuesTest` intentionally uses JUnit 5 per the PR 1 request; the legacy `VfxCueTest` JavaExec remains until the planned test migration.
+
+## Changed files
+
+- `src/main/java/jujutsu/mod/vfx/VfxCues.java`
+- `src/test/java/jujutsu/mod/vfx/VfxCuesTest.java`
+- `Jujutsu Kaizen/jujutsumod-codebase-codex/04-client-vfx/VFX-core.md`
+- `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`
+- `SESSION.md`
+
+## Verification
+
+- `./gradlew.bat test --no-daemon` — `BUILD SUCCESSFUL`
+- `./gradlew.bat qualityGate --no-daemon` — `BUILD SUCCESSFUL`
+- Red proof: removing `Math.max(1, intensity)` failed `VfxCuesTest.intensityIsClampedToTheExistingMinimum()`; reversing anchor offset failed both anchored reconstruction tests. Both mutations were restored.
+- `NailTrapRuntime` and the `NAIL_TRAP_COLLAPSE` bug are intentionally unchanged; collapse correction remains PR 2.
