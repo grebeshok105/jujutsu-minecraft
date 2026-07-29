@@ -46,7 +46,10 @@
 
 - Baseline: `./gradlew.bat testProjectSanity testVfxTimeline testVfxSoundDuck --no-daemon` — `BUILD SUCCESSFUL`.
 - `./gradlew.bat test --tests jujutsu.mod.client.vfx.VfxDirectorLifecycleTest --no-daemon` — `BUILD SUCCESSFUL`.
-- `./gradlew.bat test --no-daemon` — `BUILD SUCCESSFUL` before the final documentation-only update.
-- `./gradlew.bat qualityGate --no-daemon` — `BUILD SUCCESSFUL` before the final documentation-only update.
+- `./gradlew.bat testVfxTimeline --no-daemon` — `BUILD SUCCESSFUL`.
+- `./gradlew.bat testProjectSanity --no-daemon` — `BUILD SUCCESSFUL`.
+- `./gradlew.bat testVfxSoundDuck --no-daemon` — `BUILD SUCCESSFUL`.
+- `./gradlew.bat test --no-daemon` — `BUILD SUCCESSFUL`.
+- `./gradlew.bat qualityGate --no-daemon` — `BUILD SUCCESSFUL`; documentation audit reports 116 main, 175 client, 56 test Java files, 33 verification programs, and 21 Nobara VFX ids.
 - Manual client smoke: not run; the PR body must retain the requested cue/channel/lifecycle checklist.
 - PR 5 is not started.
