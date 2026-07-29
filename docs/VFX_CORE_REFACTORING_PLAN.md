@@ -1,26 +1,29 @@
 # VFX Core: verified refactoring and completion plan
 
-Status: **implementation-ready specification**  
+Status: **implementation-ready specification, revision 2**  
 Repository baseline: `main` at `e3ee14480cff557b9c409a01465924521fecd4ad`  
-Scope: architecture, correctness, cleanup, tests, documentation and implementation sequencing for the existing VFX Core  
-Out of scope: implementing the changes described here, redesigning existing effects, adding abilities, changing gameplay balance, replacing assets, or introducing a second VFX framework
+Scope: correctness, transport contracts, ownership, cleanup, tests, package layout, implementation order, smoke verification, documentation, and architectural freeze for the existing VFX Core  
+Out of scope: implementing the plan in this PR, changing gameplay balance, redesigning existing effects, adding abilities, replacing assets, or creating a second VFX framework
 
 ## 1. Purpose
 
-This document replaces two independent audit reports with one code-verified plan.
+This document replaces two independent audits and their follow-up reviews with one code-verified implementation plan.
 
-The reports were useful, but neither was fully accurate. Several findings were correct and actionable; several counts were wrong; some proposed tests already exist; one report misunderstood `ACTIVE_INSTANCES`; the other understood it but miscounted the channels and proposed unnecessary machinery. This specification keeps only claims that are supported by the repository at the baseline commit above.
+The audits were useful, but neither was fully accurate. The follow-up reviews corrected additional weaknesses in the first revision of this plan. This revision keeps only conclusions supported by the repository at the baseline commit and records the process constraints needed to implement them safely.
 
-The goal is narrow:
+The plan has nine goals:
 
-1. fix one confirmed VFX payload bug;
-2. remove confirmed dead API and dead registrations;
-3. make the existing transport and registration contracts testable;
-4. standardize ownership and package layout without changing wire ids;
-5. split the only serious client-side monolith without inventing a plugin framework;
-6. define a measurable point at which VFX Core is considered complete and enters architectural freeze.
+1. fix the confirmed Nail Trap collapse payload defect;
+2. remove dead ids, dead recipes, dead time-channel plumbing, and fake director lifecycle;
+3. centralize common cue construction before the correctness fix uses it;
+4. make payload reading safer where Todo currently packs three values into one vector;
+5. define ownership for delivery radius, presentation radius, and visual duration;
+6. harden codec, id, recipe, emitter, and packed-intensity contracts without duplicating existing tests;
+7. normalize package ownership and split the world-rendering monolith without changing visuals;
+8. define a finite, reviewable implementation sequence and smoke matrix;
+9. freeze VFX Core after the completion criteria are met.
 
-The current architecture is already fundamentally sound. The work below is a completion and hardening pass, not a replacement.
+The current architecture is fundamentally sound. This is a completion and hardening pass, not a rewrite.
 
 ---
 
@@ -40,7 +43,7 @@ server-confirmed action
     -> director-owned channels
 ```
 
-Registration order is deliberate and correct:
+Registration order is deliberate:
 
 ```text
 VfxDirector.initialize()
@@ -53,7 +56,7 @@ The architecture therefore has one aggregate client bootstrap without an aggrega
 
 ### 2.2 Wire contract
 
-`VfxCue` has eight transported fields:
+`VfxCue` transports eight fields:
 
 1. `effectId`
 2. `origin`
@@ -64,35 +67,35 @@ The architecture therefore has one aggregate client bootstrap without an aggrega
 7. `seed`
 8. `direction`
 
-`VfxCuePayload.STREAM_CODEC` writes and reads those fields in a fixed order. The string values of the effect ids and the field order are wire compatibility concerns.
+`VfxCuePayload.STREAM_CODEC` writes and reads those fields in a fixed order. Field order and live effect-id strings are wire-compatibility concerns.
 
-`VfxCue` normalizes `direction`. A magnitude that must survive transport cannot be stored only in `direction`; Todo already follows this rule by carrying speed or dimensions in `anchorOffset` while using `direction` only for orientation.
+`VfxCue` normalizes `direction`. A magnitude that must survive transport cannot be stored only in `direction`.
 
-The broadcast radius is not part of the cue. It is chosen by each server emitter.
+The broadcast radius is not part of the cue. It is selected by each server emitter. Client recipes separately choose a proximity attenuation radius.
 
 ### 2.3 Effect ids
 
 At the baseline commit:
 
-| Owner | Declared ids | Registered recipes | Confirmed live emitters |
+| Owner | Declared ids | Registered recipes | Confirmed production-emitted ids |
 |---|---:|---:|---:|
 | Nobara | 25 | 25 | 21 |
 | Todo | 7 | 7 | 7 |
 | Megumi | 5 | 5 | 5 |
 | **Total** | **37** | **37** | **33** |
 
-The four registered Nobara ids with no production emitter are:
+The four registered Nobara ids without a production emitter are:
 
 - `RESONANCE_CHANNEL`
 - `RESONANCE_STRIKE`
 - `LINK_BIND`
 - `EMBEDDED_NAIL_DRIVE`
 
-Their recipes are aliases or animation wrappers, but no server runtime emits them. They are dead contract surface, not dormant behavior documented as planned.
+Their recipes are aliases or animation wrappers. They are dead contract surface, not planned behavior.
 
 ### 2.4 Director-owned channels
 
-`VfxDirector` owns eight channel objects:
+`VfxDirector` owns eight channels:
 
 1. `VfxWorldChannel`
 2. `VfxHudChannel`
@@ -103,9 +106,11 @@ Their recipes are aliases or animation wrappers, but no server runtime emits the
 7. `VfxPostProcessChannel`
 8. `VfxTimeChannel`
 
-`VfxContext` exposes the same eight channels.
+`VfxContext` exposes the same eight.
 
-The count is eight. `VfxQuality` and `VfxPalette` are supporting types, not channels. `VfxSoundDuck` is a helper owned by the sound path, not a ninth channel.
+`VfxQuality` and `VfxPalette` are supporting types. `VfxSoundDuck` is a helper inside the sound path. None is a ninth channel.
+
+After removal of the dead time channel, seven live channels remain. Seven is a cleanup result, not an assumed target.
 
 ### 2.5 World styles and caps
 
@@ -124,46 +129,55 @@ The count is eight. `VfxQuality` and `VfxPalette` are supporting types, not chan
 - `MEGUMI_SHADOW_OPEN`
 - `MEGUMI_SHADOW_CLOSE`
 
-`worldFixed` is correctly stored as a property of the style. It must remain explicit and local to the style declaration.
+`worldFixed` is correctly owned by each style.
 
-There are two numeric caps in the current code:
+Two current caps have different meanings:
 
-- `VfxDirector.MAX_ACTIVE_INSTANCES = 64`
-- `VfxWorldChannel.MAX_IMPACT_FLASHES = 48`
+- `VfxDirector.MAX_ACTIVE_INSTANCES = 64` bounds bookkeeping records whose start callback has already run;
+- `VfxWorldChannel.MAX_IMPACT_FLASHES = 48` bounds retained world-render state.
 
-These caps do not have the same meaning. The world cap bounds actual retained render state. The director cap bounds bookkeeping objects whose `start` callback has already run.
+The first is misleading lifecycle. The second is a real visual-state cap.
 
 ### 2.6 Existing tests that must not be duplicated
 
-The repository already has coverage for:
+The repository already covers:
 
 - cue field preservation;
-- payload codec round-trip;
-- stable selected Nobara ids;
-- timeline age, expiry and opening-beat behavior;
-- late real-time windows;
+- real payload codec round-trip;
+- selected stable Nobara id paths;
+- timeline age, expiry, opening-beat, future-cue, and late-window behavior;
 - anchor resolution and fallback;
-- sound duck arithmetic and ownership;
-- first-person timing behavior;
+- sound-duck arithmetic and ownership;
+- first-person timing;
 - several pure world-style calculations.
 
-Any implementation plan that says “add the first codec round-trip test” is stale. The actual task is to migrate or expand the existing test under the repository's JUnit 5 policy, not to create a duplicate assertion program.
+`VfxCueTest.assertPayloadRoundTripsCue()` already encodes and decodes through the real `VfxCuePayload.STREAM_CODEC`.
+
+The test is still incomplete:
+
+- it is a legacy `main()` plus Java `assert` program;
+- its direction is zero;
+- it does not exercise `NO_ANCHOR`;
+- it does not prove a non-unit direction is normalized before transport;
+- it pins `NobaraVfxIds.RESONANCE_STRIKE`, which this plan removes.
+
+The correct task is to migrate and expand the existing test, not create a duplicate golden test.
 
 ---
 
-## 3. Confirmed defects and debt
+## 3. Confirmed correctness defects and dead behavior
 
-### 3.1 P0 correctness defect: Nail Trap collapse payload loses travel distance
+### 3.1 P0: Nail Trap collapse loses travel distance
 
-#### Current emitter
+#### Current emitter contract
 
 `NailTrapRuntime` emits `NAIL_TRAP_COLLAPSE` with:
 
-- `origin = from`
-- `anchorOffset = Vec3.ZERO`
-- `direction = to - from`
+- `origin = from`;
+- `anchorOffset = Vec3.ZERO`;
+- `direction = to - from`.
 
-#### Current recipe
+#### Current recipe contract
 
 `NobaraVfxRecipes.nailTrapCollapse` reads:
 
@@ -171,189 +185,255 @@ Any implementation plan that says “add the first codec round-trip test” is s
 Vec3 travel = cue.anchorOffset();
 ```
 
-It then samples points from `origin` to `origin + travel`.
+It samples the line from `origin` to `origin + travel`.
 
-#### Why this is broken
+#### Failure
 
-The emitter puts the displacement in `direction`, while the recipe reads `anchorOffset`. Even changing the recipe to read `direction` would remain incorrect because `VfxCue` normalizes `direction`, destroying the original distance.
+The emitter writes displacement to `direction`, while the recipe reads `anchorOffset`. Reading `direction` instead would still be wrong because `VfxCue` normalizes it and destroys distance.
 
-The collapse recipe therefore cannot reconstruct the real nail-to-target path from the cue it receives. The server separately spawns its own collapse trail, so the bug can be partially hidden by duplicated feedback, but the client recipe contract is still wrong.
+The client recipe therefore reconstructs a zero-length path. A separate server particle trail partially masks the defect in-game, but the VFX Core cue contract is broken.
 
 #### Required correction
 
-Transport the full `to - from` delta in `anchorOffset`. `direction` may carry the normalized orientation as an optional convenience, but the displacement magnitude must live in `anchorOffset`.
+The full `to - from` displacement must travel in `anchorOffset`. `direction` may carry normalized orientation, but not the only copy of magnitude.
+
+The corrected cue must be built through the canonical `VfxCues` factory introduced before this fix. Do not create a temporary local seam that the next PR deletes.
 
 #### Regression contract
 
-A test must construct a collapse cue for a non-unit displacement and prove:
+A pure test must prove:
 
-- `anchorOffset == to - from`;
-- the endpoint reconstructed as `origin + anchorOffset` equals `to`;
-- `direction` remains normalized when non-zero;
-- zero-distance input is safe.
+- non-unit displacement survives in `anchorOffset`;
+- `origin + anchorOffset == target`;
+- non-zero `direction` is normalized;
+- zero-distance input is safe;
+- codec round-trip preserves the corrected fields.
 
-The test must fail against the current emitter before the fix. A source-text assertion alone is weaker than a pure cue-construction test and should not be the primary proof.
+### 3.2 P1: `VfxTimeChannel` has writers but no consumer
 
-### 3.2 P1 dead channel: `VfxTimeChannel`
+Production recipes call:
 
-`VfxTimeChannel` stores a client-side scale and exposes it through `VfxDirector.timeScale()`. Production recipes call `triggerSlowMotion` for the two large Resonance effects.
+- `triggerSlowMotion(0.55f, 2000, ...)` for `DOLL_STRIKE`;
+- `triggerSlowMotion(0.5f, 2000, ...)` for `RESONANCE_RELEASE`.
 
-No live render or game-time consumer reads `VfxDirector.timeScale()`. The configured client mixins do not include a delta-tracker time-scaling mixin. Consequently, the calls mutate private channel state but do not affect presentation.
+`VfxTimeChannel` stores a scale and `VfxDirector.timeScale()` exposes it, but no renderer, delta tracker, game loop, or configured mixin reads the value.
 
-This is misleading dead behavior. It suggests client slow motion exists when it does not.
+This is not an unused call site. It is a live write path with no read path, which makes the advertised effect inert.
 
 #### Required correction
 
 Remove:
 
 - `VfxTimeChannel`;
-- the `TIME` field in `VfxDirector`;
-- the `time` field, constructor parameter and accessor in `VfxContext`;
+- `VfxDirector.TIME`;
+- the `VfxContext.time` field, constructor parameter, and accessor;
 - `VfxDirector.timeScale()`;
-- both production `triggerSlowMotion` calls;
-- tests that exist only for the removed unused channel.
+- both `triggerSlowMotion` calls;
+- tests that exist only for the dead channel.
 
-Do not replace it with a new mixin in this refactor. Resonance already has an explicitly accepted server-global time-dilation path. Introducing client time scaling would be a product and gameplay presentation decision, not dead-code cleanup.
+Do not replace it with a time-scaling mixin. Resonance already has accepted server-global hit-stop. Client-only slow motion is a separate product decision.
 
-### 3.3 P1 dead ids and recipes
+The cleanup PR must add an accepted-decision entry to `docs/KNOWN_ISSUES.md` stating that the attempted client slow-motion path was never implemented, was deliberately removed, and must not be reintroduced casually through a mixin.
 
-The following ids have no production emitter:
+### 3.3 P1: four dead ids and recipes
 
-- `RESONANCE_CHANNEL`
-- `RESONANCE_STRIKE`
-- `LINK_BIND`
-- `EMBEDDED_NAIL_DRIVE`
+Delete:
 
-Their registrations make the recipe table look complete while preserving code paths no action can reach.
+- `RESONANCE_CHANNEL`;
+- `RESONANCE_STRIKE`;
+- `LINK_BIND`;
+- `EMBEDDED_NAIL_DRIVE`.
 
-#### Required correction
+Delete their aliases or wrapper registrations. Preserve every live id string unchanged.
 
-Delete the four constants and their recipe registrations/method aliases. Preserve all live ids and their string paths unchanged.
+`VfxCueTest.assertNobaraEffectIdsStayStable()` currently pins `nobara/resonance_strike`. The cleanup PR must replace that assertion with a live id before deleting the constant. `VfxTimelineTest` pins only live Straw Doll ids and should remain valid.
 
-A repository-wide contract test must prevent a new registered id from remaining emitter-less indefinitely.
+### 3.4 P1: `ACTIVE_INSTANCES` is fake lifecycle
 
-### 3.4 P1 misleading director lifecycle: `ACTIVE_INSTANCES`
+`VfxDirector.receive` creates an instance and calls `instance.start(...)` once. Continuing state then lives in channels:
 
-`VfxRecipe.create(cue)` returns a `VfxInstance`. `VfxDirector.receive` calls `instance.start(context, initialAgeTicks)` exactly once. After that call, continuing visuals live in the channels:
-
-- world effects are retained by `VfxWorldChannel`;
-- camera and FOV impulses are retained by `VfxCameraChannel`;
-- HUD windows are retained by `VfxHudChannel`;
-- first-person state is retained by `VfxFirstPersonChannel`;
-- sound duck state is retained by `VfxSoundChannel`;
-- blur state is retained by `VfxPostProcessChannel`;
+- world flashes in `VfxWorldChannel`;
+- camera impulses in `VfxCameraChannel`;
+- HUD windows in `VfxHudChannel`;
+- first-person state in `VfxFirstPersonChannel`;
+- sound duck in `VfxSoundChannel`;
+- blur in `VfxPostProcessChannel`;
 - particles and sounds are emitted immediately.
 
-`ACTIVE_INSTANCES` is only walked to discard expired records. Removing an entry does not stop a channel effect. Evicting the oldest record at 64 does not evict the visible world flash, HUD window, camera impulse, particle, sound or blur that was already started.
-
-Therefore the current name and cap imply a global active-effect limiter that does not exist.
+Removing an `ActiveInstance` record does not stop any of those effects. Evicting the oldest record at 64 does not evict presentation.
 
 #### Required correction
 
-Delete `ACTIVE_INSTANCES`, `ActiveInstance` and `MAX_ACTIVE_INSTANCES` unless implementation work first discovers an actual lifecycle consumer not present at the verified baseline.
+Delete:
 
-`receive` should:
+- `ACTIVE_INSTANCES`;
+- `ActiveInstance`;
+- `MAX_ACTIVE_INSTANCES`.
 
-1. resolve the recipe;
-2. create the instance;
-3. reject it if already expired;
-4. compute initial age;
-5. invoke `start` once.
+`receive` should resolve, create, reject if expired, compute initial age, and start once. Director tick should retain only work the director genuinely owns.
 
-The director tick should retain only work it genuinely owns, currently level binding and sound-channel ticking.
+Do not replace the list with `ArrayDeque`, priorities, or smarter eviction. That would optimize misleading bookkeeping.
 
-Do not replace the list with `ArrayDeque`, smarter eviction or priority rules. That would optimize bookkeeping that should not exist and would still not control real channel state.
+---
 
-The actual retained world-state cap of 48 remains a separate concern and should not be changed without a reproduced visual overload case.
+## 4. Structural debt and contract ownership
 
-### 3.5 P2 package asymmetry
+### 4.1 Package asymmetry
 
-The intended repository convention is:
+Canonical ownership is:
 
 ```text
 src/main/java/jujutsu/mod/vfx/<Character>VfxIds.java
 src/client/java/jujutsu/mod/client/vfx/<character>/<Character>VfxRecipes.java
 ```
 
-Nobara and Todo mostly follow it. Megumi currently places:
+Nobara and Todo follow it. Megumi currently places ids and recipes under character-specific package trees.
 
-- `MegumiVfxIds` under `character/megumi/vfx`;
-- `MegumiVfxRecipes` under `client/character/megumi/vfx`.
+Move Megumi ids and recipes to canonical VFX packages. Preserve all five `megumi/*` strings.
 
-The behavior is correct, but the ownership layout conflicts with the documented VFX Core extension seam.
+### 4.2 Common cue construction
 
-#### Required correction
+Several runtimes repeat the same transport shapes:
 
-Move the Megumi id and recipe classes to the canonical VFX packages. Keep all five `megumi/*` resource paths unchanged. Update imports and the client definition hook only.
+- world-fixed;
+- world-fixed directed;
+- entity-anchored;
+- entity-anchored directed;
+- world-fixed with full displacement.
 
-This is a package refactor, not a wire migration.
-
-### 3.6 P2 duplicated cue construction conventions
-
-Multiple runtimes hand-construct `VfxCue` using small local factory methods. Most repeat the same four shapes:
-
-- world-fixed cue;
-- entity-anchored cue;
-- entity-anchored directed cue;
-- exact-origin directed cue.
-
-The duplication has already contributed to the collapse bug because payload meaning is scattered across emitters and recipes.
-
-#### Required correction
-
-Add one small shared `VfxCues` factory in `jujutsu.mod.vfx` for canonical transport shapes. It should centralize mechanics, not hide effect semantics.
+Introduce one small shared `VfxCues` factory in `jujutsu.mod.vfx`.
 
 Recommended surface:
 
 ```java
 VfxCues.worldFixed(...)
+VfxCues.worldFixedDirected(...)
+VfxCues.worldFixedDisplacement(...)
 VfxCues.anchored(...)
 VfxCues.anchoredDirected(...)
-VfxCues.worldFixedDirected(...)
 ```
 
-Each method should make `NO_ANCHOR`, anchor offsets, clamped intensity, game time and seed handling explicit.
+The factory owns transport mechanics:
 
-Do not create one wrapper record per effect. Todo's overloaded `anchorOffset` payloads and Hairpin's packed intensity remain effect-specific contracts documented beside their ids and recipes. The shared factory should remove boilerplate, not produce a parallel type system.
+- `NO_ANCHOR`;
+- anchor delta calculation;
+- intensity clamping;
+- game time;
+- seed;
+- normalized orientation;
+- preserving full displacement outside `direction`.
 
-### 3.7 P2 nondeterministic camera tests
+It must not hide effect semantics behind dozens of effect-specific factory methods.
 
-`VfxCameraChannel` reads `System.currentTimeMillis()` directly in trigger and sample paths. Its arithmetic is bounded, but tests cannot step exact timestamps without sleeping or relying on timing luck.
+### 4.3 Narrow Todo read model
 
-#### Required correction
+Reject one wrapper per effect. Accept one narrow typed reader where it pays for itself.
 
-Inject a package-private `LongSupplier` clock, matching the proven approach already used by `VfxFirstPersonChannel`.
+`SWAP_ARRIVAL` overloads `anchorOffset` as three unrelated values:
 
-Add deterministic JUnit tests for:
+- speed;
+- body width;
+- body height.
 
-- expiry removal;
-- overlapping impulse addition;
+The recipe reads this convention directly. That is the same class of producer-consumer disagreement that caused the collapse bug.
+
+Introduce a small client-side value object such as:
+
+```java
+TodoSwapArrivalPayload.from(VfxCue cue)
+```
+
+It should expose named accessors for speed, body width, body height, and direction. It does not change the wire format and does not create a general typed-cue hierarchy.
+
+No wrapper is required for simple cues whose fields already have their ordinary meaning.
+
+### 4.4 Delivery-radius and presentation-radius ownership
+
+Server delivery and client attenuation currently use independent constants and literals.
+
+Verified examples include:
+
+- Todo broadcasts swap cues with `TodoProfile.BOOGIE_WOOGIE_CUE_RADIUS = 64.0`, while the clap recipe attenuates with `56.0`;
+- Megumi owns `MegumiProfile.VFX_CUE_RADIUS = 48.0` on the server side;
+- Nobara recipes contain proximity literals including `40.0`, `48.0`, `56.0`, and `64.0`;
+- at least one Nobara runtime broadcasts through a separate `56.0` constant.
+
+These values do not always need to be equal. Delivery can intentionally be wider than full-strength presentation. They must, however, obey one explicit policy.
+
+#### Required policy
+
+Each live effect family must identify:
+
+- **delivery radius**: the maximum distance at which a client receives the cue;
+- **presentation radius**: the distance used for sound, HUD, camera, or post-process attenuation.
+
+Required invariant:
+
+```text
+presentation radius <= delivery radius
+```
+
+If the values are intended to match, they must share one named constant. If they intentionally differ, both must be named and the reason documented beside them.
+
+A client radius larger than delivery radius is misleading because its outer range is unreachable. A delivery radius much larger than every presentation radius wastes packet fan-out.
+
+Do not move gameplay targeting ranges into VFX constants. This policy applies only to cue delivery and presentation attenuation.
+
+### 4.5 Duration ownership
+
+Recipes frequently declare both:
+
+```java
+VfxInstance.of(durationTicks, ...)
+context.world().triggerImpact(..., durationTicks)
+```
+
+When both values describe the same visual lifetime, one named local or constant must own the duration and feed both calls.
+
+Do not enforce blind equality globally. Some recipes intentionally keep a recipe alive longer than one world-style component, such as a long Black Flash recipe with a shorter retained world impact.
+
+Required rule:
+
+- equal semantic lifetime: one value, reused;
+- intentionally different lifetimes: two named values plus a comment or test describing the relationship;
+- no repeated anonymous numeric pair that can drift silently.
+
+### 4.6 Packed Hairpin intensity
+
+Hairpin uses an integer payload that carries both depth and a finale flag through `hairpinExplosionIntensity(depth, finale)` and its reader.
+
+This is a packed transport contract and needs focused tests:
+
+- pack then unpack preserves clamped depth;
+- depth is clamped to `1..3`;
+- finale survives independently of depth;
+- non-finale and finale values cannot collide for the supported depth range.
+
+The test belongs in the contract-hardening PR, not in a new framework.
+
+### 4.7 Camera determinism
+
+`VfxCameraChannel` reads wall-clock time directly. Inject a package-private `LongSupplier` clock, matching the established first-person approach.
+
+Tests must cover:
+
+- expiry;
+- overlapping impulses;
 - yaw and pitch clamps;
 - FOV clamps;
-- future-start handling;
-- late cue offsets;
-- the relative strength of swap snap versus heavy impact and Black Flash, expressed as bounded invariants rather than exact fragile wave samples.
+- future starts;
+- late offsets;
+- bounded relative strength between swap snap, heavy impact, explosion, and Black Flash.
 
-Do not change the production curves in the same PR as clock injection unless a failing test demonstrates an actual defect.
+Do not change curves in the same PR unless a failing test demonstrates a defect.
 
-### 3.8 P2 world-channel monolith
+### 4.8 World-channel monolith
 
-`VfxWorldChannel` owns valid shared responsibilities:
+`VfxWorldChannel` correctly owns lifecycle, the real cap of 48, age, expiry, anchor resolution, render-buffer acquisition, and style dispatch.
 
-- retained world-effect lifecycle;
-- a real cap of 48;
-- age and expiry;
-- anchor resolution;
-- render buffer acquisition;
-- style dispatch.
+It also owns every geometry implementation in one large file.
 
-It also contains all geometry and every style implementation in one large file. Adding a style expands a central switch and a large pile of helper methods.
-
-The problem is file-level coupling and reviewability, not the existence of the switch or the style enum.
-
-#### Required correction
-
-Keep `VfxWorldChannel` as the lifecycle owner and dispatcher. Extract render implementations by visual family:
+Keep it as lifecycle owner and dispatcher. Extract visual families:
 
 ```text
 client/vfx/world/
@@ -366,56 +446,74 @@ client/vfx/world/
 
 Suggested ownership:
 
-- `HairpinWorldEffects`: `HAMMER_SEND`, `ENLARGE`, `EXPLOSION`, `RITUAL_BIND`, `DOLL_STRIKE`, `RESONANCE_RELEASE`
-- `BlackFlashWorldEffects`: `BLACK_FLASH`
-- `SwapWorldEffects`: `BOOGIE_WOOGIE`, `SWAP_AFTERIMAGE`, `SWAP_ARRIVAL`
-- `ShadowWorldEffects`: `MEGUMI_SHADOW_OPEN`, `MEGUMI_SHADOW_CLOSE`
-- `VfxWorldGeometry`: ribbon, basis, side-vector and shared low-level vertex helpers
+- Hairpin: `HAMMER_SEND`, `ENLARGE`, `EXPLOSION`, `RITUAL_BIND`, `DOLL_STRIKE`, `RESONANCE_RELEASE`;
+- Black Flash: `BLACK_FLASH`;
+- Swap: `BOOGIE_WOOGIE`, `SWAP_AFTERIMAGE`, `SWAP_ARRIVAL`;
+- Shadow: `MEGUMI_SHADOW_OPEN`, `MEGUMI_SHADOW_CLOSE`;
+- Geometry: ribbon, basis, side-vector, and shared vertex helpers.
 
-Keep `ImpactStyle` exhaustive and keep `worldFixed` on the style. Do not introduce service loading, reflection, a renderer registry, dependency injection or one class per enum constant. Twelve styles do not justify a plugin framework.
+Do not add reflection, service loading, dependency injection, a renderer registry, or one class per enum constant.
 
-The extraction must be behavior-preserving. The only intended visual change in the entire plan is the collapse-path bug fix.
+### 4.9 P3 decisions
+
+#### Todo legacy `NO_ANCHOR` fallback
+
+`TodoAnimationHooks` falls back to the local nearby player for legacy `NO_ANCHOR` clap broadcasts.
+
+During the factory migration:
+
+1. prove every live `BOOGIE_WOOGIE` emitter supplies the caster anchor;
+2. if true, remove the fallback and add a focused test or source contract;
+3. if any live route still needs it, keep it and document that route explicitly.
+
+Do not preserve a branch merely because its comment says “legacy”. Do not remove it on assumption either.
+
+#### Tiny recipe helpers
+
+`random`, `isLocalAnchor`, and similar helpers are duplicated between recipe packs.
+
+This duplication is accepted. They are small, vessel-local, and often differ subtly in semantics. Do not create a shared utility class solely to remove a few lines.
 
 ---
 
-## 4. Corrected conclusions from the two audits
+## 5. Corrected conclusions from the audits
 
-### 4.1 Findings accepted
+### 5.1 Accepted
 
-The combined plan accepts these findings:
-
-- the collapse cue payload is wrong;
+- collapse payload is wrong;
 - four Nobara ids and registrations are dead;
-- `VfxTimeChannel` has no production consumer;
-- `ACTIVE_INSTANCES` is bookkeeping, not a real global visual lifecycle;
-- `VfxWorldChannel` is the primary maintainability hotspot;
-- Megumi's VFX package layout is inconsistent with the documented extension seam;
-- cue-construction conventions should be centralized carefully;
+- `VfxTimeChannel` has no consumer;
+- `ACTIVE_INSTANCES` is bookkeeping, not global visual lifecycle;
+- existing codec and timeline tests must be expanded, not duplicated;
+- cue construction should be centralized before the collapse fix;
+- one narrow Todo arrival reader is justified;
+- radius and duration ownership need explicit invariants;
+- Hairpin packed intensity needs a contract test;
 - camera timing needs an injectable clock;
-- the architecture should be frozen after a finite completion pass.
+- Megumi package layout should be normalized;
+- `VfxWorldChannel` should be split by visual family;
+- VFX Core should freeze after a finite completion pass.
 
-### 4.2 Findings corrected or rejected
+### 5.2 Corrected or rejected
 
-The combined plan rejects or corrects these claims:
-
-- **“There are nine channels.”** There are eight.
-- **“Nobara has 24 ids.”** Nobara has 25.
-- **“Todo has four ids.”** Todo has seven at the verified baseline.
-- **“Megumi has four ids.”** Megumi has five.
-- **“There are 32 cue ids.”** There are 37 declared ids and 33 with live emitters.
-- **“A codec round-trip test is missing.”** It already exists in `VfxCueTest`; the work is migration and expansion.
-- **“The 64-instance cap drops visible effects.”** It drops only director bookkeeping records after their start callbacks have run.
-- **“Replace the active list with a better queue.”** Rejected. Remove the misleading bookkeeping instead.
-- **“Add an address-only `SWAP_ARRIVAL_SELF` cue now.”** Deferred. The local-arrival heuristic has edge cases, but changing cue count and participant feedback is a behavior change. It requires an observed in-game failure or a separate design decision.
-- **“Introduce typed wrapper records for every cue.”** Rejected as excessive for the current scale. Use a small canonical factory plus effect-owned payload documentation.
-- **“Freeze the current channel count as seven.”** Incorrect baseline and unnecessary wording. After removing the dead time channel, seven live channels remain; that result follows from cleanup rather than being assumed in advance.
-- **“The 48-world-effect cap should be redesigned now.”** Deferred until a reproducible overload case or profiling data exists.
+- “There are nine channels.” Incorrect. There are eight.
+- “Nobara has 24 ids.” Incorrect. There are 25.
+- “Todo has four ids.” Stale. There are seven.
+- “Megumi has four ids.” Stale. There are five.
+- “There are 32 ids.” Incorrect. There are 37 declared and 33 production-emitted.
+- “Codec round-trip is missing.” Incorrect. It exists but needs migration and stronger cases.
+- “The 64 cap drops visible effects.” Incorrect. It drops bookkeeping records only.
+- “Replace the active list with a better queue.” Rejected. Remove it.
+- “Add `SWAP_ARRIVAL_SELF` during cleanup.” Deferred. It changes behavior and cue count.
+- “Create typed wrappers for every cue.” Rejected. Use one narrow Todo reader only where fields are triply overloaded.
+- “Never use wrappers.” Also rejected. A small read model is justified when it prevents silent field reinterpretation.
+- “All duration values must be equal.” Rejected. Equal semantics share one value; intentional sub-lifetimes remain separate and named.
+- “Every declared id must immediately have an emitter in all branches.” Too rigid. Completeness applies to live ids, with an explicit staged-development rule.
+- “Redesign the 48-world-effect cap now.” Deferred until profiling or a reproduced presentation loss exists.
 
 ---
 
-## 5. Target architecture
-
-After this plan is implemented, the architecture should be:
+## 6. Target architecture
 
 ```text
 shared transport
@@ -432,12 +530,12 @@ shared id ownership
 
 client director
     VfxDirector
-        - recipe registry
-        - unknown-id logging
-        - level/disconnect lifecycle
-        - one world callback
-        - one HUD element
-        - one client tick listener
+        recipe registry
+        unknown-id logging
+        level/disconnect lifecycle
+        one world callback
+        one HUD element
+        one client tick listener
 
 live channels
     VfxWorldChannel
@@ -460,233 +558,336 @@ recipe ownership
     client/vfx/nobara/NobaraVfxRecipes
     client/vfx/todo/TodoVfxRecipes
     client/vfx/megumi/MegumiVfxRecipes
+
+effect-specific read model
+    client/vfx/todo/TodoSwapArrivalPayload
 ```
 
-Properties that remain unchanged:
+Preserved properties:
 
 - server authority;
 - one shared S2C payload;
 - eight-field wire format;
-- all existing resource-location strings;
+- all live id strings;
 - visual-only cue semantics;
 - character-owned recipe registration;
 - one HUD element;
-- no effect-specific packet receiver;
+- no effect-specific receiver;
 - no effect-specific mixin;
-- persistent visuals remain on entity/state renderers;
-- late-cue age behavior;
+- persistent visuals remain on entity or state renderers;
+- late-cue behavior;
 - style-owned `worldFixed` policy;
-- existing gameplay time dilation for Resonance.
+- accepted server-global Resonance hit-stop.
 
 ---
 
-## 6. Implementation sequence
+## 7. Contract hardening rules
 
-The work should be delivered as small reviewable PRs. The order below separates correctness, deletion, contract hardening and mechanical extraction.
+### 7.1 Id lifecycle
 
-### PR 1: fix Nail Trap collapse payload
+Each id must have one explicit state:
+
+- **live**: may be registered and must have at least one production emitter;
+- **planned**: temporarily allowed during staged development, must not be presented as complete, and must carry a follow-up issue or PR reference;
+- **removed**: constant, recipe, test pin, documentation, and emitter references are deleted together.
+
+A recipe-first then emitter-second workflow is allowed. The first PR must place the id in an explicit `PLANNED` set or equivalent structured allowlist. The second PR promotes it to live and removes the exception.
+
+No permanent comment-only exception is allowed.
+
+### 7.2 Recipe completeness
+
+For live ids:
+
+- each declared id has exactly one recipe;
+- each registered recipe id belongs to exactly one vessel id set;
+- duplicate registration remains a hard failure;
+- planned ids are either unregistered or explicitly excluded by the structured planned set.
+
+### 7.3 Emitter coverage
+
+The coverage check proves a production reference, not world reachability.
+
+Preferred implementation: scan compiled production bytecode for field references to `*VfxIds` constants from emitter classes. A bytecode field-reference scan cannot be satisfied by comments, documentation, test code, or an unrelated string literal.
+
+Acceptable fallback: an AST-aware source scan restricted to production Java call arguments.
+
+Do not use a raw repository-wide string search. It can turn a comment into a false green, which this repository has already demonstrated is an alarmingly easy human achievement.
+
+Recognized emission paths must include direct and factory-based construction, including:
+
+- `new VfxCue(...)`;
+- `VfxCues.*(...)`;
+- local helpers that receive a concrete id at a production call site;
+- `JujutsuNetworking.broadcastVfxCue(...)`;
+- `JujutsuNetworking.sendVfxCue(...)`.
+
+Recorded red runs must include removing the only production emitter reference for one live id.
+
+### 7.4 Codec contract
+
+The migrated JUnit test must cover:
+
+- all eight fields;
+- non-default origin and offset;
+- `NO_ANCHOR`;
+- a real anchor id;
+- non-zero normalized direction;
+- zero direction;
+- non-default intensity, game time, and seed;
+- equality after real `STREAM_CODEC` encode/decode.
+
+### 7.5 Radius contract
+
+For every live effect family:
+
+- delivery radius is named;
+- presentation radius is named or intentionally shares the delivery constant;
+- presentation radius does not exceed delivery radius;
+- any intentional gap has a comment or test;
+- gameplay target range is not reused as a visual radius by accident.
+
+### 7.6 Duration contract
+
+For each recipe with retained channel state:
+
+- shared semantic lifetime uses one value;
+- intentional sub-lifetimes use separately named values;
+- tests cover at least one equal-lifetime recipe and one intentional split-lifetime recipe;
+- no anonymous duplicated pair is allowed to drift.
+
+---
+
+## 8. Implementation sequence
+
+The work should ship as nine small PRs. The order prevents temporary seams and separates behavior changes from mechanical extraction.
+
+### PR 1: canonical cue foundations
 
 **Scope**
 
-- introduce a testable collapse-cue construction seam;
-- put full displacement in `anchorOffset`;
-- preserve normalized orientation in `direction` if useful;
-- add JUnit regression tests;
-- run a focused in-game smoke of a trap collapse at short and long distances.
+- add minimal `VfxCues`;
+- include the world-fixed displacement shape needed by collapse;
+- add pure JUnit tests for factory field ownership;
+- add named radius and duration contract conventions to canonical VFX documentation;
+- do not migrate every runtime yet.
+
+**Acceptance**
+
+- factory preserves exact origin, anchor, offset, intensity, game time, seed, and orientation semantics;
+- full displacement never relies only on normalized `direction`;
+- no id string or codec field changes;
+- no visual behavior changes;
+- quality gate passes.
+
+### PR 2: fix Nail Trap collapse payload
+
+**Scope**
+
+- construct collapse cues through `VfxCues.worldFixedDisplacement` or the equivalent canonical method;
+- place full `to - from` in `anchorOffset`;
+- retain normalized direction only as orientation;
+- extend codec and collapse regression tests;
+- run short-distance, long-distance, and zero-distance smoke.
 
 **Allowed behavior change**
 
-- the client collapse line correctly spans from each nail to the target.
+- client collapse trails span from each nail to the target.
 
-**Forbidden collateral changes**
+**Forbidden collateral change**
 
 - particle counts;
 - sounds;
-- trap timings;
+- trap timing;
 - damage;
 - collapse cadence;
-- generic cue format.
+- generic wire shape.
 
 **Acceptance**
 
-- non-unit displacement round-trips exactly through the cue fields;
-- reconstructed endpoint equals the target point;
-- in-game trail converges on the target;
-- existing quality gate passes.
-
-### PR 2: remove dead VFX surface
-
-**Scope**
-
-- remove the four un-emitted Nobara ids and aliases;
-- remove `VfxTimeChannel` and all unused plumbing/calls/tests;
-- update VFX documentation counts.
-
-**Acceptance**
-
-- no references remain to the removed ids;
-- no references remain to `VfxTimeChannel`, `VfxDirector.timeScale` or `context.time()`;
-- all live id strings remain unchanged;
-- Resonance server time dilation remains untouched;
+- endpoint reconstruction is exact;
+- the test fails against the old emitter mapping;
+- server and client trails do not accidentally double in strength;
 - quality gate passes.
 
-### PR 3: remove fake active-instance lifecycle
+### PR 3: remove dead VFX surface
 
 **Scope**
 
-- remove `ACTIVE_INSTANCES`, `ActiveInstance` and `MAX_ACTIVE_INSTANCES`;
-- simplify `VfxDirector.receive` and `tick`;
-- add tests around receive-time expiry and one-shot start behavior through a package-private pure seam if needed.
+- replace the dead `RESONANCE_STRIKE` pin in `VfxCueTest` with a live id;
+- remove the four dead ids and recipe registrations;
+- remove `VfxTimeChannel` and all plumbing/calls/tests;
+- update counts;
+- add the accepted slow-motion decision to `docs/KNOWN_ISSUES.md`.
 
 **Acceptance**
 
-- each accepted cue starts exactly once;
-- already-expired cues do not start;
-- unknown ids still warn once and do not start;
-- disconnect and level changes still clear every actual channel;
-- the real `VfxWorldChannel` cap remains unchanged.
+- no references remain to removed ids;
+- no references remain to `VfxTimeChannel`, `VfxDirector.timeScale`, or `context.time()`;
+- every live id string remains unchanged;
+- Resonance server hit-stop remains untouched;
+- all stable-id tests pin only live ids;
+- quality gate passes.
 
-### PR 4: harden id and codec contracts
+### PR 4: remove fake active-instance lifecycle
 
 **Scope**
 
-- migrate existing VFX assertion programs in scope to JUnit 5 where still required by the repository's test plan;
-- retain and expand the existing codec round-trip test rather than duplicating it;
-- add `ALL` sets or an equivalent explicit enumeration to each `*VfxIds` class;
-- test that recipe registration matches the declared id sets exactly;
-- add a build-time emitter-coverage check restricted to production sources and excluding id/recipe declarations;
-- record red runs for deliberately removed registration or codec-field mutations.
+- remove `ACTIVE_INSTANCES`, `ActiveInstance`, and `MAX_ACTIVE_INSTANCES`;
+- simplify receive and tick;
+- add tests for expiry rejection and one-shot start behavior.
 
 **Acceptance**
 
-- every declared id has exactly one recipe;
-- every registered recipe id belongs to a declared vessel set;
-- every declared id has at least one production emitter reference;
-- duplicate registration still fails;
-- payload round-trip covers all eight fields, non-zero direction, non-zero anchor offset and `NO_ANCHOR`;
-- test names describe contract behavior, not implementation trivia.
+- accepted cues start exactly once;
+- expired cues never start;
+- unknown ids warn once and do not start;
+- disconnect and level changes clear every real channel;
+- `MAX_IMPACT_FLASHES = 48` remains unchanged;
+- quality gate passes.
 
-**Caution**
-
-An emitter-coverage test is an architectural source check. It proves that an id is referenced by production emitter code, not that the gameplay route is reachable in a live world. Keep that limitation explicit.
-
-### PR 5: canonical cue factories and package normalization
+### PR 5: harden transport and completeness contracts
 
 **Scope**
 
-- add the minimal `VfxCues` factory;
-- migrate repeated generic constructor helpers runtime by runtime;
-- keep effect-specific packed payloads explicit;
-- move Megumi ids and recipes to canonical VFX packages;
-- update imports and documentation.
+- migrate existing VFX assertion programs in scope to JUnit 5;
+- expand the existing codec test;
+- add explicit live and planned id enumeration;
+- test declared-live ids against recipe registration;
+- add precise emitter coverage using bytecode field references or AST-aware matching;
+- add Hairpin packed-intensity tests;
+- add radius ownership tests;
+- add duration ownership tests;
+- record red mutations.
+
+**Required red mutations**
+
+1. remove one codec field from encode or decode;
+2. remove one recipe registration;
+3. remove the only emitter reference for one live id;
+4. add a live id without a recipe;
+5. move an incomplete id to planned and prove the live check remains green while the planned set remains visible;
+6. make a presentation radius exceed delivery radius;
+7. change a shared duration at only one of its two consumers;
+8. break finale or depth unpacking;
+9. restore collapse offset to zero.
+
+**Acceptance**
+
+- comments and string literals cannot satisfy emitter coverage;
+- staged recipe-first development remains possible through an explicit planned set;
+- every live id has one recipe and at least one production reference;
+- codec covers all eight fields and both anchor modes;
+- Hairpin depth/finale packing is pinned;
+- radius and duration policies are executable rather than prose-only;
+- quality gate passes.
+
+### PR 6: package normalization and controlled factory migration
+
+**Scope**
+
+- move Megumi ids and recipes to canonical packages;
+- migrate generic cue construction runtime by runtime;
+- introduce `TodoSwapArrivalPayload` or equivalent narrow reader;
+- verify and remove or retain the Todo legacy `NO_ANCHOR` fallback deliberately;
+- leave tiny recipe helpers local by policy.
 
 **Suggested migration order**
 
-1. Megumi summon runtime;
+1. Megumi summon and dog runtimes;
 2. Nobara ritual runtime;
 3. Nail Trap runtime;
-4. Nobara hammer runtime;
+4. Nobara hammer and Hairpin runtimes;
 5. Todo emitters.
 
-Todo goes last because its `anchorOffset` fields intentionally carry several different payload shapes and deserve the most careful review.
+Todo goes last because its payloads are the most overloaded.
 
 **Acceptance**
 
-- no wire id string changes;
+- no wire string changes;
 - no field-order changes;
-- generic cue construction no longer hand-repeats `NO_ANCHOR`, anchor delta and intensity clamping in several runtimes;
-- specialized Todo and Hairpin payload conventions remain documented beside their ids;
-- package-boundary tests accept the new canonical layout.
+- generic construction no longer repeats transport boilerplate unnecessarily;
+- Todo arrival reads named values rather than raw vector components;
+- no global wrapper hierarchy appears;
+- legacy fallback has an explicit proven disposition;
+- quality gate passes.
 
-### PR 6: deterministic camera-channel tests
+### PR 7: deterministic camera tests
 
 **Scope**
 
-- inject a package-private millisecond clock;
-- add JUnit tests for lifetime, overlap and clamps;
-- preserve production constants and curves.
+- inject package-private millisecond clock;
+- add JUnit tests for lifetime, overlap, starts, and clamps;
+- preserve constants and curves.
 
 **Acceptance**
 
 - no sleeps;
-- no wall-clock flakes;
-- test clock can cross exact expiry boundaries;
+- exact expiry boundaries are testable;
+- production uses `System::currentTimeMillis`;
 - production behavior is unchanged;
-- camera clamps remain `yaw [-9, 9]`, `pitch [-7, 7]`, final FOV `[-18, 20]` unless a separate bug is demonstrated.
+- quality gate passes.
 
-### PR 7: split world rendering by visual family
+### PR 8: split world rendering by visual family
 
 **Scope**
 
-- extract style rendering and shared geometry from `VfxWorldChannel`;
-- keep lifecycle, cap, age, anchoring and dispatch in `VfxWorldChannel`;
-- preserve `ImpactStyle` exhaustiveness and `worldFixed` ownership;
-- move existing pure tests with the functions they cover.
+- extract style rendering and geometry;
+- keep lifecycle, cap, age, anchoring, and dispatch in `VfxWorldChannel`;
+- preserve enum exhaustiveness and `worldFixed` ownership;
+- move pure tests with their helpers.
 
 **Acceptance**
 
 - no intended visual changes;
-- no new registration system;
-- no reflection;
-- no additional render callback;
-- no new mixin;
-- `MAX_IMPACT_FLASHES = 48` remains unchanged;
-- before/after smoke captures show the same Hairpin, Black Flash, swap and shadow presentation except for the earlier collapse fix.
+- no new callback, mixin, packet, registry, reflection, or plugin mechanism;
+- cap remains 48;
+- before/after captures match for Hairpin, Black Flash, swap, and shadows except the earlier collapse fix;
+- quality gate passes.
 
-### PR 8: completion docs and architectural freeze
+### PR 9: completion docs and architectural freeze
 
 **Scope**
 
-- update `VFX-core.md` with final counts and extension rules;
-- update stale references in `AGENTS.md`, Codex and known issues;
-- mark completed debt as resolved;
-- record remaining accepted limitations.
+- update canonical VFX documentation, Codex, `AGENTS.md`, session references, and known issues;
+- remove stale counts and resolved debt;
+- record accepted limitations;
+- copy the freeze rule below into canonical docs.
 
 **Acceptance**
 
 - documentation matches code and tests;
-- no document claims Todo has four ids, Megumi has four ids, nine channels exist, or codec coverage is absent;
-- the freeze rule below is copied into the canonical VFX Core documentation.
+- no stale claims remain about id counts, channel counts, codec coverage, or active-instance behavior;
+- planned-id set is empty or every entry has an explicit follow-up reference;
+- full smoke matrix passes;
+- core is marked frozen.
 
 ---
 
-## 7. Test strategy
+## 9. Test strategy
 
-### 7.1 Pure and unit tests
-
-Required fast tests:
+### 9.1 Fast tests
 
 | Area | Contract |
 |---|---|
 | `VfxCue` | direction normalization, zero direction, all field preservation |
-| Codec | encode/decode all eight fields with non-default values |
-| Timeline | age, expiry boundary, opening beat, late real-time windows |
+| Codec | real encode/decode of all eight fields, `NO_ANCHOR`, live anchor |
+| Timeline | age, expiry boundary, future cue, opening beat, late windows |
 | Anchor resolver | static origin, live anchor, offset, missing-anchor fallback |
-| Cue factories | correct anchor id/offset, intensity clamp, seed/time preservation |
-| Collapse cue | full displacement survives in `anchorOffset` |
-| Id sets | declared ids equal registered ids |
-| Emitter coverage | every declared id is referenced by production emitter code |
-| Camera | deterministic overlap, expiry and clamps |
-| First person | existing clock-driven SNAP/CLAP/SIGN behavior remains |
-| Sound duck | ownership, extension and restore rules remain |
-| World math | silhouette dimensions, shadow pool envelopes and extracted helper math |
+| Cue factories | anchor ownership, displacement, clamp, seed/time preservation |
+| Collapse | full travel survives and endpoint reconstructs exactly |
+| Id sets | live, planned, registered, and vessel ownership relationships |
+| Emitter coverage | production bytecode or AST reference, not comments or strings |
+| Hairpin pack | depth clamp, finale bit, collision-free supported values |
+| Radius | presentation never exceeds delivery |
+| Duration | shared lifetime stays shared; intentional split stays named |
+| Todo arrival | speed, width, height, and direction read through named accessors |
+| Camera | deterministic overlap, expiry, starts, and clamps |
+| First person | existing SNAP, CLAP, and SIGN timing remains |
+| Sound duck | ownership, extension, and restore remain |
+| World math | extracted silhouette, pool, ribbon, and basis calculations |
 
-### 7.2 Mutation/red-run expectations
-
-For architecture-contract tests, the implementation PR should record at least these deliberate failures:
-
-1. delete one codec field from encode or decode;
-2. remove one recipe registration;
-3. add a declared id without an emitter;
-4. change collapse cue `anchorOffset` back to zero;
-5. make a duplicate recipe registration;
-6. change a world-fixed style flag for an afterimage or shadow pool.
-
-The purpose is to prove that the tests defend the contract they claim to defend. Human beings have an impressive ability to write green tests for code paths the test never touches.
-
-### 7.3 In-game smoke matrix
-
-Automated tests cannot validate readability, mixin integration, sound layering or actual rendering. A focused smoke remains mandatory.
+### 9.2 In-game smoke matrix
 
 #### Nobara
 
@@ -695,259 +896,265 @@ Automated tests cannot validate readability, mixin integration, sound layering o
 - ordinary impact and local impact sound;
 - directed and mass Hairpin;
 - enlargement;
-- trap placement, armed state, collapse and impact;
-- Resonance bind, doll strike and release;
+- trap placement, armed state, short collapse, long collapse, impact;
+- Resonance bind, doll strike, release, and server hit-stop;
 - Black Flash;
 - Self Resonance.
 
 #### Todo
 
-- real clap and feint share the same clap presentation;
+- real clap and feint share clap presentation;
 - aimed swap;
 - pair swap;
 - landed marker swap;
 - body marker swap;
 - afterimage dimensions differ for player and wide mob;
-- arrival streak respects preserved velocity;
-- momentum strike can coincide with Black Flash without visual corruption;
-- sound duck restores on deadline, menu open, disconnect and level change.
+- arrival streak preserves velocity;
+- local arrival camera applies only to the displaced participant;
+- momentum strike can coincide with Black Flash;
+- sound duck restores on deadline, menu, disconnect, and level change;
+- clap animation still resolves after legacy fallback disposition.
 
 #### Megumi
 
 - player summon sign;
 - both dog shadow-open pools;
-- manual recall shadow-close pools;
+- recall shadow-close pools;
 - Sic marker;
 - accepted pounce impact;
-- cooldown HUD contribution remains under the single VFX HUD element.
+- cooldown HUD remains under one VFX HUD element.
 
 #### Cross-system
 
-- unknown cue id logs once and does not crash;
+- unknown id logs once and does not crash;
 - reconnect and dimension change clear transient state;
-- reduced/minimal particle settings scale counts but never turn a positive requested burst into zero;
-- no VFX path applies damage, marks, cooldowns or gameplay state client-side.
+- reduced and minimal particle settings scale client recipe particles;
+- direct server particles are recognized as a separate budgeting path;
+- presentation attenuation never expects a radius beyond delivery;
+- no VFX path applies gameplay state client-side.
 
-### 7.4 Performance checks
+### 9.3 Performance evidence
 
-No optimization work is approved by this plan. Still, implementation should collect a lightweight baseline before and after the world-channel split:
+No optimization is approved by this plan. Collect only a baseline around the world split:
 
-- active world-effect count under repeated Black Flash and Hairpin spam;
-- frame time with 1, 16, 32 and 48 retained world flashes;
-- allocation profile for repeated ring/ribbon rendering;
-- HUD fill-call count during Resonance overlay.
+- frame time with 1, 16, 32, and 48 retained world effects;
+- allocation profile for repeated rings and ribbons;
+- HUD fill-call count during heavy Resonance overlays;
+- packet fan-out for representative delivery radii;
+- client particle counts at each quality level.
 
-These measurements are evidence for future work. They are not permission to add custom batching or RenderTypes in the same refactor.
+Evidence may justify future work. It does not authorize custom batching or RenderTypes in this refactor.
 
 ---
 
-## 8. Preserved invariants
+## 10. Preserved invariants
 
-Every implementation PR must preserve these rules.
+### 10.1 Authority
 
-### 8.1 Authority
-
-A cue is visual-only. Client VFX code must never:
+VFX code must never:
 
 - deal damage;
 - apply marks;
 - start cooldowns;
 - select targets;
 - move entities;
-- open gameplay UI;
-- decide whether an ability succeeded.
+- decide ability success;
+- create gameplay state client-side.
 
-### 8.2 Todo feint contract
+### 10.2 Todo feint
 
-The real swap and feint share the `BOOGIE_WOOGIE` clap cue. Anything that only a completed swap earns belongs in `SWAP_ENDPOINT`, `SWAP_AFTERIMAGE`, `SWAP_ARRIVAL` or another completion-only cue.
+Real swap and feint share the clap cue. Completion-only feedback belongs in completion-only cues.
 
-Do not add displacement-only camera, sound, HUD or world feedback to the shared clap recipe.
+### 10.3 Direction magnitude
 
-### 8.3 Direction magnitude
+`direction` is normalized. Meaningful magnitude belongs in offset, intensity, or an explicitly documented packed field.
 
-`direction` is normalized. Any meaningful magnitude must travel elsewhere, normally `anchorOffset` or `intensity`, with the payload shape documented.
+### 10.4 Radius ownership
 
-### 8.4 World-fixed ownership
+Delivery and presentation radii are separate concepts. Their relationship must be named and testable.
 
-Whether a retained world style follows an anchor is a property of the style. Do not rebuild a second list or switch that can disagree with `ImpactStyle`.
+### 10.5 Duration ownership
 
-### 8.5 Persistent visuals
+One semantic lifetime has one owner. Intentional sub-lifetimes are separately named.
 
-Persistent state belongs to the entity or state renderer:
+### 10.6 World-fixed ownership
 
-- nails on the nail renderer;
-- dogs on the dog entity/renderer;
-- permanent or long-lived marks on the owning gameplay state.
+Anchor-follow behavior remains a property of `ImpactStyle`.
 
-VFX Core owns transient presentation timelines.
+### 10.7 Persistent visuals
 
-### 8.6 Shared hooks
+Long-lived state belongs to the entity or gameplay-state renderer. VFX Core owns transient presentation.
 
-The core owns:
+### 10.8 Shared hooks
 
-- one world render callback;
-- one HUD element;
-- one client tick listener;
-- the existing shared first-person mixin;
-- the existing camera/game-renderer integration.
+A new ability does not get its own render callback, HUD element, singleton lifecycle manager, packet receiver, or mixin.
 
-A new ability does not get its own callback, singleton lifecycle manager, packet receiver or mixin.
-
-### 8.7 Wire stability
+### 10.9 Wire stability
 
 The refactor must not:
 
-- reorder `VfxCuePayload` fields;
-- rename live `nobara/*`, `todo/*` or `megumi/*` ids;
-- add a protocol version field casually;
-- change payload meaning without updating the id contract and tests.
+- reorder payload fields;
+- rename live ids;
+- casually add protocol versioning;
+- reinterpret a field without tests and nearby documentation.
 
 ---
 
-## 9. Explicit non-goals
-
-The following proposals are not part of completing VFX Core:
+## 11. Explicit non-goals
 
 - JSON or script-driven recipes;
-- an event bus for cues;
+- event bus for cues;
 - dependency injection for the director;
-- service-loaded style renderers;
+- service-loaded renderers;
 - reflection-based id discovery;
-- a custom rendering engine;
-- custom RenderType or batching work without profiling evidence;
-- a second payload type for every effect;
-- per-effect wrapper records across the whole codebase;
-- client-side global time scaling;
-- changing the accepted Resonance server hit-stop;
-- changing Todo swap locality behavior without a reproduced failure;
-- redesigning particle density values;
-- changing effect timings, colors, sounds or counts for aesthetic reasons;
-- adding new character abilities while this plan is being implemented.
-
-Those may become valid future projects. They require their own product decision and evidence. Smuggling them into a cleanup pass would turn a finite refactor into the traditional software-engineering ritual of rebuilding a working system until nobody remembers why it existed.
+- custom rendering engine;
+- custom batching before profiling;
+- one payload type per effect;
+- general typed-cue hierarchy;
+- client-global time scaling;
+- changing Resonance server hit-stop;
+- changing Todo locality behavior without a reproduced failure;
+- redesigning particle density, colors, sounds, or timings;
+- adding abilities during this pass;
+- centralizing every three-line vessel-local helper.
 
 ---
 
-## 10. Risk register
+## 12. Risk register
 
-| Risk | Where | Mitigation |
-|---|---|---|
-| Collapse fix accidentally double-renders a stronger trail | PR 1 | compare server particles and client recipe separately; change only payload mapping |
-| Dead id is actually emitted through an overlooked indirection | PR 2 | repository-wide production-source search and compile before deletion |
-| Removing `VfxTimeChannel` changes an undocumented mixin path | PR 2 | verify configured client mixins and all `timeScale` references before deletion |
-| Removing `ACTIVE_INSTANCES` exposes hidden lifetime dependence | PR 3 | prove all continuing state lives in channels; test start-once and expiry rejection |
-| Emitter coverage source test produces false positives | PR 4 | restrict to `src/main`, exclude definitions/recipes/tests/docs, document limitation |
-| Shared factory obscures custom payload semantics | PR 5 | keep specialized Todo/Hairpin methods local and documented |
-| Package move changes resource ids | PR 5 | assert exact id strings before and after |
-| Clock injection changes camera math | PR 6 | constructor-only seam; production uses `System::currentTimeMillis`; constants untouched |
-| World extraction changes geometry accidentally | PR 7 | mechanical moves, focused pure tests, before/after smoke captures |
-| Documentation drifts immediately | PR 8 | derive counts from explicit `ALL` sets and registration tests |
+| Risk | PR | Mitigation |
+|---|---:|---|
+| Factory becomes a hidden effect API | 1 | keep only transport shapes |
+| Collapse fix double-renders stronger trail | 2 | compare server and client trail separately |
+| Dead stable-id test blocks cleanup | 3 | replace `RESONANCE_STRIKE` pin first |
+| Slow motion is reintroduced casually later | 3 | accepted decision in `KNOWN_ISSUES.md` |
+| Overlooked emitter keeps a supposedly dead id alive | 3 | production reference scan before deletion |
+| Hidden dependency on active-instance list | 4 | prove channel ownership and start-once behavior |
+| Raw source matcher produces false green | 5 | bytecode or AST-aware scan, red mutation |
+| Emitter gate blocks staged work | 5 | structured planned-id state |
+| Radius constants are equalized when intentionally different | 5 | enforce relation, not universal equality |
+| Duration test forces intentional sub-lifetimes equal | 5 | named split-lifetime exception |
+| Hairpin packed payload drifts | 5 | pack/unpack and clamp tests |
+| Shared factory obscures Todo payloads | 6 | narrow named Todo reader |
+| Legacy fallback is removed without proof | 6 | enumerate live clap emitters first |
+| Package move changes ids | 6 | pin strings before and after |
+| Clock injection changes camera math | 7 | constructor-only seam, constants untouched |
+| World extraction changes geometry | 8 | mechanical move, pure tests, captures |
+| Documentation drifts immediately | 9 | derive counts from tested live sets |
 
 ---
 
-## 11. Definition of done
-
-VFX Core is considered complete when all conditions below are true.
+## 13. Definition of done
 
 ### Correctness
 
-- Nail Trap collapse carries full displacement and renders toward the target.
-- No registered effect id lacks a production emitter.
-- No dead channel claims to provide presentation that has no consumer.
+- collapse carries full displacement and reaches target;
+- no live id lacks a recipe or production emitter reference;
+- no dead channel claims to provide presentation;
+- packed Hairpin intensity is tested;
+- Todo arrival payload is read through named accessors.
 
 ### Transport
 
-- `VfxCue` remains an eight-field wire contract.
-- Codec round-trip is a JUnit test and covers non-default values.
-- All live id strings are pinned.
-- Common cue construction goes through the canonical factory where appropriate.
+- cue remains eight fields;
+- codec test is JUnit and covers non-default values and both anchor modes;
+- live id strings are pinned;
+- common construction uses `VfxCues` where appropriate;
+- normalized direction is never the sole owner of magnitude.
+
+### Radius and duration
+
+- every live effect family has explicit delivery and presentation ownership;
+- presentation never exceeds delivery;
+- same-lifetime values share one owner;
+- intentional sub-lifetimes are named and documented.
 
 ### Registration
 
-- each declared id has exactly one recipe;
+- every live id has exactly one recipe;
 - duplicate registration fails;
 - unknown ids log once and are ignored;
-- each vessel registers recipes only through its client definition hook.
+- planned ids are explicit and temporary;
+- comments and strings cannot satisfy emitter coverage.
 
 ### Lifecycle
 
-- the director retains no fake active-instance list;
-- each channel owns its real retained state and cleanup;
-- disconnect and level changes clear all transient state;
-- the world channel's real cap remains bounded and tested at its boundary.
+- director retains no fake active-instance list;
+- each channel owns real state and cleanup;
+- disconnect and level change clear transient state;
+- real world cap remains bounded at 48.
 
 ### Structure
 
-- all `<Character>VfxIds` classes use the canonical shared VFX package;
-- all `<Character>VfxRecipes` classes use `client/vfx/<character>`;
-- world lifecycle and style geometry are separated;
-- adding a new style does not require adding another render callback, mixin or packet receiver.
+- all id and recipe classes use canonical packages;
+- world lifecycle and geometry are separated;
+- no extra callback, receiver, mixin, registry, or lifecycle manager appears;
+- tiny vessel-local helpers remain local unless sharing has semantic value.
 
 ### Verification
 
-- relevant unit tests run under JUnit 5;
+- relevant tests run under JUnit 5;
 - required red mutations were demonstrated;
-- the full quality gate passes;
-- the smoke matrix passes on a real client/world;
-- no visual change is observed outside the intentional collapse fix.
+- full quality gate passes after every PR;
+- smoke matrix passes in a real client and world;
+- no visual change occurs outside the collapse correction.
 
 ### Documentation
 
-- canonical docs contain the final live counts;
-- stale counts and stale claims are removed;
+- canonical docs contain final counts and extension rules;
+- dead slow-motion attempt is recorded as deliberately removed;
 - accepted limitations remain explicit;
-- the architectural freeze rule below is recorded.
+- freeze rule is recorded.
 
 ---
 
-## 12. Architectural freeze after completion
+## 14. Architectural freeze
 
-After the definition of done is satisfied, VFX Core enters freeze.
+After the definition of done is satisfied, normal character work may add:
 
-Normal future character work may add:
-
-1. a new `<Character>VfxIds` set;
-2. a new `<Character>VfxRecipes` pack;
-3. a new world style implemented through the existing world-style boundary;
-4. new particle or sound assets registered through existing shared registries;
+1. a new vessel id set;
+2. a new recipe pack;
+3. a new style through the existing world-style boundary;
+4. new assets through existing registries;
 5. bug fixes with regression tests.
 
-The following require a separate design review because they change the system rather than extend it:
+The following require separate design review:
 
-- a new director channel;
-- a new VFX packet or wire-format field;
-- a new render/HUD callback;
-- a new VFX-specific mixin;
+- new director channel;
+- new packet or wire field;
+- new render or HUD callback;
+- new VFX-specific mixin;
 - data-driven recipes;
-- a new lifecycle manager;
-- client-side gameplay authority;
+- new lifecycle manager;
+- client gameplay authority;
 - global client time scaling;
-- custom batching or rendering infrastructure.
+- custom batching or rendering infrastructure;
+- general typed-cue hierarchy.
 
 Reopen frozen internals only with evidence:
 
-- profiling demonstrates a measurable frame-time or allocation problem;
-- a reproducible cue burst shows the 48-world-effect cap drops important presentation;
-- a live multiplayer case proves the local-arrival heuristic is wrong often enough to justify a protocol or cue change;
-- a fourth or later vessel cannot express a required effect through the existing seven live channels after cleanup.
-
-The burden is on the new requirement, not on the existing architecture to become infinitely abstract in anticipation of hypothetical sorcerers.
+- profiling shows a measurable problem;
+- a reproduced burst proves the world cap drops important presentation;
+- multiplayer proves Todo locality is wrong often enough to change cues;
+- a future vessel cannot express required presentation through the seven live channels;
+- staged-id workflow becomes a recurring bottleneck despite the planned-id seam.
 
 ---
 
-## 13. Final implementation checklist
+## 15. Final checklist
 
-- [ ] PR 1: collapse payload fix and regression test
-- [ ] PR 2: remove four dead Nobara ids and `VfxTimeChannel`
-- [ ] PR 3: remove `ACTIVE_INSTANCES` bookkeeping
-- [ ] PR 4: JUnit contract hardening for codec, ids, recipes and emitters
-- [ ] PR 5: add `VfxCues` and normalize Megumi package ownership
-- [ ] PR 6: inject camera clock and add deterministic tests
-- [ ] PR 7: split world rendering by visual family
-- [ ] PR 8: update canonical documentation and freeze the core
+- [ ] PR 1: minimal `VfxCues` foundation and contract tests
+- [ ] PR 2: collapse payload correction and smoke
+- [ ] PR 3: dead ids, dead time channel, stable-id test update, known-issue decision
+- [ ] PR 4: remove fake active-instance lifecycle
+- [ ] PR 5: codec, ids, recipes, precise emitters, Hairpin pack, radius, duration
+- [ ] PR 6: package normalization, factory migration, Todo arrival reader, fallback decision
+- [ ] PR 7: deterministic camera tests
+- [ ] PR 8: world rendering split
+- [ ] PR 9: final docs and freeze
 - [ ] full quality gate green after every PR
-- [ ] recorded red runs for contract tests
-- [ ] in-game smoke matrix complete
+- [ ] required red mutations recorded
+- [ ] smoke matrix complete
 - [ ] no out-of-scope gameplay or aesthetic changes
 
-When every item is complete, VFX Core should stop being an open-ended architecture project. New effort should return to character presentation and gameplay content, which is allegedly why the mod exists.
+When every item is complete, VFX Core stops being an open-ended architecture project. Future effort returns to character presentation and gameplay content, which is the entire reason this machinery exists.
