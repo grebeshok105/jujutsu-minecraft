@@ -34,7 +34,6 @@ public final class VfxDirector {
 	private static final VfxParticleChannel PARTICLES = new VfxParticleChannel();
 	private static final VfxSoundChannel SOUND = new VfxSoundChannel();
 	private static final VfxPostProcessChannel POST_PROCESS = new VfxPostProcessChannel();
-	private static final VfxTimeChannel TIME = new VfxTimeChannel();
 	private static ClientLevel activeLevel;
 	private static boolean initialized;
 
@@ -100,10 +99,6 @@ public final class VfxDirector {
 		return CAMERA.fovOffset();
 	}
 
-	public static float timeScale() {
-		return TIME.timeScale();
-	}
-
 	public static VfxFirstPersonChannel.Pose firstPersonPose() {
 		return FIRST_PERSON.currentPose();
 	}
@@ -159,7 +154,7 @@ public final class VfxDirector {
 	}
 
 	private static VfxContext context(Minecraft client) {
-		return new VfxContext(client, VfxQuality.from(client.options.particles().get()), WORLD, HUD, CAMERA, FIRST_PERSON, PARTICLES, SOUND, POST_PROCESS, TIME);
+		return new VfxContext(client, VfxQuality.from(client.options.particles().get()), WORLD, HUD, CAMERA, FIRST_PERSON, PARTICLES, SOUND, POST_PROCESS);
 	}
 
 	private static void bindLevel(Minecraft client) {
@@ -184,7 +179,6 @@ public final class VfxDirector {
 		PARTICLES.clear();
 		SOUND.clear();
 		POST_PROCESS.clear();
-		TIME.clear();
 	}
 
 	private record ActiveInstance(VfxCue cue, VfxInstance instance) {}

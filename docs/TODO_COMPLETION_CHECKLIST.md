@@ -520,7 +520,7 @@ No new values are proposed here. The project has no measurements and no stated b
 
 ## 8. Automated tests
 
-The infrastructure exists and needs no invention: JUnit 5 via `fabric-loader-junit` for new tests, plus 34 legacy `JavaExec` assertion programs. Everything runs inside `./gradlew qualityGate`. Nine Todo test classes are wired into `check`.
+The infrastructure exists and needs no invention: JUnit 5 via `fabric-loader-junit` for new tests, plus 33 legacy `JavaExec` assertion programs. Everything runs inside `./gradlew qualityGate`. Nine Todo test classes are wired into `check`.
 
 Only tests that lock down existing behaviour or a defect found above are listed. No new framework is proposed.
 

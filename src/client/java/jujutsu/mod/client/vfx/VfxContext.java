@@ -19,11 +19,10 @@ public final class VfxContext {
 	private final VfxParticleChannel particles;
 	private final VfxSoundChannel sound;
 	private final VfxPostProcessChannel postProcess;
-	private final VfxTimeChannel time;
 
 	VfxContext(Minecraft client, VfxQuality quality, VfxWorldChannel world, VfxHudChannel hud, VfxCameraChannel camera,
 			VfxFirstPersonChannel firstPerson, VfxParticleChannel particles, VfxSoundChannel sound,
-			VfxPostProcessChannel postProcess, VfxTimeChannel time) {
+			VfxPostProcessChannel postProcess) {
 		this.client = client;
 		this.quality = quality;
 		this.world = world;
@@ -33,7 +32,6 @@ public final class VfxContext {
 		this.particles = particles;
 		this.sound = sound;
 		this.postProcess = postProcess;
-		this.time = time;
 	}
 
 	public Minecraft client() {
@@ -88,10 +86,6 @@ public final class VfxContext {
 
 	public VfxPostProcessChannel postProcess() {
 		return postProcess;
-	}
-
-	public VfxTimeChannel time() {
-		return time;
 	}
 
 	public void burst(ParticleOptions particle, Vec3 at, int count, double spread, double speed, RandomSource random) {

@@ -2,9 +2,9 @@
 
 Status: CURRENT LIVE REGISTER
 
-Last code verification: 2026-07-26. Entries carrying a "Verified 2026-07-26" line were re-checked against source on that date. E3, E4, and E6 were last checked on 2026-07-23 and were not re-verified in this pass; treat their detail as older than the rest.
+Last code verification: 2026-07-29. Entries carrying a "Verified 2026-07-29" line were re-checked against source on that date. E3, E4, and E6 were last checked on 2026-07-23 and were not re-verified in this pass; treat their detail as older than the rest.
 
-Applies to: main and the active branch feat/todo-input-slots. The earlier branch fix/persistence-nail-lifecycle-docs-sync no longer exists; its work is in main.
+Applies to: main and the active branch refactor/vfx-remove-dead-surface. The earlier branch fix/persistence-nail-lifecycle-docs-sync no longer exists; its work is in main.
 
 Owner hierarchy: current code/tests → AGENTS.md → SESSION.md → Codebase Codex → this register
 
@@ -15,6 +15,12 @@ Owner hierarchy: current code/tests → AGENTS.md → SESSION.md → Codebase Co
 This register owns the rationale; other documents point here.
 
 Resonance intentionally changes the global server tick rate to create hit-stop. This affects every player and dimension, but the current product target is private play for one or two people. Do not remove it as a generic multiplayer optimization. Reopen only if the target becomes a public or competitive server.
+
+### VFX Core does not provide client-global slow motion
+
+Verified 2026-07-29 against the removed `VfxTimeChannel` path, `NobaraVfxRecipes`, and `VfxDirector`.
+
+`VfxTimeChannel` stored a scale and deadline. `dollStrike` and `resonanceRelease` wrote values into it, but no production consumer applied `VfxDirector.timeScale()`, so real client-global slow motion never existed. The channel and its calls are removed as dead API, not replaced with another system. Server-global Resonance hit-stop remains the separate accepted decision above. Client-global slow motion may return only through an independently approved design with an explicitly named consumer and lifecycle.
 
 ### Boogie Woogie destinations have no entity-occupancy gate
 
