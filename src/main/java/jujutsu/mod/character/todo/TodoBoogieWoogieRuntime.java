@@ -316,7 +316,7 @@ public final class TodoBoogieWoogieRuntime {
 				TodoProfile.BOOGIE_WOOGIE_CLAP_VOLUME, TodoProfile.BOOGIE_WOOGIE_CLAP_PITCH);
 		// Performance cue: caster-anchored with a zero offset, so it carries no endpoint geometry.
 		JujutsuNetworking.broadcastVfxCue(level, origin, TodoProfile.VFX_DELIVERY_RADIUS,
-				VfxCues.anchoredDirected(TodoVfxIds.BOOGIE_WOOGIE, origin, todo.getId(), todo.position(), 1,
+				VfxCues.anchoredDirected(TodoVfxIds.BOOGIE_WOOGIE, origin, todo.getId(), origin, 1,
 						level.getGameTime(), todo.getRandom().nextLong(), aim));
 	}
 

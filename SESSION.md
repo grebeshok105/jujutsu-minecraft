@@ -17,17 +17,19 @@
 - `MegumiVfxIds` now lives in `jujutsu.mod.vfx`; `MegumiVfxRecipes` now lives in `jujutsu.mod.client.vfx.megumi`. Its five live `megumi/*` strings and empty planned set remain pinned by `VfxCueTest` and completeness contracts.
 - `VfxCueTest` remains JUnit 5 and uses the real `VfxCuePayload.STREAM_CODEC` for all eight fields, both anchor modes, normalized and zero directions, sentinel rejection, stable wire strings, and buffer exhaustion.
 - `VfxCompletenessTest` calls the real three recipe packs against the isolated director registry and checks exact live coverage plus duplicate-registration failure.
-- `VfxFactoryMigrationContractTest` checks only the migrated runtime files. Generic transport shapes use `VfxCues`; the two overloaded Todo body-presentation constructors remain explicit and local.
-- `TodoSwapArrivalPayloadTest` pins speed/width/height/direction mapping without clamping or rewriting values.
-- `TodoAnimationHooksContractTest` proves all live clap routes use the caster-anchored helper and that `NO_ANCHOR` no longer falls back to a nearby player.
+- `VfxFactoryMigrationContractTest` imports compiled main bytecode for only the migrated runtime classes. Generic transport shapes use `VfxCues`; the two overloaded Todo body-presentation constructors remain explicit and local.
+- `TodoSwapArrivalPayload` lives in shared `jujutsu.mod.vfx` because it names the wire read used by the shared world channel. Its test pins speed/width/height/direction mapping without clamping or rewriting values.
+- `TodoAnimationHooksContractTest` proves all live clap routes use the caster anchor at the cue origin, preserving zero offset after a swap, and that `NO_ANCHOR` no longer falls back to a nearby player.
 
 ## Red mutations
 
 | Mutation | Failing test or proof | Restored |
 |---|---|---|
+| Pass the post-swap Todo position as the clap anchor | `TodoAnimationHooksContractTest.everyLiveClapRouteUsesTheCasterAnchor` failed at line 22 | yes |
+| Reconstruct Megumi's explicit offset through a position-based factory | `VfxCuesTest.anchoredWithOffsetPreservesAnExplicitTransportOffset` failed at line 84 | yes |
 | Swap width and height in `TodoSwapArrivalPayload.from` | `TodoSwapArrivalPayloadTest.readsSpeedWidthHeightFromTheirExistingOffsetComponents` failed at line 19 | yes |
 | Restore nearby-player `NO_ANCHOR` fallback | `TodoAnimationHooksContractTest.noAnchorClapDoesNotSelectANearbyLocalPlayer` failed at line 36 | yes |
-| Restore direct generic constructor in a migrated runtime | `VfxFactoryMigrationContractTest.migratedRuntimesUseTransportFactories` failed at line 31 | yes |
+| Restore direct generic constructor in a migrated runtime | `VfxFactoryMigrationContractTest.migratedRuntimesUseTransportFactories` failed at line 48 | yes |
 | Change one `megumi/*` wire path | `VfxCueTest.liveWireStringsRemainStable` failed at line 72 | yes |
 | Restore collapse offset to zero | `NailTrapCollapseTest`: 3 of 4 tests failed | yes |
 

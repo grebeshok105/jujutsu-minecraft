@@ -52,6 +52,18 @@ public final class VfxCues {
 		return create(effectId, origin, requireAnchor(anchorEntityId), origin.subtract(anchorPosition), intensity, startGameTime, seed, Vec3.ZERO);
 	}
 
+	public static VfxCue anchoredWithOffset(
+			ResourceLocation effectId,
+			Vec3 origin,
+			int anchorEntityId,
+			Vec3 anchorOffset,
+			int intensity,
+			long startGameTime,
+			long seed
+	) {
+		return create(effectId, origin, requireAnchor(anchorEntityId), anchorOffset, intensity, startGameTime, seed, Vec3.ZERO);
+	}
+
 	public static VfxCue anchoredDirected(
 			ResourceLocation effectId,
 			Vec3 origin,

@@ -16,9 +16,10 @@ The supported shapes are:
 - `worldFixedDirected`: an exact world origin with orientation;
 - `worldFixedDisplacement`: an exact world origin with full displacement in `anchorOffset`;
 - `anchored`: an exact origin reconstructed from an entity anchor and its offset;
+- `anchoredWithOffset`: an entity anchor with an explicit pre-existing offset;
 - `anchoredDirected`: the anchored shape with orientation.
 
-`VfxCue` normalizes `direction`. It is therefore orientation only; it must never be the sole owner of a meaningful distance, speed, size, or displacement. `worldFixedDisplacement` stores the complete displacement in `anchorOffset`, including zero displacement as `Vec3.ZERO`; its `direction` is only the normalized orientation derived from that displacement. Packed offsets with an independent direction remain explicit emitter-level transport shapes until a later migration gives them a named factory. Todo's `SWAP_AFTERIMAGE` and `SWAP_ARRIVAL` remain such deliberate local constructions; the latter is read by `TodoSwapArrivalPayload` in `VfxWorldChannel` as `speed = anchorOffset.x`, `bodyWidth = anchorOffset.y`, `bodyHeight = anchorOffset.z`, and `direction = cue.direction()`.
+`VfxCue` normalizes `direction`. It is therefore orientation only; it must never be the sole owner of a meaningful distance, speed, size, or displacement. `worldFixedDisplacement` stores the complete displacement in `anchorOffset`, including zero displacement as `Vec3.ZERO`; its `direction` is only the normalized orientation derived from that displacement. Packed offsets with an independent direction remain explicit emitter-level transport shapes until a later migration gives them a named factory. Todo's `SWAP_AFTERIMAGE` and `SWAP_ARRIVAL` remain such deliberate local constructions; the latter is read by the shared `jujutsu.mod.vfx.TodoSwapArrivalPayload` model as `speed = anchorOffset.x`, `bodyWidth = anchorOffset.y`, `bodyHeight = anchorOffset.z`, and `direction = cue.direction()`.
 
 Nobara's `NailTrapRuntime.collapseCue` uses `worldFixedDisplacement` for `NAIL_TRAP_COLLAPSE`: the origin is the nail position and `anchorOffset` is the full `target - nail` displacement. The collapse recipe may therefore reconstruct the exact target endpoint; the server particle trail remains an independent presentation detail.
 
@@ -42,9 +43,9 @@ NobaraVfxIds defines 21 live ids after four dead ids and their aliases were remo
 
 ## PR 6 package and factory migration
 
-Megumi's five live ids remain byte-for-byte stable after the package move; `LIVE.size() == 5` and `PLANNED` remains empty. Generic production cue construction now uses `VfxCues.worldFixed`, `worldFixedDirected`, `worldFixedDisplacement`, `anchored`, or `anchoredDirected` across Megumi, Nobara, and Todo runtimes. The two Todo body-presentation payloads retain local constructors because their offsets are intentionally overloaded with dimensions and speed.
+Megumi's five live ids remain byte-for-byte stable after the package move; `LIVE.size() == 5` and `PLANNED` remains empty. Generic production cue construction now uses `VfxCues.worldFixed`, `worldFixedDirected`, `worldFixedDisplacement`, `anchored`, `anchoredWithOffset`, or `anchoredDirected` across Megumi, Nobara, and Todo runtimes. The two Todo body-presentation payloads retain local constructors because their offsets are intentionally overloaded with dimensions and speed; the shared `TodoSwapArrivalPayload` only names the existing client read.
 
-All live `BOOGIE_WOOGIE` routes use the shared `TodoBoogieWoogieRuntime.emitClapPerformance`, whose cue is caster-anchored and directed. `TodoAnimationHooks` therefore resolves only the declared anchor; a `NO_ANCHOR` clap does not select a nearby player.
+All live `BOOGIE_WOOGIE` routes use the shared `TodoBoogieWoogieRuntime.emitClapPerformance`, whose cue is caster-anchored with an explicitly zero offset and directed. `TodoAnimationHooks` therefore resolves only the declared anchor; a `NO_ANCHOR` clap does not select a nearby player.
 
 ## PR 5 contract hardening
 

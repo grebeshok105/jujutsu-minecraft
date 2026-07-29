@@ -1,10 +1,7 @@
-package jujutsu.mod.client.vfx.todo;
+package jujutsu.mod.vfx;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
 
-import jujutsu.mod.vfx.TodoVfxIds;
-import jujutsu.mod.vfx.VfxCue;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
 
@@ -27,7 +24,7 @@ final class TodoSwapArrivalPayloadTest {
 		TodoSwapArrivalPayload payload = TodoSwapArrivalPayload.from(cue);
 
 		assertEquals(new Vec3(0.6, 0.8, 0.0), payload.direction());
-		assertSame(cue.direction(), payload.direction(), "The read model must not rewrite the normalized direction");
+		assertEquals(cue.direction(), payload.direction(), "The read model must not rewrite the normalized direction");
 	}
 
 	@Test

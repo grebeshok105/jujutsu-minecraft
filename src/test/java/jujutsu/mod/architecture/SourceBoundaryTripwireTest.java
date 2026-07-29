@@ -91,9 +91,7 @@ class SourceBoundaryTripwireTest {
 	 */
 	private static final Map<String, Set<String>> TRACKED_DEBT = Map.of(
 			"src/client/java/jujutsu/mod/client/render/ProjectJjkNailRenderer.java",
-			Set.of("ProjectJjkNailEmbedding", "ProjectJjkNailEntity", "<package nobara>"),
-			"src/client/java/jujutsu/mod/client/vfx/VfxWorldChannel.java",
-			Set.of("TodoSwapArrivalPayload"));
+			Set.of("ProjectJjkNailEmbedding", "ProjectJjkNailEntity", "<package nobara>"));
 
 	@Test
 	void vesselPackageClassifierAcceptsOnlyRegisteredVesselRoots() {

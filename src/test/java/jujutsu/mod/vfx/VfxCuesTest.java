@@ -75,6 +75,17 @@ final class VfxCuesTest {
 	}
 
 	@Test
+	void anchoredWithOffsetPreservesAnExplicitTransportOffset() {
+		Vec3 offset = new Vec3(0.0, 1.4, 0.0);
+		VfxCue cue = VfxCues.anchoredWithOffset(NobaraVfxIds.ENLARGE, ORIGIN, 42, offset,
+				INTENSITY, GAME_TIME, SEED);
+
+		assertEquals(42, cue.anchorEntityId());
+		assertEquals(offset, cue.anchorOffset());
+		assertEquals(INTENSITY, cue.intensity());
+	}
+
+	@Test
 	void anchoredDirectedPreservesAnchorOffsetAndNormalizesOrientation() {
 		Vec3 anchorPosition = new Vec3(10.0, 63.0, -12.0);
 		VfxCue cue = VfxCues.anchoredDirected(
@@ -91,6 +102,8 @@ final class VfxCuesTest {
 				NobaraVfxIds.ENLARGE, ORIGIN, VfxCue.NO_ANCHOR, Vec3.ZERO, INTENSITY, GAME_TIME, SEED));
 		assertThrows(IllegalArgumentException.class, () -> VfxCues.anchoredDirected(
 				NobaraVfxIds.ENLARGE, ORIGIN, VfxCue.NO_ANCHOR, Vec3.ZERO, INTENSITY, GAME_TIME, SEED, Vec3.ZERO));
+		assertThrows(IllegalArgumentException.class, () -> VfxCues.anchoredWithOffset(
+				NobaraVfxIds.ENLARGE, ORIGIN, VfxCue.NO_ANCHOR, Vec3.ZERO, INTENSITY, GAME_TIME, SEED));
 	}
 
 	@Test

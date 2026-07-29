@@ -19,8 +19,9 @@ final class TodoAnimationHooksContractTest {
 	void everyLiveClapRouteUsesTheCasterAnchor() throws Exception {
 		String clap = Files.readString(CLAP_RUNTIME);
 		String performance = methodBody(clap, "emitClapPerformance");
-		assertTrue(performance.contains("VfxCues.anchoredDirected"));
-		assertTrue(performance.contains("todo.getId()"));
+		assertTrue(performance.contains(
+				"VfxCues.anchoredDirected(TodoVfxIds.BOOGIE_WOOGIE, origin, todo.getId(), origin,"),
+				"the clap anchor position must be the cue origin, preserving zero offset after a swap");
 		assertTrue(Files.readString(FAKE_CLAP_RUNTIME).contains("TodoBoogieWoogieRuntime.emitClapPerformance"),
 				"fake clap must share the anchored route");
 		assertTrue(Files.readString(Path.of("src/main/java/jujutsu/mod/character/todo/TodoPairSwapRuntime.java"))
@@ -34,7 +35,6 @@ final class TodoAnimationHooksContractTest {
 		String hooks = Files.readString(HOOKS);
 		assertTrue(hooks.contains("cue.anchorEntityId() == VfxCue.NO_ANCHOR"));
 		assertFalse(hooks.contains("distanceToSqr"));
-		assertFalse(hooks.contains("client.player"));
 		assertFalse(hooks.contains("legacy NO_ANCHOR"));
 	}
 

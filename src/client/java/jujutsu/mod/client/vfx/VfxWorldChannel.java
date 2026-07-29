@@ -10,9 +10,9 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
-import jujutsu.mod.client.vfx.todo.TodoSwapArrivalPayload;
 import jujutsu.mod.vfx.VfxAnchorResolver;
 import jujutsu.mod.vfx.VfxCue;
+import jujutsu.mod.vfx.TodoSwapArrivalPayload;
 
 public final class VfxWorldChannel {
 	private static final int MAX_IMPACT_FLASHES = 48;
