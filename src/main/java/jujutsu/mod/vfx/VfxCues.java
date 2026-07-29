@@ -36,6 +36,7 @@ public final class VfxCues {
 			long seed,
 			Vec3 displacement
 	) {
+		// The offset owns the full travel vector; VfxCue derives normalized orientation from it.
 		return create(effectId, origin, VfxCue.NO_ANCHOR, displacement, intensity, startGameTime, seed, displacement);
 	}
 
@@ -48,7 +49,7 @@ public final class VfxCues {
 			long startGameTime,
 			long seed
 	) {
-		return create(effectId, origin, anchorEntityId, origin.subtract(anchorPosition), intensity, startGameTime, seed, Vec3.ZERO);
+		return create(effectId, origin, requireAnchor(anchorEntityId), origin.subtract(anchorPosition), intensity, startGameTime, seed, Vec3.ZERO);
 	}
 
 	public static VfxCue anchoredDirected(
@@ -61,7 +62,14 @@ public final class VfxCues {
 			long seed,
 			Vec3 direction
 	) {
-		return create(effectId, origin, anchorEntityId, origin.subtract(anchorPosition), intensity, startGameTime, seed, direction);
+		return create(effectId, origin, requireAnchor(anchorEntityId), origin.subtract(anchorPosition), intensity, startGameTime, seed, direction);
+	}
+
+	private static int requireAnchor(int anchorEntityId) {
+		if (anchorEntityId == VfxCue.NO_ANCHOR) {
+			throw new IllegalArgumentException("Anchored VFX cues require an entity anchor");
+		}
+		return anchorEntityId;
 	}
 
 	private static VfxCue create(

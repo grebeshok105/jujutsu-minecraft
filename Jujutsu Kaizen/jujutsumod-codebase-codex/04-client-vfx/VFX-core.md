@@ -18,9 +18,9 @@ The supported shapes are:
 - `anchored`: an exact origin reconstructed from an entity anchor and its offset;
 - `anchoredDirected`: the anchored shape with orientation.
 
-`VfxCue` normalizes `direction`. It is therefore orientation only; it must never be the sole owner of a meaningful distance, speed, size, or displacement. `worldFixedDisplacement` stores the complete displacement in `anchorOffset`, including zero displacement as `Vec3.ZERO`.
+`VfxCue` normalizes `direction`. It is therefore orientation only; it must never be the sole owner of a meaningful distance, speed, size, or displacement. `worldFixedDisplacement` stores the complete displacement in `anchorOffset`, including zero displacement as `Vec3.ZERO`; its `direction` is only the normalized orientation derived from that displacement. Packed offsets with an independent direction remain explicit emitter-level transport shapes until a later migration gives them a named factory.
 
-The existing minimum intensity policy is preserved: factory output clamps intensity to at least `1` and does not add a maximum clamp. Factories pass `effectId`, origin, anchor data, intensity, game time, seed, and orientation through without changing wire order or adding protocol fields.
+The existing minimum intensity policy is preserved: factory output clamps intensity to at least `1` and does not add a maximum clamp. The factory is the minimum-clamp owner for callers that adopt it; existing recipes may retain a defensive read-side clamp during staged migration, and the later migration must prove when that duplicate can be removed. Factories pass `effectId`, origin, anchor data, intensity, game time, seed, and orientation through without changing wire order or adding protocol fields.
 
 Delivery and presentation radii are separate owners. Delivery is the server radius used to decide which clients receive a cue; presentation is the client attenuation radius used by a recipe or channel. For every effect family:
 
@@ -28,7 +28,7 @@ Delivery and presentation radii are separate owners. Delivery is the server radi
 presentation radius <= delivery radius
 ```
 
-Do not reuse gameplay target ranges as VFX radii. If delivery and presentation intentionally differ, both values must be named and the reason must be documented beside them.
+Do not reuse gameplay target ranges as VFX radii. If delivery and presentation intentionally differ, both values must be named and the reason must be documented beside them. In PR 1 this is a target contract, not a claim that every existing literal has been audited; the existing call sites remain unchanged, and the later radius-hardening work must enumerate and test each live family.
 
 Duration ownership follows the same rule: one semantic lifetime has one named owner and feeds every consumer that represents that lifetime. Intentional sub-lifetimes use separate named values and document or test their relationship.
 

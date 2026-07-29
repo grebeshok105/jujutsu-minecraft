@@ -12,6 +12,7 @@
 - Supported shapes: world-fixed, world-fixed directed, world-fixed displacement, anchored, and anchored directed.
 - Documentation records normalized `direction`, full displacement in `anchorOffset`, delivery/presentation radius ownership, and duration ownership.
 - Existing emitters, `VfxCue`, `VfxCuePayload`, wire field order, effect ids, `VfxWorldChannel`, `VfxTimeChannel`, `ACTIVE_INSTANCES`, and visual behavior remain unchanged.
+- `VfxCuesTest` intentionally uses JUnit 5 per the PR 1 request; the legacy `VfxCueTest` JavaExec remains until the planned test migration.
 
 ## Changed files
 
@@ -25,4 +26,5 @@
 
 - `./gradlew.bat test --no-daemon` — `BUILD SUCCESSFUL`
 - `./gradlew.bat qualityGate --no-daemon` — `BUILD SUCCESSFUL`
+- Red proof: removing `Math.max(1, intensity)` failed `VfxCuesTest.intensityIsClampedToTheExistingMinimum()`; reversing anchor offset failed both anchored reconstruction tests. Both mutations were restored.
 - `NailTrapRuntime` and the `NAIL_TRAP_COLLAPSE` bug are intentionally unchanged; collapse correction remains PR 2.

@@ -1,6 +1,8 @@
 package jujutsu.mod.vfx;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.netty.buffer.Unpooled;
 import jujutsu.mod.network.VfxCuePayload;
@@ -46,9 +48,9 @@ final class VfxCuesTest {
 		VfxCue cue = VfxCues.worldFixedDisplacement(NobaraVfxIds.EXPLOSION, ORIGIN, INTENSITY, GAME_TIME, SEED, displacement);
 
 		assertEquals(displacement, cue.anchorOffset());
-		assertEquals(ORIGIN.add(displacement), ORIGIN.add(cue.anchorOffset()));
-		assertEquals(displacement.normalize(), cue.direction());
-		assertEquals(displacement.length(), cue.anchorOffset().length());
+		assertEquals(new Vec3(20.5, 67.25, -12.0), ORIGIN.add(cue.anchorOffset()));
+		assertEquals(1.0, cue.direction().length(), 1.0E-9);
+		assertNotEquals(displacement.length(), cue.direction().length());
 	}
 
 	@Test
@@ -84,6 +86,14 @@ final class VfxCuesTest {
 	}
 
 	@Test
+	void anchoredFactoriesRejectTheWorldFixedSentinel() {
+		assertThrows(IllegalArgumentException.class, () -> VfxCues.anchored(
+				NobaraVfxIds.ENLARGE, ORIGIN, VfxCue.NO_ANCHOR, Vec3.ZERO, INTENSITY, GAME_TIME, SEED));
+		assertThrows(IllegalArgumentException.class, () -> VfxCues.anchoredDirected(
+				NobaraVfxIds.ENLARGE, ORIGIN, VfxCue.NO_ANCHOR, Vec3.ZERO, INTENSITY, GAME_TIME, SEED, Vec3.ZERO));
+	}
+
+	@Test
 	void intensityIsClampedToTheExistingMinimum() {
 		assertEquals(1, VfxCues.worldFixed(NobaraVfxIds.HAMMER, ORIGIN, 0, GAME_TIME, SEED).intensity());
 		assertEquals(1, VfxCues.worldFixed(NobaraVfxIds.HAMMER, ORIGIN, -4, GAME_TIME, SEED).intensity());
@@ -93,6 +103,7 @@ final class VfxCuesTest {
 
 	@Test
 	void displacementCueRoundTripsThroughTheRealPayloadCodec() {
+		// The legacy JavaExec test covers raw VfxCue construction; this pins the factory's displacement shape.
 		VfxCue expected = VfxCues.worldFixedDisplacement(
 				NobaraVfxIds.EXPLOSION, ORIGIN, 8, 321L, 9876L, new Vec3(8.0, 3.0, -4.0));
 		RegistryFriendlyByteBuf buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(), RegistryAccess.EMPTY);
