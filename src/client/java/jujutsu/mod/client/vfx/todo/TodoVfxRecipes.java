@@ -21,9 +21,15 @@ public final class TodoVfxRecipes {
 
 	private TodoVfxRecipes() {}
 
+	public static final double BOOGIE_WOOGIE_PRESENTATION_RADIUS = 56.0;
+	public static final int BOOGIE_WOOGIE_DURATION_TICKS = 15;
+	public static final int SWAP_ENDPOINT_DURATION_TICKS = 8;
 	/** Four ticks: long enough to register, short enough that the residue does not sit inside the arriving body. */
 	private static final int AFTERIMAGE_TICKS = 4;
 	private static final int ARRIVAL_TICKS = 6;
+	public static final int MOMENTUM_STRIKE_DURATION_TICKS = 8;
+	public static final int FEINT_TELL_DURATION_TICKS = 6;
+	public static final int PAIR_MARK_DURATION_TICKS = 8;
 	/** Six ticks of the world stepping back, ending as the arrival visuals do. */
 	private static final int DUCK_TICKS = 6;
 	/** A body is standing on its own arrival point at the instant the cue is authored. 1.5 blocks. */
@@ -46,9 +52,9 @@ public final class TodoVfxRecipes {
 	 */
 	private static VfxInstance boogieWoogie(VfxCue cue) {
 		// ~15 ticks covers Nobara-style first-person snap phases + third-person GeckoLib clap.
-		return VfxInstance.of(15, (context, initialAgeTicks) -> {
+		return VfxInstance.of(BOOGIE_WOOGIE_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
-				float proximity = context.proximity(cue, 56.0);
+				float proximity = context.proximity(cue, BOOGIE_WOOGIE_PRESENTATION_RADIUS);
 				// A snap, not a launch: the old triggerLaunch dipped the FOV by eight degrees, which reads
 				// as being thrown forward rather than as a body being displaced beside you.
 				context.camera().triggerSwapSnap(1, proximity, initialAgeTicks);
@@ -64,14 +70,14 @@ public final class TodoVfxRecipes {
 	}
 
 	private static VfxInstance swapEndpoint(VfxCue cue) {
-		return VfxInstance.of(8, (context, initialAgeTicks) -> {
+		return VfxInstance.of(SWAP_ENDPOINT_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				Vec3 endpoint = context.resolveOrigin(cue);
 				emitFlash(context, endpoint, random(cue, 0xB001E13L));
 				// Only the leading endpoint carries the pair delta. The trailing one used to claim a world
 				// flash slot to draw nothing, because the ribbon renderer no-ops on a zero delta.
 				if (cue.anchorOffset().lengthSqr() > 1.0E-4) {
-					context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.BOOGIE_WOOGIE, 8);
+					context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.BOOGIE_WOOGIE, SWAP_ENDPOINT_DURATION_TICKS);
 				}
 			}
 		});
@@ -115,7 +121,7 @@ public final class TodoVfxRecipes {
 	 * as a Black Flash, whose cue should win that frame outright.
 	 */
 	private static VfxInstance momentumStrike(VfxCue cue) {
-		return VfxInstance.of(8, (context, initialAgeTicks) -> {
+		return VfxInstance.of(MOMENTUM_STRIKE_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				Vec3 impact = context.resolveOrigin(cue);
 				RandomSource random = random(cue, 0x30DE12L);
@@ -131,7 +137,7 @@ public final class TodoVfxRecipes {
 	 * feint exists to deceive. The cue is sent to a single player, never broadcast.
 	 */
 	private static VfxInstance feintTell(VfxCue cue) {
-		return VfxInstance.of(6, (context, initialAgeTicks) -> {
+		return VfxInstance.of(FEINT_TELL_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				Vec3 chest = context.resolveOrigin(cue).add(0.0, 1.1, 0.0);
 				context.ring(TODO_EDGE, chest, 6, 0.16, 0.0, 0.008, random(cue, 0xFE117L));
@@ -146,7 +152,7 @@ public final class TodoVfxRecipes {
 	 * was marked, which is what the caster actually needs to remember.
 	 */
 	private static VfxInstance pairMark(VfxCue cue) {
-		return VfxInstance.of(8, (context, initialAgeTicks) -> {
+		return VfxInstance.of(PAIR_MARK_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				Vec3 marked = context.resolveOrigin(cue).add(0.0, 1.0, 0.0);
 				RandomSource random = random(cue, 0x9A12CAFEL);

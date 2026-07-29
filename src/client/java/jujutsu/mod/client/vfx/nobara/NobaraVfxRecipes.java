@@ -23,6 +23,31 @@ public final class NobaraVfxRecipes {
 
 	private NobaraVfxRecipes() {}
 
+	public static final double HAMMER_ACTION_PRESENTATION_RADIUS = 40.0;
+	public static final double HAMMER_PRESENTATION_RADIUS = 48.0;
+	public static final double IMPACT_PRESENTATION_RADIUS = 56.0;
+	public static final double WIDE_PRESENTATION_RADIUS = 64.0;
+	public static final int HAMMER_DURATION_TICKS = 10;
+	private static final int NAIL_TRAP_PLACED_DURATION_TICKS = 12;
+	private static final int NAIL_TRAP_ARMED_DURATION_TICKS = 30;
+	private static final int NAIL_TRAP_COLLAPSE_DURATION_TICKS = 8;
+	public static final int NAIL_TRAP_IMPACT_DURATION_TICKS = 24;
+	private static final int NAIL_DEEPEN_DURATION_TICKS = 16;
+	private static final int HAMMER_LIGHT_ACTION_DURATION_TICKS = 10;
+	private static final int HAMMER_HEAVY_ACTION_DURATION_TICKS = 18;
+	public static final int BLACK_FLASH_RECIPE_DURATION_TICKS = 48;
+	public static final int BLACK_FLASH_WORLD_IMPACT_DURATION_TICKS = 28;
+	private static final int IMPACT_DURATION_TICKS = 20;
+	private static final int IMPACT_SOUND_DURATION_TICKS = 2;
+	private static final int DETONATE_DURATION_TICKS = 14;
+	private static final int FIRST_PERSON_SNAP_DURATION_TICKS = 15;
+	public static final int ENLARGE_DURATION_TICKS = 28;
+	public static final int EXPLOSION_DURATION_TICKS = 18;
+	public static final int REMNANT_DROP_DURATION_TICKS = 16;
+	public static final int RITUAL_BIND_DURATION_TICKS = 18;
+	public static final int DOLL_STRIKE_DURATION_TICKS = ProjectJjkNobaraProfile.RESONANCE_VFX_DURATION_TICKS;
+	public static final int RESONANCE_RELEASE_DURATION_TICKS = ProjectJjkNobaraProfile.RESONANCE_VFX_DURATION_TICKS;
+
 	public static void register() {
 		VfxDirector.register(NobaraVfxIds.HAMMER, NobaraVfxRecipes::hammer);
 		VfxDirector.register(NobaraVfxIds.IMPACT, NobaraVfxRecipes::impact);
@@ -48,7 +73,7 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance nailTrapPlaced(VfxCue cue) {
-		return VfxInstance.of(12, (context, initialAgeTicks) -> {
+		return VfxInstance.of(NAIL_TRAP_PLACED_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) return;
 			Vec3 origin = context.resolveOrigin(cue);
 			RandomSource random = random(cue, 0x7A4A11L);
@@ -59,9 +84,9 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance nailTrapArmed(VfxCue cue) {
-		return VfxInstance.of(30, (context, initialAgeTicks) -> {
+		return VfxInstance.of(NAIL_TRAP_ARMED_DURATION_TICKS, (context, initialAgeTicks) -> {
 			Vec3 origin = context.resolveOrigin(cue);
-			float proximity = context.proximity(cue, 56.0);
+			float proximity = context.proximity(cue, IMPACT_PRESENTATION_RADIUS);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				RandomSource random = random(cue, 0x7A4A11L);
 				context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 42, ProjectJjkNobaraProfile.NAIL_TRAP_RADIUS, 0.06, -0.04, random);
@@ -74,7 +99,7 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance nailTrapCollapse(VfxCue cue) {
-		return VfxInstance.of(8, (context, initialAgeTicks) -> {
+		return VfxInstance.of(NAIL_TRAP_COLLAPSE_DURATION_TICKS, (context, initialAgeTicks) -> {
 			Vec3 origin = context.resolveOrigin(cue);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				RandomSource random = random(cue, 0xC011A95EL + intensity(cue));
@@ -84,15 +109,15 @@ public final class NobaraVfxRecipes {
 					context.burst(JujutsuParticles.HAIRPIN_SPARK, at, 2, 0.05, 0.12, random);
 					context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, at, 1, 0.03, 0.05, random);
 				}
-				context.playNoFalloff(JujutsuSounds.PROJECTJJK_SPELL_SHOT, 0.72f * context.proximity(cue, 56.0), 1.0f + intensity(cue) * 0.08f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_SPELL_SHOT, 0.72f * context.proximity(cue, IMPACT_PRESENTATION_RADIUS), 1.0f + intensity(cue) * 0.08f, origin, random);
 			}
 		});
 	}
 
 	private static VfxInstance nailTrapImpact(VfxCue cue) {
-		return VfxInstance.of(24, (context, initialAgeTicks) -> {
+		return VfxInstance.of(NAIL_TRAP_IMPACT_DURATION_TICKS, (context, initialAgeTicks) -> {
 			Vec3 origin = context.resolveOrigin(cue);
-			float proximity = context.proximity(cue, 64.0);
+			float proximity = context.proximity(cue, WIDE_PRESENTATION_RADIUS);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				RandomSource random = random(cue, 0x1A4AC7L);
 				context.burst(ParticleTypes.FLASH, origin, 2, 0.08, 0.0, random);
@@ -111,10 +136,10 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance nailDeepen(VfxCue cue) {
-		return VfxInstance.of(16, (context, initialAgeTicks) -> {
+		return VfxInstance.of(NAIL_DEEPEN_DURATION_TICKS, (context, initialAgeTicks) -> {
 			Vec3 origin = context.resolveOrigin(cue);
 			int depth = Math.max(2, Math.min(3, intensity(cue)));
-			float proximity = context.proximity(cue, 48.0);
+			float proximity = context.proximity(cue, HAMMER_PRESENTATION_RADIUS);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				RandomSource random = random(cue, 0xDEE9EEL);
 				context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, depth == 3 ? 26 : 18, depth == 3 ? 0.78 : 0.54, -0.24, -0.1, random);
@@ -128,26 +153,27 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance hammerAction(VfxCue cue, String animation, boolean heavy) {
-		return VfxInstance.of(heavy ? 18 : 10, (context, initialAgeTicks) -> {
+		return VfxInstance.of(heavy ? HAMMER_HEAVY_ACTION_DURATION_TICKS : HAMMER_LIGHT_ACTION_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks) && context.client().level != null && cue.anchorEntityId() != VfxCue.NO_ANCHOR) {
 				var entity = context.client().level.getEntity(cue.anchorEntityId());
 				if (entity != null) NobaraPlayerGeoAnimatable.INSTANCE.triggerAction(entity, animation);
 			}
 			context.firstPerson().triggerSnap(initialAgeTicks);
-			float proximity = context.proximity(cue, 40.0);
+			float proximity = context.proximity(cue, HAMMER_ACTION_PRESENTATION_RADIUS);
 			if (proximity > 0.01f) context.camera().triggerHeavyImpact(heavy ? 2 : 1, proximity * (heavy ? 0.65f : 0.3f), initialAgeTicks);
 		});
 	}
 
 	private static VfxInstance blackFlash(VfxCue cue) {
-		return VfxInstance.of(48, (context, initialAgeTicks) -> {
+		return VfxInstance.of(BLACK_FLASH_RECIPE_DURATION_TICKS, (context, initialAgeTicks) -> {
 			Vec3 origin = context.resolveOrigin(cue);
-			float proximity = context.proximity(cue, 64.0);
+			float proximity = context.proximity(cue, WIDE_PRESENTATION_RADIUS);
 			RandomSource random = random(cue, 0xB1ACF1A5L);
 			Vec3 dir = cue.direction();
 
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
-				context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.BLACK_FLASH, 28);
+				// The retained world flash ends earlier so the long recipe can keep camera and HUD tails alive.
+				context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.BLACK_FLASH, BLACK_FLASH_WORLD_IMPACT_DURATION_TICKS);
 				context.burst(ParticleTypes.FLASH, origin, 4, 0.1, 0.0, random);
 				context.burst(ParticleTypes.CRIT, origin, 8, 0.4, 0.6, random);
 				context.burst(JujutsuParticles.BF_IMPACT, origin, 7, 0.35, 0.12, random);
@@ -185,9 +211,9 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance hammer(VfxCue cue) {
-		return VfxInstance.of(10, (context, initialAgeTicks) -> {
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.HAMMER_SEND, 10);
-			float proximity = context.proximity(cue, 48.0);
+		return VfxInstance.of(HAMMER_DURATION_TICKS, (context, initialAgeTicks) -> {
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.HAMMER_SEND, HAMMER_DURATION_TICKS);
+			float proximity = context.proximity(cue, HAMMER_PRESENTATION_RADIUS);
 			if (proximity <= 0.01f) {
 				return;
 			}
@@ -204,8 +230,8 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance impact(VfxCue cue) {
-		return VfxInstance.of(20, (context, initialAgeTicks) -> {
-			float proximity = context.proximity(cue, 56.0);
+		return VfxInstance.of(IMPACT_DURATION_TICKS, (context, initialAgeTicks) -> {
+			float proximity = context.proximity(cue, IMPACT_PRESENTATION_RADIUS);
 			if (proximity <= 0.01f) {
 				return;
 			}
@@ -220,7 +246,7 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance impactSound(VfxCue cue) {
-		return VfxInstance.of(2, (context, initialAgeTicks) -> {
+		return VfxInstance.of(IMPACT_SOUND_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				playImpactSound(context, context.resolveOrigin(cue), 1.0f, random(cue, 0x41E7L));
 			}
@@ -228,7 +254,7 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance detonate(VfxCue cue) {
-		return VfxInstance.of(14, (context, initialAgeTicks) -> {
+		return VfxInstance.of(DETONATE_DURATION_TICKS, (context, initialAgeTicks) -> {
 			int marks = intensity(cue);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				Vec3 origin = context.resolveOrigin(cue);
@@ -236,7 +262,7 @@ public final class NobaraVfxRecipes {
 				context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 8 + marks * 2, 0.28, 0.08, random);
 				context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 14 + marks * 2, 0.78, -0.18, 0.04, random);
 			}
-			float proximity = context.proximity(cue, 40.0);
+			float proximity = context.proximity(cue, HAMMER_ACTION_PRESENTATION_RADIUS);
 			if (proximity > 0.01f) {
 				context.camera().triggerLaunch(marks, proximity * 0.7f, initialAgeTicks);
 				context.hud().triggerSwing(proximity * 0.65f, initialAgeTicks);
@@ -245,10 +271,10 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance enlarge(VfxCue cue) {
-		return VfxInstance.of(28, (context, initialAgeTicks) -> {
+		return VfxInstance.of(ENLARGE_DURATION_TICKS, (context, initialAgeTicks) -> {
 			int marks = intensity(cue);
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.ENLARGE, 28);
-			float proximity = context.proximity(cue, 64.0);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.ENLARGE, ENLARGE_DURATION_TICKS);
+			float proximity = context.proximity(cue, WIDE_PRESENTATION_RADIUS);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				Vec3 origin = context.resolveOrigin(cue);
 				RandomSource random = random(cue, 0xE11A6EL);
@@ -274,12 +300,12 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance explosion(VfxCue cue) {
-		return VfxInstance.of(18, (context, initialAgeTicks) -> {
+		return VfxInstance.of(EXPLOSION_DURATION_TICKS, (context, initialAgeTicks) -> {
 			int depth = NobaraVfxIds.hairpinExplosionDepth(intensity(cue));
 			boolean finale = NobaraVfxIds.isHairpinFinale(intensity(cue));
 			int marks = depth;
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.EXPLOSION, 18);
-			float proximity = context.proximity(cue, 64.0);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.EXPLOSION, EXPLOSION_DURATION_TICKS);
+			float proximity = context.proximity(cue, WIDE_PRESENTATION_RADIUS);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				Vec3 origin = context.resolveOrigin(cue);
 				RandomSource random = random(cue, 0xE0B00FL);
@@ -315,9 +341,9 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance remnantDrop(VfxCue cue) {
-		return VfxInstance.of(16, (context, initialAgeTicks) -> {
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.RITUAL_BIND, 16);
-			float proximity = context.proximity(cue, 64.0);
+		return VfxInstance.of(REMNANT_DROP_DURATION_TICKS, (context, initialAgeTicks) -> {
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.RITUAL_BIND, REMNANT_DROP_DURATION_TICKS);
+			float proximity = context.proximity(cue, WIDE_PRESENTATION_RADIUS);
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks) || proximity <= 0.01f) {
 				return;
 			}
@@ -330,9 +356,9 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance ritualBind(VfxCue cue) {
-		return VfxInstance.of(18, (context, initialAgeTicks) -> {
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.RITUAL_BIND, 18);
-			float proximity = context.proximity(cue, 48.0);
+		return VfxInstance.of(RITUAL_BIND_DURATION_TICKS, (context, initialAgeTicks) -> {
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.RITUAL_BIND, RITUAL_BIND_DURATION_TICKS);
+			float proximity = context.proximity(cue, HAMMER_PRESENTATION_RADIUS);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				Vec3 origin = context.resolveOrigin(cue);
 				RandomSource random = random(cue, 0x7117A1L);
@@ -353,11 +379,11 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance dollStrike(VfxCue cue) {
-		int life = ProjectJjkNobaraProfile.RESONANCE_VFX_DURATION_TICKS;
+		int life = DOLL_STRIKE_DURATION_TICKS;
 		return VfxInstance.of(life, (context, initialAgeTicks) -> {
 			// World-fixed geometry: duration matches server cue lifetime.
 			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.DOLL_STRIKE, life);
-			float proximity = context.proximity(cue, 56.0);
+			float proximity = context.proximity(cue, IMPACT_PRESENTATION_RADIUS);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				// Prefer immutable cue origin so particles stay planted even if player moves.
 				Vec3 origin = cue.origin();
@@ -390,11 +416,11 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance resonanceRelease(VfxCue cue) {
-		int life = ProjectJjkNobaraProfile.RESONANCE_VFX_DURATION_TICKS;
+		int life = RESONANCE_RELEASE_DURATION_TICKS;
 		return VfxInstance.of(life, (context, initialAgeTicks) -> {
 			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.RESONANCE_RELEASE, life);
 			int marks = intensity(cue);
-			float proximity = context.proximity(cue, 64.0);
+			float proximity = context.proximity(cue, WIDE_PRESENTATION_RADIUS);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				Vec3 origin = cue.origin();
 				RandomSource random = random(cue, 0x5A17E0L);
@@ -420,7 +446,7 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance firstPersonSnap(VfxCue cue) {
-		return VfxInstance.of(15, (context, initialAgeTicks) -> context.firstPerson().triggerSnap(initialAgeTicks));
+		return VfxInstance.of(FIRST_PERSON_SNAP_DURATION_TICKS, (context, initialAgeTicks) -> context.firstPerson().triggerSnap(initialAgeTicks));
 	}
 
 	private static void spawnResonanceBurst(VfxContext context, Vec3 origin, int marks, RandomSource random) {

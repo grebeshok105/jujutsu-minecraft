@@ -753,7 +753,8 @@ public final class ProjectSanityTest {
 				: "The doll strike must stack explosions, camera impulse, and a long flash";
 		assert dollStrike.contains("triggerNausea")
 				: "Nearby viewers must receive Resonance screen post-effects";
-		assert dollStrike.contains("RESONANCE_VFX_DURATION_TICKS")
+		assert dollStrike.contains("DOLL_STRIKE_DURATION_TICKS")
+				&& recipes.contains("DOLL_STRIKE_DURATION_TICKS = ProjectJjkNobaraProfile.RESONANCE_VFX_DURATION_TICKS")
 				: "Doll strike lifetime must use the shared Resonance VFX duration (~3.5s)";
 		String hud = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxHudChannel.java"));
 		assert hud.contains("graphics.fill(0, 0, width, height, (washAlpha << 24) | 0x00120A18)")

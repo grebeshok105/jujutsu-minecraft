@@ -1,5 +1,6 @@
 package jujutsu.mod.vfx;
 
+import java.util.Set;
 import jujutsu.mod.JujutsuMod;
 import net.minecraft.resources.ResourceLocation;
 
@@ -25,6 +26,12 @@ public final class NobaraVfxIds {
 	public static final ResourceLocation NAIL_TRAP_ARMED = id("nail_trap_armed");
 	public static final ResourceLocation NAIL_TRAP_COLLAPSE = id("nail_trap_collapse");
 	public static final ResourceLocation NAIL_TRAP_IMPACT = id("nail_trap_impact");
+	public static final Set<ResourceLocation> LIVE = Set.of(
+			HAMMER, IMPACT, IMPACT_SOUND, DETONATE, ENLARGE, EXPLOSION, FIRST_PERSON_SNAP, REMNANT_DROP,
+			RITUAL_BIND, DOLL_STRIKE, RESONANCE_RELEASE, HAMMER_HORIZONTAL, HAMMER_OVERHEAD, HAMMER_NAIL_LAUNCH,
+			BLACK_FLASH, SELF_RESONANCE, NAIL_DEEPEN, NAIL_TRAP_PLACED, NAIL_TRAP_ARMED, NAIL_TRAP_COLLAPSE,
+		NAIL_TRAP_IMPACT);
+	public static final Set<ResourceLocation> PLANNED = Set.of();
 	private static final int HAIRPIN_FINALE_FLAG = 8;
 
 	private NobaraVfxIds() {}

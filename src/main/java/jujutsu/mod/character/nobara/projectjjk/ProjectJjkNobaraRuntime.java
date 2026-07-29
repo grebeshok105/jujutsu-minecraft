@@ -31,7 +31,7 @@ import jujutsu.mod.vfx.NobaraVfxIds;
 import jujutsu.mod.vfx.VfxCue;
 
 public final class ProjectJjkNobaraRuntime {
-	private static final double IMPULSE_BROADCAST_RADIUS = 56.0;
+	public static final double IMPULSE_BROADCAST_RADIUS = 56.0;
 	private static final Map<UUID, Integer> ACTIVE_EXPLOSIVE_NAILS = new ConcurrentHashMap<>();
 	private static final Map<UUID, PreparationSession> PREPARATIONS = new ConcurrentHashMap<>();
 	/** Last nail-snap / prepare start game time per player. */

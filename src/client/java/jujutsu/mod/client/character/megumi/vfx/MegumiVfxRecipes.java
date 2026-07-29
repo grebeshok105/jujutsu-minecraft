@@ -21,6 +21,12 @@ public final class MegumiVfxRecipes {
 
 	private MegumiVfxRecipes() {}
 
+	public static final int SUMMON_DURATION_TICKS = 16;
+	public static final int RECALL_DURATION_TICKS = 12;
+	private static final int SUMMON_BODY_DURATION_TICKS = 1;
+	private static final int SIC_DURATION_TICKS = 8;
+	private static final int POUNCE_DURATION_TICKS = 6;
+
 	public static void register() {
 		VfxDirector.register(MegumiVfxIds.DOGS_SUMMON_BODY, MegumiVfxRecipes::summonBody);
 		VfxDirector.register(MegumiVfxIds.DOGS_SUMMON, MegumiVfxRecipes::summon);
@@ -30,20 +36,20 @@ public final class MegumiVfxRecipes {
 	}
 
 	private static VfxInstance summon(VfxCue cue) {
-		return VfxInstance.of(16, (context, initialAgeTicks) -> {
+		return VfxInstance.of(SUMMON_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				return;
 			}
 			Vec3 origin = cue.origin();
 			RandomSource random = random(cue, 0xD0655A11L);
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN, 16);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN, SUMMON_DURATION_TICKS);
 			context.burst(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.10, 0.0), 14, 0.42, 0.13, random);
 			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.04, 0.0), 10, 0.58, 0.0, 0.05, random);
 		});
 	}
 
 	private static VfxInstance summonBody(VfxCue cue) {
-		return VfxInstance.of(1, (context, initialAgeTicks) -> {
+		return VfxInstance.of(SUMMON_BODY_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				return;
 			}
@@ -58,19 +64,19 @@ public final class MegumiVfxRecipes {
 	}
 
 	private static VfxInstance recall(VfxCue cue) {
-		return VfxInstance.of(12, (context, initialAgeTicks) -> {
+		return VfxInstance.of(RECALL_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				return;
 			}
 			Vec3 origin = cue.origin();
 			RandomSource random = random(cue, 0xD0652ECA11L);
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_CLOSE, 12);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_CLOSE, RECALL_DURATION_TICKS);
 			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.08, 0.0), 14, 0.68, 0.0, -0.08, random);
 		});
 	}
 
 	private static VfxInstance sic(VfxCue cue) {
-		return VfxInstance.of(8, (context, initialAgeTicks) -> {
+		return VfxInstance.of(SIC_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				return;
 			}
@@ -82,7 +88,7 @@ public final class MegumiVfxRecipes {
 	}
 
 	private static VfxInstance pounce(VfxCue cue) {
-		return VfxInstance.of(6, (context, initialAgeTicks) -> {
+		return VfxInstance.of(POUNCE_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				return;
 			}
