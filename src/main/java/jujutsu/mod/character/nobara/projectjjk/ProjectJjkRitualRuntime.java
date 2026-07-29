@@ -43,7 +43,7 @@ import jujutsu.mod.vfx.VfxCue;
  * remnant-gated Resonance ritual lives in {@link ProjectJjkStrawDollRuntime}.
  */
 public final class ProjectJjkRitualRuntime {
-	public static final double VFX_DELIVERY_RADIUS = 64.0;
+	private static final Double VFX_DELIVERY_RADIUS = 64.0;
 	private static final HairpinChainScheduler<ChainContext> HAIRPIN_CHAINS = new HairpinChainScheduler<>();
 	private static final List<PendingEnlarge> PENDING_ENLARGES = new ArrayList<>();
 	private static final RandomSource RANDOM = RandomSource.create();

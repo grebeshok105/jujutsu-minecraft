@@ -318,7 +318,7 @@ public final class MegumiSummonRuntime {
 	private static void broadcastCue(
 			ServerLevel level, ServerPlayer owner, ResourceLocation effectId,
 			Vec3 origin, int anchorEntityId, Vec3 anchorOffset) {
-		JujutsuNetworking.broadcastVfxCue(level, origin, MegumiProfile.VFX_CUE_RADIUS,
+		JujutsuNetworking.broadcastVfxCue(level, origin, MegumiProfile.VFX_DELIVERY_RADIUS,
 				new VfxCue(effectId, origin, anchorEntityId, anchorOffset, 1, level.getGameTime(),
 						owner.getRandom().nextLong(), Vec3.ZERO));
 	}

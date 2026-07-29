@@ -44,7 +44,7 @@ import jujutsu.mod.vfx.VfxCue;
 
 /** Server-authoritative placement, arming, collapse and impact of Shift+B nail traps. */
 public final class NailTrapRuntime {
-	public static final double VFX_DELIVERY_RADIUS = 64.0;
+	private static final Double VFX_DELIVERY_RADIUS = 64.0;
 	private static final NailTrap.Registry TRAPS = new NailTrap.Registry();
 	private static final Map<UUID, CollapseState> COLLAPSES = new HashMap<>();
 

@@ -23,7 +23,7 @@ import jujutsu.mod.vfx.NobaraVfxIds;
 import jujutsu.mod.vfx.VfxCue;
 
 public final class SelfResonanceRuntime {
-	public static final double VFX_DELIVERY_RADIUS = 64.0;
+	private static final Double VFX_DELIVERY_RADIUS = 64.0;
 	private static final Map<UUID, UUID> SELECTED = new HashMap<>();
 	private static final Map<UUID, Pending> PENDING = new HashMap<>();
 	private SelfResonanceRuntime() {}

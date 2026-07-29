@@ -21,7 +21,8 @@ public final class TodoProfile {
 	/** Radius the swap cues are broadcast over, around each endpoint. */
 	public static final double BOOGIE_WOOGIE_CUE_RADIUS = 64.0;
 	/** Todo's Black Flash reuses the shared visual recipe but has its own delivery site. */
-	public static final double BLACK_FLASH_VFX_DELIVERY_RADIUS = 64.0;
+	static final Double BLACK_FLASH_VFX_DELIVERY_RADIUS = 64.0;
+	static final Double VFX_DELIVERY_RADIUS = BOOGIE_WOOGIE_CUE_RADIUS;
 	/** Clap lands on the swap tick itself, never trailing the visual. */
 	public static final float BOOGIE_WOOGIE_CLAP_VOLUME = 0.95f;
 	public static final float BOOGIE_WOOGIE_CLAP_PITCH = 1.28f;

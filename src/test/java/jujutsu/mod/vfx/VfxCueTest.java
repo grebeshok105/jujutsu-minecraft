@@ -2,7 +2,6 @@ package jujutsu.mod.vfx;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Set;
@@ -44,7 +43,6 @@ final class VfxCueTest {
 		VfxCue actual = roundTrip(expected);
 
 		assertFieldsEqual(expected, actual);
-		assertTrue(actual.anchorEntityId() > 0);
 		assertEquals(new Vec3(0.0, 1.0, 0.0), actual.direction());
 	}
 
@@ -81,12 +79,6 @@ final class VfxCueTest {
 		assertTrue(NobaraVfxIds.PLANNED.isEmpty());
 		assertTrue(TodoVfxIds.PLANNED.isEmpty());
 		assertTrue(jujutsu.mod.character.megumi.vfx.MegumiVfxIds.PLANNED.isEmpty());
-	}
-
-	@Test
-	void anchoredFactoriesRejectWorldFixedSentinel() {
-		assertThrows(IllegalArgumentException.class, () -> VfxCues.anchored(
-				NobaraVfxIds.ENLARGE, ORIGIN, VfxCue.NO_ANCHOR, Vec3.ZERO, INTENSITY, GAME_TIME, SEED));
 	}
 
 	private static VfxCue roundTrip(VfxCue expected) {

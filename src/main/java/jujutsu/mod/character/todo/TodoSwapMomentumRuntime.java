@@ -120,7 +120,7 @@ public final class TodoSwapMomentumRuntime {
 			CombatStagger.GLOBAL.apply(target, todo.level().getGameTime(), TodoProfile.SWAP_MOMENTUM_STAGGER_TICKS);
 		}
 		Vec3 origin = BlackFlashStrike.impactOrigin(target);
-		JujutsuNetworking.broadcastVfxCue(todo.level(), origin, TodoProfile.BOOGIE_WOOGIE_CUE_RADIUS,
+		JujutsuNetworking.broadcastVfxCue(todo.level(), origin, TodoProfile.VFX_DELIVERY_RADIUS,
 				new VfxCue(TodoVfxIds.MOMENTUM_STRIKE, origin, VfxCue.NO_ANCHOR, Vec3.ZERO, 1,
 						todo.level().getGameTime(), todo.getRandom().nextLong(), todo.getLookAngle()));
 		JujutsuMod.LOGGER.debug("Todo swap momentum spent player={} target={}",

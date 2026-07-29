@@ -32,7 +32,7 @@ import jujutsu.mod.vfx.VfxCue;
  * Two Black Flashes in a row trigger a chain bonus (higher mult + heal + Resonant Momentum).
  */
 public final class NobaraHammerCombatRuntime {
-	public static final double VFX_DELIVERY_RADIUS = 64.0;
+	private static final Double VFX_DELIVERY_RADIUS = 64.0;
 	private static final Map<UUID, PendingAttack> PENDING = new HashMap<>();
 	private static final Map<UUID, Boolean> OVERHEAD_NEXT = new HashMap<>();
 	/** Consecutive Black Flash procs; resets when a roll fails. */

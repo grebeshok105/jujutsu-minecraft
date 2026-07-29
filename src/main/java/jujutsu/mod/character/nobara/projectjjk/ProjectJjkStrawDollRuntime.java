@@ -34,7 +34,7 @@ import jujutsu.mod.combat.CombatStagger;
 public final class ProjectJjkStrawDollRuntime {
 	private static final int REMNANT_HIT_THRESHOLD = 2;
 	private static final int RITUAL_VFX_INTENSITY = 2;
-	public static final double VFX_DELIVERY_RADIUS = 64.0;
+	private static final Double VFX_DELIVERY_RADIUS = 64.0;
 	private static final ProjectJjkRemnantProgress REMNANT_PROGRESS = new ProjectJjkRemnantProgress(REMNANT_HIT_THRESHOLD);
 	private static final Map<UUID, PendingRitual> PENDING_RITUALS = new HashMap<>();
 	private static final ServerTimeDilation RESONANCE_TIME = new ServerTimeDilation();

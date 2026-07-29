@@ -276,7 +276,7 @@ public final class TodoBoogieWoogieRuntime {
 	/** The residue at the vacated spot, sized and turned like the body that stood there. */
 	private static void broadcastAfterimage(ServerLevel level, ServerPlayer todo, MovedBody body, long gameTime) {
 		Snapshot snapshot = body.snapshot();
-		JujutsuNetworking.broadcastVfxCue(level, snapshot.position(), TodoProfile.BOOGIE_WOOGIE_CUE_RADIUS,
+		JujutsuNetworking.broadcastVfxCue(level, snapshot.position(), TodoProfile.VFX_DELIVERY_RADIUS,
 				new VfxCue(TodoVfxIds.SWAP_AFTERIMAGE, snapshot.position(), VfxCue.NO_ANCHOR,
 						new Vec3(snapshot.bbWidth(), snapshot.bbHeight(), snapshot.yaw()), 1, gameTime,
 						todo.getRandom().nextLong(), body.destination().subtract(snapshot.position())));
@@ -286,7 +286,7 @@ public final class TodoBoogieWoogieRuntime {
 	private static void broadcastArrival(ServerLevel level, ServerPlayer todo, MovedBody body, long gameTime) {
 		Snapshot snapshot = body.snapshot();
 		Vec3 velocity = snapshot.velocity();
-		JujutsuNetworking.broadcastVfxCue(level, body.destination(), TodoProfile.BOOGIE_WOOGIE_CUE_RADIUS,
+		JujutsuNetworking.broadcastVfxCue(level, body.destination(), TodoProfile.VFX_DELIVERY_RADIUS,
 				new VfxCue(TodoVfxIds.SWAP_ARRIVAL, body.destination(), VfxCue.NO_ANCHOR,
 						new Vec3(velocity.length(), snapshot.bbWidth(), snapshot.bbHeight()), 1, gameTime,
 						todo.getRandom().nextLong(), velocity));
@@ -314,13 +314,13 @@ public final class TodoBoogieWoogieRuntime {
 		level.playSound(null, origin.x, origin.y, origin.z, JujutsuSounds.PROJECTJJK_CLAP, SoundSource.PLAYERS,
 				TodoProfile.BOOGIE_WOOGIE_CLAP_VOLUME, TodoProfile.BOOGIE_WOOGIE_CLAP_PITCH);
 		// Performance cue: caster-anchored with a zero offset, so it carries no endpoint geometry.
-		JujutsuNetworking.broadcastVfxCue(level, origin, TodoProfile.BOOGIE_WOOGIE_CUE_RADIUS,
+		JujutsuNetworking.broadcastVfxCue(level, origin, TodoProfile.VFX_DELIVERY_RADIUS,
 				new VfxCue(TodoVfxIds.BOOGIE_WOOGIE, origin, todo.getId(), Vec3.ZERO, 1, level.getGameTime(),
 						todo.getRandom().nextLong(), aim));
 	}
 
 	static void broadcastSwapEndpoint(ServerLevel level, ServerPlayer todo, Vec3 endpoint, Vec3 pairDelta, long gameTime) {
-		JujutsuNetworking.broadcastVfxCue(level, endpoint, TodoProfile.BOOGIE_WOOGIE_CUE_RADIUS,
+		JujutsuNetworking.broadcastVfxCue(level, endpoint, TodoProfile.VFX_DELIVERY_RADIUS,
 				new VfxCue(TodoVfxIds.SWAP_ENDPOINT, endpoint, VfxCue.NO_ANCHOR, pairDelta, 1, gameTime, todo.getRandom().nextLong(), pairDelta));
 	}
 
