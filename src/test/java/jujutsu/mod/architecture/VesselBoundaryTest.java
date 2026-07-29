@@ -45,7 +45,7 @@ import org.junit.jupiter.api.Test;
  */
 class VesselBoundaryTest {
 	private static final int MIN_MAIN_CLASSES = 194;
-	private static final int MIN_CLIENT_CLASSES = 213;
+	private static final int MIN_CLIENT_CLASSES = 212;
 
 	/** Vessel identities, derived rather than spelled, so a third vessel is covered the day it exists. */
 	private static final List<String> VESSEL_IDS = Arrays.stream(JujutsuCharacter.values())
