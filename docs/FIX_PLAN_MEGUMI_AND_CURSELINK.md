@@ -4,6 +4,13 @@ Status: PLAN ONLY. This PR changes no code. Every claim below was read off the s
 
 Execution order follows the issue priority: #30 and #31 as one investigation (split into two PRs if the diff grows), then #29, then #20.
 
+## Revision 2 — review corrections applied
+
+1. #20 no longer conflates malformed syntax with an unknown technique id; the unknown-id acceptance criterion is called out as blocked or scoped, and E2 can no longer be closed on syntax handling alone.
+2. Decoding failures now have a per-failure policy matrix instead of one blanket drop-entry rule.
+3. Knockback direction is captured immediately before `finishPounce()`, not at launch time.
+4. Navigation resume is a narrow transition on the ordinary termination path, not a side effect added to the generic `finishPounce()`.
+
 ---
 
 ## Issue #30 — Sic pounce flight and impact (critical)
@@ -25,7 +32,7 @@ Files read: `MegumiDivineDogEntity`, `MegumiSummonRuntime.tickPounce` / `resolve
 2. **Undershoot is structural.** Max horizontal reach is `0.92 * 16 ticks` of `POUNCE_TIMEOUT_TICKS` ~ 14.7 blocks of travel, but `canLaunch` gates distance to `[POUNCE_MIN_RANGE=3, POUNCE_MAX_RANGE=8]`. Undershoot therefore means the flight is being terminated early (collision flags) or vertical arc drops the dog onto the ground before arrival (`elapsedTicks > 0 && onGround` fires). Distinguish by logging which `flightAction` branch ended the flight.
 3. **Pre-attack twitch.** `assignSicTarget` calls `finishPounce()` then `super.setTarget(target)`. `MeleeAttackGoal(priority 2)` starts navigating toward the target while the pounce launcher in `tickPounce` waits for `pounceReady` and the distance band. The dog visibly approaches through melee navigation, then gets yanked into `setNoAi(true)` ballistic flight. The pre-pounce navigation-to-ballistic handoff is the twitch candidate.
 4. **Unreliable impact.** The impact AABB test uses a 0.30 inflate against a fast-moving dog; between ticks the dog can tunnel through or past the target without the inflated boxes intersecting. Separately, `resolvePounceImpact` re-checks `dog.getTarget() != target` after `finishPounce()` — verify that nothing in `finishPounce` or a same-tick AI tick can clear the target before the check runs.
-5. **Knockback direction sign.** `target.knockback(strength, -direction.x, -direction.z)` where `direction = target - dog`. Vanilla `knockback(strength, x, z)` pushes away from `(x, z)`. Passing the negated dog-to-target vector throws the target *toward* the dog's approach line — verify against vanilla semantics before changing; the test only pins that the call exists after accepted damage.
+5. **Knockback direction sign.** `target.knockback(strength, -direction.x, -direction.z)` where `direction = target - dog`. Vanilla `knockback(strength, x, z)` pushes away from `(x, z)`. Verify the vanilla sign semantics against the current call **before** changing anything: the existing call may already be correct, and rewriting a correct call is a regression, not a fix. The existing test only pins that the call happens after accepted damage, so it will not catch a wrong direction either way.
 
 ### Fix steps
 
@@ -33,9 +40,15 @@ Files read: `MegumiDivineDogEntity`, `MegumiSummonRuntime.tickPounce` / `resolve
 2. Based on the log, fix flight in `MegumiPouncePolicy` (pure, already JUnit-covered):
    - Give vertical motion an explicit model (gravity per tick) instead of assuming entity physics under `setNoAi(true)`, or stop disabling AI and drive the leap through navigation instead. Pick one owner for pounce motion; today it is split between the entity physics loop and the policy.
    - Replace the 0.30 AABB poll with a swept check (segment from previous to current position vs target box) so fast flight cannot tunnel.
-3. Fix the knockback vector only after step-1 evidence: capture the approach direction at `launchPounce` time and store it, instead of recomputing after `finishPounce()` from positions that may already overlap.
-4. Extend `MegumiPouncePolicyTest` with the new pure rules (vertical model, swept-impact predicate, stored knockback direction). Keep the existing source-text impact-order assertions.
-5. Red mutations: remove gravity model -> undershoot/stall test fails; revert swept check -> tunneling test fails; recompute knockback from post-finish positions -> direction test fails.
+3. **Knockback direction — capture it immediately before `finishPounce()` zeroes movement, never at launch time.**
+   - Launch-time direction is the wrong source: the pounce re-steers toward the target every tick, so if the target moves sideways during flight the launch vector and the true impact vector diverge. Storing the launch vector would produce a deterministic, testable, and wrong knockback.
+   - Capture order of precedence, evaluated before motion state is cleared:
+     1. horizontal component of `dog.getDeltaMovement()` when it is non-zero — this is the actual travel direction at contact;
+     2. otherwise horizontal `target.position() - dog.position()`, computed **before** `finishPounce()` zeroes movement;
+     3. otherwise the last non-zero steering direction retained from the flight.
+   - Only after the vanilla-semantics check in cause 5 decide whether the sign passed to `target.knockback` changes at all. The capture fix and the sign fix are separate decisions; do not bundle them.
+4. Extend `MegumiPouncePolicyTest` with the new pure rules (vertical model, swept-impact predicate, pre-impact direction precedence including each fallback). Keep the existing source-text impact-order assertions.
+5. Red mutations: remove gravity model -> undershoot/stall test fails; revert swept check -> tunneling test fails; switch direction capture to launch time -> moving-target direction test fails; skip the delta-movement branch -> fallback precedence test fails.
 6. In-game smoke per issue steps: both dogs, mid-range, open ground and obstacles; record each pounce path, recovery, and knockback direction. `qualityGate` alone does not close this issue.
 
 ---
@@ -49,21 +62,35 @@ Files read: `MegumiDivineDogEntity`, `MegumiSummonRuntime.tickPounce` / `resolve
 - `setPresentationPhase` calls `setNoAi(!combatEnabled)` during MATERIALIZING/RECALLING and clears sic + target + navigation on those phases.
 - Leash recovery teleports a dog farther than `LEASH_DISTANCE=32` every `LEASH_RETRY_TICKS=10` ticks via `MegumiGroundSafety.findLeashPosition`.
 - After `finishPounce`, AI resumes only if phase is ACTIVE (`setNoAi(false)`), but nothing re-issues the sic target to the goal system beyond the pre-existing `super.setTarget` from `assignSicTarget`.
+- `finishPounce()` is generic: it is reached from `assignSicTarget`, `clearSicCommand`, the in-flight `FINISH_POUNCE` action, the timeout path, and `resolvePounceImpact`.
 
 ### Candidate root causes
 
 1. **Speed, not logic.** 0.34 is near vanilla wolf walk speed; 'sluggish follow' may be pure tuning. Verify before touching goals.
 2. **FollowOwnerGoal distances.** Start at 10, stop at 2: dogs hang back up to 10 blocks, which reads as lag. Confirm expected feel, then tune in `MegumiProfile` only.
-3. **Post-pounce AI gap.** `finishPounce` re-enables AI but leaves navigation stopped; `MeleeAttackGoal` must re-tick to reacquire the path. If the target moved during flight, there is a visible pause. Same for `clearSicCommand` paths.
+3. **Post-pounce AI gap.** `finishPounce` re-enables AI but leaves navigation stopped; `MeleeAttackGoal` must re-tick to reacquire the path. If the target moved during flight, there is a visible pause.
 4. **Goal priority conflict.** `MeleeAttackGoal(2)` and `FollowOwnerGoal(6)` fight whenever the owner walks away mid-combat; `OwnerHurtTargetGoal(2)` can also retarget the dog away from the sic target. Check whether `wantsToAttack` and owner-hurt goals can override a commanded sic target — that would read as 'ignores the command'.
 
 ### Fix steps
 
 1. Reuse the #30 diagnostic session: measure summon-to-first-move latency, follow catch-up time, sic-command-to-pounce-launch time. Numbers first, tuning second.
 2. Tune only `MegumiProfile` constants that the measurements indict (`DOG_MOVEMENT_SPEED`, follow distances). Profile constants are already pinned by `MegumiProfileTest`; update the pins with the new values and a comment tying each to the measurement.
-3. If post-pounce re-targeting is the stall, restart navigation toward the sic target in `finishPounce` (or explicitly `getNavigation().moveTo(target, 1.0)` on resume) rather than waiting for the next goal tick.
-4. If owner-hurt goals override sic commands, encode the precedence in a small pure policy (sic target wins until cleared) with JUnit coverage, following the existing `MegumiTargetPolicy` pattern.
-5. Same smoke session as #30 covers this issue (issue steps overlap deliberately).
+3. **Do not add a navigation restart to `finishPounce()`.** That method is generic motion-state cleanup shared by target assignment, command clearing, timeouts, cancellation and impact. A `navigation.moveTo` inside it would cause movement during cleanup, revival of a cancelled command, navigation after an aborted pounce, and motion during recall or a phase change.
+   Add instead a narrow resume transition reached only from ordinary pounce termination:
+
+   ```text
+   accepted impact / ordinary pounce termination
+     -> finish motion state (existing finishPounce, unchanged)
+     -> if presentation phase == ACTIVE
+     -> if the sic command is still current (sicTargetUuid unchanged since launch)
+     -> if the target is still valid (alive, not removed, same level, still eligible)
+     -> resume navigation toward that target
+   ```
+
+   Encode the four-condition predicate as a pure policy method with JUnit coverage, in the style of `MegumiTargetPolicy`; `finishPounce` keeps having no side effect beyond motion state.
+4. If owner-hurt goals override sic commands, encode the precedence in a small pure policy (sic target wins until cleared) with JUnit coverage.
+5. Red mutations: move the resume into `finishPounce` -> cleanup-path test fails (a cancelled or recalled dog must not navigate); drop any one of the four conditions -> its focused test fails.
+6. Same smoke session as #30 covers this issue (issue steps overlap deliberately).
 
 ---
 
@@ -79,7 +106,7 @@ Three separate color owners feed the ground effect:
 
 ### Fix steps
 
-1. Kill or desaturate the accent mote: set accent colors to near-black (e.g. keep a faint violet/desaturated edge only if a highlight is wanted), drop the full-bright `getLightColor` override for accents. This is the primary fix candidate and touches one file.
+1. Kill or desaturate the accent mote: set accent colors to near-black (keep at most a faint desaturated edge if a highlight is wanted), and drop the full-bright `getLightColor` override for accents. This is the primary fix candidate and touches one file.
 2. Re-check `SHADOW_DARK = 0x102E2B` — it is a dark teal; if the target look is neutral black shadow, shift it to neutral gray-black.
 3. If Sic/pounce must also lose the teal, retune `SHADOW_TEAL` in the same pass; otherwise leave it (Sic is a marker effect, not the shadow pool).
 4. Visual verification only: screenshots of summon, recall, sic, pounce at several times of day, before/after. There is no automated way to prove 'reads black'. Keep world-pool code untouched — it is already black and pinned by `ShadowWorldEffectsTest`.
@@ -92,19 +119,44 @@ Three separate color owners feed the ground effect:
 
 - `CurseLinkOptionsPayload.read`: `int size = buffer.readVarInt(); new ArrayList<>(size);` then `size` iterations of `readUUID(), readUUID(), ResourceLocation.parse(buffer.readUtf())`. No cap anywhere (`readUtf()` defaults to 32767 chars per string).
 - Client receiver: `JujutsuClientNetworking` does `setScreen(new CurseLinkSelectionScreen(payload.entries()))` — decoded size feeds UI construction directly.
-- Sender side: `CurseLinkRegistry.linksForParticipant` returns an unbounded sorted list; `CurseLinkSelection.resolve` treats `size() == 1` as auto-ready and larger lists as needing selection. There is **no natural maximum** in current code — the cap must be chosen and documented as a defensive constant, as the issue itself demands ('read off current code rather than guessed').
-- Wire format per entry: 2 UUIDs + one string. Existing valid payloads must decode identically (issue constraint).
+- Sender side: `CurseLinkRegistry.linksForParticipant` returns an unbounded sorted list; `CurseLinkSelection.resolve` treats `size() == 1` as auto-ready and larger lists as needing selection. There is **no natural maximum** in current code — the entry cap must be chosen and documented as a defensive constant.
+- There is **no canonical catalog of technique ids** in the project, and no real producer of curse links was found. This matches the analysis already recorded in PR #32.
+
+### Malformed syntax and unknown id are different checks
+
+`ResourceLocation.parse` rejects only syntactically invalid strings. A well-formed but meaningless id such as `evil:not_a_technique` parses successfully and would still reach the UI. Issue #20 lists as a separate acceptance criterion that a payload naming an unknown id must not produce a button, so **syntax handling alone does not satisfy that criterion and does not close E2**.
+
+Pick one of these two honest outcomes and record it on the issue before writing code:
+
+- **Option A (recommended now).** Implement bounds and malformed-syntax handling in this pass. Explicitly record unknown-id acceptance as BLOCKED until a canonical technique-id catalog exists, because there is nothing to validate against today. Issue #20 is then **partially** addressed and E2 stays open with a narrowed description.
+- **Option B.** Introduce a supported-id registry or allowlist as part of #20. This requires deciding who owns the registry, where ids are declared, how the first real producer registers its id, and how the client validates against it. Larger scope; needs its own design note before implementation.
+
+Do not label a syntactically broken id as the unknown-id case and close the issue on it.
+
+### Failure policy matrix — one outcome per failure type
+
+A single blanket drop-entry rule is wrong: continuing to read after a codec-level failure assumes the stream is still aligned, which is only true for some failures.
+
+| Failure | Outcome | Why |
+|---|---|---|
+| `size < 0` or `size > MAX_ENTRIES` | reject the entire payload, before any allocation | an untrusted count must never size an allocation, and the stream position after a bad count is not trustworthy |
+| decoded string longer than `MAX_TECHNIQUE_ID_LENGTH` | reject the entire payload | after a length failure the following bytes cannot be assumed to start a valid entry |
+| syntactically invalid `ResourceLocation`, string already fully read | drop that entry, keep the rest, log once | the stream is still aligned because the string was consumed in full |
+| well-formed but unknown technique id | drop that entry under the supported-id policy — only exists under Option B | stream is aligned; this is a semantic failure, not a codec failure |
+| writer assembles more than `MAX_ENTRIES` | refuse to encode (throw); never silently truncate | truncation would hide a server-side bug and desync the UI from the registry |
 
 ### Fix steps
 
-1. In `CurseLinkOptionsPayload`:
-   - Add `MAX_ENTRIES` (defensive constant, e.g. 64 — far above anything a 1-2 player private game produces; document that no natural max exists in code and this is a chosen bound).
-   - Reject `size < 0 || size > MAX_ENTRIES` **before** allocating the `ArrayList` (do not pre-size from the untrusted value at all).
-   - Bound strings with `buffer.readUtf(MAX_TECHNIQUE_ID_LENGTH)` — a `ResourceLocation` string needs at most ~2×32767? No: namespaces/paths are effectively short; pick e.g. 256 and document it. (Vanilla `readUtf(int)` exists and throws on overflow.)
-2. Unknown/malformed id policy: `ResourceLocation.parse` throws on malformed input — catch per entry, drop the entry, log once. Whole-payload refusal is wrong here because one bad entry would nuke a legitimate list; document the drop-entry decision in the payload javadoc and KNOWN_ISSUES E2 resolution note.
-3. Client-side defense in depth: `CurseLinkSelectionScreen` receives at most `MAX_ENTRIES` entries by construction; assert/document it rather than re-bounding the UI.
-4. Negative codec tests (new JUnit, `src/test/java/jujutsu/mod/network/`): over-cap count rejected without allocating per count; over-length string rejected; malformed id dropped with the rest of the payload intact; valid payload round-trips byte-identical with the buffer fully consumed. Red mutations: raise/remove each bound -> matching test fails.
-5. Close E2 in `docs/KNOWN_ISSUES.md` with the chosen constants and policy. Do not widen scope to other payloads (issue's own boundary).
+1. Record the Option A / Option B decision on issue #20 first; the rest of the work depends on it.
+2. In `CurseLinkOptionsPayload`:
+   - Add `MAX_ENTRIES` as a documented defensive constant (no natural maximum exists in code; state that explicitly beside it).
+   - Add `MAX_TECHNIQUE_ID_LENGTH` and read strings through `buffer.readUtf(MAX_TECHNIQUE_ID_LENGTH)`.
+   - Validate the count **before** constructing the list; do not pre-size the `ArrayList` from the untrusted value.
+   - Implement the matrix above exactly, including the writer-side refusal.
+3. Client-side defence in depth: `CurseLinkSelectionScreen` then receives at most `MAX_ENTRIES` entries by construction; document that rather than re-bounding the UI.
+4. Negative codec tests (new JUnit under `src/test/java/jujutsu/mod/network/`), one per matrix row: over-cap count rejected without allocating per that count; over-length string rejected as a whole payload; malformed id dropped while the remaining entries survive; writer refusal above the cap; and a valid payload that round-trips byte-identically with the buffer fully consumed. Add the unknown-id case only under Option B.
+5. Red mutations: raise or remove each bound, and swap any reject into a drop — the matching test must fail.
+6. `docs/KNOWN_ISSUES.md` E2: under Option A, narrow the entry to the remaining unknown-id gap and keep it open; under Option B, close it with the chosen constants and policy.
 
 ---
 
@@ -114,7 +166,7 @@ Three separate color owners feed the ground effect:
 - #30/#31: in-game smoke is mandatory (the issues came from in-game smoke; `qualityGate` cannot reproduce them).
 - #29: before/after screenshots.
 - #20: codec tests are the full verification; no in-game step needed.
-- Documentation: MOC/SESSION/KNOWN_ISSUES updated per fix; E2 marked resolved only after the codec tests land.
+- Documentation: MOC/SESSION/KNOWN_ISSUES updated per fix; E2 status follows the Option A / Option B decision.
 
 ## Out of scope
 
