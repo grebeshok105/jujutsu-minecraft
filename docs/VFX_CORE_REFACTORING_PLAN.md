@@ -1143,18 +1143,18 @@ Reopen frozen internals only with evidence:
 
 ## 15. Final checklist
 
-- [ ] PR 1: minimal `VfxCues` foundation and contract tests
-- [ ] PR 2: collapse payload correction and smoke
-- [ ] PR 3: dead ids, dead time channel, stable-id test update, known-issue decision
-- [ ] PR 4: remove fake active-instance lifecycle
-- [ ] PR 5: codec, ids, recipes, precise emitters, Hairpin pack, radius, duration
-- [ ] PR 6: package normalization, factory migration, Todo arrival reader, fallback decision
-- [ ] PR 7: deterministic camera tests
-- [ ] PR 8: world rendering split
+- [x] PR 1: minimal `VfxCues` foundation and contract tests
+- [x] PR 2: collapse payload correction and smoke
+- [x] PR 3: dead ids, dead time channel, stable-id test update, known-issue decision
+- [x] PR 4: remove fake active-instance lifecycle
+- [x] PR 5: codec, ids, recipes, precise emitters, Hairpin pack, radius, duration
+- [x] PR 6: package normalization, factory migration, Todo arrival reader, fallback decision
+- [x] PR 7: deterministic camera tests
+- [x] PR 8: world rendering split
 - [ ] PR 9: final docs and freeze
-- [ ] full quality gate green after every PR
-- [ ] required red mutations recorded
+- [x] full quality gate green after every PR
+- [x] required red mutations recorded
 - [ ] smoke matrix complete
-- [ ] no out-of-scope gameplay or aesthetic changes
+- [x] no out-of-scope gameplay or aesthetic changes
 
 When every item is complete, VFX Core stops being an open-ended architecture project. Future effort returns to character presentation and gameplay content, which is the entire reason this machinery exists.

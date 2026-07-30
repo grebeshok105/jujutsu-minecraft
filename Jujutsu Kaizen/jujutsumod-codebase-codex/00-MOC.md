@@ -25,8 +25,9 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 - Nobara's starter kit is restored idempotently on every selection; Todo and Megumi have no starter items in their current slices.
 - Shared input slots — R, Shift+R, B, Shift+B, and left click with a technique weapon — mean whatever the selected vessel's own router says; each vessel binds one server and one client definition. See [Vessel definitions](02-architecture/Vessel-definitions.md).
 - Nobara, Todo and Megumi use GeckoLib replaced-player renders behind one shared stack; NONE keeps the vanilla player model.
-- Transient combat effects use VfxCue → VfxDirector → character recipes, each registered by its vessel's client definition. Megumi owns `jujutsu.mod.vfx.MegumiVfxIds` and `jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes`; the five `megumi/*` wire ids remain unchanged.
+- Transient combat effects use VfxCue → VfxCuePayload → VfxDirector → character recipes, each registered by its vessel's client definition. The wire contract has eight fields; Nobara owns 21 live ids, Todo 7, Megumi 5, all PLANNED sets are empty, and the total is 33. Megumi owns `jujutsu.mod.vfx.MegumiVfxIds` and `jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes`; the five `megumi/*` wire ids remain unchanged.
 - World transient rendering keeps lifecycle and dispatch in `VfxWorldChannel` while `HairpinWorldEffects`, `BlackFlashWorldEffects`, `SwapWorldEffects`, `ShadowWorldEffects`, and shared `VfxWorldGeometry` own the extracted visual families; the cap remains 48.
+- VFX Core has seven live director channels and three recipe packs. Its extension boundary is architecturally frozen: new channels, packets, callbacks, VFX-specific mixins and lifecycle managers require design review and evidence. The real client/world smoke and PR 8 visual comparison remain separate acceptance gates; see [VFX Core](04-client-vfx/VFX-core.md).
 - `VfxCameraChannel` keeps production wall-clock behavior through `System::currentTimeMillis` while its package-private millisecond supplier seam makes deterministic start, expiry, overlap, clamp, strength, and clear contracts executable without sleeps.
 - A completed Boogie Woogie emits its own cues — afterimage and arrival — which the feint does not, and opens a 24-tick window on Todo's next hit. A landed marker is a reusable anchor; a mark on a body still expires and is still consumed.
 - Loaded ordinary embedded nails use a 1200-tick TTL, a 30-per-owner cap, and EmbeddedNailRegistry.
@@ -43,6 +44,13 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 | Client mixins | 6 |
 | Network payloads | 8 |
 | Nobara VFX ids | 21 |
+| Todo VFX ids | 7 |
+| Megumi VFX ids | 5 |
+| Total live VFX ids | 33 |
+| VFX director channels | 7 |
+| VFX recipe packs | 3 |
+| World visual-family files | 5 |
+| Retained world cap | 48 |
 
 Verification programs counts JavaExec main() programs only. Since the JUnit foundation landed, a test class may instead be a JUnit class run by the standard test task; those are counted under Test Java files and not by that row. Both kinds run inside ./gradlew qualityGate.
 

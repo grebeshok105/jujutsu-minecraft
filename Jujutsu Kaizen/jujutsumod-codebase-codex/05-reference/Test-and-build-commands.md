@@ -5,12 +5,10 @@ Status: CURRENT
 ## Full verification
 
 ```bash
-./gradlew build --no-daemon --rerun-tasks
-python3 tools/audit_docs.py
-git diff --check
+./gradlew qualityGate --no-daemon --max-workers=1 --no-watch-fs
 ```
 
-The build defines custom JavaExec verification programs, each using a main method with assertions enabled by `-ea`. `check` dynamically depends on every one; `./gradlew verifyAssertionsEnabled` is the live inventory (VERIFIED — build.gradle). The standard Gradle test task remains part of build but is not the whole suite.
+`qualityGate` is the only command whose green result may be called verified. It runs `check` (Java 21 compilation, JUnit 5, legacy JavaExec programs), `auditDocumentation`, and `verifyAssertionsEnabled`. The JavaExec inventory remains 31; JUnit 5 classes run through the standard test task and are counted with test Java files.
 
 Focused commands:
 
@@ -23,4 +21,4 @@ Focused commands:
 ./gradlew testTargetResolver testClickGuiDrag --no-daemon
 ```
 
-Use runClient for UI, rendering, mixin, animation, combat-feel, and VFX claims. The docs audit is currently a required local PR check; wiring it into GitHub Actions needs workflow-write permission for the connected integration.
+Use `runClient` for UI, rendering, mixin, animation, combat-feel, and VFX claims. The build gate does not prove a real world, frame or second-player interaction. `docs/BUILDING_IN_SANDBOX.md` owns the full client smoke matrix and the rule that freeze/visual claims require real client evidence.

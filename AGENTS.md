@@ -210,6 +210,8 @@ Contract: Codex note `02-architecture/Vessel-definitions.md`. Procedure: the `ad
 - For each character, add `<Character>VfxIds` and `<Character>VfxRecipes`, then register them from that vessel's `CharacterClientDefinition.registerClientHooks()` — installed once by `JujutsuCharacterClients.registerAll()` at client init, after `VfxDirector.initialize()`.
 - Persistent visuals that follow a real entity/state stay on that entity/state renderer, not a transient timeline.
 - Do not create per-effect receivers, render/HUD callbacks, camera/HUD managers, lifecycle managers, or effect-specific mixins; add a shared director channel only after an approved design shows existing channels are insufficient.
+- VFX Core's architectural boundary is frozen: ordinary character work extends existing id, recipe, transport, channel, world-style, and registry seams. A new channel, packet or wire field, render/HUD callback, VFX-specific mixin, lifecycle manager, data-driven recipe system, client gameplay authority, global client time scaling, custom batching infrastructure, or general typed-cue hierarchy requires separate design review.
+- Reopen frozen internals only with evidence: measurable profiling, reproduced presentation loss at the world cap, systematic multiplayer locality failure, a vessel that cannot use the seven live channels, or a recurring planned-id bottleneck. The canonical rule lives in `Jujutsu Kaizen/jujutsumod-codebase-codex/04-client-vfx/VFX-core.md`; `qualityGate` alone never proves in-world behavior.
 
 ## Dependency Policy
 

@@ -2,9 +2,9 @@
 
 Status: CURRENT LIVE REGISTER
 
-Last code verification: 2026-07-29. Entries carrying a "Verified 2026-07-29" line were re-checked against source on that date. E3, E4, and E6 were last checked on 2026-07-23 and were not re-verified in this pass; treat their detail as older than the rest.
+Last code verification: 2026-07-30. Entries carrying a "Verified 2026-07-30" line were re-checked against source on that date. E3, E4, and E6 retain their older verification dates; treat their detail as older than the rest.
 
-Applies to: main and the active branch refactor/vfx-remove-dead-surface. The earlier branch fix/persistence-nail-lifecycle-docs-sync no longer exists; its work is in main.
+Applies to: current `main` and feature branches derived from it. This register does not carry a temporary branch applicability claim.
 
 Owner hierarchy: current code/tests → AGENTS.md → SESSION.md → Codebase Codex → this register
 
@@ -18,7 +18,7 @@ Resonance intentionally changes the global server tick rate to create hit-stop. 
 
 ### VFX Core does not provide client-global slow motion
 
-Verified 2026-07-29 against the removed `VfxTimeChannel` path, `NobaraVfxRecipes`, and `VfxDirector`.
+Verified 2026-07-30 against the removed `VfxTimeChannel` path, `NobaraVfxRecipes`, and `VfxDirector`.
 
 `VfxTimeChannel` stored a scale and deadline. `dollStrike` and `resonanceRelease` wrote values into it, but no production consumer applied `VfxDirector.timeScale()`, so real client-global slow motion never existed. The channel and its calls are removed as dead API, not replaced with another system. Server-global Resonance hit-stop remains the separate accepted decision above. Client-global slow motion may return only through an independently approved design with an explicitly named consumer and lifecycle.
 
@@ -105,14 +105,14 @@ Widened again 2026-07-26 by the Boogie Woogie impact pass. Nothing in it can be 
 
 Specifically for Todo: no test calls any of the four `tryCast` entry points (`TodoBoogieWoogieRuntime`, `TodoFakeClapRuntime`, `TodoPairSwapRuntime`, `TodoMarkerSwapRuntime`). The Todo tests (`TodoProfileTest`, `TodoSwapPlanTest`, `TodoTargetSafetyTest`, `TodoHandsEmptyTest`, `TodoFakeClapTest`, `TodoPairSwapTest`, `TodoSwapMarkerTest`) cover profile constants, `TodoSwapPlan.preflight` null-handling, boolean truth tables including the shared `TodoSwapGates` clap gate, the pure `TodoPendingSelection` and `TodoSwapMark` predicates, and — for the three newest mechanics — source-text contract assertions rather than behaviour. Nothing constructs a `ServerLevel` or exercises an actual teleport.
 
-The gap widened rather than narrowed with this branch: three whole mechanics landed under it. Untested as a result:
+The gap widened rather than narrowed with the Todo and Megumi slices. Untested as a result:
 
 - real player↔mob and player↔player swap, blocked destinations, second-teleport failure and rollback, velocity / yaw / pitch / head-yaw / fall-distance preservation, the packet path end to end
 - whether the feint clap and the real clap are actually indistinguishable to a second player
 - the pair swap's whole selection lifecycle against a live world — expiry, marked-body death, dimension change, and above all that a STRICT cancellation moves nobody rather than half-applying to a bystander
 - both thrown-mark forms: that a resting marker is discarded on every exit path, and that an entity mark never leaves a glow behind on a body that was glowing for another reason
 
-Action: add narrow server/world tests around the real runtimes — valid swap, blocked destination, second-teleport failure and rollback, motion and rotation preservation, cooldown started on success and not on failure, and one mark-leak test per form. Keep the existing pure tests as fast checks and keep real runClient smoke for graphics-dependent behavior.
+Action: add narrow server/world tests around the real runtimes — valid swap, blocked destination, second-teleport failure and rollback, motion and rotation preservation, cooldown started on success and not on failure, and one mark-leak test per form. Keep the existing pure tests as fast checks and keep real runClient smoke for graphics-dependent behavior. The complete VFX Core smoke matrix is owned by `docs/BUILDING_IN_SANDBOX.md`; PR 9 cannot mark the architecture frozen until that matrix and the PR 8 visual comparison have real evidence.
 
 ### E1a — Ability cooldown survives respawn and resets on disconnect
 
@@ -222,11 +222,11 @@ One vessel-specific line survives in shared code without naming an enum constant
 
 ### E8 — Standard test reporting is weak
 
-Verified 2026-07-28: `./gradlew verifyAssertionsEnabled` is the live inventory of custom JavaExec verification programs.
+Verified 2026-07-30: `./gradlew verifyAssertionsEnabled` is the live inventory of custom JavaExec verification programs.
 
 They use main methods and Java assertions. They are useful and green, but do not provide normal per-test JUnit reports or GameTest world integration — see E1 for the coverage gap that follows from having no world-level tests.
 
-`check` dynamically depends on every verification `JavaExec`; add a program to that group once. Run `./gradlew verifyAssertionsEnabled` whenever the current inventory matters instead of maintaining a count in prose.
+`check` dynamically depends on every verification `JavaExec`; the current inventory is 31. Run `./gradlew verifyAssertionsEnabled` whenever the current inventory matters instead of maintaining a count in prose. New tests should be JUnit 5 by default.
 
 Do not recount it from `./gradlew tasks --group verification`: that group also contains `verifyAssertionsEnabled`, `auditDocumentation` and `qualityGate`, so its listing is not a count of verification programs. `verifyAssertionsEnabled` filters with the same expression the wiring change will use, so its number and the gate's set cannot drift apart.
 

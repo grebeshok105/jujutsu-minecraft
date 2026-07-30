@@ -2,7 +2,7 @@
 
 Status: CURRENT
 
-Two vessels ship (Nobara, Todo) plus NONE, so the shared contracts already exist and were extracted from real code rather than guessed. This note is the procedure for the **third** vessel. Do not invent a further layer of abstraction on top of these seams; extend them.
+Three playable vessels ship (Nobara, Todo, Megumi) plus NONE, so the shared contracts have now been proven by three real kits. This note is the procedure for the **fourth** playable vessel. Do not invent a further layer of abstraction on top of these seams; extend them.
 
 Read [Vessel definitions](../02-architecture/Vessel-definitions.md) first — it is the contract this procedure fills in — then [Vessel render stack](../04-client-vfx/Vessel-render-stack.md) for the drawing half.
 
@@ -20,7 +20,7 @@ Add the constant to `JujutsuCharacter`. This is the step that makes the compiler
 
 Write `<New>Definition implements CharacterDefinition` beside the vessel's runtimes and bind it in `JujutsuCharacters` (one field, one switch arm). Only `id()` and `tryCast` are required; everything else defaults to doing nothing.
 
-- `tryCast` delegates to your own `<New>AbilityRouter`: a slot map over `CharacterAbility`, **exhaustive with no `default`**, answering `false` explicitly on the input positions the vessel does not use — the pattern both shipped routers follow (`NobaraAbilityRouter`, `TodoAbilityRouter`). The shared executor already owns the not-selected and cooldown gates; anything that is yours alone (Nobara's stagger check, her single fallback message) belongs in your router. Do not add a parallel payload per ability; every vessel's abilities arrive over `CharacterAbilityPayload`.
+- `tryCast` delegates to your own `<New>AbilityRouter`: a slot map over all six `CharacterAbility` slots — `PRIMARY`, `PRIMARY_SNEAK`, `SECONDARY`, `SECONDARY_SNEAK`, `ATTACK_CONTEXT`, and `USE_CONTEXT` — **exhaustive with no `default`**, answering `false` explicitly on the input positions the vessel does not use. The existing pattern is `NobaraAbilityRouter`, `TodoAbilityRouter`, and `MegumiAbilityRouter`. The shared executor already owns the not-selected and cooldown gates; anything that is yours alone belongs in your router. Do not add a parallel payload per ability; every vessel's abilities arrive over `CharacterAbilityPayload`.
 - `registerServerHooks()` installs your event-driven runtimes once at mod init. `CharacterDefinitionRegistryTest` reads the expected list off the source tree: a class under your vessel's package exposing `register()` that your definition never calls fails the build.
 - Override `applyAttributes`/`removeAttributes`, `adjustIncomingStaggerTicks`, `onSelected`/`onDeselected`, or `canonicalSlot` (fold two inputs the vessel treats as one, like Todo's Shift+B → B) only if the vessel actually does those things. Clear static state on `SERVER_STOPPING` inside your own runtimes.
 - Put tuning constants in one `<New>Profile` class, following `TodoProfile` / `ProjectJjkNobaraProfile`.
@@ -46,7 +46,7 @@ The card, the theme, the module row, and the renderer map are all derived from t
 | Held items | `CharacterHeldItemLayer<A, R>` | the two hand bone names, nothing else |
 | Animatable | a `GeoReplacedEntity` singleton | animation controllers and the movement/action predicates |
 
-Compare `NobaraPlayerGeoRenderer` and `TodoPlayerGeoRenderer`: each is under 20 lines. If a third vessel needs more than that, the seam is wrong — fix the base class rather than overriding `renderCharacter`, which is `final` on purpose.
+Compare `NobaraPlayerGeoRenderer`, `TodoPlayerGeoRenderer`, and `MegumiPlayerGeoRenderer`: each is under 20 lines. If the next vessel needs more than that, the seam is wrong — fix the base class rather than overriding `renderCharacter`, which is `final` on purpose.
 
 The renderer reaches the game through your client definition's `createRenderer`, not through a switch arm anywhere.
 
@@ -56,7 +56,7 @@ GeckoLib 5 indexes only `assets/<ns>/geckolib/models/**` and `assets/<ns>/geckol
 
 ## 7. Presentation
 
-Add `<New>VfxIds` and `<New>VfxRecipes` and register the pack from your client definition's `registerClientHooks()` — the aggregate `JujutsuVfxRecipes` no longer exists, so the list of who has recipes cannot drift from the list of who exists. Own your cue ids; Todo's reuse of `NobaraVfxIds.BLACK_FLASH` is a known seam, not a pattern to copy (see [Todo Boogie Woogie](../03-systems/Todo-Boogie-Woogie.md)).
+Add `<New>VfxIds` and `<New>VfxRecipes` and register the pack from your client definition's `registerClientHooks()` — the aggregate `JujutsuVfxRecipes` no longer exists, so the list of who has recipes cannot drift from the list of who exists. The VFX Core extension boundary is frozen: use the existing eight-field cue transport, director, seven channels and world-style boundary. Own your cue ids; Todo's reuse of `NobaraVfxIds.BLACK_FLASH` is a known seam, not a pattern to copy (see [Todo Boogie Woogie](../03-systems/Todo-Boogie-Woogie.md)). A new channel, packet, callback, VFX-specific mixin or lifecycle manager needs separate design review and evidence. The operational freeze remains blocked until the real client/world smoke matrix and visual comparison are recorded.
 
 If the vessel needs a first-person hand treatment, add a `VfxFirstPersonChannel.Style` and handle it in `FirstPersonHandFxMixin` — do not add a new mixin for one pose.
 
@@ -66,4 +66,4 @@ Localized strings in both `en_us` and `ru_ru` for every key your `rosterEntry()`
 
 ## 9. Verification
 
-Deterministic unit tests as JavaExec verification programs (add yours to the group and it joins `check` dynamically), plus real `runClient` smoke — rendering, animation, and combat feel are not provable by compilation. `./gradlew verifyAssertionsEnabled` reports the live program inventory. `CharacterDefinitionRegistryTest` and `CharacterClientRegistryTest` already cover the binding itself: that your definitions claim the right constant, that every `register()` under your package is called, and that nothing client-only leaks into `src/main`. Then update SESSION.md for the handoff, AGENTS.md only for durable decisions, and the Codex notes that the change makes stale.
+Write new deterministic tests as JUnit 5; legacy JavaExec programs coexist and the 31-program inventory is audited by `verifyAssertionsEnabled`. Run `./gradlew qualityGate` and then the real `runClient` smoke checklist. Rendering, animation and combat feel are not provable by compilation. `CharacterDefinitionRegistryTest` and `CharacterClientRegistryTest` already cover the binding itself: that your definitions claim the right constant, that every `register()` under your package is called, and that nothing client-only leaks into `src/main`. Then update SESSION.md for the handoff, AGENTS.md only for durable decisions, and the Codex notes that the change makes stale.

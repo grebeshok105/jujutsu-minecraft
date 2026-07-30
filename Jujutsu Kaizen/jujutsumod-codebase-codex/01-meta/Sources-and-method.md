@@ -8,7 +8,7 @@ The repository intentionally retains only current operational documentation. Pro
 
 Validation commands:
 
-- ./gradlew build --no-daemon --rerun-tasks
-- python3 tools/audit_docs.py
+- ./gradlew qualityGate --no-daemon --max-workers=1 --no-watch-fs
+- ./gradlew auditDocumentation --no-daemon --max-workers=1 --no-watch-fs
 - git diff --check
 - runClient for rendering/gameplay claims

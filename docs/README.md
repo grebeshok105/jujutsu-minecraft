@@ -17,10 +17,16 @@ Owned by the root AGENTS.md under "Documentation Authority". If two documents di
 
 ## Maintenance
 
-Run the documentation validator after changing code-derived facts or docs:
+The canonical verification command is:
 
 ```bash
-python3 tools/audit_docs.py
+./gradlew qualityGate --no-daemon --max-workers=1 --no-watch-fs
 ```
 
-The validator checks that only current docs remain, validates local links, rejects stale historical references, and compares current Codebase Codex metrics with the source tree. CI runs the same audit before the Java 21 build.
+It owns the word `verified` and includes `auditDocumentation`, the JUnit suite, legacy JavaExec programs, and the assertion-flag audit. For a documentation-only fast loop, run:
+
+```bash
+./gradlew auditDocumentation --no-daemon --max-workers=1 --no-watch-fs
+```
+
+The audit checks that only current docs remain, validates local links, rejects stale current references, and compares current Codebase Codex metrics with the source tree. Do not claim in-world behavior from this gate; use the client-smoke owner below.

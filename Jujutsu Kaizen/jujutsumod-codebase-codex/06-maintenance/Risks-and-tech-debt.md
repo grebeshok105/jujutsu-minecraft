@@ -17,11 +17,12 @@ The live detailed register is docs/KNOWN_ISSUES.md.
 
 ## Engineering priorities
 
-- Add GameTest/dedicated-server and real runClient smoke coverage. Still open: no `src/gametest` source set exists (VERIFIED).
+- Add GameTest/dedicated-server and real runClient smoke coverage. Still open: no `src/gametest` source set exists (VERIFIED). This remains the blocker for declaring the VFX Core completion freeze.
 - Bound CurseLinkOptionsPayload. Still open: `read` sizes its list from a raw `readVarInt` with no cap (VERIFIED — CurseLinkOptionsPayload.read).
 - Normalize cleanup of remaining static runtime state. Still open in general; Todo's own pending-sound queue is now cleared on SERVER_STOPPING (VERIFIED).
 - Enforce localization parity automatically. The key gap itself is closed — en_us and ru_ru both hold 95 keys with an empty difference (VERIFIED — assets/jujutsumod/lang) — but nothing in `check` compares the two sets, so the next English key will silently drift again. See E5 in docs/KNOWN_ISSUES.md.
 - Profile ClickGui SDF/MSDF batching before optimizing. Still open; note that `Render2D` deliberately flushes SDF per rect, so any profiling must treat that as a correctness constraint, not overhead to remove — see [GUI render pipelines](../04-client-vfx/GUI-render-pipelines.md).
+- VFX Core performance baseline for 1/16/32/48 retained world effects was not collected. No performance claim is made; future optimization requires profiling evidence.
 - Legacy GeckoLib-4 `geo/` assets are dead weight and a naming trap — see [Assets and resources](../02-architecture/Assets-and-resources.md). Deliberately not deleted.
 
 ## Resolved

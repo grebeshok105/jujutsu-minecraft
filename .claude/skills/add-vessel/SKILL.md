@@ -143,7 +143,7 @@ The vessel-switch trigger is `onDeselected`; the rest are your runtime's own lis
 - **Two body textures, not one.** A custom-geo vessel ships both: a vanilla-layout skin driving first-person hands and the roster portrait (`playerSkin()`, used by `CharacterSkinMixin`), and the geo texture the model names. Todo ships `todo.png` and `todo_aoi.png`. Pointing both at one file breaks one of the two paths.
 - **Assets**: `.geo.json` and `.animation.json` go under `assets/<ns>/geckolib/models/**` and `assets/<ns>/geckolib/animations/**`, where every shipped asset lives. The legacy `geo/` tree still exists and is not indexed — see `02-architecture/Assets-and-resources.md` for that trap.
 - **Item assets** are three files each, and missing one shows up as a purple-black cube in game rather than as an error: `assets/<ns>/items/<id>.json`, `assets/<ns>/models/item/<id>.json`, and the texture.
-- **Roster card**: list what your router **actually answers**, in input order, with the real key labels. A card that lies is worse than a card that is short — both shipped cards had drifted and it took a refactor to notice.
+- **Roster card**: list what your router **actually answers**, in input order, with the real key labels. A card that lies is worse than a card that is short — existing cards have drifted before, and it took a refactor to notice.
 - **Strings**: `en_us.json` and `ru_ru.json`, both, for every key the card and every refusal message names.
 
 ## Phase 5 — Testing and in-game smoke

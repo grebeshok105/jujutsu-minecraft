@@ -7,7 +7,7 @@ This project targets Java 21, Minecraft 1.21.8, Gradle 9.5.1, and Fabric Loom. S
 ```bash
 export JAVA_HOME=/path/to/jdk-21
 export PATH="$JAVA_HOME/bin:$PATH"
-./gradlew qualityGate --no-daemon
+./gradlew qualityGate --no-daemon --max-workers=1 --no-watch-fs
 ```
 
 qualityGate is the canonical check and the only command whose green result may be called verified. CI runs this exact task, so a green local run and a green CI run mean the same thing. It is composed of three parts:
@@ -25,7 +25,7 @@ The gate does not build a jar. For the remapped artifact at build/libs/jujutsumo
 For a clean proof rather than an up-to-date result:
 
 ```bash
-./gradlew qualityGate --no-daemon --rerun-tasks
+./gradlew qualityGate --no-daemon --max-workers=1 --no-watch-fs --rerun-tasks
 ```
 
 A green gate proves shape, contracts and pure logic. It proves nothing about behaviour inside a running world — see the client-smoke checklist below.
@@ -88,7 +88,7 @@ This checklist is the owner of the client-smoke scope. It is not automated — n
 
 ### Menu and selection
 
-- N opens ClickGui; the Characters tab lists Nobara, Todo, and None; Soon placeholders stay non-clickable.
+- N opens ClickGui; the Characters tab lists Nobara, Todo, Megumi, and None; Soon placeholders stay non-clickable.
 - Select Todo, confirm it, and check the roster labels are localized rather than raw keys.
 - Reconnect and confirm the selection persisted. Drop or lose a Nobara starter tool, re-select her, and confirm the missing hammer/doll/nails come back — and that tools still held are **not** duplicated. The re-grant on every selection is deliberate and idempotent.
 - Vanilla crosshair is gone the whole time the menu is open, including through the close fade, and is back afterwards. Other HUD elements, third person, and the F3 crosshair are unaffected.
@@ -154,10 +154,65 @@ Nothing in the build teleports anything, so every line here is only checkable in
 
 ### Shared vessel rendering
 
-- Third person: both Nobara and Todo render their GeckoLib vessel model, not the vanilla player model.
-- Held items attach to the correct hand on both vessels, in third person and first person.
+- Third person: Nobara, Todo, and Megumi render their GeckoLib vessel model, not the vanilla player model; None keeps the vanilla player model.
+- Held items attach to the correct hand on all three vessels, in third person and first person.
 - Head look tracks the camera and stays inside the clamp; no pose-stack corruption after ability casts or menu open/close.
 - Todo animations play: idle, walk, attack, and `ability.boogie_woogie` on cast, with the clap SFX at the palm-contact beat.
+- Megumi animations play: idle, walk, attack, and `summon_divine_dogs` on the server-confirmed summon cue.
+
+## Final VFX Core smoke matrix
+
+This is the required real client/world evidence for the architectural freeze. Record `PASS` or `FAIL` for every line. `NOT RUN` is not acceptance and leaves the freeze blocked. A green `qualityGate` is not a substitute for this section.
+
+### Nobara
+
+- hammer horizontal; hammer overhead; prepared nail launch; ordinary impact; local impact sound
+- directed Hairpin; mass Hairpin; enlargement
+- trap placement; trap armed state; short collapse; long collapse; collapse impact
+- Resonance bind; doll strike; Resonance release; server hit-stop
+- Black Flash; Self Resonance
+- short and long collapse both reach the target; server/client trails are not doubled; no effect hangs after completion
+
+### Todo
+
+- real clap; feint clap; aimed swap; pair swap
+- landed marker swap; body marker swap
+- player afterimage dimensions; wide-mob afterimage dimensions
+- arrival streak with velocity; arrival without meaningful velocity
+- local arrival camera only for the displaced participant
+- momentum strike together with Black Flash
+- sound duck deadline restore; menu restore; disconnect restore; level-change restore
+- clap after removal of the legacy fallback
+- landed marker remains a reusable anchor; body marker retains its TTL and is consumed on use
+- feint preserves the accepted sneak-pose tell documented in `KNOWN_ISSUES.md`
+
+### Megumi
+
+- player summon sign
+- first dog shadow-open pool; second dog shadow-open pool
+- recall shadow-close pools
+- Sic marker; accepted pounce impact
+- cooldown HUD appears under the one shared VFX HUD element and does not duplicate
+- materialization/recall use no separate callback; shadow pools disappear after lifetime
+
+### Cross-system
+
+- unknown id logs once and does not crash
+- reconnect clears transient state; dimension change clears transient state
+- reduced particle setting scales recipe particles; minimal particle setting scales recipe particles
+- direct server particles remain a separate budgeting path
+- presentation attenuation does not expect an unreachable radius
+- no VFX path applies gameplay state client-side
+
+## PR 8 visual comparison
+
+The before/after comparison is a separate merge blocker. Use a temporary worktree at baseline `8360db804501d2b9e6332f261ddd68c1c478bd39` and compare with current `11b4d5ae5f3871ef77a58f55533e700fd68d0c27`. Capture the following with the same seed where relevant: `HAMMER_SEND`, `ENLARGE`, `EXPLOSION`, `RITUAL_BIND`, `DOLL_STRIKE`, `RESONANCE_RELEASE`, `BLACK_FLASH`, `BOOGIE_WOOGIE`, `SWAP_AFTERIMAGE`, `SWAP_ARRIVAL` with and without streak, and both Megumi shadow styles. Record style, SHA, seed, approximate frame/progress and visual/manual result. Do not call it pixel-perfect unless it was pixel-compared. The earlier Nail Trap collapse correction is present in both SHAs and is not an allowed difference here.
+
+Current PR 9 status: `NOT RUN`. No Minecraft client/world window or second-player setup was available to the agent, so the freeze remains blocked.
+
+## Performance evidence
+
+No optimization is part of the freeze. If profiling is performed, record frame time and allocation pressure for 1, 16, 32 and 48 retained world effects. The current status is: `Performance baseline not collected. No performance claim is made. Future optimization requires profiling evidence.`
 
 ## Troubleshooting
 
