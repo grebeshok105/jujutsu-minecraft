@@ -13,6 +13,9 @@
 - Snapshot AABB overlap could miss a fast target. Impact now checks endpoint overlap and the target's inflated swept AABB between the previous and current positions.
 - Pounce cleanup used to erase all motion and calculate knockback after cleanup. The runtime now captures pre-impact travel direction, keeps a damped horizontal exit velocity, and resumes navigation only through explicit active runtime transitions.
 - `VfxWorldChannel` fed every shadow pool into one `debugTriangleFan`; multiple pools therefore became one connected primitive. Each pool now emits independent quad sectors through `debugQuads`.
+- Navigation recovery now captures the Sic command identity at launch and calls `moveTo(target, DOG_MOVEMENT_SPEED)` only after ordinary termination or valid contact passes the pure resume policy; generic cleanup never navigates.
+- Post-move policy gives a valid swept impact priority over same-tick landing/collision. Invalid semantic contact receives zero exit motion, while valid contact alone may retain damped horizontal travel. Knockback preserves impact-velocity, positional, then last-steering fallback policy; the current state machine supplies zero for the unreachable third runtime fallback.
+- `MegumiShadowMoteParticle` keeps its sprite, lifetime and sparse accent structure but uses neutral near-black colors and inherited world lighting; the old saturated full-bright accent is removed.
 
 ## Verification
 

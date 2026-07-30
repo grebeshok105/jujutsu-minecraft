@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
 
@@ -71,6 +72,11 @@ final class MegumiPouncePolicyTest {
 		String entity = Files.readString(DOG_ENTITY);
 		assertTrue(entity.contains("private UUID sicTargetUuid;"));
 		assertTrue(entity.contains("private UUID pounceTargetUuid;"));
+		assertTrue(entity.contains("private UUID pounceSicTargetUuid;"));
+		assertTrue(entity.contains("getNavigation().moveTo(target, MegumiProfile.DOG_MOVEMENT_SPEED)"),
+				"Resume must issue a new vanilla path toward the current Sic target");
+		assertFalse(entity.contains("getNavigation().recomputePath()"),
+				"Resume must not rely on recomputePath after navigation.stop()");
 		assertTrue(entity.contains("private long nextPounceReadyGameTime;"));
 		assertTrue(entity.contains("private long pounceDeadlineGameTime;"));
 		assertEquals(2, occurrences(entity, "SynchedEntityData.defineId("),
@@ -94,7 +100,7 @@ final class MegumiPouncePolicyTest {
 		String runtime = Files.readString(RUNTIME);
 		assertTrue(runtime.contains("dog.move(MoverType.SELF"),
 				"No-AI pounce flight must move the dog explicitly");
-		assertTrue(runtime.contains("assignedTarget.getBoundingBox().inflate(0.30).clip"),
+		assertTrue(runtime.contains("MegumiPouncePolicy.sweptTargetHit"),
 				"Impact detection must cover a target crossed between ticks");
 		assertTrue(runtime.contains("POUNCE_EXIT_DAMPING"),
 				"A completed pounce must retain a damped horizontal exit velocity");
@@ -140,6 +146,77 @@ final class MegumiPouncePolicyTest {
 	}
 
 	@Test
+	void sweptImpactAndPostMovePrecedenceArePureAndExplicit() {
+		assertTrue(MegumiPouncePolicy.sweptTargetHit(
+				new AABB(3.8, 0.0, 0.0, 4.8, 1.0, 1.0),
+				new AABB(2.0, 0.0, 0.0, 3.0, 1.0, 1.0),
+				new Vec3(0.5, 0.5, 0.5), new Vec3(4.3, 0.5, 0.5)),
+				"A fast flight crossing must count even when endpoint boxes do not overlap");
+		assertEquals(MegumiPouncePolicy.PostMoveAction.IMPACT,
+				MegumiPouncePolicy.postMoveAction(true, false, false, true, 4));
+		assertEquals(MegumiPouncePolicy.PostMoveAction.FINISH,
+				MegumiPouncePolicy.postMoveAction(false, false, false, true, 4));
+		assertEquals(MegumiPouncePolicy.PostMoveAction.FINISH,
+				MegumiPouncePolicy.postMoveAction(false, true, false, false, 4));
+		assertEquals(MegumiPouncePolicy.PostMoveAction.CONTINUE,
+				MegumiPouncePolicy.postMoveAction(false, false, false, false, 4));
+	}
+
+	@Test
+	void exitMotionAndImpactDirectionKeepInvalidContactsClean() {
+		assertEquals(MegumiPouncePolicy.ExitMotion.DAMPED,
+				MegumiPouncePolicy.exitMotion(true));
+		assertEquals(MegumiPouncePolicy.ExitMotion.ZERO,
+				MegumiPouncePolicy.exitMotion(false));
+
+		assertEquals(new Vec3(1.0, 0.0, 0.0), MegumiPouncePolicy.impactDirection(
+				new Vec3(1.0, 0.7, 0.0), new Vec3(0.0, 0.0, 2.0), new Vec3(0.0, 0.0, 3.0)));
+		assertEquals(new Vec3(0.0, 0.0, 2.0), MegumiPouncePolicy.impactDirection(
+				Vec3.ZERO, new Vec3(0.0, 2.0, 2.0), new Vec3(0.0, 0.0, 3.0)));
+		assertEquals(new Vec3(0.0, 0.0, 3.0), MegumiPouncePolicy.impactDirection(
+				Vec3.ZERO, Vec3.ZERO, new Vec3(0.0, 0.0, 3.0)));
+		assertEquals(Vec3.ZERO, MegumiPouncePolicy.impactDirection(Vec3.ZERO, Vec3.ZERO, Vec3.ZERO));
+	}
+
+	@Test
+	void resumeRequiresTheOriginalCommandAndAStillEligibleTarget() throws Exception {
+		MegumiPouncePolicy.ResumeFacts valid = resumeFacts();
+		assertTrue(MegumiPouncePolicy.canResumeNavigation(valid));
+		assertFalse(MegumiPouncePolicy.canResumeNavigation(
+				new MegumiPouncePolicy.ResumeFacts(true, true, MegumiPouncePolicy.ResumeTermination.ORDINARY,
+						true, true, false, true, true)));
+		assertFalse(MegumiPouncePolicy.canResumeNavigation(
+				new MegumiPouncePolicy.ResumeFacts(false, false, MegumiPouncePolicy.ResumeTermination.ORDINARY,
+						true, true, false, true, true)));
+		assertFalse(MegumiPouncePolicy.canResumeNavigation(
+				new MegumiPouncePolicy.ResumeFacts(false, true, MegumiPouncePolicy.ResumeTermination.CLEANUP,
+						true, true, false, true, true)));
+		assertFalse(MegumiPouncePolicy.canResumeNavigation(
+				new MegumiPouncePolicy.ResumeFacts(false, true, MegumiPouncePolicy.ResumeTermination.ORDINARY,
+						false, true, false, true, true)));
+		assertFalse(MegumiPouncePolicy.canResumeNavigation(
+				new MegumiPouncePolicy.ResumeFacts(false, true, MegumiPouncePolicy.ResumeTermination.ORDINARY,
+						true, false, false, true, true)));
+		assertFalse(MegumiPouncePolicy.canResumeNavigation(
+				new MegumiPouncePolicy.ResumeFacts(false, true, MegumiPouncePolicy.ResumeTermination.ORDINARY,
+						true, true, true, true, true)));
+		assertFalse(MegumiPouncePolicy.canResumeNavigation(
+				new MegumiPouncePolicy.ResumeFacts(false, true, MegumiPouncePolicy.ResumeTermination.ORDINARY,
+						true, true, false, false, true)));
+		assertFalse(MegumiPouncePolicy.canResumeNavigation(
+				new MegumiPouncePolicy.ResumeFacts(false, true, MegumiPouncePolicy.ResumeTermination.ORDINARY,
+						true, true, false, true, false)));
+
+		String entity = Files.readString(DOG_ENTITY);
+		String cleanup = entity.substring(
+				entity.indexOf("void finishPounce(Vec3 exitVelocity)"),
+				entity.indexOf("UUID pounceSicTargetUuid()"));
+		assertFalse(cleanup.contains("moveTo"));
+		assertFalse(cleanup.contains("recomputePath"));
+		assertFalse(cleanup.contains("resumeNavigation"));
+	}
+
+	@Test
 	void inFlightInvalidationChoosesExactlyHowToCancel() {
 		assertAction(MegumiPouncePolicy.InFlightAction.CONTINUE, inFlightFacts());
 		assertAction(MegumiPouncePolicy.InFlightAction.CLEAR_SIC,
@@ -169,6 +246,12 @@ final class MegumiPouncePolicyTest {
 
 	private static MegumiPouncePolicy.InFlightFacts inFlightFacts() {
 		return new MegumiPouncePolicy.InFlightFacts(true, true, true, true, true, true, true, false);
+	}
+
+	private static MegumiPouncePolicy.ResumeFacts resumeFacts() {
+		return new MegumiPouncePolicy.ResumeFacts(
+				false, true, MegumiPouncePolicy.ResumeTermination.ORDINARY,
+				true, true, false, true, true);
 	}
 
 	private static void assertAction(

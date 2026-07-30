@@ -46,6 +46,7 @@ public final class MegumiDivineDogEntity extends Wolf {
 	private ResourceKey<Level> recallDimension;
 	private UUID sicTargetUuid;
 	private UUID pounceTargetUuid;
+	private UUID pounceSicTargetUuid;
 	private long nextPounceReadyGameTime;
 	private long pounceStartedGameTime;
 	private long pounceDeadlineGameTime;
@@ -156,6 +157,7 @@ public final class MegumiDivineDogEntity extends Wolf {
 
 	void launchPounce(LivingEntity target, long gameTime, Vec3 velocity) {
 		pounceTargetUuid = target.getUUID();
+		pounceSicTargetUuid = sicTargetUuid;
 		pounceStartedGameTime = gameTime;
 		pounceDeadlineGameTime = gameTime + MegumiProfile.POUNCE_TIMEOUT_TICKS;
 		nextPounceReadyGameTime = gameTime + MegumiProfile.POUNCE_COOLDOWN_TICKS;
@@ -171,6 +173,7 @@ public final class MegumiDivineDogEntity extends Wolf {
 
 	void finishPounce(Vec3 exitVelocity) {
 		pounceTargetUuid = null;
+		pounceSicTargetUuid = null;
 		pounceStartedGameTime = 0L;
 		pounceDeadlineGameTime = 0L;
 		setDeltaMovement(exitVelocity);
@@ -180,9 +183,13 @@ public final class MegumiDivineDogEntity extends Wolf {
 		}
 	}
 
-	void resumeNavigation() {
+	UUID pounceSicTargetUuid() {
+		return pounceSicTargetUuid;
+	}
+
+	void resumeNavigation(LivingEntity target) {
 		if (!isRemoved() && presentationPhase() == MegumiDogPresentationPolicy.Phase.ACTIVE) {
-			getNavigation().recomputePath();
+			getNavigation().moveTo(target, MegumiProfile.DOG_MOVEMENT_SPEED);
 		}
 	}
 

@@ -1,6 +1,7 @@
 package jujutsu.mod.character.megumi;
 
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.AABB;
 
 /** Pure server gate for one dog's Sic-only pounce. */
 final class MegumiPouncePolicy {
@@ -44,6 +45,47 @@ final class MegumiPouncePolicy {
 		}
 		return horizontal.normalize().scale(MegumiProfile.POUNCE_HORIZONTAL_SPEED)
 				.add(0.0, currentVelocity.y, 0.0);
+	}
+
+	static boolean sweptTargetHit(AABB dogBox, AABB targetBox, Vec3 previousPosition, Vec3 currentPosition) {
+		return dogBox.inflate(0.30).intersects(targetBox)
+				|| targetBox.inflate(0.30).clip(previousPosition, currentPosition).isPresent();
+	}
+
+	static PostMoveAction postMoveAction(
+			boolean crossedTarget, boolean horizontalCollision, boolean verticalCollision,
+			boolean onGround, int elapsedTicks) {
+		if (crossedTarget) {
+			return PostMoveAction.IMPACT;
+		}
+		return flightAction(horizontalCollision, verticalCollision, onGround, elapsedTicks)
+				== FlightAction.FINISH_POUNCE ? PostMoveAction.FINISH : PostMoveAction.CONTINUE;
+	}
+
+	static ExitMotion exitMotion(boolean validContact) {
+		return validContact ? ExitMotion.DAMPED : ExitMotion.ZERO;
+	}
+
+	static Vec3 impactDirection(Vec3 impactVelocity, Vec3 positionalDirection, Vec3 lastSteeringDirection) {
+		Vec3[] candidates = {impactVelocity, positionalDirection, lastSteeringDirection};
+		for (Vec3 candidate : candidates) {
+			Vec3 horizontal = new Vec3(candidate.x, 0.0, candidate.z);
+			if (horizontal.lengthSqr() > 1.0E-6) {
+				return horizontal;
+			}
+		}
+		return Vec3.ZERO;
+	}
+
+	static boolean canResumeNavigation(ResumeFacts facts) {
+		return !facts.removed()
+				&& facts.active()
+				&& facts.termination().allowsResume()
+				&& facts.sicCommandCurrent()
+				&& facts.targetAlive()
+				&& !facts.targetRemoved()
+				&& facts.targetSameLevel()
+				&& facts.targetEligible();
 	}
 
 	static FlightAction flightAction(
@@ -98,4 +140,41 @@ final class MegumiPouncePolicy {
 		FINISH_POUNCE,
 		CONTINUE
 	}
+
+	enum PostMoveAction {
+		IMPACT,
+		FINISH,
+		CONTINUE
+	}
+
+	enum ExitMotion {
+		ZERO,
+		DAMPED
+	}
+
+	enum ResumeTermination {
+		ORDINARY(true),
+		VALID_CONTACT(true),
+		CLEANUP(false);
+
+		private final boolean allowsResume;
+
+		ResumeTermination(boolean allowsResume) {
+			this.allowsResume = allowsResume;
+		}
+
+		boolean allowsResume() {
+			return allowsResume;
+		}
+	}
+
+	record ResumeFacts(
+			boolean removed,
+			boolean active,
+			ResumeTermination termination,
+			boolean sicCommandCurrent,
+			boolean targetAlive,
+			boolean targetRemoved,
+			boolean targetSameLevel,
+			boolean targetEligible) {}
 }

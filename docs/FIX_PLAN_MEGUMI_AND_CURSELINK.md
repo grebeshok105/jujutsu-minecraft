@@ -6,7 +6,7 @@ Execution order follows the issue priority: #30 and #31 as one investigation (sp
 
 ## Revision 3 — PR A implementation
 
-The diagnostic session confirmed that `setNoAi(true)` did not move the dog and that shared `debugTriangleFan` batching joined separate shadow pools. The active implementation now owns pounce movement with explicit gravity and `MoverType.SELF`, uses a swept target check, captures pre-impact travel direction, preserves damped exit motion, resumes navigation only from runtime termination transitions, and renders each shadow pool from independent `debugQuads` sectors. The temporary `MEGUMI_DIAG` logging is removed before packaging. In-world smoke remains separate from `qualityGate`; the user performed the diagnostic smoke, while final post-fix gameplay confirmation is still pending.
+The diagnostic session confirmed that `setNoAi(true)` did not move the dog and that shared `debugTriangleFan` batching joined separate shadow pools. The active implementation now owns pounce movement with explicit gravity and `MoverType.SELF`, uses a swept target check with impact-before-landing precedence, captures pre-impact travel direction, allows damped exit motion only for valid contact, resumes navigation only from a pure command/target eligibility policy through direct `moveTo(target, speed)`, and renders each shadow pool from independent `debugQuads` sectors. The shadow mote keeps its existing sprite and lifetime but no longer uses saturated full-bright teal. The temporary `MEGUMI_DIAG` logging is removed before packaging. In-world smoke remains separate from `qualityGate`; the user performed the diagnostic smoke, while final post-fix gameplay confirmation is still pending.
 
 ## Revision 2 — review corrections applied
 

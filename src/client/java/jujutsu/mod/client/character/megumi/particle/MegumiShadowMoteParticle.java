@@ -8,7 +8,7 @@ import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.client.particle.TextureSheetParticle;
 import net.minecraft.core.particles.SimpleParticleType;
 
-/** A short-lived shadow mote: mostly dark, with sparse full-bright teal sparks inside the cloud. */
+/** A short-lived shadow mote: mostly black, with sparse neutral dark-gray edge motes. */
 public final class MegumiShadowMoteParticle extends TextureSheetParticle {
 	private final SpriteSet sprites;
 	private final boolean accent;
@@ -22,10 +22,10 @@ public final class MegumiShadowMoteParticle extends TextureSheetParticle {
 		gravity = 0.025f;
 		hasPhysics = false;
 		quadSize = 0.035f + random.nextFloat() * 0.035f;
-		rCol = accent ? 0.10f : 0.015f;
-		gCol = accent ? 0.92f : 0.10f;
-		bCol = accent ? 0.80f : 0.09f;
-		alpha = accent ? 0.95f : 0.66f;
+		rCol = accent ? 0.045f : 0.015f;
+		gCol = accent ? 0.045f : 0.015f;
+		bCol = accent ? 0.045f : 0.015f;
+		alpha = accent ? 0.72f : 0.66f;
 		setSpriteFromAge(sprites);
 	}
 
@@ -40,7 +40,7 @@ public final class MegumiShadowMoteParticle extends TextureSheetParticle {
 
 	@Override
 	public int getLightColor(float partialTick) {
-		return accent ? 0xF000F0 : super.getLightColor(partialTick);
+		return super.getLightColor(partialTick);
 	}
 
 	@Override

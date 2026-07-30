@@ -1,6 +1,7 @@
 package jujutsu.mod.client.character.megumi;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
@@ -73,8 +74,13 @@ class MegumiShadowPresentationTest {
 		assertTrue(definition.contains("ParticleFactoryRegistry.getInstance().register(JujutsuParticles.MEGUMI_SHADOW_MOTE"),
 				"Megumi owns his client particle provider registration");
 		assertTrue(Files.isRegularFile(MOTE));
-		assertTrue(Files.readString(MOTE).contains("getLightColor"),
-				"The neon-teal accent must stay full-bright");
+		String mote = Files.readString(MOTE);
+		assertTrue(mote.contains("return super.getLightColor(partialTick);"),
+				"Shadow motes must use world lighting instead of full-bright rendering");
+		assertTrue(mote.contains("rCol = accent ? 0.045f : 0.015f"),
+				"Accent motes must remain neutral near-black");
+		assertFalse(mote.contains("0xF000F0"), "Shadow motes must not force full-bright lighting");
+		assertFalse(mote.contains("0.92f"), "Shadow motes must not retain the saturated teal accent");
 		assertTrue(Files.isRegularFile(MOTE_JSON));
 		assertTrue(Files.readString(MOTE_JSON).contains("jujutsumod:hairpin_spark"));
 		assertTrue(Files.isRegularFile(REUSED_SPRITE));
