@@ -26,6 +26,7 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 - Shared input slots — R, Shift+R, B, Shift+B, and left click with a technique weapon — mean whatever the selected vessel's own router says; each vessel binds one server and one client definition. See [Vessel definitions](02-architecture/Vessel-definitions.md).
 - Nobara, Todo and Megumi use GeckoLib replaced-player renders behind one shared stack; NONE keeps the vanilla player model.
 - Transient combat effects use VfxCue → VfxDirector → character recipes, each registered by its vessel's client definition. Megumi owns `jujutsu.mod.vfx.MegumiVfxIds` and `jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes`; the five `megumi/*` wire ids remain unchanged.
+- World transient rendering keeps lifecycle and dispatch in `VfxWorldChannel` while `HairpinWorldEffects`, `BlackFlashWorldEffects`, `SwapWorldEffects`, `ShadowWorldEffects`, and shared `VfxWorldGeometry` own the extracted visual families; the cap remains 48.
 - `VfxCameraChannel` keeps production wall-clock behavior through `System::currentTimeMillis` while its package-private millisecond supplier seam makes deterministic start, expiry, overlap, clamp, strength, and clear contracts executable without sleeps.
 - A completed Boogie Woogie emits its own cues — afterimage and arrival — which the feint does not, and opens a 24-tick window on Todo's next hit. A landed marker is a reusable anchor; a mark on a body still expires and is still consumed.
 - Loaded ordinary embedded nails use a 1200-tick TTL, a 30-per-owner cap, and EmbeddedNailRegistry.
@@ -36,9 +37,9 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 | Metric | Value |
 |---|---:|
 | Main Java files | 117 |
-| Client Java files | 175 |
-| Test Java files | 64 |
-| Verification programs | 32 |
+| Client Java files | 180 |
+| Test Java files | 67 |
+| Verification programs | 31 |
 | Client mixins | 6 |
 | Network payloads | 8 |
 | Nobara VFX ids | 21 |

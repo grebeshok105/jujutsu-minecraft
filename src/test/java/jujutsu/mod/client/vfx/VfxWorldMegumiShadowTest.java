@@ -18,15 +18,6 @@ class VfxWorldMegumiShadowTest {
 	void shadowPoolsStayWorldFixedOpaqueBoundedAndClearWithTheSharedChannel() throws Exception {
 		assertTrue(VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN.isWorldFixed());
 		assertTrue(VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_CLOSE.isWorldFixed());
-		assertEquals(0.26f, VfxWorldChannel.shadowPoolRadius(true, 0.0f));
-		assertEquals(0.94f, VfxWorldChannel.shadowPoolRadius(true, 1.0f));
-		assertEquals(0.94f, VfxWorldChannel.shadowPoolRadius(false, 0.0f));
-		assertEquals(0.26f, VfxWorldChannel.shadowPoolRadius(false, 1.0f));
-		assertEquals(0.88f, VfxWorldChannel.shadowPoolOpacity(true, 0.0f));
-		assertEquals(0.96f, VfxWorldChannel.shadowPoolOpacity(true, 1.0f));
-		assertEquals(0.96f, VfxWorldChannel.shadowPoolOpacity(false, 0.0f));
-		assertEquals(0.0f, VfxWorldChannel.shadowPoolOpacity(false, 1.0f));
-
 		String source = Files.readString(WORLD_CHANNEL);
 		assertTrue(source.contains("RenderType.debugTriangleFan()"),
 				"Megumi's pool must use an opaque, untextured world layer instead of additive lightning");

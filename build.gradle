@@ -365,16 +365,6 @@ tasks.register('testVfxSoundDuck', JavaExec) {
 	jvmArgs '-ea'
 }
 
-tasks.register('testVfxSilhouette', JavaExec) {
-	group = 'verification'
-	description = 'Runs assertion-based tests for swap afterimage silhouette geometry'
-	dependsOn tasks.named('testClasses')
-	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'jujutsu.mod.client.vfx.VfxWorldSilhouetteTest'
-	maxHeapSize = '128m'
-	jvmArgs '-ea'
-}
-
 tasks.named('check') {
 	dependsOn tasks.withType(JavaExec).matching {
 		it.group == 'verification'
