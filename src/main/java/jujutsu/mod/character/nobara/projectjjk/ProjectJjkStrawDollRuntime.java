@@ -29,6 +29,7 @@ import jujutsu.mod.registry.JujutsuDataComponents;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.vfx.NobaraVfxIds;
 import jujutsu.mod.vfx.VfxCue;
+import jujutsu.mod.vfx.VfxCues;
 import jujutsu.mod.combat.CombatStagger;
 
 public final class ProjectJjkStrawDollRuntime {
@@ -367,16 +368,8 @@ public final class ProjectJjkStrawDollRuntime {
 			long gameTime,
 			Entity anchor
 	) {
-		return new VfxCue(
-				effectId,
-				origin,
-				anchor.getId(),
-				origin.subtract(anchor.position()),
-				Math.max(1, intensity),
-				gameTime,
-				level.random.nextLong(),
-				Vec3.ZERO
-		);
+		return VfxCues.anchored(effectId, origin, anchor.getId(), anchor.position(), intensity, gameTime,
+				level.random.nextLong());
 	}
 
 	/** Unanchored cue: world geometry stays at the immutable origin for the whole lifetime. */
@@ -387,16 +380,7 @@ public final class ProjectJjkStrawDollRuntime {
 			Vec3 origin,
 			long gameTime
 	) {
-		return new VfxCue(
-				effectId,
-				origin,
-				VfxCue.NO_ANCHOR,
-				Vec3.ZERO,
-				Math.max(1, intensity),
-				gameTime,
-				level.random.nextLong(),
-				Vec3.ZERO
-		);
+		return VfxCues.worldFixed(effectId, origin, intensity, gameTime, level.random.nextLong());
 	}
 
 	private record PendingRitual(UUID casterId, ProjectJjkResonanceRemnant remnant, long dueGameTime) {}

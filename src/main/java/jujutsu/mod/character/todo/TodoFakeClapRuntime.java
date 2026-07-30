@@ -9,7 +9,7 @@ import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.vfx.TodoVfxIds;
-import jujutsu.mod.vfx.VfxCue;
+import jujutsu.mod.vfx.VfxCues;
 
 /**
  * The feint: a complete Boogie Woogie clap that moves nobody.
@@ -50,8 +50,9 @@ public final class TodoFakeClapRuntime {
 		// where the caster looks. Matching that keeps the cues alike even to a future recipe that reads the
 		// field -- and note the likeness depends on VfxCue keeping that normalization.
 		TodoBoogieWoogieRuntime.emitClapPerformance(level, todo, origin, todo.getLookAngle());
-		JujutsuNetworking.sendVfxCue(todo, new VfxCue(TodoVfxIds.FEINT_TELL, origin, todo.getId(), Vec3.ZERO, 1,
-				level.getGameTime(), todo.getRandom().nextLong(), Vec3.ZERO));
+		JujutsuNetworking.sendVfxCue(todo,
+				VfxCues.anchored(TodoVfxIds.FEINT_TELL, origin, todo.getId(), todo.position(), 1,
+						level.getGameTime(), todo.getRandom().nextLong()));
 		JujutsuMod.LOGGER.debug("Todo feint clap player={} at={}", todo.getGameProfile().getName(), origin);
 		return true;
 	}

@@ -22,7 +22,7 @@ import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.vfx.TodoVfxIds;
-import jujutsu.mod.vfx.VfxCue;
+import jujutsu.mod.vfx.VfxCues;
 
 /**
  * Boogie Woogie on two bystanders: Todo claps and two other bodies trade places while he stays put.
@@ -89,8 +89,9 @@ public final class TodoPairSwapRuntime {
 		PENDING.put(todo.getUUID(), new TodoPendingSelection(level.dimension(), aimed.getUUID(), aimed.getId(),
 				level.getGameTime() + TodoProfile.PAIR_SELECTION_TTL_TICKS));
 		// Caster-only, and it is the only feedback: nobody else may learn who has been marked.
-		JujutsuNetworking.sendVfxCue(todo, new VfxCue(TodoVfxIds.PAIR_MARK, aimed.position(), aimed.getId(), Vec3.ZERO, 1,
-				level.getGameTime(), todo.getRandom().nextLong(), Vec3.ZERO));
+		JujutsuNetworking.sendVfxCue(todo,
+				VfxCues.anchored(TodoVfxIds.PAIR_MARK, aimed.position(), aimed.getId(), aimed.position(), 1,
+						level.getGameTime(), todo.getRandom().nextLong()));
 		if (notify) {
 			todo.displayClientMessage(Component.translatable("message.jujutsumod.todo.pair.marked", aimed.getDisplayName()), true);
 		}

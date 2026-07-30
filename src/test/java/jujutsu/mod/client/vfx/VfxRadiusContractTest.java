@@ -9,7 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import jujutsu.mod.character.megumi.vfx.MegumiVfxIds;
+import jujutsu.mod.vfx.MegumiVfxIds;
 import jujutsu.mod.character.megumi.MegumiProfile;
 import jujutsu.mod.client.vfx.nobara.NobaraVfxRecipes;
 import jujutsu.mod.client.vfx.todo.TodoVfxRecipes;

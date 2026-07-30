@@ -18,17 +18,9 @@ public final class TodoAnimationHooks {
 		if (client.level == null) {
 			return;
 		}
-		Entity entity = null;
-		if (cue.anchorEntityId() != VfxCue.NO_ANCHOR) {
-			entity = client.level.getEntity(cue.anchorEntityId());
-		}
-		if (entity == null && client.player != null) {
-			// Fallback: local caster when cue is nearby (legacy NO_ANCHOR broadcasts).
-			double distance = client.player.position().distanceToSqr(cue.origin());
-			if (distance <= 4.0) {
-				entity = client.player;
-			}
-		}
+		Entity entity = cue.anchorEntityId() == VfxCue.NO_ANCHOR
+				? null
+				: client.level.getEntity(cue.anchorEntityId());
 		if (entity != null) {
 			TodoPlayerGeoAnimatable.INSTANCE.triggerAction(entity, TodoPlayerGeoAnimatable.BOOGIE_WOOGIE_ANIM);
 		}

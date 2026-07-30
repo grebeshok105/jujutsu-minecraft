@@ -14,7 +14,7 @@ import jujutsu.mod.vfx.NobaraVfxIds;
 import jujutsu.mod.combat.BlackFlashStrike;
 import jujutsu.mod.combat.JujutsuDamageSources;
 import jujutsu.mod.network.JujutsuNetworking;
-import jujutsu.mod.vfx.VfxCue;
+import jujutsu.mod.vfx.VfxCues;
 
 /** Bridges Todo's vanilla melee hits into the existing Black Flash focus, damage, stagger, and VFX path. */
 public final class TodoBlackFlashRuntime {
@@ -52,7 +52,7 @@ public final class TodoBlackFlashRuntime {
 				2.0);
 		Vec3 origin = BlackFlashStrike.impactOrigin(target);
 		JujutsuNetworking.broadcastVfxCue(todo.level(), origin, TodoProfile.BLACK_FLASH_VFX_DELIVERY_RADIUS,
-				new VfxCue(NobaraVfxIds.BLACK_FLASH, origin, VfxCue.NO_ANCHOR, Vec3.ZERO, 2,
+				VfxCues.worldFixedDirected(NobaraVfxIds.BLACK_FLASH, origin, 2,
 						todo.level().getGameTime(), todo.getRandom().nextLong(), todo.getLookAngle()));
 	}
 }

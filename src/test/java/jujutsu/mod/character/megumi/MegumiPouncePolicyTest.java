@@ -17,9 +17,9 @@ final class MegumiPouncePolicyTest {
 	private static final Path DOG_ENTITY = Path.of(
 			"src/main/java/jujutsu/mod/character/megumi/MegumiDivineDogEntity.java");
 	private static final Path VFX_IDS = Path.of(
-			"src/main/java/jujutsu/mod/character/megumi/vfx/MegumiVfxIds.java");
+			"src/main/java/jujutsu/mod/vfx/MegumiVfxIds.java");
 	private static final Path VFX_RECIPES = Path.of(
-			"src/client/java/jujutsu/mod/client/character/megumi/vfx/MegumiVfxRecipes.java");
+			"src/client/java/jujutsu/mod/client/vfx/megumi/MegumiVfxRecipes.java");
 
 	@Test
 	void launchRequiresTheExactValidSicTargetAndEveryServerGate() {

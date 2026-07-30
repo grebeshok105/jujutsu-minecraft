@@ -12,7 +12,7 @@ import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.vfx.TodoVfxIds;
-import jujutsu.mod.vfx.VfxCue;
+import jujutsu.mod.vfx.VfxCues;
 
 /**
  * Marking a body by hand: two right clicks put the swap mark on whoever is under the crosshair.
@@ -59,8 +59,8 @@ public final class TodoEntityMarkRuntime {
 		JujutsuNetworking.sendAbilityCooldown(todo, CharacterAbility.USE_CONTEXT, TodoProfile.ENTITY_MARK_COOLDOWN_TICKS);
 		Vec3 origin = target.position();
 		JujutsuNetworking.broadcastVfxCue(level, origin, TodoProfile.VFX_DELIVERY_RADIUS,
-				new VfxCue(TodoVfxIds.PAIR_MARK, origin, target.getId(), Vec3.ZERO, 1, level.getGameTime(),
-						todo.getRandom().nextLong(), Vec3.ZERO));
+				VfxCues.anchored(TodoVfxIds.PAIR_MARK, origin, target.getId(), target.position(), 1,
+						level.getGameTime(), todo.getRandom().nextLong()));
 		if (notify) {
 			todo.displayClientMessage(
 					Component.translatable("message.jujutsumod.todo.mark.placed", target.getDisplayName()), true);

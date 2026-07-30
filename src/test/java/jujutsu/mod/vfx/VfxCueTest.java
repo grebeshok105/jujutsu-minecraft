@@ -71,14 +71,14 @@ final class VfxCueTest {
 				"todo/swap_afterimage", "todo/swap_arrival", "todo/momentum_strike"), paths(TodoVfxIds.LIVE));
 		assertEquals(Set.of(
 				"megumi/dogs_summon_body", "megumi/dogs_summon", "megumi/dogs_recall", "megumi/dogs_sic",
-				"megumi/dogs_pounce"), paths(jujutsu.mod.character.megumi.vfx.MegumiVfxIds.LIVE));
+				"megumi/dogs_pounce"), paths(MegumiVfxIds.LIVE));
 	}
 
 	@Test
 	void plannedSetsAreEmptyForTheCurrentSlice() {
 		assertTrue(NobaraVfxIds.PLANNED.isEmpty());
 		assertTrue(TodoVfxIds.PLANNED.isEmpty());
-		assertTrue(jujutsu.mod.character.megumi.vfx.MegumiVfxIds.PLANNED.isEmpty());
+		assertTrue(MegumiVfxIds.PLANNED.isEmpty());
 	}
 
 	private static VfxCue roundTrip(VfxCue expected) {

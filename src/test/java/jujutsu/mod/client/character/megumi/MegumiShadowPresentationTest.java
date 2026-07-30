@@ -11,7 +11,7 @@ class MegumiShadowPresentationTest {
 	private static final Path SUMMON_RUNTIME = Path.of(
 			"src/main/java/jujutsu/mod/character/megumi/MegumiSummonRuntime.java");
 	private static final Path RECIPES = Path.of(
-			"src/client/java/jujutsu/mod/client/character/megumi/vfx/MegumiVfxRecipes.java");
+			"src/client/java/jujutsu/mod/client/vfx/megumi/MegumiVfxRecipes.java");
 	private static final Path PARTICLES = Path.of("src/main/java/jujutsu/mod/registry/JujutsuParticles.java");
 	private static final Path CLIENT_DEFINITION = Path.of(
 			"src/client/java/jujutsu/mod/client/character/megumi/MegumiClientDefinition.java");

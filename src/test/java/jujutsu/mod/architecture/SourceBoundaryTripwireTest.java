@@ -96,9 +96,9 @@ class SourceBoundaryTripwireTest {
 	@Test
 	void vesselPackageClassifierAcceptsOnlyRegisteredVesselRoots() {
 		assertTrue(isInsideVesselPackage(Path.of("src/main/java/jujutsu/mod/character/megumi/MegumiProfile.java"), "megumi"));
-		assertTrue(isInsideVesselPackage(Path.of("src\\main\\java\\jujutsu\\mod\\character\\megumi\\vfx\\MegumiVfxIds.java"), "megumi"));
+		assertTrue(!isInsideVesselPackage(Path.of("src\\main\\java\\jujutsu\\mod\\vfx\\MegumiVfxIds.java"), "megumi"));
 		assertTrue(isInsideVesselPackage(Path.of("src/client/java/jujutsu/mod/client/character/megumi/MegumiClientDefinition.java"), "megumi"));
-		assertTrue(isInsideVesselPackage(Path.of("src\\client\\java\\jujutsu\\mod\\client\\character\\megumi\\vfx\\MegumiVfxRecipes.java"), "megumi"));
+		assertTrue(isInsideVesselPackage(Path.of("src\\client\\java\\jujutsu\\mod\\client\\vfx\\megumi\\MegumiVfxRecipes.java"), "megumi"));
 		assertTrue(isInsideVesselPackage(Path.of("src/client/java/jujutsu/mod/client/character/megumi/particle/MegumiShadowMoteParticle.java"), "megumi"));
 		assertTrue(isInsideVesselPackage(Path.of("src\\client\\java\\jujutsu\\mod\\client\\render\\megumi\\MegumiDivineDogRenderer.java"), "megumi"));
 		assertTrue(isInsideVesselPackage(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraProfile.java"), "nobara"));

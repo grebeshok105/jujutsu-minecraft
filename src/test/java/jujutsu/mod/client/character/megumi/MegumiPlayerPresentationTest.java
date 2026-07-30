@@ -35,7 +35,7 @@ class MegumiPlayerPresentationTest {
 	private static final Path SUMMON_RUNTIME_SOURCE = Path.of(
 			"src/main/java/jujutsu/mod/character/megumi/MegumiSummonRuntime.java");
 	private static final Path VFX_RECIPES_SOURCE = Path.of(
-			"src/client/java/jujutsu/mod/client/character/megumi/vfx/MegumiVfxRecipes.java");
+			"src/client/java/jujutsu/mod/client/vfx/megumi/MegumiVfxRecipes.java");
 
 	@Test
 	void runtimeAssetsExposeTheApprovedRigAndClips() throws Exception {
