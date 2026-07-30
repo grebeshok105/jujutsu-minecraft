@@ -2,6 +2,24 @@
 
 Status: CURRENT
 
+## World Rendering Split
+
+PR 8 keeps `VfxWorldChannel` as the lifecycle owner and exhaustive dispatcher. It retains the bounded `impactFlashes` list, `MAX_IMPACT_FLASHES = 48`, age/expiry/progress/fade calculation, anchor resolution, camera-relative center, intensity normalization, both world buffer acquisitions, `ImpactStyle`, and `worldFixed` ownership.
+
+World style ownership is split into five files under `client/vfx/world`:
+
+| Styles | Owner |
+|---|---|
+| `HAMMER_SEND`, `ENLARGE`, `EXPLOSION`, `RITUAL_BIND`, `DOLL_STRIKE`, `RESONANCE_RELEASE` | `HairpinWorldEffects` |
+| `BLACK_FLASH` | `BlackFlashWorldEffects` |
+| `BOOGIE_WOOGIE`, `SWAP_AFTERIMAGE`, `SWAP_ARRIVAL` | `SwapWorldEffects` |
+| `MEGUMI_SHADOW_OPEN`, `MEGUMI_SHADOW_CLOSE` | `ShadowWorldEffects` |
+| `UP`, `EAST`, `NORTH`, `sideVector`, `directionalBasis`, `addRibbon`, `renderDirectionalRing` | `VfxWorldGeometry` |
+
+The extraction is mechanical: visual constants, geometry formulas, seed mixing, segment counts, curves, RenderTypes, and vertex order are unchanged. `TodoSwapArrivalPayload.from(cue)` remains the named read model for arrival dimensions and direction. Pure world math is covered by `SwapWorldEffectsTest`, `ShadowWorldEffectsTest`, and `VfxWorldGeometryTest`; lifecycle, cap, ownership, and dispatch are covered by `VfxWorldSplitContractTest`.
+
+The nine temporary red mutations for cap, `worldFixed`, dispatch, family routing, silhouette math, shadow curves, basis fallback, ribbon order, and family-owned lifecycle all failed their focused contracts and were restored. Before/after in-game capture and 1/16/32/48-effect profiling were not run; visual comparison and performance evidence remain unverified. PR 9 was not started.
+
 Canonical path:
 
 server-confirmed action → VfxCue/VfxCuePayload → JujutsuClientNetworking → VfxDirector → character recipes → director-owned channels
