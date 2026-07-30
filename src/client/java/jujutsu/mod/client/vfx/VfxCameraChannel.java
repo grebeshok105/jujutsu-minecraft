@@ -3,15 +3,25 @@ package jujutsu.mod.client.vfx;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.LongSupplier;
 import jujutsu.mod.vfx.VfxTimeline;
 
 public final class VfxCameraChannel {
 	private static final int MAX_CHANNEL_IMPULSES = 64;
 	private final List<Impulse> impulses = new ArrayList<>();
 	private final List<FovImpulse> fovImpulses = new ArrayList<>();
+	private final LongSupplier currentTimeMillis;
+
+	public VfxCameraChannel() {
+		this(System::currentTimeMillis);
+	}
+
+	VfxCameraChannel(LongSupplier currentTimeMillis) {
+		this.currentTimeMillis = currentTimeMillis;
+	}
 
 	public void triggerLaunch(int intensity, float proximity, float initialAgeTicks) {
-		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
+		long startedAtMillis = VfxTimeline.startedAtMillis(currentTimeMillis.getAsLong(), initialAgeTicks);
 		float strength = strength(intensity, proximity, 0.92f);
 		addImpulse(startedAtMillis, 170, -2.6f * strength, 1.25f * strength, 76.0f);
 		addImpulse(startedAtMillis + 70L, 110, 1.15f * strength, -0.72f * strength, 128.0f);
@@ -20,7 +30,7 @@ public final class VfxCameraChannel {
 	}
 
 	public void triggerHeavyImpact(int intensity, float proximity, float initialAgeTicks) {
-		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
+		long startedAtMillis = VfxTimeline.startedAtMillis(currentTimeMillis.getAsLong(), initialAgeTicks);
 		float strength = strength(intensity, proximity, 1.08f);
 		addImpulse(startedAtMillis, 245, 3.7f * strength, -2.35f * strength, 62.0f);
 		addImpulse(startedAtMillis + 85L, 150, -1.7f * strength, 1.25f * strength, 122.0f);
@@ -29,7 +39,7 @@ public final class VfxCameraChannel {
 	}
 
 	public void triggerExplosion(int intensity, float proximity, float initialAgeTicks) {
-		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
+		long startedAtMillis = VfxTimeline.startedAtMillis(currentTimeMillis.getAsLong(), initialAgeTicks);
 		float strength = strength(intensity, proximity, 1.0f);
 		for (int index = 0; index < 3; index++) {
 			long offset = index * 58L;
@@ -41,7 +51,7 @@ public final class VfxCameraChannel {
 	}
 
 	public void triggerRitual(int intensity, float proximity, float initialAgeTicks) {
-		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
+		long startedAtMillis = VfxTimeline.startedAtMillis(currentTimeMillis.getAsLong(), initialAgeTicks);
 		float strength = strength(intensity, proximity, 0.98f);
 		addImpulse(startedAtMillis, 310, -1.4f * strength, 1.05f * strength, 48.0f);
 		addImpulse(startedAtMillis + 110L, 150, 2.4f * strength, -1.65f * strength, 116.0f);
@@ -50,7 +60,7 @@ public final class VfxCameraChannel {
 	}
 
 	public void triggerResonanceImpact(int intensity, float proximity, float initialAgeTicks) {
-		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
+		long startedAtMillis = VfxTimeline.startedAtMillis(currentTimeMillis.getAsLong(), initialAgeTicks);
 		float strength = strength(intensity, proximity, 1.16f);
 		addImpulse(startedAtMillis, 360, 5.2f * strength, -3.35f * strength, 54.0f);
 		addImpulse(startedAtMillis + 92L, 230, -2.8f * strength, 1.9f * strength, 98.0f);
@@ -60,7 +70,7 @@ public final class VfxCameraChannel {
 	}
 
 	public void triggerBlackFlash(int intensity, float proximity, float initialAgeTicks) {
-		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
+		long startedAtMillis = VfxTimeline.startedAtMillis(currentTimeMillis.getAsLong(), initialAgeTicks);
 		float strength = strength(intensity, proximity, 1.15f);
 		addImpulse(startedAtMillis, 200, 6.5f * strength, -4.0f * strength, 120.0f);
 		addImpulse(startedAtMillis + 80L, 240, 2.4f * strength, 1.8f * strength, 135.0f);
@@ -76,7 +86,7 @@ public final class VfxCameraChannel {
 	 * of {@link #triggerBlackFlash} at the peak, and fully settled inside 240 ms.
 	 */
 	public void triggerSwapSnap(int intensity, float proximity, float initialAgeTicks) {
-		long startedAtMillis = VfxTimeline.startedAtMillis(System.currentTimeMillis(), initialAgeTicks);
+		long startedAtMillis = VfxTimeline.startedAtMillis(currentTimeMillis.getAsLong(), initialAgeTicks);
 		float strength = strength(intensity, proximity, 0.62f);
 		addImpulse(startedAtMillis, 95, 2.1f * strength, -1.5f * strength, 158.0f);
 		addImpulse(startedAtMillis + 60L, 75, -0.85f * strength, 0.55f * strength, 205.0f);
@@ -117,7 +127,7 @@ public final class VfxCameraChannel {
 	}
 
 	private float sampleFov() {
-		long now = System.currentTimeMillis();
+		long now = currentTimeMillis.getAsLong();
 		float value = 0.0f;
 		Iterator<FovImpulse> iterator = fovImpulses.iterator();
 		while (iterator.hasNext()) {
@@ -149,7 +159,7 @@ public final class VfxCameraChannel {
 	}
 
 	private float sample(boolean yaw) {
-		long now = System.currentTimeMillis();
+		long now = currentTimeMillis.getAsLong();
 		float value = 0.0f;
 		Iterator<Impulse> iterator = impulses.iterator();
 		while (iterator.hasNext()) {
