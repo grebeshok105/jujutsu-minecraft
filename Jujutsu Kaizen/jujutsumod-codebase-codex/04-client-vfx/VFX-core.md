@@ -18,6 +18,8 @@ World style ownership is split into five files under `client/vfx/world`:
 
 The extraction is mechanical: visual constants, geometry formulas, seed mixing, segment counts, curves, RenderTypes, and vertex order are unchanged. `TodoSwapArrivalPayload.from(cue)` remains the named read model for arrival dimensions and direction. Pure world math is covered by `SwapWorldEffectsTest`, `ShadowWorldEffectsTest`, and `VfxWorldGeometryTest`; lifecycle, cap, ownership, and dispatch are covered by `VfxWorldSplitContractTest`.
 
+Megumi's shadow-pool geometry is the deliberate exception to that frozen extraction: each pool is emitted as independent quad sectors through `RenderType.debugQuads()`. A shared triangle fan cannot delimit two simultaneous pools and visually joins their centers and perimeters.
+
 The nine temporary red mutations for cap, `worldFixed`, dispatch, family routing, silhouette math, shadow curves, basis fallback, ribbon order, and family-owned lifecycle all failed their focused contracts and were restored. Before/after in-game capture and 1/16/32/48-effect profiling were not run; visual comparison and performance evidence remain unverified. PR 9 was not started.
 
 Canonical path:

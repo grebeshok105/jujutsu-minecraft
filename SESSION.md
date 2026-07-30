@@ -1,37 +1,31 @@
-# Session Handoff - PR 8 World Rendering Split
+# Session Handoff - Megumi Divine Dogs Stability
 
 ## Active branch
 
-- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/vfx-world-render-split`
-- Branch: `refactor/vfx-world-render-split`
-- Base: `8360db804501d2b9e6332f261ddd68c1c478bd39` (`origin/main`, squash-merged PR #40)
+- Worktree: `D:/WorkFlow/Jujutsu Minecraft`
+- Branch: `fix/megumi-divine-dogs-stability`
+- Base: `9efbde3` (`docs: add fix plan for Megumi dogs and CurseLink payload bounds`)
+- Scope: PR A, issues #30/#31 and #29 only. Issue #20 remains untouched.
 
-## Current scope
+## Confirmed diagnosis
 
-PR 8 extracts world rendering by visual family. `VfxWorldChannel` remains the lifecycle owner and exhaustive dispatcher. It still owns the active `ImpactFlash` list, cap 48, age/expiry/progress/fade, anchor resolution, camera-relative center, intensity normalization, both RenderType buffers, `ImpactStyle`, and `worldFixed` flags.
+- With `setNoAi(true)`, pounce velocity changed but the wolf position did not. The runtime now owns gravity, `MoverType.SELF` movement, facing, and post-move collision evaluation.
+- Snapshot AABB overlap could miss a fast target. Impact now checks endpoint overlap and the target's inflated swept AABB between the previous and current positions.
+- Pounce cleanup used to erase all motion and calculate knockback after cleanup. The runtime now captures pre-impact travel direction, keeps a damped horizontal exit velocity, and resumes navigation only through explicit active runtime transitions.
+- `VfxWorldChannel` fed every shadow pool into one `debugTriangleFan`; multiple pools therefore became one connected primitive. Each pool now emits independent quad sectors through `debugQuads`.
 
-Production files added under `src/client/java/jujutsu/mod/client/vfx/world/`:
+## Verification
 
-- `HairpinWorldEffects.java`
-- `BlackFlashWorldEffects.java`
-- `SwapWorldEffects.java`
-- `ShadowWorldEffects.java`
-- `VfxWorldGeometry.java`
+- Focused regression tests were intentionally red before the implementation: two failures for explicit pounce movement/swept impact and independent shadow primitives.
+- Focused tests now pass: `MegumiPouncePolicyTest` and `VfxWorldMegumiShadowTest`.
+- `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` passed.
+- `./gradlew.bat build --no-daemon --max-workers=1 --no-watch-fs` passed.
+- Temporary `MEGUMI_DIAG` instrumentation has been removed from production code.
+- Release JAR: `D:/WorkFlow/Jujutsu Minecraft/build/libs/jujutsumod-1.0.0.jar`.
+- Installed JAR: `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar`.
+- Build and installed JAR SHA-256: `A58C35BD452998F422F2269CC0830691C46D6C5FE527ED3614A10DBE4735742D`.
 
-Style ownership is exact: six Hairpin styles, one Black Flash style, three Swap styles, two Megumi shadow styles, and shared geometry only in `VfxWorldGeometry`. `TodoSwapArrivalPayload.from(cue)` remains in the arrival renderer. No registry, callback, networking, reflection, DI, plugin mechanism, batching, cache, or PR 9 work was added.
+## Machine prerequisite
 
-## Tests and evidence
-
-- Legacy `VfxWorldSilhouetteTest` was migrated to JUnit 5 as `world/SwapWorldEffectsTest`.
-- Added `world/ShadowWorldEffectsTest`, `world/VfxWorldGeometryTest`, and `VfxWorldSplitContractTest`.
-- Removed the `testVfxSilhouette` JavaExec task.
-- Focused world tests pass: 16 tests, 0 failures.
-- `compileClientJava` passes.
-- Numeric token comparison against `%TEMP%/VfxWorldChannel.before.java`: 554 before / 554 after, no differences.
-- All nine required temporary red mutations failed their focused contract and were restored.
-- Visual capture matrix was not run because the active game was not altered.
-- Performance baseline for 1/16/32/48 retained effects was not run.
-
-## Next verification
-
-Run the related contract set, then `clean test`, `clean qualityGate`, and final `qualityGate` with `--no-daemon --max-workers=1 --no-watch-fs`. Review the final diff, commit as `refactor(vfx): split world rendering by visual family`, and open a draft PR. PR 9 is not started.
+- Windows paging is configured for one fixed `D:/pagefile.sys` at `15360/15360 MB`, with automatic pagefile management disabled so the configured D: file is used. The old C: file remains active until reboot; restart Windows before relying on the new commit limit.
+- After reboot, run the user gameplay smoke for pounce movement, target contact, recovery, and visually separate black shadows. `qualityGate` does not prove in-world movement or visual separation.

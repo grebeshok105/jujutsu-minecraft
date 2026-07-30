@@ -90,6 +90,21 @@ final class MegumiPouncePolicyTest {
 	}
 
 	@Test
+	void pounceRuntimeOwnsFlightMovementAndSweptImpact() throws Exception {
+		String runtime = Files.readString(RUNTIME);
+		assertTrue(runtime.contains("dog.move(MoverType.SELF"),
+				"No-AI pounce flight must move the dog explicitly");
+		assertTrue(runtime.contains("assignedTarget.getBoundingBox().inflate(0.30).clip"),
+				"Impact detection must cover a target crossed between ticks");
+		assertTrue(runtime.contains("POUNCE_EXIT_DAMPING"),
+				"A completed pounce must retain a damped horizontal exit velocity");
+		assertTrue(runtime.contains("new Vec3(impactVelocity.x, 0.0, impactVelocity.z)"),
+				"Knockback must prefer the movement direction captured at impact");
+		assertTrue(runtime.contains("dog.setYRot"),
+				"Flight must face the dog along its current movement vector");
+	}
+
+	@Test
 	void deadlineAndTimeoutArePerDogAndIndependent() {
 		assertTrue(MegumiPouncePolicy.deadlineReady(100L, 100L));
 		assertFalse(MegumiPouncePolicy.deadlineReady(100L, 101L));

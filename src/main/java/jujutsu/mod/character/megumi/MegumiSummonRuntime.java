@@ -29,9 +29,11 @@ import net.minecraft.world.entity.animal.wolf.WolfVariant;
 import net.minecraft.world.entity.animal.wolf.WolfVariants;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.Relative;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.DyeColor;
+import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import jujutsu.mod.character.CharacterAbility;
@@ -351,6 +353,7 @@ public final class MegumiSummonRuntime {
 
 		long gameTime = level.getGameTime();
 		if (dog.pounceInFlight()) {
+			int elapsedTicks = (int) Math.max(0L, gameTime - dog.pounceStartedGameTime());
 			MegumiPouncePolicy.InFlightAction action = MegumiPouncePolicy.inFlightAction(
 					new MegumiPouncePolicy.InFlightFacts(
 							active,
@@ -363,20 +366,32 @@ public final class MegumiSummonRuntime {
 							MegumiPouncePolicy.timedOut(gameTime, dog.pounceDeadlineGameTime())));
 			switch (action) {
 				case CLEAR_SIC -> dog.clearSicCommand();
-				case FINISH_POUNCE -> dog.finishPounce();
+				case FINISH_POUNCE -> {
+					dog.finishPounce();
+					dog.resumeNavigation();
+				}
 				case CONTINUE -> {
-					int elapsedTicks = (int) Math.max(0L, gameTime - dog.pounceStartedGameTime());
-					if (MegumiPouncePolicy.flightAction(
-							dog.horizontalCollision, dog.verticalCollision, dog.onGround(), elapsedTicks)
-							== MegumiPouncePolicy.FlightAction.FINISH_POUNCE) {
-						dog.finishPounce();
+					Vec3 beforeMove = dog.position();
+					Vec3 flightVelocity = MegumiPouncePolicy.steerVelocity(
+							dog.getDeltaMovement(), beforeMove, assignedTarget.position())
+							.add(0.0, -MegumiProfile.POUNCE_GRAVITY, 0.0);
+					dog.setDeltaMovement(flightVelocity);
+					dog.move(MoverType.SELF, flightVelocity);
+					if (flightVelocity.horizontalDistanceSqr() > 1.0E-6) {
+						dog.setYRot((float) (Mth.atan2(flightVelocity.x, flightVelocity.z) * Mth.RAD_TO_DEG));
+					}
+					boolean crossedTarget = assignedTarget != null
+							&& (dog.getBoundingBox().inflate(0.30).intersects(assignedTarget.getBoundingBox())
+									|| assignedTarget.getBoundingBox().inflate(0.30).clip(beforeMove, dog.position()).isPresent());
+					if (crossedTarget) {
+						resolvePounceImpact(level, dog, owner, assignedTarget, flightVelocity);
 						return;
 					}
-					dog.setDeltaMovement(MegumiPouncePolicy.steerVelocity(
-							dog.getDeltaMovement(), dog.position(), assignedTarget.position()));
-					if (assignedTarget != null
-							&& dog.getBoundingBox().inflate(0.30).intersects(assignedTarget.getBoundingBox())) {
-						resolvePounceImpact(level, dog, owner, assignedTarget);
+					MegumiPouncePolicy.FlightAction flightAction = MegumiPouncePolicy.flightAction(
+							dog.horizontalCollision, dog.verticalCollision, dog.onGround(), elapsedTicks);
+					if (flightAction == MegumiPouncePolicy.FlightAction.FINISH_POUNCE) {
+						dog.finishPounce();
+						dog.resumeNavigation();
 					}
 				}
 			}
@@ -409,19 +424,27 @@ public final class MegumiSummonRuntime {
 	}
 
 	private static void resolvePounceImpact(
-			ServerLevel level, MegumiDivineDogEntity dog, ServerPlayer owner, LivingEntity target) {
-		dog.finishPounce();
-		if (!isValidPounceOwner(owner, level)
-				|| !target.isAlive() || target.isRemoved() || target.level() != level
-				|| dog.getTarget() != target || !target.getUUID().equals(dog.sicTargetUuid())
-				|| !isEligibleTarget(owner, target)) {
+			ServerLevel level, MegumiDivineDogEntity dog, ServerPlayer owner, LivingEntity target,
+			Vec3 impactVelocity) {
+		boolean validImpact = isValidPounceOwner(owner, level)
+				&& target.isAlive() && !target.isRemoved() && target.level() == level
+				&& dog.getTarget() == target && target.getUUID().equals(dog.sicTargetUuid())
+				&& isEligibleTarget(owner, target);
+		Vec3 exitVelocity = new Vec3(impactVelocity.x, 0.0, impactVelocity.z)
+				.scale(MegumiProfile.POUNCE_EXIT_DAMPING);
+		dog.finishPounce(exitVelocity);
+		if (!validImpact) {
 			return;
 		}
+		dog.resumeNavigation();
 		float damage = (float) MegumiProfile.DOG_ATTACK_DAMAGE + MegumiProfile.POUNCE_BONUS_DAMAGE;
 		if (!target.hurtServer(level, level.damageSources().playerAttack(owner), damage)) {
 			return;
 		}
-		Vec3 direction = target.position().subtract(dog.position()).multiply(1.0, 0.0, 1.0);
+		Vec3 direction = new Vec3(impactVelocity.x, 0.0, impactVelocity.z);
+		if (direction.lengthSqr() <= 1.0E-6) {
+			direction = target.position().subtract(dog.position()).multiply(1.0, 0.0, 1.0);
+		}
 		if (direction.lengthSqr() > 1.0E-6) {
 			target.knockback(MegumiProfile.POUNCE_KNOCKBACK, -direction.x, -direction.z);
 		}

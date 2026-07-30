@@ -166,13 +166,23 @@ public final class MegumiDivineDogEntity extends Wolf {
 	}
 
 	void finishPounce() {
+		finishPounce(Vec3.ZERO);
+	}
+
+	void finishPounce(Vec3 exitVelocity) {
 		pounceTargetUuid = null;
 		pounceStartedGameTime = 0L;
 		pounceDeadlineGameTime = 0L;
-		setDeltaMovement(Vec3.ZERO);
+		setDeltaMovement(exitVelocity);
 		resetFallDistance();
 		if (!isRemoved() && presentationPhase() == MegumiDogPresentationPolicy.Phase.ACTIVE) {
 			setNoAi(false);
+		}
+	}
+
+	void resumeNavigation() {
+		if (!isRemoved() && presentationPhase() == MegumiDogPresentationPolicy.Phase.ACTIVE) {
+			getNavigation().recomputePath();
 		}
 	}
 

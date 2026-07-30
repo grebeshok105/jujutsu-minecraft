@@ -1,8 +1,12 @@
 # Fix plan: issues #30, #31, #29, #20
 
-Status: PLAN ONLY. This PR changes no code. Every claim below was read off the source at base `11b4d5ae5f3871ef77a58f55533e700fd68d0c27`.
+Status: PR A implementation is landed in the active worktree for the #30/#31 pounce/follow and #29 shadow-pool fixes. Issue #20 remains plan-only and is intentionally untouched. Historical observations below describe the pre-fix state.
 
 Execution order follows the issue priority: #30 and #31 as one investigation (split into two PRs if the diff grows), then #29, then #20.
+
+## Revision 3 — PR A implementation
+
+The diagnostic session confirmed that `setNoAi(true)` did not move the dog and that shared `debugTriangleFan` batching joined separate shadow pools. The active implementation now owns pounce movement with explicit gravity and `MoverType.SELF`, uses a swept target check, captures pre-impact travel direction, preserves damped exit motion, resumes navigation only from runtime termination transitions, and renders each shadow pool from independent `debugQuads` sectors. The temporary `MEGUMI_DIAG` logging is removed before packaging. In-world smoke remains separate from `qualityGate`; the user performed the diagnostic smoke, while final post-fix gameplay confirmation is still pending.
 
 ## Revision 2 — review corrections applied
 
@@ -100,7 +104,7 @@ Files read: `MegumiDivineDogEntity`, `MegumiSummonRuntime.tickPounce` / `resolve
 
 Three separate color owners feed the ground effect:
 
-1. **World shadow pool** (`ShadowWorldEffects.renderMegumiShadowPool` after PR 8): `setColor(0, 0, 0, alpha)` on `RenderType.debugTriangleFan()`. Already true black. Not the culprit.
+1. **World shadow pool** (`ShadowWorldEffects.renderMegumiShadowPool` after PR 8): `setColor(0, 0, 0, alpha)` on independent `RenderType.debugQuads()` sectors. Already true black; the prior shared triangle-fan batching was the geometry culprit.
 2. **`MEGUMI_SHADOW_MOTE` particle** (`MegumiShadowMoteParticle`): 1-in-5 particles is an `accent` mote with `rCol=0.10, gCol=0.92, bCol=0.80` at `alpha=0.95` and `getLightColor() = 0xF000F0` (full-bright). Full-bright saturated teal at 95% alpha reads as the dominant color of the cloud even at 20% population. Summon fires a 14-mote burst plus a 10-mote ring; recall fires a 14-mote ring (`MegumiVfxRecipes`).
 3. **`SHADOW_TEAL` / `SHADOW_DARK` dust** in `MegumiVfxRecipes`: `SHADOW_TEAL = 0x2F8F83` — used only in `sic` and `pounce` recipes, not summon/recall. Relevant only if the blue is also seen on Sic.
 

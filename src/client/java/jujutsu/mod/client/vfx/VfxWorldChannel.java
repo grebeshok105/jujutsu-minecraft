@@ -35,7 +35,7 @@ public final class VfxWorldChannel {
 		}
 		Camera camera = context.camera();
 		VertexConsumer consumer = consumers.getBuffer(RenderType.lightning());
-		VertexConsumer shadowPoolConsumer = consumers.getBuffer(RenderType.debugTriangleFan());
+		VertexConsumer shadowPoolConsumer = consumers.getBuffer(RenderType.debugQuads());
 		renderImpactFlashes(consumer, shadowPoolConsumer, camera.getPosition(), context,
 				context.tickCounter().getGameTimeDeltaPartialTick(false));
 	}

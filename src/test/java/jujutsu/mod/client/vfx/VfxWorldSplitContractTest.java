@@ -51,7 +51,7 @@ class VfxWorldSplitContractTest {
 		assertTrue(channel.contains("private record ImpactFlash"));
 		assertTrue(channel.contains("VfxAnchorResolver.resolve(flash.cue()"));
 		assertTrue(channel.contains("getBuffer(RenderType.lightning())"));
-		assertTrue(channel.contains("getBuffer(RenderType.debugTriangleFan())"));
+		assertTrue(channel.contains("getBuffer(RenderType.debugQuads())"));
 		assertTrue(channel.contains("private void renderImpactFlashes"));
 		assertTrue(channel.contains("public enum ImpactStyle"));
 		assertFalse(channel.contains("default ->"), "ImpactStyle dispatch must stay exhaustive");
