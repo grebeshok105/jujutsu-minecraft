@@ -8,12 +8,13 @@ import jujutsu.mod.vfx.VfxTimeline;
 
 public final class VfxCameraChannel {
 	private static final int MAX_CHANNEL_IMPULSES = 64;
+	private static final LongSupplier SYSTEM_CLOCK = System::currentTimeMillis;
 	private final List<Impulse> impulses = new ArrayList<>();
 	private final List<FovImpulse> fovImpulses = new ArrayList<>();
 	private final LongSupplier currentTimeMillis;
 
 	public VfxCameraChannel() {
-		this(System::currentTimeMillis);
+		this(SYSTEM_CLOCK);
 	}
 
 	VfxCameraChannel(LongSupplier currentTimeMillis) {

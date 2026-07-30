@@ -3,12 +3,26 @@ package jujutsu.mod.client.vfx;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 import org.junit.jupiter.api.Test;
 
 final class VfxCameraChannelTest {
 	private static final float EPSILON = 0.0001f;
+
+	@Test
+	void publicConstructorUsesTheSystemClock() throws ReflectiveOperationException {
+		VfxCameraChannel channel = new VfxCameraChannel();
+		Field clockField = VfxCameraChannel.class.getDeclaredField("currentTimeMillis");
+		assertTrue(clockField.trySetAccessible());
+		LongSupplier clock = (LongSupplier) clockField.get(channel);
+		long now = System.currentTimeMillis();
+
+		assertTrue(Math.abs(clock.getAsLong() - now) < 1_000L,
+				"the public constructor must bind the production system clock");
+	}
 
 	@Test
 	void exactStartHasNoCameraOffset() {
@@ -49,17 +63,22 @@ final class VfxCameraChannelTest {
 	}
 
 	@Test
-	void futureStartDoesNotSampleBeforeTheTrigger() {
+	void negativeInitialAgeClampsToTheTriggerInstant() {
 		AtomicLong clock = new AtomicLong(1_000L);
-		VfxCameraChannel channel = new VfxCameraChannel(clock::get);
-		channel.triggerHeavyImpact(1, 1.0f, -2.0f);
+		VfxCameraChannel negativeAge = new VfxCameraChannel(clock::get);
+		VfxCameraChannel zeroAge = new VfxCameraChannel(clock::get);
+		negativeAge.triggerHeavyImpact(1, 1.0f, -2.0f);
+		zeroAge.triggerHeavyImpact(1, 1.0f, 0.0f);
 
-		assertOffsetsAreZero(channel);
-		assertFinite(channel);
+		assertSameOffsets(negativeAge, zeroAge);
+		assertFinite(negativeAge);
+		assertFinite(zeroAge);
 
 		clock.set(1_001L);
-		assertTrue(Math.abs(channel.yawOffset()) > 0.0f);
-		assertFinite(channel);
+		assertSameOffsets(negativeAge, zeroAge);
+		assertTrue(Math.abs(negativeAge.yawOffset()) > 0.0f);
+		assertFinite(negativeAge);
+		assertFinite(zeroAge);
 	}
 
 	@Test
@@ -201,6 +220,12 @@ final class VfxCameraChannelTest {
 		assertEquals(0.0f, channel.yawOffset(), 0.0f);
 		assertEquals(0.0f, channel.pitchOffset(), 0.0f);
 		assertEquals(0.0f, channel.fovOffset(), 0.0f);
+	}
+
+	private static void assertSameOffsets(VfxCameraChannel first, VfxCameraChannel second) {
+		assertEquals(first.yawOffset(), second.yawOffset(), EPSILON);
+		assertEquals(first.pitchOffset(), second.pitchOffset(), EPSILON);
+		assertEquals(first.fovOffset(), second.fovOffset(), EPSILON);
 	}
 
 	private static void assertFinite(VfxCameraChannel channel) {

@@ -14,8 +14,8 @@
 
 ## Contracts
 
-- `VfxCameraChannel()` still uses `System::currentTimeMillis`; `VfxCameraChannel(LongSupplier)` is package-private for tests. All nine previous direct millisecond reads now use the supplier.
-- `VfxCameraChannelTest` covers exact start, 1 ms progress, 239/240 ms swap expiry, future age, late age, overlap, yaw/pitch/FOV clamps, finite values, relative strength, and clear without sleeps.
+- `VfxCameraChannel()` binds the named `SYSTEM_CLOCK` (`System::currentTimeMillis`); `VfxCameraChannel(LongSupplier)` is package-private for tests. All nine previous direct millisecond reads now use the supplier.
+- `VfxCameraChannelTest` covers public clock binding, exact start, 1 ms progress, 239/240 ms swap expiry, negative initial-age clamping against age zero, late age, overlap, yaw/pitch/FOV clamps, finite values, relative strength, and clear without sleeps.
 - `MegumiVfxIds` remains in `jujutsu.mod.vfx`; `MegumiVfxRecipes` remains in `jujutsu.mod.client.vfx.megumi`. Its five live `megumi/*` strings and empty planned set remain pinned by `VfxCueTest` and completeness contracts.
 - `VfxCueTest` remains JUnit 5 and uses the real `VfxCuePayload.STREAM_CODEC` for all eight fields, both anchor modes, normalized and zero directions, sentinel rejection, stable wire strings, and buffer exhaustion.
 - `VfxCompletenessTest` calls the real three recipe packs against the isolated director registry and checks exact live coverage plus duplicate-registration failure.
@@ -40,6 +40,7 @@
 | Clear impulses when an overlapping heavy impact starts | `VfxCameraChannelTest.positiveYawNegativePitchAndUpperFovClampsRemainExact`, `.overlappingImpulsesAddRotationalOffsetsWithoutReplacingEitherEffect` failed | yes |
 | Change yaw clamp maximum from 9 to 10 | `VfxCameraChannelTest.positiveYawNegativePitchAndUpperFovClampsRemainExact` failed | yes |
 | Retune swap strength from 0.62 to 0.99 | `VfxCameraChannelTest.relativeRotationalStrengthPreservesEffectOrder` failed | yes |
+| Replace public `SYSTEM_CLOCK` binding with `() -> 0L` | `VfxCameraChannelTest.publicConstructorUsesTheSystemClock` failed | yes |
 
 ## Verification
 

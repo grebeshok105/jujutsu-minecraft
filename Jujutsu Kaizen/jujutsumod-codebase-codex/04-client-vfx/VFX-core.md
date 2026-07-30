@@ -49,7 +49,7 @@ All live `BOOGIE_WOOGIE` routes use the shared `TodoBoogieWoogieRuntime.emitClap
 
 ## PR 7 deterministic camera timing
 
-`VfxCameraChannel` keeps its production constructor on `System::currentTimeMillis` and exposes a package-private constructor that accepts a `LongSupplier` for deterministic tests. Every prior millisecond read, including trigger starts, rotational sampling, and FOV sampling, uses that injected supplier; `VfxTimeline`, constants, curves, durations, clamps, and eviction behavior remain unchanged. `VfxCameraChannelTest` uses no sleeps and covers exact start, 1 ms progress, the 239/240 ms swap boundary, future age, late age equivalence, additive overlap, yaw/pitch/FOV clamps, finite values, relative effect strength, and `clear()`.
+`VfxCameraChannel` keeps its production constructor on the named `SYSTEM_CLOCK` (`System::currentTimeMillis`) and exposes a package-private constructor that accepts a `LongSupplier` for deterministic tests. Every prior millisecond read, including trigger starts, rotational sampling, and FOV sampling, uses that injected supplier; `VfxTimeline`, constants, curves, durations, clamps, and eviction behavior remain unchanged. `VfxCameraChannelTest` uses no sleeps and covers public clock binding, exact start, 1 ms progress, the 239/240 ms swap boundary, negative-age clamping, late age equivalence, additive overlap, yaw/pitch/FOV clamps, finite values, relative effect strength, and `clear()`.
 
 ## PR 5 contract hardening
 
