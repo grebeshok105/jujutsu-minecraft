@@ -47,6 +47,10 @@ Megumi's five live ids remain byte-for-byte stable after the package move; `LIVE
 
 All live `BOOGIE_WOOGIE` routes use the shared `TodoBoogieWoogieRuntime.emitClapPerformance`, whose cue is caster-anchored with an explicitly zero offset and directed. `TodoAnimationHooks` therefore resolves only the declared anchor; a `NO_ANCHOR` clap does not select a nearby player.
 
+## PR 7 deterministic camera timing
+
+`VfxCameraChannel` keeps its production constructor on the named `SYSTEM_CLOCK` (`System::currentTimeMillis`) and exposes a package-private constructor that accepts a `LongSupplier` for deterministic tests. Every prior millisecond read, including trigger starts, rotational sampling, and FOV sampling, uses that injected supplier; `VfxTimeline`, constants, curves, durations, clamps, and eviction behavior remain unchanged. `VfxCameraChannelTest` uses no sleeps and covers public clock binding, exact start, 1 ms progress, the 239/240 ms swap boundary, negative-age clamping, late age equivalence, additive overlap, yaw/pitch/FOV clamps, finite values, relative effect strength, and `clear()`.
+
 ## PR 5 contract hardening
 
 `VfxCueTest` is a JUnit 5 test over the real `VfxCuePayload.STREAM_CODEC`. It covers all eight fields for world-fixed and entity-anchored cues, normalized and zero directions, stable wire strings, and an exhausted buffer. The separate `VfxCuesTest` retains the factory-only sentinel rejection check. The old `testVfxCore` JavaExec task is removed.
