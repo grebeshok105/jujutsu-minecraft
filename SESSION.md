@@ -6,7 +6,7 @@
 - Branch: `fix/curselink-payload-bounds`
 - Base: `da309cfab9c01bca1525f468039c674644ee0f27` (`fix(megumi): stabilize Divine Dog pounce and shadows`), the squash merge of PR #47.
 - Scope: PR B, issue #20 only. Divine Dogs, Megumi VFX, Nobara audio, issue #48 and every other payload remain untouched.
-- PR: draft PR creation is the final release step; the URL will be added here after creation.
+- PR: [#49](https://github.com/grebeshok105/jujutsu-minecraft/pull/49), `OPEN` and `draft`.
 
 ## Confirmed code facts
 

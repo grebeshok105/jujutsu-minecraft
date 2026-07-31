@@ -104,7 +104,7 @@ Temporarily remove each count/string bound, restore trusted preallocation, chang
 
 Use English conventional commits for tests, production, and docs where each change is independently reviewable.
 
-- [ ] **Step 4: Push and create a new draft PR**
+- [x] **Step 4: Push and create a new draft PR**
 
 Push `fix/curselink-payload-bounds` and create a draft PR titled `fix(network): bound CurseLink options payload`, with Option A, bounds, failure matrix, tests, RED evidence, the remaining unknown-id gap, and `Refs #20` rather than `Closes #20`.
 
