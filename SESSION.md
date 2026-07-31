@@ -6,7 +6,8 @@
 - Branch: `fix/megumi-divine-dogs-stability`
 - Base: `9efbde3` (`docs: add fix plan for Megumi dogs and CurseLink payload bounds`)
 - Scope: PR A, issues #30/#31 and #29 only. Issue #20 remains untouched.
-- Implementation commit: `a9df08a` (`fix(megumi): harden pounce exit and shadow presentation`).
+- Implementation commits: `ad9a14d` (`fix(megumi): use post-move displacement for pounce`) and `7a9588d` (`docs(megumi): clarify post-move displacement contract`).
+- Current head: `7a9588d`.
 - Pull request: [#47](https://github.com/grebeshok105/jujutsu-minecraft/pull/47), `OPEN` and `draft`; head is pushed to `origin/fix/megumi-divine-dogs-stability`.
 
 ## Confirmed diagnosis
@@ -21,12 +22,12 @@
 
 ## Verification
 
-- Focused tests pass after this pass: `MegumiPouncePolicyTest`, `MegumiProfileTest`, `MegumiShadowPresentationTest` and `VfxWorldMegumiShadowTest` (16 tests, 0 failures).
-- RED evidence before production edits: the focused test compile failed because the current head had no `NAVIGATION_SPEED_MODIFIER` or independent `exitVelocity` policy; the stale navigation and first-tick contracts were then corrected and returned to green.
-- `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` passed on implementation commit `a9df08a`.
+- Focused tests pass after this pass: `MegumiPouncePolicyTest`, `MegumiProfileTest`, `MegumiShadowPresentationTest` and `VfxWorldMegumiShadowTest` (16 tests, 0 failures), including the RED/GREEN post-move displacement regression.
+- RED evidence before the production edit: the new displacement assertion failed at `MegumiPouncePolicyTest.java:113` while the old `getDeltaMovement()` assertion passed; the runtime then returned the focused suite to green.
+- `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` passed on current head `7a9588d`.
 - `./gradlew.bat build --no-daemon --max-workers=1 --no-watch-fs` passed and produced `D:/WorkFlow/Jujutsu Minecraft/build/libs/jujutsumod-1.0.0.jar`.
 - `./gradlew.bat auditDocumentation --no-daemon --max-workers=1 --no-watch-fs` passed.
-- Build and installed JAR SHA-256: `3F229A1968F7E7EA3DBFC5D3891CDC034C9A1C07E7409CDB6ADCB4C71E37BDA2`.
+- Build and installed JAR SHA-256: `BD06AD0AA42663DBFE5A0421C1D862756E35F1C5CB9B147B9D9B4EF2DDFCF155`.
 - The installed JAR at `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar` matches the build JAR byte-for-byte.
 
 ## Machine prerequisite
