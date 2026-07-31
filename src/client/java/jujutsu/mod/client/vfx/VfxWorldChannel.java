@@ -34,10 +34,11 @@ public final class VfxWorldChannel {
 			return;
 		}
 		Camera camera = context.camera();
-		VertexConsumer consumer = consumers.getBuffer(RenderType.lightning());
+		float partialTick = context.tickCounter().getGameTimeDeltaPartialTick(false);
+		VertexConsumer lightningConsumer = consumers.getBuffer(RenderType.lightning());
+		renderImpactFlashes(lightningConsumer, camera.getPosition(), context, partialTick, false);
 		VertexConsumer shadowPoolConsumer = consumers.getBuffer(RenderType.debugQuads());
-		renderImpactFlashes(consumer, shadowPoolConsumer, camera.getPosition(), context,
-				context.tickCounter().getGameTimeDeltaPartialTick(false));
+		renderImpactFlashes(shadowPoolConsumer, camera.getPosition(), context, partialTick, true);
 	}
 
 	void clear() {
@@ -49,8 +50,8 @@ public final class VfxWorldChannel {
 	}
 
 	private void renderImpactFlashes(
-			VertexConsumer consumer, VertexConsumer shadowPoolConsumer, Vec3 cameraPosition,
-			WorldRenderContext context, float partialTick) {
+			VertexConsumer consumer, Vec3 cameraPosition, WorldRenderContext context,
+			float partialTick, boolean shadowPass) {
 		for (Iterator<ImpactFlash> iterator = impactFlashes.iterator(); iterator.hasNext();) {
 			ImpactFlash flash = iterator.next();
 			float age = context.world().getGameTime() - flash.cue().startGameTime() + partialTick;
@@ -60,6 +61,9 @@ public final class VfxWorldChannel {
 			}
 			float progress = Math.max(0.0f, Math.min(1.0f, age / flash.durationTicks()));
 			float fade = 1.0f - progress;
+			if (isShadowPoolStyle(flash.style()) != shadowPass) {
+				continue;
+			}
 			Vec3 origin = flash.style().isWorldFixed()
 					? flash.cue().origin()
 					: VfxAnchorResolver.resolve(flash.cue(), entityId -> {
@@ -79,10 +83,14 @@ public final class VfxWorldChannel {
 				case BOOGIE_WOOGIE -> SwapWorldEffects.renderBoogieWoogie(consumer, center, intensity, progress, fade, flash.cue());
 				case SWAP_AFTERIMAGE -> SwapWorldEffects.renderSwapAfterimage(consumer, center, progress, flash.cue());
 				case SWAP_ARRIVAL -> SwapWorldEffects.renderSwapArrival(consumer, center, progress, fade, flash.cue());
-				case MEGUMI_SHADOW_OPEN -> ShadowWorldEffects.renderMegumiShadowPool(shadowPoolConsumer, center, progress, true);
-				case MEGUMI_SHADOW_CLOSE -> ShadowWorldEffects.renderMegumiShadowPool(shadowPoolConsumer, center, progress, false);
+				case MEGUMI_SHADOW_OPEN -> ShadowWorldEffects.renderMegumiShadowPool(consumer, center, progress, true);
+				case MEGUMI_SHADOW_CLOSE -> ShadowWorldEffects.renderMegumiShadowPool(consumer, center, progress, false);
 			}
 		}
+	}
+
+	private static boolean isShadowPoolStyle(ImpactStyle style) {
+		return style == ImpactStyle.MEGUMI_SHADOW_OPEN || style == ImpactStyle.MEGUMI_SHADOW_CLOSE;
 	}
 
 	/**

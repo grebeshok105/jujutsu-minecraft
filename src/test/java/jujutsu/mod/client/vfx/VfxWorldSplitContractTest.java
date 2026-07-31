@@ -76,6 +76,23 @@ class VfxWorldSplitContractTest {
 	}
 
 	@Test
+	void worldBuffersAreUsedInSeparateSequentialPasses() throws IOException {
+		String channel = stripped(Files.readString(WORLD_CHANNEL));
+		int lightningBuffer = channel.indexOf("VertexConsumer lightningConsumer = consumers.getBuffer(RenderType.lightning())");
+		int lightningPass = channel.indexOf("renderImpactFlashes(lightningConsumer");
+		int shadowBuffer = channel.indexOf("VertexConsumer shadowPoolConsumer = consumers.getBuffer(RenderType.debugQuads())");
+		int shadowPass = channel.indexOf("renderImpactFlashes(shadowPoolConsumer");
+
+		assertTrue(lightningBuffer >= 0);
+		assertTrue(lightningPass > lightningBuffer,
+				"Lightning geometry must be emitted before switching the shared buffer source");
+		assertTrue(shadowBuffer > lightningPass,
+				"The debug-quads buffer must be acquired only after lightning geometry is flushed");
+		assertTrue(shadowPass > shadowBuffer,
+				"Shadow geometry must be emitted through the buffer acquired for its render type");
+	}
+
+	@Test
 	void worldFixedFlagsRemainTheExistingContract() {
 		assertFalse(VfxWorldChannel.ImpactStyle.HAMMER_SEND.isWorldFixed());
 		assertFalse(VfxWorldChannel.ImpactStyle.ENLARGE.isWorldFixed());
