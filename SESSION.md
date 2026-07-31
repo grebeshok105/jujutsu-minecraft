@@ -7,7 +7,7 @@
 - Base: `9efbde3` (`docs: add fix plan for Megumi dogs and CurseLink payload bounds`)
 - Scope: PR A, issues #30/#31 and #29 only. Issue #20 remains untouched.
 - Implementation commits: `ad9a14d` (`fix(megumi): use post-move displacement for pounce`), `7a9588d` (`docs(megumi): clarify post-move displacement contract`), `c3945d9` (`fix(vfx): separate world buffer render passes`) and `57034bc` (`docs(vfx): document sequential world buffers`).
-- Current head: `57034bc`.
+- Current head: `f6bf9be`.
 - Pull request: [#47](https://github.com/grebeshok105/jujutsu-minecraft/pull/47), `OPEN` and `draft`; head is pushed to `origin/fix/megumi-divine-dogs-stability`.
 
 ## Confirmed diagnosis
@@ -30,8 +30,10 @@
 - `./gradlew.bat auditDocumentation --no-daemon --max-workers=1 --no-watch-fs` passed.
 - Build and installed JAR SHA-256: `F570CDE7A50626720E3A37770F7E4B5A0D342A1DC75BF40B98AA230F3AA9306F`.
 - The installed JAR at `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar` matches the build JAR byte-for-byte.
+- User manual smoke passed on 2026-07-31: selecting Nobara and sending nails no longer crashes; Nobara VFX appears correct; Divine Dogs behave as intended.
+- The smoke also found that Nobara's nail-cast sound is too loud. This is tracked as GitHub issue [#48](https://github.com/grebeshok105/jujutsu-minecraft/issues/48) and is intentionally not fixed in this pass.
 
 ## Machine prerequisite
 
 - Windows paging is active after reboot: automatic management is disabled and the only active pagefile is `D:/pagefile.sys` at `15360 MB` (`LastBootUpTime: 2026-07-30 18:39:57`).
-- User gameplay smoke remains pending for both dogs, mid-range Sic, open ground, steps/slopes, obstacles, miss/collision, timeout/recovery, post-resume pause, knockback direction, two separate pools, summon/recall presentation and dense-black readability. `qualityGate` and CI do not prove in-world movement or visual appearance.
+- The user-reported gameplay smoke for this pass is complete: Nobara selection and nail casting, VFX presentation, and Divine Dog behavior were confirmed correct in-game. The nail-cast volume issue remains open in #48. `qualityGate` and CI remain automated evidence and do not replace this manual in-world confirmation.
