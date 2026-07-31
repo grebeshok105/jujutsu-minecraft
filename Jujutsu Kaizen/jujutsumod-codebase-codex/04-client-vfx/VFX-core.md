@@ -4,7 +4,7 @@ Status: CURRENT
 
 ## World Rendering Split
 
-PR 8 keeps `VfxWorldChannel` as the lifecycle owner and exhaustive dispatcher. It retains the bounded `impactFlashes` list, `MAX_IMPACT_FLASHES = 48`, age/expiry/progress/fade calculation, anchor resolution, camera-relative center, intensity normalization, both world buffer acquisitions, `ImpactStyle`, and `worldFixed` ownership.
+PR 8 keeps `VfxWorldChannel` as the lifecycle owner and exhaustive dispatcher. It retains the bounded `impactFlashes` list, `MAX_IMPACT_FLASHES = 48`, age/expiry/progress/fade calculation, anchor resolution, camera-relative center, intensity normalization, both world buffer acquisitions, `ImpactStyle`, and `worldFixed` ownership. The `lightning` and `debugQuads` consumers are acquired and used in separate sequential passes because switching render types can finish the previously active buffer.
 
 World style ownership is split into five files under `client/vfx/world`:
 
