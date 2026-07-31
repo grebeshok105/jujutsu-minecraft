@@ -9,16 +9,28 @@ public final class ShadowWorldEffects {
 	public static void renderMegumiShadowPool(VertexConsumer consumer, Vec3 center, float progress, boolean opening) {
 		float radius = shadowPoolRadius(opening, progress);
 		int alpha = Math.round(255.0f * shadowPoolOpacity(opening, progress));
-		consumer.addVertex((float) center.x, (float) (center.y + 0.025), (float) center.z).setColor(0, 0, 0, alpha);
 		int segments = 20;
-		for (int segment = 0; segment <= segments; segment++) {
-			double angle = segment * Math.PI * 2.0 / segments;
-			consumer.addVertex(
-					(float) (center.x + Math.cos(angle) * radius),
-					(float) (center.y + 0.025),
-					(float) (center.z + Math.sin(angle) * radius * 0.78))
-					.setColor(0, 0, 0, alpha);
+		for (int segment = 0; segment < segments; segment++) {
+			double startAngle = segment * Math.PI * 2.0 / segments;
+			double endAngle = (segment + 1) * Math.PI * 2.0 / segments;
+			addVertex(consumer, center, alpha);
+			addVertex(consumer, center, radius, startAngle, alpha);
+			addVertex(consumer, center, radius, endAngle, alpha);
+			addVertex(consumer, center, alpha);
 		}
+	}
+
+	private static void addVertex(VertexConsumer consumer, Vec3 point, int alpha) {
+		consumer.addVertex((float) point.x, (float) (point.y + 0.025), (float) point.z)
+				.setColor(0, 0, 0, alpha);
+	}
+
+	private static void addVertex(VertexConsumer consumer, Vec3 center, float radius, double angle, int alpha) {
+		consumer.addVertex(
+				(float) (center.x + Math.cos(angle) * radius),
+				(float) (center.y + 0.025),
+				(float) (center.z + Math.sin(angle) * radius * 0.78))
+				.setColor(0, 0, 0, alpha);
 	}
 
 	static float shadowPoolRadius(boolean opening, float progress) {

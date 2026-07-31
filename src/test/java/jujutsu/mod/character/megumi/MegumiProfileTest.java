@@ -22,6 +22,7 @@ class MegumiProfileTest {
 		assertEquals(60.0, MegumiProfile.DOG_HEALTH);
 		assertEquals(3.0, MegumiProfile.DOG_ATTACK_DAMAGE);
 		assertEquals(0.34, MegumiProfile.DOG_MOVEMENT_SPEED);
+		assertEquals(1.0, MegumiProfile.NAVIGATION_SPEED_MODIFIER);
 		assertEquals(10.0, MegumiProfile.FOLLOW_START_DISTANCE);
 		assertEquals(2.0, MegumiProfile.FOLLOW_STOP_DISTANCE);
 		assertEquals(32.0, MegumiProfile.LEASH_DISTANCE);

@@ -284,6 +284,7 @@ Both allowlist entries went with it. `VesselBoundaryTest#theOneKnownNetworkLeakD
 
 ## Low-priority product debt
 
+- Nobara's nail-cast sound is noticeably too loud during manual smoke. Expected behavior is a comfortable volume consistent with the rest of Nobara's kit. Reported 2026-07-31; tracked in [GitHub issue #48](https://github.com/grebeshok105/jujutsu-minecraft/issues/48). No audio change is included in the current pass.
 - Crafting recipes and broader datapack content are intentionally absent.
 - Publication automation for Modrinth/CurseForge should wait until release provenance is clean.
 - Some generic Rich ClickGui modules/components are unused and can be removed after confirming the final UI scope.

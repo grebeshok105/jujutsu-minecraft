@@ -1,8 +1,16 @@
 # Fix plan: issues #30, #31, #29, #20
 
-Status: PLAN ONLY. This PR changes no code. Every claim below was read off the source at base `11b4d5ae5f3871ef77a58f55533e700fd68d0c27`.
+Status: PR A implementation is landed in the active worktree for the #30/#31 pounce/follow and #29 shadow-pool fixes. Issue #20 remains plan-only and is intentionally untouched. Historical observations below describe the pre-fix state.
 
 Execution order follows the issue priority: #30 and #31 as one investigation (split into two PRs if the diff grows), then #29, then #20.
+
+## Revision 4 — focused PR #47 hardening
+
+The active implementation now separates the 0.34 movement attribute from the explicit 1.0 navigation speed modifier used after an allowed pounce resume. Ordinary completion uses actual post-move displacement computed from the dog's position before and after `move()`; `getDeltaMovement()` is not collision-resolved: airborne completion keeps only the shared damped horizontal component, grounded completion is zero, and invalid contact or cleanup remains zero. The first actual movement tick is modeled as elapsed tick 1, so an early `onGround` flag alone does not cancel it while real collision flags still do; swept impact still wins the same post-move tick. Shadow presentation now uses a dedicated `megumi_shadow_spot` resource, a one-in-ten neutral accent population, inherited lighting and dark dust for Sic/pounce with no bright teal ring. Issue #31 remains only partially addressed: the confirmed post-pounce resume defect is covered, while full follow/goal responsiveness remains in-game smoke scope. Issue #20 remains untouched.
+
+## Revision 3 — PR A implementation
+
+The diagnostic session confirmed that `setNoAi(true)` did not move the dog and that shared `debugTriangleFan` batching joined separate shadow pools. The active implementation now owns pounce movement with explicit gravity and `MoverType.SELF`, uses a swept target check with impact-before-landing precedence, captures pre-impact travel direction, allows damped exit motion only for valid contact, resumes navigation only from a pure command/target eligibility policy through direct `moveTo(target, speed)`, and renders each shadow pool from independent `debugQuads` sectors. The shadow mote keeps its existing sprite and lifetime but no longer uses saturated full-bright teal. The temporary `MEGUMI_DIAG` logging is removed before packaging. In-world smoke remains separate from `qualityGate`; the user performed the diagnostic smoke, while final post-fix gameplay confirmation is still pending.
 
 ## Revision 2 — review corrections applied
 
@@ -21,15 +29,15 @@ Files read: `MegumiDivineDogEntity`, `MegumiSummonRuntime.tickPounce` / `resolve
 
 - `launchPounce` calls `setNoAi(true)`, `getNavigation().stop()`, sets a ballistic velocity, and sets `hurtMarked = true` (`MegumiDivineDogEntity.launchPounce`).
 - Each tick while `pounceInFlight()`, `tickPounce` re-evaluates in-flight facts, then re-applies `steerVelocity`, overwriting horizontal velocity toward the target at full `POUNCE_HORIZONTAL_SPEED` (0.92) while preserving the current vertical component (`MegumiPouncePolicy.steerVelocity`).
-- The flight ends via `flightAction(horizontalCollision, verticalCollision, onGround, elapsedTicks)`: FINISH on either collision flag, or on `elapsedTicks > 0 && onGround`.
+- The flight ends via `flightAction(horizontalCollision, verticalCollision, onGround, elapsedTicks)`: FINISH on either collision flag, or on `elapsedTicks > 1 && onGround`; elapsed tick 1 is the first reachable post-launch movement tick and does not self-cancel on ground alone.
 - Impact: `resolvePounceImpact` runs when `dog.getBoundingBox().inflate(0.30).intersects(target.getBoundingBox())`. It calls `dog.finishPounce()` first, then re-checks validity and applies one `hurtServer` for `DOG_ATTACK_DAMAGE + POUNCE_BONUS_DAMAGE`, then `target.knockback(POUNCE_KNOCKBACK, -direction.x, -direction.z)`, stagger, sound, `DOGS_POUNCE` cue.
-- `finishPounce` zeroes delta movement, resets fall distance, and only calls `setNoAi(false)` when the dog is in `Phase.ACTIVE`.
-- Knockback direction is computed **after** `finishPounce()` as `target.position() - dog.position()`, horizontal only, negated.
+- `finishPounce` resets pounce state and accepts the explicitly chosen exit velocity; generic cleanup still calls the zero-velocity overload and only calls `setNoAi(false)` when the dog is in `Phase.ACTIVE`.
+- Post-move exit motion is selected by a pure policy from termination reason, grounded state and actual post-move displacement. Knockback direction prefers that displacement's horizontal component, then `target.position() - dog.position()`, horizontal only, negated.
 
 ### Candidate root causes to prove or kill first (do not tune blindly)
 
 1. **Air stall from continuous steering.** `steerVelocity` re-locks horizontal speed to 0.92 every tick but never touches vertical velocity except preserving it. With `setNoAi(true)` the wolf's own gravity handling is questionable to assume — the plan step is to instrument one pounce and log per-tick `getDeltaMovement()` and position. If vertical velocity decays toward 0 while horizontal stays 0.92, the dog hangs.
-2. **Undershoot is structural.** Max horizontal reach is `0.92 * 16 ticks` of `POUNCE_TIMEOUT_TICKS` ~ 14.7 blocks of travel, but `canLaunch` gates distance to `[POUNCE_MIN_RANGE=3, POUNCE_MAX_RANGE=8]`. Undershoot therefore means the flight is being terminated early (collision flags) or vertical arc drops the dog onto the ground before arrival (`elapsedTicks > 0 && onGround` fires). Distinguish by logging which `flightAction` branch ended the flight.
+2. **Undershoot is structural.** Max horizontal reach is `0.92 * 16 ticks` of `POUNCE_TIMEOUT_TICKS` ~ 14.7 blocks of travel, but `canLaunch` gates distance to `[POUNCE_MIN_RANGE=3, POUNCE_MAX_RANGE=8]`. Undershoot therefore means the flight is being terminated early (collision flags) or vertical arc drops the dog onto the ground after the first movement tick. Distinguish by logging which `flightAction` branch ended the flight.
 3. **Pre-attack twitch.** `assignSicTarget` calls `finishPounce()` then `super.setTarget(target)`. `MeleeAttackGoal(priority 2)` starts navigating toward the target while the pounce launcher in `tickPounce` waits for `pounceReady` and the distance band. The dog visibly approaches through melee navigation, then gets yanked into `setNoAi(true)` ballistic flight. The pre-pounce navigation-to-ballistic handoff is the twitch candidate.
 4. **Unreliable impact.** The impact AABB test uses a 0.30 inflate against a fast-moving dog; between ticks the dog can tunnel through or past the target without the inflated boxes intersecting. Separately, `resolvePounceImpact` re-checks `dog.getTarget() != target` after `finishPounce()` — verify that nothing in `finishPounce` or a same-tick AI tick can clear the target before the check runs.
 5. **Knockback direction sign.** `target.knockback(strength, -direction.x, -direction.z)` where `direction = target - dog`. Vanilla `knockback(strength, x, z)` pushes away from `(x, z)`. Verify the vanilla sign semantics against the current call **before** changing anything: the existing call may already be correct, and rewriting a correct call is a regression, not a fix. The existing test only pins that the call happens after accepted damage, so it will not catch a wrong direction either way.
@@ -43,7 +51,7 @@ Files read: `MegumiDivineDogEntity`, `MegumiSummonRuntime.tickPounce` / `resolve
 3. **Knockback direction — capture it immediately before `finishPounce()` zeroes movement, never at launch time.**
    - Launch-time direction is the wrong source: the pounce re-steers toward the target every tick, so if the target moves sideways during flight the launch vector and the true impact vector diverge. Storing the launch vector would produce a deterministic, testable, and wrong knockback.
    - Capture order of precedence, evaluated before motion state is cleared:
-     1. horizontal component of `dog.getDeltaMovement()` when it is non-zero — this is the actual travel direction at contact;
+     1. horizontal component of `dog.position().subtract(beforeMove)` when it is non-zero — this is the actual collision-resolved travel direction at contact;
      2. otherwise horizontal `target.position() - dog.position()`, computed **before** `finishPounce()` zeroes movement;
      3. otherwise the last non-zero steering direction retained from the flight.
    - Only after the vanilla-semantics check in cause 5 decide whether the sign passed to `target.knockback` changes at all. The capture fix and the sign fix are separate decisions; do not bundle them.
@@ -100,15 +108,15 @@ Files read: `MegumiDivineDogEntity`, `MegumiSummonRuntime.tickPounce` / `resolve
 
 Three separate color owners feed the ground effect:
 
-1. **World shadow pool** (`ShadowWorldEffects.renderMegumiShadowPool` after PR 8): `setColor(0, 0, 0, alpha)` on `RenderType.debugTriangleFan()`. Already true black. Not the culprit.
+1. **World shadow pool** (`ShadowWorldEffects.renderMegumiShadowPool` after PR 8): `setColor(0, 0, 0, alpha)` on independent `RenderType.debugQuads()` sectors. Already true black; the prior shared triangle-fan batching was the geometry culprit.
 2. **`MEGUMI_SHADOW_MOTE` particle** (`MegumiShadowMoteParticle`): 1-in-5 particles is an `accent` mote with `rCol=0.10, gCol=0.92, bCol=0.80` at `alpha=0.95` and `getLightColor() = 0xF000F0` (full-bright). Full-bright saturated teal at 95% alpha reads as the dominant color of the cloud even at 20% population. Summon fires a 14-mote burst plus a 10-mote ring; recall fires a 14-mote ring (`MegumiVfxRecipes`).
 3. **`SHADOW_TEAL` / `SHADOW_DARK` dust** in `MegumiVfxRecipes`: `SHADOW_TEAL = 0x2F8F83` — used only in `sic` and `pounce` recipes, not summon/recall. Relevant only if the blue is also seen on Sic.
 
 ### Fix steps
 
 1. Kill or desaturate the accent mote: set accent colors to near-black (keep at most a faint desaturated edge if a highlight is wanted), and drop the full-bright `getLightColor` override for accents. This is the primary fix candidate and touches one file.
-2. Re-check `SHADOW_DARK = 0x102E2B` — it is a dark teal; if the target look is neutral black shadow, shift it to neutral gray-black.
-3. If Sic/pounce must also lose the teal, retune `SHADOW_TEAL` in the same pass; otherwise leave it (Sic is a marker effect, not the shadow pool).
+2. `SHADOW_DARK = 0x102E2B` remains a restrained dark secondary accent; the bright `SHADOW_TEAL` ring is removed from Sic/pounce.
+3. The dedicated `megumi_shadow_spot` resource, one-in-ten accent population and inherited lighting are pinned by `MegumiShadowPresentationTest`; visual blackness remains a smoke question.
 4. Visual verification only: screenshots of summon, recall, sic, pounce at several times of day, before/after. There is no automated way to prove 'reads black'. Keep world-pool code untouched — it is already black and pinned by `ShadowWorldEffectsTest`.
 
 ---

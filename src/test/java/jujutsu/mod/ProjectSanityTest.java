@@ -589,7 +589,7 @@ public final class ProjectSanityTest {
 		assert world.contains("VfxAnchorResolver.resolve(flash.cue()") && world.contains("context.world().getEntity") : "World primitives must follow a live anchor and fall back through VfxAnchorResolver";
 		assert world.contains("MAX_IMPACT_FLASHES") && world.contains("impactFlashes.remove(0)")
 				: "World-channel work must stay bounded alongside director instances";
-		assert world.contains("getBuffer(RenderType.lightning())") && world.contains("getBuffer(RenderType.debugTriangleFan())")
+		assert world.contains("getBuffer(RenderType.lightning())") && world.contains("getBuffer(RenderType.debugQuads())")
 				: "World channel must acquire both retained world-effect buffers";
 		assert hairpinWorld.contains("renderCyanRing") && hairpinWorld.contains("addRibbon") && hairpinWorld.contains("addFlashBlade")
 				: "Hairpin world effects must own their family-specific geometry";

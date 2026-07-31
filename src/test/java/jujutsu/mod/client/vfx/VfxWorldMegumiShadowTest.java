@@ -19,8 +19,8 @@ class VfxWorldMegumiShadowTest {
 		assertTrue(VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN.isWorldFixed());
 		assertTrue(VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_CLOSE.isWorldFixed());
 		String source = Files.readString(WORLD_CHANNEL);
-		assertTrue(source.contains("RenderType.debugTriangleFan()"),
-				"Megumi's pool must use an opaque, untextured world layer instead of additive lightning");
+		assertTrue(source.contains("RenderType.debugQuads()"),
+				"Megumi's pool must use independent quad primitives instead of a shared triangle fan");
 		assertTrue(!source.contains("MEGUMI_EDGE_"),
 				"The summon/recall pool must not retain a teal edge ring");
 

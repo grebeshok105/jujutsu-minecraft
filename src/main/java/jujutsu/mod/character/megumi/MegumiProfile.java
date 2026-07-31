@@ -5,6 +5,7 @@ public final class MegumiProfile {
 	public static final double DOG_HEALTH = 60.0;
 	public static final double DOG_ATTACK_DAMAGE = 3.0;
 	public static final double DOG_MOVEMENT_SPEED = 0.34;
+	public static final double NAVIGATION_SPEED_MODIFIER = 1.0;
 	public static final double FOLLOW_START_DISTANCE = 10.0;
 	public static final double FOLLOW_STOP_DISTANCE = 2.0;
 	public static final double LEASH_DISTANCE = 32.0;
@@ -23,6 +24,8 @@ public final class MegumiProfile {
 	public static final double POUNCE_HORIZONTAL_SPEED = 0.92;
 	public static final double POUNCE_VERTICAL_SPEED = 0.42;
 	public static final double POUNCE_MAX_VERTICAL_SPEED = 0.58;
+	public static final double POUNCE_GRAVITY = 0.08;
+	public static final double POUNCE_EXIT_DAMPING = 0.35;
 	public static final float POUNCE_BONUS_DAMAGE = 2.0f;
 	public static final double POUNCE_KNOCKBACK = 2.4;
 	public static final int POUNCE_STAGGER_TICKS = 6;
