@@ -17,7 +17,7 @@ public final class MegumiShadowMoteParticle extends TextureSheetParticle {
 			ClientLevel level, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed, SpriteSet sprites) {
 		super(level, x, y, z, xSpeed, ySpeed, zSpeed);
 		this.sprites = sprites;
-		accent = random.nextInt(5) == 0;
+		accent = random.nextInt(10) == 0;
 		lifetime = 8 + random.nextInt(5);
 		gravity = 0.025f;
 		hasPhysics = false;

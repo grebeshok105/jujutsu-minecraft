@@ -20,8 +20,8 @@ class MegumiShadowPresentationTest {
 			"src/client/java/jujutsu/mod/client/character/megumi/particle/MegumiShadowMoteParticle.java");
 	private static final Path MOTE_JSON = Path.of(
 			"src/main/resources/assets/jujutsumod/particles/megumi_shadow_mote.json");
-	private static final Path REUSED_SPRITE = Path.of(
-			"src/main/resources/assets/jujutsumod/textures/particle/hairpin_spark.png");
+	private static final Path DEDICATED_SPRITE = Path.of(
+			"src/main/resources/assets/jujutsumod/textures/particle/megumi_shadow_spot.png");
 
 	@Test
 	void ownerCueTriggersTheBodyOnceWhileDogCuesOwnGroundPresentation() throws Exception {
@@ -79,11 +79,23 @@ class MegumiShadowPresentationTest {
 				"Shadow motes must use world lighting instead of full-bright rendering");
 		assertTrue(mote.contains("rCol = accent ? 0.045f : 0.015f"),
 				"Accent motes must remain neutral near-black");
+		assertTrue(mote.contains("accent = random.nextInt(10) == 0"),
+				"Bright/accent shadow motes must be at most one tenth of the particle mass");
+		assertFalse(mote.contains("random.nextInt(5) == 0"),
+				"The old one-in-five accent population must not return");
 		assertFalse(mote.contains("0xF000F0"), "Shadow motes must not force full-bright lighting");
 		assertFalse(mote.contains("0.92f"), "Shadow motes must not retain the saturated teal accent");
 		assertTrue(Files.isRegularFile(MOTE_JSON));
-		assertTrue(Files.readString(MOTE_JSON).contains("jujutsumod:hairpin_spark"));
-		assertTrue(Files.isRegularFile(REUSED_SPRITE));
+		String moteJson = Files.readString(MOTE_JSON);
+		assertTrue(moteJson.contains("jujutsumod:megumi_shadow_spot"));
+		assertFalse(moteJson.contains("hairpin_spark"),
+				"Megumi's shadow particle must not borrow Nobara's spark sprite");
+		assertTrue(Files.isRegularFile(DEDICATED_SPRITE));
+
+		String recipes = Files.readString(RECIPES);
+		assertFalse(recipes.contains("SHADOW_TEAL"),
+				"The shadow presentation must remain darkness-first without a bright teal ring");
+		assertTrue(recipes.contains("context.ring(SHADOW_DARK"));
 	}
 
 	private static int occurrences(String text, String needle) {

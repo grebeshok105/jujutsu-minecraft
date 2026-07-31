@@ -189,7 +189,7 @@ public final class MegumiDivineDogEntity extends Wolf {
 
 	void resumeNavigation(LivingEntity target) {
 		if (!isRemoved() && presentationPhase() == MegumiDogPresentationPolicy.Phase.ACTIVE) {
-			getNavigation().moveTo(target, MegumiProfile.DOG_MOVEMENT_SPEED);
+			getNavigation().moveTo(target, MegumiProfile.NAVIGATION_SPEED_MODIFIER);
 		}
 	}
 

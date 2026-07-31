@@ -17,6 +17,8 @@ final class MegumiPouncePolicyTest {
 			"src/main/java/jujutsu/mod/combat/TargetResolver.java");
 	private static final Path DOG_ENTITY = Path.of(
 			"src/main/java/jujutsu/mod/character/megumi/MegumiDivineDogEntity.java");
+	private static final Path POUNCE_POLICY = Path.of(
+			"src/main/java/jujutsu/mod/character/megumi/MegumiPouncePolicy.java");
 	private static final Path VFX_IDS = Path.of(
 			"src/main/java/jujutsu/mod/vfx/MegumiVfxIds.java");
 	private static final Path VFX_RECIPES = Path.of(
@@ -73,8 +75,10 @@ final class MegumiPouncePolicyTest {
 		assertTrue(entity.contains("private UUID sicTargetUuid;"));
 		assertTrue(entity.contains("private UUID pounceTargetUuid;"));
 		assertTrue(entity.contains("private UUID pounceSicTargetUuid;"));
-		assertTrue(entity.contains("getNavigation().moveTo(target, MegumiProfile.DOG_MOVEMENT_SPEED)"),
-				"Resume must issue a new vanilla path toward the current Sic target");
+		assertTrue(entity.contains("getNavigation().moveTo(target, MegumiProfile.NAVIGATION_SPEED_MODIFIER)"),
+				"Resume must use an explicit vanilla navigation speed modifier");
+		assertFalse(entity.contains("getNavigation().moveTo(target, MegumiProfile.DOG_MOVEMENT_SPEED)"),
+				"The movement attribute must not be applied a second time as a navigation modifier");
 		assertFalse(entity.contains("getNavigation().recomputePath()"),
 				"Resume must not rely on recomputePath after navigation.stop()");
 		assertTrue(entity.contains("private long nextPounceReadyGameTime;"));
@@ -102,10 +106,14 @@ final class MegumiPouncePolicyTest {
 				"No-AI pounce flight must move the dog explicitly");
 		assertTrue(runtime.contains("MegumiPouncePolicy.sweptTargetHit"),
 				"Impact detection must cover a target crossed between ticks");
-		assertTrue(runtime.contains("POUNCE_EXIT_DAMPING"),
-				"A completed pounce must retain a damped horizontal exit velocity");
-		assertTrue(runtime.contains("new Vec3(impactVelocity.x, 0.0, impactVelocity.z)"),
-				"Knockback must prefer the movement direction captured at impact");
+		assertTrue(runtime.contains("MegumiPouncePolicy.exitVelocity"),
+				"A completed pounce must delegate exit motion to the pure policy");
+		assertTrue(Files.readString(POUNCE_POLICY).contains("MegumiProfile.POUNCE_EXIT_DAMPING"),
+				"The pure exit policy must apply the shared damping value");
+		assertTrue(runtime.contains("Vec3 resolvedVelocity = dog.getDeltaMovement()"),
+				"Impact and exit motion must use collision-resolved post-move velocity");
+		assertTrue(Files.readString(POUNCE_POLICY).contains("new Vec3(candidate.x, 0.0, candidate.z)"),
+				"Knockback policy must prefer the resolved movement direction");
 		assertTrue(runtime.contains("dog.setYRot"),
 				"Flight must face the dog along its current movement vector");
 	}
@@ -141,8 +149,10 @@ final class MegumiPouncePolicyTest {
 		assertEquals(MegumiPouncePolicy.FlightAction.FINISH_POUNCE,
 				MegumiPouncePolicy.flightAction(false, false, true, 2));
 		assertEquals(MegumiPouncePolicy.FlightAction.CONTINUE,
-				MegumiPouncePolicy.flightAction(false, false, true, 0),
-				"The launch tick must not self-cancel before physics moves the dog");
+				MegumiPouncePolicy.flightAction(false, false, true, 1),
+				"The first post-launch movement tick must not self-cancel on an early ground flag");
+		assertEquals(MegumiPouncePolicy.FlightAction.FINISH_POUNCE,
+				MegumiPouncePolicy.flightAction(false, false, true, 2));
 	}
 
 	@Test
@@ -164,10 +174,20 @@ final class MegumiPouncePolicyTest {
 
 	@Test
 	void exitMotionAndImpactDirectionKeepInvalidContactsClean() {
-		assertEquals(MegumiPouncePolicy.ExitMotion.DAMPED,
-				MegumiPouncePolicy.exitMotion(true));
-		assertEquals(MegumiPouncePolicy.ExitMotion.ZERO,
-				MegumiPouncePolicy.exitMotion(false));
+		Vec3 airborneVelocity = new Vec3(0.8, -0.08, 0.2);
+		Vec3 airborneExit = MegumiPouncePolicy.exitVelocity(
+				MegumiPouncePolicy.ExitReason.ORDINARY, false, airborneVelocity);
+		assertEquals(0.28, airborneExit.x, 0.000001);
+		assertEquals(0.0, airborneExit.y, 0.000001);
+		assertEquals(0.07, airborneExit.z, 0.000001);
+		assertEquals(Vec3.ZERO,
+				MegumiPouncePolicy.exitVelocity(MegumiPouncePolicy.ExitReason.ORDINARY, true, airborneVelocity));
+		assertEquals(Vec3.ZERO,
+				MegumiPouncePolicy.exitVelocity(MegumiPouncePolicy.ExitReason.INVALID_CONTACT, false, airborneVelocity));
+		assertEquals(Vec3.ZERO,
+				MegumiPouncePolicy.exitVelocity(MegumiPouncePolicy.ExitReason.CLEANUP, false, airborneVelocity));
+		assertTrue(MegumiPouncePolicy.canResumeNavigation(resumeFacts()),
+				"Resume policy must remain independent from ordinary airborne exit motion");
 
 		assertEquals(new Vec3(1.0, 0.0, 0.0), MegumiPouncePolicy.impactDirection(
 				new Vec3(1.0, 0.7, 0.0), new Vec3(0.0, 0.0, 2.0), new Vec3(0.0, 0.0, 3.0)));

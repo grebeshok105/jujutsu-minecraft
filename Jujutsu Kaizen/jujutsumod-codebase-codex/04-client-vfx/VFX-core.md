@@ -20,6 +20,8 @@ The extraction is mechanical: visual constants, geometry formulas, seed mixing, 
 
 Megumi's shadow-pool geometry is the deliberate exception to that frozen extraction: each pool is emitted as independent quad sectors through `RenderType.debugQuads()`. A shared triangle fan cannot delimit two simultaneous pools and visually joins their centers and perimeters.
 
+Megumi's shadow presentation is darkness-first: summon/recall use the dedicated `megumi_shadow_spot` particle sprite, neutral near-black mote colors, a one-in-ten accent population and inherited world lighting. Sic and pounce use the same dark dust recipe without a bright teal ring. The summon-body and per-dog pool cue split remains unchanged.
+
 The nine temporary red mutations for cap, `worldFixed`, dispatch, family routing, silhouette math, shadow curves, basis fallback, ribbon order, and family-owned lifecycle all failed their focused contracts and were restored. Before/after in-game capture and 1/16/32/48-effect profiling were not run; visual comparison and performance evidence remain unverified. PR 9 was not started.
 
 Canonical path:

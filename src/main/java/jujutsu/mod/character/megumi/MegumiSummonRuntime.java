@@ -364,11 +364,12 @@ public final class MegumiSummonRuntime {
 							eligible,
 							assignedId != null && assignedId.equals(dog.pounceTargetUuid()),
 							MegumiPouncePolicy.timedOut(gameTime, dog.pounceDeadlineGameTime())));
-			switch (action) {
+				switch (action) {
 				case CLEAR_SIC -> dog.clearSicCommand();
 				case FINISH_POUNCE -> {
 					finishPounceAndMaybeResume(
-							dog, owner, assignedTarget, MegumiPouncePolicy.ResumeTermination.ORDINARY);
+							dog, owner, assignedTarget, MegumiPouncePolicy.ResumeTermination.ORDINARY,
+							dog.onGround(), dog.getDeltaMovement());
 				}
 				case CONTINUE -> {
 					Vec3 beforeMove = dog.position();
@@ -377,6 +378,7 @@ public final class MegumiSummonRuntime {
 							.add(0.0, -MegumiProfile.POUNCE_GRAVITY, 0.0);
 					dog.setDeltaMovement(flightVelocity);
 					dog.move(MoverType.SELF, flightVelocity);
+					Vec3 resolvedVelocity = dog.getDeltaMovement();
 					if (flightVelocity.horizontalDistanceSqr() > 1.0E-6) {
 						dog.setYRot((float) (Mth.atan2(flightVelocity.x, flightVelocity.z) * Mth.RAD_TO_DEG));
 					}
@@ -385,12 +387,13 @@ public final class MegumiSummonRuntime {
 					MegumiPouncePolicy.PostMoveAction postMoveAction = MegumiPouncePolicy.postMoveAction(
 							crossedTarget, dog.horizontalCollision, dog.verticalCollision, dog.onGround(), elapsedTicks);
 					if (postMoveAction == MegumiPouncePolicy.PostMoveAction.IMPACT) {
-						resolvePounceImpact(level, dog, owner, assignedTarget, flightVelocity);
+						resolvePounceImpact(level, dog, owner, assignedTarget, resolvedVelocity);
 						return;
 					}
 					if (postMoveAction == MegumiPouncePolicy.PostMoveAction.FINISH) {
 						finishPounceAndMaybeResume(
-								dog, owner, assignedTarget, MegumiPouncePolicy.ResumeTermination.ORDINARY);
+								dog, owner, assignedTarget, MegumiPouncePolicy.ResumeTermination.ORDINARY,
+								dog.onGround(), resolvedVelocity);
 					}
 				}
 			}
@@ -432,9 +435,10 @@ public final class MegumiSummonRuntime {
 				&& isEligibleTarget(owner, target);
 		Vec3 positionalDirection = target.position().subtract(dog.position()).multiply(1.0, 0.0, 1.0);
 		Vec3 direction = MegumiPouncePolicy.impactDirection(impactVelocity, positionalDirection, Vec3.ZERO);
-		Vec3 exitVelocity = MegumiPouncePolicy.exitMotion(validImpact) == MegumiPouncePolicy.ExitMotion.DAMPED
-				? new Vec3(impactVelocity.x, 0.0, impactVelocity.z).scale(MegumiProfile.POUNCE_EXIT_DAMPING)
-				: Vec3.ZERO;
+		Vec3 exitVelocity = MegumiPouncePolicy.exitVelocity(
+				validImpact ? MegumiPouncePolicy.ExitReason.VALID_CONTACT
+						: MegumiPouncePolicy.ExitReason.INVALID_CONTACT,
+				dog.onGround(), impactVelocity);
 		boolean resume = canResumeNavigation(
 				dog, owner, target, MegumiPouncePolicy.ResumeTermination.VALID_CONTACT);
 		dog.finishPounce(exitVelocity);
@@ -460,9 +464,10 @@ public final class MegumiSummonRuntime {
 
 	private static void finishPounceAndMaybeResume(
 			MegumiDivineDogEntity dog, ServerPlayer owner, LivingEntity target,
-			MegumiPouncePolicy.ResumeTermination termination) {
+			MegumiPouncePolicy.ResumeTermination termination, boolean onGround, Vec3 resolvedVelocity) {
 		boolean resume = canResumeNavigation(dog, owner, target, termination);
-		dog.finishPounce();
+		dog.finishPounce(MegumiPouncePolicy.exitVelocity(
+				MegumiPouncePolicy.ExitReason.ORDINARY, onGround, resolvedVelocity));
 		if (resume) {
 			dog.resumeNavigation(target);
 		}

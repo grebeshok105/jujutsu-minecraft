@@ -62,8 +62,14 @@ final class MegumiPouncePolicy {
 				== FlightAction.FINISH_POUNCE ? PostMoveAction.FINISH : PostMoveAction.CONTINUE;
 	}
 
-	static ExitMotion exitMotion(boolean validContact) {
-		return validContact ? ExitMotion.DAMPED : ExitMotion.ZERO;
+	static Vec3 exitVelocity(ExitReason reason, boolean onGround, Vec3 resolvedVelocity) {
+		if (reason == ExitReason.CLEANUP
+				|| reason == ExitReason.INVALID_CONTACT
+				|| reason == ExitReason.ORDINARY && onGround) {
+			return Vec3.ZERO;
+		}
+		return new Vec3(resolvedVelocity.x, 0.0, resolvedVelocity.z)
+				.scale(MegumiProfile.POUNCE_EXIT_DAMPING);
 	}
 
 	static Vec3 impactDirection(Vec3 impactVelocity, Vec3 positionalDirection, Vec3 lastSteeringDirection) {
@@ -90,7 +96,7 @@ final class MegumiPouncePolicy {
 
 	static FlightAction flightAction(
 			boolean horizontalCollision, boolean verticalCollision, boolean onGround, int elapsedTicks) {
-		return horizontalCollision || verticalCollision || elapsedTicks > 0 && onGround
+		return horizontalCollision || verticalCollision || elapsedTicks > 1 && onGround
 				? FlightAction.FINISH_POUNCE
 				: FlightAction.CONTINUE;
 	}
@@ -147,9 +153,11 @@ final class MegumiPouncePolicy {
 		CONTINUE
 	}
 
-	enum ExitMotion {
-		ZERO,
-		DAMPED
+	enum ExitReason {
+		ORDINARY,
+		VALID_CONTACT,
+		INVALID_CONTACT,
+		CLEANUP
 	}
 
 	enum ResumeTermination {

@@ -16,7 +16,6 @@ import jujutsu.mod.vfx.VfxTimeline;
 
 /** Divine Dog effects composed entirely from the existing VFX Core channels. */
 public final class MegumiVfxRecipes {
-	private static final DustParticleOptions SHADOW_TEAL = new DustParticleOptions(0x2F8F83, 1.0f);
 	private static final DustParticleOptions SHADOW_DARK = new DustParticleOptions(0x102E2B, 0.75f);
 
 	private MegumiVfxRecipes() {}
@@ -82,7 +81,7 @@ public final class MegumiVfxRecipes {
 			}
 			Vec3 target = context.resolveOrigin(cue);
 			RandomSource random = random(cue, 0x51C7A26E7L);
-			context.ring(SHADOW_TEAL, target, 14, 0.55, 0.0, -0.05, random);
+			context.ring(SHADOW_DARK, target, 14, 0.55, 0.0, -0.05, random);
 			context.burst(SHADOW_DARK, target, 7, 0.18, 0.06, random);
 		});
 	}
@@ -94,7 +93,7 @@ public final class MegumiVfxRecipes {
 			}
 			Vec3 target = context.resolveOrigin(cue);
 			RandomSource random = random(cue, 0xD065B00FL);
-			context.ring(SHADOW_TEAL, target, 18, 0.72, 0.02, 0.06, random);
+			context.ring(SHADOW_DARK, target, 18, 0.72, 0.02, 0.06, random);
 			context.burst(SHADOW_DARK, target.add(0.0, 0.18, 0.0), 12, 0.28, 0.12, random);
 		});
 	}
