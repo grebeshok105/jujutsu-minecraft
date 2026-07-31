@@ -2,9 +2,13 @@ package jujutsu.mod.network;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.netty.buffer.Unpooled;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.IntStream;
@@ -34,9 +38,22 @@ class CurseLinkOptionsPayloadTest {
 	}
 
 	@Test
+	void decoderDoesNotPreallocateFromWireCount() throws IOException {
+		String source = Files.readString(Path.of("src/main/java/jujutsu/mod/network/CurseLinkOptionsPayload.java"));
+
+		assertFalse(source.contains("new ArrayList<>(size)"),
+				"the decoder must not use the untrusted count as an allocation hint");
+	}
+
+	@Test
 	void countAboveMaximumIsRejectedBeforeAllocation() {
 		RegistryFriendlyByteBuf buffer = rawBuffer();
-		buffer.writeVarInt(CurseLinkOptionsPayload.MAX_ENTRIES + 1);
+		int count = CurseLinkOptionsPayload.MAX_ENTRIES + 1;
+		buffer.writeVarInt(count);
+		for (int index = 0; index < count; index++) {
+			CurseLinkOptionsPayload.Entry entry = entry(index);
+			writeRawEntry(buffer, entry.linkId(), entry.sourceId(), entry.techniqueId().toString());
+		}
 
 		assertThrows(RuntimeException.class, () -> CurseLinkOptionsPayload.STREAM_CODEC.decode(buffer));
 	}
