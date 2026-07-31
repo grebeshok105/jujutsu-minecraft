@@ -125,10 +125,10 @@ Three separate color owners feed the ground effect:
 
 ### What the code does today (fully traced)
 
-- `CurseLinkOptionsPayload.read`: `int size = buffer.readVarInt(); new ArrayList<>(size);` then `size` iterations of `readUUID(), readUUID(), ResourceLocation.parse(buffer.readUtf())`. No cap anywhere (`readUtf()` defaults to 32767 chars per string).
+- `CurseLinkOptionsPayload.read`: the VarInt count is now checked against `MAX_ENTRIES` before an unsized list is created, and each technique string is read with `MAX_TECHNIQUE_ID_LENGTH`. A fully consumed but syntactically invalid `ResourceLocation` drops only that entry; codec-level string failures reject the payload.
 - Client receiver: `JujutsuClientNetworking` does `setScreen(new CurseLinkSelectionScreen(payload.entries()))` — decoded size feeds UI construction directly.
 - Sender side: `CurseLinkRegistry.linksForParticipant` returns an unbounded sorted list; `CurseLinkSelection.resolve` treats `size() == 1` as auto-ready and larger lists as needing selection. There is **no natural maximum** in current code — the entry cap must be chosen and documented as a defensive constant.
-- There is **no canonical catalog of technique ids** in the project, and no real producer of curse links was found. This matches the analysis already recorded in PR #32.
+- There is **no canonical catalog of technique ids** in the project. The real producer is `SelfResonanceRuntime`, which sends the participant's current links through the existing S2C payload.
 
 ### Malformed syntax and unknown id are different checks
 
@@ -152,6 +152,10 @@ A single blanket drop-entry rule is wrong: continuing to read after a codec-leve
 | syntactically invalid `ResourceLocation`, string already fully read | drop that entry, keep the rest, log once | the stream is still aligned because the string was consumed in full |
 | well-formed but unknown technique id | drop that entry under the supported-id policy — only exists under Option B | stream is aligned; this is a semantic failure, not a codec failure |
 | writer assembles more than `MAX_ENTRIES` | refuse to encode (throw); never silently truncate | truncation would hide a server-side bug and desync the UI from the registry |
+
+### PR B status — 2026-07-31
+
+Option A was accepted on [issue #20](https://github.com/grebeshok105/jujutsu-minecraft/issues/20#issuecomment-5143288156). The bounded codec, malformed-syntax filtering, writer refusal and regression tests are implemented on `fix/curselink-payload-bounds`. The issue remains partially addressed: well-formed unknown technique ids stay blocked until a canonical supported-id catalog exists.
 
 ### Fix steps
 
