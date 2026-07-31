@@ -6,7 +6,7 @@ Execution order follows the issue priority: #30 and #31 as one investigation (sp
 
 ## Revision 4 — focused PR #47 hardening
 
-The active implementation now separates the 0.34 movement attribute from the explicit 1.0 navigation speed modifier used after an allowed pounce resume. Ordinary completion uses collision-resolved post-move velocity: airborne completion keeps only the shared damped horizontal component, grounded completion is zero, and invalid contact or cleanup remains zero. The first actual movement tick is modeled as elapsed tick 1, so an early `onGround` flag alone does not cancel it while real collision flags still do; swept impact still wins the same post-move tick. Shadow presentation now uses a dedicated `megumi_shadow_spot` resource, a one-in-ten neutral accent population, inherited lighting and dark dust for Sic/pounce with no bright teal ring. Issue #31 remains only partially addressed: the confirmed post-pounce resume defect is covered, while full follow/goal responsiveness remains in-game smoke scope. Issue #20 remains untouched.
+The active implementation now separates the 0.34 movement attribute from the explicit 1.0 navigation speed modifier used after an allowed pounce resume. Ordinary completion uses actual post-move displacement computed from the dog's position before and after `move()`; `getDeltaMovement()` is not collision-resolved: airborne completion keeps only the shared damped horizontal component, grounded completion is zero, and invalid contact or cleanup remains zero. The first actual movement tick is modeled as elapsed tick 1, so an early `onGround` flag alone does not cancel it while real collision flags still do; swept impact still wins the same post-move tick. Shadow presentation now uses a dedicated `megumi_shadow_spot` resource, a one-in-ten neutral accent population, inherited lighting and dark dust for Sic/pounce with no bright teal ring. Issue #31 remains only partially addressed: the confirmed post-pounce resume defect is covered, while full follow/goal responsiveness remains in-game smoke scope. Issue #20 remains untouched.
 
 ## Revision 3 — PR A implementation
 
@@ -32,7 +32,7 @@ Files read: `MegumiDivineDogEntity`, `MegumiSummonRuntime.tickPounce` / `resolve
 - The flight ends via `flightAction(horizontalCollision, verticalCollision, onGround, elapsedTicks)`: FINISH on either collision flag, or on `elapsedTicks > 1 && onGround`; elapsed tick 1 is the first reachable post-launch movement tick and does not self-cancel on ground alone.
 - Impact: `resolvePounceImpact` runs when `dog.getBoundingBox().inflate(0.30).intersects(target.getBoundingBox())`. It calls `dog.finishPounce()` first, then re-checks validity and applies one `hurtServer` for `DOG_ATTACK_DAMAGE + POUNCE_BONUS_DAMAGE`, then `target.knockback(POUNCE_KNOCKBACK, -direction.x, -direction.z)`, stagger, sound, `DOGS_POUNCE` cue.
 - `finishPounce` resets pounce state and accepts the explicitly chosen exit velocity; generic cleanup still calls the zero-velocity overload and only calls `setNoAi(false)` when the dog is in `Phase.ACTIVE`.
-- Post-move exit motion is selected by a pure policy from termination reason, grounded state and collision-resolved velocity. Knockback direction prefers that resolved horizontal motion, then `target.position() - dog.position()`, horizontal only, negated.
+- Post-move exit motion is selected by a pure policy from termination reason, grounded state and actual post-move displacement. Knockback direction prefers that displacement's horizontal component, then `target.position() - dog.position()`, horizontal only, negated.
 
 ### Candidate root causes to prove or kill first (do not tune blindly)
 
@@ -51,7 +51,7 @@ Files read: `MegumiDivineDogEntity`, `MegumiSummonRuntime.tickPounce` / `resolve
 3. **Knockback direction — capture it immediately before `finishPounce()` zeroes movement, never at launch time.**
    - Launch-time direction is the wrong source: the pounce re-steers toward the target every tick, so if the target moves sideways during flight the launch vector and the true impact vector diverge. Storing the launch vector would produce a deterministic, testable, and wrong knockback.
    - Capture order of precedence, evaluated before motion state is cleared:
-     1. horizontal component of `dog.getDeltaMovement()` when it is non-zero — this is the actual travel direction at contact;
+     1. horizontal component of `dog.position().subtract(beforeMove)` when it is non-zero — this is the actual collision-resolved travel direction at contact;
      2. otherwise horizontal `target.position() - dog.position()`, computed **before** `finishPounce()` zeroes movement;
      3. otherwise the last non-zero steering direction retained from the flight.
    - Only after the vanilla-semantics check in cause 5 decide whether the sign passed to `target.knockback` changes at all. The capture fix and the sign fix are separate decisions; do not bundle them.

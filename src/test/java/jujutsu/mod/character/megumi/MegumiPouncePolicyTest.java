@@ -115,7 +115,7 @@ final class MegumiPouncePolicyTest {
 		assertFalse(runtime.contains("Vec3 resolvedVelocity = dog.getDeltaMovement()"),
 				"Entity delta movement is not collision-resolved by move()");
 		assertTrue(Files.readString(POUNCE_POLICY).contains("new Vec3(candidate.x, 0.0, candidate.z)"),
-				"Knockback policy must prefer the resolved movement direction");
+				"Knockback policy must prefer the post-move displacement direction");
 		assertTrue(runtime.contains("dog.setYRot"),
 				"Flight must face the dog along its current movement vector");
 	}
