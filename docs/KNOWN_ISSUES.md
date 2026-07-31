@@ -142,11 +142,17 @@ Still open, and the reason this entry survives the fix: the resolver is shared b
 
 ### E2 — Curse-link options payload is not bounded
 
-Verified 2026-07-26: `CurseLinkOptionsPayload.read` still does `readVarInt()` and loops that many times with an unbounded `readUtf()` per entry.
+Option A was accepted in [issue #20](https://github.com/grebeshok105/jujutsu-minecraft/issues/20#issuecomment-5143288156) and implemented on `fix/curselink-payload-bounds`.
 
-The payload trusts an incoming list size and unbounded technique string, while the client creates one button per entry.
+Implemented at the codec boundary:
 
-Action: cap entries and string length, reject malformed ids, and add scrolling/pagination if the list can grow.
+- `MAX_ENTRIES = 64` rejects negative and over-cap counts before list allocation.
+- `MAX_TECHNIQUE_ID_LENGTH = 256` bounds decoded and encoded technique-id strings. A length failure rejects the whole payload because the stream cannot be assumed aligned.
+- Syntactically malformed `ResourceLocation` strings are dropped after being fully read; later entries remain aligned, and the decoder logs once per payload.
+- The writer refuses over-cap lists and over-length technique ids before writing the payload; it never truncates.
+- Valid payloads retain the existing UUID/UUID/string wire layout and round-trip byte-identically.
+
+The current curse-link registry still has no natural maximum. `SelfResonanceRuntime` is a real producer of this S2C payload, and the client passes the already bounded list to `CurseLinkSelectionScreen`. There is still no canonical catalog of supported technique ids, so a well-formed unknown id cannot be rejected honestly. That semantic acceptance criterion remains BLOCKED; E2 stays open for this gap only. No supported-id registry or UI pagination was added.
 
 ### E3 — Some server runtime state is still static and unevenly cleaned
 

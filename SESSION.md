@@ -1,51 +1,59 @@
-# Session Handoff - PR A Complete, PR B Next
+# Session Handoff - CurseLink Payload Bounds
 
-## Completed scope
+## Active branch
 
-PR A is complete for issues #29, #30 and #31 through pull request [#47](https://github.com/grebeshok105/jujutsu-minecraft/pull/47).
+- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/fix-curselink-payload-bounds`
+- Branch: `fix/curselink-payload-bounds`
+- Base: `da309cfab9c01bca1525f468039c674644ee0f27` (`fix(megumi): stabilize Divine Dog pounce and shadows`), the squash merge of PR #47.
+- Scope: PR B, issue #20 only. Divine Dogs, Megumi VFX, Nobara audio, issue #48 and every other payload remain untouched.
+- PR: draft PR creation is the final release step; the URL will be added here after creation.
 
-- Branch: `fix/megumi-divine-dogs-stability`
-- Base: `9efbde3` (`docs: add fix plan for Megumi dogs and CurseLink payload bounds`)
-- Issue #20 remained untouched throughout PR A.
-- Volatile branch-head fields are intentionally omitted. Use Git/GitHub as the source of truth for the current SHA.
+## Confirmed code facts
 
-## Implemented behavior
+- `CurseLinkOptionsPayload` is registered as an existing S2C payload in `JujutsuNetworking` and uses `CustomPacketPayload.codec(write, read)`.
+- `SelfResonanceRuntime` is the real producer. It sends the participant's current `CurseLinkRegistry` list when selection is needed; `CurseLinkSelectionScreen` receives the decoded list through `JujutsuClientNetworking`.
+- The registry and participant list have no natural maximum. `MAX_ENTRIES` is therefore defensive rather than a product limit.
+- There is no canonical catalog of supported technique ids. `ResourceLocation.parse` provides syntax validation only; a well-formed unknown id remains accepted under Option A.
+- Codec-level exceptions from `readUtf(MAX_TECHNIQUE_ID_LENGTH)` are allowed to escape the existing stream codec, so the whole payload is rejected. Only the fully consumed string-to-`ResourceLocation` parse step has a controlled drop path.
 
-- Divine Dog pounce flight is server-owned through explicit gravity and `MoverType.SELF` movement.
-- Swept target impact prevents tunneling and takes precedence over same-tick landing or collision.
-- Actual post-move displacement is derived from position before and after `move()`; `getDeltaMovement()` is not treated as collision-resolved.
-- Ordinary airborne completion may keep damped horizontal exit motion; grounded completion, invalid semantic contact and cleanup finish at zero motion.
-- The first reachable movement tick is elapsed tick 1 and does not self-cancel from an early ground flag alone; real collision flags still finish the flight.
-- Navigation recovery uses the explicit `NAVIGATION_SPEED_MODIFIER = 1.0`, separate from the `0.34` movement attribute, and only resumes while the original Sic command and target remain current and eligible.
-- Generic `finishPounce()` remains cleanup-only and cannot revive navigation during cancellation, recall, teardown or invalidation.
-- Separate Divine Dog shadow pools render as independent `debugQuads` sectors.
-- Shadow presentation uses the dedicated `megumi_shadow_spot` sprite, neutral near-black colors, one-in-ten accents and inherited world lighting.
-- World VFX renders lightning-family and `debugQuads` consumers in separate sequential buffer passes, preventing the reproduced `IllegalStateException: Not building!` crash.
+## Option A
 
-## Verification and acceptance
+Option A was accepted in [issue #20 comment](https://github.com/grebeshok105/jujutsu-minecraft/issues/20#issuecomment-5143288156): implement bounded entry count, bounded technique-id strings, malformed syntax handling, writer-side refusal and codec regression tests. Unknown-id validation is explicitly **BLOCKED** until a canonical supported-id catalog exists. No allowlist or registry was added, and issue #20 remains open.
 
-- Focused Megumi, VFX and Nobara regression tests passed.
-- Deliberate RED/GREEN evidence covers post-move displacement and sequential world-buffer use.
-- `auditDocumentation`, `qualityGate` and `build` passed before final acceptance.
-- GitHub CI passed on the final pre-acceptance head.
-- User manual in-game smoke passed on 2026-07-31:
-  - selecting Nobara and sending nails no longer crashes;
-  - Nobara and Megumi VFX appeared correct;
-  - Divine Dogs behaved exactly as intended, including normal movement and Sic recovery.
+## Defensive bounds
 
-PR A is therefore accepted as complete. Issues #29, #30 and #31 may be closed with PR #47.
+- `MAX_ENTRIES = 64`: finite protection for list allocation and client UI construction; no natural maximum exists in current curse-link state.
+- `MAX_TECHNIQUE_ID_LENGTH = 256`: finite per-field wire budget, well above current namespaced ids; not a semantic or product limit.
 
-## Separate follow-up
+## Failure-policy matrix
 
-Manual smoke found that Nobara's nail-cast sound is too loud. It is tracked separately in issue [#48](https://github.com/grebeshok105/jujutsu-minecraft/issues/48). No audio code changed in PR A.
+| Input | Result |
+|---|---|
+| negative count | reject entire payload before list allocation |
+| count above `MAX_ENTRIES` | reject entire payload before list allocation |
+| technique-id string above `MAX_TECHNIQUE_ID_LENGTH` | reject entire payload; do not continue after codec-level length failure |
+| syntactically malformed `ResourceLocation` after full string read | drop only that entry, continue aligned decoding, log once per payload |
+| well-formed unknown technique id | accept under Option A; semantic validation remains blocked |
+| writer list above `MAX_ENTRIES` | throw before writing; never truncate |
+| writer technique id above `MAX_TECHNIQUE_ID_LENGTH` | throw before writing; never truncate |
 
-## Next work - PR B
+## Tests and RED evidence
 
-PR B is issue #20: defensive bounds and malformed-input handling for `CurseLinkOptionsPayload`.
+- `CurseLinkOptionsPayloadTest` uses the real production `STREAM_CODEC` for raw malformed buffers, rejection paths, alignment, round trips and byte-identical re-encoding. It also pins the no-trusted-preallocation source invariant because allocation capacity is not observable through the public codec value seam.
+- Focused result after restoration: 13 tests passed.
+- Initial RED: test compilation failed before the production constants existed.
+- Mutation RED evidence: removing count bounds failed both count tests; restoring `readUtf()` failed the over-length test; trusted `new ArrayList<>(size)` failed the allocation invariant; dropping over-length codec failures failed whole-payload rejection; removing malformed filtering failed both malformed-entry tests; removing writer count refusal failed its writer test; removing explicit writer string refusal failed its writer exception-contract test.
 
-Before editing code:
+## Verification
 
-1. Start from updated `main` after PR #47 is merged.
-2. Read `AGENTS.md`, this file, `docs/FIX_PLAN_MEGUMI_AND_CURSELINK.md`, `docs/KNOWN_ISSUES.md`, issue #20 and the actual payload/receiver/codec tests.
-3. Record the Option A / Option B decision on issue #20. The approved plan recommends Option A: implement bounds and malformed-syntax handling now while leaving unknown-id validation blocked until a canonical technique-id catalog exists.
-4. Keep PR B independent from Divine Dogs, VFX presentation and issue #48.
+- Focused `CurseLinkOptionsPayloadTest`: 13 tests passed.
+- `./gradlew.bat auditDocumentation --no-daemon --max-workers=1 --no-watch-fs`: `BUILD SUCCESSFUL`; MOC metrics report 68 test Java files.
+- `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs`: `BUILD SUCCESSFUL`; all 31 verification JavaExec tasks enable assertions.
+- `./gradlew.bat build --no-daemon --max-workers=1 --no-watch-fs`: `BUILD SUCCESSFUL`; produced `build/libs/jujutsumod-1.0.0.jar`.
+- Build JAR SHA-256: `B634613C4176A911CDE136C0961E381C7D37CA7B647BE70FE282F5411551FA91`.
+- No in-game smoke or JAR installation is required for this codec-only issue.
+- Valid payload wire format remains the existing VarInt count followed by UUID, UUID and UTF technique-id string per entry.
+
+## Remaining gap
+
+Issue #20 is partially addressed, not closed. A well-formed unknown technique id cannot be rejected until the project defines a canonical supported-id catalog. Do not create Option B or close the issue in this PR.
