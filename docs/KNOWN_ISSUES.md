@@ -140,7 +140,7 @@ Detection is untouched — still ray–AABB, not centre-near-ray. The extra reco
 
 Still open, and the reason this entry survives the fix: the resolver is shared by four callers — `TodoBoogieWoogieRuntime`, `NobaraHammerCombatRuntime`, `ProjectJjkNobaraRuntime`, and `ProjectJjkRitualRuntime` — so this was a roster-wide gameplay change, not a per-ability tweak, and it has only pure-comparator coverage. **Needs a Nobara targeting regression smoke: hammer targeting, nail launch, and directed Hairpin.** Until that runs, "assist no longer steals the target" is verified as comparator logic and UNVERIFIED as feel. Any future comparator edit needs the same smoke.
 
-### E2 — Curse-link options payload is not bounded
+### E2 — Curse-link technique ids lack canonical semantic validation
 
 Option A was accepted in [issue #20](https://github.com/grebeshok105/jujutsu-minecraft/issues/20#issuecomment-5143288156) and implemented on `fix/curselink-payload-bounds`.
 
