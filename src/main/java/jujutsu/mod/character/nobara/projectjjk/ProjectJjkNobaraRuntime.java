@@ -33,6 +33,8 @@ import jujutsu.mod.vfx.VfxCues;
 
 public final class ProjectJjkNobaraRuntime {
 	private static final Double IMPULSE_BROADCAST_RADIUS = 56.0;
+	/** Scales the six-layer nail-launch mix without changing the balance between its sounds. */
+	private static final float NAIL_LAUNCH_SOUND_GAIN = 0.5f;
 	private static final Map<UUID, Integer> ACTIVE_EXPLOSIVE_NAILS = new ConcurrentHashMap<>();
 	private static final Map<UUID, PreparationSession> PREPARATIONS = new ConcurrentHashMap<>();
 	/** Last nail-snap / prepare start game time per player. */
@@ -134,12 +136,12 @@ public final class ProjectJjkNobaraRuntime {
 		}
 
 		// Forging anvil clang: the hammer strike must read like smithing on an anvil.
-		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ANVIL_USE, SoundSource.PLAYERS, 1.35f, 0.9f);
-		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.NETHERITE_BLOCK_HIT, SoundSource.PLAYERS, 0.95f, 0.68f);
-		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.HAIRPIN_HAMMER_SNAP, SoundSource.PLAYERS, 0.9f, 1.0f);
-		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 1.2f, 0.82f);
-		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_CINEMATIC_WHOOSH, SoundSource.PLAYERS, 0.88f, 0.86f);
-		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SPELL_SHOT, SoundSource.PLAYERS, 0.72f, 0.74f);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ANVIL_USE, SoundSource.PLAYERS, 1.35f * NAIL_LAUNCH_SOUND_GAIN, 0.9f);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.NETHERITE_BLOCK_HIT, SoundSource.PLAYERS, 0.95f * NAIL_LAUNCH_SOUND_GAIN, 0.68f);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.HAIRPIN_HAMMER_SNAP, SoundSource.PLAYERS, 0.9f * NAIL_LAUNCH_SOUND_GAIN, 1.0f);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP, SoundSource.PLAYERS, 1.2f * NAIL_LAUNCH_SOUND_GAIN, 0.82f);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_CINEMATIC_WHOOSH, SoundSource.PLAYERS, 0.88f * NAIL_LAUNCH_SOUND_GAIN, 0.86f);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SPELL_SHOT, SoundSource.PLAYERS, 0.72f * NAIL_LAUNCH_SOUND_GAIN, 0.74f);
 		JujutsuNetworking.broadcastVfxCue(level, player.position(), IMPULSE_BROADCAST_RADIUS,
 				cue(level, NobaraVfxIds.HAMMER, nails.size(), player.position(), level.getGameTime(), player));
 		damageHammer(player, hammerStack, hand);
