@@ -1,39 +1,51 @@
-# Session Handoff - Megumi Divine Dogs Stability
+# Session Handoff - PR A Complete, PR B Next
 
-## Active branch
+## Completed scope
 
-- Worktree: `D:/WorkFlow/Jujutsu Minecraft`
+PR A is complete for issues #29, #30 and #31 through pull request [#47](https://github.com/grebeshok105/jujutsu-minecraft/pull/47).
+
 - Branch: `fix/megumi-divine-dogs-stability`
 - Base: `9efbde3` (`docs: add fix plan for Megumi dogs and CurseLink payload bounds`)
-- Scope: PR A, issues #30/#31 and #29 only. Issue #20 remains untouched.
-- Implementation commits: `ad9a14d` (`fix(megumi): use post-move displacement for pounce`), `7a9588d` (`docs(megumi): clarify post-move displacement contract`), `c3945d9` (`fix(vfx): separate world buffer render passes`) and `57034bc` (`docs(vfx): document sequential world buffers`).
-- Current head: `f6bf9be`.
-- Pull request: [#47](https://github.com/grebeshok105/jujutsu-minecraft/pull/47), `OPEN` and `draft`; head is pushed to `origin/fix/megumi-divine-dogs-stability`.
+- Issue #20 remained untouched throughout PR A.
+- Volatile branch-head fields are intentionally omitted. Use Git/GitHub as the source of truth for the current SHA.
 
-## Confirmed diagnosis
+## Implemented behavior
 
-- With `setNoAi(true)`, pounce velocity changed but the wolf position did not. The runtime now owns gravity, `MoverType.SELF` movement, facing, and post-move collision evaluation.
-- Snapshot AABB overlap could miss a fast target. Impact now checks endpoint overlap and the target's inflated swept AABB between the previous and current positions.
-- Pounce cleanup used to erase all motion and calculate knockback after cleanup. The runtime now derives actual post-move displacement from the dog's position before and after `move()` (rather than treating `getDeltaMovement()` as collision-resolved), keeps damped horizontal exit motion for ordinary airborne and valid-contact completion where policy permits, zeros grounded ordinary/invalid/cleanup exits, and resumes navigation only through explicit active runtime transitions.
-- `VfxWorldChannel` fed every shadow pool into one `debugTriangleFan`; multiple pools therefore became one connected primitive. Each pool now emits independent quad sectors through `debugQuads`.
-- The shared `MultiBufferSource` can finish the previous `BufferBuilder` when a second render type is acquired. World VFX now renders lightning styles fully, acquires `debugQuads`, then renders shadow styles in a second pass; no stale `VertexConsumer` is reused.
-- Navigation recovery now captures the Sic command identity at launch and calls `moveTo(target, NAVIGATION_SPEED_MODIFIER)` only after ordinary termination or valid contact passes the pure resume policy; generic cleanup never navigates. The modifier is explicitly `1.0`, separate from the 0.34 movement attribute.
-- Post-move policy gives a valid swept impact priority over same-tick landing/collision. The first reachable movement tick is elapsed tick 1, so an early ground flag alone does not cancel it; real collision flags still do. Invalid semantic contact and cleanup receive zero exit motion, while airborne ordinary completion and valid contact may retain damped horizontal travel derived from the actual post-move displacement.
-- `MegumiShadowMoteParticle` uses a dedicated `megumi_shadow_spot` sprite, neutral near-black colors, a one-in-ten accent population and inherited world lighting; Sic/pounce use dark dust without the bright teal ring.
+- Divine Dog pounce flight is server-owned through explicit gravity and `MoverType.SELF` movement.
+- Swept target impact prevents tunneling and takes precedence over same-tick landing or collision.
+- Actual post-move displacement is derived from position before and after `move()`; `getDeltaMovement()` is not treated as collision-resolved.
+- Ordinary airborne completion may keep damped horizontal exit motion; grounded completion, invalid semantic contact and cleanup finish at zero motion.
+- The first reachable movement tick is elapsed tick 1 and does not self-cancel from an early ground flag alone; real collision flags still finish the flight.
+- Navigation recovery uses the explicit `NAVIGATION_SPEED_MODIFIER = 1.0`, separate from the `0.34` movement attribute, and only resumes while the original Sic command and target remain current and eligible.
+- Generic `finishPounce()` remains cleanup-only and cannot revive navigation during cancellation, recall, teardown or invalidation.
+- Separate Divine Dog shadow pools render as independent `debugQuads` sectors.
+- Shadow presentation uses the dedicated `megumi_shadow_spot` sprite, neutral near-black colors, one-in-ten accents and inherited world lighting.
+- World VFX renders lightning-family and `debugQuads` consumers in separate sequential buffer passes, preventing the reproduced `IllegalStateException: Not building!` crash.
 
-## Verification
+## Verification and acceptance
 
-- Focused tests pass after this pass: `VfxWorldSplitContractTest`, `VfxWorldGeometryTest`, `VfxWorldMegumiShadowTest` and `NailTrapCollapseTest`, plus the existing Megumi focused suite (all selected tests green); the new buffer-order regression has RED/GREEN evidence.
-- RED evidence before the production edit: the new displacement assertion failed at `MegumiPouncePolicyTest.java:113` while the old `getDeltaMovement()` assertion passed; the runtime then returned the focused suite to green.
-- `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` passed on current code/docs state at `57034bc`.
-- `./gradlew.bat build --no-daemon --max-workers=1 --no-watch-fs` passed and produced `D:/WorkFlow/Jujutsu Minecraft/build/libs/jujutsumod-1.0.0.jar`.
-- `./gradlew.bat auditDocumentation --no-daemon --max-workers=1 --no-watch-fs` passed.
-- Build and installed JAR SHA-256: `F570CDE7A50626720E3A37770F7E4B5A0D342A1DC75BF40B98AA230F3AA9306F`.
-- The installed JAR at `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar` matches the build JAR byte-for-byte.
-- User manual smoke passed on 2026-07-31: selecting Nobara and sending nails no longer crashes; Nobara VFX appears correct; Divine Dogs behave as intended.
-- The smoke also found that Nobara's nail-cast sound is too loud. This is tracked as GitHub issue [#48](https://github.com/grebeshok105/jujutsu-minecraft/issues/48) and is intentionally not fixed in this pass.
+- Focused Megumi, VFX and Nobara regression tests passed.
+- Deliberate RED/GREEN evidence covers post-move displacement and sequential world-buffer use.
+- `auditDocumentation`, `qualityGate` and `build` passed before final acceptance.
+- GitHub CI passed on the final pre-acceptance head.
+- User manual in-game smoke passed on 2026-07-31:
+  - selecting Nobara and sending nails no longer crashes;
+  - Nobara and Megumi VFX appeared correct;
+  - Divine Dogs behaved exactly as intended, including normal movement and Sic recovery.
 
-## Machine prerequisite
+PR A is therefore accepted as complete. Issues #29, #30 and #31 may be closed with PR #47.
 
-- Windows paging is active after reboot: automatic management is disabled and the only active pagefile is `D:/pagefile.sys` at `15360 MB` (`LastBootUpTime: 2026-07-30 18:39:57`).
-- The user-reported gameplay smoke for this pass is complete: Nobara selection and nail casting, VFX presentation, and Divine Dog behavior were confirmed correct in-game. The nail-cast volume issue remains open in #48. `qualityGate` and CI remain automated evidence and do not replace this manual in-world confirmation.
+## Separate follow-up
+
+Manual smoke found that Nobara's nail-cast sound is too loud. It is tracked separately in issue [#48](https://github.com/grebeshok105/jujutsu-minecraft/issues/48). No audio code changed in PR A.
+
+## Next work - PR B
+
+PR B is issue #20: defensive bounds and malformed-input handling for `CurseLinkOptionsPayload`.
+
+Before editing code:
+
+1. Start from updated `main` after PR #47 is merged.
+2. Read `AGENTS.md`, this file, `docs/FIX_PLAN_MEGUMI_AND_CURSELINK.md`, `docs/KNOWN_ISSUES.md`, issue #20 and the actual payload/receiver/codec tests.
+3. Record the Option A / Option B decision on issue #20. The approved plan recommends Option A: implement bounds and malformed-syntax handling now while leaving unknown-id validation blocked until a canonical technique-id catalog exists.
+4. Keep PR B independent from Divine Dogs, VFX presentation and issue #48.
