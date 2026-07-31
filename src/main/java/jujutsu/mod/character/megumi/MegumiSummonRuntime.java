@@ -378,7 +378,7 @@ public final class MegumiSummonRuntime {
 							.add(0.0, -MegumiProfile.POUNCE_GRAVITY, 0.0);
 					dog.setDeltaMovement(flightVelocity);
 					dog.move(MoverType.SELF, flightVelocity);
-					Vec3 resolvedVelocity = dog.getDeltaMovement();
+					Vec3 resolvedVelocity = dog.position().subtract(beforeMove);
 					if (flightVelocity.horizontalDistanceSqr() > 1.0E-6) {
 						dog.setYRot((float) (Mth.atan2(flightVelocity.x, flightVelocity.z) * Mth.RAD_TO_DEG));
 					}

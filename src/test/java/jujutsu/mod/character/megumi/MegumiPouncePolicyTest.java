@@ -110,8 +110,10 @@ final class MegumiPouncePolicyTest {
 				"A completed pounce must delegate exit motion to the pure policy");
 		assertTrue(Files.readString(POUNCE_POLICY).contains("MegumiProfile.POUNCE_EXIT_DAMPING"),
 				"The pure exit policy must apply the shared damping value");
-		assertTrue(runtime.contains("Vec3 resolvedVelocity = dog.getDeltaMovement()"),
-				"Impact and exit motion must use collision-resolved post-move velocity");
+		assertTrue(runtime.contains("Vec3 resolvedVelocity = dog.position().subtract(beforeMove)"),
+				"Impact and exit motion must use actual collision-resolved post-move displacement");
+		assertFalse(runtime.contains("Vec3 resolvedVelocity = dog.getDeltaMovement()"),
+				"Entity delta movement is not collision-resolved by move()");
 		assertTrue(Files.readString(POUNCE_POLICY).contains("new Vec3(candidate.x, 0.0, candidate.z)"),
 				"Knockback policy must prefer the resolved movement direction");
 		assertTrue(runtime.contains("dog.setYRot"),
