@@ -1048,68 +1048,49 @@ public final class ProjectSanityTest {
 
 	private static void assertGeckoLibNobaraPlayerModelWired() throws IOException {
 		String gradle = Files.readString(ROOT.resolve("build.gradle"));
-		assert gradle.contains("software.bernie.geckolib") : "GeckoLib must be a declared dependency for the Nobara player geo model";
+		assert gradle.contains("software.bernie.geckolib") : "GeckoLib must remain the character animation runtime";
 		String properties = Files.readString(ROOT.resolve("gradle.properties"));
 		assert properties.contains("geckolib_version=5.2.2") : "GeckoLib version must match the installed 1.21.8 runtime jar";
 		String modJson = Files.readString(ROOT.resolve("src/main/resources/fabric.mod.json"));
 		assert modJson.contains("\"geckolib\"") : "fabric.mod.json must declare the required GeckoLib runtime dependency";
 		String mixins = Files.readString(ROOT.resolve("src/client/resources/jujutsumod.client.mixins.json"));
-		assert mixins.contains("PlayerRenderContextMixin") : "Character geo render must hook the vanilla player renderer";
-		assert mixins.contains("CharacterRenderDispatchMixin") : "Character geo render must hook the declared LivingEntityRenderer render method";
+		assert mixins.contains("PlayerRenderContextMixin") : "Skin animation needs the live player render context";
+		assert mixins.contains("CharacterSkinAnimationMixin") : "Skin animation must hook the vanilla player renderer";
+		assert !mixins.contains("CharacterRenderDispatchMixin") : "The old canceling Geo dispatch must stay retired";
 		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoAnimatable.java")) : "Missing Nobara GeckoLib animatable";
-		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoModel.java")) : "Missing Nobara GeckoLib model";
-		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoRenderer.java")) : "Missing Nobara GeckoLib renderer";
-		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/CharacterRenderDispatchMixin.java")) : "Missing shared LivingEntityRenderer dispatch hook for character geo render";
-		assert Files.exists(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json")) : "Missing GeckoLib 5 Nobara model asset";
+		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraSkinAnimationModel.java")) : "Missing Nobara skin animation model";
+		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterSkinAnimationAdapter.java")) : "Missing shared skin animation adapter";
+		assert Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterSkinAnimationState.java")) : "Missing player model restoration state";
+		assert Files.exists(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/character_skin/nobara.geo.json")) : "Missing invisible Nobara skin animation rig";
 		assert Files.exists(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/animations/projectjjk/npc.animation.json")) : "Missing GeckoLib 5 Nobara animation asset";
-		assert Files.exists(MAIN_RESOURCES.resolve("assets/jujutsumod/textures/projectjjk/entity/npcs/nobara_kugisaki.png")) : "Missing Nobara NPC texture";
-		String geoModel = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoModel.java"));
-		assert geoModel.contains("projectjjk/nobara_kugisaki") : "GeckoLib model key should be stripped to projectjjk/nobara_kugisaki";
-		assert geoModel.contains("projectjjk/npc") : "GeckoLib animation key should be stripped to projectjjk/npc";
-		assert !geoModel.contains("geo/projectjjk") : "GeckoLib 5 does not bake models from the old geo/ path";
-		assert !geoModel.contains("animations/projectjjk") : "GeckoLib 5 does not bake animations from the old animations/ path";
+		assert Files.exists(MAIN_RESOURCES.resolve("assets/jujutsumod/textures/entity/character/nobara.png")) : "Missing Nobara player skin";
 		String manager = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/character/ClientCharacterSelectionManager.java"));
-		assert manager.contains("rememberEntity") && manager.contains("selectionByEntityId") : "Renderer needs entity-id lookup while keeping GUI portrait skin logic separate";
-		assert manager.contains("RenderContext") : "Nobara Gecko renderer needs the extracted player entity and partial tick, not just a UUID";
+		assert manager.contains("rememberEntity") && manager.contains("selectionByEntityId") : "Skin animation needs entity-id lookup while keeping GUI portrait skin logic separate";
+		assert manager.contains("RenderContext") : "Skin animation needs the extracted player entity and partial tick, not just a UUID";
 		assert manager.contains("WeakReference<AbstractClientPlayer>") : "Client render context must not strongly retain old player entities across worlds";
 		String playerMixin = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/PlayerRenderContextMixin.java"));
-		assert playerMixin.contains("rememberEntity(player, partialTick)") : "Player render extraction must remember the actual player entity for GeckoLib replaced-entity rendering";
-		String livingMixin = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/CharacterRenderDispatchMixin.java"));
-		assert livingMixin.contains("renderContextByEntityId(playerState.id)") : "Character geo render dispatch must resolve the player entity before rendering";
-		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterPlayerGeoRenderer.java"));
-		assert renderer.contains("fillRenderState(getAnimatable(), player") : "Character geo render must fill GeckoLib render data before rendering";
-		assert renderer.contains("DataTickets.PACKED_LIGHT") : "Character geo render must provide GeckoLib packed light data outside the dispatcher path";
-		assert renderer.contains("restorePoseStack(matrices, guardPose)") : "Character geo render must unwind its own pose stack even when rendering throws";
-		assert !renderer.contains("render(cast(state), matrices") : "Character geo render must not render a raw vanilla PlayerRenderState without GeckoLib data";
-		assert !renderer.contains("catch (IllegalArgumentException") : "Character geo render must not silently fall back to the old player skin when GeckoLib data is missing";
+		assert playerMixin.contains("rememberEntity(player, partialTick)") : "Player render extraction must remember the actual player entity for GeckoLib animation evaluation";
+		String livingMixin = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/CharacterSkinAnimationMixin.java"));
+		assert livingMixin.contains("renderContextByEntityId(playerState.id)") : "Skin animation must resolve the player entity before evaluating clips";
+		assert livingMixin.contains("setupAnim") && livingMixin.contains("@WrapMethod") && livingMixin.contains("finally") : "Skin animation must run after vanilla setup and restore state around render";
+		String adapter = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterSkinAnimationAdapter.java"));
+		assert adapter.contains("fillRenderState") && adapter.contains("handleAnimations") : "The bridge must evaluate the existing GeckoLib controllers";
+		assert adapter.contains("DataTickets.HUMANOID_MODEL") && adapter.contains("getRenderType") : "The bridge must pass vanilla arm state and suppress rig drawing";
 		String animatable = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoAnimatable.java"));
 		assert animatable.contains("state.isMoving()") : "Nobara idle/walk/run must use GeckoLib movement data";
 		assert animatable.contains("DataTickets.SPRINTING") && animatable.contains("DataTickets.VELOCITY") : "Nobara run animation must use real player movement tickets";
 		assert !animatable.contains("speedValue >") : "HumanoidRenderState.speedValue is a vanilla limb scale, not a movement trigger";
-		String geo = Files.readString(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json"));
-		assert geo.contains("\"name\": \"bb_main\",\n\t\t\t\t\t\"parent\": \"skirt\"") : "Nobara skirt/coat panels must follow the body instead of floating as a root bone";
 		String card = Files.readString(CLIENT_JAVA.resolve(
 				"jujutsu/mod/client/character/nobara/NobaraClientDefinition.java"));
-		assert card.contains("textures/entity/character/nobara.png") : "Character select portrait must keep using the player-skin head, not the GeckoLib NPC texture";
+		assert card.contains("skinAnimation()") && card.contains("textures/entity/character/nobara.png") : "Nobara must bind the standard skin and its GeckoLib animation adapter";
 	}
 
 	private static void assertNobaraHeldItemsAndArmPosesWired() throws IOException {
-		Path heldItemLayer = CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraHeldItemLayer.java");
-		assert Files.exists(heldItemLayer) : "Nobara replacement renderer must restore held-item rendering";
-		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoRenderer.java"));
-		assert renderer.contains("addRenderLayer(new NobaraHeldItemLayer<>(this))")
-				: "Nobara renderer must attach the held-item layer";
-		String sharedRenderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterPlayerGeoRenderer.java"));
-		assert sharedRenderer.contains("vanillaPoseModel.setupAnim(renderState)") && sharedRenderer.contains("DataTickets.HUMANOID_MODEL")
-				: "Character renderers must derive arm poses from the current vanilla player render state";
-		String sharedModel = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterPlayerGeoModel.java"));
+		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraHeldItemLayer.java"))
+				: "Nobara's old dedicated Geo held-item layer must stay archived";
+		String sharedModel = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterSkinAnimationModel.java"));
 		assert sharedModel.contains("applyVanillaArmPose") && sharedModel.contains("DataTickets.HUMANOID_MODEL")
-				: "Character models must apply vanilla-equivalent held-item arm rotations";
-		String geo = Files.readString(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json"));
-		assert Pattern.compile("\"name\"\\s*:\\s*\"rightHandItem\"\\s*,\\s*\"parent\"\\s*:\\s*\"right_elbow\"").matcher(geo).find()
-				: "Nobara model needs a right-hand item attachment under the right elbow";
-		assert Pattern.compile("\"name\"\\s*:\\s*\"leftHandItem\"\\s*,\\s*\"parent\"\\s*:\\s*\"left_elbow\"").matcher(geo).find()
-				: "Nobara model needs a left-hand item attachment under the left elbow";
+				: "The skin bridge must apply vanilla-equivalent held-item arm rotations";
 		String itemRegistry = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/registry/JujutsuItems.java"));
 		assert itemRegistry.contains("ItemLore") && itemRegistry.contains("tooltip.jujutsumod.straw_doll.ritual")
 				: "Straw Doll tooltip must use the current item-lore API to explain how to start Resonance";
@@ -1121,7 +1102,7 @@ public final class ProjectSanityTest {
 	}
 
 	private static void assertNobaraGeoHeadLookIsSafeAndEnabled() throws IOException {
-		String sharedModel = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterPlayerGeoModel.java"));
+		String sharedModel = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterSkinAnimationModel.java"));
 		assert sharedModel.contains("setCustomAnimations") : "Character Gecko models must apply a safe per-frame head look pass";
 		assert sharedModel.contains("getBone(HEAD_BONE)") : "Head look must rotate the separate head bone only";
 		assert sharedModel.contains("MAX_HEAD_YAW_DEGREES = 38.0f") : "Head yaw clamp must stay conservative after the unsafe 75 degree attempt";
@@ -1130,34 +1111,32 @@ public final class ProjectSanityTest {
 		assert !sharedModel.contains("MAX_HEAD_YAW_DEGREES = 75.0f") : "Do not restore the old unsafe head yaw range";
 		assert !sharedModel.contains("MAX_HEAD_PITCH_DEGREES = 45.0f") : "Do not restore the old unsafe head pitch range";
 		// Clamps live on the shared base; a vessel must not silently reintroduce its own looser copy.
-		for (String vessel : new String[] {"nobara/NobaraPlayerGeoModel.java", "todo/TodoPlayerGeoModel.java"}) {
+		for (String vessel : new String[] {"nobara/NobaraSkinAnimationModel.java", "todo/TodoSkinAnimationModel.java"}) {
 			String subclass = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/").resolve(vessel));
-			assert subclass.contains("extends CharacterPlayerGeoModel")
+			assert subclass.contains("extends CharacterSkinAnimationModel")
 					: vessel + " must inherit the shared head-look clamps";
 			assert !subclass.contains("MAX_HEAD_YAW_DEGREES =") && !subclass.contains("MAX_HEAD_PITCH_DEGREES =")
 					: vessel + " must not redefine the shared head-look clamps";
 		}
-		String geoModel = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoModel.java"));
+		String geoModel = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraSkinAnimationModel.java"));
 		assert geoModel.contains("NobaraPlayerGeoAnimatable.headLookWeight(animationState, playerState)") : "Nobara head look must use the animatable/controller-aware action weight";
 		String animatable = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoAnimatable.java"));
 		assert animatable.contains("headKeyframedActionIsPlaying(state)") : "Nobara head look must attenuate while ProjectJJK head-keyframed action clips are active";
 		assert animatable.contains("getTriggeredAnimation()") && animatable.contains("getCurrentRawAnimation()") : "Nobara head look must account for GeckoLib triggered and current raw action animations";
 		assert animatable.contains("animation == SNAP") && animatable.contains("animation == SPELL_5") && animatable.contains("animation == SWIPE_1") : "Nobara head look action guard must include snap, spell, and swipe ProjectJJK clips";
-		String geo = Files.readString(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json"));
+		String geo = Files.readString(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/character_skin/nobara.geo.json"));
 		assert Pattern.compile("\"name\"\\s*:\\s*\"head\"\\s*,\\s*\"parent\"\\s*:\\s*\"body\"").matcher(geo).find() : "Nobara model must keep a separate head bone parented to body for look tracking";
 	}
 
 	private static void assertNobaraGeoRenderRestoresPoseStack() throws IOException {
-		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterPlayerGeoRenderer.java"));
-		assert renderer.contains("restorePoseStack") : "GeckoLib replacement render must restore PoseStack depth after rendering";
-		assert renderer.contains("matrices.pushPose()") : "GeckoLib replacement render needs a local guard pose";
-		assert renderer.contains("finally") : "PoseStack restoration must run even when GeckoLib render exits unusually";
-		// The guard lives on the shared base so no vessel renderer can opt out of it.
-		for (String vessel : new String[] {"nobara/NobaraPlayerGeoRenderer.java", "todo/TodoPlayerGeoRenderer.java"}) {
-			String subclass = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/").resolve(vessel));
-			assert subclass.contains("extends CharacterPlayerGeoRenderer")
-					: vessel + " must inherit the shared pose-stack guard instead of hand-rolling render entry";
-		}
+		String mixin = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/mixin/CharacterSkinAnimationMixin.java"));
+		assert mixin.contains("@WrapMethod") && mixin.contains("finally") : "Skin animation must restore player model state around vanilla rendering";
+		String state = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterSkinAnimationState.java"));
+		assert state.contains("capture(PlayerModel") && state.contains("part.restore()") && state.contains("AutoCloseable")
+				: "The skin animation bridge must restore every touched ModelPart";
+		String adapter = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterSkinAnimationAdapter.java"));
+		assert adapter.contains("CharacterSkinAnimationState.capture(playerModel)") && adapter.contains("snapshot.close()")
+				: "The adapter must restore the model when GeckoLib evaluation fails";
 	}
 
 	private static void assertNobaraSkinUsesWideArms() throws IOException {

@@ -7,7 +7,8 @@ import jujutsu.mod.character.JujutsuCharacter;
  * No vessel, as an object rather than a null.
  *
  * <p>It is a real card in the menu, so it needs a name, a colour and an empty input strip like any
- * other. No renderer means the vanilla player model, which is exactly what "no vessel" should look like.
+ * other. No skin animation means the ordinary vanilla player model and pose, which is exactly what
+ * "no vessel" should look like.
  */
 final class NoneClientDefinition implements CharacterClientDefinition {
 	private static final int ACCENT = 0xFF7A8796;

@@ -1,0 +1,27 @@
+# Archived 2026-08-03 from codex/character-skin-animation.
+# Original path -> archive path relative to this directory.
+# These files are no longer runtime inputs. Animation JSON is intentionally live because the skin
+# animation bridge evaluates the existing GeckoLib clips against its invisible humanoid rigs.
+
+src/client/java/jujutsu/mod/client/mixin/CharacterRenderDispatchMixin.java -> src/client/java/jujutsu/mod/client/mixin/CharacterRenderDispatchMixin.java
+src/client/java/jujutsu/mod/client/render/CharacterGeoRenderer.java -> src/client/java/jujutsu/mod/client/render/CharacterGeoRenderer.java
+src/client/java/jujutsu/mod/client/render/CharacterGeoRenderers.java -> src/client/java/jujutsu/mod/client/render/CharacterGeoRenderers.java
+src/client/java/jujutsu/mod/client/render/CharacterHeldItemLayer.java -> src/client/java/jujutsu/mod/client/render/CharacterHeldItemLayer.java
+src/client/java/jujutsu/mod/client/render/CharacterPlayerGeoModel.java -> src/client/java/jujutsu/mod/client/render/CharacterPlayerGeoModel.java
+src/client/java/jujutsu/mod/client/render/CharacterPlayerGeoRenderer.java -> src/client/java/jujutsu/mod/client/render/CharacterPlayerGeoRenderer.java
+src/client/java/jujutsu/mod/client/render/megumi/MegumiHeldItemLayer.java -> src/client/java/jujutsu/mod/client/render/megumi/MegumiHeldItemLayer.java
+src/client/java/jujutsu/mod/client/render/megumi/MegumiPlayerGeoModel.java -> src/client/java/jujutsu/mod/client/render/megumi/MegumiPlayerGeoModel.java
+src/client/java/jujutsu/mod/client/render/megumi/MegumiPlayerGeoRenderer.java -> src/client/java/jujutsu/mod/client/render/megumi/MegumiPlayerGeoRenderer.java
+src/client/java/jujutsu/mod/client/render/nobara/NobaraHeldItemLayer.java -> src/client/java/jujutsu/mod/client/render/nobara/NobaraHeldItemLayer.java
+src/client/java/jujutsu/mod/client/render/nobara/NobaraPlayerGeoModel.java -> src/client/java/jujutsu/mod/client/render/nobara/NobaraPlayerGeoModel.java
+src/client/java/jujutsu/mod/client/render/nobara/NobaraPlayerGeoRenderer.java -> src/client/java/jujutsu/mod/client/render/nobara/NobaraPlayerGeoRenderer.java
+src/client/java/jujutsu/mod/client/render/todo/TodoHeldItemLayer.java -> src/client/java/jujutsu/mod/client/render/todo/TodoHeldItemLayer.java
+src/client/java/jujutsu/mod/client/render/todo/TodoPlayerGeoModel.java -> src/client/java/jujutsu/mod/client/render/todo/TodoPlayerGeoModel.java
+src/client/java/jujutsu/mod/client/render/todo/TodoPlayerGeoRenderer.java -> src/client/java/jujutsu/mod/client/render/todo/TodoPlayerGeoRenderer.java
+src/main/resources/assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json -> src/main/resources/assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json
+src/main/resources/assets/jujutsumod/geckolib/models/todo/todo_aoi.geo.json -> src/main/resources/assets/jujutsumod/geckolib/models/todo/todo_aoi.geo.json
+src/main/resources/assets/jujutsumod/geckolib/models/megumi/megumi_fushiguro.geo.json -> src/main/resources/assets/jujutsumod/geckolib/models/megumi/megumi_fushiguro.geo.json
+src/main/resources/assets/jujutsumod/geo/projectjjk/nobara_kugisaki.geo.json -> src/main/resources/assets/jujutsumod/geo/projectjjk/nobara_kugisaki.geo.json
+src/main/resources/assets/jujutsumod/textures/projectjjk/entity/npcs/nobara_kugisaki.png -> src/main/resources/assets/jujutsumod/textures/projectjjk/entity/npcs/nobara_kugisaki.png
+src/main/resources/assets/jujutsumod/textures/entity/character/todo_aoi.png -> src/main/resources/assets/jujutsumod/textures/entity/character/todo_aoi.png
+src/main/resources/assets/jujutsumod/textures/entity/character/megumi_fushiguro.png -> src/main/resources/assets/jujutsumod/textures/entity/character/megumi_fushiguro.png

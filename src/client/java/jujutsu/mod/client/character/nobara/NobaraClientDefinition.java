@@ -2,7 +2,6 @@ package jujutsu.mod.client.character.nobara;
 
 import java.util.List;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
-import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.JujutsuCharacter;
@@ -10,10 +9,12 @@ import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollItem;
 import jujutsu.mod.client.character.CharacterClientDefinition;
 import jujutsu.mod.client.character.CharacterRosterEntry;
 import jujutsu.mod.client.character.JujutsuCharacterIcons;
-import jujutsu.mod.client.render.CharacterGeoRenderer;
 import jujutsu.mod.client.render.ProjectJjkNailRenderer;
-import jujutsu.mod.client.render.nobara.NobaraPlayerGeoRenderer;
+import jujutsu.mod.client.render.CharacterSkinAnimation;
+import jujutsu.mod.client.render.CharacterSkinAnimationAdapter;
 import jujutsu.mod.client.render.nobara.doll.ProjectJjkStrawDollRenderer;
+import jujutsu.mod.client.render.nobara.NobaraPlayerGeoAnimatable;
+import jujutsu.mod.client.render.nobara.NobaraSkinAnimationModel;
 import jujutsu.mod.client.vfx.nobara.NobaraVfxRecipes;
 import jujutsu.mod.registry.JujutsuEntities;
 
@@ -54,9 +55,12 @@ public final class NobaraClientDefinition implements CharacterClientDefinition {
 								"screen.jujutsumod.character_select.ability.hammer", "LMB")));
 	}
 
+	private static final CharacterSkinAnimation SKIN_ANIMATION =
+			new CharacterSkinAnimationAdapter<>(NobaraPlayerGeoAnimatable.INSTANCE, new NobaraSkinAnimationModel());
+
 	@Override
-	public CharacterGeoRenderer createRenderer(EntityRendererProvider.Context context) {
-		return new NobaraPlayerGeoRenderer<>(context);
+	public CharacterSkinAnimation skinAnimation() {
+		return SKIN_ANIMATION;
 	}
 
 	@Override
