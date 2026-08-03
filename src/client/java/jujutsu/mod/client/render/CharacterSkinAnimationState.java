@@ -1,11 +1,10 @@
 package jujutsu.mod.client.render;
 
-import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
 
-/** Exact render-time snapshot for every part in a vanilla player model. */
+/** Exact render-time snapshot for the vanilla player parts changed by the skin animation bridge. */
 public final class CharacterSkinAnimationState implements AutoCloseable {
 	private final List<PartState> parts;
 	private boolean closed;
@@ -15,11 +14,14 @@ public final class CharacterSkinAnimationState implements AutoCloseable {
 	}
 
 	public static CharacterSkinAnimationState capture(PlayerModel model) {
-		List<PartState> parts = new ArrayList<>();
-		for (ModelPart part : model.allParts()) {
-			parts.add(PartState.capture(part));
-		}
-		return new CharacterSkinAnimationState(parts);
+		return new CharacterSkinAnimationState(List.of(
+				PartState.capture(model.root()),
+				PartState.capture(model.body),
+				PartState.capture(model.head),
+				PartState.capture(model.leftArm),
+				PartState.capture(model.rightArm),
+				PartState.capture(model.leftLeg),
+				PartState.capture(model.rightLeg)));
 	}
 
 	@Override

@@ -28,6 +28,7 @@ public final class MegumiSkinAnimationModel extends CharacterSkinAnimationModel<
 
 	@Override
 	protected float headLookWeight(AnimationState<MegumiPlayerGeoAnimatable> animationState, PlayerRenderState playerState) {
+		// Megumi's approved presentation keeps his head facing the clip's authored direction.
 		return 0.0f;
 	}
 

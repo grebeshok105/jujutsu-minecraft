@@ -32,7 +32,10 @@ source tree.
 `CharacterSkinAnimationAdapter` implements GeckoLib's `GeoRenderer` contract only as an evaluation
 surface. Its render type is `null`, its render callbacks are no-ops, and it never emits Geo geometry.
 `fillRenderState` supplies the existing animatable instance and controller state; `GeoModel` prepares
-the invisible rig and `handleAnimations` runs the current clips.
+the invisible rig and `handleAnimations` runs the current clips. GeckoLib normally augments
+`PlayerRenderState` with `GeoRenderState` through its client mixin; the adapter checks that boundary and
+returns `null` after closing its snapshot when the augmentation is absent, leaving vanilla rendering
+untouched.
 
 `CharacterSkinAnimationModel` retains the former shared presentation rules:
 
@@ -46,9 +49,21 @@ The bridge maps `root`, `body`, `head`, both arms and both legs. `elbow`, `hand`
 are folded into their parent limb because vanilla player geometry has no separate visible part for
 them. Facial, hair and other Blockbench-only bones are evaluation-only and never create geometry.
 
-`CharacterSkinAnimationState` snapshots all `PlayerModel.allParts()` values, including position,
-rotation, scale, visibility and `skipDraw`. It is idempotently closed and restores those values even
-when GeckoLib evaluation or vanilla rendering throws.
+`CharacterSkinAnimationState` snapshots position, rotation, scale, visibility and `skipDraw` for the
+seven `PlayerModel` parts the bridge changes: root, body, head, both arms and both legs. It is
+idempotently closed and restores those values even when GeckoLib evaluation or vanilla rendering throws.
+
+The adapter converts each GeoBone's local position and rotation into vanilla coordinates, composes
+parent-to-child transforms with quaternions, and extracts vanilla's `ZYX` Euler representation only
+when writing a `ModelPart`. It does not add Euler angles component by component. Current skin rigs use
+zero pivots and the bridge deliberately folds elbow, hand and knee bones into their visible parent
+parts; non-humanoid bones remain evaluation-only.
+
+The bridge is fail-loud after the GeckoLib state guard: a missing or malformed rig/animation throws
+after the snapshot is restored instead of silently falling back to an unanimated selected vessel. This
+keeps resource regressions visible while preserving vanilla state when the GeckoLib integration itself
+is not present. The animation instance id uses the rendered player's UUID least-significant bits so
+the singleton animatable's controller cache follows a player across entity-id changes such as respawn.
 
 ## Vessel bindings
 
@@ -63,8 +78,10 @@ switches on a vessel name.
 | NONE | player's own skin | none | `null`, ordinary vanilla pose |
 
 Megumi's per-player `punch_1 -> punch_2 -> kick` bookkeeping lives in
-`MegumiSkinAnimationAdapter`, not in a retired visible renderer. The confirmed summon cue still
-triggers `summon_divine_dogs` through the existing VFX recipe and animatable.
+`MegumiSkinAnimationAdapter`, not in a retired visible renderer. His skin model intentionally returns
+zero procedural head-look weight, preserving the earlier approved "head facing forward" presentation;
+the unused head-look helper was removed from `MegumiPlayerGeoAnimatable`. The confirmed summon cue
+still triggers `summon_divine_dogs` through the existing VFX recipe and animatable.
 
 ## Runtime assets and archive
 
@@ -90,7 +107,8 @@ definitions.
 
 ## Verification boundary
 
-Focused source/resource checks and `compileClientJava` prove the adapter contract, resource paths and
-archive boundary. The full `qualityGate` is the automated completion gate. A real client smoke is still
-required for F5 skin rendering, idle/walk/run, each vessel action, held items, armor/cape visibility
-and first-person effects; a green gate does not prove those in-world visuals.
+Focused source/resource checks, the bridge behavior tests, and `compileClientJava` prove the adapter
+contract, transform/state math, resource paths and archive boundary. The full `qualityGate` is the
+automated completion gate. A real client smoke is still required for F5 skin rendering, idle/walk/run,
+each vessel action, held items, armor/cape visibility and first-person effects; a green gate does not
+prove those in-world visuals.

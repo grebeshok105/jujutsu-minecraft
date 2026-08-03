@@ -6,6 +6,8 @@ import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.entity.state.PlayerRenderState;
 import net.minecraft.resources.ResourceLocation;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 import software.bernie.geckolib.animatable.GeoAnimatable;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.cache.object.GeoBone;
@@ -73,7 +75,12 @@ public class CharacterSkinAnimationAdapter<A extends GeoAnimatable>
 			PlayerModel playerModel, float partialTick, int packedLight) {
 		CharacterSkinAnimationState snapshot = CharacterSkinAnimationState.capture(playerModel);
 		try {
-			GeoRenderState geoState = (GeoRenderState) (Object) renderState;
+			// GeckoLib normally augments this state through its client mixin. Keep the bridge optional
+			// when that integration is absent so vanilla rendering remains the fallback.
+			if (!(renderState instanceof GeoRenderState geoState)) {
+				snapshot.close();
+				return null;
+			}
 			geoState.addGeckolibData(DataTickets.HUMANOID_MODEL, playerModel);
 			geoState.addGeckolibData(DataTickets.PACKED_LIGHT, packedLight);
 
@@ -104,12 +111,13 @@ public class CharacterSkinAnimationAdapter<A extends GeoAnimatable>
 	}
 
 	private void applyPart(net.minecraft.client.model.geom.ModelPart part, Transform transform) {
-		part.x += -transform.x;
+		part.x += transform.x;
 		part.y += transform.y;
 		part.z += transform.z;
-		part.xRot = transform.xRot * VANILLA_X_FROM_GEO;
-		part.yRot = transform.yRot * VANILLA_Y_FROM_GEO;
-		part.zRot = transform.zRot * VANILLA_Z_FROM_GEO;
+		Vector3f rotation = transform.vanillaEuler();
+		part.xRot = rotation.x;
+		part.yRot = rotation.y;
+		part.zRot = rotation.z;
 	}
 
 	private Transform accumulated(String boneName, String... foldedChildren) {
@@ -123,7 +131,7 @@ public class CharacterSkinAnimationAdapter<A extends GeoAnimatable>
 	private Transform ancestorsWithoutRoot(GeoBone bone) {
 		Transform transform = Transform.ZERO;
 		for (GeoBone current = bone; current != null && !ROOT.equals(current.getName()); current = current.getParent()) {
-			transform = transform.plus(local(current));
+			transform = local(current).plus(transform);
 		}
 		return transform;
 	}
@@ -133,16 +141,30 @@ public class CharacterSkinAnimationAdapter<A extends GeoAnimatable>
 	}
 
 	private static Transform local(GeoBone bone) {
-		return new Transform(bone.getPosX(), bone.getPosY(), bone.getPosZ(),
+		return Transform.fromGeo(bone.getPosX(), bone.getPosY(), bone.getPosZ(),
 				bone.getRotX(), bone.getRotY(), bone.getRotZ());
 	}
 
-	private record Transform(float x, float y, float z, float xRot, float yRot, float zRot) {
-		private static final Transform ZERO = new Transform(0, 0, 0, 0, 0, 0);
+	static record Transform(float x, float y, float z, Quaternionf rotation) {
+		private static final Transform ZERO = new Transform(0, 0, 0, new Quaternionf());
 
-		private Transform plus(Transform other) {
-			return new Transform(x + other.x, y + other.y, z + other.z,
-					xRot + other.xRot, yRot + other.yRot, zRot + other.zRot);
+		static Transform fromGeo(float x, float y, float z, float xRot, float yRot, float zRot) {
+			return new Transform(-x, y, z,
+					new Quaternionf().rotationZYX(
+							zRot * VANILLA_Z_FROM_GEO,
+							yRot * VANILLA_Y_FROM_GEO,
+							xRot * VANILLA_X_FROM_GEO));
+		}
+
+		Transform plus(Transform other) {
+			Vector3f otherPosition = rotation.transform(new Vector3f(other.x, other.y, other.z))
+					.add(x, y, z);
+			return new Transform(otherPosition.x, otherPosition.y, otherPosition.z,
+					new Quaternionf(rotation).mul(other.rotation));
+		}
+
+		Vector3f vanillaEuler() {
+			return rotation.getEulerAnglesZYX(new Vector3f());
 		}
 	}
 }

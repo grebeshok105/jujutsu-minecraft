@@ -65,22 +65,6 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 		return cache;
 	}
 
-	static float headLookWeight(AnimationState<MegumiPlayerGeoAnimatable> state, PlayerRenderState playerState) {
-		float weight = 1.0f;
-		if (playerState.swinging || playerState.attackTime > 0.05f || playerState.isUsingItem) {
-			weight *= 0.45f;
-		}
-		if (actionKeyframedIsPlaying(state)) {
-			weight *= 0.35f;
-		}
-		if (playerState.walkAnimationSpeed > 0.82f) {
-			weight *= 0.65f;
-		} else if (playerState.walkAnimationSpeed > 0.08f) {
-			weight *= 0.82f;
-		}
-		return weight;
-	}
-
 	private PlayState baseAnimation(AnimationTest<MegumiPlayerGeoAnimatable> state) {
 		GeoRenderState renderState = state.renderState();
 		if (renderState instanceof PlayerRenderState playerState
