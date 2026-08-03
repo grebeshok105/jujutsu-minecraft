@@ -3,9 +3,9 @@
 ## Active branch
 
 - Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/character-skin-animation`
-- Branch: `codex/character-skin-animation`
-- Base: `85f08d958ad4c21b0c07f8b4cc383ba344adc0cf` (`origin/main`)
-- Scope: replace the visible Nobara, Todo and Megumi player Geo models with ordinary Minecraft skins while retaining their GeckoLib animation clips and GeckoLib runtime.
+- Branch: `codex/character-animation-overhaul`
+- Base: `ff2ebb2` (`codex/character-skin-animation`, stacked on PR #52)
+- Scope: replace the visible Nobara, Todo and Megumi player Geo models with ordinary Minecraft skins while retaining GeckoLib as the third-person animation runtime.
 
 ## Completed commits
 
@@ -17,6 +17,8 @@
 - `4c9e4c6` — review fixes: GeckoLib state guard, quaternion pose composition, targeted restoration state, bridge behavior tests and Megumi head policy cleanup
 - `de5cd8a` — refresh the maintained Codex test-file metric after adding bridge coverage
 - `d06eaae` — provide player movement and sprint tickets before GeckoLib evaluates skin clips
+- `e00155f` — bind slim/classic skins, Todo's 1.15 body scale and dimensions/render hooks
+- `ed71068` — archive the superseded skin rigs and animation packs
 
 ## Current implementation
 
@@ -25,25 +27,23 @@
 - `CharacterSkinAnimationAdapter` uses GeckoLib `fillRenderState`, `GeoModel.handleAnimations` and invisible bone-only rigs under `geckolib/models/character_skin/`. It checks the runtime `GeoRenderState` augmentation, provides the live player's `VELOCITY` and `SPRINTING` tickets plus vessel-specific data before controller evaluation, composes converted parent-to-child transforms with quaternions in vanilla `ZYX` order, and remains fail-loud for malformed live rigs or clips after restoring the snapshot.
 - `CharacterSkinAnimationState` restores position, rotation, scale, visibility and `skipDraw` for root, body, head, both arms and both legs; executable tests cover restoration/idempotent close and the transform conversion/composition contract.
 - Every rig bone declares three-component zero `pivot` and `rotation` arrays because GeckoLib 5.2.2 reads both fields unconditionally during resource baking.
+- The live packs are newly authored for the invisible vanilla-skin rigs: Nobara has alternate idle/walk loops, a run loop, a three-clip melee sequence, ability and hammer clips; Todo has alternate idle/walk loops, a dedicated run, an attack trigger and a full `ability.boogie_woogie` clap; Megumi has a dedicated run, `combat_idle`, punch/punch/kick cycling and `summon_divine_dogs`.
 - Nobara, Todo and Megumi definitions provide their own adapters through `skinAnimation()`; NONE inherits the null adapter and remains ordinary vanilla.
+- Skin model variants are `NOBARA=slim` and `TODO/MEGUMI=wide`; Todo's `1.15f` body scale is applied only to dimensions and third-person rendering, never reach, damage or speed.
 - Megumi's per-player swing variant sequence is owned by `MegumiSkinAnimationAdapter`.
 - Megumi intentionally keeps procedural head-look disabled so his head follows the authored clip direction; the unused animatable-level head-look helper was removed.
-- Old visible player Geo Java classes, models, textures and the canceling dispatch mixin are retained under `archive/character-player-gecko/`. The existing animation JSON remains live because the bridge consumes it.
+- Old visible player Geo Java classes, models, textures and the canceling dispatch mixin remain under `archive/character-player-gecko/`. The superseded skin rigs and packs remain under `archive/character-skin-animation/`; only the new `geckolib/models/character_skin` rigs and `geckolib/animations/{projectjjk,todo,megumi}` packs are runtime resources.
 
 ## Verification
 
-- `./gradlew.bat compileClientJava --no-daemon --max-workers=1 --no-watch-fs` — passed.
-- `./gradlew.bat testProjectSanity testCharacterClients --no-daemon --max-workers=1 --no-watch-fs` — passed.
-- `./gradlew.bat test --tests 'jujutsu.mod.client.character.megumi.MegumiPlayerPresentationTest' --no-daemon --max-workers=1 --no-watch-fs` — passed.
-- `./gradlew.bat test --tests 'jujutsu.mod.client.render.CharacterSkinAnimationBridgeTest' --no-daemon --max-workers=1 --no-watch-fs` — passed, including quaternion composition and player-part restoration.
-- `./gradlew.bat testProjectSanity --no-daemon --max-workers=1 --no-watch-fs` — passed after the rig-format regression was restored from a deliberate failing assertion.
-- `./gradlew.bat auditDocumentation --no-daemon --max-workers=1 --no-watch-fs` — passed.
-- `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` — passed; documentation audit reports 52 current Markdown files and `test_java=69`, all 31 verification JavaExec tasks enable assertions.
-- `./gradlew.bat assemble --no-daemon --max-workers=1 --no-watch-fs` — passed; JAR: `build/libs/jujutsumod-1.0.0.jar`; SHA-256: `EC56082F3CA7501810DD991AB256484E8AA6784AEE9BF92EE8511679D6E3CE7C`.
-- Installed the rebuilt JAR at `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar`; source and installed SHA-256 values match.
-- Shell-launched `runClient` reached Fabric/Minecraft initialization and resource reload; no GeckoLib rig-bake exception, `ArrayIndexOutOfBoundsException` or missing skin-rig error appeared. The known non-fatal `minecraft:builtin/entity` warning remained. The exact client process tree was then stopped after the bounded load check.
+- `./gradlew.bat testProjectSanity --no-daemon --max-workers=1 --no-watch-fs` — passed after adding explicit rig rotations.
+- `./gradlew.bat test --tests 'jujutsu.mod.vfx.VfxCueTest' --tests 'jujutsu.mod.client.vfx.VfxRadiusContractTest' --tests 'jujutsu.mod.client.vfx.VfxCompletenessTest' --no-daemon --max-workers=1 --no-watch-fs` — passed, including the new caster-action cue and 34-id recipe/radius contracts.
+- `./gradlew.bat test --tests 'jujutsu.mod.client.render.CharacterSkinAnimationPackTest' --no-daemon --max-workers=1 --no-watch-fs` — passed for all three rigs, clip sets, loop flags and trigger paths.
+- `./gradlew.bat compileClientJava --no-daemon --max-workers=1 --no-watch-fs` — passed after the controller/resource changes.
+- The full `qualityGate` and final `assemble` are still pending for this branch.
 - Interactive F5, idle/walk/run, vessel actions, held items, armor/cape visibility and first-person effects remain manual checks; no UI automation is used for this handoff.
 
 ## Next steps
 
-1. Perform the remaining manual in-game visual smoke when a human-controlled client session is available.
+1. Run `qualityGate`, review the final diff, build/publish the branch and open the stacked PR.
+2. Perform the remaining manual in-game visual smoke when a human-controlled client session is available.

@@ -3,9 +3,9 @@
 Status: CURRENT
 
 The selected Nobara, Todo, or Megumi vessel keeps its ordinary Minecraft player skin and vanilla
-`PlayerRenderer` geometry. GeckoLib remains the animation runtime: the existing vessel animatable and
-animation JSON are evaluated on a small invisible humanoid rig, then the supported bone transforms are
-copied to the live vanilla `PlayerModel` for that frame.
+`PlayerRenderer` geometry. GeckoLib remains the third-person animation runtime: each newly authored
+vessel animation pack is evaluated on a small invisible humanoid rig, then the supported bone
+transforms are copied to the live vanilla `PlayerModel` for that frame.
 
 ## Dispatch
 
@@ -78,6 +78,20 @@ switches on a vessel name.
 | MEGUMI | `textures/entity/character/megumi.png` | `geckolib/animations/megumi/megumi_fushiguro.animation.json` | `MegumiSkinAnimationAdapter` |
 | NONE | player's own skin | none | `null`, ordinary vanilla pose |
 
+The live third-person clip contract is intentionally explicit. Nobara's pack contains alternate idle
+and walk loops, a dedicated run, `one_two`, `attack1`/`attack2`/`attack3`, `snap`, `spell1` through
+`spell5`, `swipe1`, three hammer actions, the embedded-hammer and doll-strike actions,
+`self_resonance`, and `black_flash`. Todo's pack contains alternate idle and walk loops, a dedicated
+run, the externally triggerable `attack`, and the full `ability.boogie_woogie` clap. Megumi's pack
+contains idle, walk, run, `combat_idle`, `punch_1`, `punch_2`, `kick`, and the confirmed
+`summon_divine_dogs` action. The server-confirmed `nobara/caster_action` cue supplies the caster
+anchor for Nobara abilities whose main world cue is target-fixed; it does not change gameplay timing.
+
+Skin model IDs follow the vanilla layout: Nobara uses `slim`, while Todo and Megumi use `wide`
+(`classic` in Minecraft skin terminology). Todo's `1.15` body scale is applied by the common
+dimensions hook and the client third-person render scale. It does not alter reach, damage or speed;
+the first-person path is unchanged.
+
 Megumi's per-player `punch_1 -> punch_2 -> kick` bookkeeping lives in
 `MegumiSkinAnimationAdapter`, not in a retired visible renderer. His skin model intentionally returns
 zero procedural head-look weight, preserving the earlier approved "head facing forward" presentation;
@@ -91,9 +105,11 @@ still triggers `summon_divine_dogs` through the existing VFX recipe and animatab
 expects. The ordinary 64x64 skin PNGs are the only visible player body textures.
 
 The former visible Geo Java classes, Geo models, dedicated model textures and obsolete dispatch mixin
-are retained at `archive/character-player-gecko/`. `manifest.txt` records each original path. The
-archive is outside `src/main`, `src/client` and Gradle resource processing, so it is not packaged into
-the mod jar. Animation JSON is deliberately not archived because the new bridge consumes it.
+are retained at `archive/character-player-gecko/`. The superseded skin rigs and animation packs are
+retained separately at `archive/character-skin-animation/`; `manifest.txt` in the Geo archive records
+the original visible-model paths. Both archives are outside `src/main`, `src/client` and Gradle
+resource processing, so they are not packaged into the mod jar. Only the new bone-only rigs and
+animation packs under `src/main/resources/assets/jujutsumod/geckolib/` are live.
 
 ## First-person and persistent layers
 
@@ -108,8 +124,8 @@ definitions.
 
 ## Verification boundary
 
-Focused source/resource checks, the bridge behavior tests, and `compileClientJava` prove the adapter
-contract, transform/state math, resource paths and archive boundary. The full `qualityGate` is the
-automated completion gate. A real client smoke is still required for F5 skin rendering, idle/walk/run,
-each vessel action, held items, armor/cape visibility and first-person effects; a green gate does not
-prove those in-world visuals.
+Focused source/resource checks, `CharacterSkinAnimationPackTest`, the bridge behavior tests and
+`compileClientJava` prove the adapter contract, transform/state math, resource paths, clip/trigger
+coverage and archive boundary. The full `qualityGate` is the automated completion gate. A real client
+smoke is still required for F5 skin rendering, idle/walk/run, each vessel action, held items,
+armor/cape visibility and first-person effects; a green gate does not prove those in-world visuals.

@@ -39,6 +39,7 @@ final class VfxRadiusContractTest {
 				radius("Nobara trap warning", Set.of(NobaraVfxIds.NAIL_TRAP_ARMED, NobaraVfxIds.NAIL_TRAP_COLLAPSE),
 						NobaraVfxRecipes.IMPACT_PRESENTATION_RADIUS),
 				radius("Nobara trap impact", Set.of(NobaraVfxIds.NAIL_TRAP_IMPACT), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
+				finiteNone("Nobara caster actions", Set.of(NobaraVfxIds.CASTER_ACTION)),
 				radius("Nobara black flash", Set.of(NobaraVfxIds.BLACK_FLASH), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
 				radius("Todo clap", Set.of(TodoVfxIds.BOOGIE_WOOGIE), TodoVfxRecipes.BOOGIE_WOOGIE_PRESENTATION_RADIUS),
 				finiteNone("Todo mark", Set.of(TodoVfxIds.PAIR_MARK)),

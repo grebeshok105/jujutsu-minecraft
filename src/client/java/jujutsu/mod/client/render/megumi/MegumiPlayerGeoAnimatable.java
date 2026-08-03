@@ -22,6 +22,7 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 	public static final MegumiPlayerGeoAnimatable INSTANCE = new MegumiPlayerGeoAnimatable();
 	public static final DataTicket<Integer> MELEE_VARIANT = DataTicket.create("megumi_melee_variant", Integer.class);
+	public static final DataTicket<Boolean> COMBAT_IDLE = DataTicket.create("megumi_combat_idle", Boolean.class);
 	public static final int MELEE_VARIANT_COUNT = 3;
 	private static final String BASE_CONTROLLER = "megumi_player_base";
 	private static final String ACTION_CONTROLLER = "megumi_actions";
@@ -32,6 +33,7 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 	private static final RawAnimation IDLE = loop("animation.megumi_fushiguro.idle");
 	private static final RawAnimation WALK = loop("animation.megumi_fushiguro.walk");
 	private static final RawAnimation RUN = loop("animation.megumi_fushiguro.run");
+	private static final RawAnimation COMBAT_IDLE_ANIMATION = loop("animation.megumi_fushiguro.combat_idle");
 	private static final RawAnimation[] MELEE = {
 			play("animation.megumi_fushiguro.punch_1"),
 			play("animation.megumi_fushiguro.punch_2"),
@@ -72,6 +74,9 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 			int variant = renderState.getOrDefaultGeckolibData(MELEE_VARIANT, 0);
 			return state.setAndContinue(MELEE[Math.floorMod(variant, MELEE.length)]);
 		}
+		if (Boolean.TRUE.equals(renderState.getOrDefaultGeckolibData(COMBAT_IDLE, false))) {
+			return state.setAndContinue(COMBAT_IDLE_ANIMATION);
+		}
 		Movement movement = movement(state, renderState);
 		if (!movement.moving()) {
 			return state.setAndContinue(IDLE);
@@ -95,12 +100,18 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 		AnimationController<MegumiPlayerGeoAnimatable> action = state.manager().getAnimationControllers().get(ACTION_CONTROLLER);
 		return isMelee(base == null ? null : base.getCurrentRawAnimation())
 				|| isMelee(base == null ? null : base.getTriggeredAnimation())
+				|| isCombatIdle(base == null ? null : base.getCurrentRawAnimation())
+				|| isCombatIdle(base == null ? null : base.getTriggeredAnimation())
 				|| isSummon(action == null ? null : action.getCurrentRawAnimation())
 				|| isSummon(action == null ? null : action.getTriggeredAnimation());
 	}
 
 	private static boolean isMelee(RawAnimation animation) {
 		return Arrays.stream(MELEE).anyMatch(candidate -> candidate == animation);
+	}
+
+	private static boolean isCombatIdle(RawAnimation animation) {
+		return animation == COMBAT_IDLE_ANIMATION;
 	}
 
 	private static boolean isSummon(RawAnimation animation) {

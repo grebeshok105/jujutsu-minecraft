@@ -10,9 +10,8 @@ import jujutsu.mod.client.character.CharacterClientDefinition;
 import jujutsu.mod.client.character.CharacterRosterEntry;
 import jujutsu.mod.client.character.JujutsuCharacterIcons;
 import jujutsu.mod.client.render.CharacterSkinAnimation;
-import jujutsu.mod.client.render.CharacterSkinAnimationAdapter;
 import jujutsu.mod.client.render.todo.TodoPlayerGeoAnimatable;
-import jujutsu.mod.client.render.todo.TodoSkinAnimationModel;
+import jujutsu.mod.client.render.todo.TodoSkinAnimationAdapter;
 import jujutsu.mod.client.vfx.todo.TodoVfxRecipes;
 import jujutsu.mod.registry.JujutsuEntities;
 
@@ -49,7 +48,7 @@ public final class TodoClientDefinition implements CharacterClientDefinition {
 	}
 
 	private static final CharacterSkinAnimation SKIN_ANIMATION =
-			new CharacterSkinAnimationAdapter<>(TodoPlayerGeoAnimatable.INSTANCE, new TodoSkinAnimationModel());
+			new TodoSkinAnimationAdapter();
 
 	@Override
 	public CharacterSkinAnimation skinAnimation() {

@@ -13,6 +13,7 @@ import software.bernie.geckolib.animatable.processing.AnimationTest;
 import software.bernie.geckolib.animation.PlayState;
 import software.bernie.geckolib.animation.RawAnimation;
 import software.bernie.geckolib.constant.DataTickets;
+import software.bernie.geckolib.constant.dataticket.DataTicket;
 import software.bernie.geckolib.renderer.base.GeoRenderState;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
@@ -20,13 +21,17 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 public final class TodoPlayerGeoAnimatable implements GeoReplacedEntity {
 	public static final TodoPlayerGeoAnimatable INSTANCE = new TodoPlayerGeoAnimatable();
 	public static final String BOOGIE_WOOGIE_ANIM = "boogie_woogie";
+	public static final DataTicket<Integer> LOCOMOTION_VARIANT = DataTicket.create("todo_locomotion_variant", Integer.class);
 	private static final String BASE_CONTROLLER = "todo_player_base";
 	private static final String ACTION_CONTROLLER = "todo_actions";
 	private static final float WALK_ANIMATION_THRESHOLD = 0.035f;
 	private static final double WALK_VELOCITY_THRESHOLD_SQR = 0.0016;
 	private static final double RUN_VELOCITY_THRESHOLD_SQR = 0.018;
 	private static final RawAnimation IDLE = loop("animation.todo_aoi.idle");
+	private static final RawAnimation IDLE_2 = loop("animation.todo_aoi.idle2");
 	private static final RawAnimation WALK = loop("animation.todo_aoi.walk");
+	private static final RawAnimation WALK_2 = loop("animation.todo_aoi.walk2");
+	private static final RawAnimation RUN = loop("animation.todo_aoi.run");
 	private static final RawAnimation ATTACK = play("animation.todo_aoi.attack");
 	private static final RawAnimation BOOGIE_WOOGIE = play("ability.boogie_woogie");
 	private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
@@ -46,9 +51,9 @@ public final class TodoPlayerGeoAnimatable implements GeoReplacedEntity {
 
 	@Override
 	public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-		controllers.add(new AnimationController<TodoPlayerGeoAnimatable>(BASE_CONTROLLER, 4, this::baseAnimation)
-				.triggerableAnim("attack", ATTACK));
+		controllers.add(new AnimationController<TodoPlayerGeoAnimatable>(BASE_CONTROLLER, 4, this::baseAnimation));
 		controllers.add(new AnimationController<TodoPlayerGeoAnimatable>(ACTION_CONTROLLER, 1, state -> PlayState.STOP)
+				.triggerableAnim("attack", ATTACK)
 				.triggerableAnim(BOOGIE_WOOGIE_ANIM, BOOGIE_WOOGIE));
 	}
 
@@ -82,11 +87,14 @@ public final class TodoPlayerGeoAnimatable implements GeoReplacedEntity {
 			}
 		}
 		Movement movement = movement(state, renderState);
+		boolean alternate = Math.floorMod(renderState.getOrDefaultGeckolibData(LOCOMOTION_VARIANT, 0), 2) == 1;
 		if (!movement.moving()) {
-			return state.setAndContinue(IDLE);
+			return state.setAndContinue(alternate ? IDLE_2 : IDLE);
 		}
-		// Model pack has no dedicated run clip; heavy walk covers sprint.
-		return state.setAndContinue(WALK);
+		if (movement.running()) {
+			return state.setAndContinue(RUN);
+		}
+		return state.setAndContinue(alternate ? WALK_2 : WALK);
 	}
 
 	private static Movement movement(AnimationTest<TodoPlayerGeoAnimatable> state, GeoRenderState renderState) {

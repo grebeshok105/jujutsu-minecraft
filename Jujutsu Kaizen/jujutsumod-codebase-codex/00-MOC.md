@@ -24,7 +24,7 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 - Selection is server-authoritative and persistent through Fabric Data Attachment API.
 - Nobara's starter kit is restored idempotently on every selection; Todo and Megumi have no starter items in their current slices.
 - Shared input slots — R, Shift+R, B, Shift+B, and left click with a technique weapon — mean whatever the selected vessel's own router says; each vessel binds one server and one client definition. See [Vessel definitions](02-architecture/Vessel-definitions.md).
-- Nobara, Todo and Megumi use ordinary 64x64 player skins through vanilla `PlayerRenderer`; one shared GeckoLib-to-`PlayerModel` bridge evaluates their existing clips on invisible rigs. NONE keeps the ordinary vanilla pose. The former visible Geo player stack is retained outside runtime under `archive/character-player-gecko/`.
+- Nobara, Todo and Megumi use ordinary 64x64 player skins through vanilla `PlayerRenderer`; one shared GeckoLib-to-`PlayerModel` bridge evaluates their authored third-person packs on invisible rigs. Nobara uses `slim`, Todo and Megumi use `wide`, and Todo's body scale is 1.15 without reach/damage/speed changes. NONE keeps the ordinary vanilla pose. The former visible Geo player stack and superseded skin packs are retained outside runtime under `archive/character-player-gecko/` and `archive/character-skin-animation/`.
 - Transient combat effects use VfxCue → VfxDirector → character recipes, each registered by its vessel's client definition. Megumi owns `jujutsu.mod.vfx.MegumiVfxIds` and `jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes`; the five `megumi/*` wire ids remain unchanged.
 - World transient rendering keeps lifecycle and dispatch in `VfxWorldChannel` while `HairpinWorldEffects`, `BlackFlashWorldEffects`, `SwapWorldEffects`, `ShadowWorldEffects`, and shared `VfxWorldGeometry` own the extracted visual families; the cap remains 48.
 - `VfxCameraChannel` keeps production wall-clock behavior through `System::currentTimeMillis` while its package-private millisecond supplier seam makes deterministic start, expiry, overlap, clamp, strength, and clear contracts executable without sleeps.
@@ -36,13 +36,13 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 
 | Metric | Value |
 |---|---:|
-| Main Java files | 117 |
-| Client Java files | 175 |
-| Test Java files | 69 |
+| Main Java files | 118 |
+| Client Java files | 177 |
+| Test Java files | 72 |
 | Verification programs | 31 |
 | Client mixins | 6 |
 | Network payloads | 8 |
-| Nobara VFX ids | 21 |
+| Nobara VFX ids | 22 |
 
 Verification programs counts JavaExec main() programs only. Since the JUnit foundation landed, a test class may instead be a JUnit class run by the standard test task; those are counted under Test Java files and not by that row. Both kinds run inside ./gradlew qualityGate.
 
