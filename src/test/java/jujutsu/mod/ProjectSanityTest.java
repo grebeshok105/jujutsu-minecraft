@@ -1,5 +1,9 @@
 package jujutsu.mod;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -998,6 +1002,18 @@ public final class ProjectSanityTest {
 			String rigJson = Files.readString(rig);
 			assert !rigJson.contains("\"uv\"") && !rigJson.contains("\"cubes\"")
 					: "Skin animation rigs must not carry visible Blockbench geometry: " + rig;
+			JsonObject geometry = JsonParser.parseString(rigJson).getAsJsonObject();
+			JsonArray bones = geometry.getAsJsonArray("minecraft:geometry")
+					.get(0).getAsJsonObject().getAsJsonArray("bones");
+			for (JsonElement element : bones) {
+				JsonObject bone = element.getAsJsonObject();
+				JsonArray pivot = bone.getAsJsonArray("pivot");
+				JsonArray rotation = bone.getAsJsonArray("rotation");
+				assert pivot != null && pivot.size() == 3
+						: "Skin animation rig bone must declare a three-component pivot: " + rig;
+				assert rotation != null && rotation.size() == 3
+						: "Skin animation rig bone must declare a three-component rotation: " + rig;
+			}
 		}
 
 		Path archive = ROOT.resolve("archive/character-player-gecko/manifest.txt");
