@@ -19,6 +19,7 @@
 - `d06eaae` — provide player movement and sprint tickets before GeckoLib evaluates skin clips
 - `e00155f` — bind slim/classic skins, Todo's 1.15 body scale and dimensions/render hooks
 - `ed71068` — archive the superseded skin rigs and animation packs
+- `741e523` — replace third-person clips with skin-backed GeckoLib animation packs and add server-confirmed caster anchors
 
 ## Current implementation
 
@@ -40,10 +41,11 @@
 - `./gradlew.bat test --tests 'jujutsu.mod.vfx.VfxCueTest' --tests 'jujutsu.mod.client.vfx.VfxRadiusContractTest' --tests 'jujutsu.mod.client.vfx.VfxCompletenessTest' --no-daemon --max-workers=1 --no-watch-fs` — passed, including the new caster-action cue and 34-id recipe/radius contracts.
 - `./gradlew.bat test --tests 'jujutsu.mod.client.render.CharacterSkinAnimationPackTest' --no-daemon --max-workers=1 --no-watch-fs` — passed for all three rigs, clip sets, loop flags and trigger paths.
 - `./gradlew.bat compileClientJava --no-daemon --max-workers=1 --no-watch-fs` — passed after the controller/resource changes.
-- The full `qualityGate` and final `assemble` are still pending for this branch.
+- `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` — passed, including documentation audit, both source sets, JUnit, 31 verification JavaExec tasks and assertion checks.
+- `./gradlew.bat assemble --no-daemon --max-workers=1 --no-watch-fs` — pending for final jar packaging.
 - Interactive F5, idle/walk/run, vessel actions, held items, armor/cape visibility and first-person effects remain manual checks; no UI automation is used for this handoff.
 
 ## Next steps
 
-1. Run `qualityGate`, review the final diff, build/publish the branch and open the stacked PR.
+1. Build/publish the branch and open the stacked PR.
 2. Perform the remaining manual in-game visual smoke when a human-controlled client session is available.
