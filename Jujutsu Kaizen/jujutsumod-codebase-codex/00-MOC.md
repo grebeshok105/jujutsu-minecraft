@@ -2,7 +2,7 @@
 
 Status: CURRENT
 
-Verified: 2026-07-30
+Verified: 2026-08-03
 
 Code target: current checkout of main or the active feature branch
 
@@ -24,7 +24,7 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 - Selection is server-authoritative and persistent through Fabric Data Attachment API.
 - Nobara's starter kit is restored idempotently on every selection; Todo and Megumi have no starter items in their current slices.
 - Shared input slots — R, Shift+R, B, Shift+B, and left click with a technique weapon — mean whatever the selected vessel's own router says; each vessel binds one server and one client definition. See [Vessel definitions](02-architecture/Vessel-definitions.md).
-- Nobara, Todo and Megumi use GeckoLib replaced-player renders behind one shared stack; NONE keeps the vanilla player model.
+- Nobara, Todo and Megumi use ordinary 64x64 player skins through vanilla `PlayerRenderer`; one shared GeckoLib-to-`PlayerModel` bridge evaluates their existing clips on invisible rigs. NONE keeps the ordinary vanilla pose. The former visible Geo player stack is retained outside runtime under `archive/character-player-gecko/`.
 - Transient combat effects use VfxCue → VfxDirector → character recipes, each registered by its vessel's client definition. Megumi owns `jujutsu.mod.vfx.MegumiVfxIds` and `jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes`; the five `megumi/*` wire ids remain unchanged.
 - World transient rendering keeps lifecycle and dispatch in `VfxWorldChannel` while `HairpinWorldEffects`, `BlackFlashWorldEffects`, `SwapWorldEffects`, `ShadowWorldEffects`, and shared `VfxWorldGeometry` own the extracted visual families; the cap remains 48.
 - `VfxCameraChannel` keeps production wall-clock behavior through `System::currentTimeMillis` while its package-private millisecond supplier seam makes deterministic start, expiry, overlap, clamp, strength, and clear contracts executable without sleeps.
@@ -37,7 +37,7 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 | Metric | Value |
 |---|---:|
 | Main Java files | 117 |
-| Client Java files | 180 |
+| Client Java files | 175 |
 | Test Java files | 68 |
 | Verification programs | 31 |
 | Client mixins | 6 |

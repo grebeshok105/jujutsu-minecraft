@@ -1,59 +1,39 @@
-# Session Handoff - CurseLink Payload Bounds
+# Session Handoff - Character Skin Animation
 
 ## Active branch
 
-- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/fix-curselink-payload-bounds`
-- Branch: `fix/curselink-payload-bounds`
-- Base: `da309cfab9c01bca1525f468039c674644ee0f27` (`fix(megumi): stabilize Divine Dog pounce and shadows`), the squash merge of PR #47.
-- Scope: PR B, issue #20 only. Divine Dogs, Megumi VFX, Nobara audio, issue #48 and every other payload remain untouched.
-- PR: [#49](https://github.com/grebeshok105/jujutsu-minecraft/pull/49), `OPEN` and `draft`.
+- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/character-skin-animation`
+- Branch: `codex/character-skin-animation`
+- Base: `85f08d958ad4c21b0c07f8b4cc383ba344adc0cf` (`origin/main`)
+- Scope: replace the visible Nobara, Todo and Megumi player Geo models with ordinary Minecraft skins while retaining their GeckoLib animation clips and GeckoLib runtime.
 
-## Confirmed code facts
+## Completed commits
 
-- `CurseLinkOptionsPayload` is registered as an existing S2C payload in `JujutsuNetworking` and uses `CustomPacketPayload.codec(write, read)`.
-- `SelfResonanceRuntime` is the real producer. It sends the participant's current `CurseLinkRegistry` list when selection is needed; `CurseLinkSelectionScreen` receives the decoded list through `JujutsuClientNetworking`.
-- The registry and participant list have no natural maximum. `MAX_ENTRIES` is therefore defensive rather than a product limit.
-- There is no canonical catalog of supported technique ids. `ResourceLocation.parse` provides syntax validation only; a well-formed unknown id remains accepted under Option A.
-- Codec-level exceptions from `readUtf(MAX_TECHNIQUE_ID_LENGTH)` are allowed to escape the existing stream codec, so the whole payload is rejected. Only the fully consumed string-to-`ResourceLocation` parse step has a controlled drop path.
+- `c678f22` — design and implementation plan for the skin animation bridge
+- `0c4de1c` — RED contract test for adapters, rigs, vanilla hook and archive boundary
+- `c046cfd` — GeckoLib-to-vanilla skin animation bridge, vessel bindings, legacy player Geo archive and updated focused tests
 
-## Option A
+## Current implementation
 
-Option A was accepted in [issue #20 comment](https://github.com/grebeshok105/jujutsu-minecraft/issues/20#issuecomment-5143288156): implement bounded entry count, bounded technique-id strings, malformed syntax handling, writer-side refusal and codec regression tests. Unknown-id validation is explicitly **BLOCKED** until a canonical supported-id catalog exists. No allowlist or registry was added, and issue #20 remains open.
-
-## Defensive bounds
-
-- `MAX_ENTRIES = 64`: finite protection for list allocation and client UI construction; no natural maximum exists in current curse-link state.
-- `MAX_TECHNIQUE_ID_LENGTH = 256`: finite per-field wire budget, well above current namespaced ids; not a semantic or product limit.
-
-## Failure-policy matrix
-
-| Input | Result |
-|---|---|
-| negative count | reject entire payload before list allocation |
-| count above `MAX_ENTRIES` | reject entire payload before list allocation |
-| technique-id string above `MAX_TECHNIQUE_ID_LENGTH` | reject entire payload; do not continue after codec-level length failure |
-| syntactically malformed `ResourceLocation` after full string read | drop only that entry, continue aligned decoding, log once per payload |
-| well-formed unknown technique id | accept under Option A; semantic validation remains blocked |
-| writer list above `MAX_ENTRIES` | throw before writing; never truncate |
-| writer technique id above `MAX_TECHNIQUE_ID_LENGTH` | throw before writing; never truncate |
-
-## Tests and RED evidence
-
-- `CurseLinkOptionsPayloadTest` uses the real production `STREAM_CODEC` for raw malformed buffers, rejection paths, alignment, round trips and byte-identical re-encoding. It also pins the no-trusted-preallocation source invariant because allocation capacity is not observable through the public codec value seam.
-- Focused result after restoration: 13 tests passed.
-- Initial RED: test compilation failed before the production constants existed.
-- Mutation RED evidence: removing count bounds failed both count tests; restoring `readUtf()` failed the over-length test; trusted `new ArrayList<>(size)` failed the allocation invariant; dropping over-length codec failures failed whole-payload rejection; removing malformed filtering failed both malformed-entry tests; removing writer count refusal failed its writer test; removing explicit writer string refusal failed its writer exception-contract test.
+- Vanilla `PlayerRenderer` and `PlayerModel` remain responsible for visible player geometry, skin UVs, outer skin layers, armor, capes, elytra and held items.
+- `CharacterSkinAnimationMixin` applies a selected vessel's pose after vanilla `EntityModel.setupAnim`, wraps the vanilla render, and restores every `PlayerModel` part in `finally`.
+- `CharacterSkinAnimationAdapter` uses GeckoLib `fillRenderState`, `GeoModel.handleAnimations` and invisible bone-only rigs under `geckolib/models/character_skin/`.
+- Nobara, Todo and Megumi definitions provide their own adapters through `skinAnimation()`; NONE inherits the null adapter and remains ordinary vanilla.
+- Megumi's per-player swing variant sequence is owned by `MegumiSkinAnimationAdapter`.
+- Old visible player Geo Java classes, models, textures and the canceling dispatch mixin are retained under `archive/character-player-gecko/`. The existing animation JSON remains live because the bridge consumes it.
 
 ## Verification
 
-- Focused `CurseLinkOptionsPayloadTest`: 13 tests passed.
-- `./gradlew.bat auditDocumentation --no-daemon --max-workers=1 --no-watch-fs`: `BUILD SUCCESSFUL`; MOC metrics report 68 test Java files.
-- `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs`: `BUILD SUCCESSFUL`; all 31 verification JavaExec tasks enable assertions.
-- `./gradlew.bat build --no-daemon --max-workers=1 --no-watch-fs`: `BUILD SUCCESSFUL`; produced `build/libs/jujutsumod-1.0.0.jar`.
-- Build JAR SHA-256: `B634613C4176A911CDE136C0961E381C7D37CA7B647BE70FE282F5411551FA91`.
-- No in-game smoke or JAR installation is required for this codec-only issue.
-- Valid payload wire format remains the existing VarInt count followed by UUID, UUID and UTF technique-id string per entry.
+- `./gradlew.bat compileClientJava --no-daemon --max-workers=1 --no-watch-fs` — passed.
+- `./gradlew.bat testProjectSanity testCharacterClients --no-daemon --max-workers=1 --no-watch-fs` — passed.
+- `./gradlew.bat test --tests 'jujutsu.mod.client.character.megumi.MegumiPlayerPresentationTest' --no-daemon --max-workers=1 --no-watch-fs` — passed.
+- The generated branch-local design and implementation plan artifacts were removed after the documentation audit identified them as stale tracked documentation.
+- Full `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` is still pending.
+- No in-game client smoke has been run yet. F5 skin rendering, idle/walk/run, each vessel action, held items, armor/cape visibility and first-person effects remain manual checks.
 
-## Remaining gap
+## Next steps
 
-Issue #20 is partially addressed, not closed. A well-formed unknown technique id cannot be rejected until the project defines a canonical supported-id catalog. Do not create Option B or close the issue in this PR.
+1. Rerun `auditDocumentation` and commit the current Codex/SESSION updates.
+2. Run the full `qualityGate`.
+3. Build the jar and confirm the archive is absent while skins, animation JSON and invisible rigs are present.
+4. Run `runClient` long enough for the manual visual smoke, or report that boundary explicitly if the client cannot be launched in this environment.

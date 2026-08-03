@@ -2,94 +2,95 @@
 
 Status: CURRENT
 
-How a selected vessel replaces the vanilla player model. Everything below is VERIFIED against `src/client/java/jujutsu/mod/client/render/**` and `src/client/java/jujutsu/mod/client/mixin/**` unless labelled otherwise.
+The selected Nobara, Todo, or Megumi vessel keeps its ordinary Minecraft player skin and vanilla
+`PlayerRenderer` geometry. GeckoLib remains the animation runtime: the existing vessel animatable and
+animation JSON are evaluated on a small invisible humanoid rig, then the supported bone transforms are
+copied to the live vanilla `PlayerModel` for that frame.
 
 ## Dispatch
 
-`CharacterRenderDispatchMixin` targets `LivingEntityRenderer` and is the single dispatch point for the whole roster — it is deliberately not Nobara-specific.
+`CharacterSkinAnimationMixin` is the shared render hook. It does not replace or cancel vanilla player
+rendering.
 
-1. In the `LivingEntityRenderer` constructor, and only when `this instanceof PlayerRenderer`, it builds the vessel map via `CharacterGeoRenderers.create(context)`, which asks each vessel's `CharacterClientDefinition.createRenderer`. This is the only place that has the `EntityRendererProvider.Context` the renderers need, which is why the map is not built in `JujutsuModClient`.
-2. At `render(LivingEntityRenderState, …)` HEAD it bails out unless the state is a `PlayerRenderState` and the player is not a spectator.
-3. It resolves the selection with `ClientCharacterSelectionManager.selectionByEntityId`, looks up the renderer, and bails if either is missing.
-4. It needs a live `AbstractClientPlayer` plus a partial tick, which vanilla's render state does not carry. `PlayerRenderContextMixin` records that pair, and the dispatch reads it back through `ClientCharacterSelectionManager.renderContextByEntityId`. No context means no vessel render.
-5. Only if `renderer.renderCharacter(...)` returns `true` does it `ci.cancel()`.
+1. `PlayerRenderContextMixin` records the live `AbstractClientPlayer` and partial tick while
+   `PlayerRenderer` extracts its `PlayerRenderState`.
+2. After `EntityModel.setupAnim` has prepared the vanilla model, the skin hook resolves the selection
+   through `ClientCharacterSelectionManager` and asks `CharacterSkinAnimationRenderer` for the selected
+   definition's `skinAnimation()` adapter.
+3. The adapter evaluates GeckoLib and applies its pose to the already prepared `PlayerModel`.
+4. The wrapped vanilla render continues normally, so standard skin layers, armor, capes, elytra,
+   held-item layers, nameplates, invisibility and spectator handling remain owned by Minecraft.
+5. A `finally` block closes `CharacterSkinAnimationState`, restoring every model part to the exact
+   state captured before adaptation. Missing selection, context, or adapter leaves vanilla untouched.
 
-## The cancel contract
+The old canceling `CharacterRenderDispatchMixin` and visible replaced-player renderer stack are
+archived under `archive/character-player-gecko/`. They are not in the client mixin list or runtime
+source tree.
 
-`CharacterGeoRenderer.renderCharacter` returns `true` when it drew the player and the vanilla path must be cancelled. That boolean is the whole contract: a renderer that cannot draw returns `false` and vanilla continues. There is no silent-catch fallback to the vanilla skin — that was a real historical bug (a swallowed `IllegalArgumentException` from missing GeckoLib data tickets rendered the old skin instead of failing), and `ProjectSanityTest` now asserts the catch is gone.
+## Shared bridge
 
-`CharacterPlayerGeoRenderer.renderCharacter` is `final`. Subclasses must not override it.
+`CharacterSkinAnimationAdapter` implements GeckoLib's `GeoRenderer` contract only as an evaluation
+surface. Its render type is `null`, its render callbacks are no-ops, and it never emits Geo geometry.
+`fillRenderState` supplies the existing animatable instance and controller state; `GeoModel` prepares
+the invisible rig and `handleAnimations` runs the current clips.
 
-## Vessel map
+`CharacterSkinAnimationModel` retains the former shared presentation rules:
 
-`CharacterGeoRenderers.create` fills an `EnumMap<JujutsuCharacter, CharacterGeoRenderer>` by asking every client definition in `JujutsuCharacterClients.all()` for its renderer:
+- vanilla arm poses are copied through `DataTickets.HUMANOID_MODEL` when no keyframed action owns the
+  arms;
+- head look is applied as an offset from the animated head pose;
+- yaw and pitch remain clamped to 38 and 22 degrees;
+- vessel models supply only the animation resource, look weight and action guard.
 
-| Vessel | `createRenderer` answers |
-|---|---|
-| NOBARA | `NobaraPlayerGeoRenderer` (from `NobaraClientDefinition`) |
-| TODO | `TodoPlayerGeoRenderer` (from `TodoClientDefinition`) |
-| NONE | `null` — omitted from the map, meaning vanilla player rendering |
+The bridge maps `root`, `body`, `head`, both arms and both legs. `elbow`, `hand` and `knee` transforms
+are folded into their parent limb because vanilla player geometry has no separate visible part for
+them. Facial, hair and other Blockbench-only bones are evaluation-only and never create geometry.
 
-The switch this file used to hold moved into `JujutsuCharacterClients.definition`, which is **exhaustive with no `default`**: a new `JujutsuCharacter` constant fails compilation there until it is bound to a client definition, and that definition either declares a renderer or inherits the `null` default. `null` is the explicit vanilla opt-in, not an oversight. See [Vessel definitions](../02-architecture/Vessel-definitions.md).
+`CharacterSkinAnimationState` snapshots all `PlayerModel.allParts()` values, including position,
+rotation, scale, visibility and `skipDraw`. It is idempotently closed and restores those values even
+when GeckoLib evaluation or vanilla rendering throws.
 
-## Shared renderer: pose-stack guard
+## Vessel bindings
 
-`CharacterPlayerGeoRenderer` extends GeckoLib's `GeoReplacedEntityRenderer` and implements `CharacterGeoRenderer`. Subclasses declare only model, animatable, render layers, and scale — `NobaraPlayerGeoRenderer` and `TodoPlayerGeoRenderer` are each under 20 lines (Nobara scale 0.94, Todo 0.96).
+Each client definition owns one adapter binding. The shared renderer asks the definition and never
+switches on a vessel name.
 
-`renderCharacter` pushes a pose, captures `matrices.last()` as a guard token, and in a `finally` block pops until `matrices.last()` is that token again, then pops the token itself. This exists because an unbalanced vessel render corrupts the shared stack for the rest of the frame and crashes elsewhere with `IllegalStateException: Pose stack not empty` — a crash the project has actually hit. The guard turns a bad frame into a bad-looking frame instead of a client crash.
+| Vessel | Skin | Live GeckoLib animation source | Adapter/model |
+|---|---|---|---|
+| NOBARA | `textures/entity/character/nobara.png` | `geckolib/animations/projectjjk/npc.animation.json` | `NobaraSkinAnimationModel` |
+| TODO | `textures/entity/character/todo.png` | `geckolib/animations/todo/todo_aoi.animation.json` | `TodoSkinAnimationModel` |
+| MEGUMI | `textures/entity/character/megumi.png` | `geckolib/animations/megumi/megumi_fushiguro.animation.json` | `MegumiSkinAnimationAdapter` |
+| NONE | player's own skin | none | `null`, ordinary vanilla pose |
 
-## The HUMANOID_MODEL bridge
+Megumi's per-player `punch_1 -> punch_2 -> kick` bookkeeping lives in
+`MegumiSkinAnimationAdapter`, not in a retired visible renderer. The confirmed summon cue still
+triggers `summon_divine_dogs` through the existing VFX recipe and animatable.
 
-GeckoLib bones know nothing about vanilla arm poses, so the shared stack bridges vanilla's own pose calculation across:
+## Runtime assets and archive
 
-- **Write** — `CharacterPlayerGeoRenderer.addRenderData` runs `vanillaPoseModel.setupAnim(renderState)` on a private `PlayerModel` baked from `ModelLayers.PLAYER`, then publishes it as `renderState.addGeckolibData(DataTickets.HUMANOID_MODEL, vanillaPoseModel)`.
-- **Read** — `CharacterPlayerGeoModel.applyVanillaArmPose` pulls it back with `getOrDefaultGeckolibData(DataTickets.HUMANOID_MODEL, null)` and copies `rightArm` / `leftArm` rotations onto the vessel's `rightArm` / `leftArm` bones, negating X and Y (`setRotX(-vanillaArm.xRot)`, `setRotY(-vanillaArm.yRot)`, `setRotZ(vanillaArm.zRot)`) and zeroing `right_elbow` / `left_elbow`.
+`geckolib/models/character_skin/{nobara,todo,megumi}.geo.json` contains bones only: no `cubes` and no
+`uv` geometry. These rigs exist solely to give the existing animation processor the bone names it
+expects. The ordinary 64x64 skin PNGs are the only visible player body textures.
 
-It short-circuits: if a keyframed action clip owns the arms, or the player is neither using an item nor holding a non-EMPTY `ArmPose` on either side, the copy is skipped entirely and the animation keeps the arms. A null ticket is tolerated, not fatal.
+The former visible Geo Java classes, Geo models, dedicated model textures and obsolete dispatch mixin
+are retained at `archive/character-player-gecko/`. `manifest.txt` records each original path. The
+archive is outside `src/main`, `src/client` and Gradle resource processing, so it is not packaged into
+the mod jar. Animation JSON is deliberately not archived because the new bridge consumes it.
 
-Every bone write calls `resetStateChanges()` so these render-only corrections stay out of GeckoLib's next-frame reset bookkeeping.
+## First-person and persistent layers
 
-## Head-look clamps
+The third-person bridge does not replace the existing first-person path. `FirstPersonHandFxMixin` still
+owns the shared SNAP and CLAP treatments through VFX Core, and `CharacterSkinMixin` still maps a
+selected vessel's ordinary skin to first-person hands. Vanilla's player layers continue to render
+held items, armor, capes and elytra in third person.
 
-`CharacterPlayerGeoModel` clamps look angles to `MAX_HEAD_YAW_DEGREES = 38.0f` and `MAX_HEAD_PITCH_DEGREES = 22.0f`. The in-source rationale is concrete: an earlier 75/45 attempt tore the head off the neck seam. Yaw is `Mth.wrapDegrees(yRot - bodyRot)` clamped, pitch is `xRot` clamped.
+Megumi's Divine Dog renderer remains a dedicated vanilla `WolfRenderer` seam and is unrelated to the
+player skin bridge. Straw Doll, nail and swap-marker renderers remain registered by their vessel
+definitions.
 
-The look is applied as an **offset from the animated rest pose** (`head.setRotY(head.getRotY() - …)`), not as an absolute rotation, so idle/walk head keyframes cannot pin yaw at zero across frames. Vessels differ only in `headLookWeight` — how strongly an action clip damps the look — and the whole block is skipped when weight is at or below 0.01.
+## Verification boundary
 
-## Held items
-
-`CharacterHeldItemLayer` extends `BlockAndItemGeoLayer`. Subclasses supply only two bone names. Two shared `DataTicket<ItemStack>` instances (`character_right_hand_item`, `character_left_hand_item`) carry the stacks, deliberately shared rather than per-character: a render state belongs to exactly one player drawn by exactly one vessel renderer, so per-character ticket ids would never disambiguate anything.
-
-`addRenderData` resolves main/off hand against `player.getMainArm()` so left-handed players get the right stack on the right bone. `renderStackForBone` applies the vanilla-equivalent ±90° X rotation and a small translate, with extra offsets and a 180° Y flip for shields.
-
-## First-person: two styles, one mixin
-
-`FirstPersonHandFxMixin` owns both first-person hand treatments, driven by `VfxDirector.firstPersonStyle()`. There is deliberately no per-vessel first-person mixin.
-
-| Style | Vessel | Behaviour |
-|---|---|---|
-| SNAP | Nobara (`NobaraVfxRecipes` → `firstPerson().triggerSnap`) | Whole-stack transform pushed at `renderHandsWithItems` HEAD and popped at RETURN. The vanilla hand path continues normally underneath. |
-| CLAP | Todo (`TodoVfxRecipes` → `firstPerson().triggerClap`) | Cancels `renderHandsWithItems` outright and draws **both** arms itself. |
-
-SNAP is the channel's default state. CLAP exists because vanilla's empty-hand path only ever draws the main arm, so an off-hand clap would be invisible; the mixin calls `renderPlayerArm` for RIGHT then LEFT in fixed order — independent of the main-hand setting — so both arms share a base pose. Two `@ModifyVariable` hooks force `equippedProgress` and `swingProgress` to 0 while clapping to kill attack/item residual, and the side-mirrored meet offset comes from `VfxDirector.firstPersonClapArmPose(arm, progress)`.
-
-Three rules make CLAP correct, each of which was a live bug first, and `ProjectSanityTest` now guards all three:
-
-1. **Flush before cancelling.** Cancelling `renderHandsWithItems` skips vanilla's terminal `endBatch()`. Arms are only submitted to the GPU there, and `RenderType.draw` samples the model-view at draw time, so without the flush the draw is deferred to `GameRenderer`'s later flush — after `popMatrix()` has reset the model-view — and the arms pick up a rigid rotation by the camera's orientation about the camera origin. Symptom: hand position depends on where the player was looking, and an arm can end up behind the near plane.
-2. **Each arm owns a matched push/pop.** `ItemInHandRenderer.renderPlayerArm` mutates the caller's pose stack and never restores it; vanilla compensates by wrapping every call. An aggregate depth counter is not enough, because a skipped push and a taken pop pair only in total and will pop another frame's transform.
-3. **One progress sample per frame.** The channel's clock is wall-time, so sampling per arm puts the two hands on different instants — and if the animation expires between them, the second arm renders unposed at the vanilla rest pivot. `progress()` is a pure read; expiry is the explicit once-per-frame `expireIfFinished()`. `style()` expires too, so a clap played entirely in third person cannot keep cancelling the vanilla hand path.
-
-`cancel()` drops an in-flight animation. `ClientCharacterSelectionManager` calls it when the local player's vessel changes, because otherwise the mixin keeps cancelling the vanilla hand path for the rest of the run and held items disappear. `triggerSnap` refuses to clobber an in-flight CLAP: one channel serves every vessel, and reinterpreting a clap with snap timing was a cross-vessel state leak.
-
-Known and unfixed: the arms cross over at contact. The meet yaw is applied about the camera origin rather than the shoulder, so on a pivot ~0.82 blocks out it contributes roughly twice the intended inward travel. INFERRED from geometry, not yet confirmed on screen.
-
-Clap offsets stay small on purpose: parent rotations multiply `renderPlayerArm`'s large fixed translates, so a value that looks reasonable in isolation throws the arm off-screen.
-
-## Two traps worth keeping written down
-
-**`speedValue` is not a movement flag.** Vanilla's `HumanoidRenderState.speedValue` is a limb-animation divisor/scale, not a speed. Using it as a `> 0.82f` movement test makes the run clip play while standing still. The animatables now decide movement from GeckoLib's own data plus real state: `state.isMoving()`, horizontal velocity from `DataTickets.VELOCITY`, and `DataTickets.SPRINTING`, with `walkSpeed` only as one contributing term (VERIFIED — NobaraPlayerGeoAnimatable).
-
-**Root bones must follow the body.** The ProjectJJK source model has `bb_main` — which holds the coat/skirt panels — as a *root* bone while `skirt` is parented to `body`. On a player-replacement render that leaves the clothing floating in world space instead of following the torso. The runtime copy re-parents `bb_main` to `skirt`, so `bb_main → skirt → body` (VERIFIED — assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json; `ProjectSanityTest` asserts the parenting). Any re-import from the upstream asset will reintroduce the float — check the hierarchy, not just the geometry.
-
-## What still needs a real client
-
-Scale, offsets, clap pose, and head-look feel are UNKNOWN from a headless review. Compilation proves the wiring only — run `runClient` and check third person (F5), a held item, a shield, and the clap.
+Focused source/resource checks and `compileClientJava` prove the adapter contract, resource paths and
+archive boundary. The full `qualityGate` is the automated completion gate. A real client smoke is still
+required for F5 skin rendering, idle/walk/run, each vessel action, held items, armor/cape visibility
+and first-person effects; a green gate does not prove those in-world visuals.

@@ -29,26 +29,28 @@ Write `<New>Definition implements CharacterDefinition` beside the vessel's runti
 
 Write `<New>ClientDefinition implements CharacterClientDefinition` and bind it in `JujutsuCharacterClients`. Required: `id()` and `rosterEntry()` — the card's name/role/subtitle keys, portrait, and input strip listing what your router actually answers. Then:
 
-- `createRenderer(context)` returns your GeckoLib renderer, or `null` to keep the vanilla player model.
+- `skinAnimation()` returns your GeckoLib-to-vanilla `PlayerModel` adapter, or `null` to keep the ordinary vanilla pose.
 - `playerSkin()` declares the replacement skin path once; the skin mixin and the roster portrait both read it.
 - `accent()` / `warmth()` are what the ClickGui shell eases toward; `rosterOrder()` places the card (vessels first, NONE last).
 - `registerClientHooks()` registers your entity renderers and `<New>VfxRecipes` — see step 7.
 - `moduleName` / `moduleDescription` fill your row in the Characters tab.
 
-The card, the theme, the module row, and the renderer map are all derived from the registry — `CharacterRosterPanel`, `ClickGuiTheme`, `JujutsuModules`, `CharacterGeoRenderers` and `CharacterSkinMixin` need no edits.
+The card, the theme, the module row, and skin-animation dispatch are all derived from the registry — `CharacterRosterPanel`, `ClickGuiTheme`, `JujutsuModules`, `CharacterSkinAnimationRenderer` and `CharacterSkinMixin` need no edits.
 
-## 5. Render stack — subclass, do not fork
+## 5. Render stack — adapt the vanilla player, do not fork
 
 | Piece | Base to extend | What the subclass supplies |
 |---|---|---|
-| Renderer | `CharacterPlayerGeoRenderer<A, R>` | model instance, animatable instance, `addRenderLayer` calls, `withScale` |
-| Model | `CharacterPlayerGeoModel<A>` | model/texture/animation `ResourceLocation`s, `headLookWeight`, `actionKeyframedIsPlaying` |
-| Held items | `CharacterHeldItemLayer<A, R>` | the two hand bone names, nothing else |
+| Adapter | `CharacterSkinAnimationAdapter<A>` | animatable instance, skin animation model, and any vessel-specific render-state data |
+| Model | `CharacterSkinAnimationModel<A>` | animation `ResourceLocation`, `headLookWeight`, `actionKeyframedIsPlaying` |
+| Rig | `geckolib/models/character_skin/<id>.geo.json` | shared humanoid bone names and no visible cubes/UVs |
 | Animatable | a `GeoReplacedEntity` singleton | animation controllers and the movement/action predicates |
 
-Compare `NobaraPlayerGeoRenderer` and `TodoPlayerGeoRenderer`: each is under 20 lines. If a third vessel needs more than that, the seam is wrong — fix the base class rather than overriding `renderCharacter`, which is `final` on purpose.
+The adapter evaluates the existing clips and maps `root`, `body`, `head`, arms and legs to the live
+vanilla `PlayerModel`. Keep unsupported Blockbench-only bones evaluation-only; do not add visible Geo
+geometry back to the player path. Megumi's per-player swing sequence belongs in his adapter.
 
-The renderer reaches the game through your client definition's `createRenderer`, not through a switch arm anywhere.
+The bridge reaches the game through your client definition's `skinAnimation`, not through a switch arm anywhere.
 
 ## 6. Assets
 
