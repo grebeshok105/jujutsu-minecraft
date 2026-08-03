@@ -8,6 +8,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.PlayerSkin;
+import net.minecraft.world.entity.player.Player;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.network.CharacterSelectionSyncPayload;
@@ -24,12 +25,14 @@ public final class ClientCharacterSelectionManager {
 		// Always remember the selection, including NONE — UI defaults must match the server.
 		Selection previous = SELECTIONS.put(payload.playerId(), new Selection(character, model(payload.modelId())));
 		cancelFirstPersonOnVesselChange(payload.playerId(), previous, character);
+		refreshDimensions(payload.playerId());
 	}
 
 	/** Optimistic local update after Confirm (before server echo). */
 	public static void applyLocal(UUID playerId, JujutsuCharacter character, PlayerSkin.Model model) {
 		Selection previous = SELECTIONS.put(playerId, new Selection(character, model));
 		cancelFirstPersonOnVesselChange(playerId, previous, character);
+		refreshDimensions(playerId);
 	}
 
 	/**
@@ -43,6 +46,22 @@ public final class ClientCharacterSelectionManager {
 		LocalPlayer local = Minecraft.getInstance().player;
 		if (local != null && local.getUUID().equals(playerId)) {
 			VfxDirector.cancelFirstPerson();
+		}
+	}
+
+	private static void refreshDimensions(UUID playerId) {
+		Minecraft client = Minecraft.getInstance();
+		if (client.player != null && client.player.getUUID().equals(playerId)) {
+			client.player.refreshDimensions();
+		}
+		if (client.level == null) {
+			return;
+		}
+		for (Player player : client.level.players()) {
+			if (player.getUUID().equals(playerId) && player != client.player) {
+				player.refreshDimensions();
+				return;
+			}
 		}
 	}
 

@@ -1,0 +1,11 @@
+{
+	"required": true,
+	"package": "jujutsu.mod.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"CharacterPlayerDimensionsMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

@@ -22,4 +22,13 @@ public final class CharacterSkinAnimationRenderer {
 		CharacterSkinAnimation animation = definition.skinAnimation();
 		return animation == null ? null : animation.apply(player, renderState, playerModel, partialTick, packedLight);
 	}
+
+	public static float renderScale(PlayerRenderState renderState) {
+		ClientCharacterSelectionManager.Selection selection =
+				ClientCharacterSelectionManager.selectionByEntityId(renderState.id);
+		if (selection == null) {
+			return 1.0f;
+		}
+		return JujutsuCharacterClients.definition(selection.character()).bodyScale();
+	}
 }

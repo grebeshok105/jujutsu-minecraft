@@ -60,9 +60,20 @@ public abstract class CharacterSkinAnimationMixin {
 	@WrapMethod(method = "render(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V")
 	private void jujutsumod$restoreSkinAnimation(LivingEntityRenderState state, PoseStack matrices,
 			MultiBufferSource consumers, int packedLight, Operation<Void> original) {
+		float renderScale = state instanceof PlayerRenderState playerState
+				? CharacterSkinAnimationRenderer.renderScale(playerState)
+				: 1.0f;
+		boolean scaled = renderScale != 1.0f;
+		if (scaled) {
+			matrices.pushPose();
+			matrices.scale(renderScale, renderScale, renderScale);
+		}
 		try {
 			original.call(state, matrices, consumers, packedLight);
 		} finally {
+			if (scaled) {
+				matrices.popPose();
+			}
 			CharacterSkinAnimationState animationState = jujutsumod$skinAnimationState;
 			jujutsumod$skinAnimationState = null;
 			if (animationState != null) {

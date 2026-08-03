@@ -77,7 +77,7 @@ public final class ProjectSanityTest {
 		assertNobaraHeldItemsAndArmPosesWired();
 		assertNobaraGeoHeadLookIsSafeAndEnabled();
 		assertNobaraGeoRenderRestoresPoseStack();
-		assertNobaraSkinUsesWideArms();
+		assertNobaraSkinUsesSlimArms();
 		assertSoundReferencesAreLocalAndPresent();
 		assertNoForbiddenImports();
 		System.out.println("ProjectSanityTest passed");
@@ -1160,18 +1160,18 @@ public final class ProjectSanityTest {
 				: "The adapter must restore the model when GeckoLib evaluation fails";
 	}
 
-	private static void assertNobaraSkinUsesWideArms() throws IOException {
+	private static void assertNobaraSkinUsesSlimArms() throws IOException {
 		Path skin = JUJUTSU_ASSETS.resolve("textures/entity/character/nobara.png");
 		BufferedImage image = ImageIO.read(skin.toFile());
 		assert image != null : "Could not read Nobara skin " + skin;
 		assert image.getWidth() == 64 && image.getHeight() == 64 : "Nobara skin must be a 64x64 player skin";
-		assertWideArmCoverage(image, 40, 16, "right arm");
-		assertWideArmCoverage(image, 32, 48, "left arm");
+		assertSlimArmCoverage(image, 44, 16, "right arm");
+		assertSlimArmCoverage(image, 36, 48, "left arm");
 	}
 
-	private static void assertWideArmCoverage(BufferedImage image, int x, int y, String label) {
-		assertOpaqueRect(image, x + 4, y, 8, 4, label + " top/bottom must be classic 4px-wide UVs");
-		assertOpaqueRect(image, x, y + 4, 16, 12, label + " side faces must be classic 4px-wide UVs");
+	private static void assertSlimArmCoverage(BufferedImage image, int x, int y, String label) {
+		assertOpaqueRect(image, x + 2, y, 6, 4, label + " top/bottom must be slim 3px-wide UVs");
+		assertOpaqueRect(image, x, y + 4, 12, 12, label + " side faces must be slim 3px-wide UVs");
 	}
 
 	private static void assertOpaqueRect(BufferedImage image, int x, int y, int width, int height, String message) {
