@@ -16,12 +16,13 @@
 - `a014d28` — GeckoLib-compatible zero pivot/rotation defaults for every invisible skin rig and regression coverage
 - `4c9e4c6` — review fixes: GeckoLib state guard, quaternion pose composition, targeted restoration state, bridge behavior tests and Megumi head policy cleanup
 - `de5cd8a` — refresh the maintained Codex test-file metric after adding bridge coverage
+- `d06eaae` — provide player movement and sprint tickets before GeckoLib evaluates skin clips
 
 ## Current implementation
 
 - Vanilla `PlayerRenderer` and `PlayerModel` remain responsible for visible player geometry, skin UVs, outer skin layers, armor, capes, elytra and held items.
 - `CharacterSkinAnimationMixin` applies a selected vessel's pose after vanilla `EntityModel.setupAnim`, wraps the vanilla render, and restores the seven bridge-owned `PlayerModel` parts in `finally`.
-- `CharacterSkinAnimationAdapter` uses GeckoLib `fillRenderState`, `GeoModel.handleAnimations` and invisible bone-only rigs under `geckolib/models/character_skin/`. It checks the runtime `GeoRenderState` augmentation, composes converted parent-to-child transforms with quaternions in vanilla `ZYX` order, and remains fail-loud for malformed live rigs or clips after restoring the snapshot.
+- `CharacterSkinAnimationAdapter` uses GeckoLib `fillRenderState`, `GeoModel.handleAnimations` and invisible bone-only rigs under `geckolib/models/character_skin/`. It checks the runtime `GeoRenderState` augmentation, provides the live player's `VELOCITY` and `SPRINTING` tickets plus vessel-specific data before controller evaluation, composes converted parent-to-child transforms with quaternions in vanilla `ZYX` order, and remains fail-loud for malformed live rigs or clips after restoring the snapshot.
 - `CharacterSkinAnimationState` restores position, rotation, scale, visibility and `skipDraw` for root, body, head, both arms and both legs; executable tests cover restoration/idempotent close and the transform conversion/composition contract.
 - Every rig bone declares three-component zero `pivot` and `rotation` arrays because GeckoLib 5.2.2 reads both fields unconditionally during resource baking.
 - Nobara, Todo and Megumi definitions provide their own adapters through `skinAnimation()`; NONE inherits the null adapter and remains ordinary vanilla.
@@ -38,7 +39,8 @@
 - `./gradlew.bat testProjectSanity --no-daemon --max-workers=1 --no-watch-fs` — passed after the rig-format regression was restored from a deliberate failing assertion.
 - `./gradlew.bat auditDocumentation --no-daemon --max-workers=1 --no-watch-fs` — passed.
 - `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` — passed; documentation audit reports 52 current Markdown files and `test_java=69`, all 31 verification JavaExec tasks enable assertions.
-- `./gradlew.bat assemble --no-daemon --max-workers=1 --no-watch-fs` — passed; JAR: `build/libs/jujutsumod-1.0.0.jar`; SHA-256: `DE630B5E856B7C52EEF66188F6C220B7E6C48638F6A2325C0BD3C684A5448717`.
+- `./gradlew.bat assemble --no-daemon --max-workers=1 --no-watch-fs` — passed; JAR: `build/libs/jujutsumod-1.0.0.jar`; SHA-256: `EC56082F3CA7501810DD991AB256484E8AA6784AEE9BF92EE8511679D6E3CE7C`.
+- Installed the rebuilt JAR at `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar`; source and installed SHA-256 values match.
 - Shell-launched `runClient` reached Fabric/Minecraft initialization and resource reload; no GeckoLib rig-bake exception, `ArrayIndexOutOfBoundsException` or missing skin-rig error appeared. The known non-fatal `minecraft:builtin/entity` warning remained. The exact client process tree was then stopped after the bounded load check.
 - Interactive F5, idle/walk/run, vessel actions, held items, armor/cape visibility and first-person effects remain manual checks; no UI automation is used for this handoff.
 

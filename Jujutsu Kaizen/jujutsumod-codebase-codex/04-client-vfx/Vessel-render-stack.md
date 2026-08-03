@@ -35,7 +35,8 @@ surface. Its render type is `null`, its render callbacks are no-ops, and it neve
 the invisible rig and `handleAnimations` runs the current clips. GeckoLib normally augments
 `PlayerRenderState` with `GeoRenderState` through its client mixin; the adapter checks that boundary and
 returns `null` after closing its snapshot when the augmentation is absent, leaving vanilla rendering
-untouched.
+untouched. Before `fillRenderState` evaluates the controllers, the adapter adds the live player's
+`VELOCITY` and `SPRINTING` tickets and the vessel-specific animation data to the shared state.
 
 `CharacterSkinAnimationModel` retains the former shared presentation rules:
 
