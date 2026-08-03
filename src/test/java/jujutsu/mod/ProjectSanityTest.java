@@ -68,6 +68,7 @@ public final class ProjectSanityTest {
 		assertCharacterSelectUsesCheapUiPrimitives();
 		assertClickGuiModulesCoverEveryVessel();
 		assertClickGuiPanelIsDraggableAndOwnsTheCrosshair();
+		assertCharacterSkinAnimationBridge();
 		assertGeckoLibNobaraPlayerModelWired();
 		assertNobaraHeldItemsAndArmPosesWired();
 		assertNobaraGeoHeadLookIsSafeAndEnabled();
@@ -968,6 +969,45 @@ public final class ProjectSanityTest {
 		String mixins = Files.readString(ROOT.resolve("src/client/resources/jujutsumod.client.mixins.json"));
 		assert !mixins.contains("Crosshair") && !mixins.contains("GuiMixin")
 				: "Crosshair suppression must not add a HUD mixin when the Fabric API covers it";
+	}
+
+	private static void assertCharacterSkinAnimationBridge() throws IOException {
+		String mixins = Files.readString(ROOT.resolve("src/client/resources/jujutsumod.client.mixins.json"));
+		assert !mixins.contains("CharacterRenderDispatchMixin")
+				: "Skin-backed players must leave vanilla PlayerRenderer in charge instead of cancelling LivingEntityRenderer";
+		assert mixins.contains("CharacterSkinAnimationMixin")
+				: "Skin-backed animation needs a narrow vanilla PlayerRenderer hook";
+
+		String definition = Files.readString(CLIENT_JAVA.resolve(
+				"jujutsu/mod/client/character/CharacterClientDefinition.java"));
+		assert definition.contains("skinAnimation()")
+				: "Client vessel definitions must own their GeckoLib-to-skin animation adapter";
+		for (String vessel : List.of("nobara", "todo", "megumi")) {
+			String vesselDefinition = Files.readString(CLIENT_JAVA.resolve(
+					"jujutsu/mod/client/character/" + vessel + "/"
+							+ Character.toUpperCase(vessel.charAt(0)) + vessel.substring(1) + "ClientDefinition.java"));
+			assert vesselDefinition.contains("skinAnimation()")
+					: vessel + " must bind a skin animation adapter from its own client definition";
+			Path skin = JUJUTSU_ASSETS.resolve("textures/entity/character/" + vessel + ".png");
+			BufferedImage image = ImageIO.read(skin.toFile());
+			assert image != null : "Unreadable player skin: " + skin;
+			assert image.getWidth() == 64 && image.getHeight() == 64
+					: "Player skin must be a standard 64x64 texture: " + skin;
+			Path rig = JUJUTSU_ASSETS.resolve("geckolib/models/character_skin/" + vessel + ".geo.json");
+			assert Files.exists(rig) : "Missing invisible GeckoLib skin rig: " + rig;
+			String rigJson = Files.readString(rig);
+			assert !rigJson.contains("\"uv\"") && !rigJson.contains("\"cubes\"")
+					: "Skin animation rigs must not carry visible Blockbench geometry: " + rig;
+		}
+
+		Path archive = ROOT.resolve("archive/character-player-gecko/manifest.txt");
+		assert Files.exists(archive) : "Legacy player Geo files must be retained in the archive manifest";
+		String manifest = Files.readString(archive);
+		assert manifest.contains("nobara_kugisaki.geo.json") && manifest.contains("todo_aoi.geo.json")
+				&& manifest.contains("megumi_fushiguro.geo.json")
+				: "Archive manifest must name every replaced visible player Geo model";
+		assert !Files.exists(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/projectjjk/nobara_kugisaki.geo.json"))
+				: "Replaced visible player Geo models must not remain in live resources";
 	}
 
 	private static void assertClickGuiModulesCoverEveryVessel() throws IOException {
