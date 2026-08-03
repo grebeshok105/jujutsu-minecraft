@@ -1092,6 +1092,11 @@ public final class ProjectSanityTest {
 		String adapter = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/CharacterSkinAnimationAdapter.java"));
 		assert adapter.contains("fillRenderState") && adapter.contains("handleAnimations") : "The bridge must evaluate the existing GeckoLib controllers";
 		assert adapter.contains("DataTickets.HUMANOID_MODEL") && adapter.contains("getRenderType") : "The bridge must pass vanilla arm state and suppress rig drawing";
+		int playerAnimationData = adapter.indexOf("addPlayerAnimationData(geoState, player.getDeltaMovement(), player.isSprinting())");
+		int fillRenderState = adapter.indexOf("fillRenderState(animatable, player, geoState, partialTick)");
+		assert playerAnimationData >= 0 && playerAnimationData < fillRenderState
+				&& adapter.contains("DataTickets.VELOCITY") && adapter.contains("DataTickets.SPRINTING")
+				: "The bridge must provide movement tickets before GeckoLib evaluates player clips";
 		String animatable = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoAnimatable.java"));
 		assert animatable.contains("state.isMoving()") : "Nobara idle/walk/run must use GeckoLib movement data";
 		assert animatable.contains("DataTickets.SPRINTING") && animatable.contains("DataTickets.VELOCITY") : "Nobara run animation must use real player movement tickets";

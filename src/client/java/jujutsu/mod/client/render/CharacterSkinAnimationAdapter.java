@@ -5,6 +5,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.entity.state.PlayerRenderState;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.resources.ResourceLocation;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -83,11 +84,12 @@ public class CharacterSkinAnimationAdapter<A extends GeoAnimatable>
 			}
 			geoState.addGeckolibData(DataTickets.HUMANOID_MODEL, playerModel);
 			geoState.addGeckolibData(DataTickets.PACKED_LIGHT, packedLight);
+			addPlayerAnimationData(geoState, player.getDeltaMovement(), player.isSprinting());
+			addSkinAnimationData(animatable, player, geoState);
 
 			// prepareForRenderPass needs the baked rig selected before fillRenderState invokes it.
 			model.getBakedModel(model.getModelResource(geoState));
 			fillRenderState(animatable, player, geoState, partialTick);
-			addSkinAnimationData(animatable, player, geoState);
 			model.handleAnimations(createAnimationState(geoState));
 			applyPose(playerModel);
 			return snapshot;
@@ -99,6 +101,11 @@ public class CharacterSkinAnimationAdapter<A extends GeoAnimatable>
 
 	/** Vessel-specific render state belongs in the vessel adapter, not in shared dispatch. */
 	protected void addSkinAnimationData(A animatable, AbstractClientPlayer player, GeoRenderState renderState) {}
+
+	static void addPlayerAnimationData(GeoRenderState renderState, Vec3 velocity, boolean sprinting) {
+		renderState.addGeckolibData(DataTickets.VELOCITY, velocity);
+		renderState.addGeckolibData(DataTickets.SPRINTING, sprinting);
+	}
 
 	private void applyPose(PlayerModel playerModel) {
 		applyPart(playerModel.root(), local(ROOT));
