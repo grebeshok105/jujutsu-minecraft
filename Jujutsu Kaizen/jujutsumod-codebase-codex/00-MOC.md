@@ -38,7 +38,7 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 |---|---:|
 | Main Java files | 117 |
 | Client Java files | 175 |
-| Test Java files | 68 |
+| Test Java files | 69 |
 | Verification programs | 31 |
 | Client mixins | 6 |
 | Network payloads | 8 |
