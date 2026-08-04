@@ -5,6 +5,7 @@ import net.minecraft.client.renderer.entity.state.PlayerRenderState;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.client.render.CharacterSkinAnimationAdapter;
 import software.bernie.geckolib.animatable.GeoReplacedEntity;
 import software.bernie.geckolib.animatable.SingletonGeoAnimatable;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
@@ -47,7 +48,7 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 	}
 
 	public void triggerSummon(Entity player) {
-		triggerAnim(player, ACTION_CONTROLLER, SUMMON_ANIM);
+		triggerAnim(player, CharacterSkinAnimationAdapter.playerTriggerInstanceId(player), ACTION_CONTROLLER, SUMMON_ANIM);
 	}
 
 	@Override
@@ -59,6 +60,9 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 	public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
 		controllers.add(new AnimationController<MegumiPlayerGeoAnimatable>(BASE_CONTROLLER, 4, this::baseAnimation));
 		controllers.add(new AnimationController<MegumiPlayerGeoAnimatable>(ACTION_CONTROLLER, 1, state -> PlayState.STOP)
+				.triggerableAnim("punch_1", MELEE[0])
+				.triggerableAnim("punch_2", MELEE[1])
+				.triggerableAnim("kick", MELEE[2])
 				.triggerableAnim(SUMMON_ANIM, SUMMON));
 	}
 
@@ -69,15 +73,11 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 
 	private PlayState baseAnimation(AnimationTest<MegumiPlayerGeoAnimatable> state) {
 		GeoRenderState renderState = state.renderState();
-		if (renderState instanceof PlayerRenderState playerState
-				&& (playerState.swinging || playerState.attackTime > 0.05f)) {
-			int variant = renderState.getOrDefaultGeckolibData(MELEE_VARIANT, 0);
-			return state.setAndContinue(MELEE[Math.floorMod(variant, MELEE.length)]);
-		}
-		if (Boolean.TRUE.equals(renderState.getOrDefaultGeckolibData(COMBAT_IDLE, false))) {
+		Movement movement = movement(state, renderState);
+		if (Boolean.TRUE.equals(renderState.getOrDefaultGeckolibData(COMBAT_IDLE, false))
+				&& !movement.moving()) {
 			return state.setAndContinue(COMBAT_IDLE_ANIMATION);
 		}
-		Movement movement = movement(state, renderState);
 		if (!movement.moving()) {
 			return state.setAndContinue(IDLE);
 		}
@@ -96,10 +96,10 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 	}
 
 	static boolean actionKeyframedIsPlaying(AnimationState<MegumiPlayerGeoAnimatable> state) {
-		AnimationController<MegumiPlayerGeoAnimatable> base = state.manager().getAnimationControllers().get(BASE_CONTROLLER);
 		AnimationController<MegumiPlayerGeoAnimatable> action = state.manager().getAnimationControllers().get(ACTION_CONTROLLER);
-		return isMelee(base == null ? null : base.getCurrentRawAnimation())
-				|| isMelee(base == null ? null : base.getTriggeredAnimation())
+		AnimationController<MegumiPlayerGeoAnimatable> base = state.manager().getAnimationControllers().get(BASE_CONTROLLER);
+		return isMelee(action == null ? null : action.getCurrentRawAnimation())
+				|| isMelee(action == null ? null : action.getTriggeredAnimation())
 				|| isCombatIdle(base == null ? null : base.getCurrentRawAnimation())
 				|| isCombatIdle(base == null ? null : base.getTriggeredAnimation())
 				|| isSummon(action == null ? null : action.getCurrentRawAnimation())

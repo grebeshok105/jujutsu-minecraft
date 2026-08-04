@@ -3,6 +3,7 @@ package jujutsu.mod.client.render.todo;
 import net.minecraft.client.renderer.entity.state.PlayerRenderState;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.client.render.CharacterSkinAnimationAdapter;
 import software.bernie.geckolib.animatable.GeoReplacedEntity;
 import software.bernie.geckolib.animatable.SingletonGeoAnimatable;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
@@ -41,7 +42,7 @@ public final class TodoPlayerGeoAnimatable implements GeoReplacedEntity {
 	}
 
 	public void triggerAction(net.minecraft.world.entity.Entity player, String animation) {
-		triggerAnim(player, ACTION_CONTROLLER, animation);
+		triggerAnim(player, CharacterSkinAnimationAdapter.playerTriggerInstanceId(player), ACTION_CONTROLLER, animation);
 	}
 
 	@Override
@@ -81,11 +82,6 @@ public final class TodoPlayerGeoAnimatable implements GeoReplacedEntity {
 
 	private PlayState baseAnimation(AnimationTest<TodoPlayerGeoAnimatable> state) {
 		GeoRenderState renderState = state.renderState();
-		if (renderState instanceof PlayerRenderState playerState) {
-			if (playerState.swinging || playerState.attackTime > 0.05f) {
-				return state.setAndContinue(ATTACK);
-			}
-		}
 		Movement movement = movement(state, renderState);
 		boolean alternate = Math.floorMod(renderState.getOrDefaultGeckolibData(LOCOMOTION_VARIANT, 0), 2) == 1;
 		if (!movement.moving()) {

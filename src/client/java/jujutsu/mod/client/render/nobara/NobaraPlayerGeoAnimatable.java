@@ -3,6 +3,7 @@ package jujutsu.mod.client.render.nobara;
 import net.minecraft.client.renderer.entity.state.PlayerRenderState;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.client.render.CharacterSkinAnimationAdapter;
 import software.bernie.geckolib.animatable.GeoReplacedEntity;
 import software.bernie.geckolib.animatable.SingletonGeoAnimatable;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
@@ -56,7 +57,7 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 	}
 
 	public void triggerAction(net.minecraft.world.entity.Entity player, String animation) {
-		triggerAnim(player, ACTION_CONTROLLER, animation);
+		triggerAnim(player, CharacterSkinAnimationAdapter.playerTriggerInstanceId(player), ACTION_CONTROLLER, animation);
 	}
 
 	@Override
@@ -111,16 +112,6 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 
 	private PlayState baseAnimation(AnimationTest<NobaraPlayerGeoAnimatable> state) {
 		GeoRenderState renderState = state.renderState();
-		if (renderState instanceof PlayerRenderState playerState) {
-			if (playerState.swinging || playerState.attackTime > 0.05f) {
-				int variant = renderState.getOrDefaultGeckolibData(MELEE_VARIANT, 0);
-				return state.setAndContinue(switch (Math.floorMod(variant, 3)) {
-					case 1 -> ATTACK_2;
-					case 2 -> ATTACK_3;
-					default -> ATTACK_1;
-				});
-			}
-		}
 		Movement movement = movement(state, renderState);
 		boolean alternate = Math.floorMod(renderState.getOrDefaultGeckolibData(LOCOMOTION_VARIANT, 0), 2) == 1;
 		if (!movement.moving()) {

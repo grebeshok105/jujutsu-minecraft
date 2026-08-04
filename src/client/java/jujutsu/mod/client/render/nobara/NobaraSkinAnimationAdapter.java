@@ -20,10 +20,16 @@ public final class NobaraSkinAnimationAdapter extends CharacterSkinAnimationAdap
 		boolean newSwing = player.swinging && (!state.swinging || player.swingTime < state.lastSwingTime);
 		if (newSwing) {
 			state.variant = Math.floorMod(state.variant + 1, 3);
+			String triggerName = switch (Math.floorMod(state.variant, 3)) {
+				case 1 -> "attack2";
+				case 2 -> "attack3";
+				default -> "attack1";
+			};
+			animatable.triggerAnim(player, CharacterSkinAnimationAdapter.playerTriggerInstanceId(player),
+					"nobara_combat_actions", triggerName);
 		}
 		state.swinging = player.swinging;
 		state.lastSwingTime = player.swingTime;
-		renderState.addGeckolibData(NobaraPlayerGeoAnimatable.MELEE_VARIANT, Math.max(0, state.variant));
 		renderState.addGeckolibData(NobaraPlayerGeoAnimatable.LOCOMOTION_VARIANT,
 				Math.floorMod(player.tickCount / 120 + player.getId(), 2));
 	}

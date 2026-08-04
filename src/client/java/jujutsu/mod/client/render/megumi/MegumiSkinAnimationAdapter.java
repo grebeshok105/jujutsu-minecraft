@@ -21,10 +21,16 @@ public final class MegumiSkinAnimationAdapter extends CharacterSkinAnimationAdap
 		if (newSwing) {
 			state.variant = (state.variant + 1) % MegumiPlayerGeoAnimatable.MELEE_VARIANT_COUNT;
 			state.combatIdleUntilTick = player.tickCount + 22;
+			String triggerName = switch (state.variant) {
+				case 1 -> "punch_2";
+				case 2 -> "kick";
+				default -> "punch_1";
+			};
+			animatable.triggerAnim(player, CharacterSkinAnimationAdapter.playerTriggerInstanceId(player),
+					"megumi_actions", triggerName);
 		}
 		state.swinging = player.swinging;
 		state.lastSwingTime = player.swingTime;
-		renderState.addGeckolibData(MegumiPlayerGeoAnimatable.MELEE_VARIANT, Math.max(0, state.variant));
 		renderState.addGeckolibData(MegumiPlayerGeoAnimatable.COMBAT_IDLE,
 				!player.swinging && player.tickCount <= state.combatIdleUntilTick);
 	}
