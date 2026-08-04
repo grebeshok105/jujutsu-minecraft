@@ -19,8 +19,7 @@ public final class TodoSkinAnimationAdapter extends CharacterSkinAnimationAdapte
 		SwingState state = swingStates.computeIfAbsent(player, ignored -> new SwingState());
 		boolean newSwing = player.swinging && (!state.swinging || player.swingTime < state.lastSwingTime);
 		if (newSwing) {
-			animatable.triggerAnim(player, CharacterSkinAnimationAdapter.playerTriggerInstanceId(player),
-					"todo_actions", "attack");
+			animatable.restartMeleeTrigger(player, "attack");
 		}
 		state.swinging = player.swinging;
 		state.lastSwingTime = player.swingTime;

@@ -25,8 +25,7 @@ public final class NobaraSkinAnimationAdapter extends CharacterSkinAnimationAdap
 				case 2 -> "attack3";
 				default -> "attack1";
 			};
-			animatable.triggerAnim(player, CharacterSkinAnimationAdapter.playerTriggerInstanceId(player),
-					"nobara_combat_actions", triggerName);
+			animatable.restartMeleeTrigger(player, triggerName);
 		}
 		state.swinging = player.swinging;
 		state.lastSwingTime = player.swingTime;

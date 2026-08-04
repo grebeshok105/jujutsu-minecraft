@@ -88,6 +88,15 @@ public class CharacterSkinAnimationAdapter<A extends GeoAnimatable>
 	@Override
 	public CharacterSkinAnimationState apply(AbstractClientPlayer player, PlayerRenderState renderState,
 			PlayerModel playerModel, float partialTick, int packedLight) {
+		// Vanilla poses (crouch, swim, fly, sleep, ride, spin attack) MUST be rendered by the native
+		// HumanoidModel.setupAnim — GeckoLib clips are authored for standing pose and produce broken
+		// visuals when applied over a transformed hitbox. Return null to skip the bridge entirely;
+		// the mixin handles the null path cleanly (no snapshot leak, vanilla skin renders natively).
+		if (renderState.isCrouching || renderState.isVisuallySwimming || renderState.isFallFlying
+				|| renderState.bedOrientation != null || renderState.isPassenger || renderState.isAutoSpinAttack) {
+			return null;
+		}
+
 		CharacterSkinAnimationState snapshot = CharacterSkinAnimationState.capture(playerModel);
 		try {
 			// GeckoLib normally augments this state through its client mixin. Keep the bridge optional

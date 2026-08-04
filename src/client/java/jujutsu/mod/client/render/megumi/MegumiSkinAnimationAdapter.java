@@ -26,8 +26,7 @@ public final class MegumiSkinAnimationAdapter extends CharacterSkinAnimationAdap
 				case 2 -> "kick";
 				default -> "punch_1";
 			};
-			animatable.triggerAnim(player, CharacterSkinAnimationAdapter.playerTriggerInstanceId(player),
-					"megumi_actions", triggerName);
+			animatable.restartMeleeTrigger(player, triggerName);
 		}
 		state.swinging = player.swinging;
 		state.lastSwingTime = player.swingTime;

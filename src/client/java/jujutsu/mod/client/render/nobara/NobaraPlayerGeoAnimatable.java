@@ -60,6 +60,18 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 		triggerAnim(player, CharacterSkinAnimationAdapter.playerTriggerInstanceId(player), ACTION_CONTROLLER, animation);
 	}
 
+	public void restartMeleeTrigger(net.minecraft.world.entity.Entity player, String triggerName) {
+		long instanceId = CharacterSkinAnimationAdapter.playerTriggerInstanceId(player);
+		AnimatableManager<?> manager = getAnimatableInstanceCache().getManagerForId(instanceId);
+		if (manager != null) {
+			AnimationController<?> controller = manager.getAnimationControllers().get(ACTION_CONTROLLER);
+			if (controller != null) {
+				controller.forceAnimationReset();
+				controller.tryTriggerAnimation(triggerName);
+			}
+		}
+	}
+
 	@Override
 	public EntityType<?> getReplacingEntityType() {
 		return EntityType.PLAYER;
