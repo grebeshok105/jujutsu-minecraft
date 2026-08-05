@@ -85,12 +85,17 @@ public final class VfxWorldChannel {
 				case SWAP_ARRIVAL -> SwapWorldEffects.renderSwapArrival(consumer, center, progress, fade, flash.cue());
 				case MEGUMI_SHADOW_OPEN -> ShadowWorldEffects.renderMegumiShadowPool(consumer, center, progress, true);
 				case MEGUMI_SHADOW_CLOSE -> ShadowWorldEffects.renderMegumiShadowPool(consumer, center, progress, false);
+				case MEGUMI_SHADOW_TRAP_OPEN -> ShadowWorldEffects.renderShadowTrapPool(consumer, center, progress, intensity / 10.0f, true);
+				case MEGUMI_SHADOW_POOL -> ShadowWorldEffects.renderShadowTrapPool(consumer, center, progress, intensity / 10.0f);
+				case MEGUMI_SHADOW_TRAP_CLOSE -> ShadowWorldEffects.renderShadowTrapPool(consumer, center, progress, intensity / 10.0f, false);
 			}
 		}
 	}
 
 	private static boolean isShadowPoolStyle(ImpactStyle style) {
-		return style == ImpactStyle.MEGUMI_SHADOW_OPEN || style == ImpactStyle.MEGUMI_SHADOW_CLOSE;
+		return style == ImpactStyle.MEGUMI_SHADOW_OPEN || style == ImpactStyle.MEGUMI_SHADOW_CLOSE
+				|| style == ImpactStyle.MEGUMI_SHADOW_TRAP_OPEN || style == ImpactStyle.MEGUMI_SHADOW_POOL
+				|| style == ImpactStyle.MEGUMI_SHADOW_TRAP_CLOSE;
 	}
 
 	/**
@@ -111,7 +116,10 @@ public final class VfxWorldChannel {
 		SWAP_AFTERIMAGE(true),
 		SWAP_ARRIVAL(true),
 		MEGUMI_SHADOW_OPEN(true),
-		MEGUMI_SHADOW_CLOSE(true);
+		MEGUMI_SHADOW_CLOSE(true),
+		MEGUMI_SHADOW_TRAP_OPEN(true),
+		MEGUMI_SHADOW_POOL(true),
+		MEGUMI_SHADOW_TRAP_CLOSE(true);
 
 		private final boolean worldFixed;
 

@@ -9,7 +9,30 @@ public final class ShadowWorldEffects {
 	public static void renderMegumiShadowPool(VertexConsumer consumer, Vec3 center, float progress, boolean opening) {
 		float radius = shadowPoolRadius(opening, progress);
 		int alpha = Math.round(255.0f * shadowPoolOpacity(opening, progress));
-		int segments = 20;
+		renderPoolDisk(consumer, center, radius, alpha);
+	}
+
+	/**
+	 * Shadow Trap pool, unfurling or collapsing at an absolute radius carried by the cue intensity
+	 * (tenths of a block: intensity 26 is the 2.6-block trap zone).
+	 */
+	public static void renderShadowTrapPool(VertexConsumer consumer, Vec3 center, float progress, float radius, boolean opening) {
+		renderPoolDisk(consumer, center, radius * shadowPoolRadius(opening, progress),
+				Math.round(255.0f * shadowPoolOpacity(opening, progress)));
+	}
+
+	/**
+	 * Liquid trap zone: a pool of constant radius with a gentle alpha breath, re-emitted by the
+	 * server pulse rather than re-ticked by the client.
+	 */
+	public static void renderShadowTrapPool(VertexConsumer consumer, Vec3 center, float progress, float radius) {
+		float clamped = Math.max(0.0f, Math.min(1.0f, progress));
+		float alpha = 0.72f + 0.08f * (float) Math.sin(clamped * Math.PI * 2.0);
+		renderPoolDisk(consumer, center, radius, Math.round(255.0f * alpha));
+	}
+
+	private static void renderPoolDisk(VertexConsumer consumer, Vec3 center, float radius, int alpha) {
+		int segments = 24;
 		for (int segment = 0; segment < segments; segment++) {
 			double startAngle = segment * Math.PI * 2.0 / segments;
 			double endAngle = (segment + 1) * Math.PI * 2.0 / segments;

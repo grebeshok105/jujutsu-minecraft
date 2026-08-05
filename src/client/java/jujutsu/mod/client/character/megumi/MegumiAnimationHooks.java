@@ -19,4 +19,26 @@ public final class MegumiAnimationHooks {
 			MegumiPlayerGeoAnimatable.INSTANCE.triggerSummon(caster);
 		}
 	}
+
+	public static void triggerShadowDive(VfxCue cue) {
+		Minecraft client = Minecraft.getInstance();
+		if (client.level == null || cue.anchorEntityId() == VfxCue.NO_ANCHOR) {
+			return;
+		}
+		Entity caster = client.level.getEntity(cue.anchorEntityId());
+		if (caster != null) {
+			MegumiPlayerGeoAnimatable.INSTANCE.triggerShadowDive(caster);
+		}
+	}
+
+	public static void triggerShadowEmerge(VfxCue cue) {
+		Minecraft client = Minecraft.getInstance();
+		if (client.level == null || cue.anchorEntityId() == VfxCue.NO_ANCHOR) {
+			return;
+		}
+		Entity caster = client.level.getEntity(cue.anchorEntityId());
+		if (caster != null) {
+			MegumiPlayerGeoAnimatable.INSTANCE.triggerShadowEmerge(caster);
+		}
+	}
 }

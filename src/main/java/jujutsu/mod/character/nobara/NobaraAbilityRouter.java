@@ -43,7 +43,10 @@ public final class NobaraAbilityRouter {
 			// Her right click is vanilla's, and she holds no technique key. Answering false explicitly
 			// rather than adding a default keeps the next new slot a compile error here instead of a
 			// silent no-op.
-			case USE_CONTEXT, SECONDARY_SNEAK_HOLD, SECONDARY_SNEAK_RELEASE -> false;
+			case USE_CONTEXT -> false;
+			// The hold gesture and its release belong to vessels with a held technique; Nobara has none.
+			case SECONDARY_SNEAK_HOLD -> false;
+			case SECONDARY_SNEAK_RELEASE -> false;
 		};
 		if (!cast && notify) {
 			nobara.displayClientMessage(Component.translatable("message.jujutsumod.nobara.action.no_target"), true);

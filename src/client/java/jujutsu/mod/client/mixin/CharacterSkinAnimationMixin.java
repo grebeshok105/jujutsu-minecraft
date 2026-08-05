@@ -17,6 +17,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import jujutsu.mod.client.character.ClientCharacterSelectionManager;
+import jujutsu.mod.client.render.HiddenBodyRenderGate;
 import jujutsu.mod.client.render.CharacterSkinAnimationRenderer;
 import jujutsu.mod.client.render.CharacterSkinAnimationState;
 
@@ -60,6 +61,19 @@ public abstract class CharacterSkinAnimationMixin {
 	@WrapMethod(method = "render(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V")
 	private void jujutsumod$restoreSkinAnimation(LivingEntityRenderState state, PoseStack matrices,
 			MultiBufferSource consumers, int packedLight, Operation<Void> original) {
+		// Megumi's shadow move hides a submerged body entirely (model, layers, and name tag in one
+		// pass). The server's vanilla invisible flag is the primary hide; this gate covers the sink
+		// window, the local player's third-person view, and creative/spectator peeks. Entries decay
+		// in a few ticks, so a lost cue packet fails open: the body becomes visible again.
+		if (state instanceof PlayerRenderState playerState
+				&& HiddenBodyRenderGate.isHidden(playerState.id)) {
+			CharacterSkinAnimationState stale = jujutsumod$skinAnimationState;
+			jujutsumod$skinAnimationState = null;
+			if (stale != null) {
+				stale.close();
+			}
+			return;
+		}
 		float renderScale = state instanceof PlayerRenderState playerState
 				? CharacterSkinAnimationRenderer.renderScale(playerState)
 				: 1.0f;
