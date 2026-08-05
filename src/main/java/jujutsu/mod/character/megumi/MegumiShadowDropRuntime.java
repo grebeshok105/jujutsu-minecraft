@@ -174,14 +174,39 @@ public final class MegumiShadowDropRuntime {
 	}
 
 	private static void releaseOne(ServerLevel level, Vec3 point, RandomSource random) {
+		BlockPos spawn = spawnPosFor(level, point);
+		if (spawn == null) {
+			// The column above the target is sealed; skip the block rather than delete the ceiling.
+			return;
+		}
 		BlockState state = pickBlock(random);
-		FallingBlockEntity block = FallingBlockEntity.fall(level, BlockPos.containing(point), state);
+		FallingBlockEntity block = FallingBlockEntity.fall(level, spawn, state);
 		block.disableDrop();
 		if (state.is(Blocks.ANVIL)) {
 			block.setHurtsEntities(MegumiProfile.DROP_ANVIL_DAMAGE_PER_BLOCK, MegumiProfile.DROP_ANVIL_DAMAGE_MAX);
 		} else {
 			block.setHurtsEntities(MegumiProfile.DROP_SOFT_DAMAGE_PER_BLOCK, MegumiProfile.DROP_SOFT_DAMAGE_MAX);
 		}
+	}
+
+	/**
+	 * {@code FallingBlockEntity.fall} unconditionally replaces the block at its spawn position —
+	 * that is how vanilla lifts sand off the ground — so a synthetic drop must only ever spawn
+	 * where there is nothing real to replace. Walks down from the hover point toward the target's
+	 * head and returns the first dry, replaceable position; null when the whole column is sealed
+	 * (a cast under a solid ceiling), which skips the block instead of deleting world geometry.
+	 * Under a low ceiling the volley therefore spawns below it and still falls.
+	 */
+	private static BlockPos spawnPosFor(ServerLevel level, Vec3 point) {
+		BlockPos top = BlockPos.containing(point);
+		for (int dy = 0; dy < (int) MegumiProfile.DROP_ZONE_HEIGHT_BLOCKS; dy++) {
+			BlockPos pos = top.below(dy);
+			BlockState state = level.getBlockState(pos);
+			if (state.canBeReplaced() && state.getFluidState().isEmpty()) {
+				return pos;
+			}
+		}
+		return null;
 	}
 
 	/** Weighted table; weights sum to 100, so each weight reads as a percent chance. */
@@ -211,13 +236,16 @@ public final class MegumiShadowDropRuntime {
 		}
 	}
 
-	/** Where the close cue should play: over the target if it is still there to hover over. */
+	/**
+	 * Where the close cue should play: over the target's body if it is still present. A corpse
+	 * mid death-animation still anchors the collapse beat — only a fully removed or cross-level
+	 * target leaves the zone nowhere to close over.
+	 */
 	private static Vec3 anchorOf(ServerLevel level, ShadowDrop drop) {
 		if (level == null) {
 			return null;
 		}
-		LivingEntity target = liveTarget(level, drop.targetId());
-		return target == null ? null : anchorAbove(target);
+		return level.getEntity(drop.targetId()) instanceof LivingEntity living ? anchorAbove(living) : null;
 	}
 
 	private static void closeZone(MinecraftServer server, UUID ownerId, ShadowDrop drop, Vec3 anchor) {

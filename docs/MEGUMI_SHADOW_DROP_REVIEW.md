@@ -1,13 +1,13 @@
 # Megumi Shadow Drop wave — consolidated review spec
 
-Status: CURRENT — findings recorded, **fixes deliberately not applied yet** (user decision: review
-round first, fixes as a separate pass against this spec).
+Status: CURRENT — all findings **applied** in the follow-up pass on this branch (R1's bytecode
+claim was independently re-verified with `javap` before the fix landed).
 
 Wave under review: `21c595a..aef9b5c` on `feat/megumi-shadow-drop` (V ability server core, client
 VFX layer, dive presentation, tests/docs/seam), reviewed by four independent reviewers after smoke
 round 1. Verdicts: server core **incorrect** (R1), dive presentation **incorrect** (R2), client VFX
-layer correct, tests/docs/seam correct. Everything below carries the reviewer's confidence and a
-ready fix so the follow-up pass is mechanical.
+layer correct, tests/docs/seam correct. Each finding below records the reviewer's confidence and
+the fix that landed.
 
 ## R1 — `fall()` deletes the world block at the spawn position
 

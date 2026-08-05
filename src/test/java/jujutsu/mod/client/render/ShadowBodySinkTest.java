@@ -110,6 +110,68 @@ class ShadowBodySinkTest {
 	}
 
 	@Test
+	void rippleAfterTheRiseNeverYanksTheBodyBackUnder() {
+		ShadowBodySink.beginSink(700, 0L, SINK_TICKS);
+		ShadowBodySink.completeSink(700);
+		ShadowBodySink.beginEmerge(700, 100L, EMERGE_TICKS);
+
+		ShadowBodySink.completeSink(700); // reordered ripple lands after the rise began
+
+		assertEquals(0.5f, ShadowBodySink.emergeProgress(700, 100L + EMERGE_TICKS / 2), EPS,
+				"the rise keeps falling; a late ripple must never recreate the hold");
+		assertEquals(-1.0f, ShadowBodySink.sinkProgress(700, 100L), EPS,
+				"the reordered ripple must not flip the entry back to sinking");
+	}
+
+	@Test
+	void rippleBeforeTheDiveSnapsTheBodyUnder() {
+		ShadowBodySink.completeSink(800); // late join: the first cue this client sees is a ripple
+
+		assertEquals(1.0f, ShadowBodySink.sinkProgress(800, 12_345L), EPS,
+				"with no dive to animate the hold snaps the body fully under");
+	}
+
+	@Test
+	void reDiveOverALiveHoldRestartsTheDive() {
+		ShadowBodySink.beginSink(900, 0L, SINK_TICKS);
+		ShadowBodySink.completeSink(900);
+
+		ShadowBodySink.beginSink(900, 50L, SINK_TICKS);
+
+		assertEquals(0.0f, ShadowBodySink.sinkProgress(900, 50L), EPS,
+				"a re-dive over the hidden hold restarts from the top");
+		assertEquals(1.0f, ShadowBodySink.sinkProgress(900, 50L + SINK_TICKS), EPS);
+	}
+
+	@Test
+	void emergeFromAPartialSinkRisesFromTheCurrentDepth() {
+		ShadowBodySink.beginSink(1_000, 0L, SINK_TICKS);
+
+		// The server cancels the dive halfway down (damage during SINK): depth 0.5 at tick 4.
+		ShadowBodySink.beginEmerge(1_000, SINK_TICKS / 2, EMERGE_TICKS);
+
+		assertEquals(0.5f, ShadowBodySink.emergeProgress(1_000, SINK_TICKS / 2), EPS,
+				"the rise starts at the interrupted depth, never a snap to fully under");
+		assertEquals(0.0f, ShadowBodySink.emergeProgress(1_000, SINK_TICKS / 2 + EMERGE_TICKS / 2), EPS,
+				"half the depth costs half the emerge window");
+	}
+
+	@Test
+	void reCastOverAMidRiseDivesFromTheCurrentDepth() {
+		ShadowBodySink.beginSink(1_100, 0L, SINK_TICKS);
+		ShadowBodySink.completeSink(1_100);
+		ShadowBodySink.beginEmerge(1_100, 100L, EMERGE_TICKS);
+
+		// An instant re-cast catches the body half risen: depth 0.5 at tick 103.
+		ShadowBodySink.beginSink(1_100, 100L + EMERGE_TICKS / 2, SINK_TICKS);
+
+		assertEquals(0.5f, ShadowBodySink.sinkProgress(1_100, 100L + EMERGE_TICKS / 2), EPS,
+				"the dive resumes at the current depth, never a snap back to the surface");
+		assertEquals(1.0f, ShadowBodySink.sinkProgress(1_100, 100L + EMERGE_TICKS / 2 + SINK_TICKS / 2), EPS,
+				"half the remaining depth costs half the sink window");
+	}
+
+	@Test
 	void noAnchorIsNeverTracked() {
 		ShadowBodySink.beginSink(VfxCue.NO_ANCHOR, 0L, SINK_TICKS);
 		ShadowBodySink.completeSink(VfxCue.NO_ANCHOR);

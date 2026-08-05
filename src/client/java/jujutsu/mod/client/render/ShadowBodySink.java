@@ -39,8 +39,17 @@ public final class ShadowBodySink {
 		if (entityId == VfxCue.NO_ANCHOR) {
 			return;
 		}
-		ENTRIES.put(entityId, new Entry(State.SINKING, startGameTime, Math.max(1, sinkTicks),
-				clock.getAsLong() + windowTtlMillis(sinkTicks)));
+		int ticks = Math.max(1, sinkTicks);
+		long start = startGameTime;
+		Entry entry = ENTRIES.get(entityId);
+		if (entry != null && entry.state() == State.EMERGING) {
+			// A re-cast over a mid-rise body dives from its current depth, not from the surface:
+			// backdate the dive so its curve passes through that depth at the cue's time.
+			float depth = 1.0f - clamp01((startGameTime - entry.startGameTime()) / (float) entry.durationTicks());
+			start = startGameTime - Math.round(depth * ticks);
+		}
+		ENTRIES.put(entityId, new Entry(State.SINKING, start, ticks,
+				clock.getAsLong() + windowTtlMillis(ticks)));
 	}
 
 	/**
@@ -69,8 +78,16 @@ public final class ShadowBodySink {
 		if (entry == null || entry.state() == State.EMERGING) {
 			return;
 		}
-		ENTRIES.put(entityId, new Entry(State.EMERGING, startGameTime, Math.max(1, emergeTicks),
-				clock.getAsLong() + windowTtlMillis(emergeTicks)));
+		int ticks = Math.max(1, emergeTicks);
+		long start = startGameTime;
+		if (entry.state() == State.SINKING) {
+			// An interrupted dive rises from its current depth, not from a snap to fully under:
+			// backdate the rise so its curve passes through that depth at the cue's time.
+			float depth = clamp01((startGameTime - entry.startGameTime()) / (float) entry.durationTicks());
+			start = startGameTime - Math.round((1.0f - depth) * ticks);
+		}
+		ENTRIES.put(entityId, new Entry(State.EMERGING, start, ticks,
+				clock.getAsLong() + windowTtlMillis(ticks)));
 	}
 
 	public static void reset(int entityId) {

@@ -7,12 +7,30 @@ import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import jujutsu.mod.character.megumi.MegumiProfile;
 import jujutsu.mod.client.render.ShadowBodySink;
+import jujutsu.mod.client.render.ShadowBodySinkTestClock;
 
 final class VfxCameraChannelTest {
 	private static final float EPSILON = 0.0001f;
+
+	/**
+	 * The dive tests drive the static {@link ShadowBodySink}, whose entry TTLs tick on a wall
+	 * clock; pin it so a GC pause or a loaded runner can never evict an entry mid-test. The
+	 * channel's own clock is injected per test already — this keeps the two clocks agreeing.
+	 */
+	@BeforeEach
+	void pinSinkClock() {
+		ShadowBodySinkTestClock.set(() -> 0L);
+	}
+
+	@AfterEach
+	void restoreSinkClock() {
+		ShadowBodySinkTestClock.reset();
+	}
 
 	@Test
 	void publicConstructorUsesTheSystemClock() throws ReflectiveOperationException {

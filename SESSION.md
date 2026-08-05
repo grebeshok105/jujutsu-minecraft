@@ -69,11 +69,15 @@ Shadow Drop (`V`) + dive polish (this wave):
 ## Review round (4 independent reviewers, wave `21c595a..aef9b5c`)
 
 Consolidated into [docs/MEGUMI_SHADOW_DROP_REVIEW.md](docs/MEGUMI_SHADOW_DROP_REVIEW.md) — findings
-R1–R7 with ready fixes, **deliberately not applied yet** (review-first decision). Highlights: R1
-major — `FallingBlockEntity.fall()` deletes the world block at the spawn position (cast under a
-ceiling eats the roof; needs the walk-down spawn guard); R2 — interrupted dive snaps to full depth
-(needs backdated handoff in `ShadowBodySink`); R3 — `drop_zone_close` skipped when the target dies
-mid-telegraph. The follow-up pass works from that spec.
+R1–R7, **all applied** in the follow-up pass on this branch. Highlights: R1 major —
+`FallingBlockEntity.fall()` unconditionally replaces the block at its spawn position (bytecode
+re-verified with `javap`), fixed by the `spawnPosFor` walk-down guard, so a cast under a ceiling
+spawns below it instead of eating the roof; R2 — interrupted dives now hand their depth over in
+both directions (backdated `beginEmerge`/`beginSink`); R3 — a corpse mid death-animation still
+anchors `drop_zone_close`; R4 — the channel dive tests pin the sink TTL clock through
+`ShadowBodySinkTestClock`; R5 — the wave spec's API row matches the shipped three-arg signatures;
+R6 — five new `ShadowBodySinkTest` pins (reorder, late join, re-dive, both depth handoffs); R7 —
+"Third Technique" capitalization.
 
 ## Deploy
 
@@ -81,6 +85,5 @@ mid-telegraph. The follow-up pass works from that spec.
 
 ## Next steps
 
-1. Apply fixes R1–R7 from [docs/MEGUMI_SHADOW_DROP_REVIEW.md](docs/MEGUMI_SHADOW_DROP_REVIEW.md) (R1 world-block deletion first), gate, redeploy.
-2. Manual smoke round 2 against the checklist above (human-controlled client), focusing items 23–31.
-3. Merge `feat/megumi-shadow-drop` into `feat/megumi-shadow-kit` (PR #55).
+1. Manual smoke round 2 against the checklist above (human-controlled client), focusing items 23–31 plus the R1/R2 scenarios (cast under a ceiling: no block deleted, volley spawns below it; take damage during the sink: the body rises from its current depth).
+2. Merge `feat/megumi-shadow-drop` into `feat/megumi-shadow-kit`, then squash-merge PR #55 into `main`.

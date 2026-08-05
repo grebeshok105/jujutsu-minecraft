@@ -37,12 +37,14 @@ Scout evidence this spec relies on:
   intensity = radius in tenths (12), reusing the existing `MEGUMI_SHADOW_TRAP_OPEN/POOL/CLOSE`
   impact styles — no new ImpactStyle, no new channels.
 - New client sink-state cache: `jujutsu.mod.client.render.ShadowBodySink` (Part 3 creates; Part 4
-  reads). API: `beginSink(int entityId, long startGameTime)`, `completeSink(int entityId)`,
-  `beginEmerge(int entityId, long startGameTime)`, `reset(int entityId)`,
-  `float sinkProgress(int entityId, long gameTime)` → 0..1 while sinking, 1 while under, -1 when
-  absent; `float emergeProgress(int entityId, long gameTime)` → 0..1 while rising, -1 otherwise.
-  Durations read `MegumiProfile.SHADOW_SINK_TICKS` / `SHADOW_EMERGE_TICKS`. Entries are
-  self-expiring (TTL like `HiddenBodyRenderGate`) so a lost emerge cue fails open to visible.
+  reads). API: `beginSink(int entityId, long startGameTime, int sinkTicks)`,
+  `completeSink(int entityId)`, `beginEmerge(int entityId, long startGameTime, int emergeTicks)`,
+  `reset(int entityId)`, `float sinkProgress(int entityId, float frameTime)` → 0..1 while sinking,
+  1 while under, -1 when absent; `float emergeProgress(int entityId, float frameTime)` → 0..1
+  while rising, -1 otherwise. Callers (the Megumi recipes) pass the window lengths and readers
+  sample at the frame's fractional game time; the cache knows no vessel — it is a mechanism, like
+  `HiddenBodyRenderGate`. Entries are self-expiring (TTL) so a lost emerge cue fails open to
+  visible.
 - Recipe hook ownership: Part 3 edits ONLY the existing `shadowDive`/`shadowRipple`/`shadowEmerge`
   recipe bodies (adds ShadowBodySink calls). Part 5 ONLY appends the three new drop recipes and
   their `register()` lines. Do not touch each other's methods; coordinate over hub if unsure.
