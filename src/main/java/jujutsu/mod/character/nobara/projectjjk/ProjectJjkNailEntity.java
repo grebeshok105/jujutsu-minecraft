@@ -10,6 +10,8 @@ import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundSource;
+import jujutsu.mod.registry.JujutsuSounds;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -414,6 +416,11 @@ public final class ProjectJjkNailEntity extends Entity {
 		Vec3 movement = getDeltaMovement();
 		move(MoverType.SELF, movement);
 		face(movement);
+		// Jet-engine flight rumble — loud, low, repeating while the mega nail flies.
+		if (megaFlightTicks % 6 == 1) {
+			serverLevel.playSound(null, getX(), getY(), getZ(),
+					JujutsuSounds.PROJECTJJK_SIZZLE, SoundSource.PLAYERS, 1.2f, 0.5f);
+		}
 		if ((tickCount & 1) == 0) {
 			ProjectJjkNobaraRuntime.spawnNailFlightTrail(serverLevel, position(), movement);
 		}
@@ -441,6 +448,11 @@ public final class ProjectJjkNailEntity extends Entity {
 		setFlightSynced(true);
 		hasImpulse = true;
 		face(megaLaunchDirection);
+		// Launch roar: a jet taking off. Two layers — long low whoosh plus a vortex tail.
+		serverLevel.playSound(null, getX(), getY(), getZ(),
+				JujutsuSounds.PROJECTJJK_LONG_WHOOSH, SoundSource.PLAYERS, 2.4f, 0.5f);
+		serverLevel.playSound(null, getX(), getY(), getZ(),
+				JujutsuSounds.PROJECTJJK_WHOOSH_VORTEX, SoundSource.PLAYERS, 1.8f, 0.7f);
 	}
 
 	@Override

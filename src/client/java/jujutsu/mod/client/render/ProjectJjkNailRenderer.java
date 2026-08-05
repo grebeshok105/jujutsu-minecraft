@@ -3,6 +3,7 @@ package jujutsu.mod.client.render;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
@@ -304,54 +305,58 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 	}
 
 	private static void renderTrapNailPillar(VertexConsumer consumer, PoseStack matrices, float age) {
-		// Ground ring — slow breathing pulse, cursed blue palette
-		float breathe = 0.6f + 0.4f * (float) Math.sin(age * 0.035f);
-		float ringRadius = 0.42f * breathe;
+		// Trap nails stand at the prism corners: each one hoists a bright pillar to the
+		// prism ceiling so the armed volume reads at a glance from across the arena.
+		float breathe = 0.75f + 0.25f * (float) Math.sin(age * 0.07f);
 		Vec3 side = EAST;
 		Vec3 cross = UP.cross(side).normalize();
 
-		// Outer ground ring
-		renderPressureBand(consumer, matrices, Vec3.ZERO, side, cross, ringRadius, Math.round(48.0f * breathe));
-		// Inner ground ring (brighter)
-		renderPressureBand(consumer, matrices, Vec3.ZERO, side, cross, ringRadius * 0.55f, Math.round(68.0f * breathe));
+		// Ground marker — rotating double ring around the corner nail.
+		float ringRadius = 0.85f + 0.1f * breathe;
+		double spin = age * 0.06;
+		Vec3 spinSide = side.scale(Math.cos(spin)).add(cross.scale(Math.sin(spin)));
+		Vec3 spinCross = side.scale(-Math.sin(spin)).add(cross.scale(Math.cos(spin)));
+		renderPressureBand(consumer, matrices, Vec3.ZERO, spinSide, spinCross, ringRadius, Math.round(150.0f * breathe));
+		renderPressureBand(consumer, matrices, Vec3.ZERO, spinCross, spinSide.scale(-1.0), ringRadius * 0.6f, Math.round(180.0f * breathe));
 
-		// Vertical pillar — stacked rings ascending from ground
-		float beamHeight = 1.8f;
-		float pillarPulse = 0.7f + 0.3f * (float) Math.sin(age * 0.055f);
-		int layers = 8;
+		// Vertical pillar up to the trigger prism height (3.0 blocks).
+		float beamHeight = 3.0f;
+		float pillarPulse = 0.8f + 0.2f * (float) Math.sin(age * 0.11f);
+		int layers = 10;
 		for (int i = 0; i <= layers; i++) {
 			float t = (float) i / layers;
 			float y = beamHeight * t;
-			float layerAlpha = (1.0f - t * 0.7f) * 80.0f * pillarPulse;
-			float layerRadius = 0.05f + 0.04f * (1.0f - t * 0.5f);
-			renderPressureBand(consumer, matrices, new Vec3(0.0, y, 0.0), side, cross, layerRadius, Math.round(layerAlpha));
+			float layerAlpha = (1.0f - t * 0.45f) * 165.0f * pillarPulse;
+			float layerRadius = 0.16f + 0.07f * (float) Math.sin(age * 0.09f + t * 6.0f);
+			renderPressureBand(consumer, matrices, new Vec3(0.0, y, 0.0), spinSide, spinCross, layerRadius, Math.round(layerAlpha));
 		}
 
-		// Bright tip at top of pillar
-		float tipAlpha = 100.0f * pillarPulse;
-		renderPressureBand(consumer, matrices, new Vec3(0.0, beamHeight, 0.0), side, cross, 0.07f, Math.round(tipAlpha));
+		// Bright cap at the prism ceiling.
+		renderPressureBand(consumer, matrices, new Vec3(0.0, beamHeight, 0.0), side, cross, 0.22f, Math.round(220.0f * pillarPulse));
 
-		// Vertical glow ribbon
-		float ribbonAlpha = 28.0f * pillarPulse;
-		Vec3 top = new Vec3(0.0, beamHeight * 0.9, 0.0);
-		addRibbon(consumer, matrices, Vec3.ZERO, top, side.scale(0.025),
-				CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, Math.round(ribbonAlpha));
-		addRibbon(consumer, matrices, Vec3.ZERO, top, cross.scale(0.025),
-				CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, Math.round(ribbonAlpha * 0.6f));
+		// Solid glow core.
+		Vec3 top = new Vec3(0.0, beamHeight, 0.0);
+		addRibbon(consumer, matrices, Vec3.ZERO, top, side.scale(0.06),
+				CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, Math.round(120.0f * pillarPulse));
+		addRibbon(consumer, matrices, Vec3.ZERO, top, cross.scale(0.06),
+				CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, Math.round(120.0f * pillarPulse));
+		addRibbon(consumer, matrices, Vec3.ZERO, top, side.scale(0.14),
+				CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, Math.round(70.0f * pillarPulse));
 	}
 
 	private static void renderEspBillboard(State.EspTargetData esp, PoseStack matrices, MultiBufferSource consumers, int packedLight) {
 		matrices.pushPose();
 		matrices.translate(esp.billboardOffset().x, esp.billboardOffset().y, esp.billboardOffset().z);
 		matrices.mulPose(Minecraft.getInstance().getEntityRenderDispatcher().cameraOrientation());
-		matrices.scale(-0.025f, -0.025f, 0.025f);
+		// Vanilla nameplate matrix (EntityRenderer.renderNameTag): positive X scale.
+		// A negative X mirrors the glyph winding and the whole batch gets culled.
+		matrices.scale(0.025f, -0.025f, 0.025f);
 
 		Font font = Minecraft.getInstance().font;
 		float lineH = font.lineHeight + 2;
 
 		String hpText = String.format(Locale.ROOT, " %.1f/%.1f", esp.hp(), esp.maxHp());
-		String line1Str = esp.name().getString() + " \u2665" + hpText;
-		Component line1 = Component.literal(line1Str);
+		Component line1 = Component.literal(esp.name().getString() + " \u2665" + hpText);
 		Component line2 = Component.translatable(esp.rankKey());
 
 		StringBuilder pips = new StringBuilder();
@@ -359,22 +364,26 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 			if (!pips.isEmpty()) pips.append(' ');
 			pips.append("\u2022".repeat(d));
 		}
-		String line3Str = "\u00D7" + esp.nailCount() + " " + pips;
-		Component line3 = Component.literal(line3Str);
+		Component line3 = Component.literal("\u00D7" + esp.nailCount() + " " + pips);
 
-		// Background travels with each line through drawInBatch, exactly like vanilla nameplates:
-		// a hand-built background quad batches after the glyphs and paints over them.
-		int background = 0xB8121818;
-		PoseStack.Pose pose = matrices.last();
-		org.joml.Matrix4f m = pose.pose();
-		font.drawInBatch(line1, -font.width(line1) / 2.0f, 0.0f, 0xFFE5F1EF, false, m, consumers,
-				Font.DisplayMode.NORMAL, background, packedLight);
-		font.drawInBatch(line2, -font.width(line2) / 2.0f, -lineH, 0xFFB8C4C2, false, m, consumers,
-				Font.DisplayMode.NORMAL, background, packedLight);
-		font.drawInBatch(line3, -font.width(line3) / 2.0f, -lineH * 2, 0xFFE48A36, false, m, consumers,
-				Font.DisplayMode.NORMAL, background, packedLight);
+		org.joml.Matrix4f m = matrices.last().pose();
+		// Two passes per line, exactly like vanilla nameplates: a SEE_THROUGH ghost pass
+		// carries the background (and stays readable behind walls — this is an ESP),
+		// then a NORMAL pass draws the solid glyphs with emissive light.
+		int background = 0x66101416;
+		int emissive = LightTexture.lightCoordsWithEmission(packedLight, 2);
+		drawBadgeLine(font, line1, -lineH * 2.0f, 0xFFE5F1EF, background, m, consumers, packedLight, emissive);
+		drawBadgeLine(font, line2, -lineH, 0xFFB8C4C2, background, m, consumers, packedLight, emissive);
+		drawBadgeLine(font, line3, 0.0f, 0xFFE48A36, background, m, consumers, packedLight, emissive);
 
 		matrices.popPose();
+	}
+
+	private static void drawBadgeLine(Font font, Component line, float y, int color, int background,
+			org.joml.Matrix4f m, MultiBufferSource consumers, int packedLight, int emissive) {
+		float x = -font.width(line) / 2.0f;
+		font.drawInBatch(line, x, y, 0x20FFFFFF, false, m, consumers, Font.DisplayMode.SEE_THROUGH, background, packedLight);
+		font.drawInBatch(line, x, y, color, false, m, consumers, Font.DisplayMode.NORMAL, 0, emissive);
 	}
 
 	private static Vec3 axisSide(Vec3 direction, float width) {
