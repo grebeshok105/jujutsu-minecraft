@@ -166,6 +166,12 @@ public final class ProjectJjkRitualRuntime {
 		playCasterSnap(level, caster, anchors.size(), gameTime);
 		JujutsuNetworking.sendVfxCue(caster,
 				cue(level, NobaraVfxIds.DETONATE, anchors.size(), caster.getEyePosition(), gameTime, caster));
+		JujutsuNetworking.broadcastVfxCue(level, caster.position(), VFX_DELIVERY_RADIUS,
+				cue(level, NobaraVfxIds.CASTER_ACTION,
+						mode == HairpinChain.Mode.DIRECTED
+								? NobaraVfxIds.CASTER_HAIRPIN_DIRECTED
+								: NobaraVfxIds.CASTER_HAIRPIN_MASS,
+						caster.position(), gameTime, caster));
 		Map<UUID, ExplosionAnchor> byId = ordered.stream().collect(java.util.stream.Collectors.toMap(ExplosionAnchor::nailId, anchor -> anchor));
 		HairpinChain chain = HairpinChain.start(mode, ordered.stream().map(ExplosionAnchor::nailId).toList(),
 				gameTime + ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_START_DELAY_TICKS, cadence);

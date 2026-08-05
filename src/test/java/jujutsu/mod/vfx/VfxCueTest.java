@@ -47,6 +47,19 @@ final class VfxCueTest {
 	}
 
 	@Test
+	void casterActionCueKeepsCasterAnchorAndActionVariant() {
+		VfxCue expected = new VfxCue(
+				NobaraVfxIds.CASTER_ACTION, ORIGIN, 17, Vec3.ZERO, NobaraVfxIds.CASTER_HAIRPIN_DIRECTED,
+				GAME_TIME, SEED, Vec3.ZERO);
+
+		VfxCue actual = roundTrip(expected);
+
+		assertFieldsEqual(expected, actual);
+		assertEquals(17, actual.anchorEntityId());
+		assertEquals(NobaraVfxIds.CASTER_HAIRPIN_DIRECTED, actual.intensity());
+	}
+
+	@Test
 	void zeroDirectionRoundTripsAsZeroWithoutNaN() {
 		VfxCue actual = roundTrip(new VfxCue(
 				NobaraVfxIds.EXPLOSION, ORIGIN, VfxCue.NO_ANCHOR, Vec3.ZERO, 8, 321L, SEED, Vec3.ZERO));
@@ -64,7 +77,8 @@ final class VfxCueTest {
 				"nobara/explosion", "nobara/first_person_snap", "nobara/remnant_drop", "nobara/ritual_bind",
 				"nobara/doll_strike", "nobara/resonance_release", "nobara/hammer_horizontal", "nobara/hammer_overhead",
 				"nobara/hammer_nail_launch", "nobara/black_flash", "nobara/self_resonance", "nobara/nail_deepen",
-				"nobara/nail_trap_placed", "nobara/nail_trap_armed", "nobara/nail_trap_collapse", "nobara/nail_trap_impact"),
+				"nobara/nail_trap_placed", "nobara/nail_trap_armed", "nobara/nail_trap_collapse", "nobara/nail_trap_impact",
+				"nobara/caster_action"),
 				paths(NobaraVfxIds.LIVE));
 		assertEquals(Set.of(
 				"todo/boogie_woogie", "todo/swap_endpoint", "todo/feint_tell", "todo/pair_mark",

@@ -5,6 +5,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.entity.state.PlayerRenderState;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.resources.ResourceLocation;
 import org.joml.Quaternionf;
@@ -30,6 +31,8 @@ public class CharacterSkinAnimationAdapter<A extends GeoAnimatable>
 	private static final float VANILLA_X_FROM_GEO = -1.0f;
 	private static final float VANILLA_Y_FROM_GEO = -1.0f;
 	private static final float VANILLA_Z_FROM_GEO = 1.0f;
+	/** Waist height below the vanilla body part's neck pivot, in model units (body cube spans y 0..12). */
+	private static final float BODY_WAIST_PIVOT_Y = 12.0f;
 
 	private final A animatable;
 	private final GeoModel<A> model;
@@ -46,6 +49,17 @@ public class CharacterSkinAnimationAdapter<A extends GeoAnimatable>
 
 	@Override
 	public long getInstanceId(A animatable, AbstractClientPlayer player) {
+		return player.getUUID().getLeastSignificantBits();
+	}
+
+	/**
+	 * Shared instance ID for triggering a player-vessel animation, matching the ID the skin bridge uses
+	 * during rendering. All trigger calls MUST use this ID; the default GeoReplacedEntity.triggerAnim
+	 * uses entity.getId() which creates a different manager than the bridge evaluates.
+	 *
+	 * @see #getInstanceId(GeoAnimatable, AbstractClientPlayer)
+	 */
+	public static long playerTriggerInstanceId(Entity player) {
 		return player.getUUID().getLeastSignificantBits();
 	}
 
@@ -74,6 +88,15 @@ public class CharacterSkinAnimationAdapter<A extends GeoAnimatable>
 	@Override
 	public CharacterSkinAnimationState apply(AbstractClientPlayer player, PlayerRenderState renderState,
 			PlayerModel playerModel, float partialTick, int packedLight) {
+		// Vanilla poses (crouch, swim, fly, sleep, ride, spin attack) MUST be rendered by the native
+		// HumanoidModel.setupAnim — GeckoLib clips are authored for standing pose and produce broken
+		// visuals when applied over a transformed hitbox. Return null to skip the bridge entirely;
+		// the mixin handles the null path cleanly (no snapshot leak, vanilla skin renders natively).
+		if (renderState.isCrouching || renderState.isVisuallySwimming || renderState.isFallFlying
+				|| renderState.bedOrientation != null || renderState.isPassenger || renderState.isAutoSpinAttack) {
+			return null;
+		}
+
 		CharacterSkinAnimationState snapshot = CharacterSkinAnimationState.capture(playerModel);
 		try {
 			// GeckoLib normally augments this state through its client mixin. Keep the bridge optional
@@ -109,8 +132,13 @@ public class CharacterSkinAnimationAdapter<A extends GeoAnimatable>
 
 	private void applyPose(PlayerModel playerModel) {
 		applyPart(playerModel.root(), local(ROOT));
-		applyPart(playerModel.body, accumulated(BODY));
-		applyPart(playerModel.head, accumulated(HEAD));
+		Transform body = accumulated(BODY);
+		Transform head = local(HEAD);
+		applyPart(playerModel.body, body);
+		// The head is a sibling of the body in the vanilla model: it follows the leaned torso's neck
+		// point translationally, while its rotation stays look-driven (never body-accumulated).
+		applyPart(playerModel.head,
+				new Transform(body.x() + head.x(), body.y() + head.y(), body.z() + head.z(), head.rotation()));
 		applyPart(playerModel.leftArm, accumulated(LEFT_ARM, "left_elbow", "left_hand"));
 		applyPart(playerModel.rightArm, accumulated(RIGHT_ARM, "right_elbow", "right_hand"));
 		applyPart(playerModel.leftLeg, accumulated(LEFT_LEG, "left_knee"));
@@ -138,9 +166,27 @@ public class CharacterSkinAnimationAdapter<A extends GeoAnimatable>
 	private Transform ancestorsWithoutRoot(GeoBone bone) {
 		Transform transform = Transform.ZERO;
 		for (GeoBone current = bone; current != null && !ROOT.equals(current.getName()); current = current.getParent()) {
-			transform = local(current).plus(transform);
+			Transform localTransform = local(current);
+			if (BODY.equals(current.getName())) {
+				localTransform = waistCompensated(localTransform);
+			}
+			transform = localTransform.plus(transform);
 		}
 		return transform;
+	}
+
+	/**
+	 * The vanilla body part pivots at the neck while body-lean keyframes are authored around the waist.
+	 * Conjugating the rotation by the waist offset keeps the hip line attached to the legs, so a
+	 * forward run lean tips the shoulders instead of swinging the waist away from the hips.
+	 */
+	private static Transform waistCompensated(Transform transform) {
+		Vector3f waist = new Vector3f(0.0f, BODY_WAIST_PIVOT_Y, 0.0f);
+		Vector3f rotated = transform.rotation().transform(new Vector3f(waist));
+		return new Transform(transform.x() + waist.x - rotated.x,
+				transform.y() + waist.y - rotated.y,
+				transform.z() + waist.z - rotated.z,
+				transform.rotation());
 	}
 
 	private Transform local(String boneName) {

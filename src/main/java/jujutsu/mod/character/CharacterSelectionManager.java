@@ -25,6 +25,7 @@ public final class CharacterSelectionManager {
 		attachments(player).setAttached(JujutsuAttachments.CHARACTER_STATE, updated);
 		CharacterCombatModifiers.applyForSelection(player, character);
 		arriving.onSelected(player);
+		player.refreshDimensions();
 		broadcast(player.getServer(), player.getUUID(), character);
 	}
 

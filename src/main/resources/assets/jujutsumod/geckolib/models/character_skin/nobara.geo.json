@@ -1,27 +1,27 @@
 {
-	"format_version": "1.12.0",
-	"minecraft:geometry": [
-		{
-			"description": {
-				"identifier": "geometry.character_skin.nobara",
-				"texture_width": 64,
-				"texture_height": 64
-			},
-			"bones": [
-				{"name": "root", "pivot": [0, 0, 0], "rotation": [0, 0, 0]},
-				{"name": "body", "parent": "root", "pivot": [0, 0, 0], "rotation": [0, 0, 0]},
-				{"name": "head", "parent": "body", "pivot": [0, 0, 0], "rotation": [0, 0, 0]},
-				{"name": "leftArm", "parent": "body", "pivot": [0, 0, 0], "rotation": [0, 0, 0]},
-				{"name": "left_elbow", "parent": "leftArm", "pivot": [0, 0, 0], "rotation": [0, 0, 0]},
-				{"name": "left_hand", "parent": "left_elbow", "pivot": [0, 0, 0], "rotation": [0, 0, 0]},
-				{"name": "rightArm", "parent": "body", "pivot": [0, 0, 0], "rotation": [0, 0, 0]},
-				{"name": "right_elbow", "parent": "rightArm", "pivot": [0, 0, 0], "rotation": [0, 0, 0]},
-				{"name": "right_hand", "parent": "right_elbow", "pivot": [0, 0, 0], "rotation": [0, 0, 0]},
-				{"name": "leftLeg", "parent": "root", "pivot": [0, 0, 0], "rotation": [0, 0, 0]},
-				{"name": "left_knee", "parent": "leftLeg", "pivot": [0, 0, 0], "rotation": [0, 0, 0]},
-				{"name": "rightLeg", "parent": "root", "pivot": [0, 0, 0], "rotation": [0, 0, 0]},
-				{"name": "right_knee", "parent": "rightLeg", "pivot": [0, 0, 0], "rotation": [0, 0, 0]}
-			]
-		}
-	]
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.character_skin.nobara",
+        "texture_width": 64,
+        "texture_height": 64
+      },
+      "bones": [
+        { "name": "root", "pivot": [0, 0, 0], "rotation": [0, 0, 0] },
+        { "name": "body", "parent": "root", "pivot": [0, 0, 0], "rotation": [0, 0, 0] },
+        { "name": "head", "parent": "body", "pivot": [0, 0, 0], "rotation": [0, 0, 0] },
+        { "name": "leftArm", "parent": "body", "pivot": [0, 0, 0], "rotation": [0, 0, 0] },
+        { "name": "left_elbow", "parent": "leftArm", "pivot": [0, 0, 0], "rotation": [0, 0, 0] },
+        { "name": "left_hand", "parent": "left_elbow", "pivot": [0, 0, 0], "rotation": [0, 0, 0] },
+        { "name": "rightArm", "parent": "body", "pivot": [0, 0, 0], "rotation": [0, 0, 0] },
+        { "name": "right_elbow", "parent": "rightArm", "pivot": [0, 0, 0], "rotation": [0, 0, 0] },
+        { "name": "right_hand", "parent": "right_elbow", "pivot": [0, 0, 0], "rotation": [0, 0, 0] },
+        { "name": "leftLeg", "parent": "root", "pivot": [0, 0, 0], "rotation": [0, 0, 0] },
+        { "name": "left_knee", "parent": "leftLeg", "pivot": [0, 0, 0], "rotation": [0, 0, 0] },
+        { "name": "rightLeg", "parent": "root", "pivot": [0, 0, 0], "rotation": [0, 0, 0] },
+        { "name": "right_knee", "parent": "rightLeg", "pivot": [0, 0, 0], "rotation": [0, 0, 0] }
+      ]
+    }
+  ]
 }

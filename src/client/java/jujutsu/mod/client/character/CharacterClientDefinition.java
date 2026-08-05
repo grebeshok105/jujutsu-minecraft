@@ -40,6 +40,11 @@ public interface CharacterClientDefinition {
 		return null;
 	}
 
+	/** Physical scale applied to the selected player's third-person body. */
+	default float bodyScale() {
+		return id().bodyScale();
+	}
+
 	/** Where this vessel sits in the menu, low first. Only relative order matters. */
 	default int rosterOrder() {
 		return 0;

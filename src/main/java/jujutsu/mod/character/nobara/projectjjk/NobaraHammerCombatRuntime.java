@@ -231,6 +231,7 @@ public final class NobaraHammerCombatRuntime {
 				.orElse(null);
 		if (nail != null && nail.deepen()) {
 			emitAt(player, NobaraVfxIds.NAIL_DEEPEN, nail.position(), nail.embedDepthLevel());
+			emitCasterAction(player, NobaraVfxIds.CASTER_HAMMER_EMBEDDED);
 		}
 	}
 
@@ -312,6 +313,13 @@ public final class NobaraHammerCombatRuntime {
 		long gameTime = player.level().getGameTime();
 		JujutsuNetworking.broadcastVfxCue(player.level(), origin, VFX_DELIVERY_RADIUS,
 				VfxCues.worldFixed(id, origin, intensity, gameTime, player.getRandom().nextLong()));
+	}
+
+	private static void emitCasterAction(ServerPlayer player, int action) {
+		long gameTime = player.level().getGameTime();
+		JujutsuNetworking.broadcastVfxCue(player.level(), player.position(), VFX_DELIVERY_RADIUS,
+				VfxCues.anchored(NobaraVfxIds.CASTER_ACTION, player.position(), player.getId(), player.position(),
+						action, gameTime, player.getRandom().nextLong()));
 	}
 
 	private static void emitDirected(

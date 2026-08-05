@@ -3,6 +3,7 @@ package jujutsu.mod.client.render.nobara;
 import net.minecraft.client.renderer.entity.state.PlayerRenderState;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.client.render.CharacterSkinAnimationAdapter;
 import software.bernie.geckolib.animatable.GeoReplacedEntity;
 import software.bernie.geckolib.animatable.SingletonGeoAnimatable;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
@@ -13,11 +14,14 @@ import software.bernie.geckolib.animatable.processing.AnimationTest;
 import software.bernie.geckolib.animation.PlayState;
 import software.bernie.geckolib.animation.RawAnimation;
 import software.bernie.geckolib.constant.DataTickets;
+import software.bernie.geckolib.constant.dataticket.DataTicket;
 import software.bernie.geckolib.renderer.base.GeoRenderState;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 	public static final NobaraPlayerGeoAnimatable INSTANCE = new NobaraPlayerGeoAnimatable();
+	public static final DataTicket<Integer> MELEE_VARIANT = DataTicket.create("nobara_melee_variant", Integer.class);
+	public static final DataTicket<Integer> LOCOMOTION_VARIANT = DataTicket.create("nobara_locomotion_variant", Integer.class);
 	private static final String BASE_CONTROLLER = "nobara_player_base";
 	private static final String ACTION_CONTROLLER = "nobara_combat_actions";
 	private static final float WALK_ANIMATION_THRESHOLD = 0.035f;
@@ -26,8 +30,8 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 	private static final RawAnimation IDLE = loop("animation.player_model.idle");
 	private static final RawAnimation WALK = loop("animation.player_model.walk");
 	private static final RawAnimation RUN = loop("animation.player_model.run");
-	private static final RawAnimation IDLE_2 = play("animation.player_model.idle2");
-	private static final RawAnimation WALK_2 = play("animation.player_model.walk2");
+	private static final RawAnimation IDLE_2 = loop("animation.player_model.idle2");
+	private static final RawAnimation WALK_2 = loop("animation.player_model.walk2");
 	private static final RawAnimation ONE_TWO = play("animation.player_model.one_two");
 	private static final RawAnimation ATTACK_1 = play("animation.player_model.attack1");
 	private static final RawAnimation ATTACK_2 = play("animation.player_model.attack2");
@@ -53,7 +57,19 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 	}
 
 	public void triggerAction(net.minecraft.world.entity.Entity player, String animation) {
-		triggerAnim(player, ACTION_CONTROLLER, animation);
+		triggerAnim(player, CharacterSkinAnimationAdapter.playerTriggerInstanceId(player), ACTION_CONTROLLER, animation);
+	}
+
+	public void restartMeleeTrigger(net.minecraft.world.entity.Entity player, String triggerName) {
+		long instanceId = CharacterSkinAnimationAdapter.playerTriggerInstanceId(player);
+		AnimatableManager<?> manager = getAnimatableInstanceCache().getManagerForId(instanceId);
+		if (manager != null) {
+			AnimationController<?> controller = manager.getAnimationControllers().get(ACTION_CONTROLLER);
+			if (controller != null) {
+				controller.forceAnimationReset();
+				controller.tryTriggerAnimation(triggerName);
+			}
+		}
 	}
 
 	@Override
@@ -63,9 +79,8 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 
 	@Override
 	public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-		controllers.add(new AnimationController<NobaraPlayerGeoAnimatable>(BASE_CONTROLLER, 4, this::baseAnimation)
-				.triggerableAnim("idle2", IDLE_2)
-				.triggerableAnim("walk2", WALK_2)
+		controllers.add(new AnimationController<NobaraPlayerGeoAnimatable>(BASE_CONTROLLER, 4, this::baseAnimation));
+		controllers.add(new AnimationController<NobaraPlayerGeoAnimatable>(ACTION_CONTROLLER, 1, state -> PlayState.STOP)
 				.triggerableAnim("one_two", ONE_TWO)
 				.triggerableAnim("attack1", ATTACK_1)
 				.triggerableAnim("attack2", ATTACK_2)
@@ -76,8 +91,7 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 				.triggerableAnim("spell3", SPELL_3)
 				.triggerableAnim("spell4", SPELL_4)
 				.triggerableAnim("spell5", SPELL_5)
-				.triggerableAnim("swipe1", SWIPE_1));
-		controllers.add(new AnimationController<NobaraPlayerGeoAnimatable>(ACTION_CONTROLLER, 1, state -> PlayState.STOP)
+				.triggerableAnim("swipe1", SWIPE_1)
 				.triggerableAnim("hammer_horizontal", HAMMER_HORIZONTAL)
 				.triggerableAnim("hammer_overhead", HAMMER_OVERHEAD)
 				.triggerableAnim("hammer_nail_launch", HAMMER_NAIL_LAUNCH)
@@ -110,19 +124,15 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 
 	private PlayState baseAnimation(AnimationTest<NobaraPlayerGeoAnimatable> state) {
 		GeoRenderState renderState = state.renderState();
-		if (renderState instanceof PlayerRenderState playerState) {
-			if (playerState.swinging || playerState.attackTime > 0.05f) {
-				return state.setAndContinue(ATTACK_1);
-			}
-		}
 		Movement movement = movement(state, renderState);
+		boolean alternate = Math.floorMod(renderState.getOrDefaultGeckolibData(LOCOMOTION_VARIANT, 0), 2) == 1;
 		if (!movement.moving()) {
-			return state.setAndContinue(IDLE);
+			return state.setAndContinue(alternate ? IDLE_2 : IDLE);
 		}
 		if (movement.running()) {
 			return state.setAndContinue(RUN);
 		}
-		return state.setAndContinue(WALK);
+		return state.setAndContinue(alternate ? WALK_2 : WALK);
 	}
 
 	private static Movement movement(AnimationTest<NobaraPlayerGeoAnimatable> state, GeoRenderState renderState) {

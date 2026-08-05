@@ -47,6 +47,8 @@ public final class NobaraVfxRecipes {
 	public static final int RITUAL_BIND_DURATION_TICKS = 18;
 	public static final int DOLL_STRIKE_DURATION_TICKS = ProjectJjkNobaraProfile.RESONANCE_VFX_DURATION_TICKS;
 	public static final int RESONANCE_RELEASE_DURATION_TICKS = ProjectJjkNobaraProfile.RESONANCE_VFX_DURATION_TICKS;
+	/** Delivery window for the caster-only animation anchor, not the length of the triggered GeckoLib clip. */
+	public static final int CASTER_ACTION_DURATION_TICKS = 20;
 
 	public static void register() {
 		VfxDirector.register(NobaraVfxIds.HAMMER, NobaraVfxRecipes::hammer);
@@ -70,6 +72,23 @@ public final class NobaraVfxRecipes {
 		VfxDirector.register(NobaraVfxIds.NAIL_TRAP_ARMED, NobaraVfxRecipes::nailTrapArmed);
 		VfxDirector.register(NobaraVfxIds.NAIL_TRAP_COLLAPSE, NobaraVfxRecipes::nailTrapCollapse);
 		VfxDirector.register(NobaraVfxIds.NAIL_TRAP_IMPACT, NobaraVfxRecipes::nailTrapImpact);
+		VfxDirector.register(NobaraVfxIds.CASTER_ACTION, NobaraVfxRecipes::casterAction);
+	}
+
+	private static VfxInstance casterAction(VfxCue cue) {
+		return VfxInstance.of(CASTER_ACTION_DURATION_TICKS, (context, ignoredInitialAgeTicks) -> {
+			String animation = switch (intensity(cue)) {
+				case NobaraVfxIds.CASTER_HAIRPIN_DIRECTED -> "spell1";
+				case NobaraVfxIds.CASTER_HAIRPIN_MASS -> "spell2";
+				case NobaraVfxIds.CASTER_NAIL_TRAP -> "spell3";
+				case NobaraVfxIds.CASTER_HAMMER_EMBEDDED -> "hammer_embedded_drive";
+				default -> null;
+			};
+			if (animation == null) {
+				return;
+			}
+			triggerAnchoredAction(context, cue, animation);
+		});
 	}
 
 	private static VfxInstance nailTrapPlaced(VfxCue cue) {
@@ -154,9 +173,8 @@ public final class NobaraVfxRecipes {
 
 	private static VfxInstance hammerAction(VfxCue cue, String animation, boolean heavy) {
 		return VfxInstance.of(heavy ? HAMMER_HEAVY_ACTION_DURATION_TICKS : HAMMER_LIGHT_ACTION_DURATION_TICKS, (context, initialAgeTicks) -> {
-			if (VfxTimeline.isOpeningBeat(initialAgeTicks) && context.client().level != null && cue.anchorEntityId() != VfxCue.NO_ANCHOR) {
-				var entity = context.client().level.getEntity(cue.anchorEntityId());
-				if (entity != null) NobaraPlayerGeoAnimatable.INSTANCE.triggerAction(entity, animation);
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				triggerAnchoredAction(context, cue, animation);
 			}
 			context.firstPerson().triggerSnap(initialAgeTicks);
 			float proximity = context.proximity(cue, HAMMER_ACTION_PRESENTATION_RADIUS);
@@ -189,10 +207,7 @@ public final class NobaraVfxRecipes {
 				context.playNoFalloff(JujutsuSounds.PROJECTJJK_SNAP, 1.0f * proximity, 1.4f, origin, random);
 				context.playNoFalloff(JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, 0.9f * proximity, 0.48f, origin, random);
 				context.playNoFalloff(JujutsuSounds.PROJECTJJK_WHOOSH_VORTEX, 0.7f * proximity, 0.35f, origin, random);
-				if (context.client().level != null && cue.anchorEntityId() != VfxCue.NO_ANCHOR) {
-					var entity = context.client().level.getEntity(cue.anchorEntityId());
-					if (entity != null) NobaraPlayerGeoAnimatable.INSTANCE.triggerAction(entity, "black_flash");
-				}
+				triggerAnchoredAction(context, cue, "black_flash");
 			}
 
 			if (proximity > 0.01f) {
@@ -213,6 +228,9 @@ public final class NobaraVfxRecipes {
 	private static VfxInstance hammer(VfxCue cue) {
 		return VfxInstance.of(HAMMER_DURATION_TICKS, (context, initialAgeTicks) -> {
 			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.HAMMER_SEND, HAMMER_DURATION_TICKS);
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				triggerAnchoredAction(context, cue, "hammer_nail_launch");
+			}
 			float proximity = context.proximity(cue, HAMMER_PRESENTATION_RADIUS);
 			if (proximity <= 0.01f) {
 				return;
@@ -365,10 +383,7 @@ public final class NobaraVfxRecipes {
 				context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 24, 1.05, -0.2, -0.08, random);
 				context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 18, 0.46, 0.075, random);
 				context.playNoFalloff(JujutsuSounds.PROJECTJJK_MAGIC, 0.82f * proximity, 0.76f, origin, random);
-				if (context.client().level != null && cue.anchorEntityId() != VfxCue.NO_ANCHOR) {
-					var entity = context.client().level.getEntity(cue.anchorEntityId());
-					if (entity != null) NobaraPlayerGeoAnimatable.INSTANCE.triggerAction(entity, "hammer_doll_strike");
-				}
+				triggerAnchoredAction(context, cue, "hammer_doll_strike");
 			}
 			if (proximity > 0.01f) {
 				context.camera().triggerRitual(intensity(cue), proximity, initialAgeTicks);
@@ -446,7 +461,22 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance firstPersonSnap(VfxCue cue) {
-		return VfxInstance.of(FIRST_PERSON_SNAP_DURATION_TICKS, (context, initialAgeTicks) -> context.firstPerson().triggerSnap(initialAgeTicks));
+		return VfxInstance.of(FIRST_PERSON_SNAP_DURATION_TICKS, (context, initialAgeTicks) -> {
+			context.firstPerson().triggerSnap(initialAgeTicks);
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				triggerAnchoredAction(context, cue, "snap");
+			}
+		});
+	}
+
+	private static void triggerAnchoredAction(VfxContext context, VfxCue cue, String animation) {
+		if (context.client().level == null || cue.anchorEntityId() == VfxCue.NO_ANCHOR) {
+			return;
+		}
+		var entity = context.client().level.getEntity(cue.anchorEntityId());
+		if (entity != null) {
+			NobaraPlayerGeoAnimatable.INSTANCE.triggerAction(entity, animation);
+		}
 	}
 
 	private static void spawnResonanceBurst(VfxContext context, Vec3 origin, int marks, RandomSource random) {

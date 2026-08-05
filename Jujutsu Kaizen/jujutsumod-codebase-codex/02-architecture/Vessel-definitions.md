@@ -50,6 +50,14 @@ Required: `id()` and `rosterEntry()`. Every vessel has a name and a card.
 
 **`playerSkin()`** — the texture that replaces the vanilla skin, driving first-person hands and every vanilla skin path. Declared once here; the skin mixin and the roster portrait both read it. Both used to spell the path out themselves.
 
+**`bodyScale()`** — the physical player-body scalar used by the common dimensions hook and the client
+third-person render wrapper. This is the deliberate exception to definition-owned presentation metadata:
+the scalar and the vanilla skin model id live on the shared `JujutsuCharacter` enum because the common
+`src/main` hook must apply them without reaching into client definitions, and selection sync carries the
+model id from that same source. Client definitions delegate their `bodyScale()` default to the enum.
+It changes dimensions, eye height and third-person render scale only; it must not add reach, damage or
+movement modifiers.
+
 **`accent()` / `warmth()`** — what colour the shell eases toward. `ClickGuiTheme` owns the easing and nothing else.
 
 **`rosterOrder()`** — where the vessel sits in the menu. Separate from enum order, which starts with `NONE` so it reads as the absent value, while the menu has always shown it last.

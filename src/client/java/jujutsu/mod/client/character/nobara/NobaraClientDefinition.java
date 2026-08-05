@@ -11,10 +11,9 @@ import jujutsu.mod.client.character.CharacterRosterEntry;
 import jujutsu.mod.client.character.JujutsuCharacterIcons;
 import jujutsu.mod.client.render.ProjectJjkNailRenderer;
 import jujutsu.mod.client.render.CharacterSkinAnimation;
-import jujutsu.mod.client.render.CharacterSkinAnimationAdapter;
 import jujutsu.mod.client.render.nobara.doll.ProjectJjkStrawDollRenderer;
 import jujutsu.mod.client.render.nobara.NobaraPlayerGeoAnimatable;
-import jujutsu.mod.client.render.nobara.NobaraSkinAnimationModel;
+import jujutsu.mod.client.render.nobara.NobaraSkinAnimationAdapter;
 import jujutsu.mod.client.vfx.nobara.NobaraVfxRecipes;
 import jujutsu.mod.registry.JujutsuEntities;
 
@@ -56,7 +55,7 @@ public final class NobaraClientDefinition implements CharacterClientDefinition {
 	}
 
 	private static final CharacterSkinAnimation SKIN_ANIMATION =
-			new CharacterSkinAnimationAdapter<>(NobaraPlayerGeoAnimatable.INSTANCE, new NobaraSkinAnimationModel());
+			new NobaraSkinAnimationAdapter();
 
 	@Override
 	public CharacterSkinAnimation skinAnimation() {

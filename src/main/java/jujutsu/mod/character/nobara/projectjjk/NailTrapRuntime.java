@@ -99,6 +99,9 @@ public final class NailTrapRuntime {
 		COLLAPSES.remove(owner.getUUID());
 		for (Placement placement : placements) emit(level, placement.point(), NobaraVfxIds.NAIL_TRAP_PLACED, 1, Vec3.ZERO);
 		emit(level, centerHit.getLocation(), NobaraVfxIds.NAIL_TRAP_ARMED, 3, Vec3.ZERO);
+		JujutsuNetworking.broadcastVfxCue(level, owner.position(), VFX_DELIVERY_RADIUS,
+				VfxCues.anchored(NobaraVfxIds.CASTER_ACTION, owner.position(), owner.getId(), owner.position(),
+						NobaraVfxIds.CASTER_NAIL_TRAP, level.getGameTime(), owner.getRandom().nextLong()));
 		level.playSound(null, centerHit.getLocation().x, centerHit.getLocation().y, centerHit.getLocation().z,
 				JujutsuSounds.PROJECTJJK_MAGIC, SoundSource.PLAYERS, 0.8f, 1.15f);
 		owner.displayClientMessage(Component.translatable("message.jujutsumod.nobara.trap.armed"), true);

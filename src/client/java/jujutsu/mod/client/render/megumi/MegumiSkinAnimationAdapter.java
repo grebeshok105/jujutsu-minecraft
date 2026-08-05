@@ -20,15 +20,26 @@ public final class MegumiSkinAnimationAdapter extends CharacterSkinAnimationAdap
 		boolean newSwing = player.swinging && (!state.swinging || player.swingTime < state.lastSwingTime);
 		if (newSwing) {
 			state.variant = (state.variant + 1) % MegumiPlayerGeoAnimatable.MELEE_VARIANT_COUNT;
+			state.combatIdleUntilTick = player.tickCount + 22;
+			String triggerName = switch (state.variant) {
+				case 1 -> "punch_2";
+				case 2 -> "kick";
+				default -> "punch_1";
+			};
+			animatable.restartMeleeTrigger(player, triggerName);
 		}
 		state.swinging = player.swinging;
 		state.lastSwingTime = player.swingTime;
-		renderState.addGeckolibData(MegumiPlayerGeoAnimatable.MELEE_VARIANT, Math.max(0, state.variant));
+		boolean combatIdleWindow = !player.swinging && player.tickCount <= state.combatIdleUntilTick;
+		boolean stationary = player.getDeltaMovement().horizontalDistanceSqr() < 1.0e-4;
+		renderState.addGeckolibData(MegumiPlayerGeoAnimatable.COMBAT_IDLE,
+				combatIdleWindow && stationary);
 	}
 
 	private static final class SwingState {
 		private boolean swinging;
 		private int lastSwingTime = -1;
 		private int variant = -1;
+		private int combatIdleUntilTick = -1;
 	}
 }

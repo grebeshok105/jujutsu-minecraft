@@ -19,6 +19,7 @@
 		]
 	},
 	"mixins": [
+		"jujutsumod.mixins.json",
 		{
 			"config": "jujutsumod.client.mixins.json",
 			"environment": "client"
