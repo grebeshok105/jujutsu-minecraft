@@ -49,8 +49,11 @@ Regression:
 21. Dogs summon/recall/Sic/pounce unchanged; Nobara R/B/Shift+R/Shift+B unchanged; Todo swap/feint/pair swap unchanged — note the pair-swap tap now confirms on release (≤0.3 s later than before).
 22. Cooldown mirror: after each move the Shift+B slot shows cooldown (tap 6 s, hold 10 s); trap 10 s on B.
 
+## Deploy
+
+- Deployed jar in `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar` is built from `feat/megumi-shadow-kit` at `302d9c9`, md5 `118c42323330ee2878071c030789ece9`.
+
 ## Next steps
 
-1. Integrate client VFX/animation/test wave, run `qualityGate`, independent review, fixes.
-2. Build the jar, deploy to `D:/Games/instances/Jujutsu/mods/`, run manual smoke round 1.
-3. Open the PR.
+1. Manual smoke round 1 against the checklist above (human-controlled client).
+2. Address smoke findings, then merge the PR.
