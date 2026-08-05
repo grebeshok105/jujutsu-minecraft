@@ -340,8 +340,7 @@ public final class TodoPairSwapRuntime {
 	private static void emitCycleEdge(ServerLevel level, ServerPlayer todo, Vec3 from, Vec3 to,
 			long gameTime, RandomSource random) {
 		JujutsuNetworking.broadcastVfxCue(level, from, TodoProfile.VFX_DELIVERY_RADIUS,
-				new VfxCue(TodoVfxIds.TRIPLE_SWAP, from, VfxCue.NO_ANCHOR,
-						new Vec3(from.distanceTo(to), 0.0, 0.0), 1, gameTime, random.nextLong(),
+				VfxCues.worldFixedDisplacement(TodoVfxIds.TRIPLE_SWAP, from, 1, gameTime, random.nextLong(),
 						to.subtract(from)));
 	}
 
@@ -441,9 +440,9 @@ public final class TodoPairSwapRuntime {
 			if (age > 0 && age % TodoProfile.PAIR_MARK_PULSE_TICKS == 0) {
 				ServerPlayer caster = server.getPlayerList().getPlayer(ownerId);
 				if (caster != null) {
-					JujutsuNetworking.sendVfxCue(caster, new VfxCue(TodoVfxIds.PAIR_MARK,
-							markedBody.position(), markedBody.getId(), Vec3.ZERO, 0, now,
-							caster.getRandom().nextLong(), Vec3.ZERO));
+					JujutsuNetworking.sendVfxCue(caster, VfxCues.anchoredSilentRepeat(TodoVfxIds.PAIR_MARK,
+							markedBody.position(), markedBody.getId(), markedBody.position(), now,
+							caster.getRandom().nextLong()));
 				}
 			}
 		}

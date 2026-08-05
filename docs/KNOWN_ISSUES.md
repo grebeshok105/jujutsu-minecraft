@@ -213,11 +213,11 @@ Render2D immediately begins and flushes SDF for each shape to preserve MSDF orde
 
 Closed 2026-07-26 on feat/todo-input-slots by the vessel definition seam: every `JujutsuCharacter` constant binds one server definition (`CharacterDefinition` in `JujutsuCharacters`) and one client definition (`CharacterClientDefinition` in `JujutsuCharacterClients`), and the shared files that used to name vessels — mod init, client init, `CharacterAbilityExecutor`, `CharacterCombatModifiers`, `CharacterGeoRenderers`, `ClickGuiTheme`, `JujutsuModules`, `CharacterRosterPanel`, `CharacterSkinMixin` — now ask the registries. The contract is owned by the Codex note `Jujutsu Kaizen/jujutsumod-codebase-codex/02-architecture/Vessel-definitions.md`.
 
-Recounted 2026-08-05 with the stone rework: exactly six direct `JujutsuCharacter.NOBARA`/`.TODO` references remain across `src/main` and `src/client`, one per file, all deliberate:
+Recounted 2026-08-05 with the stone rework, and the shape of the count changed: nine files carry a direct `JujutsuCharacter.NOBARA`/`.TODO` reference across `src/main` and `src/client`, all deliberate, in three categories:
 
 - Four are the `id()` declarations in the vessel definitions themselves (`NobaraDefinition`, `TodoDefinition`, `NobaraClientDefinition`, `TodoClientDefinition`) — a definition naming the constant it speaks for is the seam working, not a leak.
 - `JujutsuCommands` refuses the `hairpin` debug commands unless Nobara is selected, because a slot is an input position and `PRIMARY` cast as Todo would fire his swap while reporting a hairpin.
-- `TodoBlackFlashRuntime` filters its own damage listener for Todo — a vessel's own hook checking for itself.
+- Four are a vessel's own hook or presentation state filtering for itself, which is the seam's accepted self-check form, not shared code branching: `TodoBlackFlashRuntime` and `TodoSwapMomentumRuntime` on the server, `NobaraEspState` and `TodoStatusHud` on the client. (`TodoSwapMarkerItem`, formerly in this list, is deleted with the marker system.)
 
 One vessel-specific line survives in shared code without naming an enum constant: `JujutsuKeybinds.isTechniqueWeapon` still spells out Nobara's two hammers to decide whether left click counts as `ATTACK_CONTEXT`. It leaves when the client definition can answer "is this stack my technique weapon".
 

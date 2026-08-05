@@ -16,6 +16,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;
@@ -135,6 +136,15 @@ public final class TodoStoneEntity extends Entity {
 	@Override
 	public boolean fireImmune() {
 		return true;
+	}
+
+	/**
+	 * The design's list of ends is exhaustive — expiry, block collision, void, cleanup. Damage is not
+	 * on it: an arrow must not be able to delete Todo's setup mid-flight, so the stone is immune.
+	 */
+	@Override
+	public boolean hurtServer(ServerLevel level, DamageSource damageSource, float amount) {
+		return false;
 	}
 
 	@Override

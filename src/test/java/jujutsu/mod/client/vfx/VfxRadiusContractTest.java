@@ -44,7 +44,7 @@ final class VfxRadiusContractTest {
 				finiteNone("Nobara caster actions", Set.of(NobaraVfxIds.CASTER_ACTION)),
 				radius("Nobara black flash", Set.of(NobaraVfxIds.BLACK_FLASH), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
 				radius("Todo clap", Set.of(TodoVfxIds.BOOGIE_WOOGIE), TodoVfxRecipes.BOOGIE_WOOGIE_PRESENTATION_RADIUS),
-				finiteNone("Todo mark", Set.of(TodoVfxIds.PAIR_MARK)),
+				direct("Todo mark", Set.of(TodoVfxIds.PAIR_MARK)),
 				direct("Todo feint", Set.of(TodoVfxIds.FEINT_TELL)),
 				finiteNone("Todo swap geometry", Set.of(TodoVfxIds.SWAP_ENDPOINT, TodoVfxIds.SWAP_AFTERIMAGE, TodoVfxIds.SWAP_ARRIVAL)),
 				finiteNone("Todo momentum", Set.of(TodoVfxIds.MOMENTUM_STRIKE)),

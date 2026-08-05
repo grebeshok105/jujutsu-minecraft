@@ -73,10 +73,11 @@ class TodoTripleSwapTest {
 				"one edge per cycle step, in the order Todo->A, A->T, T->Todo");
 		String edge = methodBody(Files.readString(TODO.resolve("TodoPairSwapRuntime.java")),
 				"private static void emitCycleEdge(");
-		assertTrue(edge.contains("from.distanceTo(to)"), "anchorOffset.x must carry the edge length in blocks");
-		assertTrue(edge.contains("to.subtract(from)"), "the direction must point along the edge from -> to");
-		assertTrue(edge.contains("VfxCue.NO_ANCHOR") && edge.contains("broadcastVfxCue"),
-				"the edge must be world-fixed and broadcast");
+		assertTrue(edge.contains("to.subtract(from)"),
+				"the displacement must own the full edge vector (its length is the edge length)");
+		assertTrue(edge.contains("VfxCues.worldFixedDisplacement(TodoVfxIds.TRIPLE_SWAP")
+				&& edge.contains("broadcastVfxCue"),
+				"the edge must ride the world-fixed displacement factory and be broadcast");
 	}
 
 	/**
@@ -124,9 +125,8 @@ class TodoTripleSwapTest {
 				"public static void serverTick(");
 		assertTrue(tick.contains("PAIR_MARK_PULSE_TICKS"), "the pulse must ride the profile period");
 		assertTrue(tick.contains("sendVfxCue"), "the pulse must be caster-only like the mark, never broadcast");
-		assertTrue(tick.contains("new VfxCue(TodoVfxIds.PAIR_MARK"),
-				"the pulse must be authored raw so its intensity survives the factories' clamp");
-		assertTrue(tick.contains(", 0, now,"), "the pulse must carry intensity 0 to read as silent");
+		assertTrue(tick.contains("VfxCues.anchoredSilentRepeat(TodoVfxIds.PAIR_MARK"),
+				"the pulse must ride the silent-repeat factory — the one intensity the clamp allows to be zero");
 		assertTrue(tick.contains("pending.isExpired(now)"), "the sweep must still drop expired selections");
 	}
 

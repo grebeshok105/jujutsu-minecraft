@@ -58,4 +58,6 @@ Purge and regressions:
 
 ## Status
 
-- Implementation in flight on this branch (rule-of-four wave: purge / stone / triple / client blocks + docs).
+- Implementation integrated on this branch (rule-of-four wave: purge / stone core / pair+triple / client blocks + docs + skeleton).
+- `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` — **green** after integration fixes (hurtServer override on the stone, pure swap-range boundary, VfxCues silent-repeat + displacement factories for the pulse and the cycle edges, contract-pin respellings).
+- Manual smoke round 1: **pending** (checklist above); independent review wave next per the task order.

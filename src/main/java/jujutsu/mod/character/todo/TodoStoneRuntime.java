@@ -239,7 +239,12 @@ public final class TodoStoneRuntime {
 	}
 
 	private static boolean withinSwapRange(ServerPlayer todo, TodoStoneEntity stone) {
-		return stone != null && todo.distanceToSqr(stone) <= TodoProfile.STONE_SWAP_RANGE * TodoProfile.STONE_SWAP_RANGE;
+		return stone != null && withinSwapRange(todo.distanceToSqr(stone));
+	}
+
+	/** The numeric boundary itself, kept pure so the inclusive-at-range contract stays testable. */
+	static boolean withinSwapRange(double distanceSqr) {
+		return distanceSqr <= TodoProfile.STONE_SWAP_RANGE * TodoProfile.STONE_SWAP_RANGE;
 	}
 
 	private static boolean reject(ServerPlayer player, boolean notify, String messageKey, String reason) {

@@ -207,7 +207,7 @@ Therefore, without exception:
 - No client type in `src/main` — a dedicated server loads that source set and every implementation of `CharacterDefinition`.
 - No roster, skin, renderer or VFX metadata written twice. Declare it once on the definition.
 
-Contract: Codex note `02-architecture/Vessel-definitions.md`. Procedure: the `add-vessel` skill. Four deliberate per-vessel exceptions remain and are listed in that note; do not add a fifth without recording why.
+Contract: Codex note `02-architecture/Vessel-definitions.md`. Procedure: the `add-vessel` skill. Three deliberate per-vessel exceptions remain and are listed in that note (the stone rework retired the marker item's gate together with the item); do not add a fourth without recording why.
 
 ## Mandatory VFX Core Contract
 

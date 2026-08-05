@@ -385,7 +385,7 @@ public final class ProjectSanityTest {
 		assert executor.contains("CharacterSelectionManager.selected(player)") && executor.contains("JujutsuCharacter.NONE")
 				: "The shared gate owns the selection check for every vessel";
 		assert executor.contains("JujutsuCharacters.definition(character)")
-				&& executor.contains("definition.tryCast(player, slot, notify)")
+				&& executor.contains("definition.tryCast(player, ability, notify)")
 				: "The shared gate must ask the vessel's definition instead of naming vessels";
 		String actionRuntime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/NobaraAbilityRouter.java"));
 		assert actionRuntime.contains("CombatStagger.GLOBAL.isStaggered")
@@ -487,6 +487,50 @@ public final class ProjectSanityTest {
 		assert Files.exists(JUJUTSU_ASSETS.resolve("textures/entity/character/todo.png")) : "Missing Todo player skin";
 		assert Files.exists(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/animations/todo/todo_aoi.animation.json"))
 				: "Missing Todo GeckoLib clap animation pack";
+		// The stone rework's contracts. First the absences: the marker system is deleted completely,
+		// and these assertions are what stands in the old marker pins' place.
+		for (String deleted : new String[] {
+				"jujutsu/mod/character/todo/TodoSwapMarks.java",
+				"jujutsu/mod/character/todo/TodoSwapMark.java",
+				"jujutsu/mod/character/todo/TodoSwapMarkerItem.java",
+				"jujutsu/mod/character/todo/TodoSwapMarkerEntity.java",
+				"jujutsu/mod/character/todo/TodoMarkerSwapRuntime.java",
+				"jujutsu/mod/character/todo/TodoEntityMarkRuntime.java"}) {
+			assert !Files.exists(MAIN_JAVA.resolve(deleted)) : "The marker system must stay deleted: " + deleted;
+		}
+		assert !Files.readString(MAIN_JAVA.resolve("jujutsu/mod/registry/JujutsuItems.java")).contains("todo_swap_marker")
+				: "The marker item registration must stay deleted";
+		assert !Files.readString(MAIN_JAVA.resolve("jujutsu/mod/registry/JujutsuEntities.java")).contains("todo_swap_marker")
+				: "The marker entity registration must stay deleted";
+		assert !runtime.contains("hasMark")
+				: "The aimed swap must refuse plainly with no target — the mark fallback is deleted";
+		String router = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/todo/TodoAbilityRouter.java"));
+		assert router.contains("case USE_CONTEXT -> false;")
+				: "USE_CONTEXT keeps its wire id but Todo must answer it with false";
+		assert router.contains("case TERTIARY, TERTIARY_SNEAK -> TodoStoneRuntime.tryCast")
+				: "Both V slots must route to the stone runtime";
+		assert router.contains("case SECONDARY, SECONDARY_SNEAK -> TodoPairSwapRuntime.tryCast")
+				: "B and Shift+B must reach the pair runtime as two distinct slots — the fold must not return";
+		String stoneRuntime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/todo/TodoStoneRuntime.java"));
+		assert stoneRuntime.contains("Strictness.STRICT") && !stoneRuntime.contains("Strictness.SOFT")
+				: "Every stone destination must be STRICT; SOFT belongs to the aimed swap's own arrival alone";
+		String pairRuntime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/todo/TodoPairSwapRuntime.java"));
+		assert pairRuntime.contains("Strictness.STRICT") && !pairRuntime.contains("Strictness.SOFT")
+				: "Every pair and triple destination must be STRICT";
+		assert stoneRuntime.contains("TodoSwapMomentumRuntime.grant") && !pairRuntime.contains("TodoSwapMomentumRuntime.grant")
+				: "Momentum rewards swaps Todo makes with his own body: the stone self-swap grants it, pair and triple never do";
+		assert !Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/CharacterDefinition.java")).contains("canonicalSlot")
+				: "The canonicalSlot fold is deleted with its only implementer and must not return";
+		String lifecycle = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/todo/TodoStateLifecycle.java"));
+		for (String hook : new String[] {"AFTER_DEATH", "AFTER_RESPAWN", "AFTER_PLAYER_CHANGE_WORLD",
+				"DISCONNECT", "SERVER_STOPPING", "END_SERVER_TICK"}) {
+			assert lifecycle.contains(hook) : "TodoStateLifecycle must own the " + hook + " cleanup hook";
+		}
+		assert lifecycle.contains("TodoTransientState.dropAll")
+				&& lifecycle.contains("removeEffect(JujutsuEffects.TODO_SWAP_MOMENTUM)")
+				: "dropEverything must funnel into the single transient-state owner plus the momentum effect";
+		assert !stoneRuntime.contains(".register(") && !pairRuntime.contains(".register(")
+				: "Todo runtimes must not register lifecycle hooks; TodoStateLifecycle is the only registrar";
 	}
 
 	private static void assertProjectJjkHairpinFinisherNumbers() throws IOException {

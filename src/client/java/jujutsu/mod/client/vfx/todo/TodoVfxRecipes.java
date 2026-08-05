@@ -239,10 +239,11 @@ public final class TodoVfxRecipes {
 
 	/**
 	 * One edge of the triple cyclic swap. Emitted three times per cast — Todo→A, A→T, T→Todo — each
-	 * world-fixed at the edge's start with {@code direction} along the edge and {@code anchorOffset.x}
-	 * carrying the edge length. A violet particle stream runs to a brighter head at the far end, so the
-	 * direction of each edge (and therefore the whole A→B→C→A flow) reads in-world; the gray puff at
-	 * the start ties the edge back to the stone-free, hand-cast nature of the triple.
+	 * world-fixed at the edge's start with {@code anchorOffset} owning the full travel vector (its
+	 * length is the edge length) and {@code direction} the normalized flow. A violet particle stream
+	 * runs to a brighter head at the far end, so the direction of each edge (and therefore the whole
+	 * A→B→C→A flow) reads in-world; the gray puff at the start ties the edge back to the stone-free,
+	 * hand-cast nature of the triple.
 	 */
 	private static VfxInstance tripleSwap(VfxCue cue) {
 		return VfxInstance.of(TRIPLE_SWAP_DURATION_TICKS, (context, initialAgeTicks) -> {
@@ -251,7 +252,7 @@ public final class TodoVfxRecipes {
 			}
 			Vec3 from = cue.origin();
 			Vec3 direction = cue.direction();
-			double edgeLength = cue.anchorOffset().x;
+			double edgeLength = cue.anchorOffset().length();
 			if (direction.lengthSqr() < 1.0E-8 || edgeLength <= 0.0) {
 				return;
 			}

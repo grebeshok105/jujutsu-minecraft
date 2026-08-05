@@ -55,8 +55,8 @@ public final class TodoVfxIds {
 	public static final ResourceLocation STONE_VANISH = JujutsuMod.id("todo/stone_vanish");
 	/**
 	 * One edge of the triple cyclic swap. Emitted three times per cast — Todo→A, A→T, T→Todo — with
-	 * {@code direction} pointing along the edge so the cycle's flow reads in-world. World-fixed at the
-	 * edge's start; {@code anchorOffset.x} carries the edge length in blocks (direction is normalized).
+	 * {@code anchorOffset} owning the full travel vector (its length is the edge length; {@link VfxCue}
+	 * normalizes {@code direction}, so magnitude cannot survive there). World-fixed at the edge's start.
 	 */
 	public static final ResourceLocation TRIPLE_SWAP = JujutsuMod.id("todo/triple_swap");
 	public static final Set<ResourceLocation> LIVE = Set.of(

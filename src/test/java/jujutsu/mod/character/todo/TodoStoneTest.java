@@ -97,9 +97,9 @@ class TodoStoneTest {
 	@Test
 	void swapRangeBoundarySitsAtThirtyTwoBlocks() {
 		double range = TodoProfile.STONE_SWAP_RANGE;
-		assertTrue(TodoStoneRuntime.stoneEligibleForSwap(true, true, range * range),
+		assertTrue(TodoStoneRuntime.stoneEligibleForSwap(true, true, TodoStoneRuntime.withinSwapRange(range * range)),
 				"exactly at range must remain eligible");
-		assertFalse(TodoStoneRuntime.stoneEligibleForSwap(true, true, range * range + 1.0E-4),
+		assertFalse(TodoStoneRuntime.stoneEligibleForSwap(true, true, TodoStoneRuntime.withinSwapRange(range * range + 1.0E-4)),
 				"just past range must refuse");
 	}
 
