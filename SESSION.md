@@ -1,11 +1,12 @@
 # Session Handoff — Todo Stone Rework
 
-## Active branch
+## Status
 
-- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/todo-stone-rework`
-- Branch: `feat/todo-stone-polish` (stacked on `feat/todo-stone-rework`, which is from `main` `3c71ce6`)
-- PRs: rework [#57](https://github.com/grebeshok105/jujutsu-minecraft/pull/57) (base `main`, unmerged by request) ← polish [#58](https://github.com/grebeshok105/jujutsu-minecraft/pull/58) (base `feat/todo-stone-rework`); merge #57 first or both together
-- Scope: delete the marker system entirely; add the thrown stone (`V` throw / `V` self-swap / `Shift+V` target swap on the appended `TERTIARY_SNEAK(9)` wire id); split `Shift+B` off the pair swap into the triple cyclic swap (Todo→A→T→Todo) and delete the `canonicalSlot` fold; single transient-state owner (`TodoTransientState`) with one cleanup path (`TodoStateLifecycle`).
+- **PR #58 is MERGED** into `feat/todo-stone-rework` as squash commit `c653afb`.
+- **PR #57 is MERGED** into `main` as squash commit `d6d7d51`.
+- This handoff has no active feature branch. The implementation and polish described below are now current `main`.
+- Scope delivered: the marker system is deleted; Todo has the thrown stone (`V` throw / `V` self-swap / `Shift+V` target swap on appended wire id `TERTIARY_SNEAK(9)`), `Shift+B` owns the triple cyclic swap (Todo→A→T→Todo), `canonicalSlot` is deleted, and `TodoTransientState`/`TodoStateLifecycle` own transient state and cleanup.
+- Full manual smoke round 1 remains pending. The initial in-game look that produced PR #58 is complete, but it did not execute the whole checklist below.
 
 ## Design contract
 
@@ -15,8 +16,9 @@
 
 ## Verification
 
-- `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` — required green before handoff.
-- Nothing in the suite constructs a `ServerLevel` (E1): every teleport, collision, HUD and readability claim below is proven only by the manual smoke.
+- The combined stacked head `c653afb` passed GitHub Actions `qualityGate`, `assemble`, and artifact upload before the final squash merge.
+- Local `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` was green after integration and polish.
+- Nothing in the suite constructs a `ServerLevel` (E1): every teleport, collision, HUD, observer, and readability claim below still requires real-world/client verification.
 
 ## Manual smoke checklist (round 1 pending)
 
@@ -40,27 +42,25 @@ Target swap (`Shift+V`):
 13. No stone / no target / unsafe placement at the stone's point: each refusal has its own message, nothing moves, the stone (if any) keeps flying. No momentum from a target swap.
 
 Pair swap and triple cycle (`B`, `Shift+B`):
-14. Plain pair swap regression: B marks — actionbar line, one audible mark beat, then a quiet ring re-drawn on the body about once a second and the pair HUD chip holding (both visible to the casting Todo alone); second B swaps the two marked bodies, Todo stays put; second B on the mark cancels; second B at nothing refuses and keeps the mark.
-15. The pair chip shows the marked body's name and remaining TTL while a selection lives (Todo only).
-16. B mark, then `Shift+B` on a second body: the triple cycle runs with the fixed direction — Todo to the marked body's spot, the marked body to the aimed body's spot, the aimed body to Todo's spot. The clap sounds at Todo's old spot and the three-edge directional effect reads the cycle order.
-17. `Shift+B` with no selection refuses with its own message and does NOT behave as B; the crouch does not lose a lined-up selection (B mark → sneak → Shift+B works).
+14. Plain pair swap regression: B selects — actionbar line, one audible selection beat, then a quiet ring re-drawn on the body about once a second and the pair HUD chip holding (both visible to the casting Todo alone); second B swaps the two selected bodies, Todo stays put; second B on the selection cancels; second B at nothing refuses and keeps the selection.
+15. The pair chip shows the selected body's name and remaining TTL while a selection lives (Todo only).
+16. B selection, then `Shift+B` on a second body: the triple cycle runs with the fixed direction — Todo to the selected body's spot, the selected body to the aimed body's spot, the aimed body to Todo's spot. The clap sounds at Todo's old spot and the three-edge directional effect reads the cycle order.
+17. `Shift+B` with no selection refuses with its own message and does NOT behave as B; the crouch does not lose a lined-up selection (B select → sneak → Shift+B works).
 18. Triple near walls, ledges, water and in the air: any body without a safe STRICT destination cancels the whole cast — nobody moves, selection survives; retry after repositioning works.
 19. Triple cooldown (8 s) and pair cooldown (5 s) are separate: after a triple, plain B is still available on its own clock and vice versa.
 20. Triple grants NO momentum window.
-21. Rollback: no partially-moved outcomes are ever observed (if a mid-commit failure happens, all three bodies are back at their starts and the log carries an error line).
+21. Rollback: no partially moved outcomes are ever observed. If a mid-commit failure happens, all three bodies return to their snapshots and the log carries an error line.
 
 Purge and regressions:
-22. `R` with nothing under the crosshair is a plain refusal — never a teleport to anything; the marker item no longer exists (`/give` finds no `todo_swap_marker`; creative tab has none).
-23. An ordinary right click (once or twice) behaves fully vanilla for Todo — doors, mounts, trades; no marking of any kind.
+22. `R` with nothing under the crosshair is a plain refusal — never a teleport to anything; the old marker item no longer exists (`/give` finds no `todo_swap_marker`; creative tab has none).
+23. An ordinary right click, once or twice, behaves fully vanilla for Todo — doors, mounts, trades; no marking ability remains.
 24. `Shift+R` feint: clap performance plus the displacement whoosh one tick later (same as a real swap's sound), no movement, no endpoint bursts. Black Flash and momentum-on-`R`-swap unchanged.
-25. Nobara full kit unchanged (R/B/Shift+R/Shift+B, ESP, mega nail); Megumi full kit unchanged (dogs, trap, move, drop; his `V` still Shadow Drop — Todo's V never leaks into other vessels).
-26. Multiplayer observation: a second player sees the stone, its trail, both swap presentations, and the triple's three edges — but never the pair mark, its quiet pulse ring, or any Todo-only HUD chip: the selection stays the caster's secret.
-27. Cleanup: death, respawn, dimension change, vessel change (menu deselect), disconnect — each kills a live stone (with vanish puff where applicable), clears the pair selection, and leaves no HUD chip; rejoin shows clean state; server stop leaves nothing behind on restart.
+25. Nobara full kit unchanged (R/B/Shift+R/Shift+B, ESP, Mega Nail); Megumi full kit unchanged (dogs, trap, move, drop; his `V` still Shadow Drop — Todo's V never leaks into other vessels).
+26. Multiplayer observation: a second player sees the stone, its trail, both swap presentations, and the triple's three edges — but never the pair selection, its quiet pulse ring, or any Todo-only HUD chip. The selection remains the caster's secret.
+27. Cleanup: death, respawn, dimension change, vessel change, disconnect — each kills a live stone (with vanish puff where applicable), clears the pair selection, removes momentum, and leaves no HUD chip; rejoin shows clean state; server stop leaves nothing behind on restart.
 
-## Status
+## Delivered implementation notes
 
-- Implementation integrated on this branch (rule-of-four wave: purge / stone core / pair+triple / client blocks + docs + skeleton).
-- `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` — **green** after integration fixes (hurtServer override on the stone, pure swap-range boundary, VfxCues silent-repeat + displacement factories for the pulse and the cycle edges, contract-pin respellings).
-- Independent review wave (4 reviewers, disjoint zones) done: 6 code P2s + doc sweep, all 18 unique findings adjudicated **accept** in `.superpowers/rule-of-four/todo-stone-rework/review-spec.md` and applied — portal refusal + identity-guarded unconditional discard, caster-state gate on all three stone casts, AABB/dead-velocity collision end, seeded `DATA_REMAINING_TICKS`, pair-cache read eviction + newest-entry pick, id-based HUD stone cache, `TodoStoneRef.entityId` dropped, stone respawns at the displaced body's center, caster-only quiet pulse re-draw ring, and the marker/canonicalSlot truth sweep across Codex/skill/spec docs.
-- Polish wave after the user's first in-game look (branch `feat/todo-stone-polish`, stacked on the rework PR): the triple cycle now claps at Todo's old spot; the feint schedules the real swap's displacement whoosh one tick behind the clap (sound signature complete); the stone is ~30% smaller (render half-extent 0.13 → 0.09, hitbox 0.35 → 0.25) and ~30% faster (0.175 → 0.23 blocks/tick, 4.6 b/s) — speed-band test moved to 4–5.5 b/s.
-- Manual smoke round 1: **pending** (checklist above).
+- The main rework used the rule-of-four wave: purge, stone core, pair/triple, client presentation, docs, integration, and four independent review zones.
+- All 18 unique review findings were accepted and applied. Important fixes include portal refusal, identity-guarded unconditional discard, caster-state gates, ray plus AABB/stopped-motion collision cleanup, seeded synced lifetime, pair-cache eviction, client-cache identity fixes, displaced-body-centre stone placement, caster-only selection pulses, and the complete marker/`canonicalSlot` truth sweep.
+- PR #58 added the product polish after the first in-game look: triple clap, the real-swap displacement whoosh for Fake Clap, render half-extent `0.13 → 0.09`, hitbox `0.35 → 0.25`, and speed `0.175 → 0.23` blocks/tick (`4.6` blocks/s).
