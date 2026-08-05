@@ -24,7 +24,6 @@ final class VfxFactoryMigrationContractTest {
 			"jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime",
 			"jujutsu.mod.character.todo.TodoBlackFlashRuntime",
 			"jujutsu.mod.character.todo.TodoBoogieWoogieRuntime",
-			"jujutsu.mod.character.todo.TodoEntityMarkRuntime",
 			"jujutsu.mod.character.todo.TodoFakeClapRuntime",
 			"jujutsu.mod.character.todo.TodoPairSwapRuntime",
 			"jujutsu.mod.character.todo.TodoSwapMomentumRuntime");

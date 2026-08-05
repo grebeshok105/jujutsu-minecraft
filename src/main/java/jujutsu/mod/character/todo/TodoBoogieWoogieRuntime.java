@@ -62,11 +62,6 @@ public final class TodoBoogieWoogieRuntime {
 		TargetResolver.Result aimed = TargetResolver.resolve(level, todo, TodoProfile.BOOGIE_WOOGIE_RANGE,
 				candidate -> isEligibleTarget(todo, candidate));
 		if (aimed.mode() != TargetResolver.Mode.ENTITY || aimed.entityId().isEmpty()) {
-			// Nothing eligible under the crosshair: fall back to a live thrown mark before refusing. An
-			// enemy in the crosshair is what the player meant, so the mark only ever gets what is left.
-			if (TodoMarkerSwapRuntime.hasMark(todo, level)) {
-				return TodoMarkerSwapRuntime.swapWithMark(todo, level, notify);
-			}
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.no_target",
 					"no aimed target mode=" + aimed.mode());
 		}
@@ -254,7 +249,7 @@ public final class TodoBoogieWoogieRuntime {
 	}
 
 	/** The residue at the vacated spot, sized and turned like the body that stood there. */
-	private static void broadcastAfterimage(ServerLevel level, ServerPlayer todo, MovedBody body, long gameTime) {
+	static void broadcastAfterimage(ServerLevel level, ServerPlayer todo, MovedBody body, long gameTime) {
 		Snapshot snapshot = body.snapshot();
 		JujutsuNetworking.broadcastVfxCue(level, snapshot.position(), TodoProfile.VFX_DELIVERY_RADIUS,
 				new VfxCue(TodoVfxIds.SWAP_AFTERIMAGE, snapshot.position(), VfxCue.NO_ANCHOR,
@@ -263,7 +258,7 @@ public final class TodoBoogieWoogieRuntime {
 	}
 
 	/** The landing. Speed rides in the offset because a cue normalizes its direction. */
-	private static void broadcastArrival(ServerLevel level, ServerPlayer todo, MovedBody body, long gameTime) {
+	static void broadcastArrival(ServerLevel level, ServerPlayer todo, MovedBody body, long gameTime) {
 		Snapshot snapshot = body.snapshot();
 		Vec3 velocity = snapshot.velocity();
 		JujutsuNetworking.broadcastVfxCue(level, body.destination(), TodoProfile.VFX_DELIVERY_RADIUS,

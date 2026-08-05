@@ -78,8 +78,6 @@ public final class TodoSwapMomentumTest {
 		// becoming a stacking bug.
 		assert TodoProfile.SWAP_MOMENTUM_WINDOW_TICKS < TodoProfile.BOOGIE_WOOGIE_COOLDOWN_TICKS
 				: "the window must close before the swap is castable again";
-		assert TodoProfile.SWAP_MOMENTUM_WINDOW_TICKS < TodoProfile.MARKER_SWAP_COOLDOWN_TICKS
-				: "the mark route must not be a way around that";
 		assert TodoProfile.SWAP_MOMENTUM_WINDOW_TICKS >= 20 && TodoProfile.SWAP_MOMENTUM_WINDOW_TICKS <= 30
 				: "the window is a beat, not a stance";
 	}
