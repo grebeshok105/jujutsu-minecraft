@@ -1,89 +1,61 @@
-# Session Handoff — Megumi Shadow Kit + Shadow Drop
+# Session Handoff — Todo Stone Rework
 
 ## Active branch
 
-- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/megumi-shadow-drop`
-- Branch: `feat/megumi-shadow-drop` (from `feat/megumi-shadow-kit` `21c595a`; merges back into the PR #55 head)
-- Scope: Megumi's second ability pair (`B` Shadow Trap, `Shift+B` Shadow Move) plus the polish wave — void-black trap-family pools, a smooth visible dive in both persons, and the new `V` Shadow Drop (telegraphed overhead zone dropping one weighted vanilla falling block).
+- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/todo-stone-rework`
+- Branch: `feat/todo-stone-rework` (from `main` `3c71ce6`)
+- Scope: delete the marker system entirely; add the thrown stone (`V` throw / `V` self-swap / `Shift+V` target swap on the appended `TERTIARY_SNEAK(9)` wire id); split `Shift+B` off the pair swap into the triple cyclic swap (Todo→A→T→Todo) and delete the `canonicalSlot` fold; single transient-state owner (`TodoTransientState`) with one cleanup path (`TodoStateLifecycle`).
 
 ## Design contract
 
-- Specs: [docs/MEGUMI_SHADOW_KIT.md](docs/MEGUMI_SHADOW_KIT.md) and [docs/MEGUMI_SHADOW_DROP.md](docs/MEGUMI_SHADOW_DROP.md) (both committed before implementation).
-- Codex: [Megumi shadow kit](Jujutsu%20Kaizen/jujutsumod-codebase-codex/03-systems/Megumi-shadow-kit.md).
-- Wire: `SECONDARY_SNEAK_HOLD(6)` / `SECONDARY_SNEAK_RELEASE(7)` / `TERTIARY(8)` appended to `CharacterAbility`; ids 0–5 untouched; no new payloads.
+- Spec: [docs/TODO_STONE_REWORK.md](docs/TODO_STONE_REWORK.md) (committed before implementation).
+- Codex: [Todo — Boogie Woogie and combat slice](Jujutsu%20Kaizen/jujutsumod-codebase-codex/03-systems/Todo-Boogie-Woogie.md).
+- Wire: `TERTIARY_SNEAK(9)` appended to `CharacterAbility`; ids 0–8 untouched; no new payloads; `USE_CONTEXT(5)` keeps its id and detection but no vessel answers it.
 
 ## Verification
 
 - `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` — required green before handoff.
-- Nothing in the suite constructs a `ServerLevel` (E1): teleports, collision, invisibility sync, trap feel and animations are proven only by the manual smoke below.
+- Nothing in the suite constructs a `ServerLevel` (E1): every teleport, collision, HUD and readability claim below is proven only by the manual smoke.
 
 ## Manual smoke checklist (round 1 pending)
 
-Shadow Trap (`B`):
-1. Cast on a mob and on a second player: pool opens under the target's feet, target is heavily slowed, cannot jump, walks out slowly; pool stays put for 5 s and collapses readably.
-2. Cast on an airborne target: pool lands on the ground beneath it, not in mid-air.
-3. Golem/cow/sheep (non-Enemy mobs) are gripped too; own Divine Dogs and allies are not.
-4. Dogs + trap: Sic a gripped target — dogs close in and pounce naturally, no teleporting dogs.
-5. Trap + owner death / dimension change / vessel change / disconnect: pool closes immediately.
+Stone flight (`V`):
+1. Throw in the open: the stone leaves the eye line slowly (~3.5 blocks/s), flies dead straight with a readable trail, and vanishes with a puff after ~5 s.
+2. Throw into water: it keeps flying through the water column, not stopping at the surface; fire/lava do not end it.
+3. Throw at a wall and along a narrow corridor: block contact vanishes it immediately (no anchor, nothing placed, no item dropped); a point-blank throw into a wall may vanish instantly — accepted.
+4. Throw at a mob: the stone passes through bodies, no damage, no mark, no aggro.
+5. While a stone flies, `V` again NEVER throws a second one; after it dies, `V` throws again. The HUD chip shows the remaining seconds only while a stone lives and only as Todo.
 
-Shadow Move tap (`Shift+B`, released quickly):
-6. Aimed at a standing mob: Megumi sinks (~0.4 s), vanishes briefly, emerges ~1.75 blocks behind its back facing it; camera/rotation snap is clean.
-7. Aimed at a moving/turning target: exit tracks the target's live back at emerge time, not its cast-time position; sharp turn mid-cast still lands behind the current back or safely nearby (±25°/±50°/±75° arc).
-8. Target dies or runs far while Megumi is hidden: he resurfaces at his start point, no cooldown lost beyond the normal one.
-9. Backstep against a wall-hugging target / in a 1-wide corridor / under a low ceiling: no clipping into blocks; falls back across the rear arc or returns to start.
-10. Aimed at the ground/a ledge/a wall with no target: free step onto or beside the aimed surface; nudged out of the face, may resolve slightly above.
-11. Free step through a window/thick wall: refused (clip cannot see through); unloaded chunks unreachable.
-12. No target, aiming at the sky: refused with the "no shadow" line, no cooldown.
-13. Damage during the sink window: cast cancels on the spot, no teleport, no cooldown.
+Stone self-swap (`V` with a live stone):
+6. On the ground: Todo trades places with the flying stone; the stone continues its flight from Todo's old spot with its old direction and remaining clock; Todo keeps his own momentum and look; fall distance reset.
+7. In the air: swap mid-flight works (STRICT still allows air); no clipping into blocks; refusal when the stone's point cannot fit Todo (e.g. inside a 1-block slit) moves nobody and says so.
+8. Out of range (>32 blocks) or stone in another dimension: plain refusal, stone keeps flying, no cooldown burned.
+9. A successful self-swap opens the momentum window (next melee hit is boosted + staggers), same as the aimed `R` swap.
 
-Deep submerge (`Shift+B` held):
-14. Hold ≥ 0.3 s: after the sink Megumi disappears (model, held item, shadow); a faint dark ripple follows his movement.
-15. While under: walking/jumping over small obstacles works, walls still block; attacks do nothing; R / Shift+R / B are swallowed with the "inside the shadow" line.
-16. Ordinary attacks (melee, arrows) do not land while fully under; standing in fire/lava while under deals nothing until emerge (accepted mobility payoff — fire ticks land after surfacing); void still kills.
-17. Release / repeat tap: emerges early at the current spot. Timeout (~2.5 s): auto-emerge.
-18. Emerge inside a suffocating spot (sand poured on the ripple): rescued to the nearest safe point within ~3 blocks, else back at the entry point.
-19. Death / dimension change / vessel change / disconnect / server stop in every phase: visibility restored, no stuck invisible player, no leftover state after rejoin.
-20. Second player observes: dive pool, ripple while hidden, emerge burst; the hidden body is not targetable by sight; nameplate behaviour noted.
+Target swap (`Shift+V`):
+10. On a mob and on a second player: the aimed body trades places with the stone; Todo stays put; the stone keeps flying from the target's old center.
+11. Moving target and moving stone: the swap uses both live positions at cast time, not stale ones.
+12. Ineligible targets refuse cleanly: dead, spectator, mounted/vehicle, leashed, armor stand, different dimension, no line of sight, beyond 20 blocks.
+13. No stone / no target / unsafe placement at the stone's point: each refusal has its own message, nothing moves, the stone (if any) keeps flying. No momentum from a target swap.
 
-Regression:
-21. Dogs summon/recall/Sic/pounce unchanged; Nobara R/B/Shift+R/Shift+B unchanged; Todo swap/feint/pair swap unchanged — note the pair-swap tap now confirms on release (≤0.3 s later than before).
-22. Cooldown mirror: after each move the Shift+B slot shows cooldown (tap 6 s, hold 10 s); trap 10 s on B.
+Pair swap and triple cycle (`B`, `Shift+B`):
+14. Plain pair swap regression: B marks (actionbar + mark cue pulsing on the body every second), second B swaps the two marked bodies, Todo stays put; second B on the mark cancels; second B at nothing refuses and keeps the mark.
+15. The pair chip shows the marked body's name and remaining TTL while a selection lives (Todo only).
+16. B mark, then `Shift+B` on a second body: the triple cycle runs with the fixed direction — Todo to the marked body's spot, the marked body to the aimed body's spot, the aimed body to Todo's spot. The three-edge directional effect reads the cycle order.
+17. `Shift+B` with no selection refuses with its own message and does NOT behave as B; the crouch does not lose a lined-up selection (B mark → sneak → Shift+B works).
+18. Triple near walls, ledges, water and in the air: any body without a safe STRICT destination cancels the whole cast — nobody moves, selection survives; retry after repositioning works.
+19. Triple cooldown (8 s) and pair cooldown (5 s) are separate: after a triple, plain B is still available on its own clock and vice versa.
+20. Triple grants NO momentum window.
+21. Rollback: no partially-moved outcomes are ever observed (if a mid-commit failure happens, all three bodies are back at their starts and the log carries an error line).
 
-Shadow Drop (`V`) + dive polish (this wave):
-23. Trap pool and drop disc are void-black holes while alive: pure #000, no translucency breath; the close dissolves smoothly (255→0 sweep) instead of blinking out; the dogs' summon pool still fades.
-24. Sink is smooth in third person at any frame rate: the body eases down ~1.9 blocks continuously (per-frame partial ticks, no once-per-tick stepping) and is hidden only when fully under; emerge rises the same way. Another player watching sees the same.
-25. Sink is smooth in first person: the camera dips continuously (never into the ground), the screen veils to ~75% black at the bottom, settles to a light veil while under, and clears across the emerge.
-26. `V` on an aimed mob: a small black disc opens ~4 blocks over its head, follows it for 1 s (moving target keeps the disc overhead), then a 1–3 block volley falls out — the first dead-centre, the rest scattered inside the disc; near-flat weights (sand 30 / gravel 25 / clay 25 / anvil 20 per block), the anvil hurts hard, soft blocks lightly.
-27. The fallen blocks never place into the world and never drop an item, wherever they land (open ground, water, a mob's head, a hole).
-28. `V` with no target / sky aim: refused with the drop "no shadow" line, no cooldown started. Cooldown mirror on V is 3 s after a successful cast.
-29. Target dies or leaves the dimension during the telegraph: the disc closes, nothing falls, cooldown already ran.
-30. Nobara and Todo on `V`: silent no-op (no message, no packet error); their kits unchanged.
-31. Owner death / vessel change / disconnect during the telegraph: zone closes cleanly, nothing falls after.
-
-## Smoke round 1 findings → fixes (committed `aef9b5c`)
-
-1. Sink read as stepped → every reader now samples `ShadowBodySink` at the frame's fractional game time; `VfxCameraChannel.diveOffsetBlocks/diveFadeAlpha` take the partial tick.
-2. Trap-family pools blinked out on close → the closing sweep dissolves 255→0 (smoothstep) while staying pure black; alive pools remain constant 255.
-3. Drop felt weak/slow → `DROP_COOLDOWN_TICKS` 160→60 (3 s), and each cast releases a `DROP_MIN_BLOCKS`–`DROP_MAX_BLOCKS` (1–3) volley scattered inside `DROP_SCATTER_RADIUS` (0.9); weights flattened 40/30/20/10 → 30/25/25/20 so the anvil actually shows up.
-
-## Review round (4 independent reviewers, wave `21c595a..aef9b5c`)
-
-Consolidated into [docs/MEGUMI_SHADOW_DROP_REVIEW.md](docs/MEGUMI_SHADOW_DROP_REVIEW.md) — findings
-R1–R7, **all applied** in the follow-up pass on this branch. Highlights: R1 major —
-`FallingBlockEntity.fall()` unconditionally replaces the block at its spawn position (bytecode
-re-verified with `javap`), fixed by the `spawnPosFor` walk-down guard, so a cast under a ceiling
-spawns below it instead of eating the roof; R2 — interrupted dives now hand their depth over in
-both directions (backdated `beginEmerge`/`beginSink`); R3 — a corpse mid death-animation still
-anchors `drop_zone_close`; R4 — the channel dive tests pin the sink TTL clock through
-`ShadowBodySinkTestClock`; R5 — the wave spec's API row matches the shipped three-arg signatures;
-R6 — five new `ShadowBodySinkTest` pins (reorder, late join, re-dive, both depth handoffs); R7 —
-"Third Technique" capitalization.
+Purge and regressions:
+22. `R` with nothing under the crosshair is a plain refusal — never a teleport to anything; the marker item no longer exists (`/give` finds no `todo_swap_marker`; creative tab has none).
+23. An ordinary right click (once or twice) behaves fully vanilla for Todo — doors, mounts, trades; no marking of any kind.
+24. `Shift+R` feint unchanged: clap performance, no movement, no endpoint bursts. Black Flash and momentum-on-`R`-swap unchanged.
+25. Nobara full kit unchanged (R/B/Shift+R/Shift+B, ESP, mega nail); Megumi full kit unchanged (dogs, trap, move, drop; his `V` still Shadow Drop — Todo's V never leaks into other vessels).
+26. Multiplayer observation: a second player sees the stone, its trail, both swap presentations, the triple's three edges, and the pair mark pulse on the marked body — while Todo-only HUD chips stay invisible to them.
+27. Cleanup: death, respawn, dimension change, vessel change (menu deselect), disconnect — each kills a live stone (with vanish puff where applicable), clears the pair selection, and leaves no HUD chip; rejoin shows clean state; server stop leaves nothing behind on restart.
 
 ## Status
 
-- **PR #55 is MERGED** into `main` as squash commit `5719390` (2026-08-05): <https://github.com/grebeshok105/jujutsu-minecraft/pull/55>. Two review rounds (4 reviewers on the kit, 4 on the drop wave — findings R1–R7 all applied) and smoke round 1 fixes are inside the squash; `loom` pinned to released `1.17.17` after the 1.17-SNAPSHOT marker briefly pointed at an unpublished 1.17.18 and broke CI.
-- Deployed jar in `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar` is built from `6487694` (same mod sources as the `main` squash `5719390`), md5 `a96ce9580f04f76ecfaaa05aecfc65cf`.
-
-## Next steps
-
-1. Manual smoke round 2 from `main` (human-controlled client): checklist items 23–31 plus the R1/R2 scenarios (cast under a ceiling: no block deleted, volley spawns below it; take damage during the sink: the body rises from its current depth).
+- Implementation in flight on this branch (rule-of-four wave: purge / stone / triple / client blocks + docs).

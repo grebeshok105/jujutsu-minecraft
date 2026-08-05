@@ -58,13 +58,6 @@ Decided 2026-07-26 with the impact pass. Both are recorded in `TodoSwapMomentumR
 1. **Sweep keeps the boost after the window is spent.** `Player.attack` reads `ATTACK_DAMAGE` into a local before the sweeping block runs, and computes sweep damage as `1.0 + SWEEPING_DAMAGE_RATIO × that local`. Removing the effect during the primary victim's `AFTER_DAMAGE` cannot shrink a float already on the stack, so later victims of the same swing take boosted damage from a spent window. The stagger and the cue do **not** duplicate — the effect is already gone when later victims arrive. It also costs a deliberate hotbar swap, because sweeping needs a sword and both hands must be empty to clap. The only fixes are a mixin into `Player.attack` or abandoning the attribute for a re-entrant bonus hit; the second would reintroduce exactly the double-application the attribute exists to prevent.
 2. **On bare fists ×1.25 is worth under a fifth of a heart.** A fist is 1.0 attack damage, Todo's is 1.5, boosted 1.875 — a gain of 0.375 against a two-point heart. An earlier revision of this line called that "about a third of a heart", which overstated it by roughly 2×; the arithmetic beside it was always right and the conclusion is unchanged. The eight-tick stagger is the real payload, and the damage only matters if the player draws a weapon inside the 24-tick window. That is the intended loop — displace, arm, hit — not an oversight. Reopen if play shows the window is too short to arm in.
 
-### A permanent mark shadows the primary key, and is the kit's strongest tool
-
-Accepted 2026-07-26. Two consequences of making a landed marker reusable, neither of them a defect:
-
-1. While a mark exists, every `R` press that finds nothing under the crosshair becomes a 32-block teleport instead of a `no_target` message. That is the fallback behaving as specified, but it changes how the key feels; the arrival now has its own visuals so the two casts are at least distinguishable.
-2. One thrown item buys an unlimited return on a 60-tick cooldown — in practice a personal evacuation point behind a wall. Nothing is limited today. The levers are already separated so that limiting it later is a number rather than a rewrite: `MARKER_SWAP_COOLDOWN_TICKS` (split from the aimed swap's and equal to it), `MARKER_SWAP_RANGE`, `TodoSwapMarks.onUsed` for a charge count, and making the projectile damageable for counterplay — the mark already ends when its projectile leaves a loaded chunk, so destroying it needs only an entity change.
-
 ### ProjectJJK placeholder assets
 
 Owned by [PROVENANCE.md](PROVENANCE.md) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Those files hold the permission scope, the retained upstream notice, and the replacement policy. Only the release-blocking consequences are tracked here, as R3.
@@ -103,16 +96,17 @@ CI compiles and runs assertion programs but does not boot a client or dedicated 
 
 Widened again 2026-07-26 by the Boogie Woogie impact pass. Nothing in it can be tested by the current harness beyond pure helpers: the sound duck's actual effect on `SoundManager`, the afterimage's readability against a real body, whether `hurtMarked` genuinely restores visible momentum for a moved player, and whether the momentum window is spent by the hit the player thinks it was. The client-smoke checklist for all of it is in `SESSION.md`.
 
-Specifically for Todo: no test calls any of the four `tryCast` entry points (`TodoBoogieWoogieRuntime`, `TodoFakeClapRuntime`, `TodoPairSwapRuntime`, `TodoMarkerSwapRuntime`). The Todo tests (`TodoProfileTest`, `TodoSwapPlanTest`, `TodoTargetSafetyTest`, `TodoHandsEmptyTest`, `TodoFakeClapTest`, `TodoPairSwapTest`, `TodoSwapMarkerTest`) cover profile constants, `TodoSwapPlan.preflight` null-handling, boolean truth tables including the shared `TodoSwapGates` clap gate, the pure `TodoPendingSelection` and `TodoSwapMark` predicates, and — for the three newest mechanics — source-text contract assertions rather than behaviour. Nothing constructs a `ServerLevel` or exercises an actual teleport.
+Specifically for Todo: no test calls any of the five cast entry points (`TodoBoogieWoogieRuntime`, `TodoFakeClapRuntime`, `TodoPairSwapRuntime`'s pair and triple paths, `TodoStoneRuntime`). The Todo tests (`TodoProfileTest`, `TodoSwapPlanTest`, `TodoTargetSafetyTest`, `TodoHandsEmptyTest`, `TodoFakeClapTest`, `TodoPairSwapTest`, `TodoStoneTest`, `TodoTripleSwapTest`) cover profile constants, preflight null-handling, boolean truth tables including the shared `TodoSwapGates` clap gate, the pure cycle-direction and rollback-order mappings, and source-text contract assertions rather than behaviour. Nothing constructs a `ServerLevel` or exercises an actual teleport.
 
-The gap widened rather than narrowed with this branch: three whole mechanics landed under it. Untested as a result:
+The gap has only widened with each wave — the input-slots branch put three whole mechanics under it, and the stone rework replaced one of them with two more. Untested as a result:
 
 - real player↔mob and player↔player swap, blocked destinations, second-teleport failure and rollback, velocity / yaw / pitch / head-yaw / fall-distance preservation, the packet path end to end
 - whether the feint clap and the real clap are actually indistinguishable to a second player
 - the pair swap's whole selection lifecycle against a live world — expiry, marked-body death, dimension change, and above all that a STRICT cancellation moves nobody rather than half-applying to a bystander
-- both thrown-mark forms: that a resting marker is discarded on every exit path, and that an entity mark never leaves a glow behind on a body that was glowing for another reason
+- the stone's whole life against a live world — flight, collision vanish, lifetime expiry, the V self-swap and Shift+V target swap, and that a STRICT refusal on either moves nobody
+- the triple cycle against a live world — three-body preflight refusal moving nobody, and the rollback path actually restoring every moved body when a mid-commit teleport fails
 
-Action: add narrow server/world tests around the real runtimes — valid swap, blocked destination, second-teleport failure and rollback, motion and rotation preservation, cooldown started on success and not on failure, and one mark-leak test per form. Keep the existing pure tests as fast checks and keep real runClient smoke for graphics-dependent behavior.
+Action: add narrow server/world tests around the real runtimes — valid swap, blocked destination, second-teleport failure and rollback, motion and rotation preservation, cooldown started on success and not on failure, and one stone-leak test per exit path. Keep the existing pure tests as fast checks and keep real runClient smoke for graphics-dependent behavior.
 
 ### E1a — Ability cooldown survives respawn and resets on disconnect
 
@@ -219,12 +213,11 @@ Render2D immediately begins and flushes SDF for each shape to preserve MSDF orde
 
 Closed 2026-07-26 on feat/todo-input-slots by the vessel definition seam: every `JujutsuCharacter` constant binds one server definition (`CharacterDefinition` in `JujutsuCharacters`) and one client definition (`CharacterClientDefinition` in `JujutsuCharacterClients`), and the shared files that used to name vessels — mod init, client init, `CharacterAbilityExecutor`, `CharacterCombatModifiers`, `CharacterGeoRenderers`, `ClickGuiTheme`, `JujutsuModules`, `CharacterRosterPanel`, `CharacterSkinMixin` — now ask the registries. The contract is owned by the Codex note `Jujutsu Kaizen/jujutsumod-codebase-codex/02-architecture/Vessel-definitions.md`.
 
-Recounted 2026-07-26: exactly seven direct `JujutsuCharacter.NOBARA`/`.TODO` references remain across `src/main` and `src/client`, one per file, all deliberate:
+Recounted 2026-08-05 with the stone rework: exactly six direct `JujutsuCharacter.NOBARA`/`.TODO` references remain across `src/main` and `src/client`, one per file, all deliberate:
 
 - Four are the `id()` declarations in the vessel definitions themselves (`NobaraDefinition`, `TodoDefinition`, `NobaraClientDefinition`, `TodoClientDefinition`) — a definition naming the constant it speaks for is the seam working, not a leak.
 - `JujutsuCommands` refuses the `hairpin` debug commands unless Nobara is selected, because a slot is an input position and `PRIMARY` cast as Todo would fire his swap while reporting a hairpin.
 - `TodoBlackFlashRuntime` filters its own damage listener for Todo — a vessel's own hook checking for itself.
-- `TodoSwapMarkerItem.use` refuses a non-Todo thrower on both sides through `CharacterSelectionView` — the E12 fix.
 
 One vessel-specific line survives in shared code without naming an enum constant: `JujutsuKeybinds.isTechniqueWeapon` still spells out Nobara's two hammers to decide whether left click counts as `ATTACK_CONTEXT`. It leaves when the client definition can answer "is this stack my technique weapon".
 
@@ -266,13 +259,13 @@ The gate this router replaced ran selection, then stagger as a silent early retu
 
 Inert today: no Nobara ability writes to `CharacterAbilityCooldowns`, so she never has one to be told about. It becomes reachable the first time one of her abilities takes a cooldown, which makes this a decision to take deliberately at that moment rather than a bug to fix now. The clean resolution is to let a vessel own the ordering of its own gates.
 
-### E12 — Closed: the swap marker item now has a vessel gate
+### E12 — Closed, then superseded: the marker item is deleted
 
-Closed 2026-07-26 on feat/todo-input-slots, verified against `TodoSwapMarkerItem` and `CharacterSelectionView`.
-
-`TodoSwapMarkerItem.use` now refuses any thrower who is not Todo, checked on **both** sides through `CharacterSelectionView` — the server reads its own selection, the client reads the mirror handed in at client init. Both sides matter because vanilla calls an item's `use` on the client too; a server-only gate would let the client predict a throw the server then refuses, taking back a consumed item and a played sound.
-
-For the history: the gap existed because `TodoDefinition.onDeselected` correctly cleans up only for the vessel being left, where the old every-selection clear had hidden the missing gate by destroying stray markers as a side effect. A player who was Nobara, or nobody, could leave a mark in the world that only Todo could ever use.
+Closed 2026-07-26 by giving `TodoSwapMarkerItem.use` a two-sided vessel gate through
+`CharacterSelectionView`; superseded 2026-08-05 when the stone rework deleted the marker system
+entirely — item, projectile, marks and their runtimes. The durable lesson stands: anything a
+vessel can leave in the world must be gated on **both** sides, because vanilla calls an item's
+`use` on the client too, and Todo's stone inherits that rule by never being an item at all.
 
 Still open, related: `CharacterPlayerState.hasClaimedStarter` has no production callers at all. The starter claim is recorded and persisted for every vessel, but nothing reads it, because the loadout is deliberately re-applied on every selection so a lost kit can be restored. Either give the claim a job or delete it; leaving persisted state that nothing consumes invites someone to trust it later.
 
@@ -288,7 +281,7 @@ Why it survived every source-text check until ArchUnit found it: an inline fully
 
 Both allowlist entries went with it. `VesselBoundaryTest#theOneKnownNetworkLeakDoesNotGrow` is now `#theNetworkLayerTouchesNoVesselCode` and asserts the empty set rather than one permitted class; the `JujutsuNetworking` entry in `SourceBoundaryTripwireTest#TRACKED_DEBT` is deleted. The rule was tightened rather than deleted, against the instruction this entry used to carry: a receiver wired straight to a vessel runtime is the easiest seam breach in the codebase to write, and this is the only check that can see it. Proven by mutation rather than by a green run — the mutation and its failure message are in the commit body.
 
-**One residue, recorded rather than hidden.** `selectCurseLink` is a shared extension point with exactly one implementer, which "Limits of the build-time gate" above lists as a thing no structural rule can tell from a genuine shared hook. `canonicalSlot` sits in the same position and is accepted for the same reason: the alternative is shared code that knows which vessel asked.
+**One residue, recorded rather than hidden.** `selectCurseLink` is a shared extension point with exactly one implementer, which "Limits of the build-time gate" above lists as a thing no structural rule can tell from a genuine shared hook. `canonicalSlot` sat in the same position until the stone rework deleted it together with its only implementer — the fold that used to collapse Todo's `Shift+B` into `B`.
 
 ## Low-priority product debt
 
