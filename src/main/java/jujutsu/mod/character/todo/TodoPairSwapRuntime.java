@@ -305,16 +305,17 @@ public final class TodoPairSwapRuntime {
 	}
 
 	/**
-	 * The cycle's own presentation: three TRIPLE_SWAP edges, one per step of the cycle with the flow in
-	 * the direction, plus the ordinary afterimage and arrival for each body that actually moved. No clap
-	 * and no endpoint ribbon: the pair swap reads as one clap because Todo stays put, but a cycle that
-	 * moves Todo too has its own language and does not pretend to be a bystander pair.
+	 * The cycle's presentation: the shared clap at Todo's old spot (a triple is still a clap cast),
+	 * then three TRIPLE_SWAP edges, one per step of the cycle with the flow in the direction, plus the
+	 * ordinary afterimage and arrival for each body that actually moved. No endpoint ribbon: that is
+	 * the two-body swaps' geometry; the cycle's three edges carry its own.
 	 */
 	private static void emitTripleFeedback(ServerLevel level, ServerPlayer todo,
 			TodoBoogieWoogieRuntime.Snapshot todoSnapshot, TodoTripleSwapPlan plan,
 			TodoBoogieWoogieRuntime.Snapshot firstSnapshot, TodoBoogieWoogieRuntime.Snapshot thirdSnapshot) {
 		long gameTime = level.getGameTime();
 		RandomSource random = todo.getRandom();
+		TodoBoogieWoogieRuntime.emitClapPerformance(level, todo, todoSnapshot.position(), todo.getLookAngle());
 		emitCycleEdge(level, todo, todoSnapshot.position(), firstSnapshot.position(), gameTime, random);
 		emitCycleEdge(level, todo, firstSnapshot.position(), thirdSnapshot.position(), gameTime, random);
 		emitCycleEdge(level, todo, thirdSnapshot.position(), todoSnapshot.position(), gameTime, random);

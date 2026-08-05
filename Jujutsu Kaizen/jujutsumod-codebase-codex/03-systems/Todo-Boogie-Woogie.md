@@ -25,9 +25,9 @@ Every number lives in `TodoProfile`. Nothing else should hold a Todo magic numbe
 | `PAIR_SELECTION_TTL_TICKS` | 100 | pending selection lifetime |
 | `PAIR_MARK_PULSE_TICKS` | 20 | server re-emit period of the selection cue |
 | `TRIPLE_SWAP_COOLDOWN_TICKS` | 160 | triple cycle, `SECONDARY_SNEAK` slot |
-| `STONE_SPEED_BLOCKS_PER_TICK` | 0.175 | straight-line stone velocity (3.5 blocks/s) |
+| `STONE_SPEED_BLOCKS_PER_TICK` | 0.23 | straight-line stone velocity (4.6 blocks/s) |
 | `STONE_LIFETIME_TICKS` | 100 | stone flight clock |
-| `STONE_HITBOX_SIZE` | 0.35 | stone entity bbox |
+| `STONE_HITBOX_SIZE` | 0.25 | stone entity bbox |
 | `STONE_THROW_COOLDOWN_TICKS` | 10 | anti-double-click on the throw |
 | `STONE_SELF_SWAP_COOLDOWN_TICKS` | 60 | V with a live stone |
 | `STONE_TARGET_SWAP_COOLDOWN_TICKS` | 100 | Shift+V |
@@ -101,7 +101,7 @@ On success both participants get `restoreMotionAndRotation` (forced rotation, he
 
 `CharacterAbilityCooldowns.start` plus `JujutsuNetworking.sendAbilityCooldown` for the `PRIMARY` slot cooldown. Then two kinds of cue, because one cue cannot carry two absolute world points: `TodoVfxIds.BOOGIE_WOOGIE` is the performance, anchored to the caster with a zero offset, and one `TodoVfxIds.SWAP_ENDPOINT` per moved body carries an absolute endpoint with no anchor, each broadcast around its own point so far-side observers receive it.
 
-The clap half of that is now `TodoBoogieWoogieRuntime.emitClapPerformance(level, todo, origin, aim)` — the sound plus the caster-anchored cue, with nothing about the swap in it. The endpoint cues and the movement sounds stay in `emitSwapFeedback`, because only a real swap has endpoints. The feint calls `emitClapPerformance` and nothing else.
+The clap half of that is now `TodoBoogieWoogieRuntime.emitClapPerformance(level, todo, origin, aim)` — the sound plus the caster-anchored cue, with nothing about the swap in it. The endpoint cues and the movement sounds stay in `emitSwapFeedback`, because only a real swap has endpoints. The feint calls `emitClapPerformance`, schedules the same displacement whoosh, and nothing else.
 
 That split fixed a real defect. `VfxAnchorResolver` already adds the cue's anchor offset, the recipe added it again, and the cue is broadcast after the teleport — so the two flashes landed at `todoPos + delta` and `todoPos + 2*delta`, drifting with packet order. The ribbon was never affected because `VfxWorldChannel` treats this style as world-fixed and reads `cue.origin()` directly.
 
@@ -121,7 +121,7 @@ Input is the existing technique key with `Shift` held — `JujutsuKeybinds` read
 
 Four things make the two casts alike by construction rather than by tuning.
 
-1. **One shared performance.** Both emit the clap through `TodoBoogieWoogieRuntime.emitClapPerformance` — same cue id `todo/boogie_woogie`, same caster anchor with a zero offset, same server-side `JujutsuSounds.PROJECTJJK_CLAP` at the same volume and pitch, on the same tick. One implementation, so the two presentations cannot drift apart in a later edit. `TodoFakeClapTest` asserts the feint does not name `TodoVfxIds.BOOGIE_WOOGIE` itself, only the shared method.
+1. **One shared performance.** Both emit the clap through `TodoBoogieWoogieRuntime.emitClapPerformance` — same cue id `todo/boogie_woogie`, same caster anchor with a zero offset, same server-side `JujutsuSounds.PROJECTJJK_CLAP` at the same volume and pitch, on the same tick — and both schedule the same `PROJECTJJK_CINEMATIC_WHOOSH` one tick later through `scheduleDisplacementWhoosh` (the polish wave closed the whoosh gap; the swap fires it at two origins, the feint at one, which Minecraft's non-propagating audio cannot distinguish). One implementation, so the two presentations cannot drift apart in a later edit. `TodoFakeClapTest` asserts the feint does not name `TodoVfxIds.BOOGIE_WOOGIE` itself, only the shared method.
 2. **One shared gate truth table.** Both read `TodoSwapGates.evaluate`, so the set of casts that get refused — and the message each refusal produces — is identical. A feint that were allowed with a sword in hand would announce itself.
 3. **Independent cooldown slots.** `CharacterAbilityCooldowns` keys on (player, vessel, slot). The feint starts and reports `PRIMARY_SNEAK` with `TodoProfile.FAKE_CLAP_COOLDOWN_TICKS` and never names `PRIMARY`; the swap keeps `PRIMARY` with `BOOGIE_WOOGIE_COOLDOWN_TICKS`. A feint therefore neither spends nor postpones the real swap. There is deliberately **no** gate requiring the real swap to be ready — that was offered and declined, because a feint that only works while the swap is off cooldown is itself a tell.
 4. **Caster-only tell.** The single unshared packet is `TodoVfxIds.FEINT_TELL`, sent through `JujutsuNetworking.sendVfxCue(todo, …)` to one player and never broadcast (`TodoFakeClapTest` asserts `broadcastVfxCue` does not appear in the file). Its recipe is a six-tick dust ring at chest height and nothing else — no sound, no HUD flash, no camera kick, since every one of those would be perceivable by the observer the feint exists to deceive.
@@ -132,7 +132,7 @@ The feint's slot is `PRIMARY_SNEAK(1)`. Network ids are wire format and are neve
 
 ### What is still distinguishable — the open product question
 
-The real swap teleports both bodies at cast time, but the clap's palm contact is at `VfxFirstPersonChannel.CLAP_CONTACT_PROGRESS` = 0.39 of the 0.72 s `ability.boogie_woogie` animation. An observer therefore sees a real swap **before** the palms meet, which means a feint is already distinguishable at t = 0 by the absence of a teleport — and, in the same instant, by the absence of the two `todo/swap_endpoint` bursts and of the movement sounds that follow one tick later at both origins.
+The real swap teleports both bodies at cast time, but the clap's palm contact is at `VfxFirstPersonChannel.CLAP_CONTACT_PROGRESS` = 0.39 of the 0.72 s `ability.boogie_woogie` animation. An observer therefore sees a real swap **before** the palms meet, which means a feint is already distinguishable at t = 0 by the absence of a teleport — and, in the same instant, by the absence of the two `todo/swap_endpoint` bursts. (The movement sound no longer splits them: since the polish wave the feint schedules the same displacement whoosh.)
 
 Delaying the swap to the contact frame was **not** done. It would change `TodoBoogieWoogieRuntime`'s commit path — the most safety-critical method in the kit, the one that owns the two-sided preflight and the best-effort rollback — and that is not in the approved plan. Decide it deliberately, not as a side effect of a VFX pass.
 
@@ -194,9 +194,9 @@ makes with his own body, and here his movement is bought by moving two other peo
 
 Presentation: one `TRIPLE_SWAP` cue per cycle edge (three per cast), each carrying the edge's
 direction and length so the A→B→C→A flow reads in-world, plus the ordinary per-body
-afterimage/arrival pair. There is deliberately **no** clap in this cast: the three edges are the
-triple's own language, and `emitTripleFeedback` emits nothing else — a clap would make the cycle
-read as one more pair swap at a distance.
+afterimage/arrival pair, and the shared clap at Todo's old spot — a triple is still a clap cast
+(added in the polish wave after the first smoke). There is deliberately no endpoint ribbon: that
+geometry belongs to the two-body swaps; the cycle's three edges carry its own.
 
 ## The sixth slot is empty
 

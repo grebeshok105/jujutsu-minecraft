@@ -62,9 +62,9 @@ This block is the single owner of current-slice facts. `README.md` keeps only th
 | `FAKE_CLAP_COOLDOWN_TICKS` | 20 (1 s) |
 | `PAIR_SWAP_COOLDOWN_TICKS` | 100 (5 s) |
 | `PAIR_SELECTION_TTL_TICKS` | 100 (5 s) |
-| `STONE_SPEED_BLOCKS_PER_TICK` | 0.175 (3.5 blocks/s) |
+| `STONE_SPEED_BLOCKS_PER_TICK` | 0.23 (4.6 blocks/s) |
 | `STONE_LIFETIME_TICKS` | 100 (5 s) |
-| `STONE_HITBOX_SIZE` | 0.35 |
+| `STONE_HITBOX_SIZE` | 0.25 |
 | `STONE_THROW_COOLDOWN_TICKS` | 10 (0.5 s, anti-double-click only) |
 | `STONE_SELF_SWAP_COOLDOWN_TICKS` | 60 (3 s) |
 | `STONE_TARGET_SWAP_COOLDOWN_TICKS` | 100 (5 s) |
