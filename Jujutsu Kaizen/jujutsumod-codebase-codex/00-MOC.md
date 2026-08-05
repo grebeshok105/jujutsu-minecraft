@@ -25,7 +25,7 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 - Nobara's starter kit is restored idempotently on every selection; Todo and Megumi have no starter items in their current slices.
 - Shared input slots — R, Shift+R, B, Shift+B, and left click with a technique weapon — mean whatever the selected vessel's own router says; each vessel binds one server and one client definition. See [Vessel definitions](02-architecture/Vessel-definitions.md).
 - Nobara, Todo and Megumi use ordinary 64x64 player skins through vanilla `PlayerRenderer`; one shared GeckoLib-to-`PlayerModel` bridge evaluates their authored third-person packs on invisible rigs. Nobara uses `slim`, Todo and Megumi use `wide`, and Todo's body scale is 1.15 without reach/damage/speed changes. NONE keeps the ordinary vanilla pose. The former visible Geo player stack and superseded skin packs are retained outside runtime under `archive/character-player-gecko/` and `archive/character-skin-animation/`.
-- Transient combat effects use VfxCue → VfxDirector → character recipes, each registered by its vessel's client definition. Megumi owns `jujutsu.mod.vfx.MegumiVfxIds` and `jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes`; the five `megumi/*` wire ids remain unchanged.
+- Transient combat effects use VfxCue → VfxDirector → character recipes, each registered by its vessel's client definition. Megumi owns `jujutsu.mod.vfx.MegumiVfxIds` and `jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes`; his twelve `megumi/*` wire ids are five Divine Dogs plus seven shadow-kit ids, appended and never renumbered.
 - World transient rendering keeps lifecycle and dispatch in `VfxWorldChannel` while `HairpinWorldEffects`, `BlackFlashWorldEffects`, `SwapWorldEffects`, `ShadowWorldEffects`, and shared `VfxWorldGeometry` own the extracted visual families; the cap remains 48.
 - `VfxCameraChannel` keeps production wall-clock behavior through `System::currentTimeMillis` while its package-private millisecond supplier seam makes deterministic start, expiry, overlap, clamp, strength, and clear contracts executable without sleeps.
 - A completed Boogie Woogie emits its own cues — afterimage and arrival — which the feint does not, and opens a 24-tick window on Todo's next hit. A landed marker is a reusable anchor; a mark on a body still expires and is still consumed.
@@ -78,6 +78,7 @@ The audit runs inside ./gradlew qualityGate, so these counters are checked befor
 - [Curse links](03-systems/Curse-links.md)
 - [Todo Boogie Woogie](03-systems/Todo-Boogie-Woogie.md)
 - [Megumi Divine Dogs](03-systems/Megumi-Divine-Dogs.md)
+- [Megumi shadow kit](03-systems/Megumi-shadow-kit.md)
 
 ## Client and VFX
 

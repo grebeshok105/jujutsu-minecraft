@@ -1,38 +1,56 @@
-# Session Handoff - Nobara Target ESP, Mega Nail and R Hit Feel
+# Session Handoff — Megumi Shadow Kit
 
 ## Active branch
 
-- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/nobara-esp-meganail`
-- Branch: `feat/nobara-esp-and-mega-nail` (from `origin/main` at `2e16933`)
-- Scope: T3 feature — Nobara-personal target ESP over her embedded nails, directed Hairpin (R) hit-feel polish, and a new B ability "Mega Nail" replacing the old mass Hairpin.
-- Approved design: `docs/NOBARA_ESP_AND_MEGA_NAIL.md` (committed on this branch before implementation).
+- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/megumi-shadow-kit`
+- Branch: `feat/megumi-shadow-kit` (from `main` `fe2040b`)
+- Scope: Megumi's second ability pair — `B` Shadow Trap (static slowing pool under the aimed target) and `Shift+B` Shadow Move (one technique, three contextual modes: emerge behind the target, free step to an aimed surface, held deep submerge).
 
-## What changed
+## Design contract
 
-- **Server**: `ProjectJjkNailEntity` synchronizes the owner UUID to clients (`DATA_OWNER_UUID`, `OPTIONAL_LIVING_ENTITY_REFERENCE`; `clientOwnerUuid()` reads it both sides). New `ProjectJjkMegaNailRuntime` (SECONDARY slot via `NobaraAbilityRouter`): resolves the aimed target, selects that target's embedded owned nails by `anchor().stableId()`, atomically discards them + consumes marks, then delivers one delayed piercing strike (6 ticks, damage/knockback formulas in `ProjectJjkNobaraProfile.MEGA_NAIL_*`, JUnit-covered by `ProjectJjkMegaNailMathTest`). The old mass-Hairpin/Enlarge pipeline was removed from `ProjectJjkRitualRuntime`; directed R is untouched mechanically.
-- **Client**: `NobaraEspState` (pure `aggregate()` over synced nail views, ClientTick every 2 ticks) + `NobaraEspRanks` (rank localization keys) feed billboard badges and accent pulses drawn by `ProjectJjkNailRenderer` — visible only to a local Nobara owner. R hit feel and Mega Nail visuals live in `NobaraVfxRecipes` (`nobara/mega_nail_strike` appended to LIVE; `nobara/enlarge` reused as the per-nail consume flash; `CASTER_MEGA_NAIL = 5` caster-action code — `CASTER_HAIRPIN_MASS = 2` retired).
-- **Docs**: MOC metrics (119/179/75 files, 23 Nobara VFX ids), `Nobara-combat-expansion.md`, `Nobara-runtime-flow.md` (B paragraph rewritten), `Nail-entity-lifecycle.md`, `VFX-core.md` (35 live ids), `Nail-rendering.md` (ESP), KNOWN_ISSUES E14 (tripwire map grew to five tracked renderer references).
-
-## Contract-test adjustments made during integration
-
-- `VfxCompletenessTest` 34→35 live ids; `VfxCueTest` wire set +`nobara/mega_nail_strike`; `VfxRadiusContractTest` +"Nobara mega nail" presentation owner.
-- `ProjectJjkMegaNailRuntime.VFX_DELIVERY_RADIUS` is deliberately a **boxed `Double`** — the radius contract test reads delivery radii from bytecode field accesses, and a primitive compile-time constant is inlined by javac and invisible to it (same convention as `ProjectJjkRitualRuntime`).
-- `ProjectSanityTest`: per-nail contract retargeted to `ProjectJjkMegaNailRuntime`, kit preview asserts `ability.mega_nail`, finisher balance pins `DETONATE_DAMAGE_BASE = 3.0f`, snap-only marker is now `seed == null`, age-aware channel call count 42→47.
-- `SourceBoundaryTripwireTest#TRACKED_DEBT`: renderer entry grew to five references (see E14).
-- `NobaraEspRanksTest` asserts full `esp.jujutsumod.rank.*` localization keys.
+- Spec: [docs/MEGUMI_SHADOW_KIT.md](docs/MEGUMI_SHADOW_KIT.md) (committed before implementation).
+- Codex: [Megumi shadow kit](Jujutsu%20Kaizen/jujutsumod-codebase-codex/03-systems/Megumi-shadow-kit.md).
+- Wire: `SECONDARY_SNEAK_HOLD(6)` / `SECONDARY_SNEAK_RELEASE(7)` appended to `CharacterAbility`; ids 0–5 untouched; no new payloads.
 
 ## Verification
 
-- `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` — **GREEN** (JUnit 200 tests, 31 verification JavaExec programs, documentation audit, assertion audit).
-- In-world behaviour (ESP readability, mega nail feel, R feel) still needs the manual client smoke — nothing in the suite constructs a `ServerLevel` (E1).
-- Two independent review passes (server / client) on PR #54 found one BLOCKER (ESP badge background vertices missing UV2 — client crash on first badge render), three MAJOR (pending strikes keyed by target only; raw-UUID stagger overload; accent pulse ignoring per-nail ownership) and minors — all fixed in `f73748f`, gate re-run green, jar rebuilt and redeployed (md5 `548d6587c8cb1d194822078a8a0a9d32`).
-- First manual smoke (2026-08-05) rejected three presentations: badge drew background without text, mega nail read as a bare explosion, trap had no visible presence. Fixed in `4374da4`: badge text rides `drawInBatch` background (vanilla nameplate path, hand-built quad deleted); Mega Nail v2 — real `ProjectJjkNailEntity` at a gather point, directed ENLARGE streams, 24-tick charge (`DATA_MEGA`/`DATA_MEGA_PROGRESS` synced, `megaRenderScale()` on the entity keeps the renderer tripwire at five), launch ×1.3 at the target's fresh position, 60-tick flight timeout, impact callbacks replace the PENDING scheduler; traps sync `DATA_TRAP` and render a persistent zone ring plus brighter placed/armed/collapse recipes. Offline caster no longer swallows the impact.
+- `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` — required green before handoff.
+- Nothing in the suite constructs a `ServerLevel` (E1): teleports, collision, invisibility sync, trap feel and animations are proven only by the manual smoke below.
 
-## Status
+## Manual smoke checklist (round 1 pending)
 
-- **PR #54 is MERGED** into `main` as squash commit `3dccd56` (2026-08-05): <https://github.com/grebeshok105/jujutsu-minecraft/pull/54>. Smoke round 4 accepted the kit; feature branch and worktree removed.
-- Deployed jar in `D:/Games/instances/Jujutsu/mods/` is built from `main` at `3dccd56`, md5 `37d8ae47b945d6aef86129200b3c3234`.
+Shadow Trap (`B`):
+1. Cast on a mob and on a second player: pool opens under the target's feet, target is heavily slowed, cannot jump, walks out slowly; pool stays put for 5 s and collapses readably.
+2. Cast on an airborne target: pool lands on the ground beneath it, not in mid-air.
+3. Golem/cow/sheep (non-Enemy mobs) are gripped too; own Divine Dogs and allies are not.
+4. Dogs + trap: Sic a gripped target — dogs close in and pounce naturally, no teleporting dogs.
+5. Trap + owner death / dimension change / vessel change / disconnect: pool closes immediately.
+
+Shadow Move tap (`Shift+B`, released quickly):
+6. Aimed at a standing mob: Megumi sinks (~0.4 s), vanishes briefly, emerges ~1.75 blocks behind its back facing it; camera/rotation snap is clean.
+7. Aimed at a moving/turning target: exit tracks the target's live back at emerge time, not its cast-time position; sharp turn mid-cast still lands behind the current back or safely nearby (±25°/±50°/±75° arc).
+8. Target dies or runs far while Megumi is hidden: he resurfaces at his start point, no cooldown lost beyond the normal one.
+9. Backstep against a wall-hugging target / in a 1-wide corridor / under a low ceiling: no clipping into blocks; falls back across the rear arc or returns to start.
+10. Aimed at the ground/a ledge/a wall with no target: free step onto or beside the aimed surface; nudged out of the face, may resolve slightly above.
+11. Free step through a window/thick wall: refused (clip cannot see through); unloaded chunks unreachable.
+12. No target, aiming at the sky: refused with the "no shadow" line, no cooldown.
+13. Damage during the sink window: cast cancels on the spot, no teleport, no cooldown.
+
+Deep submerge (`Shift+B` held):
+14. Hold ≥ 0.3 s: after the sink Megumi disappears (model, held item, shadow); a faint dark ripple follows his movement.
+15. While under: walking/jumping over small obstacles works, walls still block; attacks do nothing; R / Shift+R / B are swallowed with the "inside the shadow" line.
+16. Ordinary attacks (melee, arrows) do not land while fully under; void still kills.
+17. Release / repeat tap: emerges early at the current spot. Timeout (~2.5 s): auto-emerge.
+18. Emerge inside a suffocating spot (sand poured on the ripple): rescued to the nearest safe point within ~3 blocks, else back at the entry point.
+19. Death / dimension change / vessel change / disconnect / server stop in every phase: visibility restored, no stuck invisible player, no leftover state after rejoin.
+20. Second player observes: dive pool, ripple while hidden, emerge burst; the hidden body is not targetable by sight; nameplate behaviour noted.
+
+Regression:
+21. Dogs summon/recall/Sic/pounce unchanged; Nobara R/B/Shift+R/Shift+B unchanged; Todo swap/feint/pair swap unchanged — note the pair-swap tap now confirms on release (≤0.3 s later than before).
+22. Cooldown mirror: after each move the Shift+B slot shows cooldown (tap 6 s, hold 10 s); trap 10 s on B.
 
 ## Next steps
 
-1. None for this feature — future Nobara tuning starts a new branch from `main`.
+1. Integrate client VFX/animation/test wave, run `qualityGate`, independent review, fixes.
+2. Build the jar, deploy to `D:/Games/instances/Jujutsu/mods/`, run manual smoke round 1.
+3. Open the PR.
