@@ -48,7 +48,11 @@ final class VfxRadiusContractTest {
 				direct("Todo feint", Set.of(TodoVfxIds.FEINT_TELL)),
 				finiteNone("Todo swap geometry", Set.of(TodoVfxIds.SWAP_ENDPOINT, TodoVfxIds.SWAP_AFTERIMAGE, TodoVfxIds.SWAP_ARRIVAL)),
 				finiteNone("Todo momentum", Set.of(TodoVfxIds.MOMENTUM_STRIKE)),
-				finiteNone("Megumi dogs", MegumiVfxIds.LIVE));
+				finiteNone("Megumi dogs", Set.of(MegumiVfxIds.DOGS_SUMMON_BODY, MegumiVfxIds.DOGS_SUMMON,
+						MegumiVfxIds.DOGS_RECALL, MegumiVfxIds.DOGS_SIC, MegumiVfxIds.DOGS_POUNCE)),
+				finiteNone("Megumi shadow kit", Set.of(MegumiVfxIds.SHADOW_TRAP_OPEN, MegumiVfxIds.SHADOW_TRAP_ZONE,
+						MegumiVfxIds.SHADOW_TRAP_GRIP, MegumiVfxIds.SHADOW_TRAP_CLOSE, MegumiVfxIds.SHADOW_DIVE,
+						MegumiVfxIds.SHADOW_RIPPLE, MegumiVfxIds.SHADOW_EMERGE)));
 
 		Map<ResourceLocation, Set<Double>> deliveries = VfxCompletenessTest.productionDeliveryRadii();
 		Set<ResourceLocation> covered = new HashSet<>();
@@ -79,6 +83,8 @@ final class VfxRadiusContractTest {
 		live.addAll(MegumiVfxIds.LIVE);
 		assertEquals(live, covered);
 		assertEquals(Set.of(MegumiProfile.VFX_CUE_RADIUS), deliveries.get(MegumiVfxIds.DOGS_SUMMON));
+		assertEquals(Set.of(MegumiProfile.VFX_CUE_RADIUS), deliveries.get(MegumiVfxIds.SHADOW_TRAP_OPEN),
+				"shadow kit cues must ride the same delivery radius as the dogs");
 	}
 
 	private static PresentationOwner radius(String name, Set<ResourceLocation> ids, double radius) {

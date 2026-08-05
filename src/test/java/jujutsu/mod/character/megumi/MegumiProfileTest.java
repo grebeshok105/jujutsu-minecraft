@@ -56,4 +56,44 @@ class MegumiProfileTest {
 		assertEquals(MegumiProfile.DOG_ATTACK_DAMAGE, attributes.getValue(Attributes.ATTACK_DAMAGE));
 		assertEquals(MegumiProfile.DOG_MOVEMENT_SPEED, attributes.getValue(Attributes.MOVEMENT_SPEED));
 	}
+
+	@Test
+	void shadowKitBaselineMatchesTheApprovedSlice() {
+		assertEquals(20.0, MegumiProfile.SHADOW_TRAP_RANGE);
+		assertEquals(2.6, MegumiProfile.SHADOW_TRAP_RADIUS);
+		assertEquals(100, MegumiProfile.SHADOW_TRAP_DURATION_TICKS);
+		assertEquals(200, MegumiProfile.SHADOW_TRAP_COOLDOWN_TICKS);
+		assertEquals(8, MegumiProfile.SHADOW_TRAP_GRIP_REFRESH_TICKS);
+		assertEquals(-0.75, MegumiProfile.SHADOW_GRIP_SPEED_MULTIPLIER);
+		assertEquals(-1.0, MegumiProfile.SHADOW_GRIP_JUMP_MULTIPLIER);
+		assertEquals(40, MegumiProfile.SHADOW_TRAP_ZONE_PULSE_TICKS);
+		assertEquals(20.0, MegumiProfile.SHADOW_STEP_TARGET_RANGE);
+		assertEquals(24.0, MegumiProfile.SHADOW_STEP_RANGE);
+		assertEquals(1.75, MegumiProfile.BACKSTEP_DISTANCE);
+		assertEquals(8, MegumiProfile.SHADOW_SINK_TICKS);
+		assertEquals(4, MegumiProfile.SHADOW_HIDDEN_TICKS);
+		assertEquals(6, MegumiProfile.SHADOW_EMERGE_TICKS);
+		assertEquals(50, MegumiProfile.SUBMERGE_MAX_TICKS);
+		assertEquals(5, MegumiProfile.SHADOW_RIPPLE_PERIOD_TICKS);
+		assertEquals(120, MegumiProfile.SHADOW_STEP_COOLDOWN_TICKS);
+		assertEquals(200, MegumiProfile.SUBMERGE_COOLDOWN_TICKS);
+		assertEquals(3.0, MegumiProfile.EMERGE_SEARCH_RADIUS);
+	}
+
+	@Test
+	void shadowKitInvariantsHold() {
+		assertTrue(MegumiProfile.SHADOW_TRAP_COOLDOWN_TICKS > MegumiProfile.SHADOW_TRAP_DURATION_TICKS,
+				"one live trap per owner: the cooldown must outlive the pool");
+		assertEquals(50, MegumiProfile.SUBMERGE_MAX_TICKS, "the deep submerge must have a hard ceiling");
+		assertTrue(MegumiProfile.SHADOW_SINK_TICKS > 0 && MegumiProfile.SHADOW_HIDDEN_TICKS > 0
+						&& MegumiProfile.SHADOW_EMERGE_TICKS > 0,
+				"every phase must take at least one tick");
+		assertEquals(-1.0, MegumiProfile.SHADOW_GRIP_JUMP_MULTIPLIER,
+				"jumping must be fully suppressed, not merely weakened");
+		assertTrue(MegumiProfile.SHADOW_GRIP_SPEED_MULTIPLIER < 0.0
+						&& MegumiProfile.SHADOW_GRIP_SPEED_MULTIPLIER > -1.0,
+				"the grip slows a body but never stops it");
+		assertTrue(MegumiProfile.SUBMERGE_COOLDOWN_TICKS > MegumiProfile.SHADOW_STEP_COOLDOWN_TICKS,
+				"the deep submerge must cost more than a tap step");
+	}
 }

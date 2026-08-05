@@ -32,7 +32,9 @@ class CharacterAbilityWireFormatTest {
 			CharacterAbility.SECONDARY, 2,
 			CharacterAbility.SECONDARY_SNEAK, 3,
 			CharacterAbility.ATTACK_CONTEXT, 4,
-			CharacterAbility.USE_CONTEXT, 5));
+			CharacterAbility.USE_CONTEXT, 5,
+			CharacterAbility.SECONDARY_SNEAK_HOLD, 6,
+			CharacterAbility.SECONDARY_SNEAK_RELEASE, 7));
 
 	@Test
 	void everySlotIsAccountedForAndKeepsTheIdItShippedWith() {

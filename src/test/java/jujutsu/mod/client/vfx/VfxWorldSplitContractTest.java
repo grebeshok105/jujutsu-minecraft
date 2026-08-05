@@ -68,7 +68,10 @@ class VfxWorldSplitContractTest {
 				"case SWAP_AFTERIMAGE -> SwapWorldEffects.renderSwapAfterimage",
 				"case SWAP_ARRIVAL -> SwapWorldEffects.renderSwapArrival",
 				"case MEGUMI_SHADOW_OPEN -> ShadowWorldEffects.renderMegumiShadowPool",
-				"case MEGUMI_SHADOW_CLOSE -> ShadowWorldEffects.renderMegumiShadowPool"
+				"case MEGUMI_SHADOW_CLOSE -> ShadowWorldEffects.renderMegumiShadowPool",
+				"case MEGUMI_SHADOW_TRAP_OPEN -> ShadowWorldEffects.renderShadowTrapPool",
+				"case MEGUMI_SHADOW_POOL -> ShadowWorldEffects.renderShadowTrapPool",
+				"case MEGUMI_SHADOW_TRAP_CLOSE -> ShadowWorldEffects.renderShadowTrapPool"
 		};
 		for (String dispatch : dispatches) {
 			assertEquals(1, occurrences(channel, dispatch), "Each style must delegate exactly once: " + dispatch);
@@ -106,6 +109,9 @@ class VfxWorldSplitContractTest {
 		assertTrue(VfxWorldChannel.ImpactStyle.SWAP_ARRIVAL.isWorldFixed());
 		assertTrue(VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN.isWorldFixed());
 		assertTrue(VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_CLOSE.isWorldFixed());
+		assertTrue(VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_TRAP_OPEN.isWorldFixed());
+		assertTrue(VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_POOL.isWorldFixed());
+		assertTrue(VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_TRAP_CLOSE.isWorldFixed());
 	}
 
 	@Test

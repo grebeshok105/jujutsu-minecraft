@@ -85,7 +85,9 @@ final class VfxCueTest {
 				"todo/swap_afterimage", "todo/swap_arrival", "todo/momentum_strike"), paths(TodoVfxIds.LIVE));
 		assertEquals(Set.of(
 				"megumi/dogs_summon_body", "megumi/dogs_summon", "megumi/dogs_recall", "megumi/dogs_sic",
-				"megumi/dogs_pounce"), paths(MegumiVfxIds.LIVE));
+				"megumi/dogs_pounce", "megumi/shadow_trap_open", "megumi/shadow_trap_zone", "megumi/shadow_trap_grip",
+				"megumi/shadow_trap_close", "megumi/shadow_dive", "megumi/shadow_ripple", "megumi/shadow_emerge"),
+				paths(MegumiVfxIds.LIVE));
 	}
 
 	@Test

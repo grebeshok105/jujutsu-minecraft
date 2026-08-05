@@ -64,7 +64,9 @@ class MegumiPlayerPresentationTest {
 				"animation.megumi_fushiguro.punch_1",
 				"animation.megumi_fushiguro.punch_2",
 				"animation.megumi_fushiguro.kick",
-				"animation.megumi_fushiguro.summon_divine_dogs"), clips.keySet());
+				"animation.megumi_fushiguro.summon_divine_dogs",
+				"animation.megumi_fushiguro.shadow_dive",
+				"animation.megumi_fushiguro.shadow_emerge"), clips.keySet());
 	}
 
 	@Test
