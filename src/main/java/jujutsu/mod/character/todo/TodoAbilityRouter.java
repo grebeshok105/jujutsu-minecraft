@@ -26,10 +26,11 @@ public final class TodoAbilityRouter {
 			// USE_CONTEXT keeps its wire id and its client detection (the paired right click), but the
 			// body-mark ability is gone and no other vessel listens on it in this slice.
 			case USE_CONTEXT -> false;
-			// The hold gesture and its release belong to vessels with a held technique; Todo has none,
-			// and the third technique key is empty for him too.
-			case ATTACK_CONTEXT, SECONDARY_SNEAK_HOLD, SECONDARY_SNEAK_RELEASE, TERTIARY,
-					TERTIARY_SNEAK -> false;
+			// The hold gesture and its release belong to vessels with a held technique; Todo has none.
+			// V throws the stone and, while one is in flight, self-swaps with it; Shift+V swaps an aimed
+			// target with the stone. Both arms live in TodoStoneRuntime.
+			case TERTIARY, TERTIARY_SNEAK -> TodoStoneRuntime.tryCast(todo, ability, notify);
+			case ATTACK_CONTEXT, SECONDARY_SNEAK_HOLD, SECONDARY_SNEAK_RELEASE -> false;
 		};
 	}
 }

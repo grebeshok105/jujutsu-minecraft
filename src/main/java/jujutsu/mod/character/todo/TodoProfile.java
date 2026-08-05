@@ -66,6 +66,28 @@ public final class TodoProfile {
 	 */
 	public static final int PAIR_MARK_PULSE_TICKS = 20;
 	/**
+	 * The stone's flight speed: 3.5 blocks per second — slow, readable, and a flat line with no arc, so
+	 * the swap is a plan the opponent can see coming.
+	 */
+	public static final double STONE_SPEED_BLOCKS_PER_TICK = 0.175;
+	/** Five seconds of flight. The stone never anchors: this clock is its only end. */
+	public static final int STONE_LIFETIME_TICKS = 100;
+	/** The stone's hitbox, a third of a block, sized for a small thrown rock. */
+	public static final float STONE_HITBOX_SIZE = 0.35f;
+	/**
+	 * Anti-double-click only: throwing must never lock the follow-up self-swap behind a long cooldown.
+	 * The self-swap carries the real price.
+	 */
+	public static final int STONE_THROW_COOLDOWN_TICKS = 10;
+	/** Three seconds — the same price as Todo's own aimed swap, because the self-swap is one of those. */
+	public static final int STONE_SELF_SWAP_COOLDOWN_TICKS = 60;
+	/** Five seconds — the same price as the pair swap, because he moves a bystander, not himself. */
+	public static final int STONE_TARGET_SWAP_COOLDOWN_TICKS = 100;
+	/** How far Todo may be from the stone for either swap (V or Shift+V). */
+	public static final double STONE_SWAP_RANGE = 32.0;
+	/** Crosshair reach for the Shift+V target, matching the aimed swap. */
+	public static final double STONE_TARGET_RANGE = 20.0;
+	/**
 	 * What a landed swap buys: one heavier hit, taken through an ATTACK_DAMAGE modifier so the vanilla
 	 * swing is simply bigger and no second damage instance exists to double-count or double-consume.
 	 *

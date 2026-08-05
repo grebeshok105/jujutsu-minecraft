@@ -8,6 +8,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+import jujutsu.mod.network.JujutsuNetworking;
+import jujutsu.mod.vfx.TodoVfxIds;
+import jujutsu.mod.vfx.VfxCues;
 
 /**
  * The single owner of Todo's transient server state: the pair-swap selection and the thrown
@@ -64,6 +67,11 @@ public final class TodoTransientState {
 	/**
 	 * Forgets the owner's stone and discards its live entity if the ref still resolves. Resolution
 	 * is by UUID inside the ref's dimension only — never by entity id, never across dimensions.
+	 *
+	 * <p>This is the single place a stone ends by cleanup, so the vanish cue rides here: collision,
+	 * lifetime expiry, death, respawn, vessel change, disconnect and the expiry sweep all speak the
+	 * same visual language — emitted only while the stone is still alive to be seen, at its last
+	 * position.
 	 */
 	public static void clearStone(MinecraftServer server, UUID owner) {
 		State state = STATES.get(owner);
@@ -81,6 +89,11 @@ public final class TodoTransientState {
 		}
 		Entity entity = level.getEntity(ref.entityUuid());
 		if (entity != null) {
+			if (entity.isAlive()) {
+				JujutsuNetworking.broadcastVfxCue(level, entity.position(), TodoProfile.VFX_DELIVERY_RADIUS,
+						VfxCues.worldFixed(TodoVfxIds.STONE_VANISH, entity.position(), 1, level.getGameTime(),
+								level.getRandom().nextLong()));
+			}
 			entity.discard();
 		}
 	}
