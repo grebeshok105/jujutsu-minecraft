@@ -19,21 +19,19 @@ public final class ShadowWorldEffects {
 	 * Shadow Trap pool, unfurling or collapsing at an absolute radius carried by the cue intensity
 	 * (tenths of a block: intensity 26 is the 2.6-block trap zone). Trap pools are true circles:
 	 * the drawn edge telegraphs the authoritative grip cylinder, so it must not lie on any axis,
-	 * and the unfurl reaches the full radius so the open-to-zone handoff does not jump.
+	 * and the unfurl reaches the full radius so the open-to-zone handoff does not jump. Trap pools
+	 * are void-black holes: full opacity for the pool's whole life, only the radius animates.
 	 */
 	public static void renderShadowTrapPool(VertexConsumer consumer, Vec3 center, float progress, float radius, boolean opening) {
-		renderPoolDisk(consumer, center, radius * trapPoolScale(opening, progress),
-				Math.round(255.0f * shadowPoolOpacity(opening, progress)), 1.0f);
+		renderPoolDisk(consumer, center, radius * trapPoolScale(opening, progress), 255, 1.0f);
 	}
 
 	/**
-	 * Liquid trap zone: a pool of constant radius with a gentle alpha breath, re-emitted by the
-	 * server pulse rather than re-ticked by the client.
+	 * Liquid trap zone: a pool of constant radius and full opacity, re-emitted by the server pulse
+	 * rather than re-ticked by the client. Reads as a hole in the world for its whole life.
 	 */
 	public static void renderShadowTrapPool(VertexConsumer consumer, Vec3 center, float progress, float radius) {
-		float clamped = Math.max(0.0f, Math.min(1.0f, progress));
-		float alpha = 0.72f + 0.08f * (float) Math.sin(clamped * Math.PI * 2.0);
-		renderPoolDisk(consumer, center, radius, Math.round(255.0f * alpha), 1.0f);
+		renderPoolDisk(consumer, center, radius, 255, 1.0f);
 	}
 
 	private static void renderPoolDisk(VertexConsumer consumer, Vec3 center, float radius, int alpha, float zScale) {
