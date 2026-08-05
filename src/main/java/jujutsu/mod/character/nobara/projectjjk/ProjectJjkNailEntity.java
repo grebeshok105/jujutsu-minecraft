@@ -12,6 +12,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import jujutsu.mod.registry.JujutsuSounds;
+import jujutsu.mod.registry.JujutsuParticles;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -380,6 +381,9 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	private void tickMegaNail() {
 		if (level().isClientSide()) {
+			if (!isLaunched()) {
+				clientTickMegaChargeVortex();
+			}
 			clientTickMovement();
 			return;
 		}
@@ -391,6 +395,12 @@ public final class ProjectJjkNailEntity extends Entity {
 			int chargeElapsed = tickCount - 1;
 			float progress = Mth.clamp((float) chargeElapsed / ProjectJjkNobaraProfile.MEGA_NAIL_CHARGE_TICKS, 0.0f, 1.0f);
 			entityData.set(DATA_MEGA_PROGRESS, progress);
+			// Ratcheting charge whine: pitch and volume climb with progress. The one-shot
+			// charge cue cannot loop, so the hovering entity itself drives the build-up.
+			if (chargeElapsed % 5 == 0) {
+				serverLevel.playSound(null, getX(), getY(), getZ(), JujutsuSounds.PROJECTJJK_SIZZLE,
+						SoundSource.PLAYERS, 0.6f + progress * 0.8f, 0.7f + progress);
+			}
 			if (progress >= 1.0f) {
 				launchMegaNail(serverLevel);
 			}
@@ -425,6 +435,36 @@ public final class ProjectJjkNailEntity extends Entity {
 			ProjectJjkNobaraRuntime.spawnNailFlightTrail(serverLevel, position(), movement);
 		}
 	}
+	/**
+	 * Client-side charge vortex, driven by the synced {@code DATA_MEGA_PROGRESS}: a ring of
+	 * motes squeezes from 2.6 blocks down to the nail while sparks rise off the core.
+	 * Persistent visuals that follow entity state belong here, not on a transient VFX cue.
+	 */
+	private void clientTickMegaChargeVortex() {
+		float progress = megaProgress();
+		double radius = Mth.lerp(progress, 2.6, 0.55);
+		int points = 8 + Math.round(progress * 8.0f);
+		double phase = tickCount * 0.35;
+		double cx = getX();
+		double cy = getY() + 0.15;
+		double cz = getZ();
+		for (int p = 0; p < points; p++) {
+			double angle = phase + Math.PI * 2.0 * p / points;
+			double px = cx + Math.cos(angle) * radius;
+			double py = cy + 0.28 * Math.sin(tickCount * 0.2 + p * 1.7);
+			double pz = cz + Math.sin(angle) * radius;
+			level().addParticle(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, px, py, pz,
+					(cx - px) * 0.16, (cy - py) * 0.16, (cz - pz) * 0.16);
+		}
+		if (tickCount % 3 == 0) {
+			level().addParticle(JujutsuParticles.HAIRPIN_SPARK, cx, cy + 0.1, cz,
+					0.0, 0.06 + progress * 0.12, 0.0);
+		}
+		if (progress > 0.75f) {
+			level().addParticle(JujutsuParticles.HAIRPIN_WARN_EDGE, cx, cy, cz, 0.0, 0.02, 0.0);
+		}
+	}
+
 
 	private void launchMegaNail(ServerLevel serverLevel) {
 		// Re-target: if target is alive and ≤48 blocks away, use its current position

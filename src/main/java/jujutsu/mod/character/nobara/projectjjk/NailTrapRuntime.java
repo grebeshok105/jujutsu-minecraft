@@ -141,6 +141,12 @@ public final class NailTrapRuntime {
 			remove(level, trap);
 			return;
 		}
+		// Silent boundary pulse: re-emit the armed cue with intensity 0 every two seconds so
+		// the 6-block trigger ring stays visible for the trap's whole life. The recipe skips
+		// flash, sound and HUD for intensity 0, so pulses draw only the ring.
+		if (level.getGameTime() % 40L == 0L) {
+			emit(level, vec(trap.center()), NobaraVfxIds.NAIL_TRAP_ARMED, 0, Vec3.ZERO);
+		}
 		selectTarget(level, owner, trap).ifPresent(target -> {
 			if (trap.trigger(target.getUUID())) COLLAPSES.put(trap.ownerId(), new CollapseState(target.getUUID(), 0));
 		});
