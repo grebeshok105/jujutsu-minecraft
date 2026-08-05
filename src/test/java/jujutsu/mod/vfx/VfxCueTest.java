@@ -82,7 +82,8 @@ final class VfxCueTest {
 				paths(NobaraVfxIds.LIVE));
 		assertEquals(Set.of(
 				"todo/boogie_woogie", "todo/swap_endpoint", "todo/feint_tell", "todo/pair_mark",
-				"todo/swap_afterimage", "todo/swap_arrival", "todo/momentum_strike"), paths(TodoVfxIds.LIVE));
+				"todo/swap_afterimage", "todo/swap_arrival", "todo/momentum_strike",
+				"todo/stone_throw", "todo/stone_vanish", "todo/triple_swap"), paths(TodoVfxIds.LIVE));
 		assertEquals(Set.of(
 				"megumi/dogs_summon_body", "megumi/dogs_summon", "megumi/dogs_recall", "megumi/dogs_sic",
 				"megumi/dogs_pounce", "megumi/shadow_trap_open", "megumi/shadow_trap_zone", "megumi/shadow_trap_grip",

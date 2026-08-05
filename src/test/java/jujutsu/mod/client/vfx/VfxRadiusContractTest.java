@@ -48,6 +48,8 @@ final class VfxRadiusContractTest {
 				direct("Todo feint", Set.of(TodoVfxIds.FEINT_TELL)),
 				finiteNone("Todo swap geometry", Set.of(TodoVfxIds.SWAP_ENDPOINT, TodoVfxIds.SWAP_AFTERIMAGE, TodoVfxIds.SWAP_ARRIVAL)),
 				finiteNone("Todo momentum", Set.of(TodoVfxIds.MOMENTUM_STRIKE)),
+				finiteNone("Todo stone", Set.of(TodoVfxIds.STONE_THROW, TodoVfxIds.STONE_VANISH)),
+				finiteNone("Todo triple swap", Set.of(TodoVfxIds.TRIPLE_SWAP)),
 				finiteNone("Megumi dogs", Set.of(MegumiVfxIds.DOGS_SUMMON_BODY, MegumiVfxIds.DOGS_SUMMON,
 						MegumiVfxIds.DOGS_RECALL, MegumiVfxIds.DOGS_SIC, MegumiVfxIds.DOGS_POUNCE)),
 				finiteNone("Megumi shadow kit", Set.of(MegumiVfxIds.SHADOW_TRAP_OPEN, MegumiVfxIds.SHADOW_TRAP_ZONE,
