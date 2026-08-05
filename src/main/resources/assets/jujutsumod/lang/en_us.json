@@ -114,5 +114,14 @@
   "esp.jujutsumod.rank.rank3": "Grade 3",
   "esp.jujutsumod.rank.civilian": "Civilian",
   "subtitles.jujutsumod.nobara.mega_charge_riser": "Mega nail charges",
-  "subtitles.jujutsumod.nobara.mega_launch_blast": "Mega nail launches"
+  "subtitles.jujutsumod.nobara.mega_launch_blast": "Mega nail launches",
+  "message.jujutsumod.megumi.trap.no_target": "No shadow can reach that target",
+  "message.jujutsumod.megumi.trap.already_open": "The shadow is already holding",
+  "message.jujutsumod.megumi.shadow.no_path": "No shadow to travel through",
+  "message.jujutsumod.megumi.shadow.no_safe_exit": "No safe place to surface there",
+  "message.jujutsumod.megumi.shadow.bound": "You are inside the shadow",
+  "effect.jujutsumod.megumi_shadow_grip": "Shadow Grip",
+  "screen.jujutsumod.character_select.ability.shadow_trap": "Shadow Trap",
+  "screen.jujutsumod.character_select.ability.shadow_step": "Shadow Step",
+  "screen.jujutsumod.character_select.ability.deep_submerge": "Deep Submerge"
 }

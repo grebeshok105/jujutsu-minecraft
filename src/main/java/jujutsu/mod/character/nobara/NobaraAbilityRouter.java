@@ -40,9 +40,10 @@ public final class NobaraAbilityRouter {
 					&& ProjectJjkMegaNailRuntime.start(nobara);
 			case SECONDARY_SNEAK -> NailTrapRuntime.tryPlace(nobara);
 			case ATTACK_CONTEXT -> NobaraHammerCombatRuntime.handleInput(nobara);
-			// Her right click is vanilla's. Answering false explicitly rather than adding a default keeps
-			// the next new slot a compile error here instead of a silent no-op.
-			case USE_CONTEXT -> false;
+			// Her right click is vanilla's, and she holds no technique key. Answering false explicitly
+			// rather than adding a default keeps the next new slot a compile error here instead of a
+			// silent no-op.
+			case USE_CONTEXT, SECONDARY_SNEAK_HOLD, SECONDARY_SNEAK_RELEASE -> false;
 		};
 		if (!cast && notify) {
 			nobara.displayClientMessage(Component.translatable("message.jujutsumod.nobara.action.no_target"), true);

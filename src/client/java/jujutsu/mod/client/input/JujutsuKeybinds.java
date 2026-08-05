@@ -28,6 +28,10 @@ public final class JujutsuKeybinds {
 	private static boolean modernMenuWasDown;
 	private static boolean useWasDown;
 	private static int ticksSinceFirstUse = Integer.MAX_VALUE;
+	/** -1 = no pending sneak gesture; otherwise ticks the second technique key has been held. */
+	private static int sneakSecondHeldTicks = -1;
+	private static boolean sneakSecondHoldSent;
+	private static boolean secondWasDown;
 
 	/**
 	 * How long a second right click has to arrive to count as a pair. Six ticks is comfortably inside a
@@ -39,6 +43,14 @@ public final class JujutsuKeybinds {
 	 * completed pair reaches the mod at all.
 	 */
 	private static final int USE_PAIR_WINDOW_TICKS = 6;
+
+	/**
+	 * How long a sneaking second-technique press has to stay down to become the hold slot. Below the
+	 * threshold the release sends the ordinary sneak tap, so a tap now confirms on release — up to
+	 * 0.3 s later than the old instant send. That is the price of an honest hold gesture on the same
+	 * key, and it is paid only while sneaking; the plain press still sends instantly.
+	 */
+	private static final int SECONDARY_HOLD_THRESHOLD_TICKS = 6;
 
 	private JujutsuKeybinds() {}
 
@@ -73,6 +85,9 @@ public final class JujutsuKeybinds {
 				attackWasDown = false;
 				useWasDown = false;
 				ticksSinceFirstUse = Integer.MAX_VALUE;
+				sneakSecondHeldTicks = -1;
+				sneakSecondHoldSent = false;
+				secondWasDown = false;
 				return;
 			}
 
@@ -84,14 +99,12 @@ public final class JujutsuKeybinds {
 			}
 			modernMenuWasDown = modernDown;
 
-			// No hold threshold and no double tap on the sneak variants: a cast has to stay instant, and
+			// No hold threshold and no double tap on the technique key: a cast has to stay instant, and
 			// two casts on one key have to be typed identically fast.
 			while (techniqueKey.consumeClick()) {
 				sendCharacterAbility(client, slot(client, CharacterAbility.PRIMARY, CharacterAbility.PRIMARY_SNEAK));
 			}
-			while (secondTechniqueKey.consumeClick()) {
-				sendCharacterAbility(client, slot(client, CharacterAbility.SECONDARY, CharacterAbility.SECONDARY_SNEAK));
-			}
+			tickSecondTechnique(client);
 
 			boolean attackDown = client.options.keyAttack.isDown();
 			// The weapon check is the last vessel-specific thing left in this file. It stays until the
@@ -121,6 +134,45 @@ public final class JujutsuKeybinds {
 			}
 			useWasDown = useDown;
 		});
+	}
+
+	/**
+	 * The second technique key is the only one with a hold gesture, and only while sneaking. A plain
+	 * press still sends {@code SECONDARY} instantly. A sneaking press is buffered: released inside
+	 * {@link #SECONDARY_HOLD_THRESHOLD_TICKS} it is the ordinary {@code SECONDARY_SNEAK} tap; held past
+	 * it the client sends {@code SECONDARY_SNEAK_HOLD} once, and {@code SECONDARY_SNEAK_RELEASE} when
+	 * the key finally comes up (a screen opening mid-hold releases the mapping, which reads as the same
+	 * thing). The pairing is never trusted: a release with no live server state is refused there.
+	 */
+	private static void tickSecondTechnique(Minecraft client) {
+		boolean down = secondTechniqueKey.isDown();
+		boolean clicked = drainClicks(secondTechniqueKey);
+		boolean pressed = clicked || (down && !secondWasDown);
+		secondWasDown = down;
+		if (sneakSecondHeldTicks < 0) {
+			if (pressed) {
+				if (client.player.isShiftKeyDown()) {
+					sneakSecondHeldTicks = 0;
+					sneakSecondHoldSent = false;
+				} else {
+					sendCharacterAbility(client, CharacterAbility.SECONDARY);
+				}
+			}
+			return;
+		}
+		if (down) {
+			sneakSecondHeldTicks++;
+			if (!sneakSecondHoldSent && sneakSecondHeldTicks >= SECONDARY_HOLD_THRESHOLD_TICKS) {
+				sneakSecondHoldSent = true;
+				sendCharacterAbility(client, CharacterAbility.SECONDARY_SNEAK_HOLD);
+			}
+			return;
+		}
+		sendCharacterAbility(client, sneakSecondHoldSent
+				? CharacterAbility.SECONDARY_SNEAK_RELEASE
+				: CharacterAbility.SECONDARY_SNEAK);
+		sneakSecondHeldTicks = -1;
+		sneakSecondHoldSent = false;
 	}
 
 	private static boolean drainClicks(KeyMapping mapping) {

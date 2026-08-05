@@ -8,6 +8,7 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import jujutsu.mod.character.megumi.MegumiProfile;
 import jujutsu.mod.character.todo.TodoProfile;
 
 public final class JujutsuEffects {
@@ -33,6 +34,28 @@ public final class JujutsuEffects {
 					TodoProfile.SWAP_MOMENTUM_DAMAGE_MULTIPLIER - 1.0,
 					AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
 
+	/**
+	 * The hold of Megumi's shadow trap. Pure vanilla attribute mathematics, mirrored to clients by the
+	 * effect system itself: speed collapses to a quarter and jumping is suppressed outright, so a gripped
+	 * body still crawls out of the pool but never hops over it. The trap runtime re-applies the effect
+	 * every tick a body stays inside; leaving the zone lets the short duration expire on its own, which
+	 * is the whole cleanup story — nothing ever needs manual effect scrubbing.
+	 */
+	public static final Holder<MobEffect> MEGUMI_SHADOW_GRIP = Registry.registerForHolder(
+			BuiltInRegistries.MOB_EFFECT,
+			JujutsuMod.id("megumi_shadow_grip"),
+			new MegumiShadowGripEffect()
+					.addAttributeModifier(
+							Attributes.MOVEMENT_SPEED,
+							JujutsuMod.id("megumi/shadow_grip_speed"),
+							MegumiProfile.SHADOW_GRIP_SPEED_MULTIPLIER,
+							AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL)
+					.addAttributeModifier(
+							Attributes.JUMP_STRENGTH,
+							JujutsuMod.id("megumi/shadow_grip_jump"),
+							MegumiProfile.SHADOW_GRIP_JUMP_MULTIPLIER,
+							AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+
 	private JujutsuEffects() {}
 
 	public static void register() {
@@ -48,6 +71,12 @@ public final class JujutsuEffects {
 	private static final class TodoSwapMomentumEffect extends MobEffect {
 		private TodoSwapMomentumEffect() {
 			super(MobEffectCategory.BENEFICIAL, 0xB26CFF);
+		}
+	}
+
+	private static final class MegumiShadowGripEffect extends MobEffect {
+		private MegumiShadowGripEffect() {
+			super(MobEffectCategory.HARMFUL, 0x102E2B);
 		}
 	}
 }

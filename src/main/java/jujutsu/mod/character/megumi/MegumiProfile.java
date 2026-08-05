@@ -32,5 +32,42 @@ public final class MegumiProfile {
 	public static final double VFX_CUE_RADIUS = 48.0;
 	static final Double VFX_DELIVERY_RADIUS = VFX_CUE_RADIUS;
 
+	// --- Shadow Trap (B) ---
+	public static final double SHADOW_TRAP_RANGE = 20.0;
+	public static final double SHADOW_TRAP_RADIUS = 2.6;
+	/** How far above the pool a body still counts as inside it: one jump, not a pillar. */
+	public static final double SHADOW_TRAP_VERTICAL_REACH = 1.6;
+	public static final int SHADOW_TRAP_DURATION_TICKS = 100;
+	public static final int SHADOW_TRAP_COOLDOWN_TICKS = 200;
+	/** Effect length per re-application; leaving the zone lets it expire on its own within this window. */
+	public static final int SHADOW_TRAP_GRIP_REFRESH_TICKS = 8;
+	public static final int SHADOW_TRAP_ZONE_PULSE_TICKS = 40;
+	public static final int SHADOW_TRAP_GRIP_CUE_PERIOD_TICKS = 20;
+	/** ADD_MULTIPLIED_TOTAL on MOVEMENT_SPEED: a gripped body keeps a quarter of its speed. */
+	public static final double SHADOW_GRIP_SPEED_MULTIPLIER = -0.75;
+	/** ADD_MULTIPLIED_TOTAL on JUMP_STRENGTH: jumping is fully suppressed, not merely weakened. */
+	public static final double SHADOW_GRIP_JUMP_MULTIPLIER = -1.0;
+	/** How far below an airborne target's feet the trap centre may snap to the ground. */
+	public static final double SHADOW_TRAP_GROUND_SNAP_BLOCKS = 3.0;
+
+	// --- Shadow Move (Shift+B) ---
+	public static final double SHADOW_STEP_TARGET_RANGE = 20.0;
+	public static final double SHADOW_STEP_RANGE = 24.0;
+	public static final double BACKSTEP_DISTANCE = 1.75;
+	/** A hidden target that got farther than this multiple of the cast range cancels the backstep. */
+	public static final double BACKSTEP_TARGET_DRIFT_MULTIPLIER = 2.0;
+	public static final int SHADOW_SINK_TICKS = 8;
+	public static final int SHADOW_HIDDEN_TICKS = 4;
+	public static final int SHADOW_EMERGE_TICKS = 6;
+	public static final int SUBMERGE_MAX_TICKS = 50;
+	public static final int SHADOW_RIPPLE_PERIOD_TICKS = 5;
+	public static final int SHADOW_STEP_COOLDOWN_TICKS = 120;
+	public static final int SUBMERGE_COOLDOWN_TICKS = 200;
+	/** Horizontal ring used when the emerge point itself needs rescuing. */
+	public static final double EMERGE_SEARCH_RADIUS = 3.0;
+	public static final double SAFE_POSITION_HORIZONTAL_RADIUS = 1.0;
+	public static final int SAFE_POSITION_UPWARD_BLOCKS = 3;
+	public static final double WORLD_BORDER_MARGIN = 0.05;
+
 	private MegumiProfile() {}
 }

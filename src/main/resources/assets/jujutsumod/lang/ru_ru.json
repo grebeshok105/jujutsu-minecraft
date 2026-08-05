@@ -114,5 +114,14 @@
   "esp.jujutsumod.rank.rank3": "3 ранг",
   "esp.jujutsumod.rank.civilian": "Гражданский",
   "subtitles.jujutsumod.nobara.mega_charge_riser": "Мега-гвоздь заряжается",
-  "subtitles.jujutsumod.nobara.mega_launch_blast": "Мега-гвоздь выстреливает"
+  "subtitles.jujutsumod.nobara.mega_launch_blast": "Мега-гвоздь выстреливает",
+  "message.jujutsumod.megumi.trap.no_target": "Тень не дотягивается до этой цели",
+  "message.jujutsumod.megumi.trap.already_open": "Тень уже держит",
+  "message.jujutsumod.megumi.shadow.no_path": "Нет тени для перемещения",
+  "message.jujutsumod.megumi.shadow.no_safe_exit": "Там негде безопасно вынырнуть",
+  "message.jujutsumod.megumi.shadow.bound": "Ты внутри тени",
+  "effect.jujutsumod.megumi_shadow_grip": "Теневая хватка",
+  "screen.jujutsumod.character_select.ability.shadow_trap": "Теневая ловушка",
+  "screen.jujutsumod.character_select.ability.shadow_step": "Теневой шаг",
+  "screen.jujutsumod.character_select.ability.deep_submerge": "Глубокое погружение"
 }
