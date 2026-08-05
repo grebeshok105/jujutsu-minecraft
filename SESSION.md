@@ -25,8 +25,14 @@
 
 - `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` — **GREEN** (JUnit 200 tests, 31 verification JavaExec programs, documentation audit, assertion audit).
 - In-world behaviour (ESP readability, mega nail feel, R feel) still needs the manual client smoke — nothing in the suite constructs a `ServerLevel` (E1).
+- Two independent review passes (server / client) on PR #54 found one BLOCKER (ESP badge background vertices missing UV2 — client crash on first badge render), three MAJOR (pending strikes keyed by target only; raw-UUID stagger overload; accent pulse ignoring per-nail ownership) and minors — all fixed in `f73748f`, gate re-run green, jar rebuilt and redeployed (md5 `548d6587c8cb1d194822078a8a0a9d32`).
+
+## Status
+
+- **PR #54 is OPEN**: <https://github.com/grebeshok105/jujutsu-minecraft/pull/54> (base `main`), review summary posted as a PR comment.
+- Deployed jar in `D:/Games/instances/Jujutsu/mods/` is built from `f73748f` (review fixes included).
 
 ## Next steps
 
-1. Manual in-game smoke: ESP overlay on/off by vessel, badge occlusion, mega nail on marked/unmarked targets, empty-B fallback message, R feel.
-2. Push the branch and open the PR once smoke feedback is in.
+1. Manual in-game smoke: ESP overlay on/off by vessel, badge occlusion policy, mega nail on marked/unmarked targets, empty-B fallback message, R feel, no crash on first badge render.
+2. Merge PR #54 after smoke sign-off (or fix what the smoke rejects).
