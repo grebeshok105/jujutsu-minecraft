@@ -31,9 +31,9 @@
 ## Status
 
 - **PR #54 is OPEN**: <https://github.com/grebeshok105/jujutsu-minecraft/pull/54> (base `main`), review summary posted as a PR comment.
-- Deployed jar in `D:/Games/instances/Jujutsu/mods/` is built from code commit `4374da4` (mega nail v2 + trap + badge fixes), md5 `11d2100b68beec5a0a3a464df873587c`.
+- Deployed jar in `D:/Games/instances/Jujutsu/mods/` is built from `f035a0d` (round-2 fixes: vanilla two-pass badge, per-tick mega charge, prism-height trap pillars, jet-roar launch), md5 `a41ff4f2b13678a1307fec466caff6cf`.
 
 ## Next steps
 
-1. Manual in-game smoke round 2: badge shows three text lines over background; B gathers nails into a big material nail in front of Nobara, charges ~1.2 s, launches and lands with strike VFX; trap ring visible after placement; empty-B fallback message; R feel; Todo/Megumi untouched.
+1. Manual in-game smoke round 3: badge visible (three lines, readable through walls as ghost); mega charge shows squeezing rings/sparks/whine for ~1.2 s before a loud jet launch; trap pillars stand 3 blocks tall at the prism corners with a rotating arc on the 6-block trigger radius while arming.
 2. Merge PR #54 after smoke sign-off (or fix what the smoke rejects).
