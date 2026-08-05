@@ -30,16 +30,17 @@ public final class ProjectJjkNobaraProfile {
 
 	// Hairpin mark detonation.
 	public static final double DETONATE_RANGE = 24.0;
-	public static final float HAIRPIN_BOOM_DAMAGE_PER_NAIL = 3.0f;
 	public static final float HAIRPIN_DIRECTED_DAMAGE_PER_NAIL = 5.0f;
 	public static final double HAIRPIN_DIRECTED_CHAIN_RADIUS = 10.0;
 	public static final int HAIRPIN_DIRECTED_CHAIN_DELAY_TICKS = 2;
-	public static final int HAIRPIN_MASS_CHAIN_DELAY_TICKS = 3;
 	public static final float HAIRPIN_BLOCK_EXPLOSION_POWER = 1.5f;
 	public static final float NAIL_DEPTH_1_MULTIPLIER = 1.0f;
 	public static final float NAIL_DEPTH_2_MULTIPLIER = 1.35f;
 	public static final float NAIL_DEPTH_3_MULTIPLIER = 1.75f;
-	public static final double NAIL_TRAP_RADIUS = 6.0;
+	/** Corner-nail placement radius: nails land ~2 blocks apart (smoke round 3 rejected the 6-block spread). */
+	public static final double NAIL_TRAP_RADIUS = 1.15;
+	/** Trigger circle around the trap centre — wider than the nail triangle so bodies brushing the corners still trip it. */
+	public static final double NAIL_TRAP_TRIGGER_RADIUS = 2.0;
 	public static final int NAIL_TRAP_NAIL_COUNT = 3;
 	public static final double NAIL_TRAP_PRISM_HEIGHT = 3.0;
 	public static final double NAIL_TRAP_PLACEMENT_RANGE = 8.0;
@@ -49,7 +50,7 @@ public final class ProjectJjkNobaraProfile {
 	public static final int NAIL_TRAP_COLLAPSE_TICKS = 6;
 	public static final int RESONANT_MOMENTUM_DURATION_TICKS = 1200;
 	public static final float RESONANT_MOMENTUM_MULTIPLIER = 1.15f;
-	public static final float DETONATE_DAMAGE_BASE = HAIRPIN_BOOM_DAMAGE_PER_NAIL;
+	public static final float DETONATE_DAMAGE_BASE = 3.0f;
 	public static final float DETONATE_DAMAGE_PER_MARK = 0.0f;
 	public static final int HAIRPIN_EXPLOSION_START_DELAY_TICKS = 10;
 	public static final double HAIRPIN_EXPLOSION_RADIUS = 1.5;
@@ -60,10 +61,31 @@ public final class ProjectJjkNobaraProfile {
 
 	// Hairpin enlargement: ProjectJJK-style delayed snap against a marked looked-at target.
 	public static final double HAIRPIN_ENLARGE_RANGE = 20.0;
-	public static final int HAIRPIN_ENLARGE_DELAY_TICKS = 20;
 	public static final int HAIRPIN_ENLARGE_STUN_TICKS = 50;
 	public static final float HAIRPIN_ENLARGE_DAMAGE_PER_NAIL = 4.0f;
 	public static final float HAIRPIN_ENLARGE_DAMAGE = HAIRPIN_ENLARGE_DAMAGE_PER_NAIL;
+
+	// Mega Nail (B): merge all embedded nails on a target into one piercing strike.
+	/** Per-nail damage base, equal to Enlarge per-nail damage (same semantics: directed burst from all nails on one target). */
+	public static final float MEGA_NAIL_DAMAGE_PER_NAIL = HAIRPIN_ENLARGE_DAMAGE_PER_NAIL;
+	/** Hard cap on total mega nail damage: 1.5x Resonance damage, the kit's hardest single hit with full setup. */
+	public static final float MEGA_NAIL_DAMAGE_CAP = 42.0f;
+	/** Ticks the mega nail charges in front of the caster before launching (grows scale 0.6→2.6). */
+	public static final int MEGA_NAIL_CHARGE_TICKS = 24;
+	/** Max flight ticks before the mega nail times out (miss/block fallback). */
+	public static final int MEGA_NAIL_FLIGHT_TIMEOUT_TICKS = 60;
+	/** Speed multiplier for mega nail flight, applied on top of LAUNCH_SPEED. */
+	public static final double MEGA_NAIL_SPEED_MULTIPLIER = 1.3;
+	/** Starting scale of the mega nail during charge phase. */
+	public static final float MEGA_NAIL_SCALE_START = 0.6f;
+	/** Final scale of the mega nail at the end of charge. */
+	public static final float MEGA_NAIL_SCALE_END = 2.6f;
+	/** Base knockback before per-nail bonus, same as Hairpin base. */
+	public static final float MEGA_NAIL_KNOCKBACK_BASE = HAIRPIN_KNOCKBACK;
+	/** Extra knockback per consumed nail, same as Hairpin explosion per-nail push. */
+	public static final float MEGA_NAIL_KNOCKBACK_PER_NAIL = HAIRPIN_EXPLOSION_KNOCKBACK;
+	/** Maximum knockback the mega nail can apply. */
+	public static final float MEGA_NAIL_KNOCKBACK_CAP = 3.0f;
 
 	// Resonance (straw doll remote strike).
 	public static final float RESONANCE_DAMAGE = 28.0f;

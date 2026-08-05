@@ -36,13 +36,13 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 
 | Metric | Value |
 |---|---:|
-| Main Java files | 118 |
-| Client Java files | 177 |
-| Test Java files | 72 |
+| Main Java files | 119 |
+| Client Java files | 179 |
+| Test Java files | 75 |
 | Verification programs | 31 |
 | Client mixins | 6 |
 | Network payloads | 8 |
-| Nobara VFX ids | 22 |
+| Nobara VFX ids | 24 |
 
 Verification programs counts JavaExec main() programs only. Since the JUnit foundation landed, a test class may instead be a JUnit class run by the standard test task; those are counted under Test Java files and not by that row. Both kinds run inside ./gradlew qualityGate.
 

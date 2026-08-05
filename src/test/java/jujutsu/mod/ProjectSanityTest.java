@@ -114,10 +114,11 @@ public final class ProjectSanityTest {
 
 	private static void assertPerNailHairpinDamageContract() throws IOException {
 		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
+		String megaNail = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkMegaNailRuntime.java"));
 		String damage = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/NobaraDamageSources.java"));
 		String bypassTag = Files.readString(MAIN_RESOURCES.resolve("data/minecraft/tags/damage_type/bypasses_cooldown.json"));
-		assert ritual.contains("nail.anchor().stableId()") : "Enlarge must select concrete embedded nails";
-		assert ritual.contains("HAIRPIN_ENLARGE_DAMAGE_PER_NAIL") : "Enlarge must damage once per concrete nail";
+		assert megaNail.contains("nail.anchor().stableId()") : "Mega Nail must select concrete embedded nails";
+		assert megaNail.contains("MEGA_NAIL_DAMAGE_PER_NAIL") : "Mega Nail damage must scale from concrete nails";
 		assert !ritual.contains("ProjectJjkNailMarks.marks(living.getUUID(), gameTime)") : "Boom must not synthesize aggregate anchors from marks";
 		assert damage.contains("HAIRPIN") : "Hairpin needs a dedicated damage type";
 		assert bypassTag.contains("jujutsumod:hairpin") : "Hairpin damage must bypass vanilla hurt cooldown";
@@ -372,8 +373,8 @@ public final class ProjectSanityTest {
 				"jujutsu/mod/client/character/nobara/NobaraClientDefinition.java"));
 		assert card.contains("screen.jujutsumod.character_select.ability.hairpin_enlarge")
 				: "Character select must show Hairpin Enlarge in the kit preview";
-		assert card.contains("screen.jujutsumod.character_select.ability.hairpin_explosion")
-				: "Character select must show Hairpin Explosion in the kit preview";
+		assert card.contains("screen.jujutsumod.character_select.ability.mega_nail")
+				: "Character select must show Mega Nail in the kit preview";
 		assert card.contains("JujutsuCharacterIcons.PIN") && card.contains("JujutsuCharacterIcons.BOOM")
 				: "Character roster must expose Enlarge/Boom ability icons";
 		String commands = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/command/JujutsuCommands.java"));
@@ -390,7 +391,7 @@ public final class ProjectSanityTest {
 		assert actionRuntime.contains("CombatStagger.GLOBAL.isStaggered")
 				: "Nobara keeps her own stagger gate; the shared executor has none";
 		assert actionRuntime.contains("startDirectedHairpin(nobara)") : "R must call the directed Hairpin runtime";
-		assert actionRuntime.contains("startMassHairpin(nobara)") : "B must call the mass Hairpin runtime";
+		assert actionRuntime.contains("ProjectJjkMegaNailRuntime.start(nobara)") : "B must call the Mega Nail runtime";
 		assert !Pattern.compile("default\\s*->").matcher(actionRuntime).find()
 				: "The slot switch must stay exhaustive so a new slot cannot fall into an existing ability";
 		// Taken from the enum rather than spelled out, so a new slot cannot leave this loop testing five.
@@ -492,14 +493,14 @@ public final class ProjectSanityTest {
 		String profile = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraProfile.java"));
 		assert profile.contains("HAIRPIN_ENLARGE_RANGE = 20.0") : "Hairpin Enlarge range should match ProjectJJK player ability registry";
 		assert profile.contains("HAIRPIN_ENLARGE_DAMAGE_PER_NAIL = 4.0f") : "Hairpin Enlarge should use the approved initial per-nail balance";
-		assert profile.contains("HAIRPIN_BOOM_DAMAGE_PER_NAIL = 3.0f") : "Hairpin Explosion should use the approved initial per-nail balance";
+		assert profile.contains("DETONATE_DAMAGE_BASE = 3.0f") : "Hairpin Explosion should use the approved fixed detonation base";
 		assert profile.contains("DETONATE_DAMAGE_PER_MARK = 0.0f") : "Hairpin Explosion must not scale from old jujutsumod mark damage";
 	}
 
 	private static void assertHairpinFinishersSnapWithoutMarks() throws IOException {
 		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
 		assert runtime.contains("playCasterSnap(level, caster, 1, gameTime)") : "Hairpin finishers should still play the snap gesture when there is no active mark";
-		assert runtime.contains("return true;") && runtime.contains("anchors.isEmpty()") : "Empty Hairpin Explosion should consume the action as a snap-only cast instead of showing no-target failure";
+		assert runtime.contains("return true;") && runtime.contains("seed == null") : "Empty directed Hairpin should consume the action as a snap-only cast instead of showing no-target failure";
 	}
 
 	private static void assertNobaraNailsEmbedLikeOpaqueBodyAnchors() throws IOException {
@@ -636,7 +637,7 @@ public final class ProjectSanityTest {
 		assert openingBeatGuards >= 8 : "Every non-seekable Nobara sound/particle opening beat must reject late playback";
 		long ageAwareChannelCalls = Pattern.compile("trigger(?:Launch|HeavyImpact|Explosion|Ritual|Swing|Impact|Snap|Blur|ResonanceImpact|Nausea|BlackFlash|Flash)\\([^\\n]*initialAgeTicks\\)")
 				.matcher(recipes).results().count();
-		assert ageAwareChannelCalls == 42 : "All 42 Nobara realtime channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
+		assert ageAwareChannelCalls == 50 : "All 50 Nobara realtime channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
 		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/network/ProjectJjkNobaraImpulsePayload.java")) : "Legacy integer VFX payload must be removed after migration";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java")) : "Legacy Hairpin world renderer must be replaced by VFX Core";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinCinematicCamera.java")) : "Legacy Hairpin camera manager must be replaced by VFX Core";

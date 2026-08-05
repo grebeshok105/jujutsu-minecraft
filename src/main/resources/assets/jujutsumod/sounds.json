@@ -1,129 +1,141 @@
 {
-	"hairpin.prep": {
-		"sounds": [
-			"jujutsumod:hairpin/prep"
-		],
-		"subtitle": "subtitles.jujutsumod.hairpin.prep"
-	},
-	"hairpin.hammer_snap": {
-		"sounds": [
-			"jujutsumod:hairpin/hammer_snap"
-		],
-		"subtitle": "subtitles.jujutsumod.hairpin.hammer_snap"
-	},
-	"hairpin.nail_ignite": {
-		"sounds": [
-			"jujutsumod:hairpin/nail_ignite"
-		],
-		"subtitle": "subtitles.jujutsumod.hairpin.nail_ignite"
-	},
-	"hairpin.bloom": {
-		"sounds": [
-			"jujutsumod:hairpin/bloom"
-		],
-		"subtitle": "subtitles.jujutsumod.hairpin.bloom"
-	},
-	"hairpin.afterglow": {
-		"sounds": [
-			"jujutsumod:hairpin/afterglow"
-		],
-		"subtitle": "subtitles.jujutsumod.hairpin.afterglow"
-	},
-	"projectjjk.snap": {
-		"sounds": [
-			"jujutsumod:projectjjk/snap"
-		],
-		"subtitle": "subtitles.jujutsumod.projectjjk.snap"
-	},
-	"projectjjk.spell_shot": {
-		"sounds": [
-			"jujutsumod:projectjjk/spell_shot"
-		],
-		"subtitle": "subtitles.jujutsumod.projectjjk.spell_shot"
-	},
-	"projectjjk.whoosh_hit": {
-		"sounds": [
-			"jujutsumod:projectjjk/whoosh_hit"
-		],
-		"subtitle": "subtitles.jujutsumod.projectjjk.whoosh_hit"
-	},
-	"projectjjk.cinematic_whoosh": {
-		"sounds": [
-			"jujutsumod:projectjjk/cinematic_whoosh"
-		],
-		"subtitle": "subtitles.jujutsumod.projectjjk.cinematic_whoosh"
-	},
-	"projectjjk.explode": {
-		"sounds": [
-			"jujutsumod:projectjjk/explode"
-		],
-		"subtitle": "subtitles.jujutsumod.projectjjk.explode"
-	},
-	"projectjjk.implode": {
-		"sounds": [
-			"jujutsumod:projectjjk/implode"
-		],
-		"subtitle": "subtitles.jujutsumod.projectjjk.implode"
-	},
-	"projectjjk.deep_explosion": {
-		"sounds": [
-			"jujutsumod:projectjjk/deep_explosion"
-		],
-		"subtitle": "subtitles.jujutsumod.projectjjk.deep_explosion"
-	},
-	"projectjjk.black_flash_impact": {
-		"sounds": [
-			"jujutsumod:projectjjk/black_flash_impact"
-		],
-		"subtitle": "subtitles.jujutsumod.projectjjk.black_flash_impact"
-	},
-	"projectjjk.black_flash_impact2": {
-		"sounds": [
-			"jujutsumod:projectjjk/black_flash_impact2"
-		],
-		"subtitle": "subtitles.jujutsumod.projectjjk.black_flash_impact2"
-	},
-	"projectjjk.goo_foley": {
-		"sounds": [
-			"jujutsumod:projectjjk/goo_foley"
-		],
-		"subtitle": "subtitles.jujutsumod.projectjjk.goo_foley"
-	},
-	"projectjjk.chime": {
-		"sounds": [
-			"jujutsumod:projectjjk/chime"
-		]
-	},
-	"projectjjk.magic": {
-		"sounds": [
-			"jujutsumod:projectjjk/magic"
-		]
-	},
-	"projectjjk.sizzle": {
-		"sounds": [
-			"jujutsumod:projectjjk/sizzle"
-		]
-	},
-	"projectjjk.clap": {
-		"sounds": [
-			"jujutsumod:projectjjk/clap"
-		]
-	},
-	"projectjjk.long_whoosh": {
-		"sounds": [
-			"jujutsumod:projectjjk/long_whoosh"
-		]
-	},
-	"projectjjk.whoosh_vortex": {
-		"sounds": [
-			"jujutsumod:projectjjk/whoosh_vortex"
-		]
-	},
-	"projectjjk.aec_boom": {
-		"sounds": [
-			"jujutsumod:projectjjk/aec_boom_01v1",
-			"jujutsumod:projectjjk/aec_boom_01v2"
-		],
-		"subtitle": "subtitles.jujutsumod.projectjjk.aec_boom"
-	}
+  "hairpin.prep": {
+    "sounds": [
+      "jujutsumod:hairpin/prep"
+    ],
+    "subtitle": "subtitles.jujutsumod.hairpin.prep"
+  },
+  "hairpin.hammer_snap": {
+    "sounds": [
+      "jujutsumod:hairpin/hammer_snap"
+    ],
+    "subtitle": "subtitles.jujutsumod.hairpin.hammer_snap"
+  },
+  "hairpin.nail_ignite": {
+    "sounds": [
+      "jujutsumod:hairpin/nail_ignite"
+    ],
+    "subtitle": "subtitles.jujutsumod.hairpin.nail_ignite"
+  },
+  "hairpin.bloom": {
+    "sounds": [
+      "jujutsumod:hairpin/bloom"
+    ],
+    "subtitle": "subtitles.jujutsumod.hairpin.bloom"
+  },
+  "hairpin.afterglow": {
+    "sounds": [
+      "jujutsumod:hairpin/afterglow"
+    ],
+    "subtitle": "subtitles.jujutsumod.hairpin.afterglow"
+  },
+  "projectjjk.snap": {
+    "sounds": [
+      "jujutsumod:projectjjk/snap"
+    ],
+    "subtitle": "subtitles.jujutsumod.projectjjk.snap"
+  },
+  "projectjjk.spell_shot": {
+    "sounds": [
+      "jujutsumod:projectjjk/spell_shot"
+    ],
+    "subtitle": "subtitles.jujutsumod.projectjjk.spell_shot"
+  },
+  "projectjjk.whoosh_hit": {
+    "sounds": [
+      "jujutsumod:projectjjk/whoosh_hit"
+    ],
+    "subtitle": "subtitles.jujutsumod.projectjjk.whoosh_hit"
+  },
+  "projectjjk.cinematic_whoosh": {
+    "sounds": [
+      "jujutsumod:projectjjk/cinematic_whoosh"
+    ],
+    "subtitle": "subtitles.jujutsumod.projectjjk.cinematic_whoosh"
+  },
+  "projectjjk.explode": {
+    "sounds": [
+      "jujutsumod:projectjjk/explode"
+    ],
+    "subtitle": "subtitles.jujutsumod.projectjjk.explode"
+  },
+  "projectjjk.implode": {
+    "sounds": [
+      "jujutsumod:projectjjk/implode"
+    ],
+    "subtitle": "subtitles.jujutsumod.projectjjk.implode"
+  },
+  "projectjjk.deep_explosion": {
+    "sounds": [
+      "jujutsumod:projectjjk/deep_explosion"
+    ],
+    "subtitle": "subtitles.jujutsumod.projectjjk.deep_explosion"
+  },
+  "projectjjk.black_flash_impact": {
+    "sounds": [
+      "jujutsumod:projectjjk/black_flash_impact"
+    ],
+    "subtitle": "subtitles.jujutsumod.projectjjk.black_flash_impact"
+  },
+  "projectjjk.black_flash_impact2": {
+    "sounds": [
+      "jujutsumod:projectjjk/black_flash_impact2"
+    ],
+    "subtitle": "subtitles.jujutsumod.projectjjk.black_flash_impact2"
+  },
+  "projectjjk.goo_foley": {
+    "sounds": [
+      "jujutsumod:projectjjk/goo_foley"
+    ],
+    "subtitle": "subtitles.jujutsumod.projectjjk.goo_foley"
+  },
+  "projectjjk.chime": {
+    "sounds": [
+      "jujutsumod:projectjjk/chime"
+    ]
+  },
+  "projectjjk.magic": {
+    "sounds": [
+      "jujutsumod:projectjjk/magic"
+    ]
+  },
+  "projectjjk.sizzle": {
+    "sounds": [
+      "jujutsumod:projectjjk/sizzle"
+    ]
+  },
+  "projectjjk.clap": {
+    "sounds": [
+      "jujutsumod:projectjjk/clap"
+    ]
+  },
+  "projectjjk.long_whoosh": {
+    "sounds": [
+      "jujutsumod:projectjjk/long_whoosh"
+    ]
+  },
+  "projectjjk.whoosh_vortex": {
+    "sounds": [
+      "jujutsumod:projectjjk/whoosh_vortex"
+    ]
+  },
+  "projectjjk.aec_boom": {
+    "sounds": [
+      "jujutsumod:projectjjk/aec_boom_01v1",
+      "jujutsumod:projectjjk/aec_boom_01v2"
+    ],
+    "subtitle": "subtitles.jujutsumod.projectjjk.aec_boom"
+  },
+  "nobara.mega_charge_riser": {
+    "sounds": [
+      "jujutsumod:nobara/mega_charge_riser"
+    ],
+    "subtitle": "subtitles.jujutsumod.nobara.mega_charge_riser"
+  },
+  "nobara.mega_launch_blast": {
+    "sounds": [
+      "jujutsumod:nobara/mega_launch_blast"
+    ],
+    "subtitle": "subtitles.jujutsumod.nobara.mega_launch_blast"
+  }
 }

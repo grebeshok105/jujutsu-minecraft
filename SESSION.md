@@ -1,51 +1,39 @@
-# Session Handoff - Character Skin Animation
+# Session Handoff - Nobara Target ESP, Mega Nail and R Hit Feel
 
 ## Active branch
 
-- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/character-skin-animation`
-- Branch: `codex/character-animation-overhaul`
-- Base: `ff2ebb2` (`codex/character-skin-animation`, stacked on PR #52)
-- Scope: replace the visible Nobara, Todo and Megumi player Geo models with ordinary Minecraft skins while retaining GeckoLib as the third-person animation runtime.
+- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/nobara-esp-meganail`
+- Branch: `feat/nobara-esp-and-mega-nail` (from `origin/main` at `2e16933`)
+- Scope: T3 feature — Nobara-personal target ESP over her embedded nails, directed Hairpin (R) hit-feel polish, and a new B ability "Mega Nail" replacing the old mass Hairpin.
+- Approved design: `docs/NOBARA_ESP_AND_MEGA_NAIL.md` (committed on this branch before implementation).
 
-## Completed commits
+## What changed
 
-- `c678f22` — design and implementation plan for the skin animation bridge
-- `0c4de1c` — RED contract test for adapters, rigs, vanilla hook and archive boundary
-- `c046cfd` — GeckoLib-to-vanilla skin animation bridge, vessel bindings, legacy player Geo archive and updated focused tests
-- `a3ce412` — current Codex and session handoff updates
-- `a014d28` — GeckoLib-compatible zero pivot/rotation defaults for every invisible skin rig and regression coverage
-- `4c9e4c6` — review fixes: GeckoLib state guard, quaternion pose composition, targeted restoration state, bridge behavior tests and Megumi head policy cleanup
-- `de5cd8a` — refresh the maintained Codex test-file metric after adding bridge coverage
-- `d06eaae` — provide player movement and sprint tickets before GeckoLib evaluates skin clips
-- `e00155f` — bind slim/classic skins, Todo's 1.15 body scale and dimensions/render hooks
-- `ed71068` — archive the superseded skin rigs and animation packs
-- `741e523` — replace third-person clips with skin-backed GeckoLib animation packs and add server-confirmed caster anchors
+- **Server**: `ProjectJjkNailEntity` synchronizes the owner UUID to clients (`DATA_OWNER_UUID`, `OPTIONAL_LIVING_ENTITY_REFERENCE`; `clientOwnerUuid()` reads it both sides). New `ProjectJjkMegaNailRuntime` (SECONDARY slot via `NobaraAbilityRouter`): resolves the aimed target, selects that target's embedded owned nails by `anchor().stableId()`, atomically discards them + consumes marks, then delivers one delayed piercing strike (6 ticks, damage/knockback formulas in `ProjectJjkNobaraProfile.MEGA_NAIL_*`, JUnit-covered by `ProjectJjkMegaNailMathTest`). The old mass-Hairpin/Enlarge pipeline was removed from `ProjectJjkRitualRuntime`; directed R is untouched mechanically.
+- **Client**: `NobaraEspState` (pure `aggregate()` over synced nail views, ClientTick every 2 ticks) + `NobaraEspRanks` (rank localization keys) feed billboard badges and accent pulses drawn by `ProjectJjkNailRenderer` — visible only to a local Nobara owner. R hit feel and Mega Nail visuals live in `NobaraVfxRecipes` (`nobara/mega_nail_strike` appended to LIVE; `nobara/enlarge` reused as the per-nail consume flash; `CASTER_MEGA_NAIL = 5` caster-action code — `CASTER_HAIRPIN_MASS = 2` retired).
+- **Docs**: MOC metrics (119/179/75 files, 23 Nobara VFX ids), `Nobara-combat-expansion.md`, `Nobara-runtime-flow.md` (B paragraph rewritten), `Nail-entity-lifecycle.md`, `VFX-core.md` (35 live ids), `Nail-rendering.md` (ESP), KNOWN_ISSUES E14 (tripwire map grew to five tracked renderer references).
 
-## Current implementation
+## Contract-test adjustments made during integration
 
-- Vanilla `PlayerRenderer` and `PlayerModel` remain responsible for visible player geometry, skin UVs, outer skin layers, armor, capes, elytra and held items.
-- `CharacterSkinAnimationMixin` applies a selected vessel's pose after vanilla `EntityModel.setupAnim`, wraps the vanilla render, and restores the seven bridge-owned `PlayerModel` parts in `finally`.
-- `CharacterSkinAnimationAdapter` uses GeckoLib `fillRenderState`, `GeoModel.handleAnimations` and invisible bone-only rigs under `geckolib/models/character_skin/`. It checks the runtime `GeoRenderState` augmentation, provides the live player's `VELOCITY` and `SPRINTING` tickets plus vessel-specific data before controller evaluation, composes converted parent-to-child transforms with quaternions in vanilla `ZYX` order, and remains fail-loud for malformed live rigs or clips after restoring the snapshot.
-- `CharacterSkinAnimationState` restores position, rotation, scale, visibility and `skipDraw` for root, body, head, both arms and both legs; executable tests cover restoration/idempotent close and the transform conversion/composition contract.
-- Every rig bone declares three-component zero `pivot` and `rotation` arrays because GeckoLib 5.2.2 reads both fields unconditionally during resource baking.
-- The live packs are newly authored for the invisible vanilla-skin rigs: Nobara has alternate idle/walk loops, a run loop, a three-clip melee sequence, ability and hammer clips; Todo has alternate idle/walk loops, a dedicated run, an attack trigger and a full-body `ability.boogie_woogie` clap with authored torso/head recoil; Megumi has a dedicated run, a restrained standing `combat_idle`, punch/punch/kick cycling and `summon_divine_dogs`.
-- Nobara, Todo and Megumi definitions provide their own adapters through `skinAnimation()`; NONE inherits the null adapter and remains ordinary vanilla.
-- Skin model variants are `NOBARA=slim` and `TODO/MEGUMI=wide`; Todo's runtime skin uses the complete classic four-pixel arm UV layout, and his `1.15f` body scale is applied only to dimensions and third-person rendering, never reach, damage or speed.
-- Megumi's per-player swing variant sequence is owned by `MegumiSkinAnimationAdapter`; each swing restarts its one-shot, while the short post-hit guard is emitted only when he is stationary so locomotion cannot become a hovering combat pose.
-- Megumi intentionally keeps procedural head-look disabled so his head follows the authored clip direction; the unused animatable-level head-look helper was removed.
-- Old visible player Geo Java classes, models, textures and the canceling dispatch mixin remain under `archive/character-player-gecko/`. The superseded skin rigs and packs remain under `archive/character-skin-animation/`; only the new `geckolib/models/character_skin` rigs and `geckolib/animations/{projectjjk,todo,megumi}` packs are runtime resources.
+- `VfxCompletenessTest` 34→35 live ids; `VfxCueTest` wire set +`nobara/mega_nail_strike`; `VfxRadiusContractTest` +"Nobara mega nail" presentation owner.
+- `ProjectJjkMegaNailRuntime.VFX_DELIVERY_RADIUS` is deliberately a **boxed `Double`** — the radius contract test reads delivery radii from bytecode field accesses, and a primitive compile-time constant is inlined by javac and invisible to it (same convention as `ProjectJjkRitualRuntime`).
+- `ProjectSanityTest`: per-nail contract retargeted to `ProjectJjkMegaNailRuntime`, kit preview asserts `ability.mega_nail`, finisher balance pins `DETONATE_DAMAGE_BASE = 3.0f`, snap-only marker is now `seed == null`, age-aware channel call count 42→47.
+- `SourceBoundaryTripwireTest#TRACKED_DEBT`: renderer entry grew to five references (see E14).
+- `NobaraEspRanksTest` asserts full `esp.jujutsumod.rank.*` localization keys.
 
 ## Verification
 
-- `./gradlew.bat testProjectSanity --no-daemon --max-workers=1 --no-watch-fs` — passed after adding explicit rig rotations.
-- `./gradlew.bat test --tests 'jujutsu.mod.vfx.VfxCueTest' --tests 'jujutsu.mod.client.vfx.VfxRadiusContractTest' --tests 'jujutsu.mod.client.vfx.VfxCompletenessTest' --no-daemon --max-workers=1 --no-watch-fs` — passed, including the new caster-action cue and 34-id recipe/radius contracts.
-- `./gradlew.bat test --tests 'jujutsu.mod.client.render.CharacterSkinAnimationPackTest' --no-daemon --max-workers=1 --no-watch-fs` — passed for all three rigs, clip sets, loop flags and trigger paths.
-- `./gradlew.bat compileClientJava --no-daemon --max-workers=1 --no-watch-fs` — passed after the controller/resource changes.
-- `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` — passed, including documentation audit, both source sets, JUnit, 31 verification JavaExec tasks and assertion checks.
-- `./gradlew.bat assemble --no-daemon --max-workers=1 --no-watch-fs` — pending for final jar packaging.
-- Interactive F5, idle/walk/run, vessel actions, held items, armor/cape visibility and first-person effects remain manual checks; no UI automation is used for this handoff.
+- `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` — **GREEN** (JUnit 200 tests, 31 verification JavaExec programs, documentation audit, assertion audit).
+- In-world behaviour (ESP readability, mega nail feel, R feel) still needs the manual client smoke — nothing in the suite constructs a `ServerLevel` (E1).
+- Two independent review passes (server / client) on PR #54 found one BLOCKER (ESP badge background vertices missing UV2 — client crash on first badge render), three MAJOR (pending strikes keyed by target only; raw-UUID stagger overload; accent pulse ignoring per-nail ownership) and minors — all fixed in `f73748f`, gate re-run green, jar rebuilt and redeployed (md5 `548d6587c8cb1d194822078a8a0a9d32`).
+- First manual smoke (2026-08-05) rejected three presentations: badge drew background without text, mega nail read as a bare explosion, trap had no visible presence. Fixed in `4374da4`: badge text rides `drawInBatch` background (vanilla nameplate path, hand-built quad deleted); Mega Nail v2 — real `ProjectJjkNailEntity` at a gather point, directed ENLARGE streams, 24-tick charge (`DATA_MEGA`/`DATA_MEGA_PROGRESS` synced, `megaRenderScale()` on the entity keeps the renderer tripwire at five), launch ×1.3 at the target's fresh position, 60-tick flight timeout, impact callbacks replace the PENDING scheduler; traps sync `DATA_TRAP` and render a persistent zone ring plus brighter placed/armed/collapse recipes. Offline caster no longer swallows the impact.
+
+## Status
+
+- **PR #54 is OPEN**: <https://github.com/grebeshok105/jujutsu-minecraft/pull/54> (base `main`), review summary posted as a PR comment.
+- Deployed jar in `D:/Games/instances/Jujutsu/mods/` is built from `71ef31c` (round-3: compact any-body trap, side ESP badge, physical mega shove, synthesized riser/blast audio), md5 `aec81a81b8ba4926280b72a904410b3f`.
 
 ## Next steps
 
-1. Build/publish the branch and open the stacked PR.
-2. Perform the remaining manual in-game visual smoke when a human-controlled client session is available.
+1. Manual in-game smoke round 4: trap corners ~2 blocks apart with a 2-block trigger ring that any mob (incl. golems) trips; mega B builds with riser audio + escalating shake for 1.2 s, launches with a jet blast, shoves golems; ESP badge sits to the target's right at chest height.
+2. Merge PR #54 after smoke sign-off (or fix what the smoke rejects).

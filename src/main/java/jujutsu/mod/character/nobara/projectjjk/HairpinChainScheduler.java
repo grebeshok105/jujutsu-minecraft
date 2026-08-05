@@ -17,9 +17,9 @@ public final class HairpinChainScheduler<C> {
 			Scheduled<C> scheduled = iterator.next();
 			HairpinChain.Step step = scheduled.chain().poll(gameTime, id -> resolver.resolve(scheduled.context(), id));
 			if (step.kind() == HairpinChain.StepKind.EXPLODE) {
-				exploder.explode(scheduled.context(), scheduled.chain().mode(), step.nailId(), step.finale(), gameTime);
+				exploder.explode(scheduled.context(), step.nailId(), step.finale(), gameTime);
 			} else if (step.kind() == HairpinChain.StepKind.COMPLETE) {
-				if (step.nailId() != null) finalizer.finish(scheduled.context(), scheduled.chain().mode(), step.nailId(), gameTime);
+				if (step.nailId() != null) finalizer.finish(scheduled.context(), step.nailId(), gameTime);
 				iterator.remove();
 			}
 		}
@@ -29,7 +29,7 @@ public final class HairpinChainScheduler<C> {
 	public int size() { return chains.size(); }
 
 	@FunctionalInterface public interface Resolver<C> { HairpinChain.Resolution resolve(C context, UUID nailId); }
-	@FunctionalInterface public interface Exploder<C> { void explode(C context, HairpinChain.Mode mode, UUID nailId, boolean finale, long gameTime); }
-	@FunctionalInterface public interface Finalizer<C> { void finish(C context, HairpinChain.Mode mode, UUID nailId, long gameTime); }
+	@FunctionalInterface public interface Exploder<C> { void explode(C context, UUID nailId, boolean finale, long gameTime); }
+	@FunctionalInterface public interface Finalizer<C> { void finish(C context, UUID nailId, long gameTime); }
 	private record Scheduled<C>(C context, HairpinChain chain) {}
 }

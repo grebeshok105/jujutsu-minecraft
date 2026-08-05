@@ -2,7 +2,7 @@
 
 Status: CURRENT
 
-ProjectJjkNailEntity moves through prepared, launched, and embedded states. Anchors may target an entity, block, or registered runtime object. Ordinary embedded nails carry owner id, anchor, depth 1..3, age, and synchronized render attachment data.
+ProjectJjkNailEntity moves through prepared, launched, and embedded states. Anchors may target an entity, block, or registered runtime object. Ordinary embedded nails carry owner id, anchor, depth 1..3, age, and synchronized render attachment data. The owner UUID is synchronized to clients through `DATA_OWNER_UUID` (`OPTIONAL_LIVING_ENTITY_REFERENCE`); `clientOwnerUuid()` reads it on both sides and feeds the client-only target ESP.
 
 ## Bounded lifecycle
 
@@ -12,7 +12,7 @@ ProjectJjkNailEntity moves through prepared, launched, and embedded states. Anch
 - EmbeddedNailRegistry indexes loaded non-trap nails by ServerLevel and owner UUID in insertion order.
 - The 31st nail discards the oldest tracked nail.
 - onRemoval and state transitions untrack the entity; server stop clears registry maps.
-- Hairpin R/B query the owner index instead of scanning level.getAllEntities().
+- Hairpin R queries the owner index instead of scanning level.getAllEntities(); the Mega Nail B selects nails by target bounding box + `anchor().stableId()` equality and atomically discards them at cast.
 
 ## Depth
 

@@ -176,6 +176,8 @@ One more limit was found on 2026-07-28 and is tracked separately as E15: a rule 
 
 `NobaraVfxIds` and `TodoVfxIds` sit in `jujutsu.mod.vfx`, which is the `<Character>VfxIds` shape AGENTS.md prescribes, so those two are deliberate. `NobaraHudState` in `jujutsu.mod.client.fx` and `ProjectJjkNailRenderer` in `jujutsu.mod.client.render` are not: both are vessel code in a shared package while `client.render.nobara` already exists. `VesselBoundaryTest#vesselNamedClassesStayInTheirVesselPackage` pins the set of four, so moving either one fails the test and forces this entry to shrink with it.
 
+Widened 2026-08-05 by the target ESP: `ProjectJjkNailRenderer` now also references `NobaraEspState` and `NobaraEspRanks` (both correctly under `client.character.nobara`), so the `SourceBoundaryTripwireTest#TRACKED_DEBT` entry for that file grew from three named references to five. The class count above is unchanged — the ESP classes live in the right package; the renderer they feed is still the one mis-homed file. Moving the renderer into `client.render.nobara` shrinks both this entry and the tripwire map together.
+
 ### E15 — Test-suite defects and cleanup are tracked in PR #17
 
 Opened 2026-07-28. Documentation only so far; nothing has been fixed yet.

@@ -30,15 +30,26 @@ public final class ProjectJjkNobaraProfileTest {
 
 	private static void assertNewHairpinBalance() {
 		assert ProjectJjkNobaraProfile.HAIRPIN_DIRECTED_DAMAGE_PER_NAIL == 5.0f;
-		assert ProjectJjkNobaraProfile.HAIRPIN_BOOM_DAMAGE_PER_NAIL == 3.0f;
 		assert ProjectJjkNobaraProfile.HAIRPIN_DIRECTED_CHAIN_RADIUS == 10.0;
 		assert ProjectJjkNobaraProfile.HAIRPIN_DIRECTED_CHAIN_DELAY_TICKS == 2;
-		assert ProjectJjkNobaraProfile.HAIRPIN_MASS_CHAIN_DELAY_TICKS == 3;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_DAMAGE_PER_NAIL == ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DAMAGE_PER_NAIL;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_DAMAGE_CAP == 42.0f;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_CHARGE_TICKS == 24;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_FLIGHT_TIMEOUT_TICKS == 60;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_SPEED_MULTIPLIER == 1.3;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_SCALE_START == 0.6f;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_SCALE_END == 2.6f;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_KNOCKBACK_BASE == ProjectJjkNobaraProfile.HAIRPIN_KNOCKBACK;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_KNOCKBACK_PER_NAIL == ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_KNOCKBACK;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_KNOCKBACK_CAP == 3.0f;
 		assert ProjectJjkNobaraProfile.HAIRPIN_BLOCK_EXPLOSION_POWER == 1.5f;
 		assert ProjectJjkNobaraProfile.nailDepthMultiplier(1) == 1.0f;
 		assert ProjectJjkNobaraProfile.nailDepthMultiplier(2) == 1.35f;
 		assert ProjectJjkNobaraProfile.nailDepthMultiplier(3) == 1.75f;
-		assert ProjectJjkNobaraProfile.NAIL_TRAP_RADIUS == 6.0;
+		assert ProjectJjkNobaraProfile.NAIL_TRAP_RADIUS == 1.15 : "corner nails sit ~2 blocks apart (smoke round 3)";
+		assert ProjectJjkNobaraProfile.NAIL_TRAP_TRIGGER_RADIUS == 2.0;
+		assert ProjectJjkNobaraProfile.NAIL_TRAP_TRIGGER_RADIUS > ProjectJjkNobaraProfile.NAIL_TRAP_RADIUS
+				: "trigger circle must cover the corner nails";
 		assert ProjectJjkNobaraProfile.NAIL_TRAP_DAMAGE == 15.0f;
 		assert ProjectJjkNobaraProfile.RESONANT_MOMENTUM_DURATION_TICKS == 1200;
 		assert ProjectJjkNobaraProfile.RESONANT_MOMENTUM_MULTIPLIER == 1.15f;
@@ -141,7 +152,6 @@ public final class ProjectJjkNobaraProfileTest {
 
 	private static void assertCombatExpansionBalanceIsCentralized() {
 		assert ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DAMAGE_PER_NAIL == 4.0f;
-		assert ProjectJjkNobaraProfile.HAIRPIN_BOOM_DAMAGE_PER_NAIL == 3.0f;
 		assert ProjectJjkNobaraProfile.RESONANCE_DAMAGE == 28.0f;
 		assert ProjectJjkNobaraProfile.SELF_RESONANCE_SELF_DAMAGE == 6.0f;
 		assert ProjectJjkNobaraProfile.SELF_RESONANCE_LINKED_DAMAGE == 18.0f;

@@ -7,7 +7,7 @@ import java.nio.file.Path;
 
 public final class NailTrapTest {
 	public static void main(String[] args) {
-		testTriangleContainmentIncludesEdges();
+		testTriggerCircleContainment();
 		testExpiryPausesWhileUnavailable();
 		testSingleTriggerAndCollapseTiming();
 		testDeterministicTargetSelection();
@@ -53,12 +53,15 @@ public final class NailTrapTest {
 		}
 	}
 
-	private static void testTriangleContainmentIncludesEdges() {
+	private static void testTriggerCircleContainment() {
 		NailTrap trap = trap();
+		double r = ProjectJjkNobaraProfile.NAIL_TRAP_TRIGGER_RADIUS;
 		assert trap.contains(0.0, 0.0, 0.0);
-		assert trap.contains(0.0, 0.0, 5.9);
-		assert trap.contains(0.0, 0.0, 6.0) : "triangle vertices must count as inside";
-		assert !trap.contains(0.0, 0.0, 6.01);
+		assert trap.contains(0.0, 0.0, r - 0.01);
+		assert trap.contains(0.0, 0.0, r) : "the trigger boundary must count as inside";
+		assert !trap.contains(0.0, 0.0, r + 0.01);
+		assert trap.contains(0.0, 0.0, ProjectJjkNobaraProfile.NAIL_TRAP_RADIUS)
+				: "corner nails must stand inside the trigger circle";
 		assert !trap.contains(0.0, 3.1, 0.0) : "targets above the prism must not trigger it";
 	}
 

@@ -35,7 +35,7 @@
   "message.jujutsumod.projectjjk.resonance.wrong_dimension": "The linked target is in another dimension.",
   "screen.jujutsumod.character_select": "Character",
   "screen.jujutsumod.character_select.ability.hairpin_enlarge": "Enlarge",
-  "screen.jujutsumod.character_select.ability.hairpin_explosion": "Boom",
+  "screen.jujutsumod.character_select.ability.mega_nail": "Mega Nail",
   "screen.jujutsumod.character_select.ability.fake_clap": "Feint",
   "screen.jujutsumod.character_select.ability.hammer": "Hammer",
   "screen.jujutsumod.character_select.ability.nail_trap": "Nail Trap",
@@ -107,5 +107,12 @@
   "message.jujutsumod.megumi.dogs.no_room": "The Divine Dogs need safe ground nearby.",
   "message.jujutsumod.megumi.dogs.none_out": "No Divine Dogs are summoned.",
   "entity.jujutsumod.megumi_divine_dog": "Divine Dog",
-  "hud.jujutsumod.megumi.divine_dogs": "Divine Dogs"
+  "hud.jujutsumod.megumi.divine_dogs": "Divine Dogs",
+  "esp.jujutsumod.rank.special_grade": "Special Grade",
+  "esp.jujutsumod.rank.rank1": "Grade 1",
+  "esp.jujutsumod.rank.rank2": "Grade 2",
+  "esp.jujutsumod.rank.rank3": "Grade 3",
+  "esp.jujutsumod.rank.civilian": "Civilian",
+  "subtitles.jujutsumod.nobara.mega_charge_riser": "Mega nail charges",
+  "subtitles.jujutsumod.nobara.mega_launch_blast": "Mega nail launches"
 }

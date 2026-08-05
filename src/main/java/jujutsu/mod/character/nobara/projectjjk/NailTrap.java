@@ -9,7 +9,6 @@ import java.util.UUID;
 
 /** Pure, server-owned lifecycle and geometry for one triangular nail trap. */
 public final class NailTrap {
-	private static final double EDGE_EPSILON = 1.0E-7;
 
 	private final UUID ownerId;
 	private final String dimensionId;
@@ -69,15 +68,12 @@ public final class NailTrap {
 
 	public boolean contains(double x, double y, double z) {
 		if (y < center.y() - 0.5 || y > center.y() + ProjectJjkNobaraProfile.NAIL_TRAP_PRISM_HEIGHT) return false;
-		Point a = vertices.get(0);
-		Point b = vertices.get(1);
-		Point c = vertices.get(2);
-		double d1 = sign(x, z, a, b);
-		double d2 = sign(x, z, b, c);
-		double d3 = sign(x, z, c, a);
-		boolean negative = d1 < -EDGE_EPSILON || d2 < -EDGE_EPSILON || d3 < -EDGE_EPSILON;
-		boolean positive = d1 > EDGE_EPSILON || d2 > EDGE_EPSILON || d3 > EDGE_EPSILON;
-		return !(negative && positive);
+		// Trigger volume is a cylinder around the centre, deliberately wider than the corner-nail
+		// triangle: with ~2-block nail spacing a point-in-triangle test would be a needle's eye.
+		double dx = x - center.x();
+		double dz = z - center.z();
+		double r = ProjectJjkNobaraProfile.NAIL_TRAP_TRIGGER_RADIUS;
+		return dx * dx + dz * dz <= r * r;
 	}
 
 	public static Optional<UUID> selectTarget(List<TargetCandidate> candidates) {
@@ -86,9 +82,6 @@ public final class NailTrap {
 				.map(TargetCandidate::targetId);
 	}
 
-	private static double sign(double x, double z, Point a, Point b) {
-		return (x - b.x()) * (a.z() - b.z()) - (a.x() - b.x()) * (z - b.z());
-	}
 
 	public record Point(double x, double y, double z) {}
 	public record TargetCandidate(UUID targetId, double distanceSqr) {}

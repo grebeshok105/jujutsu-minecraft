@@ -15,6 +15,7 @@ import jujutsu.mod.client.render.nobara.doll.ProjectJjkStrawDollRenderer;
 import jujutsu.mod.client.render.nobara.NobaraPlayerGeoAnimatable;
 import jujutsu.mod.client.render.nobara.NobaraSkinAnimationAdapter;
 import jujutsu.mod.client.vfx.nobara.NobaraVfxRecipes;
+import jujutsu.mod.client.character.nobara.NobaraEspState;
 import jujutsu.mod.registry.JujutsuEntities;
 
 /** Nobara on the client: orange shell, her own player model, nails and a straw doll to draw. */
@@ -47,7 +48,7 @@ public final class NobaraClientDefinition implements CharacterClientDefinition {
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.LINK,
 								"screen.jujutsumod.character_select.ability.resonance", "⇧R"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOOM,
-								"screen.jujutsumod.character_select.ability.hairpin_explosion", "B"),
+								"screen.jujutsumod.character_select.ability.mega_nail", "B"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOLT,
 								"screen.jujutsumod.character_select.ability.nail_trap", "⇧B"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.FIST,
@@ -82,6 +83,7 @@ public final class NobaraClientDefinition implements CharacterClientDefinition {
 		ProjectJjkStrawDollItem.setRendererFactory(ProjectJjkStrawDollRenderer::provider);
 		EntityRendererRegistry.register(JujutsuEntities.PROJECTJJK_NAIL, ProjectJjkNailRenderer::new);
 		NobaraVfxRecipes.register();
+		NobaraEspState.register();
 	}
 
 	@Override

@@ -2,7 +2,6 @@ package jujutsu.mod.character.nobara.projectjjk;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -16,7 +15,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -46,7 +44,6 @@ import jujutsu.mod.vfx.VfxCues;
 public final class ProjectJjkRitualRuntime {
 	private static final Double VFX_DELIVERY_RADIUS = 64.0;
 	private static final HairpinChainScheduler<ChainContext> HAIRPIN_CHAINS = new HairpinChainScheduler<>();
-	private static final List<PendingEnlarge> PENDING_ENLARGES = new ArrayList<>();
 	private static final RandomSource RANDOM = RandomSource.create();
 	private static final DustParticleOptions PROJECTJJK_CYAN = new DustParticleOptions(0x2CE8F5, 1.15f);
 	private static final String MARK_GLOW_TEAM_NAME = "jjk_ce_mark";
@@ -63,7 +60,6 @@ public final class ProjectJjkRitualRuntime {
 		ServerTickEvents.END_SERVER_TICK.register(ProjectJjkRitualRuntime::onServerTick);
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			HAIRPIN_CHAINS.clear();
-			PENDING_ENLARGES.clear();
 			restoreAllGlowTeams(server.getScoreboard());
 		});
 	}
@@ -98,33 +94,6 @@ public final class ProjectJjkRitualRuntime {
 
 	// -- Hairpin mark detonation ----------------------------------------------------------------
 
-	/** ProjectJJK Hairpin Enlargement: snap, wait one second, then crush the looked-at marked target. */
-	public static boolean tryEnlargeMarkedTarget(ServerPlayer caster) {
-		ServerLevel level = caster.level();
-		long gameTime = level.getGameTime();
-		TargetResolver.Result result = TargetResolver.resolve(level, caster, ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_RANGE);
-		if (result.mode() != TargetResolver.Mode.ENTITY || result.entityId().isEmpty()) {
-			playCasterSnap(level, caster, 1, gameTime);
-			return true;
-		}
-		Entity entity = level.getEntity(result.entityId().get());
-		if (!(entity instanceof LivingEntity target) || !target.isAlive()) {
-			playCasterSnap(level, caster, 1, gameTime);
-			return true;
-		}
-		List<UUID> nails = level.getEntitiesOfClass(ProjectJjkNailEntity.class, target.getBoundingBox().inflate(2.0), nail ->
-				nail.isEmbedded() && nail.isOwnedBy(caster.getUUID()) && target.getUUID().equals(nail.anchor().stableId()))
-				.stream().map(Entity::getUUID).toList();
-		if (nails.isEmpty()) {
-			playCasterSnap(level, caster, 1, gameTime);
-			return true;
-		}
-
-		playCasterSnap(level, caster, nails.size(), gameTime);
-		PENDING_ENLARGES.add(new PendingEnlarge(level, caster.getUUID(), target.getUUID(), target.getId(), gameTime + ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DELAY_TICKS, nails));
-		return true;
-	}
-
 	/** Starts R from the aimed nail/target and chains through owned nails within ten blocks. */
 	public static boolean startDirectedHairpin(ServerPlayer caster) {
 		ServerLevel level = caster.level();
@@ -139,27 +108,14 @@ public final class ProjectJjkRitualRuntime {
 				.filter(anchor -> anchor.snapshotPosition().distanceToSqr(seed.snapshotPosition())
 						<= ProjectJjkNobaraProfile.HAIRPIN_DIRECTED_CHAIN_RADIUS * ProjectJjkNobaraProfile.HAIRPIN_DIRECTED_CHAIN_RADIUS)
 				.toList();
-		return scheduleHairpin(caster, HairpinChain.Mode.DIRECTED, seed, anchors,
+		return scheduleHairpin(caster, seed, anchors,
 				ProjectJjkNobaraProfile.HAIRPIN_DIRECTED_CHAIN_DELAY_TICKS, gameTime);
 	}
 
-	/** Starts B over every currently loaded owned embedded nail. */
-	public static boolean startMassHairpin(ServerPlayer caster) {
-		ServerLevel level = caster.level();
-		long gameTime = level.getGameTime();
-		List<ExplosionAnchor> anchors = collectAllLoadedOwnedNails(level, caster);
-		if (anchors.isEmpty()) {
-			playCasterSnap(level, caster, 1, gameTime);
-			return true;
-		}
-		return scheduleHairpin(caster, HairpinChain.Mode.MASS, null, anchors,
-				ProjectJjkNobaraProfile.HAIRPIN_MASS_CHAIN_DELAY_TICKS, gameTime);
-	}
-
-	private static boolean scheduleHairpin(ServerPlayer caster, HairpinChain.Mode mode, ExplosionAnchor directedSeed, List<ExplosionAnchor> anchors, int cadence, long gameTime) {
+	private static boolean scheduleHairpin(ServerPlayer caster, ExplosionAnchor directedSeed, List<ExplosionAnchor> anchors, int cadence, long gameTime) {
 		ServerLevel level = caster.level();
 		Vec3 start = directedSeed == null ? caster.position() : directedSeed.snapshotPosition();
-		List<ExplosionAnchor> ordered = orderedAnchors(mode, directedSeed, start, anchors);
+		List<ExplosionAnchor> ordered = orderedAnchors(directedSeed, start, anchors);
 		for (ExplosionAnchor anchor : anchors) {
 			spawnProjectJjkPrime(level, anchor.snapshotPosition());
 		}
@@ -168,24 +124,20 @@ public final class ProjectJjkRitualRuntime {
 				cue(level, NobaraVfxIds.DETONATE, anchors.size(), caster.getEyePosition(), gameTime, caster));
 		JujutsuNetworking.broadcastVfxCue(level, caster.position(), VFX_DELIVERY_RADIUS,
 				cue(level, NobaraVfxIds.CASTER_ACTION,
-						mode == HairpinChain.Mode.DIRECTED
-								? NobaraVfxIds.CASTER_HAIRPIN_DIRECTED
-								: NobaraVfxIds.CASTER_HAIRPIN_MASS,
+						NobaraVfxIds.CASTER_HAIRPIN_DIRECTED,
 						caster.position(), gameTime, caster));
 		Map<UUID, ExplosionAnchor> byId = ordered.stream().collect(java.util.stream.Collectors.toMap(ExplosionAnchor::nailId, anchor -> anchor));
-		HairpinChain chain = HairpinChain.start(mode, ordered.stream().map(ExplosionAnchor::nailId).toList(),
+		HairpinChain chain = HairpinChain.start(ordered.stream().map(ExplosionAnchor::nailId).toList(),
 				gameTime + ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_START_DELAY_TICKS, cadence);
 		HAIRPIN_CHAINS.schedule(new ChainContext(level, caster.getUUID(), byId), chain);
 		return true;
 	}
 
-	private static List<ExplosionAnchor> orderedAnchors(HairpinChain.Mode mode, ExplosionAnchor seed, Vec3 start, List<ExplosionAnchor> input) {
+	private static List<ExplosionAnchor> orderedAnchors(ExplosionAnchor seed, Vec3 start, List<ExplosionAnchor> input) {
 		Map<UUID, ExplosionAnchor> byId = input.stream().collect(java.util.stream.Collectors.toMap(ExplosionAnchor::nailId, anchor -> anchor));
 		List<HairpinChainOrder.Candidate> candidates = input.stream()
 				.map(anchor -> new HairpinChainOrder.Candidate(anchor.nailId(), anchor.snapshotPosition())).toList();
-		List<HairpinChainOrder.Candidate> ordered = mode == HairpinChain.Mode.DIRECTED
-				? HairpinChainOrder.directed(seed.nailId(), seed.snapshotPosition(), candidates)
-				: HairpinChainOrder.nearestNeighbor(start, candidates);
+		List<HairpinChainOrder.Candidate> ordered = HairpinChainOrder.directed(seed.nailId(), seed.snapshotPosition(), candidates);
 		return ordered.stream().map(candidate -> byId.get(candidate.nailId())).toList();
 	}
 
@@ -222,51 +174,8 @@ public final class ProjectJjkRitualRuntime {
 	// -- Helpers --------------------------------------------------------------------------------
 
 	private static void tickHairpinTasks(long gameTime) {
-		for (Iterator<PendingEnlarge> iterator = PENDING_ENLARGES.iterator(); iterator.hasNext();) {
-			PendingEnlarge pending = iterator.next();
-			if (pending.dueGameTime() > gameTime) {
-				continue;
-			}
-			if (resolvePendingEnlarge(pending, gameTime) != EnlargeOutcome.RETRY) iterator.remove();
-		}
 		HAIRPIN_CHAINS.tick(gameTime, ProjectJjkRitualRuntime::resolveChainNail,
 				ProjectJjkRitualRuntime::explodeChainNail, ProjectJjkRitualRuntime::finishHairpinChain);
-	}
-
-	private static EnlargeOutcome resolvePendingEnlarge(PendingEnlarge pending, long gameTime) {
-		ServerLevel level = pending.level();
-		ServerPlayer caster = owner(level, pending.casterId());
-		Entity entity = level.getEntity(pending.targetEntityId());
-		LivingEntity target = entity instanceof LivingEntity candidate && candidate.isAlive() && candidate.getUUID().equals(pending.targetId()) ? candidate : null;
-		if (target == null) {
-			Entity byUuid = level.getEntity(pending.targetId());
-			if (!(byUuid instanceof LivingEntity living) || !living.isAlive()) return NailAnchorLifecycle.isConfirmedRemoved(pending.targetId()) ? EnlargeOutcome.TERMINAL : EnlargeOutcome.RETRY;
-			target = living;
-		}
-		DamageSource source = NobaraDamageSources.hairpin(level, caster);
-		int activated = 0;
-		for (Iterator<UUID> iterator = pending.nailIds().iterator(); iterator.hasNext();) {
-			UUID nailId = iterator.next();
-			Entity entityNail = level.getEntity(nailId);
-			if (!(entityNail instanceof ProjectJjkNailEntity nail)) { if (NailAnchorLifecycle.isConfirmedRemoved(nailId)) iterator.remove(); continue; }
-			if (!nail.isOwnedBy(pending.casterId()) || !target.getUUID().equals(nail.anchor().stableId())) { iterator.remove(); continue; }
-			target.hurtServer(level, source, ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DAMAGE_PER_NAIL);
-			activated++;
-			Vec3 nailAt = nail.position();
-			broadcast(level, nailAt, NobaraVfxIds.ENLARGE, 1, nailAt, gameTime);
-			nail.discard();
-			iterator.remove();
-		}
-		if (!pending.nailIds().isEmpty()) return EnlargeOutcome.RETRY;
-		if (activated == 0) return EnlargeOutcome.TERMINAL;
-		ProjectJjkNailMarks.consume(target.getUUID(), gameTime);
-		Vec3 at = target.position().add(0.0, target.getBbHeight() * 0.56, 0.0);
-		spawnProjectJjkEnlarge(level, at, activated);
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 0.25f, 2.0f);
-		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, SoundSource.PLAYERS, 2.0f, 2.0f);
-		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_GOO_FOLEY, SoundSource.PLAYERS, 0.25f, 1.5f);
-		clearGlowingMark(target);
-		return EnlargeOutcome.SUCCESS;
 	}
 
 	private static HairpinChain.Resolution resolveChainNail(ChainContext context, UUID nailId) {
@@ -279,7 +188,7 @@ public final class ProjectJjkRitualRuntime {
 				? HairpinChain.Resolution.CONFIRMED_REMOVED : HairpinChain.Resolution.TEMPORARILY_UNAVAILABLE;
 	}
 
-	private static void explodeChainNail(ChainContext context, HairpinChain.Mode mode, UUID nailId, boolean finale, long gameTime) {
+	private static void explodeChainNail(ChainContext context, UUID nailId, boolean finale, long gameTime) {
 		ServerLevel level = context.level();
 		Entity entity = level.getEntity(nailId);
 		if (!(entity instanceof ProjectJjkNailEntity nail) || !nail.isOwnedBy(context.casterId())) return;
@@ -290,10 +199,7 @@ public final class ProjectJjkRitualRuntime {
 		int depth = nail.embedDepthLevel();
 		NailAnchor.Kind anchorKind = nail.anchor().kind();
 		DamageSource source = NobaraDamageSources.hairpin(level, caster);
-		float baseDamage = mode == HairpinChain.Mode.DIRECTED
-				? ProjectJjkNobaraProfile.HAIRPIN_DIRECTED_DAMAGE_PER_NAIL
-				: ProjectJjkNobaraProfile.HAIRPIN_BOOM_DAMAGE_PER_NAIL;
-		float damage = baseDamage * depthMultiplier * ResonantMomentum.damageMultiplier(caster);
+		float damage = ProjectJjkNobaraProfile.HAIRPIN_DIRECTED_DAMAGE_PER_NAIL * depthMultiplier * ResonantMomentum.damageMultiplier(caster);
 		AABB blast = new AABB(at, at).inflate(ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_RADIUS);
 		for (Entity victim : level.getEntitiesOfClass(Entity.class, blast, e -> e instanceof LivingEntity living && living.isAlive())) {
 			if (caster != null && victim.getUUID().equals(caster.getUUID())) {
@@ -305,7 +211,7 @@ public final class ProjectJjkRitualRuntime {
 				living.knockback(ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_KNOCKBACK, -push.x, -push.z);
 			}
 		}
-		if (mode == HairpinChain.Mode.DIRECTED && anchorKind == NailAnchor.Kind.BLOCK) {
+		if (anchorKind == NailAnchor.Kind.BLOCK) {
 			level.explode(caster, level.damageSources().explosion(caster, caster), BLOCK_ONLY_EXPLOSION, at,
 					ProjectJjkNobaraProfile.HAIRPIN_BLOCK_EXPLOSION_POWER, false, Level.ExplosionInteraction.BLOCK);
 		}
@@ -317,7 +223,7 @@ public final class ProjectJjkRitualRuntime {
 		broadcast(level, at, NobaraVfxIds.EXPLOSION, NobaraVfxIds.hairpinExplosionIntensity(depth, finale), at, gameTime);
 	}
 
-	private static void finishHairpinChain(ChainContext context, HairpinChain.Mode mode, UUID lastSuccessfulId, long gameTime) {
+	private static void finishHairpinChain(ChainContext context, UUID lastSuccessfulId, long gameTime) {
 		ExplosionAnchor anchor = context.anchors().get(lastSuccessfulId);
 		if (anchor == null) return;
 		Vec3 at = anchor.snapshotPosition();
@@ -346,16 +252,6 @@ public final class ProjectJjkRitualRuntime {
 		level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, at.x, at.y, at.z, 4 + marks, 0.18, 0.16, 0.18, 0.02);
 		level.sendParticles(JujutsuParticles.HAIRPIN_SPARK, at.x, at.y, at.z, 12 + marks * 3, 0.34, 0.26, 0.34, 0.18);
 		level.sendParticles(JujutsuParticles.HAIRPIN_WARN_EDGE, at.x, at.y + 0.1, at.z, 6, 0.28, 0.14, 0.28, 0.04);
-	}
-
-	private static void spawnProjectJjkEnlarge(ServerLevel level, Vec3 at, int marks) {
-		level.sendParticles(ParticleTypes.FLASH, at.x, at.y, at.z, 3, 0.12, 0.12, 0.12, 0.0);
-		level.sendParticles(PROJECTJJK_CYAN, at.x, at.y + 0.15, at.z, 28 + marks * 7, 0.7, 0.58, 0.7, 0.18);
-		level.sendParticles(ParticleTypes.DAMAGE_INDICATOR, at.x, at.y, at.z, 10, 0.18, 0.24, 0.18, 0.04);
-		level.sendParticles(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, at.x, at.y, at.z, 12 + marks * 2, 0.22, 0.3, 0.22, 0.06);
-		level.sendParticles(JujutsuParticles.HAIRPIN_SNAP_CRACK, at.x, at.y, at.z, 8, 0.18, 0.18, 0.18, 0.06);
-		level.sendParticles(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, at.x, at.y, at.z, 16, 0.34, 0.28, 0.34, 0.24);
-		level.sendParticles(JujutsuParticles.HAIRPIN_BURST_RESIDUE, at.x, at.y, at.z, 18, 0.38, 0.34, 0.38, 0.16);
 	}
 
 	private static ServerPlayer owner(ServerLevel level, UUID ownerUuid) {
@@ -482,11 +378,6 @@ public final class ProjectJjkRitualRuntime {
 
 	private static Vec3 safeDirection(Vec3 vector) {
 		return vector.lengthSqr() < 1.0E-5 ? new Vec3(0.0, 0.0, 1.0) : vector.normalize();
-	}
-
-	private enum EnlargeOutcome { SUCCESS, RETRY, TERMINAL }
-	private record PendingEnlarge(ServerLevel level, UUID casterId, UUID targetId, int targetEntityId, long dueGameTime, List<UUID> nailIds) {
-		private PendingEnlarge { nailIds = new ArrayList<>(nailIds); }
 	}
 
 	private record MarkGlowState(String scoreboardName, String previousTeamName) {}

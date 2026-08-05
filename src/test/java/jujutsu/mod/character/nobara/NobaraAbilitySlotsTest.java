@@ -106,7 +106,7 @@ public final class NobaraAbilitySlotsTest {
 		Slot[] map = {
 				new Slot(CharacterAbility.PRIMARY, "ProjectJjkRitualRuntime.startDirectedHairpin(nobara)"),
 				new Slot(CharacterAbility.PRIMARY_SNEAK, "SelfResonanceRuntime.tryCast(nobara)"),
-				new Slot(CharacterAbility.SECONDARY, "ProjectJjkRitualRuntime.startMassHairpin(nobara)"),
+				new Slot(CharacterAbility.SECONDARY, "ProjectJjkMegaNailRuntime.start(nobara)"),
 				new Slot(CharacterAbility.SECONDARY_SNEAK, "NailTrapRuntime.tryPlace(nobara)"),
 				new Slot(CharacterAbility.ATTACK_CONTEXT, "NobaraHammerCombatRuntime.handleInput(nobara)"),
 		};
