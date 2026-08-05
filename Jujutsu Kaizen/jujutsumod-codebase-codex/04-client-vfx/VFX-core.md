@@ -61,10 +61,12 @@ Each vessel registers its own recipe pack from `CharacterClientDefinition.regist
 
 VfxDirector owns recipe registration, cue age/expiry, world identity, disconnect cleanup, render callbacks, and seven live channels: world, HUD, camera, first-person, particles, sound, and post-process. It does not retain a director-side collection of recipe instances: an accepted cue creates its instance, rejects expiry before start, computes late-cue age, and starts exactly once. After start, retained state belongs to the concrete channels, while level change and disconnect cleanup clear those channel owners. The removed size-64 bookkeeping cap never limited visible effects; the real world-render cap remains `VfxWorldChannel.MAX_IMPACT_FLASHES = 48`. `VfxTimeChannel` was removed because no production consumer applied its stored scale; client-global slow motion is not a VFX Core feature. Resonance's server-global hit-stop remains a separate accepted gameplay/presentation decision through `ServerTimeDilation`. Unknown ids are logged once and ignored.
 
-NobaraVfxIds defines 22 live ids after four dead ids and their aliases were removed; the new
-`nobara/caster_action` id is appended for server-confirmed caster animation anchors. TodoVfxIds defines
-seven live ids. MegumiVfxIds defines five Divine Dog ids. Across the three owners, 34 declared live ids
-remain; existing wire strings stay stable and the new caster-action string is explicitly covered by
+NobaraVfxIds defines 23 live ids: four dead ids and their aliases were removed, `nobara/caster_action`
+was appended for server-confirmed caster animation anchors, and `nobara/mega_nail_strike` was appended
+for the Mega Nail terminal tracer. The `nobara/enlarge` id stays live as the Mega Nail per-nail consume
+flash after the standalone Enlarge mechanic was removed. TodoVfxIds defines
+seven live ids. MegumiVfxIds defines five Divine Dog ids. Across the three owners, 35 declared live ids
+remain; existing wire strings stay stable and the new strings are explicitly covered by
 the cue test. Every owner exposes explicit `LIVE` and `PLANNED` sets; `PLANNED` is currently empty,
 and every live id must have exactly one recipe plus a production emitter reference. Recipe completeness
 calls the real three recipe packs against the director registry, whose duplicate registration remains a
