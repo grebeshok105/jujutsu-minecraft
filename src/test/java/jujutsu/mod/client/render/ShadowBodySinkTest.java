@@ -31,7 +31,7 @@ class ShadowBodySinkTest {
 
 	@Test
 	void sinkProgressStartsAtZeroHitsHalfThenFullAndStaysSunk() {
-		ShadowBodySink.beginSink(100, 1_000L);
+		ShadowBodySink.beginSink(100, 1_000L, SINK_TICKS);
 
 		assertEquals(0.0f, ShadowBodySink.sinkProgress(100, 1_000L), EPS, "the dive starts at the top");
 		assertEquals(0.5f, ShadowBodySink.sinkProgress(100, 1_000L + SINK_TICKS / 2), EPS,
@@ -46,7 +46,7 @@ class ShadowBodySinkTest {
 
 	@Test
 	void completeSinkHoldsTheBodyUnderAndReArmsIdempotently() {
-		ShadowBodySink.beginSink(200, 0L);
+		ShadowBodySink.beginSink(200, 0L, SINK_TICKS);
 		ShadowBodySink.completeSink(200);
 
 		assertEquals(1.0f, ShadowBodySink.sinkProgress(200, 999L), EPS, "the hold reports fully under");
@@ -62,9 +62,9 @@ class ShadowBodySinkTest {
 
 	@Test
 	void emergeProgressFallsFromOneToZeroThenExpires() {
-		ShadowBodySink.beginSink(300, 0L);
+		ShadowBodySink.beginSink(300, 0L, SINK_TICKS);
 		ShadowBodySink.completeSink(300);
-		ShadowBodySink.beginEmerge(300, 2_000L);
+		ShadowBodySink.beginEmerge(300, 2_000L, EMERGE_TICKS);
 
 		assertEquals(1.0f, ShadowBodySink.emergeProgress(300, 2_000L), EPS, "the rise starts fully under");
 		assertEquals(0.5f, ShadowBodySink.emergeProgress(300, 2_000L + EMERGE_TICKS / 2), EPS,
@@ -81,7 +81,7 @@ class ShadowBodySinkTest {
 
 	@Test
 	void sinkWindowExpiresFailOpenWhenTheFirstRippleNeverArrives() {
-		ShadowBodySink.beginSink(400, 0L);
+		ShadowBodySink.beginSink(400, 0L, SINK_TICKS);
 
 		clock.addAndGet(((long) SINK_TICKS + 8L) * 50L - 1L);
 		assertEquals(1.0f, ShadowBodySink.sinkProgress(400, 100L), EPS, "still inside the sink TTL");
@@ -93,7 +93,7 @@ class ShadowBodySinkTest {
 
 	@Test
 	void resetDropsTheEntryImmediately() {
-		ShadowBodySink.beginSink(500, 0L);
+		ShadowBodySink.beginSink(500, 0L, SINK_TICKS);
 		ShadowBodySink.reset(500);
 
 		assertEquals(-1.0f, ShadowBodySink.sinkProgress(500, 0L), EPS);
@@ -102,7 +102,7 @@ class ShadowBodySinkTest {
 
 	@Test
 	void emergeWithoutAPriorSinkIsIgnored() {
-		ShadowBodySink.beginEmerge(600, 0L);
+		ShadowBodySink.beginEmerge(600, 0L, EMERGE_TICKS);
 
 		assertEquals(-1.0f, ShadowBodySink.emergeProgress(600, 0L), EPS,
 				"nothing sunk on this client, so there is nothing to rise");
@@ -111,9 +111,9 @@ class ShadowBodySinkTest {
 
 	@Test
 	void noAnchorIsNeverTracked() {
-		ShadowBodySink.beginSink(VfxCue.NO_ANCHOR, 0L);
+		ShadowBodySink.beginSink(VfxCue.NO_ANCHOR, 0L, SINK_TICKS);
 		ShadowBodySink.completeSink(VfxCue.NO_ANCHOR);
-		ShadowBodySink.beginEmerge(VfxCue.NO_ANCHOR, 0L);
+		ShadowBodySink.beginEmerge(VfxCue.NO_ANCHOR, 0L, EMERGE_TICKS);
 
 		assertEquals(-1.0f, ShadowBodySink.sinkProgress(VfxCue.NO_ANCHOR, 0L), EPS);
 		assertEquals(-1.0f, ShadowBodySink.emergeProgress(VfxCue.NO_ANCHOR, 0L), EPS);

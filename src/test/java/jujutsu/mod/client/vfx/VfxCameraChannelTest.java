@@ -207,7 +207,7 @@ final class VfxCameraChannelTest {
 	void diveSinksToTheFloorAndGlidesToTheUnderHold() {
 		VfxCameraChannel channel = new VfxCameraChannel(() -> 0L);
 		long sinkStart = 1_000L;
-		ShadowBodySink.beginSink(DIVE_ENTITY_ID, sinkStart);
+		ShadowBodySink.beginSink(DIVE_ENTITY_ID, sinkStart, SINK_TICKS);
 		try {
 			assertEquals(0.0f, channel.diveOffsetBlocks(DIVE_ENTITY_ID, sinkStart), EPSILON);
 			float mid = channel.diveOffsetBlocks(DIVE_ENTITY_ID, sinkStart + SINK_TICKS / 2L);
@@ -228,7 +228,7 @@ final class VfxCameraChannelTest {
 	void diveNeverDropsBelowTheFloorAcrossTheWholeSink() {
 		VfxCameraChannel channel = new VfxCameraChannel(() -> 0L);
 		long sinkStart = 1_000L;
-		ShadowBodySink.beginSink(DIVE_ENTITY_ID, sinkStart);
+		ShadowBodySink.beginSink(DIVE_ENTITY_ID, sinkStart, SINK_TICKS);
 		try {
 			for (long tick = 0L; tick <= SINK_TICKS + 10L; tick++) {
 				float offset = channel.diveOffsetBlocks(DIVE_ENTITY_ID, sinkStart + tick);
@@ -244,11 +244,11 @@ final class VfxCameraChannelTest {
 	void diveRisesFromHalfABlockOverTheEmergeWindowThenClears() {
 		VfxCameraChannel channel = new VfxCameraChannel(() -> 0L);
 		long sinkStart = 2_000L;
-		ShadowBodySink.beginSink(DIVE_ENTITY_ID, sinkStart);
+		ShadowBodySink.beginSink(DIVE_ENTITY_ID, sinkStart, SINK_TICKS);
 		try {
 			channel.diveOffsetBlocks(DIVE_ENTITY_ID, sinkStart + SINK_TICKS + 3L); // settle on the under hold
 			long emergeStart = sinkStart + SINK_TICKS + 3L;
-			ShadowBodySink.beginEmerge(DIVE_ENTITY_ID, emergeStart);
+			ShadowBodySink.beginEmerge(DIVE_ENTITY_ID, emergeStart, EMERGE_TICKS);
 
 			assertEquals(0.5f, channel.diveOffsetBlocks(DIVE_ENTITY_ID, emergeStart), EPSILON);
 			float mid = channel.diveOffsetBlocks(DIVE_ENTITY_ID, emergeStart + EMERGE_TICKS / 2L);
@@ -264,14 +264,14 @@ final class VfxCameraChannelTest {
 	void diveFadeFollowsTheSameBeatsAsTheCameraOffset() {
 		VfxCameraChannel channel = new VfxCameraChannel(() -> 0L);
 		long sinkStart = 3_000L;
-		ShadowBodySink.beginSink(DIVE_ENTITY_ID, sinkStart);
+		ShadowBodySink.beginSink(DIVE_ENTITY_ID, sinkStart, SINK_TICKS);
 		try {
 			assertEquals(0.0f, channel.diveFadeAlpha(DIVE_ENTITY_ID, sinkStart), EPSILON);
 			assertEquals(0.75f, channel.diveFadeAlpha(DIVE_ENTITY_ID, sinkStart + SINK_TICKS), EPSILON);
 			assertEquals(0.25f, channel.diveFadeAlpha(DIVE_ENTITY_ID, sinkStart + SINK_TICKS + 3L), EPSILON);
 			assertEquals(0.25f, channel.diveFadeAlpha(DIVE_ENTITY_ID, sinkStart + SINK_TICKS + 40L), EPSILON);
 
-			ShadowBodySink.beginEmerge(DIVE_ENTITY_ID, sinkStart + SINK_TICKS + 40L);
+			ShadowBodySink.beginEmerge(DIVE_ENTITY_ID, sinkStart + SINK_TICKS + 40L, EMERGE_TICKS);
 			assertEquals(0.45f, channel.diveFadeAlpha(DIVE_ENTITY_ID, sinkStart + SINK_TICKS + 40L), EPSILON);
 			assertEquals(0.0f, channel.diveFadeAlpha(DIVE_ENTITY_ID, sinkStart + SINK_TICKS + 40L + EMERGE_TICKS), EPSILON);
 		} finally {
@@ -283,7 +283,7 @@ final class VfxCameraChannelTest {
 	void cameraAndVeilReadTheSameDiveBeatWithinOneFrame() {
 		VfxCameraChannel channel = new VfxCameraChannel(() -> 0L);
 		long sinkStart = 3_000L;
-		ShadowBodySink.beginSink(DIVE_ENTITY_ID, sinkStart);
+		ShadowBodySink.beginSink(DIVE_ENTITY_ID, sinkStart, SINK_TICKS);
 		try {
 			long under = sinkStart + SINK_TICKS + 3L;
 			float offsetFirst = channel.diveOffsetBlocks(DIVE_ENTITY_ID, under);
@@ -302,7 +302,7 @@ final class VfxCameraChannelTest {
 	void diveStateDoesNotLeakAcrossCameraEntitiesOrClear() {
 		VfxCameraChannel channel = new VfxCameraChannel(() -> 0L);
 		long sinkStart = 4_000L;
-		ShadowBodySink.beginSink(DIVE_ENTITY_ID, sinkStart);
+		ShadowBodySink.beginSink(DIVE_ENTITY_ID, sinkStart, SINK_TICKS);
 		try {
 			channel.diveOffsetBlocks(DIVE_ENTITY_ID, sinkStart + SINK_TICKS);
 			assertEquals(0.0f, channel.diveOffsetBlocks(DIVE_ENTITY_ID + 1, sinkStart + SINK_TICKS), 0.0f);

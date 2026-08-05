@@ -2,13 +2,13 @@ package jujutsu.mod.client.render;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongSupplier;
-import jujutsu.mod.character.megumi.MegumiProfile;
 import jujutsu.mod.vfx.VfxCue;
 
 /**
- * Client-side sink/emerge progress cache for Megumi's shadow move, fed by the dive/ripple/emerge cue
+ * Client-side sink/emerge progress cache for a body diving into shadow, fed by a vessel's cue
  * recipes and read by the third-person body dive ({@code CharacterSkinAnimationMixin}) and the
- * first-person camera dive.
+ * first-person camera dive. The recipes pass their own window lengths, so this cache knows no
+ * vessel: it is a mechanism, like {@link HiddenBodyRenderGate}, not a kit.
  *
  * <p>Progress is computed purely from the cue's authoritative server start time against the client
  * level's game time, so the body moves on the same clock the server used. Entries carry a wall-clock
@@ -19,10 +19,6 @@ public final class ShadowBodySink {
 	private static final long MILLIS_PER_TICK = 50L;
 	/** Ripple cues re-arm the hold every SHADOW_RIPPLE_PERIOD_TICKS; 8 ticks keeps it with slack. */
 	private static final int UNDER_TTL_TICKS = 8;
-	/** The sink window itself plus one full hold TTL of slack for a slightly late first ripple. */
-	private static final long SINK_TTL_MILLIS = (MegumiProfile.SHADOW_SINK_TICKS + UNDER_TTL_TICKS) * MILLIS_PER_TICK;
-	/** The emerge window plus slack; at its end the body is fully risen anyway. */
-	private static final long EMERGE_TTL_MILLIS = (MegumiProfile.SHADOW_EMERGE_TICKS + UNDER_TTL_TICKS) * MILLIS_PER_TICK;
 
 	private static final ConcurrentHashMap<Integer, Entry> ENTRIES = new ConcurrentHashMap<>();
 	private static LongSupplier clock = System::currentTimeMillis;
@@ -31,14 +27,20 @@ public final class ShadowBodySink {
 
 	private enum State { SINKING, UNDER, EMERGING }
 
-	private record Entry(State state, long startGameTime, long expireMillis) {}
+	private record Entry(State state, long startGameTime, int durationTicks, long expireMillis) {}
 
-	/** Starts the dive: progress 0→1 over {@link MegumiProfile#SHADOW_SINK_TICKS} from the cue's time. */
-	public static void beginSink(int entityId, long startGameTime) {
+	/** The window itself plus one full hold TTL of slack for a slightly late follow-up cue. */
+	private static long windowTtlMillis(int durationTicks) {
+		return (durationTicks + UNDER_TTL_TICKS) * MILLIS_PER_TICK;
+	}
+
+	/** Starts the dive: progress 0→1 over {@code sinkTicks} from the cue's authoritative time. */
+	public static void beginSink(int entityId, long startGameTime, int sinkTicks) {
 		if (entityId == VfxCue.NO_ANCHOR) {
 			return;
 		}
-		ENTRIES.put(entityId, new Entry(State.SINKING, startGameTime, clock.getAsLong() + SINK_TTL_MILLIS));
+		ENTRIES.put(entityId, new Entry(State.SINKING, startGameTime, Math.max(1, sinkTicks),
+				clock.getAsLong() + windowTtlMillis(sinkTicks)));
 	}
 
 	/**
@@ -53,12 +55,12 @@ public final class ShadowBodySink {
 		if (entry != null && entry.state() == State.EMERGING) {
 			return;
 		}
-		ENTRIES.put(entityId, new Entry(State.UNDER, entry == null ? 0L : entry.startGameTime(),
+		ENTRIES.put(entityId, new Entry(State.UNDER, entry == null ? 0L : entry.startGameTime(), 1,
 				clock.getAsLong() + UNDER_TTL_TICKS * MILLIS_PER_TICK));
 	}
 
-	/** Starts the rise: progress 1→0 over {@link MegumiProfile#SHADOW_EMERGE_TICKS} from the cue's time. */
-	public static void beginEmerge(int entityId, long startGameTime) {
+	/** Starts the rise: progress 1→0 over {@code emergeTicks} from the cue's authoritative time. */
+	public static void beginEmerge(int entityId, long startGameTime, int emergeTicks) {
 		if (entityId == VfxCue.NO_ANCHOR) {
 			return;
 		}
@@ -67,7 +69,8 @@ public final class ShadowBodySink {
 		if (entry == null || entry.state() == State.EMERGING) {
 			return;
 		}
-		ENTRIES.put(entityId, new Entry(State.EMERGING, startGameTime, clock.getAsLong() + EMERGE_TTL_MILLIS));
+		ENTRIES.put(entityId, new Entry(State.EMERGING, startGameTime, Math.max(1, emergeTicks),
+				clock.getAsLong() + windowTtlMillis(emergeTicks)));
 	}
 
 	public static void reset(int entityId) {
@@ -83,7 +86,7 @@ public final class ShadowBodySink {
 			return -1.0f;
 		}
 		return switch (entry.state()) {
-			case SINKING -> clamp01((gameTime - entry.startGameTime()) / (float) MegumiProfile.SHADOW_SINK_TICKS);
+			case SINKING -> clamp01((gameTime - entry.startGameTime()) / (float) entry.durationTicks());
 			case UNDER -> 1.0f;
 			case EMERGING -> -1.0f;
 		};
@@ -96,7 +99,7 @@ public final class ShadowBodySink {
 			return -1.0f;
 		}
 		return switch (entry.state()) {
-			case EMERGING -> 1.0f - clamp01((gameTime - entry.startGameTime()) / (float) MegumiProfile.SHADOW_EMERGE_TICKS);
+			case EMERGING -> 1.0f - clamp01((gameTime - entry.startGameTime()) / (float) entry.durationTicks());
 			default -> -1.0f;
 		};
 	}

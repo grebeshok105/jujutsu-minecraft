@@ -210,7 +210,8 @@ public final class MegumiVfxRecipes {
 			}
 			// Start the third/first-person dive: the body lowers over SHADOW_SINK_TICKS from the cue's
 			// authoritative server time; the first ripple completes the sink and hides the body.
-			ShadowBodySink.beginSink(cue.anchorEntityId(), cue.startGameTime());
+			ShadowBodySink.beginSink(cue.anchorEntityId(), cue.startGameTime(),
+					MegumiProfile.SHADOW_SINK_TICKS);
 			Vec3 origin = cue.origin();
 			RandomSource random = random(cue, 0xD1A78B05L);
 			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN, SHADOW_DIVE_DURATION_TICKS);
@@ -254,7 +255,8 @@ public final class MegumiVfxRecipes {
 			MegumiAnimationHooks.triggerShadowEmerge(cue);
 			// Start the rise before revealing: the body lifts over SHADOW_EMERGE_TICKS from the cue's
 			// authoritative server time while the reveal below clears the render gate.
-			ShadowBodySink.beginEmerge(cue.anchorEntityId(), cue.startGameTime());
+			ShadowBodySink.beginEmerge(cue.anchorEntityId(), cue.startGameTime(),
+					MegumiProfile.SHADOW_EMERGE_TICKS);
 			HiddenBodyRenderGate.markRevealed(cue.anchorEntityId());
 			boolean localCaster = cue.anchorEntityId() != VfxCue.NO_ANCHOR
 					&& context.client().player != null
