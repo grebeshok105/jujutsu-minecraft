@@ -35,5 +35,5 @@
 
 ## Next steps
 
-1. Manual in-game smoke round 3: badge visible (three lines, readable through walls as ghost); mega charge shows squeezing rings/sparks/whine for ~1.2 s before a loud jet launch; trap pillars stand 3 blocks tall at the prism corners with a rotating arc on the 6-block trigger radius while arming.
+1. Manual in-game smoke round 4: trap corners ~2 blocks apart with a 2-block trigger ring that any mob (incl. golems) trips; mega B builds with riser audio + escalating shake for 1.2 s, launches with a jet blast, shoves golems; ESP badge sits to the target's right at chest height.
 2. Merge PR #54 after smoke sign-off (or fix what the smoke rejects).
