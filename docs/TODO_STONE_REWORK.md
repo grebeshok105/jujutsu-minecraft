@@ -93,9 +93,9 @@ and all three bodies of the triple cycle. No defaulting overload is reintroduced
 
 |Constant|Value|Meaning|
 |---|---:|---|
-|`STONE_SPEED_BLOCKS_PER_TICK`|0.175|3.5 blocks/s — slow, readable|
+|`STONE_SPEED_BLOCKS_PER_TICK`|0.23|4.6 blocks/s — brisk, readable|
 |`STONE_LIFETIME_TICKS`|100|5 s in flight|
-|`STONE_HITBOX_SIZE`|0.35f|entity bbox|
+|`STONE_HITBOX_SIZE`|0.25f|entity bbox|
 |`STONE_THROW_COOLDOWN_TICKS`|10|anti-double-click only|
 |`STONE_SELF_SWAP_COOLDOWN_TICKS`|60|3 s|
 |`STONE_TARGET_SWAP_COOLDOWN_TICKS`|100|5 s|

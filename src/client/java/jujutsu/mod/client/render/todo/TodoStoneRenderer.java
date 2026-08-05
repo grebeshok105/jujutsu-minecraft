@@ -29,7 +29,7 @@ public final class TodoStoneRenderer extends EntityRenderer<TodoStoneEntity, Tod
 	 * Half extent of the cube, deliberately below {@code STONE_HITBOX_SIZE}: a collision that reads
 	 * as generous is fairer than an invisible one.
 	 */
-	private static final float HALF_EXTENT = 0.13f;
+	private static final float HALF_EXTENT = 0.09f;
 	/** The stone fades out over its last ten ticks of flight, matching the vanish poof. */
 	private static final int FADE_TICKS = 10;
 	private static final float TUMBLE_SPIN_PER_TICK = 0.16f;

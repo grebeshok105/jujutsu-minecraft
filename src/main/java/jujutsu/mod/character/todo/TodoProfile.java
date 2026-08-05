@@ -67,14 +67,14 @@ public final class TodoProfile {
 	 */
 	public static final int PAIR_MARK_PULSE_TICKS = 20;
 	/**
-	 * The stone's flight speed: 3.5 blocks per second — slow, readable, and a flat line with no arc, so
-	 * the swap is a plan the opponent can see coming.
+	 * The stone's flight speed: 4.6 blocks per second — brisk enough to lead a retreating target, still
+	 * a flat readable line with no arc, so the swap stays a plan the opponent can see coming.
 	 */
-	public static final double STONE_SPEED_BLOCKS_PER_TICK = 0.175;
+	public static final double STONE_SPEED_BLOCKS_PER_TICK = 0.23;
 	/** Five seconds of flight. The stone never anchors: this clock is its only end. */
 	public static final int STONE_LIFETIME_TICKS = 100;
-	/** The stone's hitbox, a third of a block, sized for a small thrown rock. */
-	public static final float STONE_HITBOX_SIZE = 0.35f;
+	/** The stone's hitbox, a quarter of a block, sized for a small thrown rock. */
+	public static final float STONE_HITBOX_SIZE = 0.25f;
 	/**
 	 * Anti-double-click only: throwing must never lock the follow-up self-swap behind a long cooldown.
 	 * The self-swap carries the real price.

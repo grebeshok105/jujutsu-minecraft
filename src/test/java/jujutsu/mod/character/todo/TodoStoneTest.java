@@ -27,8 +27,8 @@ class TodoStoneTest {
 	@Test
 	void stoneSpeedSitsInTheReadableBand() {
 		double blocksPerSecond = TodoProfile.STONE_SPEED_BLOCKS_PER_TICK * 20.0;
-		assertTrue(blocksPerSecond >= 3.0 && blocksPerSecond <= 4.0,
-				"stone speed " + blocksPerSecond + " b/s must stay in the readable 3-4 band");
+		assertTrue(blocksPerSecond >= 4.0 && blocksPerSecond <= 5.5,
+				"stone speed " + blocksPerSecond + " b/s must stay in the brisk readable 4-5.5 band");
 	}
 
 	@Test

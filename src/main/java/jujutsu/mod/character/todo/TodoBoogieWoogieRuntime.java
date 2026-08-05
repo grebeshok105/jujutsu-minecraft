@@ -300,8 +300,8 @@ public final class TodoBoogieWoogieRuntime {
 						todo.getRandom().nextLong(), pairDelta));
 	}
 
-	/** Short tear of air where a body used to be. */
-	private static void scheduleDisplacementWhoosh(ServerLevel level, Vec3 origin) {
+	/** Short tear of air where a body used to be. The feint schedules it too, so the ear cannot split them. */
+	static void scheduleDisplacementWhoosh(ServerLevel level, Vec3 origin) {
 		schedule(level, origin, JujutsuSounds.PROJECTJJK_CINEMATIC_WHOOSH,
 				TodoProfile.BOOGIE_WOOGIE_MOVE_SOUND_VOLUME, TodoProfile.BOOGIE_WOOGIE_MOVE_SOUND_PITCH,
 				TodoProfile.BOOGIE_WOOGIE_MOVE_SOUND_DELAY_TICKS);
