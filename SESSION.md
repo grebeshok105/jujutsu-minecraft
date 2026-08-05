@@ -3,7 +3,8 @@
 ## Active branch
 
 - Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/todo-stone-rework`
-- Branch: `feat/todo-stone-rework` (from `main` `3c71ce6`)
+- Branch: `feat/todo-stone-polish` (stacked on `feat/todo-stone-rework`, which is from `main` `3c71ce6`)
+- PRs: rework [#57](https://github.com/grebeshok105/jujutsu-minecraft/pull/57) (base `main`, unmerged by request) ← polish [#58](https://github.com/grebeshok105/jujutsu-minecraft/pull/58) (base `feat/todo-stone-rework`); merge #57 first or both together
 - Scope: delete the marker system entirely; add the thrown stone (`V` throw / `V` self-swap / `Shift+V` target swap on the appended `TERTIARY_SNEAK(9)` wire id); split `Shift+B` off the pair swap into the triple cyclic swap (Todo→A→T→Todo) and delete the `canonicalSlot` fold; single transient-state owner (`TodoTransientState`) with one cleanup path (`TodoStateLifecycle`).
 
 ## Design contract
