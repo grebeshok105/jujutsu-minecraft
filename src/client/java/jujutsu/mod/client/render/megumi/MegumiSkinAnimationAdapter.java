@@ -30,8 +30,10 @@ public final class MegumiSkinAnimationAdapter extends CharacterSkinAnimationAdap
 		}
 		state.swinging = player.swinging;
 		state.lastSwingTime = player.swingTime;
+		boolean combatIdleWindow = !player.swinging && player.tickCount <= state.combatIdleUntilTick;
+		boolean stationary = player.getDeltaMovement().horizontalDistanceSqr() < 1.0e-4;
 		renderState.addGeckolibData(MegumiPlayerGeoAnimatable.COMBAT_IDLE,
-				!player.swinging && player.tickCount <= state.combatIdleUntilTick);
+				combatIdleWindow && stationary);
 	}
 
 	private static final class SwingState {

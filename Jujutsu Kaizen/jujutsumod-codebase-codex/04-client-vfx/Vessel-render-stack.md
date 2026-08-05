@@ -82,15 +82,19 @@ The live third-person clip contract is intentionally explicit. Nobara's pack con
 and walk loops, a dedicated run, `one_two`, `attack1`/`attack2`/`attack3`, `snap`, `spell1` through
 `spell5`, `swipe1`, three hammer actions, the embedded-hammer and doll-strike actions,
 `self_resonance`, and `black_flash`. Todo's pack contains alternate idle and walk loops, a dedicated
-run, the externally triggerable `attack`, and the full `ability.boogie_woogie` clap. Megumi's pack
-contains idle, walk, run, `combat_idle`, `punch_1`, `punch_2`, `kick`, and the confirmed
-`summon_divine_dogs` action. The server-confirmed `nobara/caster_action` cue supplies the caster
-anchor for Nobara abilities whose main world cue is target-fixed; it does not change gameplay timing.
+run, the externally triggerable `attack`, and the full `ability.boogie_woogie` clap; that clap keys
+torso coil, forward dip and head recoil as well as the arms, without taking control of the lower body.
+Megumi's pack contains idle, walk, run, `combat_idle`, `punch_1`, `punch_2`, `kick`, and the confirmed
+`summon_divine_dogs` action. Its short post-hit `combat_idle` keeps only a restrained standing guard
+and is selected only while the player is stationary, so walk/run remains authoritative. The
+server-confirmed `nobara/caster_action` cue supplies the caster anchor for Nobara abilities whose main
+world cue is target-fixed; it does not change gameplay timing.
 
 Skin model IDs follow the vanilla layout: Nobara uses `slim`, while Todo and Megumi use `wide`
-(`classic` in Minecraft skin terminology). Todo's `1.15` body scale is applied by the common
-dimensions hook and the client third-person render scale. It does not alter reach, damage or speed;
-the first-person path is unchanged.
+(`classic` in Minecraft skin terminology). Todo's 64x64 skin supplies the full classic four-pixel UV
+coverage for both arm bases; executable coverage prevents a slim-layout texture from being paired with
+wide geometry again. Todo's `1.15` body scale is applied by the common dimensions hook and the client
+third-person render scale. It does not alter reach, damage or speed; the first-person path is unchanged.
 
 Megumi's per-player `punch_1 -> punch_2 -> kick` bookkeeping lives in
 `MegumiSkinAnimationAdapter`, not in a retired visible renderer. His skin model intentionally returns
