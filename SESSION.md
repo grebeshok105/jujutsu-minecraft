@@ -62,7 +62,7 @@ Shadow Drop (`V`) + dive polish (this wave):
 
 ## Deploy
 
-- Deployed jar in `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar` is pending rebuild from `feat/megumi-shadow-drop` (previous: `feat/megumi-shadow-kit` `302d9c9`, md5 `118c42323330ee2878071c030789ece9`).
+- Deployed jar in `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar` is built from `feat/megumi-shadow-drop` at `e2974a9`, md5 `f79039f850ea61b98ed5aa9ff0385f26` (previous: `feat/megumi-shadow-kit` `302d9c9`).
 
 ## Next steps
 
