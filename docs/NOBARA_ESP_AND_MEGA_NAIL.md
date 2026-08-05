@@ -51,6 +51,17 @@ Status: APPROVED DESIGN (implementation in `feat/nobara-esp-and-mega-nail`)
 - **Чистый cutover mass Hairpin**: `startMassHairpin`, `HairpinChain.Mode.MASS`-ветки, `HAIRPIN_MASS_CHAIN_DELAY_TICKS`, `HAIRPIN_BOOM_DAMAGE_PER_NAIL`, `CASTER_HAIRPIN_MASS`, mass-строки roster/lang — удаляются. `tryEnlargeMarkedTarget`+`PendingEnlarge` удаляются (мёртвые; их каркас и семантика переезжают в мега-рантайм; эмиттер ENLARGE переезжает в converge-фазу).
 - **VFX**: +1 live id `MEGA_NAIL_STRIKE` (LIVE 22→22: −0 +1, mass не имел собственного id; итог 23). Транспорт: `worldFixedDisplacement` (origin = точка слияния, anchorOffset = полный вектор прохода), intensity = clamp(count,1..7)|finale-бит не нужен. Delivery 64.0 (существующий `VFX_DELIVERY_RADIUS`), presentation ≤ 64. Рецепт: направленный трассер-«копьё» + импакт-burst + камера + HUD flash低 + звук уже серверный (`PROJECTJJK_DEEP_EXPLOSION`, `LONG_WHOOSH` в тик удара).
 
+### Mega Nail v2 — материальный гвоздь (смок-фидбек 2026-08-05, УТВЕРЖДЕНО)
+
+Смок отверг «эффект взрыва без снаряда». Требование продукта: гвозди цели **медленно стягиваются воедино** в **большой прокачанный гвоздь, материализующийся ПЕРЕД Нобарой**, который затем пробивает цель. Богатая подача: заряд, стяжка, свечение, запуск, трассер, импакт.
+
+- **Снаряд — реальная сущность**: тот же `ProjectJjkNailEntity` с новым synced-флагом `DATA_MEGA` и `DATA_MEGA_PROGRESS` (float 0→1). Persistent-визуал живёт на рендерере сущности (контракт VFX Core), transient-слои — на директоре.
+- **Таймлайн**: `start()` (селекция/расход/метки — без изменений) → спавн mega-гвоздя в точке сборки (глаза −0.2, +1.6 блока по взгляду, заморожена) → CHARGE `MEGA_NAIL_CHARGE_TICKS = 24` (рост scale 0.6→2.6, прогресс синкается) → LAUNCH: перенацеливание на актуальную позицию цели, если она жива в ≤48 блоках, иначе замороженный вектор; скорость `NAIL_SPEED×1.3` → IMPACT: та же формула урона/kb/stagger (stagger LivingEntity-overload ДО knockback), `MEGA_NAIL_STRIKE` cue; блок/таймаут 60 тиков → терминальный VFX, без эмбеда.
+- **PENDING-цикл рантайма удаляется**: сущность самодостаточна (weight/count/targetId на ней), retry-механика не нужна, две Нобары = две сущности.
+- **Стяжка**: consume-ENLARGE cue становится направленным (direction = гвоздь→точка сборки) — клиент рисует поток частиц вдоль вектора.
+- **Новый live id `MEGA_NAIL_CHARGE`** (24-тиковый world-fixed рецепт в точке сборки: кольца, спираль частиц, glow, звук зарядки; presentation WIDE ≤ delivery 64). LIVE 35→36.
+- **Константы**: `MEGA_NAIL_CHARGE_TICKS = 24` заменяет `MEGA_NAIL_STRIKE_DELAY_TICKS`; `MEGA_NAIL_RETRY_TIMEOUT_TICKS` уходит вместе с PENDING; `MEGA_NAIL_FLIGHT_TIMEOUT_TICKS = 60`, `MEGA_NAIL_SPEED_MULTIPLIER = 1.3`, `MEGA_NAIL_SCALE_*` — в Profile.
+
 ## Тесты
 
 - Правки: `NobaraAbilitySlotsTest` (SECONDARY → `ProjectJjkMegaNailRuntime.start`), `HairpinChainTest` (MASS-кейсы долой), `ProjectSanityTest` (mass-упоминания).

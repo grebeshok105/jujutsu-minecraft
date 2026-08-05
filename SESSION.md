@@ -26,13 +26,14 @@
 - `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` — **GREEN** (JUnit 200 tests, 31 verification JavaExec programs, documentation audit, assertion audit).
 - In-world behaviour (ESP readability, mega nail feel, R feel) still needs the manual client smoke — nothing in the suite constructs a `ServerLevel` (E1).
 - Two independent review passes (server / client) on PR #54 found one BLOCKER (ESP badge background vertices missing UV2 — client crash on first badge render), three MAJOR (pending strikes keyed by target only; raw-UUID stagger overload; accent pulse ignoring per-nail ownership) and minors — all fixed in `f73748f`, gate re-run green, jar rebuilt and redeployed (md5 `548d6587c8cb1d194822078a8a0a9d32`).
+- First manual smoke (2026-08-05) rejected three presentations: badge drew background without text, mega nail read as a bare explosion, trap had no visible presence. Fixed in `4374da4`: badge text rides `drawInBatch` background (vanilla nameplate path, hand-built quad deleted); Mega Nail v2 — real `ProjectJjkNailEntity` at a gather point, directed ENLARGE streams, 24-tick charge (`DATA_MEGA`/`DATA_MEGA_PROGRESS` synced, `megaRenderScale()` on the entity keeps the renderer tripwire at five), launch ×1.3 at the target's fresh position, 60-tick flight timeout, impact callbacks replace the PENDING scheduler; traps sync `DATA_TRAP` and render a persistent zone ring plus brighter placed/armed/collapse recipes. Offline caster no longer swallows the impact.
 
 ## Status
 
 - **PR #54 is OPEN**: <https://github.com/grebeshok105/jujutsu-minecraft/pull/54> (base `main`), review summary posted as a PR comment.
-- Deployed jar in `D:/Games/instances/Jujutsu/mods/` is built from `f73748f` (review fixes included).
+- Deployed jar in `D:/Games/instances/Jujutsu/mods/` is built from code commit `4374da4` (mega nail v2 + trap + badge fixes), md5 `11d2100b68beec5a0a3a464df873587c`.
 
 ## Next steps
 
-1. Manual in-game smoke: ESP overlay on/off by vessel, badge occlusion policy, mega nail on marked/unmarked targets, empty-B fallback message, R feel, no crash on first badge render.
+1. Manual in-game smoke round 2: badge shows three text lines over background; B gathers nails into a big material nail in front of Nobara, charges ~1.2 s, launches and lands with strike VFX; trap ring visible after placement; empty-B fallback message; R feel; Todo/Megumi untouched.
 2. Merge PR #54 after smoke sign-off (or fix what the smoke rejects).
