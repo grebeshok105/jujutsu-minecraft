@@ -68,12 +68,19 @@ hold: IDLE → SINK(8t) → SUBMERGED(≤ SUBMERGE_MAX_TICKS) → EMERGE(6t) →
 - **SINK** — the player visibly sinks (third-person clip + pool VFX + sound). Taking damage during
   SINK cancels the cast on the spot: no teleport, no cooldown, state cleared. Abilities and melee
   are already locked.
-- **HIDDEN / SUBMERGED** — the player is flagged vanilla-invisible (synced flag, restored honestly
-  on exit unless an invisibility potion is active) and a client render gate hides the whole body.
-  Ordinary damage is cancelled via `ServerLivingEntityEvents.ALLOW_DAMAGE` (bypass-invulnerability
-  sources still land). Attacks (`AttackEntityCallback`) and every ability slot are refused by the
-  router. Collision stays fully vanilla — **no wall clipping, ever**: the body keeps walking on the
-  surface; only its presentation is a ripple.
+- **HIDDEN / SUBMERGED** — the player is flagged vanilla-invisible (synced flag, re-asserted every
+  tick because vanilla's `updateInvisibilityStatus` clears it whenever the effect list changes,
+  restored honestly on exit unless an invisibility potion is active) and a client render gate hides
+  the whole body from the first ripple — the sink itself stays watchable, and the ripple that ends
+  it is the hide signal. Ordinary damage is cancelled via `ServerLivingEntityEvents.ALLOW_DAMAGE`
+  (bypass-invulnerability sources still land). **Accepted:** that gate also swallows fire and lava
+  for the ≤2.5 s a submerge lasts — crossing a lava pond through the shadow is a deliberate
+  mobility payoff priced by the 10 s hold cooldown; fire ticks caught while under start burning
+  only after the emerge. Item use is not locked in this slice (an ender pearl under the shadow is
+  a known open design question for the next pass, not an oversight). Attacks
+  (`AttackEntityCallback`) and every ability slot are refused by the router. Collision stays fully
+  vanilla — **no wall clipping, ever**: the body keeps walking on the surface; only its
+  presentation is a ripple.
 - **EMERGE** — teleport (when the mode calls for one), restore visibility, clip + sound + VFX. The
   player is visible and vulnerable for the whole emerge beat; the exit is readable.
 

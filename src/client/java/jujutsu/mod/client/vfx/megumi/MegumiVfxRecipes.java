@@ -43,10 +43,11 @@ public final class MegumiVfxRecipes {
 	private static final int SHADOW_RIPPLE_DURATION_TICKS = 8;
 	private static final int SHADOW_EMERGE_DURATION_TICKS = 12;
 
-	/** How long the dive cue keeps the caster's body hidden: the sink window plus the tap hidden beat. */
-	private static final int DIVE_HIDE_TTL_TICKS =
-			MegumiProfile.SHADOW_SINK_TICKS + MegumiProfile.SHADOW_HIDDEN_TICKS;
-	/** Ripple re-emits arrive every 5 ticks; an 8-tick TTL keeps the body hidden with slack. */
+	/**
+	 * Ripple re-emits arrive every 5 ticks while under (the first one the moment the body actually
+	 * hides, at the end of the sink); an 8-tick TTL keeps the body hidden with slack. The dive cue
+	 * deliberately hides nothing: the sink is the watchable interruption window.
+	 */
 	private static final int RIPPLE_HIDE_TTL_TICKS = 8;
 	private static final float TRAP_POOL_RADIUS = (float) MegumiProfile.SHADOW_TRAP_RADIUS;
 
@@ -200,7 +201,6 @@ public final class MegumiVfxRecipes {
 			RandomSource random = random(cue, 0xD1A78B05L);
 			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN, SHADOW_DIVE_DURATION_TICKS);
 			MegumiAnimationHooks.triggerShadowDive(cue);
-			HiddenBodyRenderGate.markHidden(cue.anchorEntityId(), DIVE_HIDE_TTL_TICKS);
 			boolean localCaster = cue.anchorEntityId() != VfxCue.NO_ANCHOR
 					&& context.client().player != null
 					&& cue.anchorEntityId() == context.client().player.getId();

@@ -6,19 +6,24 @@ import net.minecraft.world.phys.Vec3;
 public final class ShadowWorldEffects {
 	private ShadowWorldEffects() {}
 
+	/** The dogs' decorative summon pool keeps its stylized depth squash. */
+	private static final float SUMMON_POOL_Z_SCALE = 0.78f;
+
 	public static void renderMegumiShadowPool(VertexConsumer consumer, Vec3 center, float progress, boolean opening) {
 		float radius = shadowPoolRadius(opening, progress);
 		int alpha = Math.round(255.0f * shadowPoolOpacity(opening, progress));
-		renderPoolDisk(consumer, center, radius, alpha);
+		renderPoolDisk(consumer, center, radius, alpha, SUMMON_POOL_Z_SCALE);
 	}
 
 	/**
 	 * Shadow Trap pool, unfurling or collapsing at an absolute radius carried by the cue intensity
-	 * (tenths of a block: intensity 26 is the 2.6-block trap zone).
+	 * (tenths of a block: intensity 26 is the 2.6-block trap zone). Trap pools are true circles:
+	 * the drawn edge telegraphs the authoritative grip cylinder, so it must not lie on any axis,
+	 * and the unfurl reaches the full radius so the open-to-zone handoff does not jump.
 	 */
 	public static void renderShadowTrapPool(VertexConsumer consumer, Vec3 center, float progress, float radius, boolean opening) {
-		renderPoolDisk(consumer, center, radius * shadowPoolRadius(opening, progress),
-				Math.round(255.0f * shadowPoolOpacity(opening, progress)));
+		renderPoolDisk(consumer, center, radius * trapPoolScale(opening, progress),
+				Math.round(255.0f * shadowPoolOpacity(opening, progress)), 1.0f);
 	}
 
 	/**
@@ -28,17 +33,17 @@ public final class ShadowWorldEffects {
 	public static void renderShadowTrapPool(VertexConsumer consumer, Vec3 center, float progress, float radius) {
 		float clamped = Math.max(0.0f, Math.min(1.0f, progress));
 		float alpha = 0.72f + 0.08f * (float) Math.sin(clamped * Math.PI * 2.0);
-		renderPoolDisk(consumer, center, radius, Math.round(255.0f * alpha));
+		renderPoolDisk(consumer, center, radius, Math.round(255.0f * alpha), 1.0f);
 	}
 
-	private static void renderPoolDisk(VertexConsumer consumer, Vec3 center, float radius, int alpha) {
+	private static void renderPoolDisk(VertexConsumer consumer, Vec3 center, float radius, int alpha, float zScale) {
 		int segments = 24;
 		for (int segment = 0; segment < segments; segment++) {
 			double startAngle = segment * Math.PI * 2.0 / segments;
 			double endAngle = (segment + 1) * Math.PI * 2.0 / segments;
 			addVertex(consumer, center, alpha);
-			addVertex(consumer, center, radius, startAngle, alpha);
-			addVertex(consumer, center, radius, endAngle, alpha);
+			addVertex(consumer, center, radius, startAngle, alpha, zScale);
+			addVertex(consumer, center, radius, endAngle, alpha, zScale);
 			addVertex(consumer, center, alpha);
 		}
 	}
@@ -48,12 +53,18 @@ public final class ShadowWorldEffects {
 				.setColor(0, 0, 0, alpha);
 	}
 
-	private static void addVertex(VertexConsumer consumer, Vec3 center, float radius, double angle, int alpha) {
+	private static void addVertex(VertexConsumer consumer, Vec3 center, float radius, double angle, int alpha, float zScale) {
 		consumer.addVertex(
 				(float) (center.x + Math.cos(angle) * radius),
 				(float) (center.y + 0.025),
-				(float) (center.z + Math.sin(angle) * radius * 0.78))
+				(float) (center.z + Math.sin(angle) * radius * zScale))
 				.setColor(0, 0, 0, alpha);
+	}
+
+	/** Trap unfurl/collapse sweep: 26% to the full authoritative radius, symmetric on close. */
+	static float trapPoolScale(boolean opening, float progress) {
+		float clamped = Math.max(0.0f, Math.min(1.0f, progress));
+		return opening ? 0.26f + 0.74f * clamped : 1.0f - 0.74f * clamped;
 	}
 
 	static float shadowPoolRadius(boolean opening, float progress) {

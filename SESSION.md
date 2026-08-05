@@ -39,7 +39,7 @@ Shadow Move tap (`Shift+B`, released quickly):
 Deep submerge (`Shift+B` held):
 14. Hold ≥ 0.3 s: after the sink Megumi disappears (model, held item, shadow); a faint dark ripple follows his movement.
 15. While under: walking/jumping over small obstacles works, walls still block; attacks do nothing; R / Shift+R / B are swallowed with the "inside the shadow" line.
-16. Ordinary attacks (melee, arrows) do not land while fully under; void still kills.
+16. Ordinary attacks (melee, arrows) do not land while fully under; standing in fire/lava while under deals nothing until emerge (accepted mobility payoff — fire ticks land after surfacing); void still kills.
 17. Release / repeat tap: emerges early at the current spot. Timeout (~2.5 s): auto-emerge.
 18. Emerge inside a suffocating spot (sand poured on the ripple): rescued to the nearest safe point within ~3 blocks, else back at the entry point.
 19. Death / dimension change / vessel change / disconnect / server stop in every phase: visibility restored, no stuck invisible player, no leftover state after rejoin.

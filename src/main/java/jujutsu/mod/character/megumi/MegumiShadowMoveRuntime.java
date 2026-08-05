@@ -283,12 +283,19 @@ public final class MegumiShadowMoveRuntime {
 			move.phaseTicksLeft = MegumiProfile.SHADOW_HIDDEN_TICKS;
 		}
 		hide(player);
+		// The body vanishes only now, so the sink stays watchable (the readable interruption window)
+		// and this first ripple is what tells every client to stop rendering it.
+		broadcastAnchoredCue(player.level(), player, MegumiVfxIds.SHADOW_RIPPLE, player.position());
 		if (move.emergeRequested && move.phase == Phase.SUBMERGED) {
 			beginEmerge(player, move);
 		}
 	}
 
 	private static void tickHidden(ServerPlayer player, ShadowMove move) {
+		// Re-asserted every tick: vanilla's updateInvisibilityStatus clears the flag whenever the
+		// effect list changes (an enemy trap re-gripping this body does so every tick). Setting an
+		// already-true synched flag sends no packet.
+		hide(player);
 		if (--move.phaseTicksLeft > 0) {
 			return;
 		}
@@ -296,6 +303,7 @@ public final class MegumiShadowMoveRuntime {
 	}
 
 	private static void tickSubmerged(ServerPlayer player, ShadowMove move) {
+		hide(player);
 		move.submergedTicks++;
 		if (move.emergeRequested || move.submergedTicks >= MegumiProfile.SUBMERGE_MAX_TICKS) {
 			beginEmerge(player, move);
