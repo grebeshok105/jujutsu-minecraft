@@ -26,9 +26,12 @@ Scout evidence this spec relies on:
 - New wire id: `TERTIARY(8)` appended to `CharacterAbility`. Never renumber 0–7.
 - New profile constants (Part 1 adds them; other parts reference by name):
   `DROP_RANGE=20.0`, `DROP_ZONE_HEIGHT_BLOCKS=4.0`, `DROP_ZONE_RADIUS=1.2`,
-  `DROP_TELEGRAPH_TICKS=20`, `DROP_ZONE_PULSE_TICKS=5`, `DROP_COOLDOWN_TICKS=160`,
+  `DROP_TELEGRAPH_TICKS=20`, `DROP_ZONE_PULSE_TICKS=5`, `DROP_COOLDOWN_TICKS=60`,
   `DROP_SOFT_DAMAGE_PER_BLOCK=1.0f`, `DROP_SOFT_DAMAGE_MAX=5`,
-  `DROP_WEIGHT_SAND=40`, `DROP_WEIGHT_GRAVEL=30`, `DROP_WEIGHT_CLAY=20`, `DROP_WEIGHT_ANVIL=10`.
+  `DROP_WEIGHT_SAND=30`, `DROP_WEIGHT_GRAVEL=25`, `DROP_WEIGHT_CLAY=25`, `DROP_WEIGHT_ANVIL=20`
+  (revised after smoke round 1: the 40/30/20/10 table read as "always sand", so the table is
+  near-flat and the anvil doubled), `DROP_MIN_BLOCKS=1`, `DROP_MAX_BLOCKS=3`,
+  `DROP_SCATTER_RADIUS=0.9` — each cast releases a 1–3 block volley scattered inside the disc.
 - New VFX ids (Part 5 declares, Part 1 emits): `megumi/drop_zone_open`, `megumi/drop_zone`,
   `megumi/drop_zone_close`. All broadcast at `MegumiProfile.VFX_DELIVERY_RADIUS`, world-fixed,
   intensity = radius in tenths (12), reusing the existing `MEGUMI_SHADOW_TRAP_OPEN/POOL/CLOSE`
@@ -161,5 +164,5 @@ contract names in this spec).
 ## Manual smoke additions (SESSION.md gets the checklist)
 
 Void-black pools read as holes; sink visibly lowers the body then the camera; V on a target opens a
-following overhead disc, one weighted block falls after 1 s, anvil hurts, nothing litters the
+following overhead disc, a 1–3 block weighted volley falls after 1 s, anvil hurts, nothing litters the
 world; V refusals (no target, cooldown) match Megumi's message style; Nobara/Todo V = silent no-op.

@@ -133,7 +133,7 @@ public final class MegumiShadowDropRuntime {
 			long gameTime = level.getGameTime();
 			Vec3 anchor = anchorAbove(target);
 			if (gameTime >= drop.dropsAtGameTime()) {
-				releaseBlock(level, owner, anchor);
+				releaseBlocks(level, anchor);
 				closeZone(server, ownerId, drop, anchor);
 				continue;
 			}
@@ -153,17 +153,35 @@ public final class MegumiShadowDropRuntime {
 		return living;
 	}
 
-	private static void releaseBlock(ServerLevel level, ServerPlayer owner, Vec3 anchor) {
-		BlockState state = pickBlock(level.getRandom());
-		FallingBlockEntity block = FallingBlockEntity.fall(level, BlockPos.containing(anchor), state);
+	private static void releaseBlocks(ServerLevel level, Vec3 anchor) {
+		RandomSource random = level.getRandom();
+		int count = MegumiProfile.DROP_MIN_BLOCKS
+				+ random.nextInt(MegumiProfile.DROP_MAX_BLOCKS - MegumiProfile.DROP_MIN_BLOCKS + 1);
+		for (int i = 0; i < count; i++) {
+			// The first block falls dead-centre; the rest scatter inside the disc so a volley reads
+			// as a volley instead of one triple-height stack.
+			Vec3 point = i == 0 ? anchor : scatter(anchor, random);
+			releaseOne(level, point, random);
+		}
+		level.playSound(null, anchor.x, anchor.y, anchor.z, JujutsuSounds.PROJECTJJK_CINEMATIC_WHOOSH,
+				SoundSource.PLAYERS, 0.7f, 1.05f);
+	}
+
+	private static Vec3 scatter(Vec3 anchor, RandomSource random) {
+		double angle = random.nextDouble() * Math.PI * 2.0;
+		double distance = random.nextDouble() * MegumiProfile.DROP_SCATTER_RADIUS;
+		return anchor.add(Math.cos(angle) * distance, 0.0, Math.sin(angle) * distance);
+	}
+
+	private static void releaseOne(ServerLevel level, Vec3 point, RandomSource random) {
+		BlockState state = pickBlock(random);
+		FallingBlockEntity block = FallingBlockEntity.fall(level, BlockPos.containing(point), state);
 		block.disableDrop();
 		if (state.is(Blocks.ANVIL)) {
 			block.setHurtsEntities(MegumiProfile.DROP_ANVIL_DAMAGE_PER_BLOCK, MegumiProfile.DROP_ANVIL_DAMAGE_MAX);
 		} else {
 			block.setHurtsEntities(MegumiProfile.DROP_SOFT_DAMAGE_PER_BLOCK, MegumiProfile.DROP_SOFT_DAMAGE_MAX);
 		}
-		level.playSound(null, anchor.x, anchor.y, anchor.z, JujutsuSounds.PROJECTJJK_CINEMATIC_WHOOSH,
-				SoundSource.PLAYERS, 0.7f, 1.05f);
 	}
 
 	/** Weighted table; weights sum to 100, so each weight reads as a percent chance. */

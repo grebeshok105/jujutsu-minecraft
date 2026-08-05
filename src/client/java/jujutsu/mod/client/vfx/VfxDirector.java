@@ -108,12 +108,12 @@ public final class VfxDirector {
 		return CAMERA.fovOffset();
 	}
 
-	public static float diveOffsetBlocks() {
-		return CAMERA.diveOffsetBlocks();
+	public static float diveOffsetBlocks(float partialTick) {
+		return CAMERA.diveOffsetBlocks(partialTick);
 	}
 
-	public static float diveFadeAlpha() {
-		return CAMERA.diveFadeAlpha();
+	public static float diveFadeAlpha(float partialTick) {
+		return CAMERA.diveFadeAlpha(partialTick);
 	}
 
 	public static VfxFirstPersonChannel.Pose firstPersonPose() {

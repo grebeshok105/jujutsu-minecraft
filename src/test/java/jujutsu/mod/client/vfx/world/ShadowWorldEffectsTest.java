@@ -56,7 +56,7 @@ class ShadowWorldEffectsTest {
 	}
 
 	@Test
-	void trapPoolSweepIsFullyOpaqueVoidBlackWhileRadiusAnimates() {
+	void trapPoolSweepIsVoidBlackAliveAndDissolvesOnClose() {
 		Vec3 center = Vec3.ZERO;
 		float radius = 2.6f;
 
@@ -66,9 +66,11 @@ class ShadowWorldEffectsTest {
 		ShadowWorldEffects.renderShadowTrapPool(unfurled.consumer(), center, 1.0f, radius, true);
 		RecordingConsumer closing = new RecordingConsumer();
 		ShadowWorldEffects.renderShadowTrapPool(closing.consumer(), center, 0.5f, radius, false);
+		RecordingConsumer closed = new RecordingConsumer();
+		ShadowWorldEffects.renderShadowTrapPool(closed.consumer(), center, 1.0f, radius, false);
 
-		// Every vertex of every sweep frame is opaque void black — the pool reads as a hole.
-		for (RecordingConsumer recording : new RecordingConsumer[]{opening, unfurled, closing}) {
+		// While the pool lives (the whole unfurl), every vertex is opaque void black — a hole.
+		for (RecordingConsumer recording : new RecordingConsumer[]{opening, unfurled}) {
 			assertEquals(96, recording.vertices.size());
 			for (Vertex vertex : recording.vertices) {
 				assertEquals(0, vertex.red());
@@ -76,6 +78,18 @@ class ShadowWorldEffectsTest {
 				assertEquals(0, vertex.blue());
 				assertEquals(255, vertex.alpha());
 			}
+		}
+		// The close dissolves instead of blinking out: smoothstep midpoint, fully gone at the end,
+		// still pure black while any of it remains.
+		assertEquals(96, closing.vertices.size());
+		for (Vertex vertex : closing.vertices) {
+			assertEquals(0, vertex.red());
+			assertEquals(0, vertex.green());
+			assertEquals(0, vertex.blue());
+			assertEquals(128, vertex.alpha());
+		}
+		for (Vertex vertex : closed.vertices) {
+			assertEquals(0, vertex.alpha());
 		}
 		// The unfurl/collapse radius animation survives: 26% -> full -> 63% on close.
 		assertEquals(0.26f * radius, opening.vertices.get(1).x(), EPSILON);

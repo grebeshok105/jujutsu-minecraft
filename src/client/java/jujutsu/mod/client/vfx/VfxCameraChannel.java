@@ -32,7 +32,7 @@ public final class VfxCameraChannel {
 
 	private int diveEntityId = NO_DIVE_ENTITY;
 	private DivePhase divePhase = DivePhase.NONE;
-	private long diveUnderSinceGameTime;
+	private float diveUnderSinceGameTime;
 	private float diveUnderEase;
 	private float diveSinkProgress = -1.0f;
 	private float diveEmergeProgress = -1.0f;
@@ -134,30 +134,31 @@ public final class VfxCameraChannel {
 
 	/**
 	 * How far the first-person camera should sink with the diving body, in blocks, or 0 for a fully
-	 * vanilla camera. Reads {@link ShadowBodySink} for the camera entity; see {@link #advanceDive(int, long)}.
+	 * vanilla camera. Reads {@link ShadowBodySink} for the camera entity at the frame's fractional
+	 * game time, so the dip moves every frame, not once per tick; see {@link #advanceDive(int, float)}.
 	 */
-	public float diveOffsetBlocks() {
+	public float diveOffsetBlocks(float partialTick) {
 		int entityId = cameraEntityId();
 		long gameTime = levelGameTime();
 		if (entityId == VfxCue.NO_ANCHOR || gameTime < 0L) {
 			return 0.0f;
 		}
-		return diveOffsetBlocks(entityId, gameTime);
+		return diveOffsetBlocks(entityId, gameTime + partialTick);
 	}
 
-	/** Full-screen veil alpha (0..0.75) for the same dive beats as {@link #diveOffsetBlocks()}. */
-	public float diveFadeAlpha() {
+	/** Full-screen veil alpha (0..0.75) for the same dive beats as {@link #diveOffsetBlocks(float)}. */
+	public float diveFadeAlpha(float partialTick) {
 		int entityId = cameraEntityId();
 		long gameTime = levelGameTime();
 		if (entityId == VfxCue.NO_ANCHOR || gameTime < 0L) {
 			return 0.0f;
 		}
-		return diveFadeAlpha(entityId, gameTime);
+		return diveFadeAlpha(entityId, gameTime + partialTick);
 	}
 
-	/** Test seam: {@link #diveOffsetBlocks()} with explicit tick inputs, no Minecraft needed. */
-	float diveOffsetBlocks(int entityId, long gameTime) {
-		advanceDive(entityId, gameTime);
+	/** Test seam: {@link #diveOffsetBlocks(float)} with explicit tick inputs, no Minecraft needed. */
+	float diveOffsetBlocks(int entityId, float frameTime) {
+		advanceDive(entityId, frameTime);
 		return switch (divePhase) {
 			case NONE -> 0.0f;
 			case SINKING -> DIVE_SINK_DEPTH_BLOCKS * smoothstep(diveSinkProgress);
@@ -166,9 +167,9 @@ public final class VfxCameraChannel {
 		};
 	}
 
-	/** Test seam: {@link #diveFadeAlpha()} with explicit tick inputs, no Minecraft needed. */
-	float diveFadeAlpha(int entityId, long gameTime) {
-		advanceDive(entityId, gameTime);
+	/** Test seam: {@link #diveFadeAlpha(float)} with explicit tick inputs, no Minecraft needed. */
+	float diveFadeAlpha(int entityId, float frameTime) {
+		advanceDive(entityId, frameTime);
 		return switch (divePhase) {
 			case NONE -> 0.0f;
 			case SINKING -> DIVE_FADE_SINK_MAX_ALPHA * smoothstep(diveSinkProgress);
@@ -182,7 +183,7 @@ public final class VfxCameraChannel {
 		fovImpulses.clear();
 		diveEntityId = NO_DIVE_ENTITY;
 		divePhase = DivePhase.NONE;
-		diveUnderSinceGameTime = 0L;
+		diveUnderSinceGameTime = 0.0f;
 		diveUnderEase = 0.0f;
 		diveSinkProgress = -1.0f;
 		diveEmergeProgress = -1.0f;
@@ -247,22 +248,22 @@ public final class VfxCameraChannel {
 
 	/**
 	 * Advances the per-camera-entity dive phase from ShadowBodySink's two progress signals and the
-	 * current game time. Idempotent within one game tick, so the camera mixin and the HUD veil may
-	 * both sample the channel per frame without double-stepping: sink progress 0..1 over the sink
-	 * window, the under hold once the sink completes, then the emerge window (progress 1..0) owns the
-	 * rise back to zero.
+	 * frame's fractional game time. Idempotent at any single frame time, so the camera mixin and the
+	 * HUD veil may both sample the channel per frame without double-stepping: sink progress 0..1 over
+	 * the sink window, the under hold once the sink completes, then the emerge window (progress 1..0)
+	 * owns the rise back to zero.
 	 */
-	private void advanceDive(int entityId, long gameTime) {
+	private void advanceDive(int entityId, float frameTime) {
 		if (entityId != diveEntityId) {
 			diveEntityId = entityId;
 			divePhase = DivePhase.NONE;
-			diveUnderSinceGameTime = gameTime;
+			diveUnderSinceGameTime = frameTime;
 			diveUnderEase = 0.0f;
 			diveSinkProgress = -1.0f;
 			diveEmergeProgress = -1.0f;
 		}
-		diveSinkProgress = ShadowBodySink.sinkProgress(entityId, gameTime);
-		diveEmergeProgress = ShadowBodySink.emergeProgress(entityId, gameTime);
+		diveSinkProgress = ShadowBodySink.sinkProgress(entityId, frameTime);
+		diveEmergeProgress = ShadowBodySink.emergeProgress(entityId, frameTime);
 
 		// The emerge window always plays out to zero once started, even if the sink query lingers.
 		if (divePhase == DivePhase.EMERGING) {
@@ -284,12 +285,12 @@ public final class VfxCameraChannel {
 			return;
 		}
 		if (divePhase == DivePhase.UNDER) {
-			diveUnderEase = clamp01((float) (gameTime - diveUnderSinceGameTime) / DIVE_UNDER_EASE_TICKS);
+			diveUnderEase = clamp01((frameTime - diveUnderSinceGameTime) / DIVE_UNDER_EASE_TICKS);
 			return;
 		}
 		// First sight of the completed sink: anchor the fast 3-tick glide at the sink bottom. Joining
 		// mid-under (a missed sink) is treated as already settled on the hold, never as a fresh bottom.
-		diveUnderSinceGameTime = divePhase == DivePhase.SINKING ? gameTime : gameTime - DIVE_UNDER_EASE_TICKS;
+		diveUnderSinceGameTime = divePhase == DivePhase.SINKING ? frameTime : frameTime - DIVE_UNDER_EASE_TICKS;
 		diveUnderEase = divePhase == DivePhase.SINKING ? 0.0f : 1.0f;
 		divePhase = DivePhase.UNDER;
 	}

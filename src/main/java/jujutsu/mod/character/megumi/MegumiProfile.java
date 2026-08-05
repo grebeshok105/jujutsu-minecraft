@@ -78,18 +78,27 @@ public final class MegumiProfile {
 	public static final int DROP_TELEGRAPH_TICKS = 20;
 	/** The hovering disc re-emits (and re-anchors over the moving target) on this period. */
 	public static final int DROP_ZONE_PULSE_TICKS = 5;
-	public static final int DROP_COOLDOWN_TICKS = 160;
+	public static final int DROP_COOLDOWN_TICKS = 60;
 	/** Soft blocks (sand, gravel, clay) crush like light anvils: per-block scaling with a low cap. */
 	public static final float DROP_SOFT_DAMAGE_PER_BLOCK = 1.0f;
 	public static final int DROP_SOFT_DAMAGE_MAX = 5;
 	/** Anvil keeps the vanilla crush numbers so armor/helmet interactions stay familiar. */
 	public static final float DROP_ANVIL_DAMAGE_PER_BLOCK = 2.0f;
 	public static final int DROP_ANVIL_DAMAGE_MAX = 40;
-	/** Weighted block table; weights sum to 100 so each reads as a percent. */
-	public static final int DROP_WEIGHT_SAND = 40;
-	public static final int DROP_WEIGHT_GRAVEL = 30;
-	public static final int DROP_WEIGHT_CLAY = 20;
-	public static final int DROP_WEIGHT_ANVIL = 10;
+	/**
+	 * Weighted block table; weights sum to 100 so each reads as a percent. Deliberately near-flat:
+	 * the first slice's sand-heavy 40/30/20/10 read as "always sand" in play, so sand is muted and
+	 * the anvil — the drop's highlight — is twice as common now.
+	 */
+	public static final int DROP_WEIGHT_SAND = 30;
+	public static final int DROP_WEIGHT_GRAVEL = 25;
+	public static final int DROP_WEIGHT_CLAY = 25;
+	public static final int DROP_WEIGHT_ANVIL = 20;
+	/** Each cast releases 1–3 blocks, scattered inside the disc so a volley reads as a volley. */
+	public static final int DROP_MIN_BLOCKS = 1;
+	public static final int DROP_MAX_BLOCKS = 3;
+	/** Horizontal scatter radius for the extra blocks; inside DROP_ZONE_RADIUS so nothing spawns outside the telegraph. */
+	public static final double DROP_SCATTER_RADIUS = 0.9;
 
 	private MegumiProfile() {}
 }

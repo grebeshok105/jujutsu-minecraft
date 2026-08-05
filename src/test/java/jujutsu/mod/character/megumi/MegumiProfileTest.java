@@ -104,13 +104,16 @@ class MegumiProfileTest {
 		assertEquals(1.2, MegumiProfile.DROP_ZONE_RADIUS);
 		assertEquals(20, MegumiProfile.DROP_TELEGRAPH_TICKS);
 		assertEquals(5, MegumiProfile.DROP_ZONE_PULSE_TICKS);
-		assertEquals(160, MegumiProfile.DROP_COOLDOWN_TICKS);
+		assertEquals(60, MegumiProfile.DROP_COOLDOWN_TICKS);
 		assertEquals(1.0f, MegumiProfile.DROP_SOFT_DAMAGE_PER_BLOCK);
 		assertEquals(5, MegumiProfile.DROP_SOFT_DAMAGE_MAX);
-		assertEquals(40, MegumiProfile.DROP_WEIGHT_SAND);
-		assertEquals(30, MegumiProfile.DROP_WEIGHT_GRAVEL);
-		assertEquals(20, MegumiProfile.DROP_WEIGHT_CLAY);
-		assertEquals(10, MegumiProfile.DROP_WEIGHT_ANVIL);
+		assertEquals(30, MegumiProfile.DROP_WEIGHT_SAND);
+		assertEquals(25, MegumiProfile.DROP_WEIGHT_GRAVEL);
+		assertEquals(25, MegumiProfile.DROP_WEIGHT_CLAY);
+		assertEquals(20, MegumiProfile.DROP_WEIGHT_ANVIL);
+		assertEquals(1, MegumiProfile.DROP_MIN_BLOCKS);
+		assertEquals(3, MegumiProfile.DROP_MAX_BLOCKS);
+		assertEquals(0.9, MegumiProfile.DROP_SCATTER_RADIUS);
 	}
 
 	@Test
@@ -122,5 +125,10 @@ class MegumiProfileTest {
 				"the telegraph must finish long before the cooldown clears");
 		assertTrue(MegumiProfile.DROP_ZONE_RADIUS < MegumiProfile.SHADOW_TRAP_RADIUS,
 				"the drop zone must be a tight disc under the trap pool");
+		assertTrue(MegumiProfile.DROP_MIN_BLOCKS >= 1
+						&& MegumiProfile.DROP_MIN_BLOCKS <= MegumiProfile.DROP_MAX_BLOCKS,
+				"the volley range must be a real range starting at one block");
+		assertTrue(MegumiProfile.DROP_SCATTER_RADIUS < MegumiProfile.DROP_ZONE_RADIUS,
+				"scattered blocks must spawn inside the telegraphed disc");
 	}
 }

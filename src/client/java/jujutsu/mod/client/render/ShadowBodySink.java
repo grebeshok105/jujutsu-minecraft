@@ -79,27 +79,31 @@ public final class ShadowBodySink {
 		}
 	}
 
-	/** 0..1 while sinking, 1 while under, -1 when the entry is absent or expired. */
-	public static float sinkProgress(int entityId, long gameTime) {
+	/**
+	 * 0..1 while sinking, 1 while under, -1 when the entry is absent or expired. {@code frameTime} is
+	 * the level game time plus the frame's partial tick, so per-frame readers move continuously
+	 * instead of stepping once per tick.
+	 */
+	public static float sinkProgress(int entityId, float frameTime) {
 		Entry entry = entryOrExpired(entityId);
 		if (entry == null) {
 			return -1.0f;
 		}
 		return switch (entry.state()) {
-			case SINKING -> clamp01((gameTime - entry.startGameTime()) / (float) entry.durationTicks());
+			case SINKING -> clamp01((frameTime - entry.startGameTime()) / entry.durationTicks());
 			case UNDER -> 1.0f;
 			case EMERGING -> -1.0f;
 		};
 	}
 
 	/** 1 at the start of the rise down to 0 when fully risen, -1 when the entry is absent or expired. */
-	public static float emergeProgress(int entityId, long gameTime) {
+	public static float emergeProgress(int entityId, float frameTime) {
 		Entry entry = entryOrExpired(entityId);
 		if (entry == null) {
 			return -1.0f;
 		}
 		return switch (entry.state()) {
-			case EMERGING -> 1.0f - clamp01((gameTime - entry.startGameTime()) / (float) entry.durationTicks());
+			case EMERGING -> 1.0f - clamp01((frameTime - entry.startGameTime()) / entry.durationTicks());
 			default -> -1.0f;
 		};
 	}

@@ -37,7 +37,7 @@ public abstract class HairpinCameraMixin {
 		}
 		// First-person dive only: lower the camera with the sinking body. The third-person body sinks
 		// through the renderer seam instead, and a resting camera keeps the vanilla path exactly.
-		float dive = VfxDirector.diveOffsetBlocks();
+		float dive = VfxDirector.diveOffsetBlocks(partialTick);
 		if (!detached && dive > 0.001f) {
 			Vec3 pos = getPosition();
 			setPosition(pos.x, pos.y - dive, pos.z);

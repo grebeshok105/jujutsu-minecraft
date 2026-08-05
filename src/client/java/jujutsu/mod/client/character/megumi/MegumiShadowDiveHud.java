@@ -21,7 +21,7 @@ public final class MegumiShadowDiveHud {
 		if (!Minecraft.getInstance().options.getCameraType().isFirstPerson()) {
 			return;
 		}
-		float alpha = VfxDirector.diveFadeAlpha();
+		float alpha = VfxDirector.diveFadeAlpha(tickCounter.getGameTimeDeltaPartialTick(false));
 		if (alpha <= 0.001f) {
 			return;
 		}

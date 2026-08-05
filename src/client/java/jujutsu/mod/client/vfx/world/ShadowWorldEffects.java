@@ -20,10 +20,13 @@ public final class ShadowWorldEffects {
 	 * (tenths of a block: intensity 26 is the 2.6-block trap zone). Trap pools are true circles:
 	 * the drawn edge telegraphs the authoritative grip cylinder, so it must not lie on any axis,
 	 * and the unfurl reaches the full radius so the open-to-zone handoff does not jump. Trap pools
-	 * are void-black holes: full opacity for the pool's whole life, only the radius animates.
+	 * are void-black holes while they live — the open and the zone never breathe below full
+	 * opacity — but the close disperses: the collapse fades 255→0 across its sweep so the hole
+	 * dissolves instead of blinking out.
 	 */
 	public static void renderShadowTrapPool(VertexConsumer consumer, Vec3 center, float progress, float radius, boolean opening) {
-		renderPoolDisk(consumer, center, radius * trapPoolScale(opening, progress), 255, 1.0f);
+		renderPoolDisk(consumer, center, radius * trapPoolScale(opening, progress),
+				trapPoolAlpha(opening, progress), 1.0f);
 	}
 
 	/**
@@ -63,6 +66,16 @@ public final class ShadowWorldEffects {
 	static float trapPoolScale(boolean opening, float progress) {
 		float clamped = Math.max(0.0f, Math.min(1.0f, progress));
 		return opening ? 0.26f + 0.74f * clamped : 1.0f - 0.74f * clamped;
+	}
+
+	/** Void-black while alive; the closing sweep alone dissolves, easing 255 down to 0. */
+	static int trapPoolAlpha(boolean opening, float progress) {
+		if (opening) {
+			return 255;
+		}
+		float clamped = Math.max(0.0f, Math.min(1.0f, progress));
+		float eased = 1.0f - clamped * clamped * (3.0f - 2.0f * clamped);
+		return Math.round(255.0f * eased);
 	}
 
 	static float shadowPoolRadius(boolean opening, float progress) {

@@ -120,12 +120,17 @@ public abstract class CharacterSkinAnimationMixin {
 		if (client.level == null) {
 			return 0.0f;
 		}
-		long gameTime = client.level.getGameTime();
-		float progress = ShadowBodySink.sinkProgress(state.id, gameTime);
+		// The frame's partial tick keeps the dive continuous between ticks; the render-context cache
+		// already remembers it per player at extractRenderState time, so no new seam is needed.
+		ClientCharacterSelectionManager.RenderContext renderContext =
+				ClientCharacterSelectionManager.renderContextByEntityId(state.id);
+		float frameTime = client.level.getGameTime()
+				+ (renderContext == null ? 0.0f : renderContext.partialTick());
+		float progress = ShadowBodySink.sinkProgress(state.id, frameTime);
 		if (progress >= 0.0f) {
 			return -JUJUTSUMOD_SINK_DEPTH_BLOCKS * ShadowBodySink.smoothstep(progress);
 		}
-		progress = ShadowBodySink.emergeProgress(state.id, gameTime);
+		progress = ShadowBodySink.emergeProgress(state.id, frameTime);
 		if (progress >= 0.0f) {
 			return -JUJUTSUMOD_SINK_DEPTH_BLOCKS * ShadowBodySink.smoothstep(progress);
 		}
