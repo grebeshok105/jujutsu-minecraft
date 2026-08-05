@@ -81,7 +81,7 @@ R6 — five new `ShadowBodySinkTest` pins (reorder, late join, re-dive, both dep
 
 ## Deploy
 
-- Deployed jar in `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar` is built from `feat/megumi-shadow-drop` at `aef9b5c`, md5 `57311c6950b9f2ddef43008bcc78820f` (previous: `e2974a9`, md5 `f79039f850ea61b98ed5aa9ff0385f26`).
+- Deployed jar in `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar` is built from `feat/megumi-shadow-drop` at `6487694` (review fixes R1–R7), md5 `a96ce9580f04f76ecfaaa05aecfc65cf` (previous: `aef9b5c`, md5 `57311c6950b9f2ddef43008bcc78820f`).
 
 ## Next steps
 
