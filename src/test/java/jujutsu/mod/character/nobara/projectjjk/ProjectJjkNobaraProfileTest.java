@@ -30,10 +30,15 @@ public final class ProjectJjkNobaraProfileTest {
 
 	private static void assertNewHairpinBalance() {
 		assert ProjectJjkNobaraProfile.HAIRPIN_DIRECTED_DAMAGE_PER_NAIL == 5.0f;
-		assert ProjectJjkNobaraProfile.HAIRPIN_BOOM_DAMAGE_PER_NAIL == 3.0f;
 		assert ProjectJjkNobaraProfile.HAIRPIN_DIRECTED_CHAIN_RADIUS == 10.0;
 		assert ProjectJjkNobaraProfile.HAIRPIN_DIRECTED_CHAIN_DELAY_TICKS == 2;
-		assert ProjectJjkNobaraProfile.HAIRPIN_MASS_CHAIN_DELAY_TICKS == 3;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_DAMAGE_PER_NAIL == ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DAMAGE_PER_NAIL;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_DAMAGE_CAP == 42.0f;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_STRIKE_DELAY_TICKS == 6;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_RETRY_TIMEOUT_TICKS == 40;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_KNOCKBACK_BASE == ProjectJjkNobaraProfile.HAIRPIN_KNOCKBACK;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_KNOCKBACK_PER_NAIL == ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_KNOCKBACK;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_KNOCKBACK_CAP == 3.0f;
 		assert ProjectJjkNobaraProfile.HAIRPIN_BLOCK_EXPLOSION_POWER == 1.5f;
 		assert ProjectJjkNobaraProfile.nailDepthMultiplier(1) == 1.0f;
 		assert ProjectJjkNobaraProfile.nailDepthMultiplier(2) == 1.35f;
@@ -141,7 +146,6 @@ public final class ProjectJjkNobaraProfileTest {
 
 	private static void assertCombatExpansionBalanceIsCentralized() {
 		assert ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DAMAGE_PER_NAIL == 4.0f;
-		assert ProjectJjkNobaraProfile.HAIRPIN_BOOM_DAMAGE_PER_NAIL == 3.0f;
 		assert ProjectJjkNobaraProfile.RESONANCE_DAMAGE == 28.0f;
 		assert ProjectJjkNobaraProfile.SELF_RESONANCE_SELF_DAMAGE == 6.0f;
 		assert ProjectJjkNobaraProfile.SELF_RESONANCE_LINKED_DAMAGE == 18.0f;

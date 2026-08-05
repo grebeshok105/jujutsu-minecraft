@@ -76,7 +76,7 @@ final class VfxCompletenessTest {
 				assertEquals(1, countStates(id), ownerClass.getSimpleName() + "." + field.getName());
 			}
 		}
-		assertEquals(34, allIds.size());
+		assertEquals(35, allIds.size());
 	}
 
 	@Test
@@ -87,7 +87,7 @@ final class VfxCompletenessTest {
 
 		Set<ResourceLocation> live = liveIds();
 		assertEquals(live, VfxDirector.registeredRecipeIdsForTest());
-		assertEquals(34, VfxDirector.registeredRecipeIdsForTest().size());
+		assertEquals(35, VfxDirector.registeredRecipeIdsForTest().size());
 		for (ResourceLocation id : VfxDirector.registeredRecipeIdsForTest()) {
 			assertEquals(1, ownerCount(id), "recipe owner count for " + id);
 			assertFalse(plannedIds().contains(id));

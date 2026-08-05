@@ -31,6 +31,7 @@ final class VfxRadiusContractTest {
 				directRadius("Nobara detonate", NobaraVfxIds.DETONATE, NobaraVfxRecipes.HAMMER_ACTION_PRESENTATION_RADIUS),
 				radius("Nobara wide", Set.of(NobaraVfxIds.ENLARGE, NobaraVfxIds.EXPLOSION, NobaraVfxIds.REMNANT_DROP),
 						NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
+				radius("Nobara mega nail", Set.of(NobaraVfxIds.MEGA_NAIL_STRIKE), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
 				radius("Nobara ritual", Set.of(NobaraVfxIds.RITUAL_BIND), NobaraVfxRecipes.HAMMER_PRESENTATION_RADIUS),
 				radius("Nobara doll strike", Set.of(NobaraVfxIds.DOLL_STRIKE), NobaraVfxRecipes.IMPACT_PRESENTATION_RADIUS),
 				radius("Nobara resonance", Set.of(NobaraVfxIds.RESONANCE_RELEASE), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),

@@ -16,12 +16,11 @@ public final class HairpinChainTest {
 
 	public static void main(String[] args) {
 		nearestNeighborUsesSnapshotAndUuidTieBreak();
-		directedAndMassUseExactCadence();
+		directedUsesExactCadence();
 		temporaryEntryDoesNotBlockOrConsumeLaterEntries();
 		finaleMovesToLastSuccessfulResolvableEntry();
 		temporaryEntryRotatesAndRetriesAfterOtherEntries();
 		directedOrderKeepsSelectedSeedFirst();
-		runtimeUsesDistinctDirectedAndMassChains();
 		depthAndFinaleHaveDedicatedPresentation();
 	}
 
@@ -40,21 +39,6 @@ public final class HairpinChainTest {
 		}
 	}
 
-	private static void runtimeUsesDistinctDirectedAndMassChains() {
-		try {
-			String runtime = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
-			assert runtime.contains("startDirectedHairpin(ServerPlayer caster)") : "R needs a directed server entrypoint";
-			assert runtime.contains("startMassHairpin(ServerPlayer caster)") : "B needs a mass server entrypoint";
-			assert runtime.contains("HAIRPIN_DIRECTED_CHAIN_RADIUS") : "R selection must use its ten-block radius";
-			assert runtime.contains("HAIRPIN_DIRECTED_DAMAGE_PER_NAIL") : "R damage must be independent from B";
-			assert runtime.contains("HAIRPIN_BLOCK_EXPLOSION_POWER") && runtime.contains("shouldDamageEntity") : "R block explosion must destroy terrain without vanilla entity damage";
-			assert !runtime.contains("consumeAnchorMarks(level, anchors, gameTime);") : "Marks cannot be consumed before individual successful steps";
-			assert !runtime.contains("class PendingExplosion") : "Legacy chain state must be replaced by HairpinChainScheduler";
-		} catch (Exception exception) {
-			throw new AssertionError(exception);
-		}
-	}
-
 	private static void nearestNeighborUsesSnapshotAndUuidTieBreak() {
 		List<HairpinChainOrder.Candidate> candidates = List.of(
 				new HairpinChainOrder.Candidate(C, new Vec3(4, 0, 0)),
@@ -65,21 +49,16 @@ public final class HairpinChainTest {
 		assert candidates.getFirst().position().equals(new Vec3(4, 0, 0)) : "Ordering must not mutate candidate snapshots";
 	}
 
-	private static void directedAndMassUseExactCadence() {
-		HairpinChain directed = HairpinChain.start(HairpinChain.Mode.DIRECTED, List.of(A, B), 10L, 2);
-		assert directed.poll(9L, id -> HairpinChain.Resolution.RESOLVED).kind() == HairpinChain.StepKind.WAIT;
-		assert directed.poll(10L, id -> HairpinChain.Resolution.RESOLVED).nailId().equals(A);
-		assert directed.poll(11L, id -> HairpinChain.Resolution.RESOLVED).kind() == HairpinChain.StepKind.WAIT;
-		assert directed.poll(12L, id -> HairpinChain.Resolution.RESOLVED).nailId().equals(B);
-
-		HairpinChain mass = HairpinChain.start(HairpinChain.Mode.MASS, List.of(A, B), 20L, 3);
-		assert mass.poll(20L, id -> HairpinChain.Resolution.RESOLVED).nailId().equals(A);
-		assert mass.poll(22L, id -> HairpinChain.Resolution.RESOLVED).kind() == HairpinChain.StepKind.WAIT;
-		assert mass.poll(23L, id -> HairpinChain.Resolution.RESOLVED).nailId().equals(B);
+	private static void directedUsesExactCadence() {
+		HairpinChain chain = HairpinChain.start(List.of(A, B), 10L, 2);
+		assert chain.poll(9L, id -> HairpinChain.Resolution.RESOLVED).kind() == HairpinChain.StepKind.WAIT;
+		assert chain.poll(10L, id -> HairpinChain.Resolution.RESOLVED).nailId().equals(A);
+		assert chain.poll(11L, id -> HairpinChain.Resolution.RESOLVED).kind() == HairpinChain.StepKind.WAIT;
+		assert chain.poll(12L, id -> HairpinChain.Resolution.RESOLVED).nailId().equals(B);
 	}
 
 	private static void temporaryEntryDoesNotBlockOrConsumeLaterEntries() {
-		HairpinChain chain = HairpinChain.start(HairpinChain.Mode.MASS, List.of(A, B, C), 0L, 3);
+		HairpinChain chain = HairpinChain.start(List.of(A, B, C), 0L, 3);
 		Map<UUID, HairpinChain.Resolution> state = Map.of(
 				A, HairpinChain.Resolution.RESOLVED,
 				B, HairpinChain.Resolution.TEMPORARILY_UNAVAILABLE,
@@ -93,7 +72,7 @@ public final class HairpinChainTest {
 	}
 
 	private static void finaleMovesToLastSuccessfulResolvableEntry() {
-		HairpinChain chain = HairpinChain.start(HairpinChain.Mode.DIRECTED, List.of(A, B, C), 0L, 2);
+		HairpinChain chain = HairpinChain.start(List.of(A, B, C), 0L, 2);
 		Map<UUID, HairpinChain.Resolution> state = Map.of(
 				A, HairpinChain.Resolution.RESOLVED,
 				B, HairpinChain.Resolution.CONFIRMED_REMOVED,
@@ -104,7 +83,7 @@ public final class HairpinChainTest {
 	}
 
 	private static void temporaryEntryRotatesAndRetriesAfterOtherEntries() {
-		HairpinChain chain = HairpinChain.start(HairpinChain.Mode.MASS, List.of(A, B), 0L, 3);
+		HairpinChain chain = HairpinChain.start(List.of(A, B), 0L, 3);
 		Map<UUID, HairpinChain.Resolution> unavailable = Map.of(A, HairpinChain.Resolution.TEMPORARILY_UNAVAILABLE, B, HairpinChain.Resolution.RESOLVED);
 		assert chain.poll(0L, unavailable::get).nailId().equals(B);
 		Map<UUID, HairpinChain.Resolution> restored = Map.of(A, HairpinChain.Resolution.RESOLVED, B, HairpinChain.Resolution.CONFIRMED_REMOVED);

@@ -7,7 +7,6 @@ import java.util.UUID;
 import java.util.function.Function;
 
 public final class HairpinChain {
-	private final Mode mode;
 	private final List<UUID> nailIds;
 	private final List<UUID> pending;
 	private final int cadenceTicks;
@@ -15,8 +14,7 @@ public final class HairpinChain {
 	private long nextDueGameTime;
 	private UUID lastSuccessful;
 
-	private HairpinChain(Mode mode, List<UUID> nailIds, long nextDueGameTime, int cadenceTicks) {
-		this.mode = Objects.requireNonNull(mode, "mode");
+	private HairpinChain(List<UUID> nailIds, long nextDueGameTime, int cadenceTicks) {
 		this.nailIds = List.copyOf(nailIds);
 		this.pending = new ArrayList<>(nailIds);
 		this.nextDueGameTime = nextDueGameTime;
@@ -24,8 +22,8 @@ public final class HairpinChain {
 		this.cadenceTicks = cadenceTicks;
 	}
 
-	public static HairpinChain start(Mode mode, List<UUID> nailIds, long firstDueGameTime, int cadenceTicks) {
-		return new HairpinChain(mode, nailIds, firstDueGameTime, cadenceTicks);
+	public static HairpinChain start(List<UUID> nailIds, long firstDueGameTime, int cadenceTicks) {
+		return new HairpinChain(nailIds, firstDueGameTime, cadenceTicks);
 	}
 
 	public Step poll(long gameTime, Function<UUID, Resolution> resolver) {
@@ -51,11 +49,9 @@ public final class HairpinChain {
 		return Step.complete(lastSuccessful);
 	}
 
-	public Mode mode() { return mode; }
 	public List<UUID> nailIds() { return nailIds; }
 	public List<UUID> skippedTemporary() { return List.copyOf(skippedTemporary); }
 
-	public enum Mode { DIRECTED, MASS }
 	public enum Resolution { RESOLVED, TEMPORARILY_UNAVAILABLE, CONFIRMED_REMOVED, INVALID }
 	public enum StepKind { WAIT, EXPLODE, COMPLETE }
 

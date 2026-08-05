@@ -11,6 +11,7 @@ import jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime;
 import jujutsu.mod.character.nobara.projectjjk.NobaraActionGuard;
 import jujutsu.mod.character.nobara.projectjjk.NobaraHammerCombatRuntime;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraLoadout;
+import jujutsu.mod.character.nobara.projectjjk.ProjectJjkMegaNailRuntime;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkRitualRuntime;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollRuntime;
 import jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime;
@@ -31,6 +32,7 @@ public final class NobaraDefinition implements CharacterDefinition {
 	@Override
 	public void registerServerHooks() {
 		ProjectJjkRitualRuntime.register();
+		ProjectJjkMegaNailRuntime.register();
 		ProjectJjkStrawDollRuntime.register();
 		EmbeddedNailRegistry.register();
 		NailAnchorLifecycle.register();

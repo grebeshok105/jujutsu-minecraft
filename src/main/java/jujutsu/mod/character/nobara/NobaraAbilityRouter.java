@@ -6,6 +6,7 @@ import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime;
 import jujutsu.mod.character.nobara.projectjjk.NobaraHammerCombatRuntime;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraRuntime;
+import jujutsu.mod.character.nobara.projectjjk.ProjectJjkMegaNailRuntime;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkRitualRuntime;
 import jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime;
 import jujutsu.mod.combat.CombatStagger;
@@ -34,8 +35,9 @@ public final class NobaraAbilityRouter {
 			case PRIMARY -> ProjectJjkNobaraRuntime.canCastMarkedHairpin(nobara)
 					&& ProjectJjkRitualRuntime.startDirectedHairpin(nobara);
 			case PRIMARY_SNEAK -> SelfResonanceRuntime.tryCast(nobara);
+			// B — Mega Nail: converges every embedded nail on the aimed target into one piercing strike.
 			case SECONDARY -> ProjectJjkNobaraRuntime.canCastMarkedHairpin(nobara)
-					&& ProjectJjkRitualRuntime.startMassHairpin(nobara);
+					&& ProjectJjkMegaNailRuntime.start(nobara);
 			case SECONDARY_SNEAK -> NailTrapRuntime.tryPlace(nobara);
 			case ATTACK_CONTEXT -> NobaraHammerCombatRuntime.handleInput(nobara);
 			// Her right click is vanilla's. Answering false explicitly rather than adding a default keeps

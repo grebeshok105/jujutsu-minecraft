@@ -1,5 +1,6 @@
 package jujutsu.mod.character.nobara.projectjjk;
 
+import java.util.Optional;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -12,6 +13,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityReference;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -34,6 +36,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	private static final EntityDataAccessor<Vector3f> DATA_EMBEDDED_LOCAL_OFFSET = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.VECTOR3);
 	private static final EntityDataAccessor<Vector3f> DATA_EMBEDDED_LOCAL_FORWARD = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.VECTOR3);
 	private static final EntityDataAccessor<Integer> DATA_EMBED_DEPTH = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.INT);
+	private static final EntityDataAccessor<Optional<EntityReference<LivingEntity>>> DATA_OWNER_UUID = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.OPTIONAL_LIVING_ENTITY_REFERENCE);
 	private static final String OWNER_UUID_TAG = "OwnerUuid";
 	private static final String OWNER_ENTITY_ID_TAG = "OwnerEntityId";
 	private static final String LAUNCHED_TAG = "Launched";
@@ -93,6 +96,7 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	public void prepare(ServerPlayer owner, Vec3 position, Vec3 direction) {
 		ownerUuid = owner.getUUID();
+		entityData.set(DATA_OWNER_UUID, Optional.of(new EntityReference<>(ownerUuid)));
 		ownerEntityId = owner.getId();
 		setLaunched(false);
 		target = position;
@@ -145,6 +149,11 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	public UUID ownerUuid() {
 		return ownerUuid;
+	}
+
+	/** Returns the owner UUID from synched data, available on both server and client. */
+	public Optional<UUID> clientOwnerUuid() {
+		return entityData.get(DATA_OWNER_UUID).map(EntityReference::getUUID);
 	}
 
 	public UUID embeddedTargetUuid() {
@@ -333,6 +342,7 @@ public final class ProjectJjkNailEntity extends Entity {
 		builder.define(DATA_EMBEDDED_LOCAL_OFFSET, new Vector3f(0.0f, 0.0f, 0.0f));
 		builder.define(DATA_EMBEDDED_LOCAL_FORWARD, new Vector3f(0.0f, 0.0f, 1.0f));
 		builder.define(DATA_EMBED_DEPTH, 1);
+		builder.define(DATA_OWNER_UUID, Optional.empty());
 	}
 
 	@Override
@@ -384,6 +394,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	protected void readAdditionalSaveData(ValueInput input) {
 		String owner = input.getStringOr(OWNER_UUID_TAG, "");
 		ownerUuid = owner.isBlank() ? null : UUID.fromString(owner);
+		entityData.set(DATA_OWNER_UUID, ownerUuid == null ? Optional.empty() : Optional.of(new EntityReference<>(ownerUuid)));
 		ownerEntityId = input.getIntOr(OWNER_ENTITY_ID_TAG, -1);
 		setLaunched(input.getBooleanOr(LAUNCHED_TAG, false));
 		explosiveImpact = input.getBooleanOr(EXPLOSIVE_IMPACT_TAG, false);

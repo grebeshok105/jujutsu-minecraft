@@ -28,15 +28,16 @@ public final class NobaraVfxIds {
 	public static final ResourceLocation NAIL_TRAP_IMPACT = id("nail_trap_impact");
 	/** Server-confirmed caster-only presentation anchor for abilities whose world cue is target-fixed. */
 	public static final ResourceLocation CASTER_ACTION = id("caster_action");
+	public static final ResourceLocation MEGA_NAIL_STRIKE = id("mega_nail_strike");
 	public static final int CASTER_HAIRPIN_DIRECTED = 1;
-	public static final int CASTER_HAIRPIN_MASS = 2;
 	public static final int CASTER_NAIL_TRAP = 3;
 	public static final int CASTER_HAMMER_EMBEDDED = 4;
+	public static final int CASTER_MEGA_NAIL = 5;
 	public static final Set<ResourceLocation> LIVE = Set.of(
 			HAMMER, IMPACT, IMPACT_SOUND, DETONATE, ENLARGE, EXPLOSION, FIRST_PERSON_SNAP, REMNANT_DROP,
 			RITUAL_BIND, DOLL_STRIKE, RESONANCE_RELEASE, HAMMER_HORIZONTAL, HAMMER_OVERHEAD, HAMMER_NAIL_LAUNCH,
 			BLACK_FLASH, SELF_RESONANCE, NAIL_DEEPEN, NAIL_TRAP_PLACED, NAIL_TRAP_ARMED, NAIL_TRAP_COLLAPSE,
-		NAIL_TRAP_IMPACT, CASTER_ACTION);
+		NAIL_TRAP_IMPACT, CASTER_ACTION, MEGA_NAIL_STRIKE);
 	public static final Set<ResourceLocation> PLANNED = Set.of();
 	private static final int HAIRPIN_FINALE_FLAG = 8;
 

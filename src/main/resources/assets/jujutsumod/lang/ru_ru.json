@@ -65,7 +65,7 @@
   ,"screen.jujutsumod.character_select.ability.piercing_nail": "Пробитие"
   ,"screen.jujutsumod.character_select.ability.hairpin_enlarge": "Усиление"
   ,"screen.jujutsumod.character_select.ability.resonance": "Резонанс"
-  ,"screen.jujutsumod.character_select.ability.hairpin_explosion": "Взрыв"
+  ,"screen.jujutsumod.character_select.ability.mega_nail": "Мега-гвоздь"
   ,"item.jujutsumod.hairpin_nail": "Гвоздь Шпильки Нобары"
   ,"item.jujutsumod.projectjjk_hairpin_nail": "Гвоздь Шпильки Нобары (алиас ProjectJJK)"
   ,"item.jujutsumod.projectjjk_straw_doll_hammer": "Молот соломенной куклы Нобары (алиас ProjectJJK)"
@@ -108,4 +108,9 @@
   ,"message.jujutsumod.megumi.dogs.none_out": "Божественные псы не призваны."
   ,"entity.jujutsumod.megumi_divine_dog": "Божественный пёс"
   ,"hud.jujutsumod.megumi.divine_dogs": "Божественные псы"
+  ,"esp.jujutsumod.rank.special_grade": "Особый ранг"
+  ,"esp.jujutsumod.rank.rank1": "1 ранг"
+  ,"esp.jujutsumod.rank.rank2": "2 ранг"
+  ,"esp.jujutsumod.rank.rank3": "3 ранг"
+  ,"esp.jujutsumod.rank.civilian": "Гражданский"
 }

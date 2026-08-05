@@ -108,7 +108,7 @@ final class CharacterSkinAnimationPackTest {
 		String nobaraRecipes = read("src/client/java/jujutsu/mod/client/vfx/nobara/NobaraVfxRecipes.java");
 		assertTrue(nobaraRecipes.contains("NobaraVfxIds.CASTER_ACTION")
 				&& nobaraRecipes.contains("CASTER_HAIRPIN_DIRECTED")
-				&& nobaraRecipes.contains("CASTER_HAIRPIN_MASS")
+				&& nobaraRecipes.contains("CASTER_MEGA_NAIL")
 				&& nobaraRecipes.contains("CASTER_NAIL_TRAP")
 				&& nobaraRecipes.contains("CASTER_HAMMER_EMBEDDED"));
 		assertTrue(read("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java")

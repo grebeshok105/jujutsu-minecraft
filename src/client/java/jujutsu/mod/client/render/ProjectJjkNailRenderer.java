@@ -16,10 +16,22 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import net.minecraft.client.gui.Font;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Player;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
+import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEmbedding;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEntity;
+import jujutsu.mod.client.character.ClientCharacterSelectionManager;
+import jujutsu.mod.client.character.JujutsuCharacterClients;
+import jujutsu.mod.client.character.nobara.NobaraEspRanks;
+import jujutsu.mod.client.character.nobara.NobaraEspState;
 import jujutsu.mod.client.vfx.VfxPalette;
 import jujutsu.mod.registry.JujutsuItems;
 
@@ -40,6 +52,10 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 	private static final int CURSED_BLUE_WHITE_R = VfxPalette.CURSED_BLUE_WHITE_R;
 	private static final int CURSED_BLUE_WHITE_G = VfxPalette.CURSED_BLUE_WHITE_G;
 	private static final int CURSED_BLUE_WHITE_B = VfxPalette.CURSED_BLUE_WHITE_B;
+	private static final int NOBARA_ACCENT = 0xE48A36;
+	private static final int NOBARA_ACCENT_R = (NOBARA_ACCENT >> 16) & 0xFF;
+	private static final int NOBARA_ACCENT_G = (NOBARA_ACCENT >> 8) & 0xFF;
+	private static final int NOBARA_ACCENT_B = NOBARA_ACCENT & 0xFF;
 	private final ItemRenderer itemRenderer;
 
 	public ProjectJjkNailRenderer(EntityRendererProvider.Context context) {
@@ -63,6 +79,9 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		state.age = entity.tickCount + partialTick;
 		state.embeddedAnchorOffset = Vec3.ZERO;
 		state.hasEmbeddedAnchor = false;
+		state.ownedByLocal = false;
+		state.isEspLeader = false;
+		state.espTarget = null;
 		if (state.embedded) {
 			Entity host = entity.embeddedTargetEntityId() < 0 ? null : entity.level().getEntity(entity.embeddedTargetEntityId());
 			if (host instanceof LivingEntity living && living.isAlive()) {
@@ -72,6 +91,41 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 				state.embeddedAnchorOffset = anchor.subtract(state.x, state.y, state.z);
 				state.hasEmbeddedAnchor = true;
 				state.direction = safeDirection(ProjectJjkNailEmbedding.worldForward(entity.embeddedLocalForward(), bodyYaw));
+
+				// ESP snapshot check for Nobara
+				int targetId = entity.embeddedTargetEntityId();
+				Map<Integer, NobaraEspState.TargetEsp> snapshot = NobaraEspState.snapshot();
+				NobaraEspState.TargetEsp esp = snapshot.get(targetId);
+				if (esp != null) {
+					state.ownedByLocal = true;
+					state.isEspLeader = esp.leaderNailEntityId() == entity.getId();
+					if (state.isEspLeader) {
+						Vec3 targetTop = hostPosition.add(0.0, living.getBbHeight() + 0.45, 0.0);
+						Vec3 billboardOffset = targetTop.subtract(state.x, state.y, state.z);
+
+						String rankKey;
+						if (living instanceof Player targetPlayer) {
+							UUID targetUuid = targetPlayer.getUUID();
+							JujutsuCharacter targetVessel = ClientCharacterSelectionManager.characterOrNone(targetUuid);
+							String vesselGradeKey = targetVessel != JujutsuCharacter.NONE
+									? JujutsuCharacterClients.definition(targetVessel).rosterEntry().subtitleKey()
+									: null;
+							rankKey = NobaraEspRanks.rankKey(true, vesselGradeKey, living.getMaxHealth());
+						} else {
+							rankKey = NobaraEspRanks.rankKey(false, null, living.getMaxHealth());
+						}
+
+						state.espTarget = new State.EspTargetData(
+								living.getDisplayName(),
+								living.getHealth(),
+								living.getMaxHealth(),
+								rankKey,
+								esp.nailCount(),
+								esp.nailDepths(),
+								billboardOffset
+						);
+					}
+				}
 			}
 		}
 	}
@@ -90,6 +144,9 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 			int bands = state.launched ? 3 : 2;
 			renderCompressedEnergyAura(consumers.getBuffer(RenderType.lightning()), matrices, Vec3.ZERO, direction,
 					state.age + state.seed * 0.37f, alpha, length, width, bands, state.launched);
+		} else if (state.ownedByLocal) {
+			renderEmbeddedMarkPulse(consumers.getBuffer(RenderType.lightning()), matrices, Vec3.ZERO, direction,
+					state.age + state.seed * 0.37f, NOBARA_ACCENT);
 		} else {
 			renderEmbeddedMarkPulse(consumers.getBuffer(RenderType.lightning()), matrices, Vec3.ZERO, direction,
 					state.age + state.seed * 0.37f);
@@ -114,6 +171,9 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		);
 		matrices.popPose();
 		matrices.popPose();
+		if (state.isEspLeader && state.espTarget != null) {
+			renderEspBillboard(state.espTarget, matrices, consumers, packedLight);
+		}
 		super.render(state, matrices, consumers, packedLight);
 	}
 
@@ -125,6 +185,19 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		float radius = 0.095f + pulse * 0.018f;
 		int alpha = Math.round(34.0f + pulse * 24.0f);
 		renderPressureBand(consumer, matrices, center.subtract(line.scale(0.08)), side, cross, radius, alpha);
+	}
+
+	private static void renderEmbeddedMarkPulse(VertexConsumer consumer, PoseStack matrices, Vec3 center, Vec3 direction, float age, int accentRgb) {
+		Vec3 line = safeDirection(direction);
+		Vec3 side = axisSide(line, 1.0f).normalize();
+		Vec3 cross = line.cross(side).normalize();
+		float pulse = 0.5f + 0.5f * (float) Math.sin(age * 0.18f);
+		float radius = 0.095f + pulse * 0.018f;
+		int alpha = Math.round(34.0f + pulse * 24.0f);
+		int r = (accentRgb >> 16) & 0xFF;
+		int g = (accentRgb >> 8) & 0xFF;
+		int b = accentRgb & 0xFF;
+		renderPressureBand(consumer, matrices, center.subtract(line.scale(0.08)), side, cross, radius, alpha, r, g, b);
 	}
 
 	private static void renderCompressedEnergyAura(VertexConsumer consumer, PoseStack matrices, Vec3 center, Vec3 direction,
@@ -188,6 +261,75 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		}
 	}
 
+	private static void renderPressureBand(VertexConsumer consumer, PoseStack matrices, Vec3 center, Vec3 side, Vec3 cross, float radius, int alpha, int r, int g, int b) {
+		if (alpha <= 0) {
+			return;
+		}
+		int segments = 10;
+		for (int segment = 0; segment < segments; segment++) {
+			double a0 = segment * Math.PI * 2.0 / segments;
+			double a1 = (segment + 0.65) * Math.PI * 2.0 / segments;
+			Vec3 start = center.add(side.scale(Math.cos(a0) * radius)).add(cross.scale(Math.sin(a0) * radius));
+			Vec3 end = center.add(side.scale(Math.cos(a1) * radius)).add(cross.scale(Math.sin(a1) * radius));
+			Vec3 thickness = sideVector(end.subtract(start), 0.012f);
+			addRibbon(consumer, matrices, start, end, thickness.scale(2.0), r / 2, g / 2, b / 2, alpha / 2);
+			addRibbon(consumer, matrices, start, end, thickness, r, g, b, alpha);
+		}
+	}
+
+	private static void renderEspBillboard(State.EspTargetData esp, PoseStack matrices, MultiBufferSource consumers, int packedLight) {
+		matrices.pushPose();
+		matrices.translate(esp.billboardOffset().x, esp.billboardOffset().y, esp.billboardOffset().z);
+		matrices.mulPose(Minecraft.getInstance().getEntityRenderDispatcher().cameraOrientation());
+		matrices.scale(-0.025f, -0.025f, 0.025f);
+
+		Font font = Minecraft.getInstance().font;
+		float bgPad = 4.0f;
+		float lineH = font.lineHeight + 2;
+
+		String hpText = String.format(Locale.ROOT, " %.1f/%.1f", esp.hp(), esp.maxHp());
+		String line1Str = esp.name().getString() + " \u2665" + hpText;
+		Component line1 = Component.literal(line1Str);
+		Component line2 = Component.translatable(esp.rankKey());
+
+		StringBuilder pips = new StringBuilder();
+		for (int d : esp.nailDepths()) {
+			if (!pips.isEmpty()) pips.append(' ');
+			pips.append("\u2022".repeat(d));
+		}
+		String line3Str = "\u2692 x" + esp.nailCount() + " " + pips;
+		Component line3 = Component.literal(line3Str);
+
+		float w1 = font.width(line1);
+		float w2 = font.width(line2);
+		float w3 = font.width(line3);
+		float maxW = Math.max(w1, Math.max(w2, w3));
+
+		float bgX1 = -maxW / 2.0f - bgPad;
+		float bgY1 = -lineH * 3 - bgPad;
+		float bgX2 = maxW / 2.0f + bgPad;
+		float bgY2 = bgPad;
+
+		VertexConsumer bgBuilder = consumers.getBuffer(RenderType.textBackground());
+		PoseStack.Pose pose = matrices.last();
+		org.joml.Matrix4f m = pose.pose();
+		int bgA = (0xB8121818 >> 24) & 0xFF;
+		int bgR = (0xB8121818 >> 16) & 0xFF;
+		int bgG = (0xB8121818 >> 8) & 0xFF;
+		int bgB = 0xB8121818 & 0xFF;
+		bgBuilder.addVertex(m, bgX1, bgY1, 0.0f).setColor(bgR, bgG, bgB, bgA);
+		bgBuilder.addVertex(m, bgX2, bgY1, 0.0f).setColor(bgR, bgG, bgB, bgA);
+		bgBuilder.addVertex(m, bgX2, bgY2, 0.0f).setColor(bgR, bgG, bgB, bgA);
+		bgBuilder.addVertex(m, bgX1, bgY2, 0.0f).setColor(bgR, bgG, bgB, bgA);
+
+		float tx = -maxW / 2.0f;
+		font.drawInBatch(line1, tx, 0.0f, 0xFFE5F1EF, false, m, consumers, Font.DisplayMode.NORMAL, 0, packedLight);
+		font.drawInBatch(line2, tx, -lineH, 0xFFB8C4C2, false, m, consumers, Font.DisplayMode.NORMAL, 0, packedLight);
+		font.drawInBatch(line3, tx, -lineH * 2, 0xFFE48A36, false, m, consumers, Font.DisplayMode.NORMAL, 0, packedLight);
+
+		matrices.popPose();
+	}
+
 	private static Vec3 axisSide(Vec3 direction, float width) {
 		Vec3 line = safeDirection(direction);
 		Vec3 side = line.cross(UP);
@@ -229,5 +371,18 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		private float age;
 		private boolean hasEmbeddedAnchor;
 		private Vec3 embeddedAnchorOffset = Vec3.ZERO;
+		private boolean ownedByLocal;
+		private boolean isEspLeader;
+		private EspTargetData espTarget;
+
+		public record EspTargetData(
+				Component name,
+				float hp,
+				float maxHp,
+				String rankKey,
+				int nailCount,
+				List<Integer> nailDepths,
+				Vec3 billboardOffset
+		) {}
 	}
 }
