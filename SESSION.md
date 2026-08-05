@@ -79,11 +79,11 @@ anchors `drop_zone_close`; R4 — the channel dive tests pin the sink TTL clock 
 R6 — five new `ShadowBodySinkTest` pins (reorder, late join, re-dive, both depth handoffs); R7 —
 "Third Technique" capitalization.
 
-## Deploy
+## Status
 
-- Deployed jar in `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar` is built from `feat/megumi-shadow-drop` at `6487694` (review fixes R1–R7), md5 `a96ce9580f04f76ecfaaa05aecfc65cf` (previous: `aef9b5c`, md5 `57311c6950b9f2ddef43008bcc78820f`).
+- **PR #55 is MERGED** into `main` as squash commit `5719390` (2026-08-05): <https://github.com/grebeshok105/jujutsu-minecraft/pull/55>. Two review rounds (4 reviewers on the kit, 4 on the drop wave — findings R1–R7 all applied) and smoke round 1 fixes are inside the squash; `loom` pinned to released `1.17.17` after the 1.17-SNAPSHOT marker briefly pointed at an unpublished 1.17.18 and broke CI.
+- Deployed jar in `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar` is built from `6487694` (same mod sources as the `main` squash `5719390`), md5 `a96ce9580f04f76ecfaaa05aecfc65cf`.
 
 ## Next steps
 
-1. Manual smoke round 2 against the checklist above (human-controlled client), focusing items 23–31 plus the R1/R2 scenarios (cast under a ceiling: no block deleted, volley spawns below it; take damage during the sink: the body rises from its current depth).
-2. Merge `feat/megumi-shadow-drop` into `feat/megumi-shadow-kit`, then squash-merge PR #55 into `main`.
+1. Manual smoke round 2 from `main` (human-controlled client): checklist items 23–31 plus the R1/R2 scenarios (cast under a ceiling: no block deleted, volley spawns below it; take damage during the sink: the body rises from its current depth).
