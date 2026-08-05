@@ -50,21 +50,37 @@ Regression:
 22. Cooldown mirror: after each move the Shift+B slot shows cooldown (tap 6 s, hold 10 s); trap 10 s on B.
 
 Shadow Drop (`V`) + dive polish (this wave):
-23. Trap pool and drop disc are void-black holes: pure #000, no translucency breath over their whole life; the dogs' summon pool still fades.
-24. Sink is smooth in third person: the body eases down ~1.9 blocks across the 0.4 s sink and is hidden only when fully under; emerge rises smoothly. Another player watching sees the same.
-25. Sink is smooth in first person: the camera dips (never into the ground), the screen veils to ~75% black at the bottom, settles to a light veil while under, and clears across the emerge.
-26. `V` on an aimed mob: a small black disc opens ~4 blocks over its head, follows it for 1 s (moving target keeps the disc overhead), then one block falls out — sand/gravel/clay mostly, sometimes an anvil; the anvil hurts hard, soft blocks lightly.
-27. The fallen block never places into the world and never drops an item, wherever it lands (open ground, water, a mob's head, a hole).
-28. `V` with no target / sky aim: refused with the drop "no shadow" line, no cooldown started. Cooldown mirror on V is 8 s after a successful cast.
+23. Trap pool and drop disc are void-black holes while alive: pure #000, no translucency breath; the close dissolves smoothly (255→0 sweep) instead of blinking out; the dogs' summon pool still fades.
+24. Sink is smooth in third person at any frame rate: the body eases down ~1.9 blocks continuously (per-frame partial ticks, no once-per-tick stepping) and is hidden only when fully under; emerge rises the same way. Another player watching sees the same.
+25. Sink is smooth in first person: the camera dips continuously (never into the ground), the screen veils to ~75% black at the bottom, settles to a light veil while under, and clears across the emerge.
+26. `V` on an aimed mob: a small black disc opens ~4 blocks over its head, follows it for 1 s (moving target keeps the disc overhead), then a 1–3 block volley falls out — the first dead-centre, the rest scattered inside the disc; near-flat weights (sand 30 / gravel 25 / clay 25 / anvil 20 per block), the anvil hurts hard, soft blocks lightly.
+27. The fallen blocks never place into the world and never drop an item, wherever they land (open ground, water, a mob's head, a hole).
+28. `V` with no target / sky aim: refused with the drop "no shadow" line, no cooldown started. Cooldown mirror on V is 3 s after a successful cast.
 29. Target dies or leaves the dimension during the telegraph: the disc closes, nothing falls, cooldown already ran.
 30. Nobara and Todo on `V`: silent no-op (no message, no packet error); their kits unchanged.
 31. Owner death / vessel change / disconnect during the telegraph: zone closes cleanly, nothing falls after.
 
+## Smoke round 1 findings → fixes (committed `aef9b5c`)
+
+1. Sink read as stepped → every reader now samples `ShadowBodySink` at the frame's fractional game time; `VfxCameraChannel.diveOffsetBlocks/diveFadeAlpha` take the partial tick.
+2. Trap-family pools blinked out on close → the closing sweep dissolves 255→0 (smoothstep) while staying pure black; alive pools remain constant 255.
+3. Drop felt weak/slow → `DROP_COOLDOWN_TICKS` 160→60 (3 s), and each cast releases a `DROP_MIN_BLOCKS`–`DROP_MAX_BLOCKS` (1–3) volley scattered inside `DROP_SCATTER_RADIUS` (0.9); weights flattened 40/30/20/10 → 30/25/25/20 so the anvil actually shows up.
+
+## Review round (4 independent reviewers, wave `21c595a..aef9b5c`)
+
+Consolidated into [docs/MEGUMI_SHADOW_DROP_REVIEW.md](docs/MEGUMI_SHADOW_DROP_REVIEW.md) — findings
+R1–R7 with ready fixes, **deliberately not applied yet** (review-first decision). Highlights: R1
+major — `FallingBlockEntity.fall()` deletes the world block at the spawn position (cast under a
+ceiling eats the roof; needs the walk-down spawn guard); R2 — interrupted dive snaps to full depth
+(needs backdated handoff in `ShadowBodySink`); R3 — `drop_zone_close` skipped when the target dies
+mid-telegraph. The follow-up pass works from that spec.
+
 ## Deploy
 
-- Deployed jar in `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar` is built from `feat/megumi-shadow-drop` at `e2974a9`, md5 `f79039f850ea61b98ed5aa9ff0385f26` (previous: `feat/megumi-shadow-kit` `302d9c9`).
+- Deployed jar in `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar` is built from `feat/megumi-shadow-drop` at `aef9b5c`, md5 `57311c6950b9f2ddef43008bcc78820f` (previous: `e2974a9`, md5 `f79039f850ea61b98ed5aa9ff0385f26`).
 
 ## Next steps
 
-1. Manual smoke round 1 against the checklist above (human-controlled client).
-2. Address smoke findings, then merge `feat/megumi-shadow-drop` into `feat/megumi-shadow-kit` (PR #55).
+1. Apply fixes R1–R7 from [docs/MEGUMI_SHADOW_DROP_REVIEW.md](docs/MEGUMI_SHADOW_DROP_REVIEW.md) (R1 world-block deletion first), gate, redeploy.
+2. Manual smoke round 2 against the checklist above (human-controlled client), focusing items 23–31.
+3. Merge `feat/megumi-shadow-drop` into `feat/megumi-shadow-kit` (PR #55).
