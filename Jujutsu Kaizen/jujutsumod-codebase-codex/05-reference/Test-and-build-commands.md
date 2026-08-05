@@ -19,7 +19,7 @@ Focused commands:
 ./gradlew testCharacterDefinitions testCharacterClients --no-daemon
 ./gradlew testNobaraAbilitySlots testProjectJjkNobaraProfile testProjectSanity --no-daemon
 ./gradlew testTodoProfile testTodoSwapPlan testTodoTargetSafety testTodoHandsEmpty --no-daemon
-./gradlew testTodoFakeClap testTodoPairSwap testTodoSwapMarker --no-daemon
+./gradlew testTodoFakeClap testTodoPairSwap testTodoSwapMomentum --no-daemon
 ./gradlew testTargetResolver testClickGuiDrag --no-daemon
 ```
 

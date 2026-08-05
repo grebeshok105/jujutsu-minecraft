@@ -20,16 +20,15 @@ public final class CharacterAbilityExecutor {
 			}
 			return false;
 		}
-		// Folded first, so a vessel that treats two inputs as one shares their cooldown instead of having
-		// the second quietly bypass the first.
+		// The slot reaches the vessel as itself: an input position is a cooldown slot, so every input
+		// cools on its own account and two inputs that answer from one router arm stay independent.
 		CharacterDefinition definition = JujutsuCharacters.definition(character);
-		CharacterAbility slot = definition.canonicalSlot(ability);
-		if (!CharacterAbilityCooldowns.isReady(player, slot)) {
+		if (!CharacterAbilityCooldowns.isReady(player, ability)) {
 			if (notify) {
 				player.displayClientMessage(Component.translatable("message.jujutsumod.character.action.cooldown"), true);
 			}
 			return false;
 		}
-		return definition.tryCast(player, slot, notify);
+		return definition.tryCast(player, ability, notify);
 	}
 }

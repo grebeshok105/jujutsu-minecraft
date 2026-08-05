@@ -49,7 +49,9 @@ public enum CharacterAbility {
 	 */
 	SECONDARY_SNEAK_RELEASE(7),
 	/** The third technique key. */
-	TERTIARY(8);
+	TERTIARY(8),
+	/** The third technique key while sneaking. */
+	TERTIARY_SNEAK(9);
 
 	private final int networkId;
 

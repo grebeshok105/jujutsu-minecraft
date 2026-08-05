@@ -112,9 +112,11 @@ public final class JujutsuKeybinds {
 			while (techniqueKey.consumeClick()) {
 				sendCharacterAbility(client, slot(client, CharacterAbility.PRIMARY, CharacterAbility.PRIMARY_SNEAK));
 			}
-			// The third technique key mirrors the first: instant send, no sneak pairing, no gestures.
+			// The third technique key mirrors the first: instant send, no hold gestures. Sneaking names
+			// a second slot on the same key, exactly like the technique key pair — what either slot does
+			// is the selected vessel's business, never this file's.
 			while (thirdTechniqueKey.consumeClick()) {
-				sendCharacterAbility(client, CharacterAbility.TERTIARY);
+				sendCharacterAbility(client, slot(client, CharacterAbility.TERTIARY, CharacterAbility.TERTIARY_SNEAK));
 			}
 			tickSecondTechnique(client);
 

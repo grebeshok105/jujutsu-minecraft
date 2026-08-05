@@ -26,8 +26,6 @@ final class TodoAnimationHooksContractTest {
 				"fake clap must share the anchored route");
 		assertTrue(Files.readString(Path.of("src/main/java/jujutsu/mod/character/todo/TodoPairSwapRuntime.java"))
 				.contains("TodoBoogieWoogieRuntime.emitSwapImpact"));
-		assertTrue(Files.readString(Path.of("src/main/java/jujutsu/mod/character/todo/TodoMarkerSwapRuntime.java"))
-				.contains("TodoBoogieWoogieRuntime.emitSwapImpact"));
 	}
 
 	@Test

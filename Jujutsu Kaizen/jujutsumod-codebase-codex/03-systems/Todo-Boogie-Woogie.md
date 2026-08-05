@@ -2,7 +2,7 @@
 
 Status: CURRENT
 
-Todo's playable slice: the Boogie Woogie swap on the shared PRIMARY slot, a feint clap on PRIMARY_SNEAK, a pair swap on SECONDARY, passive attribute modifiers, and a Black Flash bridge on vanilla melee. All claims VERIFIED against `src/main/java/jujutsu/mod/character/todo/**` unless labelled otherwise.
+Todo's playable slice: the Boogie Woogie swap on the shared PRIMARY slot, a feint clap on PRIMARY_SNEAK, a pair swap on SECONDARY, the triple cycle on SECONDARY_SNEAK, the thrown stone on TERTIARY with its target swap on TERTIARY_SNEAK, passive attribute modifiers, and a Black Flash bridge on vanilla melee. All claims VERIFIED against `src/main/java/jujutsu/mod/character/todo/**` unless labelled otherwise.
 
 ## Tuning constants
 
@@ -21,10 +21,22 @@ Every number lives in `TodoProfile`. Nothing else should hold a Todo magic numbe
 | `BLACK_FLASH_CHANCE` | 0.10 | `TodoBlackFlashRuntime` |
 | `BLACK_FLASH_DAMAGE_MULTIPLIER` | 1.75 | bonus is `baseDamageTaken * (multiplier - 1.0)` |
 | `BLACK_FLASH_STAGGER_TICKS` | 14 | `CombatStagger.GLOBAL` |
+| `PAIR_SWAP_COOLDOWN_TICKS` | 100 | second pair cast, `SECONDARY` slot |
+| `PAIR_SELECTION_TTL_TICKS` | 100 | pending selection lifetime |
+| `PAIR_MARK_PULSE_TICKS` | 20 | server re-emit period of the selection cue |
+| `TRIPLE_SWAP_COOLDOWN_TICKS` | 160 | triple cycle, `SECONDARY_SNEAK` slot |
+| `STONE_SPEED_BLOCKS_PER_TICK` | 0.23 | straight-line stone velocity (4.6 blocks/s) |
+| `STONE_LIFETIME_TICKS` | 100 | stone flight clock |
+| `STONE_HITBOX_SIZE` | 0.25 | stone entity bbox |
+| `STONE_THROW_COOLDOWN_TICKS` | 10 | anti-double-click on the throw |
+| `STONE_SELF_SWAP_COOLDOWN_TICKS` | 60 | V with a live stone |
+| `STONE_TARGET_SWAP_COOLDOWN_TICKS` | 100 | Shift+V |
+| `STONE_SWAP_RANGE` | 32.0 | max Todo↔stone distance for either stone swap |
+| `STONE_TARGET_RANGE` | 20.0 | Shift+V crosshair reach |
 
 ## Entry gate
 
-`CharacterAbilityExecutor.tryCast` handles the not-selected and cooldown rejections, then asks the selected vessel's definition — `TodoDefinition.tryCast` delegates to `TodoAbilityRouter.tryCast`, not to a runtime directly. The router's switch over `CharacterAbility` is exhaustive on purpose: a future slot constant fails compilation there instead of silently falling into the swap, which is exactly what happened while the executor called `TodoBoogieWoogieRuntime` for every slot. `PRIMARY` → `TodoBoogieWoogieRuntime`, `PRIMARY_SNEAK` → `TodoFakeClapRuntime`, `SECONDARY` → `TodoPairSwapRuntime`. `SECONDARY_SNEAK` never arrives: `TodoDefinition.canonicalSlot` folds it onto `SECONDARY`, because Shift+B is B for him — the pair swap is two presses on one key and cares about neither stance nor hands, so crouching to line up the second participant must not lose the press. The folding happens in the executor **before** the cooldown check, or the sneak variant would be a slot with no cooldown of its own and pressing it would bypass the real one; the router's arm stays (answering `false`) only so the switch remains exhaustive without a `default`. `ATTACK_CONTEXT` is genuinely empty — his melee is plain vanilla. Each runtime still re-checks that it was handed its own slot.
+`CharacterAbilityExecutor.tryCast` handles the not-selected and cooldown rejections, then asks the selected vessel's definition — `TodoDefinition.tryCast` delegates to `TodoAbilityRouter.tryCast`, not to a runtime directly. The router's switch over `CharacterAbility` is exhaustive on purpose: a future slot constant fails compilation there instead of silently falling into the swap, which is exactly what happened while the executor called `TodoBoogieWoogieRuntime` for every slot. `PRIMARY` → `TodoBoogieWoogieRuntime`, `PRIMARY_SNEAK` → `TodoFakeClapRuntime`, `SECONDARY` → `TodoPairSwapRuntime` (pair), `SECONDARY_SNEAK` → the triple cycle in the same runtime, `TERTIARY` and `TERTIARY_SNEAK` → `TodoStoneRuntime`. The `canonicalSlot` fold that used to collapse `SECONDARY_SNEAK` onto `SECONDARY` is deleted with the whole hook — Shift+B is its own technique now, and no vessel folds slots anymore. `USE_CONTEXT` is answered by nobody and returns `false`.
 
 The gate checks themselves no longer live in either runtime; they live in `TodoSwapGates`. `evaluate(spectator, alive, unsafeTransport, staggered, handsEmpty)` is pure policy and returns one of three answers:
 
@@ -89,7 +101,7 @@ On success both participants get `restoreMotionAndRotation` (forced rotation, he
 
 `CharacterAbilityCooldowns.start` plus `JujutsuNetworking.sendAbilityCooldown` for the `PRIMARY` slot cooldown. Then two kinds of cue, because one cue cannot carry two absolute world points: `TodoVfxIds.BOOGIE_WOOGIE` is the performance, anchored to the caster with a zero offset, and one `TodoVfxIds.SWAP_ENDPOINT` per moved body carries an absolute endpoint with no anchor, each broadcast around its own point so far-side observers receive it.
 
-The clap half of that is now `TodoBoogieWoogieRuntime.emitClapPerformance(level, todo, origin, aim)` — the sound plus the caster-anchored cue, with nothing about the swap in it. The endpoint cues and the movement sounds stay in `emitSwapFeedback`, because only a real swap has endpoints. The feint calls `emitClapPerformance` and nothing else.
+The clap half of that is now `TodoBoogieWoogieRuntime.emitClapPerformance(level, todo, origin, aim)` — the sound plus the caster-anchored cue, with nothing about the swap in it. The endpoint cues and the movement sounds stay in `emitSwapFeedback`, because only a real swap has endpoints. The feint calls `emitClapPerformance`, schedules the same displacement whoosh, and nothing else.
 
 That split fixed a real defect. `VfxAnchorResolver` already adds the cue's anchor offset, the recipe added it again, and the cue is broadcast after the teleport — so the two flashes landed at `todoPos + delta` and `todoPos + 2*delta`, drifting with packet order. The ribbon was never affected because `VfxWorldChannel` treats this style as world-fixed and reads `cue.origin()` directly.
 
@@ -109,7 +121,7 @@ Input is the existing technique key with `Shift` held — `JujutsuKeybinds` read
 
 Four things make the two casts alike by construction rather than by tuning.
 
-1. **One shared performance.** Both emit the clap through `TodoBoogieWoogieRuntime.emitClapPerformance` — same cue id `todo/boogie_woogie`, same caster anchor with a zero offset, same server-side `JujutsuSounds.PROJECTJJK_CLAP` at the same volume and pitch, on the same tick. One implementation, so the two presentations cannot drift apart in a later edit. `TodoFakeClapTest` asserts the feint does not name `TodoVfxIds.BOOGIE_WOOGIE` itself, only the shared method.
+1. **One shared performance.** Both emit the clap through `TodoBoogieWoogieRuntime.emitClapPerformance` — same cue id `todo/boogie_woogie`, same caster anchor with a zero offset, same server-side `JujutsuSounds.PROJECTJJK_CLAP` at the same volume and pitch, on the same tick — and both schedule the same `PROJECTJJK_CINEMATIC_WHOOSH` one tick later through `scheduleDisplacementWhoosh` (the polish wave closed the whoosh gap; the swap fires it at two origins, the feint at one, which Minecraft's non-propagating audio cannot distinguish). One implementation, so the two presentations cannot drift apart in a later edit. `TodoFakeClapTest` asserts the feint does not name `TodoVfxIds.BOOGIE_WOOGIE` itself, only the shared method.
 2. **One shared gate truth table.** Both read `TodoSwapGates.evaluate`, so the set of casts that get refused — and the message each refusal produces — is identical. A feint that were allowed with a sword in hand would announce itself.
 3. **Independent cooldown slots.** `CharacterAbilityCooldowns` keys on (player, vessel, slot). The feint starts and reports `PRIMARY_SNEAK` with `TodoProfile.FAKE_CLAP_COOLDOWN_TICKS` and never names `PRIMARY`; the swap keeps `PRIMARY` with `BOOGIE_WOOGIE_COOLDOWN_TICKS`. A feint therefore neither spends nor postpones the real swap. There is deliberately **no** gate requiring the real swap to be ready — that was offered and declined, because a feint that only works while the swap is off cooldown is itself a tell.
 4. **Caster-only tell.** The single unshared packet is `TodoVfxIds.FEINT_TELL`, sent through `JujutsuNetworking.sendVfxCue(todo, …)` to one player and never broadcast (`TodoFakeClapTest` asserts `broadcastVfxCue` does not appear in the file). Its recipe is a six-tick dust ring at chest height and nothing else — no sound, no HUD flash, no camera kick, since every one of those would be perceivable by the observer the feint exists to deceive.
@@ -120,7 +132,7 @@ The feint's slot is `PRIMARY_SNEAK(1)`. Network ids are wire format and are neve
 
 ### What is still distinguishable — the open product question
 
-The real swap teleports both bodies at cast time, but the clap's palm contact is at `VfxFirstPersonChannel.CLAP_CONTACT_PROGRESS` = 0.39 of the 0.72 s `ability.boogie_woogie` animation. An observer therefore sees a real swap **before** the palms meet, which means a feint is already distinguishable at t = 0 by the absence of a teleport — and, in the same instant, by the absence of the two `todo/swap_endpoint` bursts and of the movement sounds that follow one tick later at both origins.
+The real swap teleports both bodies at cast time, but the clap's palm contact is at `VfxFirstPersonChannel.CLAP_CONTACT_PROGRESS` = 0.39 of the 0.72 s `ability.boogie_woogie` animation. An observer therefore sees a real swap **before** the palms meet, which means a feint is already distinguishable at t = 0 by the absence of a teleport — and, in the same instant, by the absence of the two `todo/swap_endpoint` bursts. (The movement sound no longer splits them: since the polish wave the feint schedules the same displacement whoosh.)
 
 Delaying the swap to the contact frame was **not** done. It would change `TodoBoogieWoogieRuntime`'s commit path — the most safety-critical method in the kit, the one that owns the two-sided preflight and the best-effort rollback — and that is not in the approved plan. Decide it deliberately, not as a side effect of a VFX pass.
 
@@ -136,7 +148,7 @@ Nothing in the test suite can construct a `ServerLevel`, so no test ever calls `
 
 ## The pair swap — `B`, the SECONDARY slot
 
-`TodoPairSwapRuntime`. Todo claps and two other bodies trade places; he does not move. Two casts on one key: the first marks a participant, the second resolves the pair and commits. Shift+B reaches it too — `TodoDefinition.canonicalSlot` folds `SECONDARY_SNEAK` onto `SECONDARY` — so crouching between the two presses does not silently lose the second one. One asymmetry worth knowing: the client-side cooldown mirror does not fold, so pressing Shift+B during the `SECONDARY` cooldown sends a packet that earns the ordinary recharging message instead of being suppressed locally. Correct, just not predicted.
+`TodoPairSwapRuntime`. Todo claps and two other bodies trade places; he does not move. Two casts on one key: the first marks a participant, the second resolves the pair and commits. `Shift+B` no longer reaches it: since the stone rework `SECONDARY_SNEAK` is the triple cycle's own slot (below), and a sneaking press during a lined-up pair is exactly how the cycle is entered — the selection survives the modifier.
 
 What each cast costs, and what it does not:
 
@@ -149,69 +161,89 @@ What each cast costs, and what it does not:
 
 Distance is measured from Todo to each participant and **never between the two of them**. A 40-block spread between the pair is the whole value of the technique; the javadoc says so explicitly so nobody "fixes" it into a pair-distance limit. Both participants must also be in reach, visible, and pass the same `isEligibleTarget` policy as a direct swap target — a bystander is never held to a laxer standard than a body Todo aims at.
 
-`TodoPendingSelection` stores the dimension, the network id **and** the UUID. The id is what `TargetResolver` returns and what the level can look up; the UUID is what proves the entity found under that id is the same one and not a recycled slot. It is dropped on expiry, on the marked body dying, and on `DISCONNECT`, `AFTER_RESPAWN`, `AFTER_PLAYER_CHANGE_WORLD`, `SERVER_STOPPING`, and vessel change (`TodoDefinition.onDeselected` calls `TodoPairSwapRuntime.forget` — it runs only when Todo is the vessel being left, not on every selection change as the old unconditional clear did; see E12 in docs/KNOWN_ISSUES.md for the marker gap that clear used to hide, now closed). The expiry sweep deliberately does **not** read an unresolvable entity as dead — an unloaded chunk is not a death, and the commit path re-verifies liveness anyway. That asymmetry is intentional; making the sweep stricter would drop marks whenever a target walked out of a loaded chunk.
+`TodoPendingSelection` stores the dimension, the network id **and** the UUID. The id is what `TargetResolver` returns and what the level can look up; the UUID is what proves the entity found under that id is the same one and not a recycled slot. The record now lives in `TodoTransientState` — the single owner of Todo's transient server state — and is dropped on expiry, on the marked body dying, and on every lifecycle exit that `TodoStateLifecycle` registers: `DISCONNECT`, `AFTER_RESPAWN`, `AFTER_PLAYER_CHANGE_WORLD`, `SERVER_STOPPING`, death, and vessel change (`TodoDefinition.onDeselected` → `dropEverything`). The expiry sweep deliberately does **not** read an unresolvable entity as dead — an unloaded chunk is not a death.
 
 Placement is `STRICT`, which finally gives that enum a call site. The scan behind both strictness values now lives in shared `jujutsu.mod.combat.SafeBodyPlacement` (extracted when Megumi's shadow move became its second consumer); the wrapper, the `Strictness` vocabulary and every call site stay in `TodoBoogieWoogieRuntime`, and the candidate order is unchanged. Everything else is the self swap's machinery unchanged: the same `TodoSwapPlan.preflight` atomicity rule, the same sequential placement, the same best-effort rollback with an error-level incomplete-restore log. `TodoSwapPlan`'s components are named `firstDestination` / `secondDestination` precisely because the record now covers both shapes.
 
-The commit reuses `BOOGIE_WOOGIE` plus two `SWAP_ENDPOINT` cues, so at a distance a pair swap and an ordinary one look alike — free deception, and one less presentation to keep in step. The mark itself is a one-shot caster-only `PAIR_MARK` cue plus the actionbar line, **not** a marker that tracks the body: `VfxInstance.start` is called once and never ticked, so a transient cue cannot follow a live entity. VFX Core's rule is that anything which must follow an entity belongs on that entity's renderer. The actionbar naming the target is what the caster actually needs to remember who is marked.
+The commit reuses `BOOGIE_WOOGIE` plus two `SWAP_ENDPOINT` cues, so at a distance a pair swap and an ordinary one look alike — free deception, and one less presentation to keep in step. The mark itself is a caster-only `PAIR_MARK` cue plus the actionbar line — and since the stone rework the server re-emits that cue every `PAIR_MARK_PULSE_TICKS` while the selection lives (a silent intensity-0 pulse, the Megumi trap-boundary pattern), so the chosen body stays readable without violating VFX Core's one-shot recipe rule. The pulse also feeds the client-side pair chip through the recipe's fail-open cache — the HUD learns of the selection from the cue itself, never from a payload.
 
-## Marking a body by hand — the sixth slot
+## The triple cycle — `Shift+B`, the SECONDARY_SNEAK slot
 
-`CharacterAbility.USE_CONTEXT`, `TodoEntityMarkRuntime`, `TodoSwapMarks.markBody`.
+With a live selection A and a second eligible body T under the crosshair, `Shift+B` runs the
+three-body cyclic swap. The direction is fixed and pinned by `TodoTripleSwapTest`:
 
-Two right clicks put the swap mark on whoever is under the crosshair, at the aimed swap's own range and through its own eligibility rule. It is **not** a second mark system: it produces the same `ENTITY`-form mark the thrown marker produces, with the same ten seconds, the same glow-ownership rule and the same single cleanup path. What it removes is the item.
+| Body | Goes to |
+|---|---|
+| Todo | A's position |
+| A | T's position |
+| T | Todo's position |
 
-Adding the slot is the seam's own claim being exercised: appending `USE_CONTEXT(5)` produced exactly two compile errors, one per exhaustive router, and none anywhere else. Nobara refuses it explicitly rather than by a `default`; Todo answers it. Nothing else in shared code moved, and the roster-card test did its own bookkeeping — expected card length is derived as slots minus refused arms, so Nobara stayed at five and Todo's card had to gain a fourth entry.
+`Shift+B` with no selection refuses (`triple.no_first`) rather than degrading into `B` — the old
+fold is exactly the bug this slot exists to not have. T must differ from A and from Todo, and both
+bodies pass the same eligibility policy as every other swap participant.
 
-**The first click is vanilla's, deliberately.** `USE_CONTEXT` is the only slot whose key the game already owns, and a tick-level edge detector runs after vanilla has already handled the press. At the ranges this cast is for — a body across the arena, hands empty — vanilla's right click does nothing; up close the first press will still mount the horse or open the trade before the second one marks. Cancelling it would need the real interaction events or a mixin, and it was accepted instead. The input layer sends the slot **only once a pair completes**, so an ordinary right click costs no packet.
+All three bodies preflight `STRICT` at their destinations through `TodoTripleSwapPlan`
+(the three-destination sibling of `TodoSwapPlan`, same null-aborts rule) before anything moves;
+one unusable destination cancels the cast, moves nobody, and keeps the selection. The commit is
+snapshot ×3 → place ×3 → restore ×3 under the accepted body policy; a mid-commit teleport failure
+rolls back every already-moved body to its snapshot in reverse order and logs at error level —
+a partial cycle without a log line is the one outcome the design forbids. Success consumes the
+selection and prices the `SECONDARY_SNEAK` slot at `TRIPLE_SWAP_COOLDOWN_TICKS`, split from the
+pair's price on purpose. The cycle grants **no** swap momentum: that window rewards swaps Todo
+makes with his own body, and here his movement is bought by moving two other people.
 
-The pair window is six ticks and lives in `JujutsuKeybinds`, vessel-neutral like the rest of that file. This is the kit's only multi-press input on the *use* key, and it does not contradict the standing "the swap stays instant" rule — that rule is about the technique key, and nothing here delays anything. The second technique key does carry a hold gesture since the Megumi shadow kit; its cost is documented there.
+Presentation: one `TRIPLE_SWAP` cue per cycle edge (three per cast), each carrying the edge's
+direction and length so the A→B→C→A flow reads in-world, plus the ordinary per-body
+afterimage/arrival pair, and the shared clap at Todo's old spot — a triple is still a clap cast
+(added in the polish wave after the first smoke). There is deliberately no endpoint ribbon: that
+geometry belongs to the two-body swaps; the cycle's three edges carry its own.
 
-Two costs, both real and both deliberate:
+## The sixth slot is empty
 
-- **It inherits the one-mark rule.** Marking a body replaces a landed anchor, so the two are alternatives rather than a stockpile.
-- **The cast is public.** The glow it applies is visible to everyone, so a caster-only cue would only mislead the caster about how visible he is. That is the exact inverse of the feint, whose cue is caster-only precisely because it must leave no trace.
+`CharacterAbility.USE_CONTEXT(5)` keeps its wire id and its client-side pair detector (two right
+clicks within six ticks, the first click deliberately vanilla's), but since the stone rework no
+vessel answers it — every router returns `false`. The slot stays reserved wire format: ids are
+append-only, and the input grammar survives so a future technique can claim it without touching
+shared code. The entity-mark runtime that used to live here is deleted with the marker system.
 
-The glow sequence — release the old mark, *then* read the glow, then apply and store — now lives once in `TodoSwapMarks.markBody`, called by both the throw and the ability. It was a comment-guarded ordering in one file; with two callers it had to become one method, and `TodoEntityMarkTest` pins the order there while `TodoSwapMarkerTest` pins the delegation.
+## The stone — `V` and `Shift+V`, the TERTIARY slots
 
-## The thrown mark — no new slot
+`TodoStoneEntity`, `TodoStoneRuntime`, `TodoTransientState` (the ref), `TodoStoneRef`.
 
-`TodoSwapMarkerItem`, `TodoSwapMarkerEntity`, `TodoSwapMark`, `TodoSwapMarks`, `TodoMarkerSwapRuntime`.
+One small inert stone that exists only in flight. `V` with no live stone throws it from the eye
+position along the look vector: a straight, slow, readable line — `STONE_SPEED_BLOCKS_PER_TICK`,
+no gravity, no arc, `noSave()`, one per Todo. It deals no damage, marks nothing, ignores entities
+entirely, passes through water and fire, and ends on `STONE_LIFETIME_TICKS`, on block collision,
+on the void, and on every lifecycle exit — a collision is a vanish (`STONE_VANISH`), never an
+anchor. The old marker's "landed anchor" concept is deliberately dead: what the stone buys is a
+five-second moving window, not a camp spot.
 
-No new ability slot and no new key. `TodoBoogieWoogieRuntime.tryCast` falls back to a live mark **only after** the crosshair has failed to find an eligible target, so the priority is the one the player means: an enemy under the crosshair wins, and the mark gets what is left. `TodoSwapMarkerTest` pins that ordering by source position rather than trusting a comment.
+`V` with a live stone is the **self-swap**: Todo trades places with the stone at the stone's
+*current* position, `STRICT` preflight for his body, nothing moves on refusal. The stone appears
+at Todo's old center, keeps its own velocity and its remaining clock, and keeps flying. This is a
+completed swap Todo made with his own body, so it grants the momentum window and wears the real
+swap's cues — `BOOGIE_WOOGIE` clap plus afterimage/arrival at both ends.
 
-Only Todo can throw it: `TodoSwapMarkerItem.use` refuses for any other vessel, checked on **both** sides through `CharacterSelectionView` because vanilla calls an item's `use` on the client too — a server-only gate would let the client predict a throw the server then refuses, taking back a consumed item and a played sound. That closed E12: before the gate, anyone could leave a mark in the world that only Todo could ever use.
+Both stone casts read the caster-state half of the clap gate (`TodoSwapGates.casterStateBlocked`):
+a spectator, dead, mounted/riding or staggered Todo is refused silently, exactly like every other
+`UNAVAILABLE`. Hands deliberately stay ungated — the stone is an ability cast, not an item use, so
+the empty-hands rule never applies to it.
 
-The marker is single-stack and consumed on throw. That is what keeps the empty-hands rule absolute instead of turning it into a whitelist — the gate is read at swap time, and by then the throwing hand is empty. A stackable marker would leave a remainder in hand and correctly block the swap, so the stack size is load-bearing, and a test pins it.
+`Shift+V` (`TERTIARY_SNEAK(9)`, the rework's one appended wire id) is the **target swap**: the
+aimed body within `STONE_TARGET_RANGE` trades places with the stone while Todo stays put. The
+target passes the aimed swap's full eligibility family and lands under `STRICT` — no safe point
+at the stone means nobody moves and the stone keeps flying. No momentum: Todo did not move.
+Both stone swaps also require the stone within `STONE_SWAP_RANGE` of Todo and in his dimension.
 
-Vanilla owns the flight: `ThrowableItemProjectile` gives authoritative movement, client interpolation, hit detection and tracking. The entity type is `noSave()`, so a mark cannot outlive the session that threw it.
-
-Two mark forms, genuinely different lifetimes, one record and one release path:
-
-| Form | Trigger | Lifetime | Spent by a swap? | The projectile | What ending the mark undoes |
-|---|---|---|---|---|---|
-| `POSITION` | block hit | **none** (`TodoSwapMark.NEVER`) | no — reusable anchor | **stays alive** — it *is* the mark, resting `MARKER_SURFACE_OFFSET` off the struck face | discards the projectile |
-| `ENTITY` | body hit | `MARKER_BODY_MARK_TTL_TICKS` | yes | removed immediately | clears the glow, but only if the mark applied it |
-
-The two lifetimes are enforced by the record, not by remembering: `atPosition` takes no expiry parameter at all, so giving a landed mark a clock does not compile, and the canonical constructor rejects either form holding the other's lifetime. `TodoSwapMarks.onUsed` is the single place that decides what a swap costs its mark — separate from `clear`, which is the unconditional teardown every other path uses. A charge limit or any other price lands in that one method.
-
-**What "permanent" means, exactly:** permanent until explicitly cleared or until the marker is lost, and **never persistent between server sessions**. It ends on death, on changing vessel, on changing dimension, on disconnect, on server stop, and when the projectile goes missing from a *loaded* chunk. `NEVER` is the absence of a timer, not eternity.
-
-That last clause is load-bearing and only became reachable with permanence. The entity type is `noSave()`, so an unloaded chunk removes the projectile and never returns it, while the mark sweep deliberately refuses to read an unresolvable entity as dead ("an unloaded chunk is not a death"). Under a ten-second TTL that window was unreachable; with a permanent anchor, walking out of render distance and back would have left a working teleport anchor with no marker anywhere in the world. `landedMarkerIsGone` checks the chunk **before** the entity, which ends the mark exactly when its projectile is really gone and covers an explosion, a `/kill` and third-party cleanup with the same rule. Losing an anchor is announced; expiry stays silent.
-
-`glowApplied` is false when the body was already glowing, so ending a mark can never extinguish another system's highlight — Nobara's target marks use the same vanilla glow. Every way a mark can end funnels through one `release` method, and a test asserts there is exactly one, because "each cleanup path must handle both forms" is where this feature's bugs would otherwise live. Released on expiry, marked-body death, disconnect, respawn, dimension change and server stop; the sweep applies the same unloaded-chunk-is-not-a-death rule as the pair selection.
-
-A landed marker's `tick()` returns before `super.tick()`. That is deliberate: a resting mark must take no physics and must not re-enter hit detection, and its lifetime belongs to `TodoSwapMarks` rather than a second clock on the entity.
-
-Both forms swap under `STRICT` placement. The `POSITION` form moves one body, so atomicity is trivial — either Todo's destination is safe or nothing happens; the `ENTITY` form runs the ordinary two-destination plan. Reach is `MARKER_SWAP_RANGE`, longer than the aimed swap, because the mark cost an item, a throw and a public telegraph an opponent can play around. The cooldown is `MARKER_SWAP_COOLDOWN_TICKS` on the `PRIMARY` slot — equal to the aimed swap's today, and split from it deliberately: a reusable thirty-two block return is the strongest thing in the kit, and pricing it differently should be one number rather than a rewrite.
-
-Consequence worth stating: while a landed mark exists, every `PRIMARY` press that finds nothing under the crosshair becomes a teleport instead of a `no_target` line. That is the fallback working as designed, but it changes how the key feels, which is why the arrival now has visuals of its own.
-
-Coverage is the same honest limit as the feint: pure record logic plus source-text contracts. No test teleports anything. Whether a resting marker reads clearly in world, and whether either mark form leaks a projectile or a glow in real play, is UNKNOWN.
+The ref (`TodoStoneRef`) resolves the entity by UUID inside its recorded dimension only — the
+entity id travels in cues, never resolves anything. A stone missing from a *loaded* chunk clears
+the ref through the sweep; an unloaded chunk is not a death, the same rule the pair selection
+uses. The throw's cooldown is deliberately tiny (anti-double-click): the price of the kit sits on
+the two swaps, not on the throw, so throwing never locks the follow-up.
 
 ## The impact sequence — and why it lives on its own cues
 
-`TodoBoogieWoogieRuntime.emitSwapImpact` is the single emission point for all four routes: the aimed swap, both marker swaps and the pair swap. They used to hand-copy the same five calls, which is a shape that drifts, and the copy that drifts is the one nobody plays often enough to notice.
+`TodoBoogieWoogieRuntime.emitSwapImpact` is the single emission point for every completed swap route: the aimed swap, the pair swap, the stone self-swap, the stone target swap, and each moved body of the triple cycle. They used to hand-copy the same five calls, which is a shape that drifts, and the copy that drifts is the one nobody plays often enough to notice.
 
 **The feint sends the same `BOOGIE_WOOGIE` cue as a real swap** (`TodoFakeClapRuntime` → `emitClapPerformance`). That single fact decides the whole layout: anything added to the clap recipe is something a feint does too. So the clap keeps only what a feint must also have — the camera snap, the HUD flash, the animation — and everything a completed swap earns rides on cues the feint never emits.
 
@@ -231,7 +263,7 @@ The silhouette is an outline, not a fill, and that is physics rather than taste:
 
 **Sound duck.** `VfxSoundChannel` pauses every category except `PLAYERS` and `UI` for six ticks through the vanilla `SoundManager.pauseAllExcept` / `resume` pair — no mixin, and nothing written to the player's own volume settings. Because that switch is shared with vanilla's pause menu, the channel tracks who owns the pause (`VfxSoundDuck.State`) and lifts only its own; opening a screen ends the duck on the same tick, a second duck extends rather than restarts, and every existing teardown path already reaches `clear()`. VFX Core has no client-global slow-motion channel, so no slow-motion is involved.
 
-**Momentum.** `place` teleports absolutely with an empty `Relative` set, so the transition carries `Vec3.ZERO` and the client is told its velocity is nothing — the server-side `setDeltaMovement` was a fiction for a player, who owns his own movement. `restoreMotionAndRotation` now sets `hurtMarked`, which makes `ServerEntity#sendChanges` emit `ClientboundSetEntityMotionPacket` through `broadcastAndSend`, reaching the trackers and the moved player's own connection. One line inside the shared helper covers all four routes and the rollback path.
+**Momentum.** `place` teleports absolutely with an empty `Relative` set, so the transition carries `Vec3.ZERO` and the client is told its velocity is nothing — the server-side `setDeltaMovement` was a fiction for a player, who owns his own movement. `restoreMotionAndRotation` now sets `hurtMarked`, which makes `ServerEntity#sendChanges` emit `ClientboundSetEntityMotionPacket` through `broadcastAndSend`, reaching the trackers and the moved player's own connection. One line inside the shared helper covers every route and the rollback path.
 
 ## Swap momentum — one heavier hit
 
@@ -247,7 +279,7 @@ Three non-obvious constraints the runtime exists to satisfy:
 - **Black Flash re-enters the damage event** to apply its bonus, so the listener sees one swing twice. Without the `BlackFlashStrike.isApplyingBonus` guard the window is spent on the nested pass, tying the stagger and the cue to a hidden ten-percent roll. The stagger is additionally guarded on `isAlive()`, because that bonus hit can kill the target inside the same swing.
 - **The spend path checks the attacker is still Todo**, so leaving the vessel mid-window would strand a live `+25%` modifier nothing could remove. `onDeselected` takes it off; the attribute sweeps do not reach it, because it belongs to the effect rather than to the definition.
 
-Grant sites are exactly two: past the last `return false` in `TodoBoogieWoogieRuntime.tryCast`, and in `TodoMarkerSwapRuntime.finish` (one site for both mark routes). **Not** the pair swap — Todo does not move and takes no positional risk, which is why its cooldown is already 100 against 60 — and **not** the feint, whose 20-tick cooldown would make it a threefold-cheaper way to buy the window.
+Grant sites are exactly two: past the last `return false` in `TodoBoogieWoogieRuntime.tryCast`, and in `TodoStoneRuntime.selfSwap` — the two swaps Todo makes with his own body. **Not** the pair swap or the triple cycle — Todo takes no positional risk in either — **not** the stone's target swap (`Shift+V`), where he also stays put, and **not** the feint, whose 20-tick cooldown would make it a threefold-cheaper way to buy the window.
 
 Two limits recorded rather than hidden, both in the runtime's javadoc:
 
@@ -258,7 +290,7 @@ Two limits recorded rather than hidden, both in the runtime's javadoc:
 
 ## Seam: Todo does not own a Black Flash cue id
 
-`TodoVfxIds` defines `todo/boogie_woogie`, `todo/swap_endpoint`, `todo/swap_afterimage`, `todo/swap_arrival`, `todo/momentum_strike`, `todo/feint_tell` and `todo/pair_mark` — and no Black Flash id. `TodoBlackFlashRuntime.afterDamage` broadcasts `NobaraVfxIds.BLACK_FLASH` instead of a Todo-owned id (VERIFIED — `import jujutsu.mod.vfx.NobaraVfxIds`).
+`TodoVfxIds` defines `todo/boogie_woogie`, `todo/swap_endpoint`, `todo/swap_afterimage`, `todo/swap_arrival`, `todo/momentum_strike`, `todo/feint_tell`, `todo/pair_mark`, `todo/stone_throw`, `todo/stone_vanish` and `todo/triple_swap` — and no Black Flash id. `TodoBlackFlashRuntime.afterDamage` broadcasts `NobaraVfxIds.BLACK_FLASH` instead of a Todo-owned id (VERIFIED — `import jujutsu.mod.vfx.NobaraVfxIds`).
 
 This is a real cross-character coupling, not a shared-effects abstraction: the id lives in a Nobara-named class and is registered by `NobaraVfxRecipes`. Retuning Nobara's Black Flash presentation silently retunes Todo's. Either promote Black Flash to a shared id or give Todo its own; until then, treat `NobaraVfxIds` as roster-shared in practice and vessel-named in code. A third vessel should not copy this.
 
@@ -266,6 +298,6 @@ This is a real cross-character coupling, not a shared-effects abstraction: the i
 
 ## Not in this slice
 
-No starter items (Nobara's kit is restored idempotently on every selection; Todo has none), and no third-person model work beyond the shared stack — see [Vessel render stack](../04-client-vfx/Vessel-render-stack.md) for the GeckoLib side and the CLAP first-person style.
+No starter items and no items at all — the stone is an entity, never an inventory stack (Nobara's kit is restored idempotently on every selection; Todo has none) — and no third-person model work beyond the shared stack; see [Vessel render stack](../04-client-vfx/Vessel-render-stack.md) for the GeckoLib side and the CLAP first-person style.
 
 Combat feel, swap readability, and clap timing are UNKNOWN without a real client smoke test.

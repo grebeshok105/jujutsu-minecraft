@@ -3,7 +3,6 @@ package jujutsu.mod.client.character.todo;
 import java.util.List;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.client.renderer.entity.ThrownItemRenderer;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.client.character.CharacterClientDefinition;
@@ -12,10 +11,12 @@ import jujutsu.mod.client.character.JujutsuCharacterIcons;
 import jujutsu.mod.client.render.CharacterSkinAnimation;
 import jujutsu.mod.client.render.todo.TodoPlayerGeoAnimatable;
 import jujutsu.mod.client.render.todo.TodoSkinAnimationAdapter;
+import jujutsu.mod.client.render.todo.TodoStoneRenderer;
+import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.vfx.todo.TodoVfxRecipes;
 import jujutsu.mod.registry.JujutsuEntities;
 
-/** Todo on the client: violet shell, his own player model, and a thrown marker to draw. */
+/** Todo on the client: violet shell, his own player model, the flying stone, and his HUD chips. */
 public final class TodoClientDefinition implements CharacterClientDefinition {
 	private static final ResourceLocation SKIN = JujutsuMod.id("textures/entity/character/todo.png");
 	private static final int ACCENT = 0xFFA56CFF;
@@ -26,8 +27,8 @@ public final class TodoClientDefinition implements CharacterClientDefinition {
 	}
 
 	/**
-	 * His three casts. The strip used to list only the swap, which is how a player learned the feint and
-	 * the pair swap existed by reading a changelog rather than the menu.
+	 * His six casts, in input order. The strip used to list only the swap, which is how a player
+	 * learned the feint and the pair swap existed by reading a changelog rather than the menu.
 	 */
 	@Override
 	public CharacterRosterEntry rosterEntry() {
@@ -43,8 +44,12 @@ public final class TodoClientDefinition implements CharacterClientDefinition {
 								"screen.jujutsumod.character_select.ability.fake_clap", "⇧R"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.LINK,
 								"screen.jujutsumod.character_select.ability.pair_swap", "B"),
+						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.LINK,
+								"screen.jujutsumod.character_select.ability.triple_swap", "⇧B"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOLT,
-								"screen.jujutsumod.character_select.ability.entity_mark", "RMB×2")));
+								"screen.jujutsumod.character_select.ability.stone_throw", "V"),
+						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.LINK,
+								"screen.jujutsumod.character_select.ability.stone_swap", "⇧V")));
 	}
 
 	private static final CharacterSkinAnimation SKIN_ANIMATION =
@@ -77,9 +82,11 @@ public final class TodoClientDefinition implements CharacterClientDefinition {
 
 	@Override
 	public void registerClientHooks() {
-		// The resting marker is the mark, so vanilla thrown-item rendering is exactly what it needs.
-		EntityRendererRegistry.register(JujutsuEntities.TODO_SWAP_MARKER, ThrownItemRenderer::new);
+		// The stone is a real entity, so it renders through its own code-geometry renderer.
+		EntityRendererRegistry.register(JujutsuEntities.TODO_STONE, TodoStoneRenderer::new);
 		TodoVfxRecipes.register();
+		VfxDirector.registerHudContribution(JujutsuMod.id("todo_stone_status"), TodoStatusHud::renderStone);
+		VfxDirector.registerHudContribution(JujutsuMod.id("todo_pair_status"), TodoStatusHud::renderPair);
 	}
 
 	@Override

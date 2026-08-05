@@ -52,6 +52,24 @@ public final class VfxCues {
 		return create(effectId, origin, requireAnchor(anchorEntityId), origin.subtract(anchorPosition), intensity, startGameTime, seed, Vec3.ZERO);
 	}
 
+	/**
+	 * A silent re-emission of an already-announced anchored cue. This is the one factory whose
+	 * intensity is deliberately zero: recipes treat 0 as "re-arm the presentation, sound nothing",
+	 * which is how a server pulse keeps a mark readable without re-playing its announcement. The
+	 * generic factories clamp intensity to 1 so an accidental zero cannot mute a real cue.
+	 */
+	public static VfxCue anchoredSilentRepeat(
+			ResourceLocation effectId,
+			Vec3 origin,
+			int anchorEntityId,
+			Vec3 anchorPosition,
+			long startGameTime,
+			long seed
+	) {
+		return new VfxCue(effectId, origin, requireAnchor(anchorEntityId), origin.subtract(anchorPosition), 0,
+				startGameTime, seed, Vec3.ZERO);
+	}
+
 	public static VfxCue anchoredWithOffset(
 			ResourceLocation effectId,
 			Vec3 origin,

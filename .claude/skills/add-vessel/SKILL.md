@@ -48,7 +48,7 @@ Ask the user, unless already answered:
 
 **Two design constraints to check early.** `ATTACK_CONTEXT` — left click holding a technique weapon — is the only slot not yet fully behind the seam: `JujutsuKeybinds.isTechniqueWeapon` still spells out Nobara's two hammers. A melee vessel whose fantasy is "left click with my cursed tool" therefore needs either a shared-input edit or a different slot. Decide this in design, not halfway through implementation.
 
-The sixth slot, `USE_CONTEXT`, is two right clicks in quick succession, and it is the only one whose key vanilla already owns: the first click of the pair is handled before the mod sees it. The input layer sends the slot only once a pair completes, so an ordinary right click costs no packet. Todo marks a body with it. A defect here does not look like a broken ability — it looks like ordinary right clicks misbehaving, so smoke-test block, container and item interaction if you use it.
+The sixth slot, `USE_CONTEXT`, is two right clicks in quick succession, and it is the only one whose key vanilla already owns: the first click of the pair is handled before the mod sees it. The input layer sends the slot only once a pair completes, so an ordinary right click costs no packet. No vessel answers it today — every router returns `false`, and the slot stays reserved wire format. A defect here does not look like a broken ability — it looks like ordinary right clicks misbehaving, so smoke-test block, container and item interaction if you use it.
 
 Then research the character honestly. Canon gives fantasy, not numbers — range, cooldown, and safety rules are design choices and must be written down as such, with the reason.
 
@@ -78,7 +78,6 @@ Server hooks (`CharacterDefinition`), required first two:
 | `id()` | always — must return the constant it is bound to |
 | `tryCast(player, slot, notify)` | always — delegate to the router |
 | `registerServerHooks()` | the vessel has event-driven runtimes |
-| `canonicalSlot(slot)` | two input positions are the same input to this vessel |
 | `applyAttributes` / `removeAttributes` | vanilla attribute modifiers; remove exactly what you add |
 | `adjustIncomingStaggerTicks(int)` | stagger resistance; the argument is always > 0 |
 | `onSelected` / `onDeselected` | starter kit, or state that must drop when the vessel is left |
@@ -106,7 +105,7 @@ Every ability goes through the existing shared systems. Reuse is not a preferenc
 - **Safe placement**: if you teleport or place anything, follow `TodoSwapPlan` — resolve all destinations first, commit atomically, roll back on partial failure. Never mutate player coordinates directly; use the mapped teleport API.
 - **Stagger**: `CombatStagger.GLOBAL`, not a second interrupt system.
 - **Damage**: `JujutsuDamageSources`.
-- **Vessel-gated items**: `CharacterSelectionView.of(player)` — it answers on **both** sides, because vanilla calls an item's `use` on the client too. A server-only check lets the client predict an action the server refuses and then take back the item and the sound. `TodoSwapMarkerItem` is the worked example.
+- **Vessel-gated items**: `CharacterSelectionView.of(player)` — it answers on **both** sides, because vanilla calls an item's `use` on the client too. A server-only check lets the client predict an action the server refuses and then take back the item and the sound. The last worked example (`TodoSwapMarkerItem`) was deleted with the Todo stone rework, but the rule stands for any future vessel item; read it from `CharacterSelectionView`'s javadoc and git history.
 
 ### Items and entities
 

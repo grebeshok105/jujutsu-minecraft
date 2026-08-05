@@ -18,15 +18,19 @@ public final class TodoAbilityRouter {
 		return switch (ability) {
 			case PRIMARY -> TodoBoogieWoogieRuntime.tryCast(todo, ability, notify);
 			case PRIMARY_SNEAK -> TodoFakeClapRuntime.tryCast(todo, ability, notify);
-			case SECONDARY -> TodoPairSwapRuntime.tryCast(todo, ability, notify);
-			// SECONDARY_SNEAK never arrives: TodoDefinition folds it onto SECONDARY, because Shift+B is
-			// B for him. The arm stays so the switch remains exhaustive without a default.
+			// B and Shift+B are one runtime with two casts: B marks and commits the pair, Shift+B runs the
+			// triple cycle on the live selection. They have separate cooldown slots on purpose.
+			case SECONDARY, SECONDARY_SNEAK -> TodoPairSwapRuntime.tryCast(todo, ability, notify);
 			// ATTACK_CONTEXT is genuinely empty — his melee is plain vanilla with attribute modifiers,
 			// and he carries no technique weapon.
-			case USE_CONTEXT -> TodoEntityMarkRuntime.tryCast(todo, ability, notify);
-			// The hold gesture and its release belong to vessels with a held technique; Todo has none,
-			// and the third technique key is empty for him too.
-			case SECONDARY_SNEAK, ATTACK_CONTEXT, SECONDARY_SNEAK_HOLD, SECONDARY_SNEAK_RELEASE, TERTIARY -> false;
+			// USE_CONTEXT keeps its wire id and its client detection (the paired right click), but the
+			// body-mark ability is gone and no other vessel listens on it in this slice.
+			case USE_CONTEXT -> false;
+			// The hold gesture and its release belong to vessels with a held technique; Todo has none.
+			// V throws the stone and, while one is in flight, self-swaps with it; Shift+V swaps an aimed
+			// target with the stone. Both arms live in TodoStoneRuntime.
+			case TERTIARY, TERTIARY_SNEAK -> TodoStoneRuntime.tryCast(todo, ability, notify);
+			case ATTACK_CONTEXT, SECONDARY_SNEAK_HOLD, SECONDARY_SNEAK_RELEASE -> false;
 		};
 	}
 }

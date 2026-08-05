@@ -49,41 +49,45 @@ public final class TodoProfile {
 	 */
 	public static final int PAIR_SWAP_COOLDOWN_TICKS = 100;
 	/**
+	 * Triple cycle: deliberately above the pair, because it moves three bodies including Todo's own and
+	 * it runs on its own slot, so the pair and the cycle never crowd each other.
+	 */
+	public static final int TRIPLE_SWAP_COOLDOWN_TICKS = 160;
+	/**
 	 * How long a marked first participant stays selected. Five seconds is enough to line up a second
 	 * target and short enough that a stale mark cannot surprise anyone. The mark visual reads this,
 	 * rather than repeating the literal.
 	 */
 	public static final int PAIR_SELECTION_TTL_TICKS = 100;
-	/** Thrown marker: a little slower than an ender pearl, so it can be placed rather than launched. */
-	public static final float MARKER_THROW_POWER = 1.35f;
-	public static final float MARKER_THROW_VOLUME = 0.6f;
-	public static final float MARKER_THROW_PITCH = 0.85f;
-	/** Three seconds of flight is more than enough for a 32-block throw; after that it is a stray. */
-	public static final int MARKER_FLIGHT_TICKS = 60;
 	/**
-	 * Ten seconds of mark on a <em>body</em>, about two swap cooldowns, so following someone is worth at
-	 * most that much tempo. A landed mark has no clock at all — the name says "body" because the scope of
-	 * this number shrank to one of the two forms.
+	 * Server re-emit period for the pair-swap selection mark while it lives. One second, a fifth of the
+	 * selection TTL; the re-emit is the silent trap-boundary pulse pattern, carrying intensity 0 so the
+	 * recipe can tell it from the audible mark. Each pulse re-arms the caster's HUD chip hold and
+	 * re-draws a quiet ring at the marked body's current position — the caster alone receives it.
 	 */
-	public static final int MARKER_BODY_MARK_TTL_TICKS = 200;
+	public static final int PAIR_MARK_PULSE_TICKS = 20;
 	/**
-	 * Cooldown for marking a body by hand. Short: the cast costs no item and moves nobody, and its whole
-	 * value is set-up. Long enough that a held right click cannot repaint the mark every tick.
+	 * The stone's flight speed: 4.6 blocks per second — brisk enough to lead a retreating target, still
+	 * a flat readable line with no arc, so the swap stays a plan the opponent can see coming.
 	 */
-	public static final int ENTITY_MARK_COOLDOWN_TICKS = 20;
+	public static final double STONE_SPEED_BLOCKS_PER_TICK = 0.23;
+	/** Five seconds of flight. The stone never anchors: this clock is its only end. */
+	public static final int STONE_LIFETIME_TICKS = 100;
+	/** The stone's hitbox, a quarter of a block, sized for a small thrown rock. */
+	public static final float STONE_HITBOX_SIZE = 0.25f;
 	/**
-	 * Cooldown for the swap onto a mark. Equal to the aimed swap's today, and separate from it on purpose:
-	 * a reusable anchor is the strongest thing in the kit, and pricing it differently must not mean
-	 * rewriting the runtime.
+	 * Anti-double-click only: throwing must never lock the follow-up self-swap behind a long cooldown.
+	 * The self-swap carries the real price.
 	 */
-	public static final int MARKER_SWAP_COOLDOWN_TICKS = 60;
-	/** Nudge out of the struck face so the resting marker is visible against the surface. */
-	public static final double MARKER_SURFACE_OFFSET = 0.15;
-	/**
-	 * Longer reach than the aimed swap: the player paid an item, a throw and a visible telegraph for it,
-	 * and a public mark is something an opponent can play around.
-	 */
-	public static final double MARKER_SWAP_RANGE = 32.0;
+	public static final int STONE_THROW_COOLDOWN_TICKS = 10;
+	/** Three seconds — the same price as Todo's own aimed swap, because the self-swap is one of those. */
+	public static final int STONE_SELF_SWAP_COOLDOWN_TICKS = 60;
+	/** Five seconds — the same price as the pair swap, because he moves a bystander, not himself. */
+	public static final int STONE_TARGET_SWAP_COOLDOWN_TICKS = 100;
+	/** How far Todo may be from the stone for either swap (V or Shift+V). */
+	public static final double STONE_SWAP_RANGE = 32.0;
+	/** Crosshair reach for the Shift+V target, matching the aimed swap. */
+	public static final double STONE_TARGET_RANGE = 20.0;
 	/**
 	 * What a landed swap buys: one heavier hit, taken through an ATTACK_DAMAGE modifier so the vanilla
 	 * swing is simply bigger and no second damage instance exists to double-count or double-consume.

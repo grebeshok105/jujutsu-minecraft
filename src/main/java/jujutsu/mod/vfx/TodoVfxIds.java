@@ -15,13 +15,11 @@ public final class TodoVfxIds {
 	 */
 	public static final ResourceLocation FEINT_TELL = JujutsuMod.id("todo/feint_tell");
 	/**
-	 * Confirmation that a body is marked, anchored to that body so it lands on the right one.
-	 *
-	 * <p><b>Two emitters, deliberately different reach</b>, because the two casts hide different things.
-	 * The pair swap sends it to one player: nothing about who is marked has reached the world yet, so the
-	 * marked body must not learn it is next. The hand-placed swap mark broadcasts it, because that cast
-	 * applies a public glow anyway — a caster-only cue there would tell the caster he was subtle when he
-	 * was not. An earlier version of this line claimed the send was the rule; it never was for both.
+	 * Confirmation that a body is marked for the pair swap, anchored to that body so it lands on the
+	 * right one. Sent to the caster only: nothing about who is marked has reached the world yet, so the
+	 * marked body must not learn it is next. The server re-emits it as a silent pulse while the
+	 * selection lives; each pulse feeds the caster's HUD chip hold and re-draws a quiet ring at the
+	 * body's position, and observers receive neither cue.
 	 */
 	public static final ResourceLocation PAIR_MARK = JujutsuMod.id("todo/pair_mark");
 	/**
@@ -46,8 +44,25 @@ public final class TodoVfxIds {
 	 * deliberately cheap: it can land on the same tick as a Black Flash, and it must not compete with it.
 	 */
 	public static final ResourceLocation MOMENTUM_STRIKE = JujutsuMod.id("todo/momentum_strike");
+	/**
+	 * The stone leaving Todo's hand. Anchored at the caster; a short flick, deliberately lighter than
+	 * any clap so a throw never reads as a swap.
+	 */
+	public static final ResourceLocation STONE_THROW = JujutsuMod.id("todo/stone_throw");
+	/**
+	 * The stone ending — lifetime expiry, terminal block collision, or state cleanup. World-fixed at
+	 * the stone's last position; one compact puff, no lingering residue.
+	 */
+	public static final ResourceLocation STONE_VANISH = JujutsuMod.id("todo/stone_vanish");
+	/**
+	 * One edge of the triple cyclic swap. Emitted three times per cast — Todo→A, A→T, T→Todo — with
+	 * {@code anchorOffset} owning the full travel vector (its length is the edge length; {@link VfxCue}
+	 * normalizes {@code direction}, so magnitude cannot survive there). World-fixed at the edge's start.
+	 */
+	public static final ResourceLocation TRIPLE_SWAP = JujutsuMod.id("todo/triple_swap");
 	public static final Set<ResourceLocation> LIVE = Set.of(
-			BOOGIE_WOOGIE, SWAP_ENDPOINT, FEINT_TELL, PAIR_MARK, SWAP_AFTERIMAGE, SWAP_ARRIVAL, MOMENTUM_STRIKE);
+			BOOGIE_WOOGIE, SWAP_ENDPOINT, FEINT_TELL, PAIR_MARK, SWAP_AFTERIMAGE, SWAP_ARRIVAL, MOMENTUM_STRIKE,
+			STONE_THROW, STONE_VANISH, TRIPLE_SWAP);
 	public static final Set<ResourceLocation> PLANNED = Set.of();
 
 	private TodoVfxIds() {}

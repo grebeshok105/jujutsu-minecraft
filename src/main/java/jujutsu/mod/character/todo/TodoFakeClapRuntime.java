@@ -50,6 +50,9 @@ public final class TodoFakeClapRuntime {
 		// where the caster looks. Matching that keeps the cues alike even to a future recipe that reads the
 		// field -- and note the likeness depends on VfxCue keeping that normalization.
 		TodoBoogieWoogieRuntime.emitClapPerformance(level, todo, origin, todo.getLookAngle());
+		// The same displacement whoosh a real swap schedules one tick behind the clap. Nothing moved,
+		// but the teleport's sound signature must be complete, or the ear calls the coin at t=0.
+		TodoBoogieWoogieRuntime.scheduleDisplacementWhoosh(level, origin);
 		JujutsuNetworking.sendVfxCue(todo,
 				VfxCues.anchored(TodoVfxIds.FEINT_TELL, origin, todo.getId(), todo.position(), 1,
 						level.getGameTime(), todo.getRandom().nextLong()));

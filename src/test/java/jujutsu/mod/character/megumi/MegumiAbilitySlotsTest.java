@@ -27,8 +27,8 @@ class MegumiAbilitySlotsTest {
 				"SECONDARY_SNEAK_HOLD must start the hold submerge");
 		assertTrue(source.contains("case SECONDARY_SNEAK_RELEASE -> MegumiShadowMoveRuntime.tryRelease(player);"),
 				"SECONDARY_SNEAK_RELEASE must end the hold submerge");
-		assertTrue(source.contains("case ATTACK_CONTEXT, USE_CONTEXT -> false;"),
-				"the two context slots must stay one explicit refusal arm");
+		assertTrue(source.contains("case ATTACK_CONTEXT, USE_CONTEXT, TERTIARY_SNEAK -> false;"),
+				"the context slots and the sneaking third key must stay one explicit refusal arm");
 		assertTrue(source.contains("case TERTIARY -> MegumiShadowDropRuntime.tryCast(player, notify);"),
 				"TERTIARY must route to the shadow drop runtime");
 		assertFalse(Pattern.compile("default\\s*->").matcher(source).find(),

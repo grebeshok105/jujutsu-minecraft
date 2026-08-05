@@ -265,16 +265,6 @@ tasks.register('testServerTimeDilation', JavaExec) {
 	jvmArgs '-ea'
 }
 
-tasks.register('testTodoSwapMarker', JavaExec) {
-	group = 'verification'
-	description = 'Runs thrown swap-marker mark-form, cleanup and gate tests'
-	dependsOn tasks.named('testClasses')
-	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'jujutsu.mod.character.todo.TodoSwapMarkerTest'
-	maxHeapSize = '128m'
-	jvmArgs '-ea'
-}
-
 tasks.register('testTodoPairSwap', JavaExec) {
 	group = 'verification'
 	description = 'Runs Todo pair-swap selection lifecycle and bystander-safety tests'
@@ -331,16 +321,6 @@ tasks.register('testCharacterClients', JavaExec) {
 	dependsOn tasks.named('testClasses')
 	classpath = sourceSets.test.runtimeClasspath
 	mainClass = 'jujutsu.mod.client.character.CharacterClientRegistryTest'
-	maxHeapSize = '128m'
-	jvmArgs '-ea'
-}
-
-tasks.register('testTodoEntityMark', JavaExec) {
-	group = 'verification'
-	description = 'Runs assertion-based tests for marking a body without the thrown marker'
-	dependsOn tasks.named('testClasses')
-	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'jujutsu.mod.character.todo.TodoEntityMarkTest'
 	maxHeapSize = '128m'
 	jvmArgs '-ea'
 }

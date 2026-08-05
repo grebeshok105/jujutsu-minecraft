@@ -20,16 +20,6 @@ public final class TodoDefinition implements CharacterDefinition {
 		return JujutsuCharacter.TODO;
 	}
 
-	/**
-	 * Shift+B is B for him. The pair swap takes two presses on one key and cares about neither stance nor
-	 * hands, so crouching to line up the second participant used to lose the press — and silently, since
-	 * the mark then ticked on toward an expiry the player never saw explained.
-	 */
-	@Override
-	public CharacterAbility canonicalSlot(CharacterAbility slot) {
-		return slot == CharacterAbility.SECONDARY_SNEAK ? CharacterAbility.SECONDARY : slot;
-	}
-
 	@Override
 	public boolean tryCast(ServerPlayer player, CharacterAbility slot, boolean notify) {
 		return TodoAbilityRouter.tryCast(player, slot, notify);
@@ -54,8 +44,6 @@ public final class TodoDefinition implements CharacterDefinition {
 		// the momentum listener sees the nested pass and declines to spend on it.
 		TodoSwapMomentumRuntime.register();
 		TodoBoogieWoogieRuntime.register();
-		TodoPairSwapRuntime.register();
-		TodoSwapMarks.register();
 		TodoStateLifecycle.register();
 	}
 
@@ -69,12 +57,11 @@ public final class TodoDefinition implements CharacterDefinition {
 	}
 
 	/**
-	 * Leaving mid-setup must not leave a mark a later cast could consume, nor a glowing body or a resting
-	 * marker in the world with no owner who can use it.
+	 * Leaving mid-setup must not leave a pair selection or a thrown stone behind with no owner who can
+	 * use them.
 	 *
-	 * <p>This used to run on every selection change rather than only on leaving him, which also destroyed
-	 * a marker thrown by someone who was never Todo — see E12. Running it only for the vessel being left
-	 * is the honest rule.
+	 * <p>This used to run on every selection change rather than only on leaving him — see E12. Running
+	 * it only for the vessel being left is the honest rule.
 	 *
 	 * <p>The teardown itself lives in {@link TodoStateLifecycle}, because death needs exactly the same one
 	 * and two copies of a five-line cleanup are two chances to forget the fifth line. That includes the

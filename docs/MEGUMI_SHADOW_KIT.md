@@ -28,10 +28,11 @@ out of the world.
   early-emerge request, same as `SECONDARY_SNEAK_RELEASE`. A spoofed or stale HOLD/RELEASE with no
   matching server state is refused by the router and does nothing.
 - `SECONDARY_SNEAK_RELEASE` deliberately never carries a cooldown, so the emerge request always
-  reaches the router even while `SECONDARY_SNEAK` is cooling down. Megumi does not fold slots via
-  `canonicalSlot` — tap and hold are different actions sharing one cooldown key, which the router
-  checks itself (`CharacterAbilityCooldowns.isReady(player, SECONDARY_SNEAK)`) before starting a
-  hold.
+  reaches the router even while `SECONDARY_SNEAK` is cooling down. Tap and hold are different
+  actions sharing one cooldown key, which the router checks itself
+  (`CharacterAbilityCooldowns.isReady(player, SECONDARY_SNEAK)`) before starting a hold. (The
+  executor-level slot fold, `canonicalSlot`, is deleted since the Todo stone rework: every slot
+  reaches every router as itself.)
 
 ## B — Shadow Trap
 

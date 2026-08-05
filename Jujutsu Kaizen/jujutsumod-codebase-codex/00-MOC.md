@@ -28,7 +28,7 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 - Transient combat effects use VfxCue → VfxDirector → character recipes, each registered by its vessel's client definition. Megumi owns `jujutsu.mod.vfx.MegumiVfxIds` and `jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes`; his twelve `megumi/*` wire ids are five Divine Dogs plus seven shadow-kit ids, appended and never renumbered.
 - World transient rendering keeps lifecycle and dispatch in `VfxWorldChannel` while `HairpinWorldEffects`, `BlackFlashWorldEffects`, `SwapWorldEffects`, `ShadowWorldEffects`, and shared `VfxWorldGeometry` own the extracted visual families; the cap remains 48.
 - `VfxCameraChannel` keeps production wall-clock behavior through `System::currentTimeMillis` while its package-private millisecond supplier seam makes deterministic start, expiry, overlap, clamp, strength, and clear contracts executable without sleeps.
-- A completed Boogie Woogie emits its own cues — afterimage and arrival — which the feint does not, and opens a 24-tick window on Todo's next hit. A landed marker is a reusable anchor; a mark on a body still expires and is still consumed.
+- A completed Boogie Woogie emits its own cues — afterimage and arrival — which the feint does not, and opens a 24-tick window on Todo's next hit. The marker system is deleted: Todo's stone exists only in flight (V throws or self-swaps, Shift+V feeds a target into it), and B → Shift+B runs the fixed triple cycle Todo→A→T→Todo. Contracts: [Todo — Boogie Woogie and combat slice](03-systems/Todo-Boogie-Woogie.md), design `docs/TODO_STONE_REWORK.md`.
 - Loaded ordinary embedded nails use a 1200-tick TTL, a 30-per-owner cap, and EmbeddedNailRegistry.
 - Resonance global server hit-stop is intentional for the private 1–2 player target.
 
@@ -37,9 +37,9 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 | Metric | Value |
 |---|---:|
 | Main Java files | 124 |
-| Client Java files | 182 |
+| Client Java files | 185 |
 | Test Java files | 80 |
-| Verification programs | 31 |
+| Verification programs | 29 |
 | Client mixins | 6 |
 | Network payloads | 8 |
 | Nobara VFX ids | 24 |
@@ -97,4 +97,3 @@ The audit runs inside ./gradlew qualityGate, so these counters are checked befor
 - [One-to-one checklist](05-reference/One-to-one-checklist.md)
 - [How to add the next character](06-maintenance/How-to-add-next-character.md)
 - [Risks and technical debt](06-maintenance/Risks-and-tech-debt.md)
-- [Todo completion checklist](../../docs/TODO_COMPLETION_CHECKLIST.md) — the finite plan for finishing Aoi Todo, audited 2026-07-27 against `97dd526`. Lives under `docs/` rather than in this Codex because it is a work plan, not architecture, and is meant to be deleted when it closes.

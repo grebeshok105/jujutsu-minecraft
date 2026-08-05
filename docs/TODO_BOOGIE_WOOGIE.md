@@ -1,7 +1,11 @@
 # Aoi Todo — Boogie Woogie vertical slice
 
 Status: APPROVED DESIGN — IMPLEMENTED AND MERGED (PR #4)
-Scope: second playable character, minimal stable multiplayer-safe kit.
+Scope: second playable character, minimal stable multiplayer-safe kit. The kit has since grown
+past this document: the pair swap, the triple cyclic swap and the thrown stone are owned by
+[TODO_STONE_REWORK.md](TODO_STONE_REWORK.md); the marker system that once extended this slice was
+removed by that same rework. This file stays authoritative only for the aimed swap, the feint,
+melee and the Black Flash bridge.
 
 This is the approved design that the shipped Todo slice was built from, kept for the rationale behind the numbers and the deliberate exclusions. It is not a branch plan and not a description of current code. For current behavior use the source, then AGENTS.md under "Current slice (facts)"; for known gaps use [KNOWN_ISSUES.md](KNOWN_ISSUES.md). Where this document and the code disagree, the code wins.
 
@@ -99,8 +103,8 @@ Todo retains vanilla melee mechanics with server-applied attribute modifiers. A 
 
 ## Explicitly deferred
 
-- Swap between two external targets.
-- Cursed anchors, thrown-object targets, repeated high-rate swaps, vibraslap/rhythm mechanics, tempo meter, Todo items, custom HUD, domain expansion, and boss content. (Model and animation JSON were on this list at approval time and have since been delivered.)
+- Swap between two external targets. *(Since delivered as the pair swap; the triple cycle grew out of it — see TODO_STONE_REWORK.md.)*
+- Cursed anchors, thrown-object targets, repeated high-rate swaps, vibraslap/rhythm mechanics, tempo meter, Todo items, custom HUD, domain expansion, and boss content. *(Thrown-object targeting has since arrived as the stone — an inert entity, still not an item. Model and animation JSON were on this list at approval time and have since been delivered.)*
 
 ## Verification
 

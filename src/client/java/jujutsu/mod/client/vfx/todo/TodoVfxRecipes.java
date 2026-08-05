@@ -1,8 +1,11 @@
 package jujutsu.mod.client.vfx.todo;
 
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.client.character.todo.TodoPairSelectionClientState;
 import jujutsu.mod.client.vfx.VfxContext;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.vfx.VfxInstance;
@@ -18,6 +21,11 @@ public final class TodoVfxRecipes {
 			packRgb(VfxPalette.TODO_VIOLET_R, VfxPalette.TODO_VIOLET_G, VfxPalette.TODO_VIOLET_B), 1.05f);
 	private static final DustParticleOptions TODO_EDGE = new DustParticleOptions(
 			packRgb(VfxPalette.TODO_EDGE_R, VfxPalette.TODO_EDGE_G, VfxPalette.TODO_EDGE_B), 0.72f);
+	/** Plain rock gray: the stone reads as a mundane object, never as another violet cast. */
+	private static final DustParticleOptions STONE_GRAY = new DustParticleOptions(
+			packRgb(138, 143, 148), 0.9f);
+	private static final DustParticleOptions STONE_DARK = new DustParticleOptions(
+			packRgb(88, 92, 97), 0.65f);
 
 	private TodoVfxRecipes() {}
 
@@ -30,6 +38,12 @@ public final class TodoVfxRecipes {
 	public static final int MOMENTUM_STRIKE_DURATION_TICKS = 8;
 	public static final int FEINT_TELL_DURATION_TICKS = 6;
 	public static final int PAIR_MARK_DURATION_TICKS = 8;
+	/** Long enough for the flick to read, short enough that it never competes with the swap clap. */
+	public static final int STONE_THROW_DURATION_TICKS = 6;
+	/** One compact poof; the stone leaves no lingering residue by design. */
+	public static final int STONE_VANISH_DURATION_TICKS = 8;
+	/** The stream is a single snapshot per edge; ten ticks covers the three edges of a cast. */
+	public static final int TRIPLE_SWAP_DURATION_TICKS = 10;
 	/** Six ticks of the world stepping back, ending as the arrival visuals do. */
 	private static final int DUCK_TICKS = 6;
 	/** A body is standing on its own arrival point at the instant the cue is authored. 1.5 blocks. */
@@ -43,6 +57,9 @@ public final class TodoVfxRecipes {
 		VfxDirector.register(TodoVfxIds.MOMENTUM_STRIKE, TodoVfxRecipes::momentumStrike);
 		VfxDirector.register(TodoVfxIds.FEINT_TELL, TodoVfxRecipes::feintTell);
 		VfxDirector.register(TodoVfxIds.PAIR_MARK, TodoVfxRecipes::pairMark);
+		VfxDirector.register(TodoVfxIds.STONE_THROW, TodoVfxRecipes::stoneThrow);
+		VfxDirector.register(TodoVfxIds.STONE_VANISH, TodoVfxRecipes::stoneVanish);
+		VfxDirector.register(TodoVfxIds.TRIPLE_SWAP, TodoVfxRecipes::tripleSwap);
 	}
 
 	/**
@@ -146,19 +163,122 @@ public final class TodoVfxRecipes {
 	}
 
 	/**
-	 * Caster-only mark confirmation on the first pair-swap participant. A single beat, not a marker that
-	 * follows the body for the whole selection: a transient cue is started once, and VFX Core keeps
-	 * anything that must track a live entity on that entity's own renderer. The actionbar line names who
-	 * was marked, which is what the caster actually needs to remember.
+	 * Caster-only mark confirmation on the first pair-swap participant, plus a quiet once-a-second
+	 * re-draw while the selection lives. The audible mark is a single beat; the server then re-emits
+	 * this cue as a silent pulse (intensity 0) every {@code PAIR_MARK_PULSE_TICKS}: each pulse feeds
+	 * the HUD chip's hold without re-sounding the mark or extending the countdown, and re-draws a
+	 * smaller ring at the marked body's current position so the caster can read the selection in the
+	 * world, not only off the chip. Both cues are sent to the caster alone — an observer never sees
+	 * the mark or the pulse, so the secrecy rule survives; anything louder here would break it.
 	 */
 	private static VfxInstance pairMark(VfxCue cue) {
 		return VfxInstance.of(PAIR_MARK_DURATION_TICKS, (context, initialAgeTicks) -> {
-			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
-				Vec3 marked = context.resolveOrigin(cue).add(0.0, 1.0, 0.0);
-				RandomSource random = random(cue, 0x9A12CAFEL);
-				context.ring(TODO_VIOLET, marked, 12, 0.55, 0.0, 0.02, random);
-				context.burst(TODO_EDGE, marked, 6, 0.22, 0.05, random);
+			if (cue.intensity() == 0) {
+				TodoPairSelectionClientState.pulse(cue.anchorEntityId(), cue.startGameTime());
+				if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+					Vec3 held = context.resolveOrigin(cue).add(0.0, 1.0, 0.0);
+					context.ring(TODO_VIOLET, held, 5, 0.4, 0.0, 0.012, random(cue, 0x9A12CAFEL));
+				}
+				return;
 			}
+			TodoPairSelectionClientState.mark(cue.anchorEntityId(), cue.startGameTime());
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 marked = context.resolveOrigin(cue).add(0.0, 1.0, 0.0);
+			RandomSource random = random(cue, 0x9A12CAFEL);
+			context.ring(TODO_VIOLET, marked, 12, 0.55, 0.0, 0.02, random);
+			context.burst(TODO_EDGE, marked, 6, 0.22, 0.05, random);
+		});
+	}
+
+	/**
+	 * The stone leaving Todo's hand. A short hand-flick of gray dust along the throw line and the
+	 * vanilla throw whoosh — deliberately lighter than any clap, so a throw never reads as a swap.
+	 * The stone itself is the persistent visual; this cue only covers the departure beat.
+	 */
+	private static VfxInstance stoneThrow(VfxCue cue) {
+		return VfxInstance.of(STONE_THROW_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 origin = cue.origin();
+			RandomSource random = random(cue, 0x57011EEL);
+			context.playNoFalloff(SoundEvents.SNOWBALL_THROW, 0.5f, 1.12f, origin, random);
+			Vec3 direction = cue.direction();
+			ClientLevel level = context.client().level;
+			if (direction.lengthSqr() > 1.0E-8 && level != null) {
+				int count = context.quality().scaledCount(5);
+				for (int index = 0; index < count; index++) {
+					Vec3 at = origin.add(direction.scale(0.15 + random.nextDouble() * 0.5))
+							.add((random.nextDouble() - 0.5) * 0.24, (random.nextDouble() - 0.5) * 0.24,
+									(random.nextDouble() - 0.5) * 0.24);
+					level.addParticle(STONE_GRAY, at.x, at.y, at.z,
+							direction.x * 0.05 + (random.nextDouble() - 0.5) * 0.04,
+							direction.y * 0.05 + (random.nextDouble() - 0.5) * 0.04,
+							direction.z * 0.05 + (random.nextDouble() - 0.5) * 0.04);
+				}
+			}
+			context.burst(TODO_EDGE, origin, 3, 0.10, 0.05, random);
+		});
+	}
+
+	/**
+	 * The stone ending — lifetime expiry, terminal block collision, or state cleanup. World-fixed at
+	 * the stone's last position: one compact gray poof and a soft stone tap, no lingering residue.
+	 */
+	private static VfxInstance stoneVanish(VfxCue cue) {
+		return VfxInstance.of(STONE_VANISH_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 origin = cue.origin();
+			RandomSource random = random(cue, 0x5711E3EL);
+			context.playNoFalloff(SoundEvents.STONE_PLACE, 0.45f, 0.85f, origin, random);
+			context.burst(STONE_GRAY, origin, 8, 0.24, 0.10, random);
+			context.ring(STONE_DARK, origin.add(0.0, 0.06, 0.0), 5, 0.16, 0.0, 0.015, random);
+		});
+	}
+
+	/**
+	 * One edge of the triple cyclic swap. Emitted three times per cast — Todo→A, A→T, T→Todo — each
+	 * world-fixed at the edge's start with {@code anchorOffset} owning the full travel vector (its
+	 * length is the edge length) and {@code direction} the normalized flow. A violet particle stream
+	 * runs to a brighter head at the far end, so the direction of each edge (and therefore the whole
+	 * A→B→C→A flow) reads in-world; the gray puff at the start ties the edge back to the stone-free,
+	 * hand-cast nature of the triple.
+	 */
+	private static VfxInstance tripleSwap(VfxCue cue) {
+		return VfxInstance.of(TRIPLE_SWAP_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 from = cue.origin();
+			Vec3 direction = cue.direction();
+			double edgeLength = cue.anchorOffset().length();
+			if (direction.lengthSqr() < 1.0E-8 || edgeLength <= 0.0) {
+				return;
+			}
+			RandomSource random = random(cue, 0x331B5EEL);
+			ClientLevel level = context.client().level;
+			if (level == null) {
+				return;
+			}
+			int count = context.quality().scaledCount(10);
+			for (int index = 0; index < count; index++) {
+				double t = (index + 1.0) / count;
+				Vec3 at = from.add(direction.scale(edgeLength * t))
+						.add(0.0, 0.28, 0.0)
+						.add((random.nextDouble() - 0.5) * 0.20, (random.nextDouble() - 0.5) * 0.16,
+								(random.nextDouble() - 0.5) * 0.20);
+				level.addParticle(TODO_VIOLET, at.x, at.y, at.z,
+						(random.nextDouble() - 0.5) * 0.06, (random.nextDouble() - 0.5) * 0.04,
+						(random.nextDouble() - 0.5) * 0.06);
+			}
+			context.burst(STONE_GRAY, from.add(0.0, 0.3, 0.0), 5, 0.12, 0.06, random);
+			Vec3 head = from.add(direction.scale(edgeLength)).add(0.0, 0.3, 0.0);
+			context.ring(TODO_EDGE, head, 8, 0.42, 0.0, 0.035, random);
+			context.burst(TODO_EDGE, head, 5, 0.14, 0.07, random);
 		});
 	}
 
