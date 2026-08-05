@@ -30,10 +30,9 @@
 
 ## Status
 
-- **PR #54 is OPEN**: <https://github.com/grebeshok105/jujutsu-minecraft/pull/54> (base `main`), review summary posted as a PR comment.
-- Deployed jar in `D:/Games/instances/Jujutsu/mods/` is built from `71ef31c` (round-3: compact any-body trap, side ESP badge, physical mega shove, synthesized riser/blast audio), md5 `aec81a81b8ba4926280b72a904410b3f`.
+- **PR #54 is MERGED** into `main` as squash commit `3dccd56` (2026-08-05): <https://github.com/grebeshok105/jujutsu-minecraft/pull/54>. Smoke round 4 accepted the kit; feature branch and worktree removed.
+- Deployed jar in `D:/Games/instances/Jujutsu/mods/` is built from `main` at `3dccd56`, md5 `37d8ae47b945d6aef86129200b3c3234`.
 
 ## Next steps
 
-1. Manual in-game smoke round 4: trap corners ~2 blocks apart with a 2-block trigger ring that any mob (incl. golems) trips; mega B builds with riser audio + escalating shake for 1.2 s, launches with a jet blast, shoves golems; ESP badge sits to the target's right at chest height.
-2. Merge PR #54 after smoke sign-off (or fix what the smoke rejects).
+1. None for this feature — future Nobara tuning starts a new branch from `main`.
