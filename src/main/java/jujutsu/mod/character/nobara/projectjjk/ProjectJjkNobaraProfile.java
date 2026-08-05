@@ -58,7 +58,6 @@ public final class ProjectJjkNobaraProfile {
 
 	// Hairpin enlargement: ProjectJJK-style delayed snap against a marked looked-at target.
 	public static final double HAIRPIN_ENLARGE_RANGE = 20.0;
-	public static final int HAIRPIN_ENLARGE_DELAY_TICKS = 20;
 	public static final int HAIRPIN_ENLARGE_STUN_TICKS = 50;
 	public static final float HAIRPIN_ENLARGE_DAMAGE_PER_NAIL = 4.0f;
 	public static final float HAIRPIN_ENLARGE_DAMAGE = HAIRPIN_ENLARGE_DAMAGE_PER_NAIL;

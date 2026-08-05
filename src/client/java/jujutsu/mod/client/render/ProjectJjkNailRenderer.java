@@ -53,9 +53,6 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 	private static final int CURSED_BLUE_WHITE_G = VfxPalette.CURSED_BLUE_WHITE_G;
 	private static final int CURSED_BLUE_WHITE_B = VfxPalette.CURSED_BLUE_WHITE_B;
 	private static final int NOBARA_ACCENT = 0xE48A36;
-	private static final int NOBARA_ACCENT_R = (NOBARA_ACCENT >> 16) & 0xFF;
-	private static final int NOBARA_ACCENT_G = (NOBARA_ACCENT >> 8) & 0xFF;
-	private static final int NOBARA_ACCENT_B = NOBARA_ACCENT & 0xFF;
 	private final ItemRenderer itemRenderer;
 
 	public ProjectJjkNailRenderer(EntityRendererProvider.Context context) {
@@ -96,7 +93,10 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 				int targetId = entity.embeddedTargetEntityId();
 				Map<Integer, NobaraEspState.TargetEsp> snapshot = NobaraEspState.snapshot();
 				NobaraEspState.TargetEsp esp = snapshot.get(targetId);
-				if (esp != null) {
+				var localPlayer = Minecraft.getInstance().player;
+				boolean ownNail = localPlayer != null
+						&& entity.clientOwnerUuid().map(localPlayer.getUUID()::equals).orElse(false);
+				if (esp != null && ownNail) {
 					state.ownedByLocal = true;
 					state.isEspLeader = esp.leaderNailEntityId() == entity.getId();
 					if (state.isEspLeader) {
@@ -317,10 +317,10 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		int bgR = (0xB8121818 >> 16) & 0xFF;
 		int bgG = (0xB8121818 >> 8) & 0xFF;
 		int bgB = 0xB8121818 & 0xFF;
-		bgBuilder.addVertex(m, bgX1, bgY1, 0.0f).setColor(bgR, bgG, bgB, bgA);
-		bgBuilder.addVertex(m, bgX2, bgY1, 0.0f).setColor(bgR, bgG, bgB, bgA);
-		bgBuilder.addVertex(m, bgX2, bgY2, 0.0f).setColor(bgR, bgG, bgB, bgA);
-		bgBuilder.addVertex(m, bgX1, bgY2, 0.0f).setColor(bgR, bgG, bgB, bgA);
+		bgBuilder.addVertex(m, bgX1, bgY1, 0.0f).setColor(bgR, bgG, bgB, bgA).setLight(packedLight);
+		bgBuilder.addVertex(m, bgX2, bgY1, 0.0f).setColor(bgR, bgG, bgB, bgA).setLight(packedLight);
+		bgBuilder.addVertex(m, bgX2, bgY2, 0.0f).setColor(bgR, bgG, bgB, bgA).setLight(packedLight);
+		bgBuilder.addVertex(m, bgX1, bgY2, 0.0f).setColor(bgR, bgG, bgB, bgA).setLight(packedLight);
 
 		float tx = -maxW / 2.0f;
 		font.drawInBatch(line1, tx, 0.0f, 0xFFE5F1EF, false, m, consumers, Font.DisplayMode.NORMAL, 0, packedLight);

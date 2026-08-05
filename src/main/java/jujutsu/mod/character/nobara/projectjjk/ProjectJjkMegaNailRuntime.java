@@ -16,7 +16,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.combat.CombatStagger;
@@ -37,7 +36,7 @@ import jujutsu.mod.vfx.VfxCues;
 public final class ProjectJjkMegaNailRuntime {
 	/** Boxed so the VFX radius contract test can read the delivery radius from bytecode field accesses. */
 	private static final Double VFX_DELIVERY_RADIUS = 64.0;
-	private static final Map<UUID, PendingStrike> PENDING = new ConcurrentHashMap<>();
+	private static final Map<StrikeKey, PendingStrike> PENDING = new ConcurrentHashMap<>();
 
 	private ProjectJjkMegaNailRuntime() {}
 
@@ -92,6 +91,7 @@ public final class ProjectJjkMegaNailRuntime {
 			nail.discard();
 		}
 		ProjectJjkNailMarks.consume(target.getUUID(), gameTime);
+		ProjectJjkRitualRuntime.clearGlowingMark(target);
 		// Caster presentation cue
 		JujutsuNetworking.broadcastVfxCue(level, caster.position(), VFX_DELIVERY_RADIUS,
 				cue(level, NobaraVfxIds.CASTER_ACTION, NobaraVfxIds.CASTER_MEGA_NAIL,
@@ -107,7 +107,7 @@ public final class ProjectJjkMegaNailRuntime {
 				count,
 				direction,
 				converge);
-		PENDING.put(target.getUUID(), pending);
+		PENDING.put(new StrikeKey(caster.getUUID(), target.getUUID()), pending);
 		return true;
 	}
 
@@ -134,8 +134,8 @@ public final class ProjectJjkMegaNailRuntime {
 	private static void onServerTick(MinecraftServer server) {
 		if (PENDING.isEmpty()) return;
 		long gameTime = server.overworld().getGameTime();
-		for (Iterator<Map.Entry<UUID, PendingStrike>> iterator = PENDING.entrySet().iterator(); iterator.hasNext();) {
-			Map.Entry<UUID, PendingStrike> entry = iterator.next();
+		for (Iterator<Map.Entry<StrikeKey, PendingStrike>> iterator = PENDING.entrySet().iterator(); iterator.hasNext();) {
+			Map.Entry<StrikeKey, PendingStrike> entry = iterator.next();
 			PendingStrike pending = entry.getValue();
 			if (pending.dueGameTime() > gameTime) {
 				continue;
@@ -177,9 +177,10 @@ public final class ProjectJjkMegaNailRuntime {
 			DamageSource source = NobaraDamageSources.hairpin(level, caster);
 			float damage = megaNailDamage(pending.weight()) * ResonantMomentum.damageMultiplier(caster);
 			target.hurtServer(level, source, damage);
+			// Stagger before knockback: the LivingEntity overload damps velocity, so the shove must land after it.
+			CombatStagger.GLOBAL.apply(target, gameTime, ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
 			Vec3 knockbackDir = pending.direction(); // always caster→target
 			target.knockback(megaNailKnockback(pending.count()), -knockbackDir.x, -knockbackDir.z);
-			CombatStagger.GLOBAL.apply(target.getUUID(), gameTime, ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
 			// Strike VFX: origin in front of target, displacement along direction
 			Vec3 origin = target.position().add(pending.direction().scale(-0.5));
 			Vec3 displacement = pending.direction().scale(4.0);
@@ -276,4 +277,7 @@ public final class ProjectJjkMegaNailRuntime {
 			Vec3 direction,
 			Vec3 convergePoint
 	) {}
+
+	/** Pending strikes are keyed per caster+target so two Nobaras striking one body never erase each other. */
+	private record StrikeKey(UUID casterId, UUID targetId) {}
 }
