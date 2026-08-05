@@ -125,9 +125,9 @@ public final class CharacterClientRegistryTest {
 	/**
 	 * Every slot minus the ones the router refuses outright.
 	 *
-	 * <p>A slot folded by {@code canonicalSlot} needs no separate subtraction: it never reaches the
-	 * router, so its arm is one of the {@code false} ones already counted here. Counting folds too would
-	 * subtract it twice and demand a card shorter than the kit.
+	 * <p>The count is derived from the router's own arms, so a slot the router answers — however it
+	 * answers — must be listed on the card and one it refuses must not. The card and the kit cannot
+	 * drift apart.
 	 */
 	private static int slotsTheRouterAnswers(JujutsuCharacter character, String name) throws Exception {
 		Path routerFile = Path.of("src/main/java/jujutsu/mod/character")

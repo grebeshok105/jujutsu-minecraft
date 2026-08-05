@@ -158,7 +158,7 @@ public final class TodoFakeClapTest {
 		// Since the Megumi shadow kit the second key owns a sneak-hold gesture, so its slot choice is a
 		// small state machine rather than the one-line slot(...) helper. The contract this pins is the
 		// same: a plain press is the instant SECONDARY cast, and a sneaking tap still reaches the
-		// SECONDARY_SNEAK slot (Todo's pair swap) — now on release, inside the hold threshold.
+		// SECONDARY_SNEAK slot (Todo's triple cycle) — now on release, inside the hold threshold.
 		assert keybinds.contains("sendCharacterAbility(client, CharacterAbility.SECONDARY)")
 				: "A plain second-key press must stay the instant SECONDARY cast";
 		assert keybinds.contains("? CharacterAbility.SECONDARY_SNEAK_RELEASE")
