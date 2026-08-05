@@ -30,6 +30,7 @@
   "key.jujutsumod.modern_menu": "Меню дзюдзюцу (Персонажи)",
   "key.jujutsumod.nobara_hairpin_enlarge": "Основная техника",
   "key.jujutsumod.nobara_hairpin_explosion": "Вторичная техника",
+  "key.jujutsumod.third_technique": "Третья техника",
   "screen.jujutsumod.modern_menu": "Выбор сосуда",
   "message.jujutsumod.character.action.not_selected": "Сначала выберите персонажа.",
   "message.jujutsumod.character.action.cooldown": "Способность восстанавливается.",
@@ -114,5 +115,17 @@
   "esp.jujutsumod.rank.rank3": "3 ранг",
   "esp.jujutsumod.rank.civilian": "Гражданский",
   "subtitles.jujutsumod.nobara.mega_charge_riser": "Мега-гвоздь заряжается",
-  "subtitles.jujutsumod.nobara.mega_launch_blast": "Мега-гвоздь выстреливает"
+  "subtitles.jujutsumod.nobara.mega_launch_blast": "Мега-гвоздь выстреливает",
+  "message.jujutsumod.megumi.trap.no_target": "Тень не дотягивается до этой цели",
+  "message.jujutsumod.megumi.trap.already_open": "Тень уже держит",
+  "message.jujutsumod.megumi.drop.no_target": "Тень не дотягивается до этой цели",
+  "message.jujutsumod.megumi.drop.already_open": "Тень уже сгущается над целью",
+  "message.jujutsumod.megumi.shadow.no_path": "Нет тени для перемещения",
+  "message.jujutsumod.megumi.shadow.no_safe_exit": "Там негде безопасно вынырнуть",
+  "message.jujutsumod.megumi.shadow.bound": "Ты внутри тени",
+  "effect.jujutsumod.megumi_shadow_grip": "Теневая хватка",
+  "screen.jujutsumod.character_select.ability.shadow_trap": "Теневая ловушка",
+  "screen.jujutsumod.character_select.ability.shadow_step": "Теневой шаг",
+  "screen.jujutsumod.character_select.ability.deep_submerge": "Глубокое погружение",
+  "screen.jujutsumod.character_select.ability.shadow_drop": "Теневой обвал"
 }

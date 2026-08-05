@@ -55,9 +55,16 @@ public final class TodoPairSwapTest {
 				: "Moving bystanders must not use the last-resort fallback that exists for Todo's own feel";
 		assert !pair.contains("Strictness.SOFT")
 				: "The pair swap must never fall back to the exact requested point";
+		// The scan lives in shared SafeBodyPlacement since the Megumi shadow kit; the property is the
+		// same, split across the seam: only the SOFT policy carries the exact-point fallback, and the
+		// shared gate hands the requested point back only when the policy opted in.
 		String swap = Files.readString(TODO.resolve("TodoBoogieWoogieRuntime.java"));
-		assert swap.contains("strictness == Strictness.SOFT && isInWorldDestination")
-				: "The fallback must stay gated on SOFT so STRICT genuinely cancels";
+		assert swap.contains("strictness == Strictness.SOFT ? SOFT_PLACEMENT : STRICT_PLACEMENT")
+				: "Only SOFT may select the policy that keeps the exact-point fallback";
+		String placement = Files.readString(
+				Path.of("src/main/java/jujutsu/mod/combat/SafeBodyPlacement.java"));
+		assert placement.contains("policy.exactRequestedFallback() && isInWorld")
+				: "The fallback must stay gated on the policy flag so a strict scan genuinely cancels";
 		assert pair.contains("TodoSwapPlan.preflight")
 				: "The pair swap must use the same atomic two-destination rule as the self swap";
 		assert pair.contains("TodoBoogieWoogieRuntime.rollback(\"pair swap\"")

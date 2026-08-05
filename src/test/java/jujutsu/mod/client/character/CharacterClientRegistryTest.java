@@ -138,7 +138,27 @@ public final class CharacterClientRegistryTest {
 		while (empty.find()) {
 			refused += empty.group(1).split(",").length;
 		}
-		return CharacterAbility.values().length - refused;
+		// A *_RELEASE slot is the end of a held gesture, not a technique of its own: answering it means
+		// "the hold can be let go", which no card should list as a separate ability.
+		int releaseSlots = 0;
+		for (CharacterAbility ability : CharacterAbility.values()) {
+			if (ability.name().endsWith("_RELEASE") && !refusedNames(router).contains(ability.name())) {
+				releaseSlots++;
+			}
+		}
+		return CharacterAbility.values().length - refused - releaseSlots;
+	}
+
+	/** The slot names this router answers with a plain {@code false}. */
+	private static java.util.Set<String> refusedNames(String router) {
+		java.util.Set<String> names = new java.util.HashSet<>();
+		Matcher empty = Pattern.compile("case\\s+([A-Z_,\\s]+?)\\s*->\\s*false\\s*;").matcher(router);
+		while (empty.find()) {
+			for (String part : empty.group(1).split(",")) {
+				names.add(part.trim());
+			}
+		}
+		return names;
 	}
 
 	private static String capitalized(JujutsuCharacter character) {

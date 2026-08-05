@@ -28,6 +28,8 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 	private static final String BASE_CONTROLLER = "megumi_player_base";
 	private static final String ACTION_CONTROLLER = "megumi_actions";
 	private static final String SUMMON_ANIM = "summon_divine_dogs";
+	private static final String SHADOW_DIVE_ANIM = "shadow_dive";
+	private static final String SHADOW_EMERGE_ANIM = "shadow_emerge";
 	private static final float WALK_ANIMATION_THRESHOLD = 0.035f;
 	private static final double WALK_VELOCITY_THRESHOLD_SQR = 0.0016;
 	private static final double RUN_VELOCITY_THRESHOLD_SQR = 0.018;
@@ -41,6 +43,8 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 			play("animation.megumi_fushiguro.kick")
 	};
 	private static final RawAnimation SUMMON = play("animation.megumi_fushiguro.summon_divine_dogs");
+	private static final RawAnimation SHADOW_DIVE = play("animation.megumi_fushiguro.shadow_dive");
+	private static final RawAnimation SHADOW_EMERGE = play("animation.megumi_fushiguro.shadow_emerge");
 	private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
 	private MegumiPlayerGeoAnimatable() {
@@ -49,6 +53,14 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 
 	public void triggerSummon(Entity player) {
 		triggerAnim(player, CharacterSkinAnimationAdapter.playerTriggerInstanceId(player), ACTION_CONTROLLER, SUMMON_ANIM);
+	}
+
+	public void triggerShadowDive(Entity player) {
+		triggerAnim(player, CharacterSkinAnimationAdapter.playerTriggerInstanceId(player), ACTION_CONTROLLER, SHADOW_DIVE_ANIM);
+	}
+
+	public void triggerShadowEmerge(Entity player) {
+		triggerAnim(player, CharacterSkinAnimationAdapter.playerTriggerInstanceId(player), ACTION_CONTROLLER, SHADOW_EMERGE_ANIM);
 	}
 
 	public void restartMeleeTrigger(Entity player, String triggerName) {
@@ -75,7 +87,9 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 				.triggerableAnim("punch_1", MELEE[0])
 				.triggerableAnim("punch_2", MELEE[1])
 				.triggerableAnim("kick", MELEE[2])
-				.triggerableAnim(SUMMON_ANIM, SUMMON));
+				.triggerableAnim(SUMMON_ANIM, SUMMON)
+				.triggerableAnim(SHADOW_DIVE_ANIM, SHADOW_DIVE)
+				.triggerableAnim(SHADOW_EMERGE_ANIM, SHADOW_EMERGE));
 	}
 
 	@Override
@@ -115,7 +129,11 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 				|| isCombatIdle(base == null ? null : base.getCurrentRawAnimation())
 				|| isCombatIdle(base == null ? null : base.getTriggeredAnimation())
 				|| isSummon(action == null ? null : action.getCurrentRawAnimation())
-				|| isSummon(action == null ? null : action.getTriggeredAnimation());
+				|| isSummon(action == null ? null : action.getTriggeredAnimation())
+				|| isShadowDive(action == null ? null : action.getCurrentRawAnimation())
+				|| isShadowDive(action == null ? null : action.getTriggeredAnimation())
+				|| isShadowEmerge(action == null ? null : action.getCurrentRawAnimation())
+				|| isShadowEmerge(action == null ? null : action.getTriggeredAnimation());
 	}
 
 	private static boolean isMelee(RawAnimation animation) {
@@ -128,6 +146,14 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 
 	private static boolean isSummon(RawAnimation animation) {
 		return animation == SUMMON;
+	}
+
+	private static boolean isShadowDive(RawAnimation animation) {
+		return animation == SHADOW_DIVE;
+	}
+
+	private static boolean isShadowEmerge(RawAnimation animation) {
+		return animation == SHADOW_EMERGE;
 	}
 
 	private static RawAnimation loop(String name) {

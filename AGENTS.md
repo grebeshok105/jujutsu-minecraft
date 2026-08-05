@@ -26,10 +26,12 @@ Primary priorities:
 
 This block is the single owner of current-slice facts. `README.md` keeps only the user-facing pitch and controls; `SESSION.md` keeps only what changed on the active branch.
 
-- Playable vessels: **Nobara** (nails, hammer, Hairpin, Resonance, traps, Black Flash path), **Todo** (Boogie Woogie swap, heavy vanilla melee, shared Black Flash bridge), **Megumi** (two independently mortal Divine Dogs), and **None**
+- Playable vessels: **Nobara** (nails, hammer, Hairpin, Resonance, traps, Black Flash path), **Todo** (Boogie Woogie swap, heavy vanilla melee, shared Black Flash bridge), **Megumi** (two independently mortal Divine Dogs, Shadow Trap, Shadow Move, Shadow Drop), and **None**
 - Nobara controls: `R` directed Hairpin, `B` Mega Nail (merges the aimed target's embedded nails into one delayed piercing strike; an empty B shows the router fallback), `Shift+R` Self Resonance, `Shift+B` Nail Trap, hammer left click contextual melee. Her embedded nails also feed a client-only target ESP visible to the local Nobara alone
 - Todo controls: `R` Boogie Woogie (server-authoritative self↔target swap, falling back to a live thrown mark when nothing eligible is under the crosshair), `Shift+R` feint clap (the full clap performance with no swap behind it; the modifier is the sneak key, so the cast is visibly crouched — an accepted tradeoff recorded in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)), `B` pair swap (first cast marks a bystander, second swaps the pair while Todo stays put; `Shift+B` folds onto `B` for him via `canonicalSlot`, so crouching between the two presses does not lose one), **two right clicks** mark the body under the crosshair without a thrown marker; vanilla melee with Todo attribute modifiers
-- Megumi controls: `R` atomically summons both Divine Dogs or recalls the surviving pack; `Shift+R` commands every living dog to attack one server-selected eligible target. Summon has no cooldown; recall is 240 ticks; final pack loss is 600 ticks; Sic is 30 ticks
+- Megumi controls: `R` atomically summons both Divine Dogs or recalls the surviving pack; `Shift+R` commands every living dog to attack one server-selected eligible target; `B` Shadow Trap (a static slowing pool pinned under the aimed target's feet); `Shift+B` Shadow Move — one travel technique with three contextual modes: tap with an eligible target under the crosshair emerges behind its live back, tap at an aimed surface is a free step, hold past 6 ticks is a deep submerge that lasts until release, a repeat tap or 50 ticks; `V` Shadow Drop (a telegraphed zone that follows the aimed target overhead for 1 s, then drops a 1–3 block weighted volley scattered inside the disc — sand 30% / gravel 25% / clay 25% / anvil 20% per block, `disableDrop()` so nothing ever litters the world, crush damage 1.0/5 soft and vanilla 2.0/40 anvil). Summon has no cooldown; recall is 240 ticks; final pack loss is 600 ticks; Sic is 30 ticks; trap is 200 ticks on `SECONDARY`; the move is 120 (tap) / 200 (hold) ticks on `SECONDARY_SNEAK`; the drop is 60 ticks on `TERTIARY`
+- The shadow grip is a vanilla-mirrored `megumi_shadow_grip` attribute effect (`MOVEMENT_SPEED` −75%, `JUMP_STRENGTH` ×0 via `ADD_MULTIPLIED_TOTAL`), applied every server tick inside the pool with an 8-tick duration and expiring by itself — a gripped body walks out slowly; never a stun, never a manual effect scrub. The submerged walk keeps full vanilla collision, refuses attacks and other casts through the router's lock gate, and hides the whole body through the shared `HiddenBodyRenderGate` (TTL set fed by the ripple cues — the first fires when the body actually hides, so the sink stays watchable; fail-open on a lost packet) plus a vanilla invisibility flag re-asserted every tick while under. The dive is smooth in both persons and continuous between ticks (all three readers sample `ShadowBodySink` at the frame's fractional game time): the third-person body eases down 1.9 blocks across the sink, `VfxCameraChannel.diveOffsetBlocks(partialTick)` dips the first-person camera and `MegumiShadowDiveHud` veils the screen. Trap-family shadow pools (trap and drop zone) render void-black — vertex alpha 255 for their whole life, only the radius animates — and dissolve only through the closing sweep's 255→0 fade; the dogs' decorative summon pool keeps its own fade. `SECONDARY_SNEAK_HOLD`/`SECONDARY_SNEAK_RELEASE` are wire ids 6 and 7, and `TERTIARY` (`V`, instant send, no sneak pairing) is wire id 8 — appended, never renumbered; the release slot deliberately carries no cooldown so the end of a held gesture always reaches the router
+- The second technique key owns the kit's only hold gesture, and only while sneaking: a plain press casts `SECONDARY` instantly, a sneaking press buffers and resolves on release (tap, ≤6 ticks) or at the threshold (hold). Todo's pair-swap tap and Nobara's nail trap therefore confirm on release — up to 6 ticks later than before, accepted for one shared input grammar
 - Each vessel binds one server and one client definition — see "The Vessel Seam" below, which owns that rule
 - Each vessel's slots are mapped by its own router — `NobaraAbilityRouter`, `TodoAbilityRouter`, or `MegumiAbilityRouter`, reached through the vessel's definition — over an exhaustive `CharacterAbility` switch, so a new slot fails compilation instead of falling into whichever arm a `default` would have picked. Nobara's router additionally owns her stagger check and her single fallback message, because both are hers alone and neither belongs in the shared executor. `CharacterAbility` network ids are wire format: append, never renumber. `CharacterAbilityPayload` also carries the vessel the client believed in, and the server refuses a cast whose claim disagrees with the stored selection
 - Megumi's pack is runtime-only and identified by owner UUID plus summon token, never entity id. One guarded teardown owns every destructive cleanup. A living sibling survives reconcile; a final loss starts the longer cooldown. Leash recovery checks every 10 ticks beyond 32 blocks and teleports only onto a loaded, floor-supported, collision-free, non-fire/non-lava point within radius 3; without one, normal pathing continues unchanged
@@ -49,7 +51,7 @@ This block is the single owner of current-slice facts. `README.md` keeps only th
 - Ordinary loaded embedded nails: 1200-tick TTL, maximum 30 per owner, resolved through `EmbeddedNailRegistry`
 - Resonance global server hit-stop: see the accepted decision in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md), which owns that rationale
 - **No** cursed-energy resource bar in the current kit
-- **No** Neon Dashboard / Key V menu; that path is retired
+- **No** Neon Dashboard menu; that path is retired — the `V` key now carries the shared third-technique slot, not a menu
 
 #### Todo baseline numbers (from `TodoProfile`)
 
@@ -177,7 +179,7 @@ No code-first experiments in the main product path unless the user explicitly as
 ### UI / menu rules (current)
 
 - Single product menu: **ClickGui on N** (`jujutsu.mod.client.rich…`).
-- Characters tab is the vessel select path; do not reintroduce Neon Dashboard / Key V without an explicit product decision.
+- Characters tab is the vessel select path; do not reintroduce the Neon Dashboard menu without an explicit product decision (the `V` key is the third technique key now, not a menu key).
 - Panels: project SDF (`SdfRenderer`) via `Render2D` adapters; text: MSDF where wired. Do not claim full original Rich GL pipelines as live.
 - Vessel selection must go through server payloads — no silent client-only authority.
 - Panel geometry lives in **one** GUI-scaled space: mouse coordinates, the screen's `width`/`height`, and the SDF surfaces already agree, so never convert a drag offset or a hit test through `Render2D.getScaleMultiplier()`. Rendering and hit testing must read the panel origin from one accessor, or the two desynchronize. Panel position is session-only — the project has no UI-state persistence.
@@ -265,7 +267,7 @@ Do not invent empty packages. Prefer existing roots; add packages only when a fe
 
 Typical live areas:
 
-- `jujutsu.mod.character` / `…nobara.projectjjk` / `…character.todo` — server vessel definitions (`CharacterDefinition`, `JujutsuCharacters`), vessels and combat runtimes
+- `jujutsu.mod.character` / `…nobara.projectjjk` / `…character.todo` / `…character.megumi` — server vessel definitions (`CharacterDefinition`, `JujutsuCharacters`), vessels and combat runtimes
 - `jujutsu.mod.vfx` + `jujutsu.mod.client.vfx` — cues, director, recipes, channels
 - `jujutsu.mod.network` — typed payloads
 - `jujutsu.mod.registry` — items, entities, particles, sounds
@@ -327,6 +329,7 @@ It runs `check` (both source sets compiled, the JUnit suite, and every custom `J
 12. A landed swap marker is a permanent reusable anchor; a marker on a body is not. Rebalancing levers are already split out (`MARKER_SWAP_COOLDOWN_TICKS`, `MARKER_SWAP_RANGE`, `TodoSwapMarks.onUsed`) so pricing it later is a number, not a rewrite.
 13. The swap's momentum bonus is carried by a `MobEffect` attribute modifier, not by a second damage instance. Two known limits are accepted and documented in `TodoSwapMomentumRuntime`: a sweeping attack keeps the boost on later victims after the window is spent, and on bare fists ×1.25 is worth about a third of a heart, so the stagger is the payload.
 14. Megumi is the third vessel. Divine Dogs are two transient vanilla `Wolf` bodies in one runtime pack; the slice adds no persistent Ten Shadows state or shared summon hierarchy.
+15. Megumi's shadow kit: the second technique key owns the kit's only hold gesture (sneaking press buffers ≤6 ticks); the submerge damage gate deliberately swallows fire and lava for its ≤2.5 s window (mobility payoff priced by the 10 s cooldown); item use under the shadow stays unlocked as a recorded open question.
 
 ## Open Questions (real remaining)
 

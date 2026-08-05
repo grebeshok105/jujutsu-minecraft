@@ -31,7 +31,25 @@ public enum CharacterAbility {
 	 * vanilla before the mod ever sees it, and that is accepted rather than worked around. The input
 	 * layer sends this slot only once a pair completes, so an ordinary right click costs no packet.
 	 */
-	USE_CONTEXT(5);
+	USE_CONTEXT(5),
+	/**
+	 * The second technique key while sneaking, held past the tap window.
+	 *
+	 * <p>The input layer buffers a sneaking press of the second technique key and resolves the gesture
+	 * on release (a tap, {@link #SECONDARY_SNEAK}) or at the hold threshold (this slot). A vessel with
+	 * no held technique simply answers {@code false} here, exactly like any other unclaimed slot.
+	 */
+	SECONDARY_SNEAK_HOLD(6),
+	/**
+	 * The release that ends a held second-technique gesture.
+	 *
+	 * <p>Deliberately never carries a cooldown: an end-of-gesture request has to reach the vessel's
+	 * router even while the slot that started the gesture is cooling down, or the player could not end
+	 * what he is still inside. A release with no matching server state is refused by the router.
+	 */
+	SECONDARY_SNEAK_RELEASE(7),
+	/** The third technique key. */
+	TERTIARY(8);
 
 	private final int networkId;
 

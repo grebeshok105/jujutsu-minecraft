@@ -31,6 +31,15 @@ public final class NobaraAbilityRouter {
 			// read as "no target", which is the wrong explanation.
 			return false;
 		}
+		// The hold gesture, its release and the empty third technique key are not casts; refusing them
+		// through the switch would show the no-target line to anyone who holds Shift+B out of habit or
+		// taps V on a vessel with nothing there — and "no target" would be the wrong explanation for an
+		// unclaimed key. Refused silently, before the message gate. The switch below still answers all
+		// three arms so it stays exhaustive.
+		if (ability == CharacterAbility.SECONDARY_SNEAK_HOLD || ability == CharacterAbility.SECONDARY_SNEAK_RELEASE
+				|| ability == CharacterAbility.TERTIARY) {
+			return false;
+		}
 		boolean cast = switch (ability) {
 			case PRIMARY -> ProjectJjkNobaraRuntime.canCastMarkedHairpin(nobara)
 					&& ProjectJjkRitualRuntime.startDirectedHairpin(nobara);
@@ -40,9 +49,15 @@ public final class NobaraAbilityRouter {
 					&& ProjectJjkMegaNailRuntime.start(nobara);
 			case SECONDARY_SNEAK -> NailTrapRuntime.tryPlace(nobara);
 			case ATTACK_CONTEXT -> NobaraHammerCombatRuntime.handleInput(nobara);
-			// Her right click is vanilla's. Answering false explicitly rather than adding a default keeps
-			// the next new slot a compile error here instead of a silent no-op.
+			// Her right click is vanilla's, and she holds no technique key. Answering false explicitly
+			// rather than adding a default keeps the next new slot a compile error here instead of a
+			// silent no-op.
 			case USE_CONTEXT -> false;
+			// Unreachable through the early return above; kept so the switch stays exhaustive.
+			case SECONDARY_SNEAK_HOLD -> false;
+			case SECONDARY_SNEAK_RELEASE -> false;
+			// Unreachable through the early return above; kept so the switch stays exhaustive.
+			case TERTIARY -> false;
 		};
 		if (!cast && notify) {
 			nobara.displayClientMessage(Component.translatable("message.jujutsumod.nobara.action.no_target"), true);

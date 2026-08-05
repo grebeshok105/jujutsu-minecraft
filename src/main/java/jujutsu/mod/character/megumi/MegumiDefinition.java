@@ -27,6 +27,9 @@ public final class MegumiDefinition implements CharacterDefinition {
 		FabricDefaultAttributeRegistry.register(JujutsuEntities.MEGUMI_DIVINE_DOG,
 				createDivineDogAttributes());
 		MegumiSummonRuntime.register();
+		MegumiShadowTrapRuntime.register();
+		MegumiShadowMoveRuntime.register();
+		MegumiShadowDropRuntime.register();
 	}
 
 	static AttributeSupplier.Builder createDivineDogAttributes() {
@@ -40,5 +43,8 @@ public final class MegumiDefinition implements CharacterDefinition {
 	public void onDeselected(ServerPlayer player) {
 		MegumiSummonRuntime.teardown(player.getServer(), player.getUUID(),
 				MegumiSummonRuntime.TeardownReason.DESELECTED);
+		MegumiShadowTrapRuntime.clear(player.getServer(), player.getUUID(), true);
+		MegumiShadowDropRuntime.clear(player.getServer(), player.getUUID(), true);
+		MegumiShadowMoveRuntime.teardown(player.getServer(), player.getUUID());
 	}
 }

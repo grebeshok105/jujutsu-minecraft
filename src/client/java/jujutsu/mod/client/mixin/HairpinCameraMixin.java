@@ -3,6 +3,7 @@ package jujutsu.mod.client.mixin;
 import net.minecraft.client.Camera;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -16,10 +17,16 @@ public abstract class HairpinCameraMixin {
 	protected abstract void setRotation(float yRot, float xRot);
 
 	@Shadow
+	protected abstract void setPosition(double x, double y, double z);
+
+	@Shadow
 	public abstract float getXRot();
 
 	@Shadow
 	public abstract float getYRot();
+
+	@Shadow
+	public abstract Vec3 getPosition();
 
 	@Inject(method = "setup", at = @At("TAIL"))
 	private void jujutsumod$applyHairpinImpulse(BlockGetter level, Entity entity, boolean detached, boolean thirdPersonReverse, float partialTick, CallbackInfo ci) {
@@ -27,6 +34,13 @@ public abstract class HairpinCameraMixin {
 		float pitch = VfxDirector.pitchOffset();
 		if (Math.abs(yaw) > 0.001f || Math.abs(pitch) > 0.001f) {
 			setRotation(getYRot() + yaw, getXRot() + pitch);
+		}
+		// First-person dive only: lower the camera with the sinking body. The third-person body sinks
+		// through the renderer seam instead, and a resting camera keeps the vanilla path exactly.
+		float dive = VfxDirector.diveOffsetBlocks(partialTick);
+		if (!detached && dive > 0.001f) {
+			Vec3 pos = getPosition();
+			setPosition(pos.x, pos.y - dive, pos.z);
 		}
 	}
 }

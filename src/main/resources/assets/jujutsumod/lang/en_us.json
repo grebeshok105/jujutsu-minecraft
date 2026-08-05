@@ -13,6 +13,7 @@
   "screen.jujutsumod.modern_menu": "Characters",
   "key.jujutsumod.nobara_hairpin_enlarge": "Primary Technique",
   "key.jujutsumod.nobara_hairpin_explosion": "Secondary Technique",
+  "key.jujutsumod.third_technique": "Third Technique",
   "message.jujutsumod.nobara.action.no_target": "No marked target or nail found.",
   "message.jujutsumod.nobara.trap.no_ground": "Aim at ground within 8 blocks.",
   "message.jujutsumod.nobara.trap.unsupported": "The full nail triangle needs solid, clear ground.",
@@ -114,5 +115,17 @@
   "esp.jujutsumod.rank.rank3": "Grade 3",
   "esp.jujutsumod.rank.civilian": "Civilian",
   "subtitles.jujutsumod.nobara.mega_charge_riser": "Mega nail charges",
-  "subtitles.jujutsumod.nobara.mega_launch_blast": "Mega nail launches"
+  "subtitles.jujutsumod.nobara.mega_launch_blast": "Mega nail launches",
+  "message.jujutsumod.megumi.trap.no_target": "No shadow can reach that target",
+  "message.jujutsumod.megumi.trap.already_open": "The shadow is already holding",
+  "message.jujutsumod.megumi.drop.no_target": "No shadow can reach that target",
+  "message.jujutsumod.megumi.drop.already_open": "The shadow is already gathering overhead",
+  "message.jujutsumod.megumi.shadow.no_path": "No shadow to travel through",
+  "message.jujutsumod.megumi.shadow.no_safe_exit": "No safe place to surface there",
+  "message.jujutsumod.megumi.shadow.bound": "You are inside the shadow",
+  "effect.jujutsumod.megumi_shadow_grip": "Shadow Grip",
+  "screen.jujutsumod.character_select.ability.shadow_trap": "Shadow Trap",
+  "screen.jujutsumod.character_select.ability.shadow_step": "Shadow Step",
+  "screen.jujutsumod.character_select.ability.deep_submerge": "Deep Submerge",
+  "screen.jujutsumod.character_select.ability.shadow_drop": "Shadow Drop"
 }

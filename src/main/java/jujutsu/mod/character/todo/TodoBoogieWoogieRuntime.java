@@ -1,10 +1,8 @@
 package jujutsu.mod.character.todo;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -15,9 +13,9 @@ import net.minecraft.world.entity.Leashable;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Relative;
 import net.minecraft.world.entity.decoration.ArmorStand;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.JujutsuMod;
+import jujutsu.mod.combat.SafeBodyPlacement;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.combat.TargetResolver;
@@ -29,7 +27,16 @@ import jujutsu.mod.vfx.VfxCues;
 
 /** Server-authoritative first implementation of Todo's Boogie Woogie self-to-target swap. */
 public final class TodoBoogieWoogieRuntime {
-	private static final List<Vec3> HORIZONTAL_OFFSETS = buildHorizontalOffsets();
+	/**
+	 * Both policies share one scan (`SafeBodyPlacement`, extracted from this file); they differ only in
+	 * the exact-point fallback that SOFT keeps and STRICT refuses.
+	 */
+	private static final SafeBodyPlacement.Policy SOFT_PLACEMENT = new SafeBodyPlacement.Policy(
+			TodoProfile.SAFE_POSITION_HORIZONTAL_RADIUS, TodoProfile.SAFE_POSITION_UPWARD_BLOCKS,
+			TodoProfile.WORLD_BORDER_MARGIN, true);
+	private static final SafeBodyPlacement.Policy STRICT_PLACEMENT = new SafeBodyPlacement.Policy(
+			TodoProfile.SAFE_POSITION_HORIZONTAL_RADIUS, TodoProfile.SAFE_POSITION_UPWARD_BLOCKS,
+			TodoProfile.WORLD_BORDER_MARGIN, false);
 
 	private TodoBoogieWoogieRuntime() {}
 
@@ -151,40 +158,12 @@ public final class TodoBoogieWoogieRuntime {
 	/**
 	 * Free-form destination: air / water / crawl / flight are all valid.
 	 * Only world bounds, loaded chunks, border, and solid-block intersection are checked.
-	 * No floor, no third-party entity occupancy gates.
+	 * No floor, no third-party entity occupancy gates. The scan itself lives in
+	 * {@link SafeBodyPlacement}; this wrapper only translates the swap's strictness vocabulary.
 	 */
 	static Vec3 findSafeDestination(ServerLevel level, LivingEntity entity, Vec3 requested, Strictness strictness) {
-		for (int up = 0; up <= TodoProfile.SAFE_POSITION_UPWARD_BLOCKS; up++) {
-			for (Vec3 horizontal : HORIZONTAL_OFFSETS) {
-				Vec3 candidate = requested.add(horizontal.x, up, horizontal.z);
-				if (isPlaceableDestination(level, entity, candidate)) {
-					return candidate;
-				}
-			}
-		}
-		// Last resort for SOFT only: exact requested point if it is at least in-world and inside the border,
-		// which lets mid-air / fluid swaps through. STRICT never forces a point, so the cast cancels instead.
-		if (strictness == Strictness.SOFT && isInWorldDestination(level, entity, requested)) {
-			return requested;
-		}
-		return null;
-	}
-
-	private static boolean isPlaceableDestination(ServerLevel level, LivingEntity entity, Vec3 candidate) {
-		return isInWorldDestination(level, entity, candidate)
-				&& level.noBlockCollision(entity, boundingBoxAt(entity, candidate));
-	}
-
-	private static boolean isInWorldDestination(ServerLevel level, LivingEntity entity, Vec3 candidate) {
-		BlockPos destinationBlock = BlockPos.containing(candidate);
-		return hasFinitePosition(candidate)
-				&& level.isInWorldBounds(destinationBlock)
-				&& level.getChunkSource().hasChunk(destinationBlock.getX() >> 4, destinationBlock.getZ() >> 4)
-				&& level.getWorldBorder().isWithinBounds(boundingBoxAt(entity, candidate).inflate(TodoProfile.WORLD_BORDER_MARGIN));
-	}
-
-	private static AABB boundingBoxAt(LivingEntity entity, Vec3 candidate) {
-		return entity.getDimensions(entity.getPose()).makeBoundingBox(candidate);
+		return SafeBodyPlacement.find(level, entity, requested,
+				strictness == Strictness.SOFT ? SOFT_PLACEMENT : STRICT_PLACEMENT);
 	}
 
 	static boolean place(LivingEntity entity, ServerLevel level, Vec3 destination, Snapshot snapshot) {
@@ -382,26 +361,6 @@ public final class TodoBoogieWoogieRuntime {
 		return Double.isFinite(value.x) && Double.isFinite(value.y) && Double.isFinite(value.z);
 	}
 
-	private static List<Vec3> buildHorizontalOffsets() {
-		double radius = TodoProfile.SAFE_POSITION_HORIZONTAL_RADIUS;
-		double half = radius * 0.5;
-		double diag = radius * 0.7;
-		List<Vec3> offsets = new ArrayList<>();
-		offsets.add(Vec3.ZERO);
-		offsets.add(new Vec3(half, 0.0, 0.0));
-		offsets.add(new Vec3(-half, 0.0, 0.0));
-		offsets.add(new Vec3(0.0, 0.0, half));
-		offsets.add(new Vec3(0.0, 0.0, -half));
-		offsets.add(new Vec3(radius, 0.0, 0.0));
-		offsets.add(new Vec3(-radius, 0.0, 0.0));
-		offsets.add(new Vec3(0.0, 0.0, radius));
-		offsets.add(new Vec3(0.0, 0.0, -radius));
-		offsets.add(new Vec3(diag, 0.0, diag));
-		offsets.add(new Vec3(diag, 0.0, -diag));
-		offsets.add(new Vec3(-diag, 0.0, diag));
-		offsets.add(new Vec3(-diag, 0.0, -diag));
-		return List.copyOf(offsets);
-	}
 
 	/**
 	 * Everything about a body from before it was moved. The bounding box travels with it because the
