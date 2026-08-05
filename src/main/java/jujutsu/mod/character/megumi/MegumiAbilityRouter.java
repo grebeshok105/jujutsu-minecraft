@@ -26,7 +26,7 @@ public final class MegumiAbilityRouter {
 			case SECONDARY_SNEAK_HOLD -> MegumiShadowMoveRuntime.tryHoldStart(player, notify);
 			case SECONDARY_SNEAK_RELEASE -> MegumiShadowMoveRuntime.tryRelease(player);
 			case TERTIARY -> MegumiShadowDropRuntime.tryCast(player, notify);
-			case ATTACK_CONTEXT, USE_CONTEXT -> false;
+			case ATTACK_CONTEXT, USE_CONTEXT, TERTIARY_SNEAK -> false;
 		};
 	}
 

@@ -37,7 +37,7 @@ public final class NobaraAbilityRouter {
 		// unclaimed key. Refused silently, before the message gate. The switch below still answers all
 		// three arms so it stays exhaustive.
 		if (ability == CharacterAbility.SECONDARY_SNEAK_HOLD || ability == CharacterAbility.SECONDARY_SNEAK_RELEASE
-				|| ability == CharacterAbility.TERTIARY) {
+				|| ability == CharacterAbility.TERTIARY || ability == CharacterAbility.TERTIARY_SNEAK) {
 			return false;
 		}
 		boolean cast = switch (ability) {
@@ -58,6 +58,7 @@ public final class NobaraAbilityRouter {
 			case SECONDARY_SNEAK_RELEASE -> false;
 			// Unreachable through the early return above; kept so the switch stays exhaustive.
 			case TERTIARY -> false;
+			case TERTIARY_SNEAK -> false;
 		};
 		if (!cast && notify) {
 			nobara.displayClientMessage(Component.translatable("message.jujutsumod.nobara.action.no_target"), true);

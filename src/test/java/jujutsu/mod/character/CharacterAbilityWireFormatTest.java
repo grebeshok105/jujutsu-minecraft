@@ -35,7 +35,8 @@ class CharacterAbilityWireFormatTest {
 			CharacterAbility.USE_CONTEXT, 5,
 			CharacterAbility.SECONDARY_SNEAK_HOLD, 6,
 			CharacterAbility.SECONDARY_SNEAK_RELEASE, 7,
-			CharacterAbility.TERTIARY, 8));
+			CharacterAbility.TERTIARY, 8,
+			CharacterAbility.TERTIARY_SNEAK, 9));
 
 	@Test
 	void everySlotIsAccountedForAndKeepsTheIdItShippedWith() {

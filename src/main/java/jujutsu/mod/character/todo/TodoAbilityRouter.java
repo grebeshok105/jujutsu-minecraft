@@ -26,7 +26,8 @@ public final class TodoAbilityRouter {
 			case USE_CONTEXT -> TodoEntityMarkRuntime.tryCast(todo, ability, notify);
 			// The hold gesture and its release belong to vessels with a held technique; Todo has none,
 			// and the third technique key is empty for him too.
-			case SECONDARY_SNEAK, ATTACK_CONTEXT, SECONDARY_SNEAK_HOLD, SECONDARY_SNEAK_RELEASE, TERTIARY -> false;
+			case SECONDARY_SNEAK, ATTACK_CONTEXT, SECONDARY_SNEAK_HOLD, SECONDARY_SNEAK_RELEASE, TERTIARY,
+					TERTIARY_SNEAK -> false;
 		};
 	}
 }
