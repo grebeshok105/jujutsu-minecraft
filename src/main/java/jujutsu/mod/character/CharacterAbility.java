@@ -47,7 +47,9 @@ public enum CharacterAbility {
 	 * router even while the slot that started the gesture is cooling down, or the player could not end
 	 * what he is still inside. A release with no matching server state is refused by the router.
 	 */
-	SECONDARY_SNEAK_RELEASE(7);
+	SECONDARY_SNEAK_RELEASE(7),
+	/** The third technique key. */
+	TERTIARY(8);
 
 	private final int networkId;
 

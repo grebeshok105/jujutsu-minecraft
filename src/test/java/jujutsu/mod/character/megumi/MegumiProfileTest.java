@@ -96,4 +96,31 @@ class MegumiProfileTest {
 		assertTrue(MegumiProfile.SUBMERGE_COOLDOWN_TICKS > MegumiProfile.SHADOW_STEP_COOLDOWN_TICKS,
 				"the deep submerge must cost more than a tap step");
 	}
+
+	@Test
+	void dropBaselineMatchesTheApprovedSlice() {
+		assertEquals(20.0, MegumiProfile.DROP_RANGE);
+		assertEquals(4.0, MegumiProfile.DROP_ZONE_HEIGHT_BLOCKS);
+		assertEquals(1.2, MegumiProfile.DROP_ZONE_RADIUS);
+		assertEquals(20, MegumiProfile.DROP_TELEGRAPH_TICKS);
+		assertEquals(5, MegumiProfile.DROP_ZONE_PULSE_TICKS);
+		assertEquals(160, MegumiProfile.DROP_COOLDOWN_TICKS);
+		assertEquals(1.0f, MegumiProfile.DROP_SOFT_DAMAGE_PER_BLOCK);
+		assertEquals(5, MegumiProfile.DROP_SOFT_DAMAGE_MAX);
+		assertEquals(40, MegumiProfile.DROP_WEIGHT_SAND);
+		assertEquals(30, MegumiProfile.DROP_WEIGHT_GRAVEL);
+		assertEquals(20, MegumiProfile.DROP_WEIGHT_CLAY);
+		assertEquals(10, MegumiProfile.DROP_WEIGHT_ANVIL);
+	}
+
+	@Test
+	void dropInvariantsHold() {
+		assertEquals(100, MegumiProfile.DROP_WEIGHT_SAND + MegumiProfile.DROP_WEIGHT_GRAVEL
+						+ MegumiProfile.DROP_WEIGHT_CLAY + MegumiProfile.DROP_WEIGHT_ANVIL,
+				"the block weights must partition the pick table");
+		assertTrue(MegumiProfile.DROP_TELEGRAPH_TICKS < MegumiProfile.DROP_COOLDOWN_TICKS,
+				"the telegraph must finish long before the cooldown clears");
+		assertTrue(MegumiProfile.DROP_ZONE_RADIUS < MegumiProfile.SHADOW_TRAP_RADIUS,
+				"the drop zone must be a tight disc under the trap pool");
+	}
 }

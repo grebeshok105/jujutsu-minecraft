@@ -13,7 +13,7 @@ class MegumiAbilitySlotsTest {
 			"src/main/java/jujutsu/mod/character/megumi/MegumiAbilityRouter.java");
 
 	@Test
-	void routerOwnsExactlyTheSixApprovedInputPositions() throws Exception {
+	void routerOwnsExactlyTheSevenApprovedInputPositions() throws Exception {
 		String source = Files.readString(ROUTER);
 		assertTrue(source.contains("case PRIMARY -> tryDivineDogs(player, notify);"),
 				"PRIMARY must remain summon/recall");
@@ -29,6 +29,8 @@ class MegumiAbilitySlotsTest {
 				"SECONDARY_SNEAK_RELEASE must end the hold submerge");
 		assertTrue(source.contains("case ATTACK_CONTEXT, USE_CONTEXT -> false;"),
 				"the two context slots must stay one explicit refusal arm");
+		assertTrue(source.contains("case TERTIARY -> MegumiShadowDropRuntime.tryCast(player, notify);"),
+				"TERTIARY must route to the shadow drop runtime");
 		assertFalse(Pattern.compile("default\\s*->").matcher(source).find(),
 				"a new input slot must fail compilation instead of inheriting a route");
 	}

@@ -10,6 +10,7 @@ import jujutsu.mod.vfx.MegumiVfxIds;
 import jujutsu.mod.character.megumi.MegumiProfile;
 import jujutsu.mod.client.character.megumi.MegumiAnimationHooks;
 import jujutsu.mod.client.render.HiddenBodyRenderGate;
+import jujutsu.mod.client.render.ShadowBodySink;
 import jujutsu.mod.client.vfx.VfxWorldChannel;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.vfx.VfxInstance;
@@ -43,6 +44,12 @@ public final class MegumiVfxRecipes {
 	private static final int SHADOW_RIPPLE_DURATION_TICKS = 8;
 	private static final int SHADOW_EMERGE_DURATION_TICKS = 12;
 
+	// Shadow Drop: open 10 t beats the 5-tick zone pulse, whose 7-tick window keeps the hovering
+	// disc solid; close rides the fall. The tell is motes dripping off the disc rim.
+	public static final int DROP_ZONE_OPEN_DURATION_TICKS = 10;
+	public static final int DROP_ZONE_DURATION_TICKS = 7;
+	public static final int DROP_ZONE_CLOSE_DURATION_TICKS = 8;
+
 	/**
 	 * Ripple re-emits arrive every 5 ticks while under (the first one the moment the body actually
 	 * hides, at the end of the sink); an 8-tick TTL keeps the body hidden with slack. The dive cue
@@ -50,6 +57,7 @@ public final class MegumiVfxRecipes {
 	 */
 	private static final int RIPPLE_HIDE_TTL_TICKS = 8;
 	private static final float TRAP_POOL_RADIUS = (float) MegumiProfile.SHADOW_TRAP_RADIUS;
+	private static final float DROP_ZONE_RADIUS = (float) MegumiProfile.DROP_ZONE_RADIUS;
 
 	public static void register() {
 		VfxDirector.register(MegumiVfxIds.DOGS_SUMMON_BODY, MegumiVfxRecipes::summonBody);
@@ -64,6 +72,9 @@ public final class MegumiVfxRecipes {
 		VfxDirector.register(MegumiVfxIds.SHADOW_DIVE, MegumiVfxRecipes::shadowDive);
 		VfxDirector.register(MegumiVfxIds.SHADOW_RIPPLE, MegumiVfxRecipes::shadowRipple);
 		VfxDirector.register(MegumiVfxIds.SHADOW_EMERGE, MegumiVfxRecipes::shadowEmerge);
+		VfxDirector.register(MegumiVfxIds.DROP_ZONE_OPEN, MegumiVfxRecipes::dropZoneOpen);
+		VfxDirector.register(MegumiVfxIds.DROP_ZONE, MegumiVfxRecipes::dropZone);
+		VfxDirector.register(MegumiVfxIds.DROP_ZONE_CLOSE, MegumiVfxRecipes::dropZoneClose);
 	}
 
 	private static VfxInstance summon(VfxCue cue) {
@@ -197,6 +208,9 @@ public final class MegumiVfxRecipes {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				return;
 			}
+			// Start the third/first-person dive: the body lowers over SHADOW_SINK_TICKS from the cue's
+			// authoritative server time; the first ripple completes the sink and hides the body.
+			ShadowBodySink.beginSink(cue.anchorEntityId(), cue.startGameTime());
 			Vec3 origin = cue.origin();
 			RandomSource random = random(cue, 0xD1A78B05L);
 			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN, SHADOW_DIVE_DURATION_TICKS);
@@ -220,6 +234,8 @@ public final class MegumiVfxRecipes {
 			}
 			Vec3 origin = context.resolveOrigin(cue);
 			RandomSource random = random(cue, 0x9A15B07L);
+			// The ripple is the "body is fully under" beat: complete the dive and re-arm the hold TTL.
+			ShadowBodySink.completeSink(cue.anchorEntityId());
 			HiddenBodyRenderGate.markHidden(cue.anchorEntityId(), RIPPLE_HIDE_TTL_TICKS);
 			// Faint tell: a tiny dark ring and a couple of motes at the walker's feet.
 			context.ring(SHADOW_DARK, origin.add(0.0, 0.02, 0.0), 4, 0.5, 0.0, 0.03, random);
@@ -236,6 +252,9 @@ public final class MegumiVfxRecipes {
 			RandomSource random = random(cue, 0xE4E7B01L);
 			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_CLOSE, SHADOW_EMERGE_DURATION_TICKS);
 			MegumiAnimationHooks.triggerShadowEmerge(cue);
+			// Start the rise before revealing: the body lifts over SHADOW_EMERGE_TICKS from the cue's
+			// authoritative server time while the reveal below clears the render gate.
+			ShadowBodySink.beginEmerge(cue.anchorEntityId(), cue.startGameTime());
 			HiddenBodyRenderGate.markRevealed(cue.anchorEntityId());
 			boolean localCaster = cue.anchorEntityId() != VfxCue.NO_ANCHOR
 					&& context.client().player != null
@@ -245,6 +264,54 @@ public final class MegumiVfxRecipes {
 			}
 			context.burst(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.10, 0.0), 14, 0.4, 0.18, random);
 			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.06, 0.0), 12, 0.7, 0.0, 0.08, random);
+		});
+	}
+
+	private static VfxInstance dropZoneOpen(VfxCue cue) {
+		return VfxInstance.of(DROP_ZONE_OPEN_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 origin = cue.origin();
+			RandomSource random = random(cue, 0x0D7A0A11L);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_TRAP_OPEN, DROP_ZONE_OPEN_DURATION_TICKS);
+			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.04, 0.0), 6, DROP_ZONE_RADIUS * 0.85, 0.0, 0.05, random);
+		});
+	}
+
+	private static VfxInstance dropZone(VfxCue cue) {
+		return VfxInstance.of(DROP_ZONE_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 origin = cue.origin();
+			RandomSource random = random(cue, 0x0D7A0A12L);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_POOL, DROP_ZONE_DURATION_TICKS);
+			ClientLevel level = context.client().level;
+			if (level == null) {
+				return;
+			}
+			// Two motes dripping off the disc rim with a negative y velocity: the tell that a block
+			// is about to fall out of the zone.
+			double angle = random.nextDouble() * Math.PI * 2.0;
+			for (int index = 0; index < 2; index++) {
+				level.addParticle(JujutsuParticles.MEGUMI_SHADOW_MOTE,
+						origin.x + Math.cos(angle) * DROP_ZONE_RADIUS,
+						origin.y - 0.1,
+						origin.z + Math.sin(angle) * DROP_ZONE_RADIUS,
+						(random.nextDouble() - 0.5) * 0.05, -(0.10 + random.nextDouble() * 0.10),
+						(random.nextDouble() - 0.5) * 0.05);
+				angle += Math.PI;
+			}
+		});
+	}
+
+	private static VfxInstance dropZoneClose(VfxCue cue) {
+		return VfxInstance.of(DROP_ZONE_CLOSE_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_TRAP_CLOSE, DROP_ZONE_CLOSE_DURATION_TICKS);
 		});
 	}
 

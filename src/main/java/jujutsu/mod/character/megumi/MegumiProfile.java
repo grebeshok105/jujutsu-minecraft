@@ -69,5 +69,27 @@ public final class MegumiProfile {
 	public static final int SAFE_POSITION_UPWARD_BLOCKS = 3;
 	public static final double WORLD_BORDER_MARGIN = 0.05;
 
+	// --- Shadow Drop (V) ---
+	public static final double DROP_RANGE = 20.0;
+	/** How far above the target's head the zone hangs — also the fall distance that prices the damage. */
+	public static final double DROP_ZONE_HEIGHT_BLOCKS = 4.0;
+	public static final double DROP_ZONE_RADIUS = 1.2;
+	/** The zone telegraphs for a full second before anything falls; outrunning it is real counterplay. */
+	public static final int DROP_TELEGRAPH_TICKS = 20;
+	/** The hovering disc re-emits (and re-anchors over the moving target) on this period. */
+	public static final int DROP_ZONE_PULSE_TICKS = 5;
+	public static final int DROP_COOLDOWN_TICKS = 160;
+	/** Soft blocks (sand, gravel, clay) crush like light anvils: per-block scaling with a low cap. */
+	public static final float DROP_SOFT_DAMAGE_PER_BLOCK = 1.0f;
+	public static final int DROP_SOFT_DAMAGE_MAX = 5;
+	/** Anvil keeps the vanilla crush numbers so armor/helmet interactions stay familiar. */
+	public static final float DROP_ANVIL_DAMAGE_PER_BLOCK = 2.0f;
+	public static final int DROP_ANVIL_DAMAGE_MAX = 40;
+	/** Weighted block table; weights sum to 100 so each reads as a percent. */
+	public static final int DROP_WEIGHT_SAND = 40;
+	public static final int DROP_WEIGHT_GRAVEL = 30;
+	public static final int DROP_WEIGHT_CLAY = 20;
+	public static final int DROP_WEIGHT_ANVIL = 10;
+
 	private MegumiProfile() {}
 }

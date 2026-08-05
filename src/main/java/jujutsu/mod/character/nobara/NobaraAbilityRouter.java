@@ -31,10 +31,13 @@ public final class NobaraAbilityRouter {
 			// read as "no target", which is the wrong explanation.
 			return false;
 		}
-		// The hold gesture and its release are not casts; refusing them through the switch would show
-		// the no-target line twice to anyone who holds Shift+B out of habit. Refused silently, before
-		// the message gate. The switch below still answers both arms so it stays exhaustive.
-		if (ability == CharacterAbility.SECONDARY_SNEAK_HOLD || ability == CharacterAbility.SECONDARY_SNEAK_RELEASE) {
+		// The hold gesture, its release and the empty third technique key are not casts; refusing them
+		// through the switch would show the no-target line to anyone who holds Shift+B out of habit or
+		// taps V on a vessel with nothing there — and "no target" would be the wrong explanation for an
+		// unclaimed key. Refused silently, before the message gate. The switch below still answers all
+		// three arms so it stays exhaustive.
+		if (ability == CharacterAbility.SECONDARY_SNEAK_HOLD || ability == CharacterAbility.SECONDARY_SNEAK_RELEASE
+				|| ability == CharacterAbility.TERTIARY) {
 			return false;
 		}
 		boolean cast = switch (ability) {
@@ -53,6 +56,8 @@ public final class NobaraAbilityRouter {
 			// Unreachable through the early return above; kept so the switch stays exhaustive.
 			case SECONDARY_SNEAK_HOLD -> false;
 			case SECONDARY_SNEAK_RELEASE -> false;
+			// Unreachable through the early return above; kept so the switch stays exhaustive.
+			case TERTIARY -> false;
 		};
 		if (!cast && notify) {
 			nobara.displayClientMessage(Component.translatable("message.jujutsumod.nobara.action.no_target"), true);

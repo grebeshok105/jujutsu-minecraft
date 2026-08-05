@@ -52,7 +52,8 @@ final class VfxRadiusContractTest {
 						MegumiVfxIds.DOGS_RECALL, MegumiVfxIds.DOGS_SIC, MegumiVfxIds.DOGS_POUNCE)),
 				finiteNone("Megumi shadow kit", Set.of(MegumiVfxIds.SHADOW_TRAP_OPEN, MegumiVfxIds.SHADOW_TRAP_ZONE,
 						MegumiVfxIds.SHADOW_TRAP_GRIP, MegumiVfxIds.SHADOW_TRAP_CLOSE, MegumiVfxIds.SHADOW_DIVE,
-						MegumiVfxIds.SHADOW_RIPPLE, MegumiVfxIds.SHADOW_EMERGE)));
+						MegumiVfxIds.SHADOW_RIPPLE, MegumiVfxIds.SHADOW_EMERGE, MegumiVfxIds.DROP_ZONE_OPEN,
+						MegumiVfxIds.DROP_ZONE, MegumiVfxIds.DROP_ZONE_CLOSE)));
 
 		Map<ResourceLocation, Set<Double>> deliveries = VfxCompletenessTest.productionDeliveryRadii();
 		Set<ResourceLocation> covered = new HashSet<>();
@@ -85,6 +86,12 @@ final class VfxRadiusContractTest {
 		assertEquals(Set.of(MegumiProfile.VFX_CUE_RADIUS), deliveries.get(MegumiVfxIds.DOGS_SUMMON));
 		assertEquals(Set.of(MegumiProfile.VFX_CUE_RADIUS), deliveries.get(MegumiVfxIds.SHADOW_TRAP_OPEN),
 				"shadow kit cues must ride the same delivery radius as the dogs");
+		assertEquals(Set.of(MegumiProfile.VFX_DELIVERY_RADIUS), deliveries.get(MegumiVfxIds.DROP_ZONE_OPEN),
+				"drop cues must broadcast at the megumi delivery radius");
+		assertEquals(Set.of(MegumiProfile.VFX_DELIVERY_RADIUS), deliveries.get(MegumiVfxIds.DROP_ZONE),
+				"drop cues must broadcast at the megumi delivery radius");
+		assertEquals(Set.of(MegumiProfile.VFX_DELIVERY_RADIUS), deliveries.get(MegumiVfxIds.DROP_ZONE_CLOSE),
+				"drop cues must broadcast at the megumi delivery radius");
 	}
 
 	private static PresentationOwner radius(String name, Set<ResourceLocation> ids, double radius) {

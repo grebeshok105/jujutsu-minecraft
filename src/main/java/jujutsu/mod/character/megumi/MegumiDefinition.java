@@ -29,6 +29,7 @@ public final class MegumiDefinition implements CharacterDefinition {
 		MegumiSummonRuntime.register();
 		MegumiShadowTrapRuntime.register();
 		MegumiShadowMoveRuntime.register();
+		MegumiShadowDropRuntime.register();
 	}
 
 	static AttributeSupplier.Builder createDivineDogAttributes() {
@@ -43,6 +44,7 @@ public final class MegumiDefinition implements CharacterDefinition {
 		MegumiSummonRuntime.teardown(player.getServer(), player.getUUID(),
 				MegumiSummonRuntime.TeardownReason.DESELECTED);
 		MegumiShadowTrapRuntime.clear(player.getServer(), player.getUUID(), true);
+		MegumiShadowDropRuntime.clear(player.getServer(), player.getUUID(), true);
 		MegumiShadowMoveRuntime.teardown(player.getServer(), player.getUUID());
 	}
 }

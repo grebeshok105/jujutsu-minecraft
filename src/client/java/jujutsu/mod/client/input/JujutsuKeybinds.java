@@ -24,6 +24,7 @@ public final class JujutsuKeybinds {
 	private static KeyMapping modernMenu;
 	private static KeyMapping techniqueKey;
 	private static KeyMapping secondTechniqueKey;
+	private static KeyMapping thirdTechniqueKey;
 	private static boolean attackWasDown;
 	private static boolean modernMenuWasDown;
 	private static boolean useWasDown;
@@ -77,7 +78,14 @@ public final class JujutsuKeybinds {
 				InputConstants.KEY_B,
 				"key.categories.jujutsumod"
 		));
-		LOG.info("Registered keybinds: menu default=N (ClickGui), combat R/B");
+		// The third technique key is new with the shadow-drop slot, so its id can say what it is.
+		thirdTechniqueKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+				"key.jujutsumod.third_technique",
+				InputConstants.Type.KEYSYM,
+				InputConstants.KEY_V,
+				"key.categories.jujutsumod"
+		));
+		LOG.info("Registered keybinds: menu default=N (ClickGui), combat R/B/V");
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (client.player == null) {
@@ -103,6 +111,10 @@ public final class JujutsuKeybinds {
 			// two casts on one key have to be typed identically fast.
 			while (techniqueKey.consumeClick()) {
 				sendCharacterAbility(client, slot(client, CharacterAbility.PRIMARY, CharacterAbility.PRIMARY_SNEAK));
+			}
+			// The third technique key mirrors the first: instant send, no sneak pairing, no gestures.
+			while (thirdTechniqueKey.consumeClick()) {
+				sendCharacterAbility(client, CharacterAbility.TERTIARY);
 			}
 			tickSecondTechnique(client);
 

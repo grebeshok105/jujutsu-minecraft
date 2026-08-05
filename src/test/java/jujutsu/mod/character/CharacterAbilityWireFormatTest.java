@@ -34,11 +34,12 @@ class CharacterAbilityWireFormatTest {
 			CharacterAbility.ATTACK_CONTEXT, 4,
 			CharacterAbility.USE_CONTEXT, 5,
 			CharacterAbility.SECONDARY_SNEAK_HOLD, 6,
-			CharacterAbility.SECONDARY_SNEAK_RELEASE, 7));
+			CharacterAbility.SECONDARY_SNEAK_RELEASE, 7,
+			CharacterAbility.TERTIARY, 8));
 
 	@Test
 	void everySlotIsAccountedForAndKeepsTheIdItShippedWith() {
-		// Derived from the enum, so a seventh slot fails here rather than shipping unpinned — which is
+		// Derived from the enum, so any new slot fails here rather than shipping unpinned — which is
 		// exactly what happened to the sixth.
 		assertEquals(CharacterAbility.values().length, SHIPPED_IDS.size(),
 				"a slot was added without recording the network id it ships with");

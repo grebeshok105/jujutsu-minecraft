@@ -86,7 +86,8 @@ final class VfxCueTest {
 		assertEquals(Set.of(
 				"megumi/dogs_summon_body", "megumi/dogs_summon", "megumi/dogs_recall", "megumi/dogs_sic",
 				"megumi/dogs_pounce", "megumi/shadow_trap_open", "megumi/shadow_trap_zone", "megumi/shadow_trap_grip",
-				"megumi/shadow_trap_close", "megumi/shadow_dive", "megumi/shadow_ripple", "megumi/shadow_emerge"),
+				"megumi/shadow_trap_close", "megumi/shadow_dive", "megumi/shadow_ripple", "megumi/shadow_emerge",
+				"megumi/drop_zone_open", "megumi/drop_zone", "megumi/drop_zone_close"),
 				paths(MegumiVfxIds.LIVE));
 	}
 

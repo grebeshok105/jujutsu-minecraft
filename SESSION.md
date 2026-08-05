@@ -1,16 +1,16 @@
-# Session Handoff — Megumi Shadow Kit
+# Session Handoff — Megumi Shadow Kit + Shadow Drop
 
 ## Active branch
 
-- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/megumi-shadow-kit`
-- Branch: `feat/megumi-shadow-kit` (from `main` `fe2040b`)
-- Scope: Megumi's second ability pair — `B` Shadow Trap (static slowing pool under the aimed target) and `Shift+B` Shadow Move (one technique, three contextual modes: emerge behind the target, free step to an aimed surface, held deep submerge).
+- Worktree: `D:/WorkFlow/Jujutsu Minecraft/.worktrees/megumi-shadow-drop`
+- Branch: `feat/megumi-shadow-drop` (from `feat/megumi-shadow-kit` `21c595a`; merges back into the PR #55 head)
+- Scope: Megumi's second ability pair (`B` Shadow Trap, `Shift+B` Shadow Move) plus the polish wave — void-black trap-family pools, a smooth visible dive in both persons, and the new `V` Shadow Drop (telegraphed overhead zone dropping one weighted vanilla falling block).
 
 ## Design contract
 
-- Spec: [docs/MEGUMI_SHADOW_KIT.md](docs/MEGUMI_SHADOW_KIT.md) (committed before implementation).
+- Specs: [docs/MEGUMI_SHADOW_KIT.md](docs/MEGUMI_SHADOW_KIT.md) and [docs/MEGUMI_SHADOW_DROP.md](docs/MEGUMI_SHADOW_DROP.md) (both committed before implementation).
 - Codex: [Megumi shadow kit](Jujutsu%20Kaizen/jujutsumod-codebase-codex/03-systems/Megumi-shadow-kit.md).
-- Wire: `SECONDARY_SNEAK_HOLD(6)` / `SECONDARY_SNEAK_RELEASE(7)` appended to `CharacterAbility`; ids 0–5 untouched; no new payloads.
+- Wire: `SECONDARY_SNEAK_HOLD(6)` / `SECONDARY_SNEAK_RELEASE(7)` / `TERTIARY(8)` appended to `CharacterAbility`; ids 0–5 untouched; no new payloads.
 
 ## Verification
 
@@ -49,11 +49,22 @@ Regression:
 21. Dogs summon/recall/Sic/pounce unchanged; Nobara R/B/Shift+R/Shift+B unchanged; Todo swap/feint/pair swap unchanged — note the pair-swap tap now confirms on release (≤0.3 s later than before).
 22. Cooldown mirror: after each move the Shift+B slot shows cooldown (tap 6 s, hold 10 s); trap 10 s on B.
 
+Shadow Drop (`V`) + dive polish (this wave):
+23. Trap pool and drop disc are void-black holes: pure #000, no translucency breath over their whole life; the dogs' summon pool still fades.
+24. Sink is smooth in third person: the body eases down ~1.9 blocks across the 0.4 s sink and is hidden only when fully under; emerge rises smoothly. Another player watching sees the same.
+25. Sink is smooth in first person: the camera dips (never into the ground), the screen veils to ~75% black at the bottom, settles to a light veil while under, and clears across the emerge.
+26. `V` on an aimed mob: a small black disc opens ~4 blocks over its head, follows it for 1 s (moving target keeps the disc overhead), then one block falls out — sand/gravel/clay mostly, sometimes an anvil; the anvil hurts hard, soft blocks lightly.
+27. The fallen block never places into the world and never drops an item, wherever it lands (open ground, water, a mob's head, a hole).
+28. `V` with no target / sky aim: refused with the drop "no shadow" line, no cooldown started. Cooldown mirror on V is 8 s after a successful cast.
+29. Target dies or leaves the dimension during the telegraph: the disc closes, nothing falls, cooldown already ran.
+30. Nobara and Todo on `V`: silent no-op (no message, no packet error); their kits unchanged.
+31. Owner death / vessel change / disconnect during the telegraph: zone closes cleanly, nothing falls after.
+
 ## Deploy
 
-- Deployed jar in `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar` is built from `feat/megumi-shadow-kit` at `302d9c9`, md5 `118c42323330ee2878071c030789ece9`.
+- Deployed jar in `D:/Games/instances/Jujutsu/mods/jujutsumod-1.0.0.jar` is pending rebuild from `feat/megumi-shadow-drop` (previous: `feat/megumi-shadow-kit` `302d9c9`, md5 `118c42323330ee2878071c030789ece9`).
 
 ## Next steps
 
 1. Manual smoke round 1 against the checklist above (human-controlled client).
-2. Address smoke findings, then merge the PR.
+2. Address smoke findings, then merge `feat/megumi-shadow-drop` into `feat/megumi-shadow-kit` (PR #55).

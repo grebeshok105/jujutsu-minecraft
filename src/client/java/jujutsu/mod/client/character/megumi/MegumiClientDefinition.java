@@ -45,7 +45,9 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOLT,
 								"screen.jujutsumod.character_select.ability.shadow_step", "⇧B"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOOM,
-								"screen.jujutsumod.character_select.ability.deep_submerge", "⇧B+")));
+								"screen.jujutsumod.character_select.ability.deep_submerge", "⇧B+"),
+						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOOM,
+								"screen.jujutsumod.character_select.ability.shadow_drop", "V")));
 	}
 
 	private static final CharacterSkinAnimation SKIN_ANIMATION = new MegumiSkinAnimationAdapter();
@@ -81,6 +83,7 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 		ParticleFactoryRegistry.getInstance().register(JujutsuParticles.MEGUMI_SHADOW_MOTE, MegumiShadowMoteParticle.Provider::new);
 		MegumiVfxRecipes.register();
 		VfxDirector.registerHudContribution(JujutsuMod.id("megumi_divine_dogs_cooldown"), MegumiCooldownHud::render);
+		VfxDirector.registerHudContribution(JujutsuMod.id("megumi_shadow_dive_veil"), MegumiShadowDiveHud::render);
 	}
 
 	@Override
