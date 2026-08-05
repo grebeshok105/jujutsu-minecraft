@@ -31,7 +31,7 @@
 ## Status
 
 - **PR #54 is OPEN**: <https://github.com/grebeshok105/jujutsu-minecraft/pull/54> (base `main`), review summary posted as a PR comment.
-- Deployed jar in `D:/Games/instances/Jujutsu/mods/` is built from `f035a0d` (round-2 fixes: vanilla two-pass badge, per-tick mega charge, prism-height trap pillars, jet-roar launch), md5 `a41ff4f2b13678a1307fec466caff6cf`.
+- Deployed jar in `D:/Games/instances/Jujutsu/mods/` is built from `2532828` (round-2 fixes with real tick drivers: badge on the vanilla two-pass path, charge vortex on the entity client tick, trap boundary pulse from the trap runtime, jet-roar launch), md5 `ee5bb4b39fc38a9a954b74234ddab4b6`.
 
 ## Next steps
 
