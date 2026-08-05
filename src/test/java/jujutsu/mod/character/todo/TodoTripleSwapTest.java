@@ -60,7 +60,8 @@ class TodoTripleSwapTest {
 
 	/**
 	 * The cycle reads in-world through three TRIPLE_SWAP edges — Todo→A, A→T, T→Todo — each world-fixed
-	 * at its start, with the flow in the direction and the edge length in {@code anchorOffset.x}.
+	 * at its start, with the flow in the direction and the full displacement (whose length is the edge
+	 * length) in {@code anchorOffset}.
 	 */
 	@Test
 	void feedbackEmitsOneEdgePerCycleStep() throws Exception {

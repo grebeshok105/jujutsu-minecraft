@@ -334,8 +334,8 @@ public final class TodoPairSwapRuntime {
 
 	/**
 	 * One edge of the triple cycle, world-fixed at the edge's start. The direction carries the flow —
-	 * {@link VfxCue} normalizes it, so the magnitude cannot survive there — and {@code anchorOffset.x}
-	 * carries the edge length in blocks instead.
+	 * {@link VfxCue} normalizes it, so the magnitude cannot survive there — and {@code anchorOffset}
+	 * carries the full displacement vector instead; its length is the edge length in blocks.
 	 */
 	private static void emitCycleEdge(ServerLevel level, ServerPlayer todo, Vec3 from, Vec3 to,
 			long gameTime, RandomSource random) {

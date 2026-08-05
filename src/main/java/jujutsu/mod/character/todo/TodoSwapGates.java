@@ -39,6 +39,22 @@ public final class TodoSwapGates {
 				isEmptyHand(todo.getMainHandItem()) && isEmptyHand(todo.getOffhandItem()));
 	}
 
+	/**
+	 * The caster-state half of the gate alone, for casts that are not claps. The stone throw and
+	 * both stone swaps refuse the same spectator/dead/transport/stagger states as every other cast
+	 * — a staggered Todo must not slip out through a self-swap, and a dead or spectating client's
+	 * payload must not move live bodies — but hands stay deliberately ungated: the stone is an
+	 * ability cast, not an item use, and it never inherits the clap's empty-hands rule.
+	 */
+	static boolean casterStateBlocked(ServerPlayer todo) {
+		return evaluate(
+				todo.isSpectator(),
+				todo.isAlive(),
+				TodoTargetSafety.hasUnsafeTransportState(todo.isPassenger(), todo.isVehicle(), false),
+				CombatStagger.GLOBAL.isStaggered(todo.getUUID(), todo.level().getGameTime()),
+				true) == ClapGate.UNAVAILABLE;
+	}
+
 	static boolean isEmptyHand(ItemStack stack) {
 		return stack == null || stack.isEmpty();
 	}

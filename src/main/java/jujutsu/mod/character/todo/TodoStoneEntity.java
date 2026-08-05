@@ -61,6 +61,10 @@ public final class TodoStoneEntity extends Entity {
 		ownerUuid = owner.getUUID();
 		entityData.set(DATA_OWNER_UUID, Optional.of(new EntityReference<>(ownerUuid)));
 		remainingTicks = TodoProfile.STONE_LIFETIME_TICKS;
+		// Seed the synced copy too: spawn pairing only carries non-default values, so without this the
+		// client reads 0 until the first periodic refresh and the renderer fades the stone to nothing
+		// for its first ticks of flight.
+		entityData.set(DATA_REMAINING_TICKS, remainingTicks);
 		setPos(position);
 		setDeltaMovement(velocity);
 		hasImpulse = true;
@@ -103,6 +107,12 @@ public final class TodoStoneEntity extends Entity {
 			return;
 		}
 		move(MoverType.SELF, getDeltaMovement());
+		if (horizontalCollision || verticalCollision || getDeltaMovement().lengthSqr() < 1.0E-8) {
+			// The ray above misses what the AABB sweep catches — corner clips, cobwebs, a spawn already
+			// inside geometry. A stopped stone must vanish, not park as the anchor the rework deleted.
+			endFlight(serverLevel);
+			return;
+		}
 		if ((tickCount & 3) == 0) {
 			entityData.set(DATA_REMAINING_TICKS, remainingTicks);
 		}
@@ -110,13 +120,17 @@ public final class TodoStoneEntity extends Entity {
 
 	/**
 	 * The one server-side end of a flight. A stone Todo owns clears itself through the state owner so
-	 * the ref and the vanish cue stay consistent; a stone that was never launched (e.g. summoned) has
-	 * no ref to clear and simply discards — {@link TodoTransientState} assumes a non-null owner.
+	 * the ref and the vanish cue stay consistent — but only while the ref still points at this entity;
+	 * clearing blindly by owner could kill a successor stone. The unconditional discard below covers
+	 * every remaining case: a never-launched stone (summoned), or one whose ref was already cleared by
+	 * a sweep from another dimension.
 	 */
 	private void endFlight(ServerLevel serverLevel) {
-		if (ownerUuid != null) {
+		if (ownerUuid != null && TodoTransientState.stone(ownerUuid)
+				.map(ref -> getUUID().equals(ref.entityUuid())).orElse(false)) {
 			TodoTransientState.clearStone(serverLevel.getServer(), ownerUuid);
-		} else {
+		}
+		if (!isRemoved()) {
 			discard();
 		}
 	}
@@ -136,6 +150,13 @@ public final class TodoStoneEntity extends Entity {
 	@Override
 	public boolean fireImmune() {
 		return true;
+	}
+
+	@Override
+	public boolean canUsePortal(boolean allowVehicles) {
+		// A portal would copy the stone into a dimension its ref never points at: the sweep clears the
+		// ref, endFlight can no longer resolve it, and the copy freezes as an immortal ghost.
+		return false;
 	}
 
 	/**

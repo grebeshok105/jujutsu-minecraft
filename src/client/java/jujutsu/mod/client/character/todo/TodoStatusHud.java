@@ -27,8 +27,8 @@ public final class TodoStatusHud {
 	private static final int CHIP_HEIGHT = 36;
 	private static final int CHIP_GAP = 6;
 
-	private static TodoStoneEntity cachedStone;
-	private static ClientLevel cachedLevel;
+	/** The stone is re-resolved by id every frame; no entity or level reference is ever pinned. */
+	private static int cachedStoneId = -1;
 	private static long lastStoneScanTick = Long.MIN_VALUE;
 
 	private TodoStatusHud() {}
@@ -56,22 +56,19 @@ public final class TodoStatusHud {
 			return;
 		}
 		long gameTime = level.getGameTime();
-		for (int entityId : TodoPairSelectionClientState.entityIds()) {
-			long remaining = TodoPairSelectionClientState.remainingTicks(entityId, gameTime);
-			if (remaining <= 0) {
-				continue;
-			}
-			Entity entity = level.getEntity(entityId);
-			if (!(entity instanceof LivingEntity living) || !living.isAlive()) {
-				continue;
-			}
-			// The marked body's name rides in the hint line; a selection is a name to remember.
-			Component hint = Component.translatable("hud.jujutsumod.todo.pair.hint", living.getDisplayName());
-			drawChip(graphics, client.font, chipY(graphics) + CHIP_HEIGHT + CHIP_GAP, ACCENT,
-					Component.translatable("hud.jujutsumod.todo.pair"),
-					hint, seconds(remaining));
+		int entityId = TodoPairSelectionClientState.newestLiveId(gameTime);
+		if (entityId == -1) {
 			return;
 		}
+		long remaining = TodoPairSelectionClientState.remainingTicks(entityId, gameTime);
+		if (remaining <= 0 || !(level.getEntity(entityId) instanceof LivingEntity living) || !living.isAlive()) {
+			return;
+		}
+		// The marked body's name rides in the hint line; a selection is a name to remember.
+		Component hint = Component.translatable("hud.jujutsumod.todo.pair.hint", living.getDisplayName());
+		drawChip(graphics, client.font, chipY(graphics) + CHIP_HEIGHT + CHIP_GAP, ACCENT,
+				Component.translatable("hud.jujutsumod.todo.pair"),
+				hint, seconds(remaining));
 	}
 
 	private static void drawChip(GuiGraphics graphics, Font font, int y, int accent,
@@ -98,15 +95,16 @@ public final class TodoStatusHud {
 	}
 
 	/**
-	 * The local player's live stone, or null. Scanned at most once per client tick; between ticks
-	 * the cached reference is reused while the entity is still in the level.
+	 * The local player's live stone, or null. The id-based cache is re-resolved through
+	 * {@code level.getEntity(int)} every frame, so a disconnect or dimension change can never pin a
+	 * dead level through a static field; the full scan runs at most once per client tick.
 	 */
 	private static TodoStoneEntity liveStone(Minecraft client, ClientLevel level) {
-		if (cachedLevel == level && cachedStone != null && !cachedStone.isRemoved()) {
-			return cachedStone;
+		TodoStoneEntity cached = resolveOwnStone(client, level, cachedStoneId);
+		if (cached != null) {
+			return cached;
 		}
-		cachedLevel = level;
-		cachedStone = null;
+		cachedStoneId = -1;
 		if (level.getGameTime() == lastStoneScanTick) {
 			return null;
 		}
@@ -114,10 +112,21 @@ public final class TodoStatusHud {
 		for (Entity entity : level.entitiesForRendering()) {
 			if (entity instanceof TodoStoneEntity stone
 					&& stone.clientOwnerUuid().filter(client.player.getUUID()::equals).isPresent()) {
-				cachedStone = stone;
-				break;
+				cachedStoneId = stone.getId();
+				return stone;
 			}
 		}
-		return cachedStone;
+		return null;
+	}
+
+	private static TodoStoneEntity resolveOwnStone(Minecraft client, ClientLevel level, int entityId) {
+		if (entityId == -1) {
+			return null;
+		}
+		return level.getEntity(entityId) instanceof TodoStoneEntity stone
+				&& !stone.isRemoved()
+				&& stone.clientOwnerUuid().filter(client.player.getUUID()::equals).isPresent()
+				? stone
+				: null;
 	}
 }

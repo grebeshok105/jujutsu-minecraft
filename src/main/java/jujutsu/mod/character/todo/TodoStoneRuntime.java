@@ -75,6 +75,10 @@ public final class TodoStoneRuntime {
 	}
 
 	private static boolean tertiary(ServerPlayer todo, boolean notify) {
+		if (TodoSwapGates.casterStateBlocked(todo)) {
+			// Silent, like every UNAVAILABLE refusal: caster state is not worth an actionbar line.
+			return false;
+		}
 		Optional<TodoStoneRef> ref = TodoTransientState.stone(todo.getUUID());
 		if (shouldThrow(ref)) {
 			return throwStone(todo, notify);
@@ -103,7 +107,7 @@ public final class TodoStoneRuntime {
 		stone.launch(todo, launchPosition, velocity);
 		level.addFreshEntity(stone);
 		TodoTransientState.setStone(todo.getUUID(),
-				new TodoStoneRef(stone.getUUID(), stone.getId(), level.dimension(), level.getGameTime()));
+				new TodoStoneRef(stone.getUUID(), level.dimension(), level.getGameTime()));
 		// Anchored at the caster so the flick reads as a hand gesture; the direction lets the recipe
 		// throw the particles along the same line the stone takes.
 		JujutsuNetworking.broadcastVfxCue(level, launchPosition, TodoProfile.VFX_DELIVERY_RADIUS,
@@ -142,7 +146,9 @@ public final class TodoStoneRuntime {
 			return reject(todo, notify, "message.jujutsumod.todo.stone.gone", "stone changed before commit");
 		}
 		Vec3 stonePosition = stone.position();
-		Vec3 stoneDestination = todoSnapshot.position();
+		// The displaced body's center, as the design contract promises twice: a feet-level respawn
+		// would hug the floor the body stood on and die on the first slab lip or farmland edge.
+		Vec3 stoneDestination = todoSnapshot.position().add(0.0, todoSnapshot.bbHeight() / 2.0, 0.0);
 		boolean todoPlaced = TodoBoogieWoogieRuntime.place(todo, level, plan.get().destination(), todoSnapshot);
 		if (!todoPlaced) {
 			TodoBoogieWoogieRuntime.rollback("stone self swap", todo, todo, todoSnapshot, null, null);
@@ -163,6 +169,9 @@ public final class TodoStoneRuntime {
 	}
 
 	private static boolean targetSwap(ServerPlayer todo, boolean notify) {
+		if (TodoSwapGates.casterStateBlocked(todo)) {
+			return false;
+		}
 		Optional<TodoStoneRef> ref = TodoTransientState.stone(todo.getUUID());
 		if (ref.isEmpty()) {
 			return reject(todo, notify, "message.jujutsumod.todo.stone.no_stone", "no live stone to swap with");
@@ -208,7 +217,7 @@ public final class TodoStoneRuntime {
 			return reject(todo, notify, "message.jujutsumod.todo.stone.gone", "stone changed before commit");
 		}
 		Vec3 stonePosition = stone.position();
-		Vec3 stoneDestination = targetSnapshot.position();
+		Vec3 stoneDestination = targetSnapshot.position().add(0.0, targetSnapshot.bbHeight() / 2.0, 0.0);
 		boolean targetPlaced = TodoBoogieWoogieRuntime.place(target, level, plan.get().destination(), targetSnapshot);
 		if (!targetPlaced) {
 			TodoBoogieWoogieRuntime.rollback("stone target swap", todo, target, targetSnapshot, null, null);

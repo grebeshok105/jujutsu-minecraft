@@ -22,7 +22,7 @@ Write `<New>Definition implements CharacterDefinition` beside the vessel's runti
 
 - `tryCast` delegates to your own `<New>AbilityRouter`: a slot map over `CharacterAbility`, **exhaustive with no `default`**, answering `false` explicitly on the input positions the vessel does not use — the pattern both shipped routers follow (`NobaraAbilityRouter`, `TodoAbilityRouter`). The shared executor already owns the not-selected and cooldown gates; anything that is yours alone (Nobara's stagger check, her single fallback message) belongs in your router. Do not add a parallel payload per ability; every vessel's abilities arrive over `CharacterAbilityPayload`.
 - `registerServerHooks()` installs your event-driven runtimes once at mod init. `CharacterDefinitionRegistryTest` reads the expected list off the source tree: a class under your vessel's package exposing `register()` that your definition never calls fails the build.
-- Override `applyAttributes`/`removeAttributes`, `adjustIncomingStaggerTicks`, `onSelected`/`onDeselected`, or `canonicalSlot` (fold two inputs the vessel treats as one, like Todo's Shift+B → B) only if the vessel actually does those things. Clear static state on `SERVER_STOPPING` inside your own runtimes.
+- Override `applyAttributes`/`removeAttributes`, `adjustIncomingStaggerTicks`, or `onSelected`/`onDeselected` only if the vessel actually does those things. Clear static state on `SERVER_STOPPING` inside your own runtimes.
 - Put tuning constants in one `<New>Profile` class, following `TodoProfile` / `ProjectJjkNobaraProfile`.
 
 ## 4. Client definition

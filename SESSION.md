@@ -39,7 +39,7 @@ Target swap (`Shift+V`):
 13. No stone / no target / unsafe placement at the stone's point: each refusal has its own message, nothing moves, the stone (if any) keeps flying. No momentum from a target swap.
 
 Pair swap and triple cycle (`B`, `Shift+B`):
-14. Plain pair swap regression: B marks (actionbar + mark cue pulsing on the body every second), second B swaps the two marked bodies, Todo stays put; second B on the mark cancels; second B at nothing refuses and keeps the mark.
+14. Plain pair swap regression: B marks — actionbar line, one audible mark beat, then a quiet ring re-drawn on the body about once a second and the pair HUD chip holding (both visible to the casting Todo alone); second B swaps the two marked bodies, Todo stays put; second B on the mark cancels; second B at nothing refuses and keeps the mark.
 15. The pair chip shows the marked body's name and remaining TTL while a selection lives (Todo only).
 16. B mark, then `Shift+B` on a second body: the triple cycle runs with the fixed direction — Todo to the marked body's spot, the marked body to the aimed body's spot, the aimed body to Todo's spot. The three-edge directional effect reads the cycle order.
 17. `Shift+B` with no selection refuses with its own message and does NOT behave as B; the crouch does not lose a lined-up selection (B mark → sneak → Shift+B works).
@@ -53,11 +53,12 @@ Purge and regressions:
 23. An ordinary right click (once or twice) behaves fully vanilla for Todo — doors, mounts, trades; no marking of any kind.
 24. `Shift+R` feint unchanged: clap performance, no movement, no endpoint bursts. Black Flash and momentum-on-`R`-swap unchanged.
 25. Nobara full kit unchanged (R/B/Shift+R/Shift+B, ESP, mega nail); Megumi full kit unchanged (dogs, trap, move, drop; his `V` still Shadow Drop — Todo's V never leaks into other vessels).
-26. Multiplayer observation: a second player sees the stone, its trail, both swap presentations, the triple's three edges, and the pair mark pulse on the marked body — while Todo-only HUD chips stay invisible to them.
+26. Multiplayer observation: a second player sees the stone, its trail, both swap presentations, and the triple's three edges — but never the pair mark, its quiet pulse ring, or any Todo-only HUD chip: the selection stays the caster's secret.
 27. Cleanup: death, respawn, dimension change, vessel change (menu deselect), disconnect — each kills a live stone (with vanish puff where applicable), clears the pair selection, and leaves no HUD chip; rejoin shows clean state; server stop leaves nothing behind on restart.
 
 ## Status
 
 - Implementation integrated on this branch (rule-of-four wave: purge / stone core / pair+triple / client blocks + docs + skeleton).
 - `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` — **green** after integration fixes (hurtServer override on the stone, pure swap-range boundary, VfxCues silent-repeat + displacement factories for the pulse and the cycle edges, contract-pin respellings).
-- Manual smoke round 1: **pending** (checklist above); independent review wave next per the task order.
+- Independent review wave (4 reviewers, disjoint zones) done: 6 code P2s + doc sweep, all 18 unique findings adjudicated **accept** in `.superpowers/rule-of-four/todo-stone-rework/review-spec.md` and applied — portal refusal + identity-guarded unconditional discard, caster-state gate on all three stone casts, AABB/dead-velocity collision end, seeded `DATA_REMAINING_TICKS`, pair-cache read eviction + newest-entry pick, id-based HUD stone cache, `TodoStoneRef.entityId` dropped, stone respawns at the displaced body's center, caster-only quiet pulse re-draw ring, and the marker/canonicalSlot truth sweep across Codex/skill/spec docs.
+- Manual smoke round 1: **pending** (checklist above).

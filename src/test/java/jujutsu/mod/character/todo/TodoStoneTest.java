@@ -104,7 +104,7 @@ class TodoStoneTest {
 	}
 
 	private static TodoStoneRef sampleRef() {
-		return new TodoStoneRef(UUID.randomUUID(), 1,
+		return new TodoStoneRef(UUID.randomUUID(),
 				ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse("minecraft:overworld")), 0L);
 	}
 }

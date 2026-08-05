@@ -2,7 +2,7 @@
 
 Status: CURRENT
 
-Todo's playable slice: the Boogie Woogie swap on the shared PRIMARY slot, a feint clap on PRIMARY_SNEAK, a pair swap on SECONDARY, passive attribute modifiers, and a Black Flash bridge on vanilla melee. All claims VERIFIED against `src/main/java/jujutsu/mod/character/todo/**` unless labelled otherwise.
+Todo's playable slice: the Boogie Woogie swap on the shared PRIMARY slot, a feint clap on PRIMARY_SNEAK, a pair swap on SECONDARY, the triple cycle on SECONDARY_SNEAK, the thrown stone on TERTIARY with its target swap on TERTIARY_SNEAK, passive attribute modifiers, and a Black Flash bridge on vanilla melee. All claims VERIFIED against `src/main/java/jujutsu/mod/character/todo/**` unless labelled otherwise.
 
 ## Tuning constants
 
@@ -194,7 +194,9 @@ makes with his own body, and here his movement is bought by moving two other peo
 
 Presentation: one `TRIPLE_SWAP` cue per cycle edge (three per cast), each carrying the edge's
 direction and length so the A→B→C→A flow reads in-world, plus the ordinary per-body
-afterimage/arrival pair. The clap is the same `BOOGIE_WOOGIE` cue as every other clap.
+afterimage/arrival pair. There is deliberately **no** clap in this cast: the three edges are the
+triple's own language, and `emitTripleFeedback` emits nothing else — a clap would make the cycle
+read as one more pair swap at a distance.
 
 ## The sixth slot is empty
 
@@ -221,6 +223,11 @@ five-second moving window, not a camp spot.
 at Todo's old center, keeps its own velocity and its remaining clock, and keeps flying. This is a
 completed swap Todo made with his own body, so it grants the momentum window and wears the real
 swap's cues — `BOOGIE_WOOGIE` clap plus afterimage/arrival at both ends.
+
+Both stone casts read the caster-state half of the clap gate (`TodoSwapGates.casterStateBlocked`):
+a spectator, dead, mounted/riding or staggered Todo is refused silently, exactly like every other
+`UNAVAILABLE`. Hands deliberately stay ungated — the stone is an ability cast, not an item use, so
+the empty-hands rule never applies to it.
 
 `Shift+V` (`TERTIARY_SNEAK(9)`, the rework's one appended wire id) is the **target swap**: the
 aimed body within `STONE_TARGET_RANGE` trades places with the stone while Todo stays put. The
@@ -272,7 +279,7 @@ Three non-obvious constraints the runtime exists to satisfy:
 - **Black Flash re-enters the damage event** to apply its bonus, so the listener sees one swing twice. Without the `BlackFlashStrike.isApplyingBonus` guard the window is spent on the nested pass, tying the stagger and the cue to a hidden ten-percent roll. The stagger is additionally guarded on `isAlive()`, because that bonus hit can kill the target inside the same swing.
 - **The spend path checks the attacker is still Todo**, so leaving the vessel mid-window would strand a live `+25%` modifier nothing could remove. `onDeselected` takes it off; the attribute sweeps do not reach it, because it belongs to the effect rather than to the definition.
 
-Grant sites are exactly two: past the last `return false` in `TodoBoogieWoogieRuntime.tryCast`, and in `TodoMarkerSwapRuntime.finish` (one site for both mark routes). **Not** the pair swap — Todo does not move and takes no positional risk, which is why its cooldown is already 100 against 60 — and **not** the feint, whose 20-tick cooldown would make it a threefold-cheaper way to buy the window.
+Grant sites are exactly two: past the last `return false` in `TodoBoogieWoogieRuntime.tryCast`, and in `TodoStoneRuntime.selfSwap` — the two swaps Todo makes with his own body. **Not** the pair swap or the triple cycle — Todo takes no positional risk in either — **not** the stone's target swap (`Shift+V`), where he also stays put, and **not** the feint, whose 20-tick cooldown would make it a threefold-cheaper way to buy the window.
 
 Two limits recorded rather than hidden, both in the runtime's javadoc:
 

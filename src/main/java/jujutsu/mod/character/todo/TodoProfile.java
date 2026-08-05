@@ -61,8 +61,9 @@ public final class TodoProfile {
 	public static final int PAIR_SELECTION_TTL_TICKS = 100;
 	/**
 	 * Server re-emit period for the pair-swap selection mark while it lives. One second, a fifth of the
-	 * selection TTL, so the first chosen body stays readable without a HUD framework; the re-emit is the
-	 * silent trap-boundary pulse pattern, carrying intensity 0 so the recipe can tell it from the mark.
+	 * selection TTL; the re-emit is the silent trap-boundary pulse pattern, carrying intensity 0 so the
+	 * recipe can tell it from the audible mark. Each pulse re-arms the caster's HUD chip hold and
+	 * re-draws a quiet ring at the marked body's current position — the caster alone receives it.
 	 */
 	public static final int PAIR_MARK_PULSE_TICKS = 20;
 	/**

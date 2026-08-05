@@ -26,7 +26,7 @@ Status: CURRENT
 | Boogie Woogie has no floor check and no third-party occupancy gate | TodoBoogieWoogieRuntime.findSafeDestination, .isPlaceableDestination | VERIFIED |
 | Boogie Woogie rollback is best-effort and logs an incomplete restore | TodoBoogieWoogieRuntime.tryCast, .restore | VERIFIED |
 | Todo reuses Nobara's Black Flash cue id | TodoBlackFlashRuntime.afterDamage, NobaraVfxIds.BLACK_FLASH | VERIFIED, known seam |
-| Only Todo can throw the swap marker, checked on both sides | TodoSwapMarkerItem.use, CharacterSelectionView.of | VERIFIED |
+| The stone is cast-gated, not item-gated: a non-Todo cast never reaches the stone runtime, and no marker item exists | CharacterAbilityExecutor.tryCast, TodoDefinition → TodoAbilityRouter | VERIFIED |
 | GeckoLib 5 loads only geckolib/models and geckolib/animations | live skin rigs under `geckolib/models/character_skin`, existing animation JSON, archive manifest and ProjectSanityTest | VERIFIED |
 | ClickGui registers one module per vessel, derived from the client registry (three today) | JujutsuModules.registerAll, JujutsuCharacterClients.all | VERIFIED |
 | Boom detonates all loaded owned nails with no aim gate | ProjectJjkRitualRuntime.collectAllLoadedOwnedNails | VERIFIED |

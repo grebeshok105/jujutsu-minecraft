@@ -92,7 +92,8 @@ def main() -> None:
                         light = min(light, 0.18 + crack * 0.30)
                     elif crack < 1.0 and y > 8.2:
                         light = min(1.0, light + 0.10)
-                    # Speckle pores: darker dots that fade at their edges.
+                    # Bright quartz specks: the base tone dims with distance from the five
+                    # speckle centers, so the specks read as light inclusions on a darker matrix.
                     pore = pore_dist(x, y)
                     light *= 1.0 - 0.45 * smoothstep(0.4, 1.2, pore)
                     col = tuple(round(DARK[i] + (LIGHT[i] - DARK[i]) * min(1.0, light))

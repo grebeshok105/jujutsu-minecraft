@@ -47,18 +47,39 @@ public final class TodoPairSelectionClientState {
 		ENTRIES.put(entityId, new Entry(previous.expiresAtGameTime, clock.getAsLong()));
 	}
 
-	/** The ids the cache currently knows about, stale or not; the reader filters by TTL. */
-	public static Set<Integer> entityIds() {
-		return Set.copyOf(ENTRIES.keySet());
+	/**
+	 * The id of the most recently marked live entry, or {@code -1} when none survives. The server
+	 * allows one selection per caster; if a lost expire cue briefly leaves two cached entries, the
+	 * newest mark wins rather than map iteration order.
+	 */
+	public static int newestLiveId(long gameTime) {
+		int best = -1;
+		long bestSeen = Long.MIN_VALUE;
+		for (var entry : ENTRIES.entrySet()) {
+			if (remainingTicks(entry.getKey(), gameTime) <= 0) {
+				continue;
+			}
+			if (entry.getValue().lastSeenMillis > bestSeen) {
+				bestSeen = entry.getValue().lastSeenMillis;
+				best = entry.getKey();
+			}
+		}
+		return best;
 	}
 
 	/**
 	 * Remaining selection ticks for the marked entity, or -1 when the entry is absent or its
-	 * wall-clock hold has lapsed. {@code gameTime} is the client level's game time.
+	 * wall-clock hold has lapsed. A lapsed entry is evicted on this read — the recipe only ever
+	 * adds entries, so without read-side eviction the map would grow for the session's lifetime.
+	 * {@code gameTime} is the client level's game time.
 	 */
 	public static long remainingTicks(int entityId, long gameTime) {
 		Entry entry = ENTRIES.get(entityId);
-		if (entry == null || clock.getAsLong() - entry.lastSeenMillis > HOLD_TTL_TICKS * MILLIS_PER_TICK) {
+		if (entry == null) {
+			return -1;
+		}
+		if (clock.getAsLong() - entry.lastSeenMillis > HOLD_TTL_TICKS * MILLIS_PER_TICK) {
+			ENTRIES.remove(entityId, entry);
 			return -1;
 		}
 		return Math.max(0L, entry.expiresAtGameTime - gameTime);

@@ -18,7 +18,8 @@ public final class TodoVfxIds {
 	 * Confirmation that a body is marked for the pair swap, anchored to that body so it lands on the
 	 * right one. Sent to the caster only: nothing about who is marked has reached the world yet, so the
 	 * marked body must not learn it is next. The server re-emits it as a silent pulse while the
-	 * selection lives, so the choice stays readable to Todo without a HUD framework.
+	 * selection lives; each pulse feeds the caster's HUD chip hold and re-draws a quiet ring at the
+	 * body's position, and observers receive neither cue.
 	 */
 	public static final ResourceLocation PAIR_MARK = JujutsuMod.id("todo/pair_mark");
 	/**

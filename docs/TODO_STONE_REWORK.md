@@ -40,6 +40,10 @@ One small stone that exists only while flying.
   own velocity, and keeps flying with its remaining lifetime.
 - **Velocity semantics** (one sentence, everywhere): a swap exchanges positions only — every
   body and the stone keep their own motion; the flight clock never resets.
+- **Caster state, not hands**: the throw and both stone swaps read the caster-state half of
+  `TodoSwapGates` (`casterStateBlocked`) — a spectator, dead, mounted/riding or staggered Todo is
+  refused silently. Hands stay deliberately ungated: the stone is an ability cast, not an item
+  use, so the clap's empty-hands rule never applies to it.
 - The throw cooldown is deliberately tiny (anti-double-click), so throwing never locks the
   follow-up swap behind a long cooldown. The self-swap carries the real price.
 - Momentum: the self-swap grants the existing swap-momentum window (it is a completed swap Todo
@@ -127,8 +131,10 @@ and all three bodies of the triple cycle. No defaulting overload is reintroduced
 `TodoTransientState` is the single owner of Todo's transient state (pair selection + stone ref).
 `TodoStateLifecycle` is the single registrar of every cleanup hook: death, respawn, dimension
 change, vessel change (deselect), disconnect, server stop, plus the per-tick expiry sweep. Losing
-the stone entity from a loaded chunk clears the ref. No other Todo class registers lifecycle
-events; no second static map appears.
+the stone entity from a loaded chunk clears the ref. `TodoStateLifecycle` is the only registrar of
+the transient-state cleanup hooks, and no second static map appears. (`TodoBoogieWoogieRuntime`
+keeps its own END_WORLD_TICK/SERVER_STOPPING pair for the pending movement-sound queue —
+presentation, not swap state, and older than this rework.)
 
 ## Verification
 

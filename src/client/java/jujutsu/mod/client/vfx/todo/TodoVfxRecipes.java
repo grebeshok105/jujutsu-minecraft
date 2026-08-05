@@ -163,19 +163,22 @@ public final class TodoVfxRecipes {
 	}
 
 	/**
-	 * Caster-only mark confirmation on the first pair-swap participant. A single beat, not a marker that
-	 * follows the body for the whole selection: a transient cue is started once, and VFX Core keeps
-	 * anything that must track a live entity on that entity's own renderer. The actionbar line names who
-	 * was marked, which is what the caster actually needs to remember.
-	 *
-	 * <p>The server re-emits this cue as a silent pulse (intensity 0) every {@code PAIR_MARK_PULSE_TICKS}
-	 * while the selection lives; the pulse feeds the HUD chip's hold without re-sounding the mark and
-	 * without extending the countdown.
+	 * Caster-only mark confirmation on the first pair-swap participant, plus a quiet once-a-second
+	 * re-draw while the selection lives. The audible mark is a single beat; the server then re-emits
+	 * this cue as a silent pulse (intensity 0) every {@code PAIR_MARK_PULSE_TICKS}: each pulse feeds
+	 * the HUD chip's hold without re-sounding the mark or extending the countdown, and re-draws a
+	 * smaller ring at the marked body's current position so the caster can read the selection in the
+	 * world, not only off the chip. Both cues are sent to the caster alone — an observer never sees
+	 * the mark or the pulse, so the secrecy rule survives; anything louder here would break it.
 	 */
 	private static VfxInstance pairMark(VfxCue cue) {
 		return VfxInstance.of(PAIR_MARK_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (cue.intensity() == 0) {
 				TodoPairSelectionClientState.pulse(cue.anchorEntityId(), cue.startGameTime());
+				if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+					Vec3 held = context.resolveOrigin(cue).add(0.0, 1.0, 0.0);
+					context.ring(TODO_VIOLET, held, 5, 0.4, 0.0, 0.012, random(cue, 0x9A12CAFEL));
+				}
 				return;
 			}
 			TodoPairSelectionClientState.mark(cue.anchorEntityId(), cue.startGameTime());
