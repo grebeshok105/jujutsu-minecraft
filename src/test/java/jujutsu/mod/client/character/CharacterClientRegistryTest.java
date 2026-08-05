@@ -77,7 +77,7 @@ public final class CharacterClientRegistryTest {
 	private static void assertNoSharedClientFileNamesAVessel() throws Exception {
 		String[] shared = {
 				"jujutsu/mod/client/rich/theme/ClickGuiTheme.java",
-				"jujutsu/mod/client/render/CharacterGeoRenderers.java",
+				"jujutsu/mod/client/render/CharacterSkinAnimationRenderer.java",
 				"jujutsu/mod/client/rich/modules/jujutsu/JujutsuModules.java",
 				"jujutsu/mod/client/rich/screens/clickgui/impl/character/CharacterRosterPanel.java",
 				"jujutsu/mod/client/JujutsuModClient.java",
@@ -117,8 +117,8 @@ public final class CharacterClientRegistryTest {
 			int listed = card.split("new CharacterRosterEntry.Ability\\(", -1).length - 1;
 			assert listed == answered
 					: cardFile + " must list the " + answered + " slots its router answers, found " + listed;
-			assert card.contains("createRenderer") && card.contains("accent()")
-					: cardFile + " must declare how it is drawn and what colour it paints the menu";
+			assert card.contains("skinAnimation()") && card.contains("accent()")
+					: cardFile + " must declare its skin animation binding and accent colour";
 		}
 	}
 

@@ -33,7 +33,7 @@ Canonical Boogie Woogie is an instant position exchange associated with Todo's c
 - Todo appears in the existing ClickGui character roster.
 - Todo uses the existing persistent `CharacterPlayerState` attachment. Selection survives death, reconnect, world restart, and dimension changes.
 - Todo has no starter items in this slice. Vanilla melee remains the base weapon path.
-- ~~Todo intentionally has no custom GeckoLib model or animation asset yet. The existing vanilla player model remains active.~~ **Superseded:** Todo now renders through `TodoPlayerGeoRenderer` on the shared vessel render stack, using `geckolib/models/todo/todo_aoi`, `geckolib/animations/todo/todo_aoi`, and `textures/entity/character/todo_aoi.png`.
+- **Current presentation:** Todo uses `textures/entity/character/todo.png` through vanilla `PlayerRenderer`. The existing `geckolib/animations/todo/todo_aoi.animation.json` remains live and is evaluated by `TodoSkinAnimationModel` on the invisible `geckolib/models/character_skin/todo.geo.json` rig.
 
 ### Base profile
 

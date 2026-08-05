@@ -1,9 +1,8 @@
 package jujutsu.mod.client.character;
 
-import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
 import jujutsu.mod.character.JujutsuCharacter;
-import jujutsu.mod.client.render.CharacterGeoRenderer;
+import jujutsu.mod.client.render.CharacterSkinAnimation;
 
 /**
  * Everything the client needs to know about one vessel: how it looks, what colour it paints the menu,
@@ -15,8 +14,8 @@ import jujutsu.mod.client.render.CharacterGeoRenderer;
  * are joined only by the {@link JujutsuCharacter} constant they both answer for.
  *
  * <p>Only {@link #id()} and {@link #rosterEntry()} are required — every vessel has a name and a card.
- * Everything else has a safe default: no renderer means the vanilla player model, and no hooks means
- * nothing to install.
+	 * Everything else has a safe default: no skin animation means the vanilla player pose, and no hooks
+	 * means nothing to install.
  */
 public interface CharacterClientDefinition {
 	/** The enum constant this definition speaks for. The registry test checks that they agree. */
@@ -25,13 +24,8 @@ public interface CharacterClientDefinition {
 	/** What the selection menu shows for this vessel. */
 	CharacterRosterEntry rosterEntry();
 
-	/**
-	 * The GeckoLib renderer that replaces the vanilla player model, or {@code null} to keep vanilla.
-	 *
-	 * <p>Takes the context rather than a finished renderer because one instance is built per render
-	 * context, not per vessel.
-	 */
-	default CharacterGeoRenderer createRenderer(EntityRendererProvider.Context context) {
+	/** GeckoLib pose adapter applied to the vanilla player model, or {@code null} to keep vanilla pose. */
+	default CharacterSkinAnimation skinAnimation() {
 		return null;
 	}
 

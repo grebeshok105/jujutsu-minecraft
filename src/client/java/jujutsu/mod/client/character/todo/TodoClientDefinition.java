@@ -2,7 +2,6 @@ package jujutsu.mod.client.character.todo;
 
 import java.util.List;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
-import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.renderer.entity.ThrownItemRenderer;
 import jujutsu.mod.JujutsuMod;
@@ -10,8 +9,10 @@ import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.client.character.CharacterClientDefinition;
 import jujutsu.mod.client.character.CharacterRosterEntry;
 import jujutsu.mod.client.character.JujutsuCharacterIcons;
-import jujutsu.mod.client.render.CharacterGeoRenderer;
-import jujutsu.mod.client.render.todo.TodoPlayerGeoRenderer;
+import jujutsu.mod.client.render.CharacterSkinAnimation;
+import jujutsu.mod.client.render.CharacterSkinAnimationAdapter;
+import jujutsu.mod.client.render.todo.TodoPlayerGeoAnimatable;
+import jujutsu.mod.client.render.todo.TodoSkinAnimationModel;
 import jujutsu.mod.client.vfx.todo.TodoVfxRecipes;
 import jujutsu.mod.registry.JujutsuEntities;
 
@@ -47,9 +48,12 @@ public final class TodoClientDefinition implements CharacterClientDefinition {
 								"screen.jujutsumod.character_select.ability.entity_mark", "RMB×2")));
 	}
 
+	private static final CharacterSkinAnimation SKIN_ANIMATION =
+			new CharacterSkinAnimationAdapter<>(TodoPlayerGeoAnimatable.INSTANCE, new TodoSkinAnimationModel());
+
 	@Override
-	public CharacterGeoRenderer createRenderer(EntityRendererProvider.Context context) {
-		return new TodoPlayerGeoRenderer<>(context);
+	public CharacterSkinAnimation skinAnimation() {
+		return SKIN_ANIMATION;
 	}
 
 	@Override

@@ -46,7 +46,7 @@ Required: `id()` and `rosterEntry()`. Every vessel has a name and a card.
 
 **`rosterEntry()`** — the card: name, role and subtitle keys, a portrait, and the input strip in input order. The record's fields are named for what they hold. They used to be name/technique/grade, into which Nobara passed a full name, a role and a grade while Todo passed a name, a technique and a role, so the field names were wrong for one of them either way. See [GUI character select](../04-client-vfx/GUI-character-select.md).
 
-**`createRenderer(context)`** — the GeckoLib renderer that replaces the vanilla player model, or `null` for vanilla. It takes the context rather than returning a finished renderer because `CharacterGeoRenderers.create` is called from a mixin on every renderer rebuild, not once at startup — it must stay a pure factory, safe to call repeatedly. See [Vessel render stack](../04-client-vfx/Vessel-render-stack.md).
+**`skinAnimation()`** — the GeckoLib-to-vanilla `PlayerModel` adapter, or `null` for the ordinary vanilla pose. The shared `CharacterSkinAnimationRenderer` asks the definition for this adapter after vanilla `PlayerModel.setupAnim`; the adapter evaluates an invisible rig and never replaces the vanilla render path. See [Vessel render stack](../04-client-vfx/Vessel-render-stack.md).
 
 **`playerSkin()`** — the texture that replaces the vanilla skin, driving first-person hands and every vanilla skin path. Declared once here; the skin mixin and the roster portrait both read it. Both used to spell the path out themselves.
 

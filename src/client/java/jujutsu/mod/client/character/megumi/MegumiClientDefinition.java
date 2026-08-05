@@ -3,7 +3,6 @@ package jujutsu.mod.client.character.megumi;
 import java.util.List;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
-import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.JujutsuCharacter;
@@ -13,9 +12,9 @@ import jujutsu.mod.client.character.JujutsuCharacterIcons;
 import jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes;
 import jujutsu.mod.client.character.megumi.particle.MegumiShadowMoteParticle;
 import jujutsu.mod.client.vfx.VfxDirector;
-import jujutsu.mod.client.render.CharacterGeoRenderer;
+import jujutsu.mod.client.render.CharacterSkinAnimation;
 import jujutsu.mod.client.render.megumi.MegumiDivineDogRenderer;
-import jujutsu.mod.client.render.megumi.MegumiPlayerGeoRenderer;
+import jujutsu.mod.client.render.megumi.MegumiSkinAnimationAdapter;
 import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.registry.JujutsuParticles;
 
@@ -43,9 +42,11 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 								"screen.jujutsumod.character_select.ability.sic", "⇧R")));
 	}
 
+	private static final CharacterSkinAnimation SKIN_ANIMATION = new MegumiSkinAnimationAdapter();
+
 	@Override
-	public CharacterGeoRenderer createRenderer(EntityRendererProvider.Context context) {
-		return new MegumiPlayerGeoRenderer<>(context);
+	public CharacterSkinAnimation skinAnimation() {
+		return SKIN_ANIMATION;
 	}
 
 	@Override
