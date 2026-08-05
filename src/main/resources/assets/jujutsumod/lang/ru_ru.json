@@ -16,101 +16,103 @@
   "message.jujutsumod.projectjjk.resonance.wrong_dimension": "Связанная цель находится в другом измерении.",
   "screen.jujutsumod.curse_link.title": "Выберите проклятую связь",
   "message.jujutsumod.nobara.self_resonance.no_link": "Нет активной явной проклятой связи.",
-  "message.jujutsumod.nobara.self_resonance.selected": "Выбрана техника %s. Нажмите Shift+R ещё раз для Self Resonance."
-  ,"message.jujutsumod.nobara.trap.no_ground": "Цельтесь в землю не дальше 8 блоков."
-  ,"message.jujutsumod.nobara.trap.unsupported": "Для всего треугольника нужна твёрдая и свободная поверхность."
-  ,"message.jujutsumod.nobara.trap.no_nails": "Для ловушки нужны три проклятых гвоздя."
-  ,"message.jujutsumod.nobara.trap.failed": "Не удалось установить гвоздевую ловушку."
-  ,"message.jujutsumod.nobara.trap.armed": "Гвоздевая ловушка установлена."
-  ,"screen.jujutsumod.dashboard.title": "JUJUTSU // DASHBOARD"
-  ,"screen.jujutsumod.dashboard.page.character": "Персонаж"
-  ,"screen.jujutsumod.dashboard.page.combat": "Бой"
-  ,"screen.jujutsumod.dashboard.page.visuals": "Визуал"
-  ,"screen.jujutsumod.dashboard.page.misc": "Разное"
-  ,"key.jujutsumod.modern_menu": "Меню дзюдзюцу (Персонажи)"
-  ,"key.jujutsumod.nobara_hairpin_enlarge": "Основная техника"
-  ,"key.jujutsumod.nobara_hairpin_explosion": "Вторичная техника"
-  ,"screen.jujutsumod.modern_menu": "Выбор сосуда"
-  ,"message.jujutsumod.character.action.not_selected": "Сначала выберите персонажа."
-  ,"message.jujutsumod.character.action.cooldown": "Способность восстанавливается."
-  ,"message.jujutsumod.todo.boogie.no_target": "Перед вами нет подходящей цели."
-  ,"message.jujutsumod.todo.boogie.invalid_target": "Цель больше не подходит."
-  ,"message.jujutsumod.todo.boogie.out_of_range": "Цель вне радиуса действия."
-  ,"message.jujutsumod.todo.boogie.unsafe": "Не удалось найти безопасную позицию для обмена."
-  ,"message.jujutsumod.todo.boogie.hands_full": "Для Буги-вуги нужны обе пустые руки."
-  ,"item.jujutsumod.todo_swap_marker": "Метка Буги-вуги"
-  ,"effect.jujutsumod.todo_swap_momentum": "Импульс обмена"
-  ,"message.jujutsumod.todo.mark.lost": "Ваша метка Буги-вуги потеряна."
-  ,"message.jujutsumod.todo.mark.placed": "Цель %s отмечена."
-  ,"screen.jujutsumod.character_select.ability.entity_mark": "Метка на теле"
-  ,"message.jujutsumod.todo.pair.marked": "Цель %s отмечена для обмена."
-  ,"message.jujutsumod.todo.pair.cancelled": "Метка обмена снята."
-  ,"message.jujutsumod.todo.pair.lost": "Отмеченная цель потеряна."
-  ,"screen.jujutsumod.character_select.confirm_vessel": "Подтвердить сосуд"
-  ,"screen.jujutsumod.character_select.default.name": "Нет"
-  ,"screen.jujutsumod.character_select.default.role": "Без техники"
-  ,"screen.jujutsumod.character_select.default": "По умолчанию"
-  ,"screen.jujutsumod.character_select.nobara.full": "Нобара Кугисаки"
-  ,"screen.jujutsumod.character_select.nobara.role": "Соломенная кукла"
-  ,"screen.jujutsumod.character_select.nobara.grade": "3-й ранг"
-  ,"screen.jujutsumod.character_select.todo": "Аой Тодо"
-  ,"screen.jujutsumod.character_select.todo.technique": "Буги-вуги"
-  ,"screen.jujutsumod.character_select.todo.role": "Тяжёлый мили"
-  ,"screen.jujutsumod.character_select.megumi": "Мегуми Фусигуро"
-  ,"screen.jujutsumod.character_select.megumi.technique": "Десять теней"
-  ,"screen.jujutsumod.character_select.megumi.role": "Призыватель сикигами"
-  ,"screen.jujutsumod.character_select.ability.boogie_woogie": "Буги-вуги"
-  ,"screen.jujutsumod.character_select.ability.divine_dogs": "Божественные псы"
-  ,"screen.jujutsumod.character_select.ability.sic": "Взять"
-  ,"screen.jujutsumod.character_select.ability.piercing_nail": "Пробитие"
-  ,"screen.jujutsumod.character_select.ability.hairpin_enlarge": "Усиление"
-  ,"screen.jujutsumod.character_select.ability.resonance": "Резонанс"
-  ,"screen.jujutsumod.character_select.ability.mega_nail": "Мега-гвоздь"
-  ,"item.jujutsumod.hairpin_nail": "Гвоздь Шпильки Нобары"
-  ,"item.jujutsumod.projectjjk_hairpin_nail": "Гвоздь Шпильки Нобары (алиас ProjectJJK)"
-  ,"item.jujutsumod.projectjjk_straw_doll_hammer": "Молот соломенной куклы Нобары (алиас ProjectJJK)"
-  ,"item.jujutsumod.straw_doll_hammer": "Молот соломенной куклы Нобары"
-  ,"key.categories.jujutsumod": "Дзюдзюцу Minecraft"
-  ,"message.jujutsumod.nobara.action.no_target": "Не найдено ни отмеченной цели, ни гвоздя."
-  ,"message.jujutsumod.projectjjk.launched": "Шпилька ProjectJJK выпустила гвоздей: %s."
-  ,"message.jujutsumod.projectjjk.no_nails": "Нет гвоздей ProjectJJK для подготовки."
-  ,"message.jujutsumod.projectjjk.prepare_first": "Сначала подготовьте гвозди ProjectJJK."
-  ,"message.jujutsumod.projectjjk.prepared": "Нобара ProjectJJK подготовила гвоздей: %s."
-  ,"screen.jujutsumod.character_select": "Персонаж"
-  ,"screen.jujutsumod.character_select.ability.none": "Нет активной техники"
-  ,"screen.jujutsumod.character_select.ability.fake_clap": "Финт"
-  ,"screen.jujutsumod.character_select.ability.hammer": "Молот"
-  ,"screen.jujutsumod.character_select.ability.nail_trap": "Ловушка"
-  ,"screen.jujutsumod.character_select.ability.pair_swap": "Парный обмен"
-  ,"screen.jujutsumod.character_select.confirm": "Подтвердить"
-  ,"screen.jujutsumod.character_select.nobara": "Нобара"
-  ,"screen.jujutsumod.character_select.subtitle": "Привяжите технику к своей душе"
-  ,"screen.jujutsumod.character_select.title": "Выберите своего мага"
-  ,"subtitles.jujutsumod.hairpin.afterglow": "Следы Шпильки исчезают"
-  ,"subtitles.jujutsumod.hairpin.bloom": "Шпилька расцветает"
-  ,"subtitles.jujutsumod.hairpin.hammer_snap": "Молот щёлкает"
-  ,"subtitles.jujutsumod.hairpin.nail_ignite": "Гвоздь вспыхивает"
-  ,"subtitles.jujutsumod.hairpin.prep": "Проклятые гвозди выстраиваются"
-  ,"subtitles.jujutsumod.projectjjk.aec_boom": "Смещение приземляется"
-  ,"subtitles.jujutsumod.projectjjk.black_flash_impact": "Треск от удара ProjectJJK"
-  ,"subtitles.jujutsumod.projectjjk.black_flash_impact2": "Треск от удара ProjectJJK"
-  ,"subtitles.jujutsumod.projectjjk.chime": "Проклятая энергия резонирует"
-  ,"subtitles.jujutsumod.projectjjk.cinematic_whoosh": "Воздух ProjectJJK разрывается"
-  ,"subtitles.jujutsumod.projectjjk.deep_explosion": "Взрыв ProjectJJK грохочет"
-  ,"subtitles.jujutsumod.projectjjk.explode": "Гвоздь ProjectJJK взрывается"
-  ,"subtitles.jujutsumod.projectjjk.goo_foley": "Следы ProjectJJK смещаются"
-  ,"subtitles.jujutsumod.projectjjk.implode": "Энергия ProjectJJK схлопывается"
-  ,"subtitles.jujutsumod.projectjjk.magic": "Ритуал гудит"
-  ,"subtitles.jujutsumod.projectjjk.snap": "Щелчок ProjectJJK"
-  ,"subtitles.jujutsumod.projectjjk.spell_shot": "Гвоздь ProjectJJK вылетает"
-  ,"subtitles.jujutsumod.projectjjk.whoosh_hit": "Гвоздь ProjectJJK попадает"
-  ,"message.jujutsumod.megumi.dogs.no_room": "Божественным псам нужна безопасная земля рядом."
-  ,"message.jujutsumod.megumi.dogs.none_out": "Божественные псы не призваны."
-  ,"entity.jujutsumod.megumi_divine_dog": "Божественный пёс"
-  ,"hud.jujutsumod.megumi.divine_dogs": "Божественные псы"
-  ,"esp.jujutsumod.rank.special_grade": "Особый ранг"
-  ,"esp.jujutsumod.rank.rank1": "1 ранг"
-  ,"esp.jujutsumod.rank.rank2": "2 ранг"
-  ,"esp.jujutsumod.rank.rank3": "3 ранг"
-  ,"esp.jujutsumod.rank.civilian": "Гражданский"
+  "message.jujutsumod.nobara.self_resonance.selected": "Выбрана техника %s. Нажмите Shift+R ещё раз для Self Resonance.",
+  "message.jujutsumod.nobara.trap.no_ground": "Цельтесь в землю не дальше 8 блоков.",
+  "message.jujutsumod.nobara.trap.unsupported": "Для всего треугольника нужна твёрдая и свободная поверхность.",
+  "message.jujutsumod.nobara.trap.no_nails": "Для ловушки нужны три проклятых гвоздя.",
+  "message.jujutsumod.nobara.trap.failed": "Не удалось установить гвоздевую ловушку.",
+  "message.jujutsumod.nobara.trap.armed": "Гвоздевая ловушка установлена.",
+  "screen.jujutsumod.dashboard.title": "JUJUTSU // DASHBOARD",
+  "screen.jujutsumod.dashboard.page.character": "Персонаж",
+  "screen.jujutsumod.dashboard.page.combat": "Бой",
+  "screen.jujutsumod.dashboard.page.visuals": "Визуал",
+  "screen.jujutsumod.dashboard.page.misc": "Разное",
+  "key.jujutsumod.modern_menu": "Меню дзюдзюцу (Персонажи)",
+  "key.jujutsumod.nobara_hairpin_enlarge": "Основная техника",
+  "key.jujutsumod.nobara_hairpin_explosion": "Вторичная техника",
+  "screen.jujutsumod.modern_menu": "Выбор сосуда",
+  "message.jujutsumod.character.action.not_selected": "Сначала выберите персонажа.",
+  "message.jujutsumod.character.action.cooldown": "Способность восстанавливается.",
+  "message.jujutsumod.todo.boogie.no_target": "Перед вами нет подходящей цели.",
+  "message.jujutsumod.todo.boogie.invalid_target": "Цель больше не подходит.",
+  "message.jujutsumod.todo.boogie.out_of_range": "Цель вне радиуса действия.",
+  "message.jujutsumod.todo.boogie.unsafe": "Не удалось найти безопасную позицию для обмена.",
+  "message.jujutsumod.todo.boogie.hands_full": "Для Буги-вуги нужны обе пустые руки.",
+  "item.jujutsumod.todo_swap_marker": "Метка Буги-вуги",
+  "effect.jujutsumod.todo_swap_momentum": "Импульс обмена",
+  "message.jujutsumod.todo.mark.lost": "Ваша метка Буги-вуги потеряна.",
+  "message.jujutsumod.todo.mark.placed": "Цель %s отмечена.",
+  "screen.jujutsumod.character_select.ability.entity_mark": "Метка на теле",
+  "message.jujutsumod.todo.pair.marked": "Цель %s отмечена для обмена.",
+  "message.jujutsumod.todo.pair.cancelled": "Метка обмена снята.",
+  "message.jujutsumod.todo.pair.lost": "Отмеченная цель потеряна.",
+  "screen.jujutsumod.character_select.confirm_vessel": "Подтвердить сосуд",
+  "screen.jujutsumod.character_select.default.name": "Нет",
+  "screen.jujutsumod.character_select.default.role": "Без техники",
+  "screen.jujutsumod.character_select.default": "По умолчанию",
+  "screen.jujutsumod.character_select.nobara.full": "Нобара Кугисаки",
+  "screen.jujutsumod.character_select.nobara.role": "Соломенная кукла",
+  "screen.jujutsumod.character_select.nobara.grade": "3-й ранг",
+  "screen.jujutsumod.character_select.todo": "Аой Тодо",
+  "screen.jujutsumod.character_select.todo.technique": "Буги-вуги",
+  "screen.jujutsumod.character_select.todo.role": "Тяжёлый мили",
+  "screen.jujutsumod.character_select.megumi": "Мегуми Фусигуро",
+  "screen.jujutsumod.character_select.megumi.technique": "Десять теней",
+  "screen.jujutsumod.character_select.megumi.role": "Призыватель сикигами",
+  "screen.jujutsumod.character_select.ability.boogie_woogie": "Буги-вуги",
+  "screen.jujutsumod.character_select.ability.divine_dogs": "Божественные псы",
+  "screen.jujutsumod.character_select.ability.sic": "Взять",
+  "screen.jujutsumod.character_select.ability.piercing_nail": "Пробитие",
+  "screen.jujutsumod.character_select.ability.hairpin_enlarge": "Усиление",
+  "screen.jujutsumod.character_select.ability.resonance": "Резонанс",
+  "screen.jujutsumod.character_select.ability.mega_nail": "Мега-гвоздь",
+  "item.jujutsumod.hairpin_nail": "Гвоздь Шпильки Нобары",
+  "item.jujutsumod.projectjjk_hairpin_nail": "Гвоздь Шпильки Нобары (алиас ProjectJJK)",
+  "item.jujutsumod.projectjjk_straw_doll_hammer": "Молот соломенной куклы Нобары (алиас ProjectJJK)",
+  "item.jujutsumod.straw_doll_hammer": "Молот соломенной куклы Нобары",
+  "key.categories.jujutsumod": "Дзюдзюцу Minecraft",
+  "message.jujutsumod.nobara.action.no_target": "Не найдено ни отмеченной цели, ни гвоздя.",
+  "message.jujutsumod.projectjjk.launched": "Шпилька ProjectJJK выпустила гвоздей: %s.",
+  "message.jujutsumod.projectjjk.no_nails": "Нет гвоздей ProjectJJK для подготовки.",
+  "message.jujutsumod.projectjjk.prepare_first": "Сначала подготовьте гвозди ProjectJJK.",
+  "message.jujutsumod.projectjjk.prepared": "Нобара ProjectJJK подготовила гвоздей: %s.",
+  "screen.jujutsumod.character_select": "Персонаж",
+  "screen.jujutsumod.character_select.ability.none": "Нет активной техники",
+  "screen.jujutsumod.character_select.ability.fake_clap": "Финт",
+  "screen.jujutsumod.character_select.ability.hammer": "Молот",
+  "screen.jujutsumod.character_select.ability.nail_trap": "Ловушка",
+  "screen.jujutsumod.character_select.ability.pair_swap": "Парный обмен",
+  "screen.jujutsumod.character_select.confirm": "Подтвердить",
+  "screen.jujutsumod.character_select.nobara": "Нобара",
+  "screen.jujutsumod.character_select.subtitle": "Привяжите технику к своей душе",
+  "screen.jujutsumod.character_select.title": "Выберите своего мага",
+  "subtitles.jujutsumod.hairpin.afterglow": "Следы Шпильки исчезают",
+  "subtitles.jujutsumod.hairpin.bloom": "Шпилька расцветает",
+  "subtitles.jujutsumod.hairpin.hammer_snap": "Молот щёлкает",
+  "subtitles.jujutsumod.hairpin.nail_ignite": "Гвоздь вспыхивает",
+  "subtitles.jujutsumod.hairpin.prep": "Проклятые гвозди выстраиваются",
+  "subtitles.jujutsumod.projectjjk.aec_boom": "Смещение приземляется",
+  "subtitles.jujutsumod.projectjjk.black_flash_impact": "Треск от удара ProjectJJK",
+  "subtitles.jujutsumod.projectjjk.black_flash_impact2": "Треск от удара ProjectJJK",
+  "subtitles.jujutsumod.projectjjk.chime": "Проклятая энергия резонирует",
+  "subtitles.jujutsumod.projectjjk.cinematic_whoosh": "Воздух ProjectJJK разрывается",
+  "subtitles.jujutsumod.projectjjk.deep_explosion": "Взрыв ProjectJJK грохочет",
+  "subtitles.jujutsumod.projectjjk.explode": "Гвоздь ProjectJJK взрывается",
+  "subtitles.jujutsumod.projectjjk.goo_foley": "Следы ProjectJJK смещаются",
+  "subtitles.jujutsumod.projectjjk.implode": "Энергия ProjectJJK схлопывается",
+  "subtitles.jujutsumod.projectjjk.magic": "Ритуал гудит",
+  "subtitles.jujutsumod.projectjjk.snap": "Щелчок ProjectJJK",
+  "subtitles.jujutsumod.projectjjk.spell_shot": "Гвоздь ProjectJJK вылетает",
+  "subtitles.jujutsumod.projectjjk.whoosh_hit": "Гвоздь ProjectJJK попадает",
+  "message.jujutsumod.megumi.dogs.no_room": "Божественным псам нужна безопасная земля рядом.",
+  "message.jujutsumod.megumi.dogs.none_out": "Божественные псы не призваны.",
+  "entity.jujutsumod.megumi_divine_dog": "Божественный пёс",
+  "hud.jujutsumod.megumi.divine_dogs": "Божественные псы",
+  "esp.jujutsumod.rank.special_grade": "Особый ранг",
+  "esp.jujutsumod.rank.rank1": "1 ранг",
+  "esp.jujutsumod.rank.rank2": "2 ранг",
+  "esp.jujutsumod.rank.rank3": "3 ранг",
+  "esp.jujutsumod.rank.civilian": "Гражданский",
+  "subtitles.jujutsumod.nobara.mega_charge_riser": "Мега-гвоздь заряжается",
+  "subtitles.jujutsumod.nobara.mega_launch_blast": "Мега-гвоздь выстреливает"
 }

@@ -23,7 +23,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
@@ -141,11 +141,12 @@ public final class NailTrapRuntime {
 			remove(level, trap);
 			return;
 		}
-		// Silent boundary pulse: re-emit the armed cue with intensity 0 every two seconds so
-		// the 6-block trigger ring stays visible for the trap's whole life. The recipe skips
-		// flash, sound and HUD for intensity 0, so pulses draw only the ring.
+		// Silent boundary pulse: re-emit the armed cue every two seconds so the trigger ring
+		// stays visible for the trap's whole life. The cue factory clamps intensity to >= 1,
+		// so 1 IS the silent pulse; the real arming beat is sent as intensity 3 and the recipe
+		// gates flash/sound/HUD on intensity > 1.
 		if (level.getGameTime() % 40L == 0L) {
-			emit(level, vec(trap.center()), NobaraVfxIds.NAIL_TRAP_ARMED, 0, Vec3.ZERO);
+			emit(level, vec(trap.center()), NobaraVfxIds.NAIL_TRAP_ARMED, 1, Vec3.ZERO);
 		}
 		selectTarget(level, owner, trap).ifPresent(target -> {
 			if (trap.trigger(target.getUUID())) COLLAPSES.put(trap.ownerId(), new CollapseState(target.getUUID(), 0));
@@ -204,9 +205,11 @@ public final class NailTrapRuntime {
 
 	private static java.util.Optional<LivingEntity> selectTarget(ServerLevel level, ServerPlayer owner, NailTrap trap) {
 		AABB bounds = bounds(trap);
+		// Any mob or player can trip the trap — a mine does not care whether the body is
+		// hostile (smoke: iron golems walked through untouched because they are not Enemy).
 		List<LivingEntity> candidates = level.getEntitiesOfClass(LivingEntity.class, bounds, living ->
 				living.isAlive() && !living.getUUID().equals(owner.getUUID()) && !owner.isAlliedTo(living)
-						&& (living instanceof Enemy || living instanceof ServerPlayer)
+						&& (living instanceof Mob || living instanceof ServerPlayer)
 						&& trap.contains(living.getX(), living.getY(), living.getZ()));
 		Map<UUID, LivingEntity> byId = new HashMap<>();
 		List<NailTrap.TargetCandidate> order = candidates.stream().map(target -> {
@@ -256,12 +259,10 @@ public final class NailTrapRuntime {
 	}
 
 	private static AABB bounds(NailTrap trap) {
-		double minX = trap.vertices().stream().mapToDouble(NailTrap.Point::x).min().orElse(trap.center().x());
-		double maxX = trap.vertices().stream().mapToDouble(NailTrap.Point::x).max().orElse(trap.center().x());
-		double minZ = trap.vertices().stream().mapToDouble(NailTrap.Point::z).min().orElse(trap.center().z());
-		double maxZ = trap.vertices().stream().mapToDouble(NailTrap.Point::z).max().orElse(trap.center().z());
-		return new AABB(minX, trap.center().y() - 0.5, minZ, maxX,
-				trap.center().y() + ProjectJjkNobaraProfile.NAIL_TRAP_PRISM_HEIGHT, maxZ);
+		double r = ProjectJjkNobaraProfile.NAIL_TRAP_TRIGGER_RADIUS;
+		return new AABB(trap.center().x() - r, trap.center().y() - 0.5, trap.center().z() - r,
+				trap.center().x() + r, trap.center().y() + ProjectJjkNobaraProfile.NAIL_TRAP_PRISM_HEIGHT,
+				trap.center().z() + r);
 	}
 
 	private static int countNails(ServerPlayer player) {

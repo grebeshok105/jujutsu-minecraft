@@ -104,8 +104,17 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 					state.ownedByLocal = true;
 					state.isEspLeader = esp.leaderNailEntityId() == entity.getId();
 					if (state.isEspLeader) {
-						Vec3 targetTop = hostPosition.add(0.0, living.getBbHeight() + 0.45, 0.0);
-						Vec3 billboardOffset = targetTop.subtract(state.x, state.y, state.z);
+						// Badge sits to the target's right on the viewer's screen, chest height —
+						// smoke rejected the over-the-head placement. Screen-right is the horizontal
+						// perpendicular of camera->target.
+						Vec3 cameraPos = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
+						Vec3 toTarget = hostPosition.subtract(cameraPos);
+						Vec3 screenRight = new Vec3(-toTarget.z, 0.0, toTarget.x);
+						screenRight = screenRight.lengthSqr() < 1.0E-6 ? EAST : screenRight.normalize();
+						Vec3 sideAnchor = hostPosition
+								.add(0.0, living.getBbHeight() * 0.62, 0.0)
+								.add(screenRight.scale(living.getBbWidth() * 0.5 + 1.05));
+						Vec3 billboardOffset = sideAnchor.subtract(state.x, state.y, state.z);
 
 						String rankKey;
 						if (living instanceof Player targetPlayer) {

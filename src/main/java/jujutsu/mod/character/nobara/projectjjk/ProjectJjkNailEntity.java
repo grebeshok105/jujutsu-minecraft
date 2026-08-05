@@ -395,11 +395,16 @@ public final class ProjectJjkNailEntity extends Entity {
 			int chargeElapsed = tickCount - 1;
 			float progress = Mth.clamp((float) chargeElapsed / ProjectJjkNobaraProfile.MEGA_NAIL_CHARGE_TICKS, 0.0f, 1.0f);
 			entityData.set(DATA_MEGA_PROGRESS, progress);
-			// Ratcheting charge whine: pitch and volume climb with progress. The one-shot
-			// charge cue cannot loop, so the hovering entity itself drives the build-up.
+			// The synthesized riser (played at charge start) owns the audio build-up; the
+			// quiet sizzle underneath is a mechanical layer, not the crescendo itself.
 			if (chargeElapsed % 5 == 0) {
 				serverLevel.playSound(null, getX(), getY(), getZ(), JujutsuSounds.PROJECTJJK_SIZZLE,
-						SoundSource.PLAYERS, 0.6f + progress * 0.8f, 0.7f + progress);
+						SoundSource.PLAYERS, 0.25f + progress * 0.2f, 0.7f + progress);
+			}
+			// Escalating camera shake: re-emit the charge cue every 6 ticks so the recipe
+			// (one-shot per cue) fires a stronger pulse each time — intensity 2..5.
+			if (chargeElapsed > 0 && chargeElapsed % 6 == 0) {
+				ProjectJjkMegaNailRuntime.broadcastChargePulse(serverLevel, position(), 1 + chargeElapsed / 6);
 			}
 			if (progress >= 1.0f) {
 				launchMegaNail(serverLevel);
@@ -488,11 +493,11 @@ public final class ProjectJjkNailEntity extends Entity {
 		setFlightSynced(true);
 		hasImpulse = true;
 		face(megaLaunchDirection);
-		// Launch roar: a jet taking off. Two layers — long low whoosh plus a vortex tail.
+		// Launch: synthesized jet-ignition blast with a vortex tail underneath.
 		serverLevel.playSound(null, getX(), getY(), getZ(),
-				JujutsuSounds.PROJECTJJK_LONG_WHOOSH, SoundSource.PLAYERS, 2.4f, 0.5f);
+				JujutsuSounds.NOBARA_MEGA_LAUNCH_BLAST, SoundSource.PLAYERS, 2.6f, 1.0f);
 		serverLevel.playSound(null, getX(), getY(), getZ(),
-				JujutsuSounds.PROJECTJJK_WHOOSH_VORTEX, SoundSource.PLAYERS, 1.8f, 0.7f);
+				JujutsuSounds.PROJECTJJK_WHOOSH_VORTEX, SoundSource.PLAYERS, 1.4f, 0.6f);
 	}
 
 	@Override

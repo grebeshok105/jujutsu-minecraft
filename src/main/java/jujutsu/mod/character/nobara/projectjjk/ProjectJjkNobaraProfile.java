@@ -37,7 +37,10 @@ public final class ProjectJjkNobaraProfile {
 	public static final float NAIL_DEPTH_1_MULTIPLIER = 1.0f;
 	public static final float NAIL_DEPTH_2_MULTIPLIER = 1.35f;
 	public static final float NAIL_DEPTH_3_MULTIPLIER = 1.75f;
-	public static final double NAIL_TRAP_RADIUS = 6.0;
+	/** Corner-nail placement radius: nails land ~2 blocks apart (smoke round 3 rejected the 6-block spread). */
+	public static final double NAIL_TRAP_RADIUS = 1.15;
+	/** Trigger circle around the trap centre — wider than the nail triangle so bodies brushing the corners still trip it. */
+	public static final double NAIL_TRAP_TRIGGER_RADIUS = 2.0;
 	public static final int NAIL_TRAP_NAIL_COUNT = 3;
 	public static final double NAIL_TRAP_PRISM_HEIGHT = 3.0;
 	public static final double NAIL_TRAP_PLACEMENT_RANGE = 8.0;

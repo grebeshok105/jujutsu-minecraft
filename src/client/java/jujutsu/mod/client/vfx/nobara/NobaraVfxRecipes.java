@@ -96,20 +96,28 @@ public final class NobaraVfxRecipes {
 	}
 
 	private static VfxInstance megaNailCharge(VfxCue cue) {
-		// One-shot start accent only: recipes run exactly once per cue (VfxDirector starts an
-		// instance a single time; there is no per-tick particle driver). The continuous charge
-		// vortex lives on the mega nail entity's client tick, driven by synced DATA_MEGA_PROGRESS,
-		// and the ratcheting whine is broadcast by the server charge phase.
+		// One-shot per cue. Intensity 1 = the charge start beat; the hovering entity re-emits
+		// this id with intensity 2..6 every few ticks, so each pulse lands one escalating
+		// camera-shake step. The continuous vortex lives on the entity's client tick and the
+		// audio crescendo is the server-played synthesized riser.
 		return VfxInstance.of(MEGA_NAIL_CHARGE_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) return;
 			Vec3 origin = context.resolveOrigin(cue);
 			float proximity = context.proximity(cue, WIDE_PRESENTATION_RADIUS);
-			RandomSource random = random(cue, 0x4E61A1L);
-			context.burst(ParticleTypes.FLASH, origin.add(0.0, 0.18, 0.0), 3, 0.1, 0.0, random);
-			context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 26, 2.6, 0.02, -0.14, random);
-			context.burst(PROJECTJJK_CYAN, origin, 20, 0.5, 0.04, random);
+			RandomSource random = random(cue, 0x4E61A1L + intensity(cue));
+			if (intensity(cue) <= 1) {
+				// Start beat: flash plus the outer gathering ring. The riser owns the audio.
+				context.burst(ParticleTypes.FLASH, origin.add(0.0, 0.18, 0.0), 3, 0.1, 0.0, random);
+				context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 26, 2.6, 0.02, -0.14, random);
+				context.burst(PROJECTJJK_CYAN, origin, 20, 0.5, 0.04, random);
+				return;
+			}
+			// Escalating shake pulse while the nail charges.
+			int step = Math.min(6, intensity(cue));
+			context.burst(PROJECTJJK_CYAN_SMALL, origin, 4 + step * 2, 0.3, 0.03, random);
 			if (proximity > 0.01f) {
-				context.playNoFalloff(JujutsuSounds.PROJECTJJK_MAGIC, 1.0f * proximity, 0.5f, origin, random);
+				context.camera().triggerHeavyImpact(step, proximity * (0.12f + 0.07f * step), initialAgeTicks);
+				context.hud().triggerImpact(proximity * (0.08f + 0.05f * step), initialAgeTicks);
 			}
 		});
 	}
@@ -170,14 +178,16 @@ public final class NobaraVfxRecipes {
 
 	private static VfxInstance nailTrapArmed(VfxCue cue) {
 		// One-shot per cue. The armed boundary stays readable two ways: the trap runtime
-		// re-emits this cue with intensity 0 as a periodic pulse (full ring, no flash/sound),
-		// and the corner nails render persistent prism pillars every frame.
+		// re-emits this cue as a periodic silent pulse (full ring, no flash/sound), and the
+		// corner nails render persistent prism pillars every frame. The cue factory clamps
+		// intensity to >= 1 (VfxCues.create), so "silent" is intensity 1 and the real arming
+		// beat travels as intensity > 1 — a zero can never reach this recipe.
 		return VfxInstance.of(NAIL_TRAP_ARMED_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) return;
 			Vec3 origin = context.resolveOrigin(cue);
 			float proximity = context.proximity(cue, IMPACT_PRESENTATION_RADIUS);
 			RandomSource random = random(cue, 0x7A4A11L);
-			boolean armingBeat = intensity(cue) > 0;
+			boolean armingBeat = intensity(cue) > 1;
 			if (armingBeat) {
 				context.burst(ParticleTypes.FLASH, origin, 2, 0.12, 0.0, random);
 				if (proximity > 0.01f) {
@@ -185,16 +195,16 @@ public final class NobaraVfxRecipes {
 				}
 				if (proximity > 0.01f) context.hud().triggerSwing(proximity * 0.3f, initialAgeTicks);
 			}
-			// Full trigger-radius boundary ring, drawn on every cue including silent pulses.
-			int edgePoints = 42;
+			// Boundary ring on the trigger circle — the actual radius a body must enter.
+			int edgePoints = 26;
 			for (int p = 0; p < edgePoints; p++) {
 				double angle = Math.PI * 2.0 * p / edgePoints;
-				Vec3 at = origin.add(Math.cos(angle) * ProjectJjkNobaraProfile.NAIL_TRAP_RADIUS, 0.08,
-						Math.sin(angle) * ProjectJjkNobaraProfile.NAIL_TRAP_RADIUS);
+				Vec3 at = origin.add(Math.cos(angle) * ProjectJjkNobaraProfile.NAIL_TRAP_TRIGGER_RADIUS, 0.08,
+						Math.sin(angle) * ProjectJjkNobaraProfile.NAIL_TRAP_TRIGGER_RADIUS);
 				context.burst(JujutsuParticles.HAIRPIN_WARN_EDGE, at, 1, 0.02, 0.01, random);
 			}
-			context.ring(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 18,
-					ProjectJjkNobaraProfile.NAIL_TRAP_RADIUS * 0.72, 0.06, -0.05, random);
+			context.ring(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 14,
+					ProjectJjkNobaraProfile.NAIL_TRAP_TRIGGER_RADIUS * 0.7, 0.06, -0.05, random);
 			context.burst(PROJECTJJK_CYAN_SMALL, origin, 6, 0.4, 0.04, random);
 		});
 	}

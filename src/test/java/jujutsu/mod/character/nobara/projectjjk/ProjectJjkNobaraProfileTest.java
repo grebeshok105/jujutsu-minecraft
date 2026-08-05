@@ -46,7 +46,10 @@ public final class ProjectJjkNobaraProfileTest {
 		assert ProjectJjkNobaraProfile.nailDepthMultiplier(1) == 1.0f;
 		assert ProjectJjkNobaraProfile.nailDepthMultiplier(2) == 1.35f;
 		assert ProjectJjkNobaraProfile.nailDepthMultiplier(3) == 1.75f;
-		assert ProjectJjkNobaraProfile.NAIL_TRAP_RADIUS == 6.0;
+		assert ProjectJjkNobaraProfile.NAIL_TRAP_RADIUS == 1.15 : "corner nails sit ~2 blocks apart (smoke round 3)";
+		assert ProjectJjkNobaraProfile.NAIL_TRAP_TRIGGER_RADIUS == 2.0;
+		assert ProjectJjkNobaraProfile.NAIL_TRAP_TRIGGER_RADIUS > ProjectJjkNobaraProfile.NAIL_TRAP_RADIUS
+				: "trigger circle must cover the corner nails";
 		assert ProjectJjkNobaraProfile.NAIL_TRAP_DAMAGE == 15.0f;
 		assert ProjectJjkNobaraProfile.RESONANT_MOMENTUM_DURATION_TICKS == 1200;
 		assert ProjectJjkNobaraProfile.RESONANT_MOMENTUM_MULTIPLIER == 1.15f;

@@ -29,6 +29,10 @@ public final class JujutsuSounds {
 	public static final SoundEvent PROJECTJJK_WHOOSH_VORTEX = create("projectjjk.whoosh_vortex");
 	/** Low body-impact report. Two variants, so a rapid exchange does not sound like one looped sample. */
 	public static final SoundEvent PROJECTJJK_AEC_BOOM = create("projectjjk.aec_boom");
+	/** Mega Nail: 1.3 s synthesized power build-up, played once at charge start (see tools/synth_mega_sounds.py). */
+	public static final SoundEvent NOBARA_MEGA_CHARGE_RISER = create("nobara.mega_charge_riser");
+	/** Mega Nail: jet-ignition blast at launch. */
+	public static final SoundEvent NOBARA_MEGA_LAUNCH_BLAST = create("nobara.mega_launch_blast");
 
 	private JujutsuSounds() {}
 
@@ -55,6 +59,8 @@ public final class JujutsuSounds {
 		register("projectjjk.long_whoosh", PROJECTJJK_LONG_WHOOSH);
 		register("projectjjk.whoosh_vortex", PROJECTJJK_WHOOSH_VORTEX);
 		register("projectjjk.aec_boom", PROJECTJJK_AEC_BOOM);
+		register("nobara.mega_charge_riser", NOBARA_MEGA_CHARGE_RISER);
+		register("nobara.mega_launch_blast", NOBARA_MEGA_LAUNCH_BLAST);
 	}
 
 	private static SoundEvent create(String path) {

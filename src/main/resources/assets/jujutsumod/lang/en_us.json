@@ -112,5 +112,7 @@
   "esp.jujutsumod.rank.rank1": "Grade 1",
   "esp.jujutsumod.rank.rank2": "Grade 2",
   "esp.jujutsumod.rank.rank3": "Grade 3",
-  "esp.jujutsumod.rank.civilian": "Civilian"
+  "esp.jujutsumod.rank.civilian": "Civilian",
+  "subtitles.jujutsumod.nobara.mega_charge_riser": "Mega nail charges",
+  "subtitles.jujutsumod.nobara.mega_launch_blast": "Mega nail launches"
 }

@@ -90,13 +90,25 @@ public final class ProjectJjkMegaNailRuntime {
 		}
 		ProjectJjkNailMarks.consume(target.getUUID(), gameTime);
 		ProjectJjkRitualRuntime.clearGlowingMark(target);
-		// Mega nail charge cue at the gather point
-		broadcast(level, gatherPoint, NobaraVfxIds.MEGA_NAIL_CHARGE, clampIntensity(count), gameTime);
+		// Charge start cue (intensity 1). The entity re-emits this id with intensity 2..6
+		// during the charge as escalating camera-shake pulses; 1 marks the start beat.
+		broadcast(level, gatherPoint, NobaraVfxIds.MEGA_NAIL_CHARGE, 1, gameTime);
+		// The 1.3 s synthesized riser owns the charge audio, timed to end at launch.
+		level.playSound(null, gatherPoint.x, gatherPoint.y, gatherPoint.z,
+				JujutsuSounds.NOBARA_MEGA_CHARGE_RISER, SoundSource.PLAYERS, 1.9f, 1.0f);
 		// Caster presentation cue
 		JujutsuNetworking.broadcastVfxCue(level, caster.position(), VFX_DELIVERY_RADIUS,
 				cue(level, NobaraVfxIds.CASTER_ACTION, NobaraVfxIds.CASTER_MEGA_NAIL,
 						caster.position(), gameTime, caster));
 		return true;
+	}
+
+	/**
+	 * Escalating charge-shake pulse, re-emitted by the hovering mega nail every few ticks.
+	 * Intensity 1 is reserved for the charge start beat; pulses climb 2..5 over the charge.
+	 */
+	static void broadcastChargePulse(ServerLevel level, Vec3 at, int intensity) {
+		broadcast(level, at, NobaraVfxIds.MEGA_NAIL_CHARGE, Math.max(2, intensity), level.getGameTime());
 	}
 
 	/**
@@ -135,20 +147,25 @@ public final class ProjectJjkMegaNailRuntime {
 			DamageSource source = NobaraDamageSources.hairpin(level, caster);
 			float damage = megaNailDamage(entity.megaWeight()) * ResonantMomentum.damageMultiplier(caster);
 			target.hurtServer(level, source, damage);
-			// Stagger before knockback: LivingEntity overload damps velocity, so the shove lands after it.
+			// Stagger before the shove: LivingEntity overload damps velocity, so the push lands after it.
 			CombatStagger.GLOBAL.apply(target, gameTime, ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
 			Vec3 knockbackDir = entity.megaLaunchDirection();
-			target.knockback(megaNailKnockback(entity.megaCount()), -knockbackDir.x, -knockbackDir.z);
+			// Physical shove, not LivingEntity.knockback(): a giant nail moves EVERY body.
+			// knockback() multiplies by KNOCKBACK_RESISTANCE, which zeroes it on iron golems.
+			float shove = megaNailKnockback(entity.megaCount()) * 0.55f;
+			target.setDeltaMovement(target.getDeltaMovement()
+					.add(knockbackDir.x * shove, 0.1 + shove * 0.18, knockbackDir.z * shove));
+			target.hurtMarked = true;
 			// Strike VFX: origin in front of target, displacement along direction
 			Vec3 origin = target.position().add(knockbackDir.scale(-0.5));
 			Vec3 displacement = knockbackDir.scale(4.0);
 			broadcastDisplacement(level, origin, NobaraVfxIds.MEGA_NAIL_STRIKE,
 					clampIntensity(entity.megaCount()), gameTime, displacement);
-			// Server sounds on the strike tick
+			// Server sounds on the strike tick: deep blast plus a low body boom.
 			level.playSound(null, target.getX(), target.getY(), target.getZ(),
-					JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, SoundSource.PLAYERS, 0.9f, 0.7f);
+					JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, SoundSource.PLAYERS, 1.35f, 0.68f);
 			level.playSound(null, target.getX(), target.getY(), target.getZ(),
-					JujutsuSounds.PROJECTJJK_LONG_WHOOSH, SoundSource.PLAYERS, 1.0f, 0.55f);
+					JujutsuSounds.PROJECTJJK_AEC_BOOM, SoundSource.PLAYERS, 1.1f, 0.55f);
 		} else if (hit instanceof BlockHitResult) {
 			// Block impact: terminal VFX only
 			terminalVfx(level, entity);
