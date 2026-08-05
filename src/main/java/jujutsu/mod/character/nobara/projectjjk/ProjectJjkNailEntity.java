@@ -37,6 +37,9 @@ public final class ProjectJjkNailEntity extends Entity {
 	private static final EntityDataAccessor<Vector3f> DATA_EMBEDDED_LOCAL_FORWARD = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.VECTOR3);
 	private static final EntityDataAccessor<Integer> DATA_EMBED_DEPTH = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.INT);
 	private static final EntityDataAccessor<Optional<EntityReference<LivingEntity>>> DATA_OWNER_UUID = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.OPTIONAL_LIVING_ENTITY_REFERENCE);
+	private static final EntityDataAccessor<Boolean> DATA_TRAP = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.BOOLEAN); // TRAP: persistent visual flag
+	private static final EntityDataAccessor<Boolean> DATA_MEGA = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.BOOLEAN);
+	private static final EntityDataAccessor<Float> DATA_MEGA_PROGRESS = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.FLOAT);
 	private static final String OWNER_UUID_TAG = "OwnerUuid";
 	private static final String OWNER_ENTITY_ID_TAG = "OwnerEntityId";
 	private static final String LAUNCHED_TAG = "Launched";
@@ -58,6 +61,15 @@ public final class ProjectJjkNailEntity extends Entity {
 	private static final String DIRECTION_X_TAG = "DirectionX";
 	private static final String DIRECTION_Y_TAG = "DirectionY";
 	private static final String DIRECTION_Z_TAG = "DirectionZ";
+	private static final String MEGA_NAIL_TAG = "MegaNail";
+	private static final String MEGA_WEIGHT_TAG = "MegaWeight";
+	private static final String MEGA_COUNT_TAG = "MegaCount";
+	private static final String MEGA_TARGET_UUID_TAG = "MegaTargetUuid";
+	private static final String MEGA_TARGET_ENTITY_ID_TAG = "MegaTargetEntityId";
+	private static final String MEGA_LAUNCH_DIR_X_TAG = "MegaLaunchDirX";
+	private static final String MEGA_LAUNCH_DIR_Y_TAG = "MegaLaunchDirY";
+	private static final String MEGA_LAUNCH_DIR_Z_TAG = "MegaLaunchDirZ";
+	private static final String MEGA_FLIGHT_TICKS_TAG = "MegaFlightTicks";
 	private static final String ANCHOR_KIND_TAG = "AnchorKind";
 	private static final String ANCHOR_BLOCK_X_TAG = "AnchorBlockX";
 	private static final String ANCHOR_BLOCK_Y_TAG = "AnchorBlockY";
@@ -87,6 +99,13 @@ public final class ProjectJjkNailEntity extends Entity {
 	private NailAnchor anchor = NailAnchor.none();
 	private boolean trapNail;
 	private boolean embeddedIndexTracked;
+	// Mega nail (server-only fields)
+	private float megaWeight;
+	private int megaCount;
+	private UUID megaTargetUuid;
+	private int megaTargetEntityId;
+	private Vec3 megaLaunchDirection = Vec3.ZERO;
+	private int megaFlightTicks;
 
 	public ProjectJjkNailEntity(EntityType<? extends ProjectJjkNailEntity> entityType, Level level) {
 		super(entityType, level);
@@ -196,9 +215,25 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	public void markAsTrapNail() {
 		trapNail = true;
+		entityData.set(DATA_TRAP, true);
 		untrackEmbeddedNail();
 	}
-	public boolean isTrapNail() { return trapNail; }
+	public boolean isTrapNail() {
+		return level().isClientSide() ? entityData.get(DATA_TRAP) : trapNail;
+	}
+
+	public boolean isMegaNail() { return entityData.get(DATA_MEGA); }
+	public float megaProgress() { return entityData.get(DATA_MEGA_PROGRESS); }
+	/** Render scale derived from synced charge progress, so the shared renderer needs no profile reference. */
+	public float megaRenderScale() {
+		return isLaunched()
+				? ProjectJjkNobaraProfile.MEGA_NAIL_SCALE_END
+				: Mth.lerp(megaProgress(), ProjectJjkNobaraProfile.MEGA_NAIL_SCALE_START, ProjectJjkNobaraProfile.MEGA_NAIL_SCALE_END);
+	}
+	public float megaWeight() { return megaWeight; }
+	public int megaCount() { return megaCount; }
+	public UUID megaTargetUuid() { return megaTargetUuid; }
+	public Vec3 megaLaunchDirection() { return megaLaunchDirection; }
 
 	public void attachToRuntimeObject(ResourceLocation type, UUID objectId, Vec3 localOffset, Vec3 localForward) {
 		anchor = NailAnchor.runtime(type, objectId, localOffset, localForward);
@@ -242,6 +277,25 @@ public final class ProjectJjkNailEntity extends Entity {
 		}
 	}
 
+	public void initializeAsMegaNail(ServerPlayer caster, Vec3 gatherPoint, float weight, int count, UUID targetUuid, int targetEntityId) {
+		ownerUuid = caster.getUUID();
+		entityData.set(DATA_OWNER_UUID, Optional.of(new EntityReference<>(ownerUuid)));
+		ownerEntityId = caster.getId();
+		this.megaWeight = weight;
+		this.megaCount = count;
+		this.megaTargetUuid = targetUuid;
+		this.megaTargetEntityId = targetEntityId;
+		this.megaLaunchDirection = Vec3.ZERO;
+		this.megaFlightTicks = 0;
+		this.target = gatherPoint;
+		entityData.set(DATA_MEGA, true);
+		entityData.set(DATA_MEGA_PROGRESS, 0.0f);
+		setLaunched(false);
+		setPos(gatherPoint);
+		setDeltaMovement(Vec3.ZERO);
+		face(caster.getLookAngle());
+	}
+
 	public Vec3 forwardDirection() {
 		Vector3f forward = entityData.get(DATA_FORWARD);
 		return safeDirection(new Vec3(forward.x(), forward.y(), forward.z()));
@@ -256,6 +310,11 @@ public final class ProjectJjkNailEntity extends Entity {
 		}
 		if (isEmbedded()) {
 			tickEmbedded();
+			return;
+		}
+
+		if (isMegaNail()) {
+			tickMegaNail();
 			return;
 		}
 
@@ -317,6 +376,73 @@ public final class ProjectJjkNailEntity extends Entity {
 		}
 	}
 
+	private void tickMegaNail() {
+		if (level().isClientSide()) {
+			clientTickMovement();
+			return;
+		}
+		ServerLevel serverLevel = (ServerLevel) level();
+
+		if (!isLaunched()) {
+			// CHARGE phase: hover at gather point, progress 0→1
+			setDeltaMovement(Vec3.ZERO);
+			int chargeElapsed = tickCount - 1;
+			float progress = Mth.clamp((float) chargeElapsed / ProjectJjkNobaraProfile.MEGA_NAIL_CHARGE_TICKS, 0.0f, 1.0f);
+			entityData.set(DATA_MEGA_PROGRESS, progress);
+			if (progress >= 1.0f) {
+				launchMegaNail(serverLevel);
+			}
+			return;
+		}
+
+		// FLIGHT phase: timeout tracking, then normal flight + impact
+		megaFlightTicks++;
+		if (megaFlightTicks > ProjectJjkNobaraProfile.MEGA_NAIL_FLIGHT_TIMEOUT_TICKS) {
+			ProjectJjkMegaNailRuntime.onMegaNailTimeout(serverLevel, this);
+			discard();
+			return;
+		}
+
+		HitResult hit = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity, ClipContext.Block.COLLIDER);
+		if (hit.getType() != HitResult.Type.MISS) {
+			setPos(hit.getLocation());
+			ProjectJjkMegaNailRuntime.onMegaNailImpact(serverLevel, this, hit);
+			discard();
+			return;
+		}
+
+		Vec3 movement = getDeltaMovement();
+		move(MoverType.SELF, movement);
+		face(movement);
+		if ((tickCount & 1) == 0) {
+			ProjectJjkNobaraRuntime.spawnNailFlightTrail(serverLevel, position(), movement);
+		}
+	}
+
+	private void launchMegaNail(ServerLevel serverLevel) {
+		// Re-target: if target is alive and ≤48 blocks away, use its current position
+		Vec3 launchTarget;
+		Entity targetEntity = megaTargetUuid == null ? null : serverLevel.getEntity(megaTargetUuid);
+		if (targetEntity instanceof LivingEntity living && living.isAlive()) {
+			double distSqr = living.distanceToSqr(this);
+			if (distSqr <= 48.0 * 48.0) {
+				launchTarget = living.position();
+			} else {
+				launchTarget = target;
+			}
+		} else {
+			launchTarget = target;
+		}
+		megaLaunchDirection = safeDirection(launchTarget.subtract(position()));
+		megaFlightTicks = 0;
+		entityData.set(DATA_MEGA_PROGRESS, 1.0f);
+		setLaunched(true);
+		setDeltaMovement(launchVelocity(megaLaunchDirection).scale(ProjectJjkNobaraProfile.MEGA_NAIL_SPEED_MULTIPLIER));
+		setFlightSynced(true);
+		hasImpulse = true;
+		face(megaLaunchDirection);
+	}
+
 	@Override
 	public boolean isPickable() {
 		return true;
@@ -343,6 +469,9 @@ public final class ProjectJjkNailEntity extends Entity {
 		builder.define(DATA_EMBEDDED_LOCAL_FORWARD, new Vector3f(0.0f, 0.0f, 1.0f));
 		builder.define(DATA_EMBED_DEPTH, 1);
 		builder.define(DATA_OWNER_UUID, Optional.empty());
+		builder.define(DATA_TRAP, false); // TRAP: persistent visual flag
+		builder.define(DATA_MEGA, false);
+		builder.define(DATA_MEGA_PROGRESS, 0.0f);
 	}
 
 	@Override
@@ -363,6 +492,17 @@ public final class ProjectJjkNailEntity extends Entity {
 		output.putInt(EMBEDDED_AGE_TAG, embeddedAgeTicks);
 		output.putInt(EMBED_DEPTH_TAG, embedDepthLevel());
 		output.putBoolean(TRAP_NAIL_TAG, trapNail);
+		output.putBoolean(MEGA_NAIL_TAG, entityData.get(DATA_MEGA));
+		if (entityData.get(DATA_MEGA)) {
+			output.putFloat(MEGA_WEIGHT_TAG, megaWeight);
+			output.putInt(MEGA_COUNT_TAG, megaCount);
+			if (megaTargetUuid != null) output.putString(MEGA_TARGET_UUID_TAG, megaTargetUuid.toString());
+			output.putInt(MEGA_TARGET_ENTITY_ID_TAG, megaTargetEntityId);
+			output.putDouble(MEGA_LAUNCH_DIR_X_TAG, megaLaunchDirection.x);
+			output.putDouble(MEGA_LAUNCH_DIR_Y_TAG, megaLaunchDirection.y);
+			output.putDouble(MEGA_LAUNCH_DIR_Z_TAG, megaLaunchDirection.z);
+			output.putInt(MEGA_FLIGHT_TICKS_TAG, megaFlightTicks);
+		}
 		output.putDouble(EMBEDDED_OFFSET_X_TAG, embeddedLocalOffset.x);
 		output.putDouble(EMBEDDED_OFFSET_Y_TAG, embeddedLocalOffset.y);
 		output.putDouble(EMBEDDED_OFFSET_Z_TAG, embeddedLocalOffset.z);
@@ -407,6 +547,21 @@ public final class ProjectJjkNailEntity extends Entity {
 		embeddedAgeTicks = input.getIntOr(EMBEDDED_AGE_TAG, 0);
 		entityData.set(DATA_EMBED_DEPTH, Mth.clamp(input.getIntOr(EMBED_DEPTH_TAG, 1), 1, 3));
 		trapNail = input.getBooleanOr(TRAP_NAIL_TAG, false);
+		entityData.set(DATA_TRAP, trapNail);
+		boolean mega = input.getBooleanOr(MEGA_NAIL_TAG, false);
+		entityData.set(DATA_MEGA, mega);
+		if (mega) {
+			megaWeight = input.getFloatOr(MEGA_WEIGHT_TAG, 0.0f);
+			megaCount = input.getIntOr(MEGA_COUNT_TAG, 0);
+			String targetStr = input.getStringOr(MEGA_TARGET_UUID_TAG, "");
+			megaTargetUuid = targetStr.isBlank() ? null : UUID.fromString(targetStr);
+			megaTargetEntityId = input.getIntOr(MEGA_TARGET_ENTITY_ID_TAG, -1);
+			megaLaunchDirection = new Vec3(
+					input.getDoubleOr(MEGA_LAUNCH_DIR_X_TAG, 0.0),
+					input.getDoubleOr(MEGA_LAUNCH_DIR_Y_TAG, 0.0),
+					input.getDoubleOr(MEGA_LAUNCH_DIR_Z_TAG, 0.0));
+			megaFlightTicks = input.getIntOr(MEGA_FLIGHT_TICKS_TAG, 0);
+		}
 		embeddedLocalOffset = new Vec3(input.getDoubleOr(EMBEDDED_OFFSET_X_TAG, 0.0), input.getDoubleOr(EMBEDDED_OFFSET_Y_TAG, 0.0), input.getDoubleOr(EMBEDDED_OFFSET_Z_TAG, 0.0));
 		embeddedOffset = embeddedLocalOffset;
 		target = new Vec3(input.getDoubleOr(TARGET_X_TAG, getX()), input.getDoubleOr(TARGET_Y_TAG, getY()), input.getDoubleOr(TARGET_Z_TAG, getZ()));

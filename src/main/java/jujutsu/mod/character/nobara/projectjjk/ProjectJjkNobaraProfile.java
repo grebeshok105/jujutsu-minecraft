@@ -67,10 +67,16 @@ public final class ProjectJjkNobaraProfile {
 	public static final float MEGA_NAIL_DAMAGE_PER_NAIL = HAIRPIN_ENLARGE_DAMAGE_PER_NAIL;
 	/** Hard cap on total mega nail damage: 1.5x Resonance damage, the kit's hardest single hit with full setup. */
 	public static final float MEGA_NAIL_DAMAGE_CAP = 42.0f;
-	/** Ticks from cast to strike delivery. */
-	public static final int MEGA_NAIL_STRIKE_DELAY_TICKS = 6;
-	/** Max ticks to keep retrying a temporarily unavailable target before giving up. */
-	public static final int MEGA_NAIL_RETRY_TIMEOUT_TICKS = 40;
+	/** Ticks the mega nail charges in front of the caster before launching (grows scale 0.6→2.6). */
+	public static final int MEGA_NAIL_CHARGE_TICKS = 24;
+	/** Max flight ticks before the mega nail times out (miss/block fallback). */
+	public static final int MEGA_NAIL_FLIGHT_TIMEOUT_TICKS = 60;
+	/** Speed multiplier for mega nail flight, applied on top of LAUNCH_SPEED. */
+	public static final double MEGA_NAIL_SPEED_MULTIPLIER = 1.3;
+	/** Starting scale of the mega nail during charge phase. */
+	public static final float MEGA_NAIL_SCALE_START = 0.6f;
+	/** Final scale of the mega nail at the end of charge. */
+	public static final float MEGA_NAIL_SCALE_END = 2.6f;
 	/** Base knockback before per-nail bonus, same as Hairpin base. */
 	public static final float MEGA_NAIL_KNOCKBACK_BASE = HAIRPIN_KNOCKBACK;
 	/** Extra knockback per consumed nail, same as Hairpin explosion per-nail push. */

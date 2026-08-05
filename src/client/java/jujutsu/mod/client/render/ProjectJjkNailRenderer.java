@@ -78,6 +78,9 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		state.hasEmbeddedAnchor = false;
 		state.ownedByLocal = false;
 		state.isEspLeader = false;
+		state.trapNail = entity.isTrapNail();
+		state.isMega = entity.isMegaNail();
+		state.megaRenderScale = entity.megaRenderScale();
 		state.espTarget = null;
 		if (state.embedded) {
 			Entity host = entity.embeddedTargetEntityId() < 0 ? null : entity.level().getEntity(entity.embeddedTargetEntityId());
@@ -137,6 +140,24 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		if (state.embedded && state.hasEmbeddedAnchor) {
 			matrices.translate(state.embeddedAnchorOffset.x, state.embeddedAnchorOffset.y, state.embeddedAnchorOffset.z);
 		}
+		if (state.isMega) {
+			// Mega nail — giant material nail with enhanced aura.
+			float megaScale = state.megaRenderScale;
+			// Light scale pulse.
+			megaScale *= 1.0f + 0.03f * (float) Math.sin(state.age * 0.12f + state.seed * 0.37f);
+			renderCompressedEnergyAura(consumers.getBuffer(RenderType.lightning()), matrices, Vec3.ZERO, direction,
+					state.age + state.seed * 0.37f, 1.0f, 2.2f, 0.24f, 6, state.launched);
+			matrices.mulPose(new Quaternionf().rotationTo(MODEL_UP, toVector3f(direction)));
+			matrices.pushPose();
+			matrices.mulPose(new Quaternionf().rotateY((float) ((state.seed & 3) * Math.PI * 0.5)));
+			matrices.scale(megaScale, megaScale, megaScale);
+			itemRenderer.renderStatic(NAIL_STACK, ItemDisplayContext.FIXED, packedLight,
+					OverlayTexture.NO_OVERLAY, matrices, consumers, Minecraft.getInstance().level, state.seed);
+			matrices.popPose();
+			matrices.popPose();
+			super.render(state, matrices, consumers, packedLight);
+			return;
+		}
 		if (!state.embedded) {
 			float alpha = state.launched ? 0.96f : 0.68f;
 			float length = state.launched ? 1.28f : 0.76f;
@@ -149,6 +170,11 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 					state.age + state.seed * 0.37f, NOBARA_ACCENT);
 		} else {
 			renderEmbeddedMarkPulse(consumers.getBuffer(RenderType.lightning()), matrices, Vec3.ZERO, direction,
+					state.age + state.seed * 0.37f);
+		}
+		// Trap nail persistent visual — vertical pillar + ground ring
+		if (state.trapNail) {
+			renderTrapNailPillar(consumers.getBuffer(RenderType.lightning()), matrices,
 					state.age + state.seed * 0.37f);
 		}
 		matrices.mulPose(new Quaternionf().rotationTo(MODEL_UP, toVector3f(direction)));
@@ -277,6 +303,43 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		}
 	}
 
+	private static void renderTrapNailPillar(VertexConsumer consumer, PoseStack matrices, float age) {
+		// Ground ring — slow breathing pulse, cursed blue palette
+		float breathe = 0.6f + 0.4f * (float) Math.sin(age * 0.035f);
+		float ringRadius = 0.42f * breathe;
+		Vec3 side = EAST;
+		Vec3 cross = UP.cross(side).normalize();
+
+		// Outer ground ring
+		renderPressureBand(consumer, matrices, Vec3.ZERO, side, cross, ringRadius, Math.round(48.0f * breathe));
+		// Inner ground ring (brighter)
+		renderPressureBand(consumer, matrices, Vec3.ZERO, side, cross, ringRadius * 0.55f, Math.round(68.0f * breathe));
+
+		// Vertical pillar — stacked rings ascending from ground
+		float beamHeight = 1.8f;
+		float pillarPulse = 0.7f + 0.3f * (float) Math.sin(age * 0.055f);
+		int layers = 8;
+		for (int i = 0; i <= layers; i++) {
+			float t = (float) i / layers;
+			float y = beamHeight * t;
+			float layerAlpha = (1.0f - t * 0.7f) * 80.0f * pillarPulse;
+			float layerRadius = 0.05f + 0.04f * (1.0f - t * 0.5f);
+			renderPressureBand(consumer, matrices, new Vec3(0.0, y, 0.0), side, cross, layerRadius, Math.round(layerAlpha));
+		}
+
+		// Bright tip at top of pillar
+		float tipAlpha = 100.0f * pillarPulse;
+		renderPressureBand(consumer, matrices, new Vec3(0.0, beamHeight, 0.0), side, cross, 0.07f, Math.round(tipAlpha));
+
+		// Vertical glow ribbon
+		float ribbonAlpha = 28.0f * pillarPulse;
+		Vec3 top = new Vec3(0.0, beamHeight * 0.9, 0.0);
+		addRibbon(consumer, matrices, Vec3.ZERO, top, side.scale(0.025),
+				CURSED_BLUE_EDGE_R, CURSED_BLUE_EDGE_G, CURSED_BLUE_EDGE_B, Math.round(ribbonAlpha));
+		addRibbon(consumer, matrices, Vec3.ZERO, top, cross.scale(0.025),
+				CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, Math.round(ribbonAlpha * 0.6f));
+	}
+
 	private static void renderEspBillboard(State.EspTargetData esp, PoseStack matrices, MultiBufferSource consumers, int packedLight) {
 		matrices.pushPose();
 		matrices.translate(esp.billboardOffset().x, esp.billboardOffset().y, esp.billboardOffset().z);
@@ -284,7 +347,6 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		matrices.scale(-0.025f, -0.025f, 0.025f);
 
 		Font font = Minecraft.getInstance().font;
-		float bgPad = 4.0f;
 		float lineH = font.lineHeight + 2;
 
 		String hpText = String.format(Locale.ROOT, " %.1f/%.1f", esp.hp(), esp.maxHp());
@@ -297,35 +359,20 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 			if (!pips.isEmpty()) pips.append(' ');
 			pips.append("\u2022".repeat(d));
 		}
-		String line3Str = "\u2692 x" + esp.nailCount() + " " + pips;
+		String line3Str = "\u00D7" + esp.nailCount() + " " + pips;
 		Component line3 = Component.literal(line3Str);
 
-		float w1 = font.width(line1);
-		float w2 = font.width(line2);
-		float w3 = font.width(line3);
-		float maxW = Math.max(w1, Math.max(w2, w3));
-
-		float bgX1 = -maxW / 2.0f - bgPad;
-		float bgY1 = -lineH * 3 - bgPad;
-		float bgX2 = maxW / 2.0f + bgPad;
-		float bgY2 = bgPad;
-
-		VertexConsumer bgBuilder = consumers.getBuffer(RenderType.textBackground());
+		// Background travels with each line through drawInBatch, exactly like vanilla nameplates:
+		// a hand-built background quad batches after the glyphs and paints over them.
+		int background = 0xB8121818;
 		PoseStack.Pose pose = matrices.last();
 		org.joml.Matrix4f m = pose.pose();
-		int bgA = (0xB8121818 >> 24) & 0xFF;
-		int bgR = (0xB8121818 >> 16) & 0xFF;
-		int bgG = (0xB8121818 >> 8) & 0xFF;
-		int bgB = 0xB8121818 & 0xFF;
-		bgBuilder.addVertex(m, bgX1, bgY1, 0.0f).setColor(bgR, bgG, bgB, bgA).setLight(packedLight);
-		bgBuilder.addVertex(m, bgX2, bgY1, 0.0f).setColor(bgR, bgG, bgB, bgA).setLight(packedLight);
-		bgBuilder.addVertex(m, bgX2, bgY2, 0.0f).setColor(bgR, bgG, bgB, bgA).setLight(packedLight);
-		bgBuilder.addVertex(m, bgX1, bgY2, 0.0f).setColor(bgR, bgG, bgB, bgA).setLight(packedLight);
-
-		float tx = -maxW / 2.0f;
-		font.drawInBatch(line1, tx, 0.0f, 0xFFE5F1EF, false, m, consumers, Font.DisplayMode.NORMAL, 0, packedLight);
-		font.drawInBatch(line2, tx, -lineH, 0xFFB8C4C2, false, m, consumers, Font.DisplayMode.NORMAL, 0, packedLight);
-		font.drawInBatch(line3, tx, -lineH * 2, 0xFFE48A36, false, m, consumers, Font.DisplayMode.NORMAL, 0, packedLight);
+		font.drawInBatch(line1, -font.width(line1) / 2.0f, 0.0f, 0xFFE5F1EF, false, m, consumers,
+				Font.DisplayMode.NORMAL, background, packedLight);
+		font.drawInBatch(line2, -font.width(line2) / 2.0f, -lineH, 0xFFB8C4C2, false, m, consumers,
+				Font.DisplayMode.NORMAL, background, packedLight);
+		font.drawInBatch(line3, -font.width(line3) / 2.0f, -lineH * 2, 0xFFE48A36, false, m, consumers,
+				Font.DisplayMode.NORMAL, background, packedLight);
 
 		matrices.popPose();
 	}
@@ -373,6 +420,9 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		private Vec3 embeddedAnchorOffset = Vec3.ZERO;
 		private boolean ownedByLocal;
 		private boolean isEspLeader;
+		private boolean trapNail;
+		private boolean isMega;
+		private float megaRenderScale;
 		private EspTargetData espTarget;
 
 		public record EspTargetData(

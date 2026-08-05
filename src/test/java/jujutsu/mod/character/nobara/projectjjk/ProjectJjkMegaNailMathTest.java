@@ -93,7 +93,12 @@ final class ProjectJjkMegaNailMathTest {
 	}
 
 	@Test
-	void strikeDelayConstantIsSixTicks() {
-		assertEquals(6, ProjectJjkNobaraProfile.MEGA_NAIL_STRIKE_DELAY_TICKS);
+	void chargeTicksIsTwentyFour() {
+		assertEquals(24, ProjectJjkNobaraProfile.MEGA_NAIL_CHARGE_TICKS);
+	}
+
+	@Test
+	void flightTimeoutIsSixtyTicks() {
+		assertEquals(60, ProjectJjkNobaraProfile.MEGA_NAIL_FLIGHT_TIMEOUT_TICKS);
 	}
 }

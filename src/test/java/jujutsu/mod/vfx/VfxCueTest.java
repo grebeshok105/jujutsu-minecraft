@@ -78,7 +78,7 @@ final class VfxCueTest {
 				"nobara/doll_strike", "nobara/resonance_release", "nobara/hammer_horizontal", "nobara/hammer_overhead",
 				"nobara/hammer_nail_launch", "nobara/black_flash", "nobara/self_resonance", "nobara/nail_deepen",
 				"nobara/nail_trap_placed", "nobara/nail_trap_armed", "nobara/nail_trap_collapse", "nobara/nail_trap_impact",
-				"nobara/caster_action", "nobara/mega_nail_strike"),
+				"nobara/caster_action", "nobara/mega_nail_strike", "nobara/mega_nail_charge"),
 				paths(NobaraVfxIds.LIVE));
 		assertEquals(Set.of(
 				"todo/boogie_woogie", "todo/swap_endpoint", "todo/feint_tell", "todo/pair_mark",

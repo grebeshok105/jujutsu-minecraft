@@ -34,8 +34,11 @@ public final class ProjectJjkNobaraProfileTest {
 		assert ProjectJjkNobaraProfile.HAIRPIN_DIRECTED_CHAIN_DELAY_TICKS == 2;
 		assert ProjectJjkNobaraProfile.MEGA_NAIL_DAMAGE_PER_NAIL == ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_DAMAGE_PER_NAIL;
 		assert ProjectJjkNobaraProfile.MEGA_NAIL_DAMAGE_CAP == 42.0f;
-		assert ProjectJjkNobaraProfile.MEGA_NAIL_STRIKE_DELAY_TICKS == 6;
-		assert ProjectJjkNobaraProfile.MEGA_NAIL_RETRY_TIMEOUT_TICKS == 40;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_CHARGE_TICKS == 24;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_FLIGHT_TIMEOUT_TICKS == 60;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_SPEED_MULTIPLIER == 1.3;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_SCALE_START == 0.6f;
+		assert ProjectJjkNobaraProfile.MEGA_NAIL_SCALE_END == 2.6f;
 		assert ProjectJjkNobaraProfile.MEGA_NAIL_KNOCKBACK_BASE == ProjectJjkNobaraProfile.HAIRPIN_KNOCKBACK;
 		assert ProjectJjkNobaraProfile.MEGA_NAIL_KNOCKBACK_PER_NAIL == ProjectJjkNobaraProfile.HAIRPIN_EXPLOSION_KNOCKBACK;
 		assert ProjectJjkNobaraProfile.MEGA_NAIL_KNOCKBACK_CAP == 3.0f;
