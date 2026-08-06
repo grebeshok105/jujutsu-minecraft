@@ -337,14 +337,14 @@ public final class ProjectJjkStrawDollRuntime {
 	}
 
 	/**
-	 * Clears the caster's ritual state and releases the resonance hit-stop once no other caster
-	 * holds a pending ritual. Exists for the dev control surface + gametests.
+	 * Clears the caster's ritual state and unconditionally releases the resonance hit-stop,
+	 * restoring normal server speed ({@code clear} is a no-op when no dilation is active).
+	 * Fixture semantics by design: a dev reset returns the server to full speed even if
+	 * another caster's resonance was mid-flight. Exists for the dev control surface + gametests.
 	 */
 	public static void resetCaster(MinecraftServer server, UUID casterId) {
 		clearCaster(casterId);
-		if (PENDING_RITUALS.isEmpty()) {
-			RESONANCE_TIME.clear(tickRateAccess(server));
-		}
+		RESONANCE_TIME.clear(tickRateAccess(server));
 	}
 
 	private static void clearCaster(UUID casterId) {

@@ -39,8 +39,8 @@ import jujutsu.mod.character.JujutsuCharacter;
 		description = "Invokes one ability slot for the target player.")
 public final class JujutsuAbilityInvokeTool extends BaseTool {
 
-	private static final String SLOT_NAMES = "PRIMARY, PRIMARY_SNEAK, SECONDARY, SECONDARY_SNEAK, "
-			+ "ATTACK_CONTEXT, USE_CONTEXT, SECONDARY_SNEAK_HOLD, SECONDARY_SNEAK_RELEASE, TERTIARY, TERTIARY_SNEAK";
+	private static final String SLOT_NAMES = String.join(
+			", ", java.util.Arrays.stream(CharacterAbility.values()).map(Enum::name).toList());
 
 	private static final JsonNode SCHEMA = Schemas.object()
 			.required("player_uuid", Schemas.string("Player UUID"))
@@ -61,6 +61,7 @@ public final class JujutsuAbilityInvokeTool extends BaseTool {
 	@Override
 	public ToolResult execute(JsonNode arguments, ToolContext context) {
 		ArgumentReader r = reader(arguments);
+		MinecraftServer server = JujutsuMcpdevPlayers.requireServer();
 		UUID playerUuid = JujutsuMcpdevPlayers.parseUuid(r.requireString("player_uuid"));
 		CharacterAbility ability = parseSlot(r.requireString("slot"));
 		String expectVessel = r.optString("expect_vessel", null);
@@ -68,7 +69,6 @@ public final class JujutsuAbilityInvokeTool extends BaseTool {
 		return onMainThread(
 				context,
 				ignored -> {
-					MinecraftServer server = JujutsuMcpdevBridge.server();
 					ServerPlayer player = JujutsuMcpdevPlayers.requireOnline(server, playerUuid);
 					JujutsuCharacter selected = CharacterSelectionManager.selected(player);
 					ObjectNode node = context.mapper().createObjectNode();

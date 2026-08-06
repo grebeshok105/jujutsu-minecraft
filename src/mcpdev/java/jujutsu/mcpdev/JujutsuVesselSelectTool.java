@@ -53,10 +53,10 @@ public final class JujutsuVesselSelectTool extends BaseTool {
 		UUID playerUuid = JujutsuMcpdevPlayers.parseUuid(r.requireString("player_uuid"));
 		String vesselId = r.requireString("vessel_id");
 		JujutsuCharacter target = resolveVessel(vesselId);
+		MinecraftServer server = JujutsuMcpdevPlayers.requireServer();
 		return onMainThread(
 				context,
 				ignored -> {
-					MinecraftServer server = JujutsuMcpdevBridge.server();
 					ServerPlayer player = JujutsuMcpdevPlayers.requireOnline(server, playerUuid);
 					JujutsuCharacter previous = CharacterSelectionManager.selected(player);
 					CharacterSelectionManager.select(player, target);

@@ -49,10 +49,10 @@ public final class JujutsuCooldownsGetTool extends BaseTool {
 	public ToolResult execute(JsonNode arguments, ToolContext context) {
 		ArgumentReader r = reader(arguments);
 		UUID playerUuid = JujutsuMcpdevPlayers.parseUuid(r.requireString("player_uuid"));
+		MinecraftServer server = JujutsuMcpdevPlayers.requireServer();
 		return onMainThread(
 				context,
 				ignored -> {
-					MinecraftServer server = JujutsuMcpdevBridge.server();
 					ServerPlayer player = JujutsuMcpdevPlayers.requireOnline(server, playerUuid);
 					ObjectNode node = context.mapper().createObjectNode();
 					node.put("vessel", CharacterSelectionManager.selected(player).id());

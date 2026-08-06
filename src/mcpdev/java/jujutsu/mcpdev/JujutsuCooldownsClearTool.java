@@ -52,10 +52,10 @@ public final class JujutsuCooldownsClearTool extends BaseTool {
 		UUID playerUuid = JujutsuMcpdevPlayers.parseUuid(r.requireString("player_uuid"));
 		String slotName = r.optString("slot", null);
 		CharacterAbility ability = slotName == null ? null : parseSlot(slotName);
+		MinecraftServer server = JujutsuMcpdevPlayers.requireServer();
 		return onMainThread(
 				context,
 				ignored -> {
-					MinecraftServer server = JujutsuMcpdevBridge.server();
 					ServerPlayer player = JujutsuMcpdevPlayers.requireOnline(server, playerUuid);
 					ObjectNode node = context.mapper().createObjectNode();
 					if (ability == null) {

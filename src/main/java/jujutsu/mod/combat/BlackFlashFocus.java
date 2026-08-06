@@ -10,9 +10,10 @@ public final class BlackFlashFocus {
 	private BlackFlashFocus() {}
 	public static boolean hasFocus(ServerPlayer player) { return player.getTags().contains(TAG); }
 	public static void grant(ServerPlayer player) { player.addTag(TAG); sync(player); }
-	/** Removes the focus tag from the player. Exists for the dev control surface + gametests. */
+	/** Removes the focus tag and syncs the client mirror (mirrors grant). Exists for the dev control surface + gametests. */
 	public static void clear(ServerPlayer player) {
 		player.removeTag(TAG);
+		sync(player);
 	}
 
 	public static void sync(ServerPlayer player) {

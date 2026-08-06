@@ -67,11 +67,11 @@ public final class JujutsuFixtureResetTool extends BaseTool {
 		// Parsed on the HTTP thread: onMainThread rewraps thrown exceptions into TOOL_HANDLER_ERROR,
 		// which would swallow the TOOL_INPUT_INVALID code for a malformed UUID.
 		UUID playerId = JujutsuMcpdevPlayers.parseUuid(reader(arguments).requireString("player_uuid"));
+		MinecraftServer server = JujutsuMcpdevPlayers.requireServer();
 		return onMainThread(
 				context,
 				ignored -> {
-					MinecraftServer server = JujutsuMcpdevBridge.server();
-					// Fail-closed: SERVER_NOT_RUNNING when no server, TOOL_HANDLER_ERROR when offline.
+					// Fail-closed: TOOL_HANDLER_ERROR when the player is offline.
 					ServerPlayer player = JujutsuMcpdevPlayers.requireOnline(server, playerId);
 
 					ObjectNode node = context.mapper().createObjectNode();
@@ -102,8 +102,10 @@ public final class JujutsuFixtureResetTool extends BaseTool {
 	}
 
 	/**
-	 * Runs one reset step and records its outcome; a RuntimeException is captured into the
-	 * step's {@code detail} instead of aborting the remaining steps.
+	 * Runs one reset step and records its outcome; any failure (including Error-class
+	 * ones — this is a dev-only fixture tool, so a stale-jar linkage error must not
+	 * silently skip the remaining steps) is captured into the step's {@code detail}
+	 * instead of aborting the rest.
 	 */
 	private static void runStep(ArrayNode steps, String name, Runnable step) {
 		ObjectNode entry = steps.addObject();
@@ -111,7 +113,7 @@ public final class JujutsuFixtureResetTool extends BaseTool {
 		try {
 			step.run();
 			entry.put("detail", "ok");
-		} catch (RuntimeException e) {
+		} catch (Throwable e) {
 			String message = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
 			entry.put("detail", "error: " + message);
 		}

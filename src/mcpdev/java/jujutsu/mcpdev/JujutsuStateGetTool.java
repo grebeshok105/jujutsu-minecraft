@@ -35,13 +35,15 @@ import jujutsu.mod.registry.JujutsuEffects;
  *
  * <p>Returns the C2 row-7 snapshot for one online player: vessel, position, stagger, per-slot
  * cooldowns, effect flags, Todo pair selection and stone, Megumi pack/trap/move/drop presence,
- * and Nobara embedded nails and marks. Reads ONLY public accessors (the C1 statics plus the
+ * and Nobara embedded nails and marks. {@code nobara.embedded_nails_loaded} counts only nails
+ * loaded in the player's CURRENT dimension (fixture_reset, by contrast, sweeps all levels).
+ * Reads ONLY public accessors (the C1 statics plus the
  * pre-existing ones) and never mutates gameplay state; all gameplay access goes through the
  * upstream main-thread dispatch.
  */
 @McpTool(
 		name = "jujutsu_state_get",
-		description = "Reads the current combat and transient state of one online player: vessel, position, stagger, cooldowns, effect flags, Todo pair selection and stone, Megumi pack/trap/move/drop, and Nobara embedded nails and marks.",
+		description = "Reads the current combat and transient state of one online player: vessel, position, stagger, cooldowns, effect flags, Todo pair selection and stone, Megumi pack/trap/move/drop, and Nobara embedded nails (current dimension only) and marks.",
 		readOnly = true)
 public final class JujutsuStateGetTool extends BaseTool {
 
@@ -62,11 +64,11 @@ public final class JujutsuStateGetTool extends BaseTool {
 		// Parsed on the HTTP thread: onMainThread rewraps thrown exceptions into TOOL_HANDLER_ERROR,
 		// which would swallow the TOOL_INPUT_INVALID code for a malformed UUID.
 		UUID playerId = JujutsuMcpdevPlayers.parseUuid(reader(arguments).requireString("player_uuid"));
+		MinecraftServer server = JujutsuMcpdevPlayers.requireServer();
 		return onMainThread(
 				context,
 				ignored -> {
-					MinecraftServer server = JujutsuMcpdevBridge.server();
-					// Fail-closed: SERVER_NOT_RUNNING when no server, TOOL_HANDLER_ERROR when offline.
+					// Fail-closed: TOOL_HANDLER_ERROR when the player is offline.
 					ServerPlayer player = JujutsuMcpdevPlayers.requireOnline(server, playerId);
 					long gameTime = player.level().getGameTime();
 

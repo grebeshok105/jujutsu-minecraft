@@ -28,7 +28,7 @@ Close the autonomous dev loop: an agent launches the modded client, lands in a w
 | `jujutsu_cooldowns_get` | read | `player_uuid` | 10 slots, remaining ticks |
 | `jujutsu_cooldowns_clear` | write | `player_uuid`, `slot?` | cleared slot or all vessels/slots |
 | `jujutsu_fixture_reset` | write | `player_uuid` | per-step outcomes |
-| `jujutsu_state_get` | read | `player_uuid` | vessel, position, stagger, cooldowns, mod effects, Todo pair/stone, Megumi pack/trap/move/drop, Nobara nails/marks |
+| `jujutsu_state_get` | read | `player_uuid` | vessel, position, stagger, cooldowns, mod effects, Todo pair/stone, Megumi pack/trap/move/drop, Nobara nails (current dimension only; the reset sweeps all levels) /marks |
 
 Names are snake_case in the established `jujutsu` tool domain (registered by the existing provider; the upstream category map already accepts it).
 

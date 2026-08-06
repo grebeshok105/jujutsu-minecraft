@@ -14,10 +14,9 @@ import com.chapmanjw.minecraft.fabric.mcp.protocol.error.McpException;
  *
  * <p>Error codes survive only on the HTTP thread — {@link com.chapmanjw.minecraft.fabric.mcp.tools.BaseTool#onMainThread} wraps
  * every exception thrown inside its main-thread work into {@code TOOL_HANDLER_ERROR} —
- * so {@link #parseUuid(String)} must run in {@code execute()} before
- * {@code onMainThread}, while {@link #requireOnline(MinecraftServer, UUID)} runs inside
- * it. {@link #requireOnline(String)} composes the two for callers that accept the
- * flattened code.
+ * so {@link #parseUuid(String)} and {@link #requireServer()} must run in {@code execute()}
+ * before {@code onMainThread}, while {@link #requireOnline(MinecraftServer, UUID)} runs
+ * inside it (its null-server branch is a last-resort guard there).
  */
 final class JujutsuMcpdevPlayers {
 
@@ -36,10 +35,22 @@ final class JujutsuMcpdevPlayers {
 	}
 
 	/**
-	 * Resolves a parsed UUID against the live server on the server main thread,
-	 * fail-closed: a missing server is {@code SERVER_NOT_RUNNING}, an offline or
-	 * unknown player is {@code TOOL_HANDLER_ERROR} (upstream "Player not online"
-	 * idiom).
+	 * Fail-closed server check on the HTTP thread (the bridge field is volatile), so
+	 * {@code SERVER_NOT_RUNNING} actually reaches clients instead of being flattened
+	 * inside the main-thread hop. Call in {@code execute()} before {@code onMainThread}.
+	 */
+	static MinecraftServer requireServer() {
+		MinecraftServer server = JujutsuMcpdevBridge.server();
+		if (server == null) {
+			throw new McpException(ErrorCodes.SERVER_NOT_RUNNING, "Minecraft server is not running");
+		}
+		return server;
+	}
+
+	/**
+	 * Resolves a parsed UUID against the live server on the server main thread:
+	 * an offline or unknown player is {@code TOOL_HANDLER_ERROR} (upstream
+	 * "Player not online" idiom); a null server is guarded with the same code.
 	 */
 	static ServerPlayer requireOnline(MinecraftServer server, UUID uuid) {
 		if (server == null) {
@@ -52,13 +63,4 @@ final class JujutsuMcpdevPlayers {
 		return player;
 	}
 
-	/**
-	 * Convenience composition of {@link #parseUuid(String)} + {@link #requireOnline(MinecraftServer, UUID)}
-	 * for use inside main-thread work (the parse error surfaces as
-	 * {@code TOOL_HANDLER_ERROR} there — prefer the two-step form when the code matters).
-	 */
-	static ServerPlayer requireOnline(String rawUuid) {
-		UUID uuid = parseUuid(rawUuid);
-		return requireOnline(JujutsuMcpdevBridge.server(), uuid);
-	}
 }
