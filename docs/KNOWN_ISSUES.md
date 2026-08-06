@@ -90,9 +90,9 @@ Private author permission is sufficient for current development. A public releas
 
 ### E1 — No automated in-game smoke test, and no world/teleport coverage for the swap
 
-Verified 2026-07-26. Still open.
+Verified 2026-08-06. Still open.
 
-CI compiles and runs assertion programs but does not boot a client or dedicated server. Renderer, mixin, packet, UI, and gameplay integration regressions can survive a green build. `grep -rln GameTest src/` returns nothing — there are no GameTest classes at all.
+CI compiles and runs assertion programs but does not boot a client. Renderer, mixin, packet, UI, and gameplay integration regressions can survive a green build. Issue #42 Stage A changed part of this: a server GameTest foundation now exists — the `gametest` source set with two neutral canaries (`jujutsu.mod.gametest.ServerGameTests`), run as `runGameTest` inside the canonical gate. The canaries prove the harness and that a real `ServerLevel` boots with the production mod loaded; they exercise no ability, no vessel runtime, and no client. Every world/ability scenario below remains uncovered.
 
 Widened again 2026-07-26 by the Boogie Woogie impact pass. Nothing in it can be tested by the current harness beyond pure helpers: the sound duck's actual effect on `SoundManager`, the afterimage's readability against a real body, whether `hurtMarked` genuinely restores visible momentum for a moved player, and whether the momentum window is spent by the hit the player thinks it was. The client-smoke checklist for all of it is in `SESSION.md`.
 
