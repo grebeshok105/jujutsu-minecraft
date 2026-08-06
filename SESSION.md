@@ -1,66 +1,60 @@
-# Session Handoff — Todo Stone Rework
+# Session Handoff — Server GameTest Foundation (issue #42 Stage A)
 
 ## Status
 
-- **PR #58 is MERGED** into `feat/todo-stone-rework` as squash commit `c653afb`.
-- **PR #57 is MERGED** into `main` as squash commit `d6d7d51`.
-- This handoff has no active feature branch. The implementation and polish described below are now current `main`.
-- Scope delivered: the marker system is deleted; Todo has the thrown stone (`V` throw / `V` self-swap / `Shift+V` target swap on appended wire id `TERTIARY_SNEAK(9)`), `Shift+B` owns the triple cyclic swap (Todo→A→T→Todo), `canonicalSlot` is deleted, and `TodoTransientState`/`TodoStateLifecycle` own transient state and cleanup.
-- Full manual smoke round 1 remains pending. The initial in-game look that produced PR #58 is complete, but it did not execute the whole checklist below.
+- Branch: `test/server-gametest-foundation` (from `main` @ e209b34), PR #59 open — commits `48534ed` (harness + canaries), `12a8860` (jar audit), `c25982d` (CI evidence), `e9b54fb` (docs), plus the review-adjudication commit; CI green.
+- Stage A adds: the `gametest` source set (Loom `createSourceSet`), the isolated test-mod `jujutsumod-gametest` with two server canaries, `runGameTest` wired into `check` by Loom (so it rides into `qualityGate`), the release-jar isolation audit `auditReleaseJarIsolation` on `qualityGate`, and a CI step that preserves gametest reports/logs on failure.
+- Explicitly NOT in Stage A: the client side of issue #42 (client GameTest, runClient automation), the real world/ability scenarios tracked in issue #21, and the MCP/control-surface work of issue #43.
 
 ## Design contract
 
-- Spec: [docs/TODO_STONE_REWORK.md](docs/TODO_STONE_REWORK.md) (committed before implementation).
-- Codex: [Todo — Boogie Woogie and combat slice](Jujutsu%20Kaizen/jujutsumod-codebase-codex/03-systems/Todo-Boogie-Woogie.md).
-- Wire: `TERTIARY_SNEAK(9)` appended to `CharacterAbility`; ids 0–8 untouched; no new payloads; `USE_CONTEXT(5)` keeps its id and detection but no vessel answers it.
+- Source set `gametest` → `src/gametest/java` + `src/gametest/resources` (created by Loom via `createSourceSet = true`).
+- Test-mod id `jujutsumod-gametest`; descriptor `src/gametest/resources/fabric.mod.json`; entrypoint `fabric-gametest` → `jujutsu.mod.gametest.ServerGameTests`.
+- Canaries: `serverLoadsProductionMod(GameTestHelper)` and `neutralEntityLifecycle(GameTestHelper)`; static helpers only in `jujutsu.mod.gametest.GameTestFixtures`.
+- JUnit XML report: `build/test-results/gametest/junit.xml` (via `fabric-api.gametest.report-file` on the `gameTest` run config). Logs/crash-reports: `build/run/gameTest/logs/`, `build/run/gameTest/crash-reports/`.
+- Merge gate: Loom auto-wires `runGameTest` into `check`, and `auditReleaseJarIsolation` is an explicit `qualityGate` dependency next to `auditDocumentation`; a red canary or a jar leak fails the canonical gate.
+- The release jar must never contain `jujutsu/mod/gametest/` entries, the test-mod descriptor, or gametest structures.
 
 ## Verification
 
-- The combined stacked head `c653afb` passed GitHub Actions `qualityGate`, `assemble`, and artifact upload before the final squash merge.
-- Local `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` was green after integration and polish.
-- Nothing in the suite constructs a `ServerLevel` (E1): every teleport, collision, HUD, observer, and readability claim below still requires real-world/client verification.
+Canonical gate (POSIX form; `.bat` equivalent on Windows):
 
-## Manual smoke checklist (round 1 pending)
+```bash
+./gradlew qualityGate --no-daemon --max-workers=1 --no-watch-fs
+```
 
-Stone flight (`V`):
-1. Throw in the open: the stone leaves the eye line at a readable pace (~4.6 blocks/s), flies dead straight with a visible trail, and vanishes with a puff after ~5 s.
-2. Throw into water: it keeps flying through the water column, not stopping at the surface; fire/lava do not end it.
-3. Throw at a wall and along a narrow corridor: block contact vanishes it immediately (no anchor, nothing placed, no item dropped); a point-blank throw into a wall may vanish instantly — accepted.
-4. Throw at a mob: the stone passes through bodies, no damage, no mark, no aggro.
-5. While a stone flies, `V` again NEVER throws a second one; after it dies, `V` throws again. The HUD chip shows the remaining seconds only while a stone lives and only as Todo.
+Focused commands while working:
 
-Stone self-swap (`V` with a live stone):
-6. On the ground: Todo trades places with the flying stone; the stone continues its flight from Todo's old spot with its old direction and remaining clock; Todo keeps his own momentum and look; fall distance reset.
-7. In the air: swap mid-flight works (STRICT still allows air); no clipping into blocks; refusal when the stone's point cannot fit Todo (e.g. inside a 1-block slit) moves nobody and says so.
-8. Out of range (>32 blocks) or stone in another dimension: plain refusal, stone keeps flying, no cooldown burned.
-9. A successful self-swap opens the momentum window (next melee hit is boosted + staggers), same as the aimed `R` swap.
+```bash
+./gradlew runGameTest --no-daemon
+./gradlew auditReleaseJarIsolation --no-daemon
+python tools/audit_docs.py
+```
 
-Target swap (`Shift+V`):
-10. On a mob and on a second player: the aimed body trades places with the stone; Todo stays put; the stone keeps flying from the target's old center.
-11. Moving target and moving stone: the swap uses both live positions at cast time, not stale ones.
-12. Ineligible targets refuse cleanly: dead, spectator, mounted/vehicle, leashed, armor stand, different dimension, no line of sight, beyond 20 blocks.
-13. No stone / no target / unsafe placement at the stone's point: each refusal has its own message, nothing moves, the stone (if any) keeps flying. No momentum from a target swap.
+Evidence recorded 2026-08-06 (Windows checkout, `gradlew.bat`):
 
-Pair swap and triple cycle (`B`, `Shift+B`):
-14. Plain pair swap regression: B selects — actionbar line, one audible selection beat, then a quiet ring re-drawn on the body about once a second and the pair HUD chip holding (both visible to the casting Todo alone); second B swaps the two selected bodies, Todo stays put; second B on the selection cancels; second B at nothing refuses and keeps the selection.
-15. The pair chip shows the selected body's name and remaining TTL while a selection lives (Todo only).
-16. B selection, then `Shift+B` on a second body: the triple cycle runs with the fixed direction — Todo to the selected body's spot, the selected body to the aimed body's spot, the aimed body to Todo's spot. The clap sounds at Todo's old spot and the three-edge directional effect reads the cycle order.
-17. `Shift+B` with no selection refuses with its own message and does NOT behave as B; the crouch does not lose a lined-up selection (B select → sneak → Shift+B works).
-18. Triple near walls, ledges, water and in the air: any body without a safe STRICT destination cancels the whole cast — nobody moves, selection survives; retry after repositioning works.
-19. Triple cooldown (8 s) and pair cooldown (5 s) are separate: after a triple, plain B is still available on its own clock and vice versa.
-20. Triple grants NO momentum window.
-21. Rollback: no partially moved outcomes are ever observed. If a mid-commit failure happens, all three bodies return to their snapshots and the log carries an error line.
+- Task graph proof: `gradlew tasks --all` lists `runGameTest - Starts the 'gameTest' run configuration` (the actual Loom 1.17.17 name — capital T; older docs saying `runGametest` are wrong for this setup). `gradlew check --dry-run` contains `:runGameTest SKIPPED`; `gradlew qualityGate --dry-run` contains `:runGameTest`, `:check`, `:remapJar`, and `:auditReleaseJarIsolation` — the server suite and the jar audit are inside the canonical gate, no second CI command list.
+- Green: `gradlew qualityGate assemble --no-daemon` → `BUILD SUCCESSFUL`, exit 0; inside it `runGameTest` ran the headless GameTest server (`========= 3 GAME TESTS COMPLETE ... All 3 required tests passed`), `verifyAssertionsEnabled: 29 verification JavaExec tasks all enable assertions`, `auditReleaseJarIsolation: jujutsumod-1.0.0.jar: 1318 entries scanned, no test-mod or dev-only content`.
+- JUnit XML at `build/test-results/gametest/junit.xml` names both canaries: `jujutsumod-gametest:server_game_tests_server_loads_production_mod`, `jujutsumod-gametest:server_game_tests_neutral_entity_lifecycle` (plus vanilla `minecraft:always_pass`).
+- Red proof, canary: `helper.assertEntityPresent(EntityType.PIG, relativeSpawn)` in `neutralEntityLifecycle` temporarily inverted to `assertEntityNotPresent` → `Task :runGameTest FAILED`, java exit value 1, diagnostic `Did not expect Pig to exist at ... (relative: 3, 1, 3) on tick 0`; the same mutation took `gradlew qualityGate` to `BUILD FAILED` (failure reaches the gate). Assertion restored; suite green again.
+- Red proof, jar audit: temporary `from sourceSets.gametest.output.classesDirs` in the `jar` task → `Task :auditReleaseJarIsolation FAILED` (after a successful `remapJar`), gradle exit 1, listing `jujutsu/mod/gametest/ServerGameTests.class` and `GameTestFixtures.class` as leaked entries. Mutation removed; audit green again.
+- Manual jar inspection (independent of the audit): 1318 entries, zero `gametest`-named entries, exactly one `fabric.mod.json` with id `jujutsumod`, entrypoint keys `client` + `main` only, no `jujutsu/mod/{bridge,mcp,control}/`, no ArchUnit or fabric gametest API classes.
 
-Purge and regressions:
-22. `R` with nothing under the crosshair is a plain refusal — never a teleport to anything; the old marker item no longer exists (`/give` finds no `todo_swap_marker`; creative tab has none).
-23. An ordinary right click, once or twice, behaves fully vanilla for Todo — doors, mounts, trades; no marking ability remains.
-24. `Shift+R` feint: clap performance plus the displacement whoosh one tick later (same as a real swap's sound), no movement, no endpoint bursts. Black Flash and momentum-on-`R`-swap unchanged.
-25. Nobara full kit unchanged (R/B/Shift+R/Shift+B, ESP, Mega Nail); Megumi full kit unchanged (dogs, trap, move, drop; his `V` still Shadow Drop — Todo's V never leaks into other vessels).
-26. Multiplayer observation: a second player sees the stone, its trail, both swap presentations, and the triple's three edges — but never the pair selection, its quiet pulse ring, or any Todo-only HUD chip. The selection remains the caster's secret.
-27. Cleanup: death, respawn, dimension change, vessel change, disconnect — each kills a live stone (with vanish puff where applicable), clears the pair selection, removes momentum, and leaves no HUD chip; rejoin shows clean state; server stop leaves nothing behind on restart.
+## Manual smoke checklist
+
+The two Stage A canaries prove the harness, not gameplay. Everything below stays manual (tracked in E1, scenarios in issue #21):
+
+- Real player↔mob and player↔player swap, blocked destinations, second-teleport failure and rollback, motion/rotation/fall-distance preservation, the packet path end to end.
+- Feint clap vs real clap indistinguishability to a second player.
+- Pair swap selection lifecycle against a live world — expiry, marked-body death, dimension change, STRICT cancellation moving nobody.
+- Stone lifecycle — flight, collision vanish, lifetime expiry, `V` self-swap, `Shift+V` target swap, STRICT refusal moving nobody.
+- Triple cycle — three-body preflight refusal moving nobody, and rollback restoring every moved body on a mid-commit failure.
+- Client-only surface (stage B of issue #42): renderer, mixin, packet, UI, HUD, sound.
 
 ## Delivered implementation notes
 
-- The main rework used the rule-of-four wave: purge, stone core, pair/triple, client presentation, docs, integration, and four independent review zones.
-- All 18 unique review findings were accepted and applied. Important fixes include portal refusal, identity-guarded unconditional discard, caster-state gates, ray plus AABB/stopped-motion collision cleanup, seeded synced lifetime, pair-cache eviction, client-cache identity fixes, displaced-body-centre stone placement, caster-only selection pulses, and the complete marker/`canonicalSlot` truth sweep.
-- PR #58 added the product polish after the first in-game look: triple clap, the real-swap displacement whoosh for Fake Clap, render half-extent `0.13 → 0.09`, hitbox `0.35 → 0.25`, and speed `0.175 → 0.23` blocks/tick (`4.6` blocks/s).
+- Build wiring (Block 1): `fabricApi.configureTests` with `createSourceSet = true`, `modId = 'jujutsumod-gametest'`, `enableClientGameTests = false`; the `gameTest` run config writes `fabric-api.gametest.report-file` → `build/test-results/gametest/junit.xml`; CI uploads gametest reports/logs/crash-reports on failure.
+- Test mod (Block 2): `ServerGameTests` (two canaries), `GameTestFixtures` (static helpers only), descriptor per contract — no mixins, no client entrypoints, static version `"1.0.0"`.
+- Jar audit (Block 4): `auditReleaseJarIsolation` scans the remapped jar for test-mod classes/descriptors, dev-only package prefixes, gametest data/structures, and test-only libraries; fails with a per-entry list.
+- Docs (this handoff, Block 3): E1 reworded but still open; `docs/BUILDING_IN_SANDBOX.md` Focused verification gained `runGameTest`/`auditReleaseJarIsolation`; AGENTS.md green-gate paragraph updated minimally.
+- Commit split (main): (1) gametest wiring + canaries with red-proof in body, (2) jar audit with its red-proof, (3) CI artifacts, (4) docs handoff.

@@ -1,0 +1,18 @@
+{
+	"schemaVersion": 1,
+	"id": "jujutsumod-gametest",
+	"version": "1.0.0",
+	"name": "Jujutsu Mod GameTests",
+	"description": "Isolated server GameTest mod for the Jujutsu Minecraft mod (issue #42 Stage A).",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-gametest": [
+			"jujutsu.mod.gametest.ServerGameTests"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~1.21.8",
+		"jujutsumod": "*"
+	}
+}

@@ -90,9 +90,9 @@ Private author permission is sufficient for current development. A public releas
 
 ### E1 — No automated in-game smoke test, and no world/teleport coverage for the swap
 
-Verified 2026-07-26. Still open.
+Verified 2026-08-06. Still open.
 
-CI compiles and runs assertion programs but does not boot a client or dedicated server. Renderer, mixin, packet, UI, and gameplay integration regressions can survive a green build. `grep -rln GameTest src/` returns nothing — there are no GameTest classes at all.
+CI compiles and runs assertion programs but does not boot a client. Renderer, mixin, packet, UI, and gameplay integration regressions can survive a green build. Issue #42 Stage A changed part of this: a server GameTest foundation now exists — the `gametest` source set with two neutral canaries (`jujutsu.mod.gametest.ServerGameTests`), run as `runGameTest` inside the canonical gate. The canaries prove the harness and that a real `ServerLevel` boots with the production mod loaded; they exercise no ability, no vessel runtime, and no client. Every world/ability scenario below remains uncovered.
 
 Widened again 2026-07-26 by the Boogie Woogie impact pass. Nothing in it can be tested by the current harness beyond pure helpers: the sound duck's actual effect on `SoundManager`, the afterimage's readability against a real body, whether `hurtMarked` genuinely restores visible momentum for a moved player, and whether the momentum window is spent by the hit the player thinks it was. The client-smoke checklist for all of it is in `SESSION.md`.
 
@@ -162,7 +162,7 @@ An adversarial review of the architecture rules ran 16 attacks against a green b
 - **A class name assembled from fragments at runtime.** `Class.forName` on a literal is caught by `SourceBoundaryTripwireTest`; a name built by concatenation at runtime is not, and never will be.
 - **A constant copied by hand.** Reading `TodoProfile.BOOGIE_WOOGIE_RANGE` is caught. Typing `20.0` with a comment saying where it came from is indistinguishable from any other number.
 - **A shared extension point with exactly one implementer.** A method on `CharacterDefinition` that only one vessel overrides is structurally identical to a genuine shared hook. Catching it needs a test that counts implementers per method.
-- **In-world behaviour of any kind.** Nothing in the suite constructs a `ServerLevel`. See the Verification Policy in AGENTS.md.
+- **In-world behaviour beyond the two neutral canaries.** The suite now boots one headless `ServerLevel` for the GameTest canaries, but no automated check casts an ability or moves a vessel's body. See the Verification Policy in AGENTS.md.
 
 One more limit was found on 2026-07-28 and is tracked separately as E15: a rule can only help if the gate actually runs it, and a check can be green while proving nothing. Neither failure is visible from inside the rule set.
 

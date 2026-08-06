@@ -66,6 +66,8 @@ Typical dependency domains are services.gradle.org, maven.fabricmc.net, repo.mav
 ./gradlew testCharacterPlayerState --no-daemon
 ./gradlew testProjectJjkNobaraProfile testProjectSanity --no-daemon
 ./gradlew check --no-daemon
+./gradlew runGameTest --no-daemon
+./gradlew auditReleaseJarIsolation --no-daemon
 ```
 
 Two kinds of automated test live side by side, and both run inside check.
@@ -75,6 +77,8 @@ The older kind is a plain class with a main method guarded by Java assertions, r
 The newer kind is a JUnit 5 class run by the standard test task. It exists because the JavaExec programs cannot boot Minecraft: fabric-loader-junit starts the loader for the test JVM, so a JUnit test may call SharedConstants.tryDetectVersion() and Bootstrap.bootStrap() in @BeforeAll and then exercise registries, codecs and buffers for real instead of reading source text. Write new tests here by default. failOnNoDiscoveredTests is true, because a JUnit run that discovers nothing is green for the same reason a JavaExec task without -ea is green: it asserted nothing.
 
 Migration of the existing JavaExec programs is deliberate and gradual. The four classes that own mutable static state — CharacterAbilityCooldowns, CombatStagger, EmbeddedNailRegistry, ProjectJjkNailMarks — must move last: today each JavaExec program is its own JVM, so state cannot leak between tests, and a shared JUnit JVM removes that guarantee.
+
+Server GameTest (issue #42 Stage A) adds two more checks, and both already run inside `qualityGate`. `runGameTest` boots the headless GameTest server, runs the server canaries, and writes JUnit XML to `build/test-results/gametest/junit.xml`, with logs and crash-reports under `build/run/gameTest/`; Loom wires it into `check`, so the canonical gate covers it. `auditReleaseJarIsolation` proves the release jar carries no test-mod content (gametest classes, a second `fabric.mod.json`, dev-only package prefixes, or test-only libraries). Neither replaces the fast tests above; the canaries prove the harness, not gameplay — the world/ability scenario backlog stays in issue #21.
 
 ## Client verification
 
