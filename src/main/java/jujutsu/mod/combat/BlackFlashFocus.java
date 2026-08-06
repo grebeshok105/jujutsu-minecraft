@@ -10,6 +10,11 @@ public final class BlackFlashFocus {
 	private BlackFlashFocus() {}
 	public static boolean hasFocus(ServerPlayer player) { return player.getTags().contains(TAG); }
 	public static void grant(ServerPlayer player) { player.addTag(TAG); sync(player); }
+	/** Removes the focus tag from the player. Exists for the dev control surface + gametests. */
+	public static void clear(ServerPlayer player) {
+		player.removeTag(TAG);
+	}
+
 	public static void sync(ServerPlayer player) {
 		if (ServerPlayNetworking.canSend(player, BlackFlashFocusPayload.TYPE)) ServerPlayNetworking.send(player, new BlackFlashFocusPayload(hasFocus(player)));
 	}

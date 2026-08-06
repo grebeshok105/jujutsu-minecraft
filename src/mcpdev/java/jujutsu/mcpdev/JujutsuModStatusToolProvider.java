@@ -23,7 +23,15 @@ public final class JujutsuModStatusToolProvider implements ToolProvider {
 
 	@Override
 	public List<Class<? extends Tool>> toolClasses() {
-		return List.of(JujutsuModStatusTool.class);
+		return List.of(
+				JujutsuAbilityInvokeTool.class,
+				JujutsuCooldownsClearTool.class,
+				JujutsuCooldownsGetTool.class,
+				JujutsuFixtureResetTool.class,
+				JujutsuModStatusTool.class,
+				JujutsuStateGetTool.class,
+				JujutsuVesselListTool.class,
+				JujutsuVesselSelectTool.class);
 	}
 
 	@Override

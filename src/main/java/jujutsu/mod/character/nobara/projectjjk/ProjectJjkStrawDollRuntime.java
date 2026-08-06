@@ -336,6 +336,17 @@ public final class ProjectJjkStrawDollRuntime {
 		), true);
 	}
 
+	/**
+	 * Clears the caster's ritual state and releases the resonance hit-stop once no other caster
+	 * holds a pending ritual. Exists for the dev control surface + gametests.
+	 */
+	public static void resetCaster(MinecraftServer server, UUID casterId) {
+		clearCaster(casterId);
+		if (PENDING_RITUALS.isEmpty()) {
+			RESONANCE_TIME.clear(tickRateAccess(server));
+		}
+	}
+
 	private static void clearCaster(UUID casterId) {
 		PENDING_RITUALS.remove(casterId);
 		REMNANT_PROGRESS.clearCaster(casterId);

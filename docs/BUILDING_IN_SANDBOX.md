@@ -166,6 +166,30 @@ Nothing in the build teleports anything, so every line here is only checkable in
 - Head look tracks the camera and stays inside the clamp; no pose-stack corruption after ability casts or menu open/close.
 - Todo animations play: idle, walk, attack, and `ability.boogie_woogie` on cast, with the clap SFX at the palm-contact beat.
 
+## MCP dev lane (autonomous client entry)
+
+The MCP dev-control surface (issue #43) is exercised through the modded client in `run/`, booted straight into a fixed singleplayer world. The full launch command:
+
+```bash
+./gradlew.bat runClient -PmcpSpike -PmcpUpstreamJar=D:/WorkFlow/mcp-spike-scratch/upstream/versions/1.21.8/build/libs/minecraft-fabric-mcp-1.1.0+1.21.8.jar --no-daemon
+```
+
+(`./gradlew ...` on POSIX). `-PmcpSpike` enables the dev lane, `-PmcpUpstreamJar` points at the upstream MCP server jar; without both flags `runClient` is byte-for-byte the pre-spike configuration.
+
+`prepareMcpSpikeRun` makes the launch autonomous — it is wired automatically as a dependency of `runClient` inside the same gate, and can also be run by hand:
+
+```bash
+./gradlew.bat prepareMcpSpikeRun -PmcpSpike -PmcpUpstreamJar=D:/WorkFlow/mcp-spike-scratch/upstream/versions/1.21.8/build/libs/minecraft-fabric-mcp-1.1.0+1.21.8.jar --no-daemon
+```
+
+What it does, and what the client does with it:
+
+- **World-folder contract**: quickPlay boots into the save whose folder name matches the argument — `run/saves/mcp-spike` — with no menu interaction. The task idempotently copies `run/saves/New World` → `run/saves/mcp-spike` when the target is absent and the source exists; it never overwrites an existing seed (re-run is a no-op). The copy is a plain recursive copy; the source save must not be running during the Gradle invocation.
+- **options.txt keys**: the task rewrites `pauseOnLostFocus:false` and `tutorialStep:none` in `run/options.txt`, preserving every other key (on a first-ever launch it creates `run/` and writes just those two keys). `pauseOnLostFocus:false` keeps the game simulating while the window is unfocused, so screenshots show the world instead of the pause overlay; `tutorialStep:none` suppresses the tutorial overlay.
+- **Missing-world failure mode**: if no `run/saves/New World` exists when the task runs (first-ever launch, or saves deleted), the task warns and skips the copy — the client then boots to the DisconnectedScreen (`--quickPlaySingleplayer` does not create a world). Fix: launch the client once normally, create a world, quit, then re-run `runClient -PmcpSpike ...`; the seed is copied automatically on the next run.
+
+While the lane is up, the in-process MCP endpoints listen on `http://127.0.0.1:8765` (server tools, including `jujutsu_mod_status`) and `http://127.0.0.1:8766` (client inspection tools). See [MCP_1_21_8_PORT_SPIKE.md](MCP_1_21_8_PORT_SPIKE.md) for the protocol details, endpoint configs, and the OMP connection recipe.
+
 ## Troubleshooting
 
 | Symptom | Likely cause | Action |

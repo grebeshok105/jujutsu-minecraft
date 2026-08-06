@@ -53,7 +53,7 @@ public final class NailTrapRuntime {
 	public static void register() {
 		ServerTickEvents.END_SERVER_TICK.register(NailTrapRuntime::tick);
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> clear(server, true));
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> removeOwned(server, handler.player.getUUID()));
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> clearOwned(server, handler.player.getUUID()));
 	}
 
 	public static boolean tryPlace(ServerPlayer owner) {
@@ -331,7 +331,8 @@ public final class NailTrapRuntime {
 		COLLAPSES.clear();
 	}
 
-	private static void removeOwned(MinecraftServer server, UUID ownerId) {
+	/** Clears every trap owned by the player. Exists for the dev control surface + gametests. */
+	public static void clearOwned(MinecraftServer server, UUID ownerId) {
 		TRAPS.get(ownerId).ifPresent(trap -> {
 			ServerLevel level = serverLevel(server, trap);
 			if (level != null) remove(level, trap);

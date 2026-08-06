@@ -88,6 +88,12 @@ public final class SelfResonanceRuntime {
 		return true;
 	}
 
+	/** Drops the player's resonance selection and any pending impact. Exists for the dev control surface + gametests. */
+	public static void clearCaster(UUID casterId) {
+		SELECTED.remove(casterId);
+		PENDING.remove(casterId);
+	}
+
 	private static final class Vec3Cue {
 		private static void emitCaster(ServerPlayer caster) {
 			var at = caster.getEyePosition();

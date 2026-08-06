@@ -21,6 +21,13 @@ public final class CombatStagger {
 		hasImpulse(entity);
 	}
 
+	/** Drops any active stagger for the entity. Exists for the dev control surface + gametests. */
+	public void clear(UUID entityId) {
+		if (entityId != null) {
+			until.remove(entityId);
+		}
+	}
+
 	public boolean isStaggered(UUID entityId, long gameTime) {
 		Long end = until.get(entityId);
 		if (end == null) return false;
