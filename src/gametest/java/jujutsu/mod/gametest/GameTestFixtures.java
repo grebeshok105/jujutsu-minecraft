@@ -42,7 +42,9 @@ public final class GameTestFixtures {
 	 * fires from {@code setRemoved}), but the world's entity lookup flushes removal on the tick
 	 * loop, so the absence assert is deferred 10 ticks — deterministic and far inside the canary's
 	 * {@code maxTicks}. Both callbacks are registered from the calling (body) context, never from
-	 * inside another scheduled callback.
+	 * inside another scheduled callback. The absence check pairs a fixture-framed diagnostic on the
+	 * handle with the vanilla position-scoped assert, so a red run names the fixture in the JUnit
+	 * report while keeping the stock message's tick and relative position.
 	 */
 	public static <E extends Entity> void removeAndVerifyGone(GameTestHelper helper, String fixture, E entity,
 			EntityType<E> type, BlockPos relativePos, long discardTick) {
@@ -51,7 +53,11 @@ public final class GameTestFixtures {
 			helper.assertTrue(entity.isRemoved(), diagnostic(fixture, helper.getTick(),
 					"discard " + type, "isRemoved=true", "isRemoved=" + entity.isRemoved()));
 		});
-		helper.runAtTickTime(discardTick + 10, () -> helper.assertEntityNotPresent(type, relativePos));
+		helper.runAtTickTime(discardTick + 10, () -> {
+			helper.assertTrue(entity.isRemoved(), diagnostic(fixture, helper.getTick(),
+					"entity gone after discard", "isRemoved=true", "isRemoved=" + entity.isRemoved()));
+			helper.assertEntityNotPresent(type, relativePos);
+		});
 	}
 
 	/**

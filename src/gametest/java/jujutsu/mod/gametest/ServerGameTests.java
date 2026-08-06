@@ -16,7 +16,7 @@ import net.minecraft.world.level.block.Blocks;
  * boot with the production mod loaded, and a working world/entity surface — not gameplay.
  *
  * <p>Scenarios that actually exercise abilities and world behaviour belong to #21; these two tests
- * exist so the merge gate's {@code runGametest} step has a real signal. Nothing here touches
+ * exist so the merge gate's {@code runGameTest} step has a real signal. Nothing here touches
  * repository-owned static state (cooldown maps and the like): canaries stay on the vanilla surface.
  */
 public final class ServerGameTests {

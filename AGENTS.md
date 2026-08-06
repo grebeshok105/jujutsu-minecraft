@@ -299,7 +299,7 @@ One command owns the word "verified":
 ./gradlew qualityGate
 ```
 
-It runs `check` (both source sets compiled, the JUnit suite, and every custom `JavaExec` verification program), the documentation audit `tools/audit_docs.py`, and an audit that every verification `JavaExec` task actually enables assertions. Nothing may be called done, fixed, passing or verified without a green run of exactly this command. While working, run the narrowest task that proves the change; run the gate before any handoff. Never claim a verification you did not run.
+It runs `check` (all source sets compiled, the JUnit suite, and every custom `JavaExec` verification program), the documentation audit `tools/audit_docs.py`, and an audit that every verification `JavaExec` task actually enables assertions. Nothing may be called done, fixed, passing or verified without a green run of exactly this command. While working, run the narrowest task that proves the change; run the gate before any handoff. Never claim a verification you did not run.
 
 **Write new tests as JUnit 5.** `fabric-loader-junit` boots the loader for the test JVM, so a JUnit test can bootstrap Minecraft and exercise registries, codecs and buffers for real — which is the only way to stop asserting behaviour by grepping source text. The existing `JavaExec` programs stay and migrate gradually; [docs/BUILDING_IN_SANDBOX.md](docs/BUILDING_IN_SANDBOX.md) owns the migration order and the reason four state-holding classes go last.
 

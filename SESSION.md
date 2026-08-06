@@ -2,7 +2,7 @@
 
 ## Status
 
-- Branch: `test/server-gametest-foundation` (from `main` @ e209b34). Not committed yet — the main agent commits after the barrier verification runs.
+- Branch: `test/server-gametest-foundation` (from `main` @ e209b34), PR #59 open — commits `48534ed` (harness + canaries), `12a8860` (jar audit), `c25982d` (CI evidence), `e9b54fb` (docs), plus the review-adjudication commit; CI green.
 - Stage A adds: the `gametest` source set (Loom `createSourceSet`), the isolated test-mod `jujutsumod-gametest` with two server canaries, `runGameTest` wired into `check` by Loom (so it rides into `qualityGate`), the release-jar isolation audit `auditReleaseJarIsolation` on `qualityGate`, and a CI step that preserves gametest reports/logs on failure.
 - Explicitly NOT in Stage A: the client side of issue #42 (client GameTest, runClient automation), the real world/ability scenarios tracked in issue #21, and the MCP/control-surface work of issue #43.
 

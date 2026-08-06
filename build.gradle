@@ -450,7 +450,9 @@ static String resolvePythonInterpreter() {
 // The gametest source set exists only to prove the server harness (issue #42 Stage A); none of its
 // content may reach the release jar. This audit scans the remapped jar entry by entry, so it is a
 // plain task: never JavaExec, and its name must not match the audit_docs.py test-task pattern, or
-// the verification_programs metric would drift.
+// the verification_programs metric would drift. Scope note: the scan walks the OUTER jar's entries
+// only — if jar-in-jar bundling (loom `include` / nested META-INF/jars) is ever introduced, this
+// audit must learn to open nested jars, or a bundled test mod would slip past every rule here.
 tasks.register('auditReleaseJarIsolation') {
 	group = 'verification'
 	description = 'Fails when the release jar leaks test-mod or dev-only content'
