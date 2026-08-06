@@ -95,8 +95,10 @@ public final class TodoBoogieWoogieRuntime {
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.invalid_target", "entity changed before commit");
 		}
 
-		boolean todoPlaced = place(todo, level, plan.get().firstDestination(), todoSnapshot);
-		boolean targetPlaced = todoPlaced && place(target, level, plan.get().secondDestination(), targetSnapshot);
+		// The commit teleport is injectable so tests can force an authoritative failure at exactly the
+		// second placement (see SwapCommitTeleport's javadoc); the default is place()'s own teleport.
+		boolean todoPlaced = commitTeleport.teleport(todo, level, plan.get().firstDestination(), todoSnapshot.yaw(), todoSnapshot.pitch());
+		boolean targetPlaced = todoPlaced && commitTeleport.teleport(target, level, plan.get().secondDestination(), targetSnapshot.yaw(), targetSnapshot.pitch());
 		if (!todoPlaced || !targetPlaced) {
 			rollback("boogie woogie", todo, todo, todoSnapshot, target, targetSnapshot);
 			return reject(todo, notify, "message.jujutsumod.todo.boogie.unsafe", "authoritative teleport failed");
@@ -159,6 +161,28 @@ public final class TodoBoogieWoogieRuntime {
 	static Vec3 findSafeDestination(ServerLevel level, LivingEntity entity, Vec3 requested, Strictness strictness) {
 		return SafeBodyPlacement.find(level, entity, requested,
 				strictness == Strictness.SOFT ? SOFT_PLACEMENT : STRICT_PLACEMENT);
+	}
+
+	/** Production commit teleport: the same 8-arg authoritative teleport place() uses. */
+	public static final SwapCommitTeleport PRODUCTION_COMMIT_TELEPORT =
+			(body, level, destination, yaw, pitch) -> body.teleportTo(level, destination.x(), destination.y(), destination.z(), java.util.Set.of(), yaw, pitch, false);
+	// volatile: today every reader/writer shares the server thread, but the field is public API
+	// in the shipped jar — cross-thread visibility must not depend on that staying true.
+	private static volatile SwapCommitTeleport commitTeleport = PRODUCTION_COMMIT_TELEPORT;
+
+	public static SwapCommitTeleport commitTeleport() {
+		return commitTeleport;
+	}
+
+	/** Test seam (issue #21 rollback coverage). Callers MUST restore via restoreProductionCommitTeleport(). */
+	public static void overrideCommitTeleport(SwapCommitTeleport replacement) {
+		commitTeleport = java.util.Objects.requireNonNull(replacement);
+		// A leaked override silently refuses every later aimed swap; the warn makes it attributable.
+		JujutsuMod.LOGGER.warn("Todo Boogie Woogie commit teleport OVERRIDDEN (test seam) — must be restored");
+	}
+
+	public static void restoreProductionCommitTeleport() {
+		commitTeleport = PRODUCTION_COMMIT_TELEPORT;
 	}
 
 	static boolean place(LivingEntity entity, ServerLevel level, Vec3 destination, Snapshot snapshot) {

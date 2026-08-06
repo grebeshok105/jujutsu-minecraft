@@ -7,7 +7,9 @@
 	"environment": "*",
 	"entrypoints": {
 		"fabric-gametest": [
-			"jujutsu.mod.gametest.ServerGameTests"
+			"jujutsu.mod.gametest.ServerGameTests",
+			"jujutsu.mod.gametest.TodoAimedSwapGameTests",
+			"jujutsu.mod.gametest.TodoAimedSwapRollbackGameTests"
 		],
 		"fabric-client-gametest": [
 			"jujutsu.mod.gametest.client.ClientLoadCanaryTest",
