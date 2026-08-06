@@ -67,6 +67,7 @@ Typical dependency domains are services.gradle.org, maven.fabricmc.net, repo.mav
 ./gradlew testProjectJjkNobaraProfile testProjectSanity --no-daemon
 ./gradlew check --no-daemon
 ./gradlew runGameTest --no-daemon
+./gradlew runClientGameTest --no-daemon
 ./gradlew auditReleaseJarIsolation --no-daemon
 ```
 
@@ -80,6 +81,8 @@ Migration of the existing JavaExec programs is deliberate and gradual. The four 
 
 Server GameTest (issue #42 Stage A) adds two more checks, and both already run inside `qualityGate`. `runGameTest` boots the headless GameTest server, runs the server canaries, and writes JUnit XML to `build/test-results/gametest/junit.xml`, with logs and crash-reports under `build/run/gameTest/`; Loom wires it into `check`, so the canonical gate covers it. `auditReleaseJarIsolation` proves the release jar carries no test-mod content (gametest classes, a second `fabric.mod.json`, dev-only package prefixes, or test-only libraries). Neither replaces the fast tests above; the canaries prove the harness, not gameplay — the world/ability scenario backlog stays in issue #21.
 
+Client GameTest (issue #42 Stage B) is the parallel lane that boots the real client: `./gradlew runClientGameTest --no-daemon` (`gradlew.bat runClientGameTest --no-daemon` on Windows) launches the modded client with an integrated singleplayer world and runs the client canaries (`jujutsu.mod.gametest.client.ClientLoadCanaryTest`, `ClientObservationCanaryTest`). Artifacts land under `build/run/clientGameTest/` — `logs/`, `crash-reports/`, `saves/`, and `screenshots/%04d_<name>.png` (the observation canary writes `0000_observation_canary.png` at 854x480); Loom's `deleteGameTestRunDir` wipes that directory before every run. There is no machine-readable client report in fabric-api 0.136.1 (source-verified): the lane's result is the task exit code, with logs and crash-reports as evidence — the server lane's JUnit XML at `build/test-results/gametest/junit.xml` stays server-only. The lane is deliberately OUTSIDE `qualityGate`: issue #42 Stage B keeps it an optional, non-required experiment (manual run, or the `client-gametest` workflow_dispatch CI lane), so the required gate composition is unchanged.
+
 ## Client verification
 
 Compilation does not prove rendering, mixin compatibility at runtime, UI hitboxes, combat feel, or cinematic timing. For UI/gameplay/VFX work, run a real client smoke test on a machine with graphics:
@@ -88,7 +91,7 @@ Compilation does not prove rendering, mixin compatibility at runtime, UI hitboxe
 ./gradlew runClient --no-daemon
 ```
 
-This checklist is the owner of the client-smoke scope. It is not automated — nothing in the build covers any of it (see E1 in KNOWN_ISSUES.md).
+This checklist is the owner of the client-smoke scope. The client GameTest lane above proves the harness — the client boots with the production mod and observes server state — but nothing automated verifies gameplay or visual quality, which stay manual (see E1 in KNOWN_ISSUES.md).
 
 ### Menu and selection
 
