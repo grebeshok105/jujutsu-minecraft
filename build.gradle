@@ -447,6 +447,72 @@ static String resolvePythonInterpreter() {
 	return null
 }
 
+// The gametest source set exists only to prove the server harness (issue #42 Stage A); none of its
+// content may reach the release jar. This audit scans the remapped jar entry by entry, so it is a
+// plain task: never JavaExec, and its name must not match the audit_docs.py test-task pattern, or
+// the verification_programs metric would drift.
+tasks.register('auditReleaseJarIsolation') {
+	group = 'verification'
+	description = 'Fails when the release jar leaks test-mod or dev-only content'
+	dependsOn tasks.named('remapJar')
+	doLast {
+		File jarFile = tasks.remapJar.archiveFile.get().asFile
+		def offenders = []
+		int entryCount = 0
+		def rootDescriptorText = null
+
+		new java.util.zip.ZipFile(jarFile).withCloseable { java.util.zip.ZipFile zip ->
+			for (java.util.zip.ZipEntry entry : Collections.list(zip.entries())) {
+				String name = entry.name
+				entryCount++
+				if (name.startsWith('jujutsu/mod/gametest/')) {
+					offenders << "${name}  (gametest test-mod classes)"
+				}
+				if (name.startsWith('jujutsu/mod/bridge/') || name.startsWith('jujutsu/mod/mcp/')
+						|| name.startsWith('jujutsu/mod/control/')) {
+					offenders << "${name}  (dev-only surface jujutsu/mod/{bridge,mcp,control}/)"
+				}
+				if (name.startsWith('data/jujutsumod-gametest/') || name.contains('gametest/structure')) {
+					offenders << "${name}  (gametest test-mod data or SNBT structure)"
+				}
+				if (name.startsWith('net/fabricmc/fabric/api/gametest/')) {
+					offenders << "${name}  (test-only fabric gametest API)"
+				}
+				if (name.startsWith('com/tngtech/archunit/')) {
+					offenders << "${name}  (test-only ArchUnit classes)"
+				}
+				if (name == 'fabric.mod.json') {
+					if (rootDescriptorText != null) {
+						offenders << "${name}  (second fabric.mod.json descriptor beyond the root one)"
+					} else {
+						rootDescriptorText = zip.getInputStream(entry).getText('UTF-8')
+					}
+				}
+			}
+
+			if (rootDescriptorText != null) {
+				def descriptor = new groovy.json.JsonSlurper().parseText(rootDescriptorText)
+				if (descriptor.id == 'jujutsumod-gametest') {
+					offenders << "fabric.mod.json  (root descriptor is the gametest test-mod id 'jujutsumod-gametest')"
+				}
+				if (descriptor.entrypoints instanceof Map
+						&& (descriptor.entrypoints.containsKey('fabric-gametest')
+								|| descriptor.entrypoints.containsKey('fabric-client-gametest'))) {
+					offenders << "fabric.mod.json  (fabric-gametest / fabric-client-gametest entrypoints present)"
+				}
+			}
+		}
+
+		if (!offenders.isEmpty()) {
+			throw new GradleException(
+					'Release jar leaks test-mod or dev-only content: ' + jarFile.absolutePath + '\n'
+							+ offenders.collect { "  - ${it}" }.join('\n')
+							+ '\nKeep the gametest source set and test-only libraries out of the release jar.')
+		}
+		logger.lifecycle("auditReleaseJarIsolation: ${jarFile.name}: ${entryCount} entries scanned, no test-mod or dev-only content")
+	}
+}
+
 // The one command. Nothing may be called verified without a green run of this task.
 tasks.register('qualityGate') {
 	group = 'verification'
@@ -456,6 +522,12 @@ tasks.register('qualityGate') {
 	dependsOn tasks.named('check')
 	dependsOn tasks.named('auditDocumentation')
 	dependsOn tasks.named('verifyAssertionsEnabled')
+}
+
+// qualityGate-level, not check-level: `check` runs before remapJar has produced the release jar, and
+// this audit inspects that jar. Same precedent as auditDocumentation — post-build audits live in the gate.
+tasks.named('qualityGate') {
+	dependsOn 'auditReleaseJarIsolation'
 }
 
 processResources {
