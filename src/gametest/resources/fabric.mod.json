@@ -3,11 +3,15 @@
 	"id": "jujutsumod-gametest",
 	"version": "1.0.0",
 	"name": "Jujutsu Mod GameTests",
-	"description": "Isolated server GameTest mod for the Jujutsu Minecraft mod (issue #42 Stage A).",
+	"description": "Isolated GameTest mod for the Jujutsu Minecraft mod: server canaries (issue #42 Stage A) and client canaries (issue #42 Stage B).",
 	"environment": "*",
 	"entrypoints": {
 		"fabric-gametest": [
 			"jujutsu.mod.gametest.ServerGameTests"
+		],
+		"fabric-client-gametest": [
+			"jujutsu.mod.gametest.client.ClientLoadCanaryTest",
+			"jujutsu.mod.gametest.client.ClientObservationCanaryTest"
 		]
 	},
 	"depends": {

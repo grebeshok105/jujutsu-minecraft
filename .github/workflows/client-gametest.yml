@@ -1,0 +1,46 @@
+# Issue #42 Stage B OPTIONAL experiment lane for the client GameTest suite.
+#
+# Manual-only by construction: `workflow_dispatch` means this never runs on pull_request
+# or push, so it can never become a required PR check. It is deliberately not part of
+# qualityGate (the client lane is non-required by design per issue #42 Stage B).
+# The canonical gate remains build.yml's `./gradlew qualityGate`; do not add client
+# GameTests there without a product decision and demonstrated stability.
+#
+# An honest red is required: there is deliberately no continue-on-error anywhere here.
+
+name: client-gametest (manual experiment)
+on: workflow_dispatch
+
+jobs:
+  client-gametest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v6
+      - name: validate gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+      - name: setup jdk
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
+      # Loom's AbstractRunTask auto-wraps client runs with `xvfb-run --auto-servernum`
+      # on Linux CI when xvfb is present (verified from Loom 1.17.17 sources), so the
+      # X server packages must be installed before the gradle step.
+      - name: install xvfb
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb mesa-utils
+      - name: run client game tests
+        run: ./gradlew runClientGameTest --no-daemon
+      - name: capture client gametest evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: client-gametest-evidence
+          path: |
+            build/run/clientGameTest/screenshots/
+            build/run/clientGameTest/logs/
+            build/run/clientGameTest/crash-reports/
+          if-no-files-found: ignore
