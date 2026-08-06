@@ -29,7 +29,7 @@ Issue: [#43](https://github.com/grebeshok105/jujutsu-minecraft/issues/43)
 
 | Acceptance criterion | Result | Evidence |
 |---|---|---|
-| Upstream core compiles on 1.21.8 | **PASS** | `:1.21.8:build` BUILD SUCCESSFUL, 448→455 tests green (post-review fixes re-verified at 455/0/0 on BOTH targets), full mod (188 server + 6 client tool classes), zero functionality removed |
+| Upstream core compiles on 1.21.8 | **PASS** | `:1.21.8:build` BUILD SUCCESSFUL, 448→456 tests green on both targets, full mod (188 server + 6 client tool classes), zero functionality removed. Scope honesty: the surface is compile+registration-proven; ~10 tools were exercised live end to end (status, world reads, summon/query/despawn, client_status, sense_entities, view_capture, the extension tool) |
 | Server endpoint in a real dev instance | **PASS** | `runClient -PmcpSpike` → 53 mods, `Registered 105 MCP tools`, `listening at http://127.0.0.1:8765` on world load |
 | OMP connects over Streamable HTTP | **PASS** | three independent `omp -p` sessions against `.omp/mcp.json` (`type: http`); initialize 200 → `notifications/initialized` 204 → tools |
 | tools/list works | **PASS** | 105 tools listed (104 upstream + `jujutsu_mod_status`) |
@@ -123,11 +123,11 @@ GET  /mcp (SSE) → ": open" immediately, ": ping" ~15 s, stream held open (samp
 
 ## Post-review hardening (same wave)
 
-The rule-of-four review (zero P0/P1) added, re-verified at 455/0/0 on both targets: a 128-stream concurrency cap with 503 rejection (the rate limiter bounds creation rate, not count), sequential `mcp-sse-N` thread naming, `stop()` interrupting parked heartbeat threads, spawn-failure slot/exchange cleanup, exact `forToolName` precedence documentation, a public provider-domain test hook with per-test resets, and the companion's direct `fabric-api` dependency declaration.
+The rule-of-four review (zero P0/P1) added: a 128-stream concurrency cap with 503 rejection (the rate limiter bounds creation rate, not count) — covered by a dedicated unit test driving the full acquire/reject/release cycle over real sockets against an injectable 2-slot transport (the pre-existing 455-test suite only proved no regressions, not the cap itself); sequential `mcp-sse-N` thread naming; `stop()` interrupting parked heartbeat threads; spawn-failure slot/exchange cleanup; exact `forToolName` precedence documentation; a public provider-domain test hook with per-test resets; and the companion's direct `fabric-api` dependency declaration. Post-hardening suite: 456/0/0 on both targets.
 
 ## Architecture decision
 
-**A — port/fork upstream.** The spike proves the port is bounded and mechanical: transport, protocol, security, runtime dispatch, the full 194-class tool surface (188 server + 6 client), and the rendered-client endpoint all work on 1.21.8 after (a) one build target, (b) ~100 conditional rename sites + a dozen drift sites, (c) two genuinely new fixes (SSE hold-open, Jackson `fields()`), and (d) a ~60-line extension seam. Selected-module reuse (B) would discard a working 105-tool surface to save nothing — the expensive layers are exactly the ones that ported cleanly. A custom bridge (C) would mean owning protocol/transport/security/dispatch for less capability; the prior research's C recommendation is rejected on compile+runtime evidence.
+**A — port/fork upstream.** The spike proves the port is bounded and mechanical: transport, protocol, security, runtime dispatch, the full 194-class tool surface (188 server + 6 client — compile+registration-proven; ~10 tools runtime-proven), and the rendered-client endpoint all work on 1.21.8 after (a) one build target, (b) ~100 conditional rename sites + a dozen drift sites, (c) two genuinely new fixes (SSE hold-open, Jackson `fields()`), and (d) a ~60-line extension seam. Selected-module reuse (B) would discard a working 105-tool surface to save nothing — the expensive layers are exactly the ones that ported cleanly. A custom bridge (C) would mean owning protocol/transport/security/dispatch for less capability; the prior research's C recommendation is rejected on compile+runtime evidence.
 
 **Fallback:** B (reuse protocol/transport/security/dispatch modules behind our own smaller tool surface) — only if upstream stewardship becomes untenable (e.g. the fork diverges unmaintainably when upstream moves further past 1.21.x). The seam and fixes are deliberately small and upstreamable to keep that risk low.
 
