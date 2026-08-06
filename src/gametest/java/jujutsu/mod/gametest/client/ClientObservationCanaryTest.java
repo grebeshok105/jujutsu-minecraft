@@ -11,6 +11,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -36,7 +37,11 @@ import net.minecraft.world.phys.Vec3;
  *       shared spawn point — it cannot move, so the scene is deterministic;</li>
  *   <li>screenshot {@code observation_canary} at a fixed 854x480 resolution — the artifact size
  *       is independent of the window, and the screenshot is evidence only: no pixel/golden
- *       comparison is made anywhere in this canary.</li>
+ *       comparison is made anywhere in this canary;</li>
+ *   <li>the local player camera is aimed at the pig's mid-body right before the capture, so the
+ *       evidence frame always shows the observed entity under the crosshair;</li>
+ *   <li>the runner prefixes screenshot file names with a counter, so the artifact on disk is
+ *       {@code build/run/clientGameTest/screenshots/0000_observation_canary.png}.</li>
  * </ul>
  *
  * <p>Threading model: the test method runs on the fabric "Test thread"; client-world reads and
@@ -130,7 +135,8 @@ public final class ClientObservationCanaryTest implements FabricClientGameTest {
 				final long observationTick = ClientGameTestFixtures.clientTick(context);
 				context.computeOnClient(client -> {
 					ClientGameTestFixtures.assertWithDiagnostic(observed.getType() == EntityType.PIG, FIXTURE, "client",
-							observationTick, "client-observed entity type", "minecraft:pig", observed.getType());
+							observationTick, "client-observed entity type", "minecraft:pig",
+							BuiltInRegistries.ENTITY_TYPE.getKey(observed.getType()));
 					ClientGameTestFixtures.assertWithDiagnostic(observed.getUUID().equals(handle.uuid()), FIXTURE,
 							"client", observationTick, "client-observed entity uuid", handle.uuid(), observed.getUUID());
 					ClientGameTestFixtures.assertWithDiagnostic(
@@ -141,12 +147,14 @@ public final class ClientObservationCanaryTest implements FabricClientGameTest {
 				});
 
 				// Step 6: screenshot evidence, AFTER the observation asserts so the scene is
-				// proven. Aim the local player at the pig (client-legal: local rotation only).
+				// proven. Aim the local player at the pig's mid-body (client-legal: local rotation
+				// only; feet position + half the pig's ~0.9-block height keeps the crosshair on the
+				// body at any distance).
 				final long lookAtTick = ClientGameTestFixtures.clientTick(context);
 				context.runOnClient(client -> {
 					ClientGameTestFixtures.assertWithDiagnostic(client.player != null, FIXTURE, "client", lookAtTick,
 							"local player present for lookAt", "non-null LocalPlayer", client.player);
-					client.player.lookAt(EntityAnchorArgument.Anchor.EYES, handle.spawnPosition());
+					client.player.lookAt(EntityAnchorArgument.Anchor.EYES, handle.spawnPosition().add(0.0D, 0.45D, 0.0D));
 				});
 				context.waitTicks(2); // let the rotation apply before the screenshot.
 				Path screenshot = context.takeScreenshot(

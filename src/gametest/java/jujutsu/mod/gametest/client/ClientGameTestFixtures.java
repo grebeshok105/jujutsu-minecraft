@@ -66,27 +66,37 @@ public final class ClientGameTestFixtures {
 	 * Waits until the client world observes an entity with this UUID; returns its client-side
 	 * {@link Entity}. The wait is bounded by {@code timeoutTicks} (never {@code NO_TIMEOUT}); a
 	 * timeout re-throws an {@link AssertionError} carrying fixture diagnostic context, keeping the
-	 * original "Timed out waiting for predicate" error as its cause.
+	 * original "Timed out waiting for predicate" error as its cause. The post-wait read is
+	 * asserted too: if the entity vanishes between the predicate pass and the read (the two are
+	 * separate client-thread hops), the failure is a fixture diagnostic, never a silent
+	 * {@code null} return.
 	 *
 	 * <p>Lookup goes through the public {@code Level#getEntity(UUID)} accessor, which delegates to
 	 * the official {@code LevelEntityGetter#get(UUID)} entity storage — the same path the plan's
 	 * original {@code level.getEntities().get(uuid)} spelling would use (the raw
-	 * {@code getEntities()} accessor is package-protected in {@code ClientLevel}, so it is not
-	 * reachable from this package).
+	 * {@code getEntities()} accessor is protected in {@code ClientLevel}, so it is not reachable
+	 * from this package).
 	 */
 	public static Entity waitForEntityVisible(ClientGameTestContext context, UUID uuid, int timeoutTicks, String fixture) {
 		try {
 			context.waitFor(c -> c.level != null && c.level.getEntity(uuid) != null, timeoutTicks);
-			return context.computeOnClient(c -> c.level != null ? c.level.getEntity(uuid) : null);
 		} catch (AssertionError timeout) {
 			throw new AssertionError(diagnostic(fixture, "client", clientTick(context),
 					"entity visible", "uuid " + uuid + " present in client world", "uuid " + uuid + " absent"), timeout);
 		}
+		Entity observed = context.computeOnClient(c -> c.level != null ? c.level.getEntity(uuid) : null);
+		assertWithDiagnostic(observed != null, fixture, "client", clientTick(context),
+				"entity visible after wait", "uuid " + uuid + " still present at the post-wait read",
+				"uuid " + uuid + " absent (removed between wait and read)");
+		return observed;
 	}
 
 	/**
 	 * Waits until the client world no longer observes this UUID (bounded by {@code timeoutTicks};
 	 * same diagnostic wrapping as {@link #waitForEntityVisible}, expected {@code <absent>}).
+	 * A null client world counts as "not observed" (vacuously gone): with no world there is
+	 * nothing the client could still be observing, and failing instead would mislabel a
+	 * world-unload as "entity still present".
 	 */
 	public static void waitForEntityGone(ClientGameTestContext context, UUID uuid, int timeoutTicks, String fixture) {
 		try {
