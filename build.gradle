@@ -27,16 +27,18 @@ loom {
 	}
 }
 
-// Stage A (issue #42): server-only GameTest harness. fabricApi.configureTests creates the
+// Stage A (issue #42): the server GameTest harness. fabricApi.configureTests creates the
 // `gametest` source set (src/gametest) and the `gameTest` run config with the runGameTest task,
-// which Loom attaches to `check`. Client-side GameTests (enableClientGameTests) belong to a later
-// stage of #42 and stay disabled.
+// which Loom attaches to `check`. Stage B adds the client lane: enableClientGameTests makes Loom
+// create the `clientGameTest` run config and the `runClientGameTest` task (group `fabric`), which
+// Loom deliberately does NOT attach to `check` — the client lane stays non-required by design
+// (issue #42 Stage B), so the gate's composition is unchanged.
 fabricApi {
 	configureTests {
 		createSourceSet = true
 		modId = 'jujutsumod-gametest'
 		enableGameTests = true
-		enableClientGameTests = false
+		enableClientGameTests = true
 	}
 }
 
@@ -46,6 +48,15 @@ fabricApi {
 // (the Gradle 9 replacement for the removed buildDir property).
 loom.runs.named('gameTest') {
 	property 'fabric-api.gametest.report-file', layout.buildDirectory.file('test-results/gametest/junit.xml').get().asFile.absolutePath
+}
+
+// Stage B (issue #42): the client GameTest lane. Only jujutsumod-gametest's client tests may
+// run — the modid filter keeps foreign dev-classpath mods out and makes ordering deterministic.
+// There is no client analog of fabric-api.gametest.report-file in fabric-api 0.136.1 (source-
+// verified): the lane's machine-readable result is the task exit code; evidence = logs,
+// crash-reports and screenshots under build/run/clientGameTest/.
+loom.runs.named('clientGameTest') {
+	property 'fabric.client.gametest.modid', 'jujutsumod-gametest'
 }
 
 dependencies {
@@ -479,6 +490,10 @@ tasks.register('auditReleaseJarIsolation') {
 				}
 				if (name.startsWith('net/fabricmc/fabric/api/gametest/')) {
 					offenders << "${name}  (test-only fabric gametest API)"
+				}
+				if (name.startsWith('net/fabricmc/fabric/api/client/gametest/')
+						|| name.startsWith('net/fabricmc/fabric/impl/client/gametest/')) {
+					offenders << "${name}  (test-only fabric client gametest API)"
 				}
 				if (name.startsWith('com/tngtech/archunit/')) {
 					offenders << "${name}  (test-only ArchUnit classes)"
