@@ -18,12 +18,12 @@
 - `docs/THIRD_PARTY_NOTICES.md` — upstream MIT entry (dev-only, never shipped).
 - `docs/MCP_1_21_8_PORT_SPIKE.md` — the decision record (the task's original research-directory path is audit-forbidden here).
 
-The upstream port itself (1.21.8 target, ~100 conditional rename sites, SSE hold-open, Jackson `fields()` fix, ToolProvider seam, 8 seam tests) lives in the upstream fork — link in the PR and issue #43.
+The upstream port itself (1.21.8 target, ~100 conditional rename sites, SSE hold-open, Jackson `fields()` fix, ToolProvider seam, 11 seam tests) lives in the upstream fork — link in the PR and issue #43.
 
 ## Verification
 
 - `./gradlew.bat qualityGate` green on final content (metrics unchanged — mcpdev is outside every audit glob); `assemble` green propertyless; release jar 1319 entries, zero MCP/companion content, no `mcp-tools` entrypoint.
-- Upstream fork: `:1.21.8:build` green (458 tests), `:1.21.11:test` green (sibling target intact).
+- Upstream fork: `:1.21.8:build` green (455 tests), `:1.21.11:test` green (sibling target intact).
 - Live: three OMP 17.2.5 sessions (initialize `2025-03-26` → `2025-06-18` echo accepted), 105 tools, read+mutation+revert, client_status/sense/view_capture (854×480 real frame), ports released on shutdown.
 - Red proofs recorded: protocol (one-shot SSE revert → stream test fails) and isolation (fake `com/chapmanjw` entry → audit fails).
 

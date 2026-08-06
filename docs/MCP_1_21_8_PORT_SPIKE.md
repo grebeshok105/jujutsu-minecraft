@@ -29,7 +29,7 @@ Issue: [#43](https://github.com/grebeshok105/jujutsu-minecraft/issues/43)
 
 | Acceptance criterion | Result | Evidence |
 |---|---|---|
-| Upstream core compiles on 1.21.8 | **PASS** | `:1.21.8:build` BUILD SUCCESSFUL, 448→458 tests green, full mod (193 tools), zero functionality removed |
+| Upstream core compiles on 1.21.8 | **PASS** | `:1.21.8:build` BUILD SUCCESSFUL, 448→455 tests green (post-review fixes re-verified at 455/0/0 on BOTH targets), full mod (188 server + 6 client tool classes), zero functionality removed |
 | Server endpoint in a real dev instance | **PASS** | `runClient -PmcpSpike` → 53 mods, `Registered 105 MCP tools`, `listening at http://127.0.0.1:8765` on world load |
 | OMP connects over Streamable HTTP | **PASS** | three independent `omp -p` sessions against `.omp/mcp.json` (`type: http`); initialize 200 → `notifications/initialized` 204 → tools |
 | tools/list works | **PASS** | 105 tools listed (104 upstream + `jujutsu_mod_status`) |
@@ -57,9 +57,11 @@ Non-blockers hit on the way: `maven.kikugie.dev` throttled mid-download (stonecu
 Two live defects surfaced only at runtime — both are 1.21.8-specific and both now fixed + regression-tested:
 
 1. **Jackson `ObjectNode#properties()` NoSuchMethodError.** Minecraft 1.21.8 ships Jackson **2.13.4.2** as a parent-classloader library (verified: `dependencyInsight` shows it directly on `runtimeClasspath`); it predates `properties()` (Jackson 2.15) and shadows upstream's bundled 2.22.1 (Knot is parent-first for non-mod packages). Every object-returning tool failed; scalar tools worked. Fix: 5 call sites moved to the version-agnostic `fields()` (Toon ×3, BlockTools, EventsTools). On 1.21.11+ the game's Jackson is newer, which is why upstream never saw this.
-2. **Closed tool-category map rejected the extension domain.** `ToolCategory.forToolName` hard-throws for unknown domain prefixes, and `ToolCompatibilityFilter` evaluates every provider tool through it — `jujutsu_mod_status` was skipped at registration (`No category mapping for domain prefix 'jujutsu'`; registry stayed at 104). Fix: `ToolProvider.domainCategories()` (default empty) + a provider-domain registry in `ToolCategory` (built-ins non-overridable, collisions logged) + registration before filtering. Live re-run: `Registered 105 MCP tools`.
+2. **Closed tool-category map rejected the extension domain.** `ToolCategory.forToolName` hard-throws for unknown domain prefixes, and `ToolCompatibilityFilter` evaluates every provider tool through it — `jujutsu_mod_status` was skipped at registration (paraphrased; the exact text is `No category mapping for tool 'jujutsu_mod_status' (domain prefix 'jujutsu')…` — registry stayed at 104). Fix: `ToolProvider.domainCategories()` (default empty) + a provider-domain registry in `ToolCategory` (built-ins non-overridable, collisions logged) + registration before filtering. Live re-run: `Registered 105 MCP tools`.
 
 ## OMP handshake transcript (Stage 4, token redacted)
+
+> Provenance: the status codes and stream frames below were observed live in this session (raw `curl` pre-probe + `omp -p` runs); omp-run-*.log artifacts preserve the tool-call results, the HTTP status lines match the committed code paths (SecurityFilter 401, McpHttpRoute 200/204, SseStreamBody `: open`/`: ping` 15 s) and scout-2's static analysis. The runClient console lines (`Registered 105 MCP tools`, `listening at http://127.0.0.1:8765`) are quoted from the live session log.
 
 ```
 POST /mcp initialize {"protocolVersion":"2025-03-26", ...}
@@ -92,7 +94,7 @@ GET  /mcp (SSE) → ": open" immediately, ": ping" ~15 s, stream held open (samp
 
 ## Extension seam evidence (Stage 6)
 
-- Upstream side (spike branch): `ToolProvider` interface (SAM; `toolClasses()` + default `domainCategories()`), `mcp-tools` Fabric entrypoint iterated in `ToolRegistration.buildRegistry` AFTER built-ins, through the same compatibility/access gating; provider domains registered before filtering, built-in domains non-overridable; 8 seam unit tests (provider contribution, duplicate skip, throwing/null providers, declared-domain registration, built-in-remap rejection, unknown-domain throw, clear hook).
+- Upstream side (spike branch): `ToolProvider` interface (SAM; `toolClasses()` + default `domainCategories()`), `mcp-tools` Fabric entrypoint iterated in `ToolRegistration.buildRegistry` AFTER built-ins, through the same compatibility/access gating; provider domains registered before filtering, built-in domains non-overridable; 11 seam unit tests — 7 provider-path (contribution, duplicate skip, throwing/null/null-element providers, unmappable-class isolation, declared-domain registration) + 4 domain-registry (resolution passes, built-in-remap rejection, unknown-domain throw, clear hook).
 - Our side (`src/mcpdev`, dev-only): `JujutsuModStatusToolProvider` (declares `jujutsu` → SERVER) + `JujutsuModStatusTool` (read-only, upstream `onMainThread` dispatch) + `JujutsuMcpdevBridge` (holds the server reference; upstream has no public accessor). Coupling direction mcpdev → {main, upstream}; **no production class imports MCP anything** (release jar audit proves it structurally).
 
 ## Release isolation evidence
@@ -115,13 +117,17 @@ GET  /mcp (SSE) → ": open" immediately, ": ping" ~15 s, stream held open (samp
 4. **The single transport incompatibility was the one-shot GET SSE** — not protocol revisions, not sessions, not auth. Upstream's own docs promised the streaming behavior; the fix aligns code with its documentation.
 5. **The real 1.21.8 blocker class nobody predicted: Minecraft's own parent-classloader Jackson 2.13** shadowing the bundled 2.22 — invisible on 1.21.11+ where the game ships a newer Jackson. Found only because the spike ran live tools.
 6. **Upstream tool code is not MC-coupled** (13 of 144 files import `net.minecraft`); the port surface is the adapter layer, exactly as the layered architecture advertises.
-7. **No dynamic tool-provider seam existed** (hardcoded 187-class list) and — new finding — the **closed category map is a second seam blocker**: an entrypoint alone is insufficient, the domain-category registry was also required.
+7. **No dynamic tool-provider seam existed** (hardcoded 188-class registry list) and — new finding — the **closed category map is a second seam blocker**: an entrypoint alone is insufficient, the domain-category registry was also required.
 8. **Stale OMP blockers are fixed upstream** (legacy SSE `7bab084`, stdio teardown `c30c3ab`) — neither affected this integration.
 9. **The task's suggested decision-record path is unusable in this repo:** the removed research directory is gitignored and audit-forbidden (`tools/audit_docs.py` FORBIDDEN_REFERENCES), so this record lives at `docs/MCP_1_21_8_PORT_SPIKE.md`.
 
+## Post-review hardening (same wave)
+
+The rule-of-four review (zero P0/P1) added, re-verified at 455/0/0 on both targets: a 128-stream concurrency cap with 503 rejection (the rate limiter bounds creation rate, not count), sequential `mcp-sse-N` thread naming, `stop()` interrupting parked heartbeat threads, spawn-failure slot/exchange cleanup, exact `forToolName` precedence documentation, a public provider-domain test hook with per-test resets, and the companion's direct `fabric-api` dependency declaration.
+
 ## Architecture decision
 
-**A — port/fork upstream.** The spike proves the port is bounded and mechanical: transport, protocol, security, runtime dispatch, the full 193-tool surface, and the rendered-client endpoint all work on 1.21.8 after (a) one build target, (b) ~100 conditional rename sites + a dozen drift sites, (c) two genuinely new fixes (SSE hold-open, Jackson `fields()`), and (d) a ~60-line extension seam. Selected-module reuse (B) would discard a working 105-tool surface to save nothing — the expensive layers are exactly the ones that ported cleanly. A custom bridge (C) would mean owning protocol/transport/security/dispatch for less capability; the prior research's C recommendation is rejected on compile+runtime evidence.
+**A — port/fork upstream.** The spike proves the port is bounded and mechanical: transport, protocol, security, runtime dispatch, the full 194-class tool surface (188 server + 6 client), and the rendered-client endpoint all work on 1.21.8 after (a) one build target, (b) ~100 conditional rename sites + a dozen drift sites, (c) two genuinely new fixes (SSE hold-open, Jackson `fields()`), and (d) a ~60-line extension seam. Selected-module reuse (B) would discard a working 105-tool surface to save nothing — the expensive layers are exactly the ones that ported cleanly. A custom bridge (C) would mean owning protocol/transport/security/dispatch for less capability; the prior research's C recommendation is rejected on compile+runtime evidence.
 
 **Fallback:** B (reuse protocol/transport/security/dispatch modules behind our own smaller tool surface) — only if upstream stewardship becomes untenable (e.g. the fork diverges unmaintainably when upstream moves further past 1.21.x). The seam and fixes are deliberately small and upstreamable to keep that risk low.
 
