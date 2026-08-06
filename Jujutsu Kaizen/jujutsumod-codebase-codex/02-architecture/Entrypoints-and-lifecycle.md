@@ -15,6 +15,10 @@ Important lifecycle owners:
 - EmbeddedNailRegistry tracks loaded ordinary embedded nails and clears server-level maps on SERVER_STOPPING.
 - Runtime systems register their own tick/disconnect/stop cleanup where required.
 
+## Dev-only companion (mcpdev)
+
+`jujutsumod-mcpdev` (source set `src/mcpdev`, dormant without `-PmcpUpstreamJar`) is a separate Fabric mod with two entrypoints: `main` → `JujutsuMcpdevBridge` (holds the `MinecraftServer` reference via SERVER_STARTING/STOPPED — the upstream MCP adapter exposes no public server accessor) and `mcp-tools` → `JujutsuModStatusToolProvider` (contributes the `jujutsu_*` tool classes and declares the `jujutsu` tool-name domain). Tools parse arguments on the HTTP thread and touch game state only inside the upstream's main-thread hop. It is a consumer of the public API surface, never a lifecycle owner; the surface and reset-order contract live in [docs/MCP_DEV_CONTROLS.md](../../../docs/MCP_DEV_CONTROLS.md).
+
 ## Client entrypoint
 
 JujutsuModClient first hands the client's selection mirror to `CharacterSelectionView.setClientLookup` — so shared code that runs on both sides, like an item's `use`, can ask which vessel a player is without `src/main` touching a client class — then registers particle factories, VfxDirector, then `JujutsuCharacterClients.registerAll()` — each vessel installs its own client hooks through `CharacterClientDefinition.registerClientHooks()`, which is where the nail entity renderer, the straw-doll item renderer, and the per-vessel VFX recipe packs now register (the aggregate `JujutsuVfxRecipes` is deleted). It must follow `VfxDirector.initialize()` because the recipes register into the director it builds. Then client payload receivers, keybinds, SDF/MSDF pipelines, and the ClickGui host. See [Vessel definitions](Vessel-definitions.md).
