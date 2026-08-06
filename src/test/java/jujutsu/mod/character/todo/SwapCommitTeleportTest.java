@@ -13,8 +13,13 @@ import org.junit.jupiter.api.Test;
  * the partial-commit rollback, which no deterministic world state reaches (Entity#teleportTo only fails
  * for removed entities). These tests only assert the seam's own lifecycle — default, override, restore,
  * null rejection — which is pure static state: {@link TodoBoogieWoogieRuntime}'s class initializer
- * touches no registries (only profile constants and placement policies), so no Minecraft bootstrap is
- * needed. The override is process-global, so every test restores the production instance in a finally.
+ * touches no registries (only profile constants and placement policies), and the override's warn line
+ * initializes only {@code JujutsuMod}'s slf4j logger, so no Minecraft bootstrap is needed. The override
+ * is process-global, so every test restores the production instance in a finally.
+ *
+ * <p>The default-wiring pin is identity-based ({@code assertSame} on the constant), deliberately
+ * bootstrap-free: an edit that keeps the constant but changes the lambda's behaviour passes here and
+ * is caught instead by gametest scenarios 1 and 4, which run the default backend against a live world.
  */
 class SwapCommitTeleportTest {
 	@Test

@@ -41,27 +41,35 @@ import jujutsu.mod.character.todo.TodoBoogieWoogieRuntime;
  *
  * <p><b>Candidate-kill table</b> for the scenario 3 alcove — the STRICT scan
  * ({@code SafeBodyPlacement.find}, ring {@code +-0.5 / +-1.0 / +-0.7*diag} at up-steps 0..3)
- * places the Iron Golem (box 1.4 x 2.9, half-width 0.7) requested at the caster's feet
- * {@code (2.5, 1.0, 2.5)}:
+ * places the Iron Golem (box 1.4 x 2.7, half-width 0.7 — {@code sized(1.4f, 2.7f)} in 1.21.8
+ * bytecode) requested at the caster's feet {@code (2.5, 1.0, 2.5)}:
  *
  * <pre>
  *   candidate class                          | why noBlockCollision fails
  *   -----------------------------------------|-----------------------------------------------
  *   requested point, up=0                    | walls in x AND z: box x 1.8..3.2 overlaps the
  *                                            | wall at x=1.0..2.0, box z 1.8..3.2 the wall at
- *                                            | z=1.0..2.0 (and the ceiling starts at y=3.0,
- *                                            | box top 3.9, so the ceiling alone would too)
+ *                                            | z=1.0..2.0 (box top 3.7 stays below the y=4
+ *                                            | slab — the walls alone carry this row)
  *   ring +-0.5 / +-1.0 in x, up=0            | box z 1.8..3.2 always overlaps a tunnel side
  *                                            | wall (z=1.0..2.0 or z=3.0..4.0): the 1-wide
  *                                            | tunnel leaves no 1.4-wide column clear
  *   ring +-0.5 / +-1.0 in z, up=0            | box x 1.8..3.2 always overlaps an alcove wall
  *                                            | (x=1.0..2.0 or x=3.0..4.0) and/or a corner block
  *   ring +-0.7 diagonals, up=0               | corner wall blocks (1|3, 1, 1|3) overlap the box
- *   up-steps 1..3 (feet y = 2..4)            | ceiling slab y=3..5 over x=1..4, z=1..4: box
- *                                            | tops 4.9 / 5.9 / 6.9 always intersect the slab
+ *   up-steps 1..3 (feet y = 2..4)            | ceiling slab y=4..6 over x=1..4, z=1..4: box
+ *                                            | tops 4.7 / 5.7 / 6.7 always reach into [4,7)
+ *                                            | (feet y=2 additionally dies on the y=1..2 walls)
  *   every candidate                          | findSafeDestination(STRICT) returns null =>
  *                                            | TodoSwapPlan.preflight empty => atomic refuse
  * </pre>
+ *
+ * <p>The slab floats at y=4..6, entirely above the sightline: vanilla {@code hasLineOfSight}
+ * clips from the caster's eyes (y 2.62) to the TARGET'S EYES (golem eye y &lt; 3.8 for the 2.7
+ * sizing), so the whole ray stays below y=4 and no slab block can touch it — the refusal cannot
+ * silently move to the resolver's LOS gate (checked BEFORE the destination preflight in
+ * production). A y=3 slab did exactly that in the first arena draft; the pre-cast LOS assert
+ * caught it and pins the refusal point forever.
  *
  * <p>Both tests invoke the exact server-side production path the real C2S handler uses —
  * {@code CharacterAbilityExecutor.tryCast(player, PRIMARY, true)} via
@@ -76,10 +84,12 @@ public final class TodoAimedSwapRollbackGameTests {
 	 * Scenario 3 — a destination that cannot hold the target cancels the whole cast atomically.
 	 *
 	 * <p>The caster stands in a 1x1x2 alcove; every STRICT candidate around his feet is inside
-	 * collision geometry for an Iron Golem (1.4 x 2.9): alcove walls kill the laterals, the
-	 * 1-wide 2-tall aim tunnel leaves no 1.4-wide column clear, and the ceiling slab kills the
-	 * up-steps. The golem's own destination is irrelevant — SOFT belongs to the caster's arrival
-	 * and this cast never commits. The cast must return {@code false} at the destination
+	 * collision geometry for an Iron Golem (1.4 x 2.7): alcove walls kill the laterals, the
+	 * 1-wide 2-tall aim tunnel leaves no 1.4-wide column clear, and the floating ceiling slab
+	 * (y=4..6, above the eye-line — see the class javadoc) kills the up-steps. The refusal comes
+	 * entirely from the golem's STRICT scan at the caster's feet;
+	 * the caster's own SOFT arrival at the golem's open station would always pass and is never
+	 * reached because preflight fails first. The cast must return {@code false} at the destination
 	 * preflight with both bodies bit-for-bit where they were, no cooldown, no momentum, no
 	 * transient state. See the class javadoc for the full candidate-kill table.
 	 */
@@ -108,8 +118,12 @@ public final class TodoAimedSwapRollbackGameTests {
 		helper.setBlock(new BlockPos(3, 2, 3), Blocks.STONE);
 		helper.setBlock(new BlockPos(4, 1, 3), Blocks.STONE);
 		helper.setBlock(new BlockPos(4, 2, 3), Blocks.STONE);
-		// Ceiling slab >=3 blocks thick over the alcove and tunnel mouth: y=3..5, x=1..4, z=1..4.
-		for (int y = 3; y <= 5; y++) {
+		// Ceiling slab 3 blocks thick over the alcove and tunnel: y=4..6, x=1..4, z=1..4.
+		// It floats at y=4 so the caster-eye -> golem-EYE sightline (all below y=3.8) never
+		// touches it — a y=3 slab flipped the refusal to the resolver's earlier LOS gate, which
+		// the pre-cast LOS assert below caught. Up-step candidates still die: box tops 4.7/5.7/6.7
+		// always reach into [4,7), and feet y=2 boxes also intersect the y=1..2 walls.
+		for (int y = 4; y <= 6; y++) {
 			for (int x = 1; x <= 4; x++) {
 				for (int z = 1; z <= 4; z++) {
 					helper.setBlock(new BlockPos(x, y, z), Blocks.STONE);
@@ -121,6 +135,7 @@ public final class TodoAimedSwapRollbackGameTests {
 				new BlockPos(2, 1, 2), 0.0f, 0.0f);
 		IronGolem golem = GameTestFixtures.spawnMob(helper, FIXTURE_BLOCKED_DESTINATION,
 				EntityType.IRON_GOLEM, new BlockPos(5, 1, 2));
+		java.util.concurrent.atomic.AtomicBoolean asserted = new java.util.concurrent.atomic.AtomicBoolean();
 
 		helper.runAtTickTime(2, () -> {
 			try {
@@ -132,6 +147,16 @@ public final class TodoAimedSwapRollbackGameTests {
 				// refused cast restores nothing — the captured state is the exact compare target.
 				TodoSwapTestFixtures.BodyState casterBefore = TodoSwapTestFixtures.BodyState.capture(caster);
 				TodoSwapTestFixtures.BodyState golemBefore = TodoSwapTestFixtures.BodyState.capture(golem);
+				// Pin the refusal POINT, not just the refusal: castResult=false plus unchanged bodies
+				// is observably identical across no_target / LOS / preflight refusals. LOS through the
+				// tunnel proves the resolver reaches the golem, so the only refusing leg left is the
+				// destination preflight — a stray block in the tunnel now fails here, loudly, instead
+				// of silently moving the refusal earlier and passing the test without the preflight.
+				boolean losToGolem = caster.hasLineOfSight(golem);
+				helper.assertTrue(losToGolem,
+						TodoSwapTestFixtures.diagnostic(FIXTURE_BLOCKED_DESTINATION, "resolve",
+								helper.getTick(), caster.getUUID(), golem.getUUID(),
+								"line of sight to golem through the tunnel", "true", losToGolem));
 				boolean castResult = TodoSwapTestFixtures.castPrimary(caster);
 				helper.assertTrue(!castResult,
 						TodoSwapTestFixtures.diagnostic(FIXTURE_BLOCKED_DESTINATION, "preflight",
@@ -144,7 +169,12 @@ public final class TodoAimedSwapRollbackGameTests {
 				TodoSwapTestFixtures.assertBodyState(helper, FIXTURE_BLOCKED_DESTINATION, "preflight",
 						"golem", golem, golemBefore);
 				TodoSwapTestFixtures.assertNoPrimaryCharge(helper, FIXTURE_BLOCKED_DESTINATION, "preflight", caster);
+				asserted.set(true);
 			} finally {
+				// On failure the golem goes now — the tick-6/tick-16 teardown never runs after a fail.
+				if (!asserted.get()) {
+					golem.discard();
+				}
 				TodoSwapTestFixtures.cleanupCaster(helper, caster);
 			}
 		});
@@ -176,6 +206,7 @@ public final class TodoAimedSwapRollbackGameTests {
 				new BlockPos(1, 1, 1), 0.0f, 0.0f);
 		Pig pig = GameTestFixtures.spawnMob(helper, FIXTURE_FORCED_ROLLBACK, EntityType.PIG,
 				new BlockPos(5, 1, 5));
+		java.util.concurrent.atomic.AtomicBoolean asserted = new java.util.concurrent.atomic.AtomicBoolean();
 		AtomicInteger commits = new AtomicInteger();
 
 		helper.runAtTickTime(2, () -> {
@@ -208,8 +239,13 @@ public final class TodoAimedSwapRollbackGameTests {
 				TodoSwapTestFixtures.assertBodyState(helper, FIXTURE_FORCED_ROLLBACK, "rollback",
 						"pig", pig, pigBefore);
 				TodoSwapTestFixtures.assertNoPrimaryCharge(helper, FIXTURE_FORCED_ROLLBACK, "rollback", caster);
+				asserted.set(true);
 			} finally {
 				TodoBoogieWoogieRuntime.restoreProductionCommitTeleport();
+				// On failure the pig goes now — the tick-6/tick-16 teardown never runs after a fail.
+				if (!asserted.get()) {
+					pig.discard();
+				}
 				TodoSwapTestFixtures.cleanupCaster(helper, caster);
 			}
 		});

@@ -166,7 +166,9 @@ public final class TodoBoogieWoogieRuntime {
 	/** Production commit teleport: the same 8-arg authoritative teleport place() uses. */
 	public static final SwapCommitTeleport PRODUCTION_COMMIT_TELEPORT =
 			(body, level, destination, yaw, pitch) -> body.teleportTo(level, destination.x(), destination.y(), destination.z(), java.util.Set.of(), yaw, pitch, false);
-	private static SwapCommitTeleport commitTeleport = PRODUCTION_COMMIT_TELEPORT;
+	// volatile: today every reader/writer shares the server thread, but the field is public API
+	// in the shipped jar — cross-thread visibility must not depend on that staying true.
+	private static volatile SwapCommitTeleport commitTeleport = PRODUCTION_COMMIT_TELEPORT;
 
 	public static SwapCommitTeleport commitTeleport() {
 		return commitTeleport;
@@ -175,6 +177,8 @@ public final class TodoBoogieWoogieRuntime {
 	/** Test seam (issue #21 rollback coverage). Callers MUST restore via restoreProductionCommitTeleport(). */
 	public static void overrideCommitTeleport(SwapCommitTeleport replacement) {
 		commitTeleport = java.util.Objects.requireNonNull(replacement);
+		// A leaked override silently refuses every later aimed swap; the warn makes it attributable.
+		JujutsuMod.LOGGER.warn("Todo Boogie Woogie commit teleport OVERRIDDEN (test seam) — must be restored");
 	}
 
 	public static void restoreProductionCommitTeleport() {

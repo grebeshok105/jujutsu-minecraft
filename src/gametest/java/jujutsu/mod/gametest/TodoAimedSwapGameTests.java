@@ -77,9 +77,19 @@ public final class TodoAimedSwapGameTests {
 		// -45 degrees yaw faces the pig station from (1,1,1); aimAt re-aims at tick 2 anyway.
 		ServerPlayer caster = TodoSwapTestFixtures.setupTodoCaster(helper, fixture, casterFeet, -45.0f, 0.0f);
 		Pig pig = GameTestFixtures.spawnMob(helper, fixture, EntityType.PIG, pigFeet);
+		java.util.concurrent.atomic.AtomicBoolean asserted = new java.util.concurrent.atomic.AtomicBoolean();
 
 		helper.runAtTickTime(2, () -> {
 			try {
+				// Seed non-trivial motion state so the restore asserts discriminate: the production
+				// teleport zeroes velocity in teleportSetPosition and restores the snapshot after,
+				// and the success path resets fall distance — with everything at rest the "restored"
+				// and "never touched" outcomes would be indistinguishable. Same scheduled callback:
+				// no physics tick runs between seed, capture, cast and assert.
+				caster.setDeltaMovement(0.0, 0.0, 0.1);
+				caster.fallDistance = 2.0F;
+				pig.setDeltaMovement(0.1, 0.0, 0.0);
+				pig.fallDistance = 1.5F;
 				TodoSwapTestFixtures.BodyState pigBefore = TodoSwapTestFixtures.BodyState.capture(pig);
 				// Aim at the centre of the pig's bounding box, keeping the corridor clear of blocks.
 				TodoSwapTestFixtures.aimAt(caster, pig.position().add(0.0, pig.getBbHeight() / 2.0, 0.0));
@@ -121,8 +131,10 @@ public final class TodoAimedSwapGameTests {
 								caster.getUUID(), pig.getUUID(), "pig dimension unchanged",
 								casterBefore.dimension(), pig.level().dimension()));
 
-				// Production restores each body to its OWN pre-cast rotation (forceSetRotation +
-				// setYHeadRot) and velocity, so the asserts are exact.
+				// Production restores/keeps each body's OWN pre-cast rotation. For the pig all three
+				// are real restored fields; for a ServerPlayer, forceSetRotation is client-facing only
+				// (packet, no authoritative field write — bytecode-verified), so the caster's yaw and
+				// pitch asserts pin "unchanged" while setYHeadRot pins the one real player field write.
 				helper.assertTrue(caster.getYRot() == casterBefore.yaw(), TodoSwapTestFixtures.diagnostic(fixture,
 						"commit", helper.getTick(), caster.getUUID(), pig.getUUID(),
 						"caster yaw restored", casterBefore.yaw(), caster.getYRot()));
@@ -179,14 +191,19 @@ public final class TodoAimedSwapGameTests {
 				helper.assertTrue(!transientState, TodoSwapTestFixtures.diagnostic(fixture, "commit",
 						helper.getTick(), caster.getUUID(), pig.getUUID(),
 						"no transient state", "false", transientState));
+				asserted.set(true);
 			} finally {
 				// Success AND failure: an assert throw has already failed the test; cleanup is
-				// best-effort so the leaked-player vector is closed even on red runs.
+				// best-effort so the leaked-player vector is closed even on red runs. On failure the
+				// pig goes too — the tick-6/tick-16 teardown callbacks never run once a test fails.
+				if (!asserted.get()) {
+					pig.discard();
+				}
 				TodoSwapTestFixtures.cleanupCaster(helper, caster);
 			}
 		});
-		// Pig teardown: discard at tick 6, absence verified at tick 16 (Stage A idiom). The
-		// caster's cleanup already ran inside the tick-2 callback's finally.
+		// Pig teardown on the success path: discard at tick 6, absence verified at tick 16 (Stage A
+		// idiom). On failure the tick-2 finally already discarded it; these callbacks never fire.
 		GameTestFixtures.removeAndVerifyGone(helper, fixture, pig, EntityType.PIG, pigFeet, 6);
 		helper.runAtTickTime(20, () -> helper.succeed());
 	}
