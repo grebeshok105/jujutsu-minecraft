@@ -21,11 +21,10 @@
 
 ## Status
 
-- IN PROGRESS: rule-of-four pipeline; 4 workers implementing blocks 1-4 (accessors, control tools, observe/reset tools, autonomy), main integrating + live proof (block 5).
-- This handoff replaces the spike handoff; update the Status/Next lines at integration.
+- DONE on this branch: all four blocks integrated (`362f176`), qualityGate green (test_java 83), `jarMcpdev` compiles the full 8-tool surface against the upstream 1.21.8 jar, and the live proof passed end to end with zero manual input: autonomous entry (22 s to a bound 8765, 112 tools registered), `todo → megumi` select, `PRIMARY` invoke summoned both Divine Dogs (`packView` white+black alive), `fixture_reset` ran 20/20 steps ok, the control `state_get` came back clean (pack null, all cooldowns 0), and `view_capture` returned a real unpaused first-person frame.
+- fixture_reset deliberately leaves vessel selection in place (design decision 4) — the live proof ended with Megumi selected.
 
 ## Next steps
 
-1. Integrate worker blocks, run the verification ladder above, capture live-proof evidence.
-2. Push branch, open the stacked PR onto the spike branch, comment on issue #43.
-3. Upstream PRs (SSE hold-open, Jackson compatibility, ToolProvider seam) remain a separate follow-up.
+1. Reviewer wave on the user's command (rule-of-four phase 3), then merge decision — this PR stacks on #62.
+2. Upstream PRs (SSE hold-open, Jackson compatibility, ToolProvider seam) remain a separate follow-up.
