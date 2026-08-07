@@ -16,6 +16,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.character.AbilityResult;
 import jujutsu.mod.combat.BlackFlashFocus;
 import jujutsu.mod.combat.BlackFlashImpact;
 import jujutsu.mod.combat.BlackFlashStrike;
@@ -45,13 +46,13 @@ public final class NobaraHammerCombatRuntime {
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> clear());
 	}
 
-	public static boolean handleInput(ServerPlayer player) {
+	public static AbilityResult handleInput(ServerPlayer player) {
 		InteractionHand hammerHand = heldHammerHand(player);
 		if (hammerHand == null || CombatStagger.GLOBAL.isStaggered(player.getUUID(), player.level().getGameTime())) {
-			return false;
+			return AbilityResult.UNHANDLED_FAILURE;
 		}
 		if (PENDING.containsKey(player.getUUID())) {
-			return false;
+			return AbilityResult.UNHANDLED_FAILURE;
 		}
 
 		long now = player.level().getGameTime();
@@ -64,7 +65,7 @@ public final class NobaraHammerCombatRuntime {
 			emit(player, NobaraVfxIds.HAMMER_NAIL_LAUNCH, player.getEyePosition(), 1);
 			tryProcPreparedNailBlackFlash(player, prepared);
 			player.swing(hammerHand, true);
-			return true;
+			return AbilityResult.SUCCESS;
 		}
 
 		LivingEntity looked = lookedTarget(player);
@@ -83,7 +84,7 @@ public final class NobaraHammerCombatRuntime {
 		PENDING.put(player.getUUID(), new PendingAttack(kind, now + timeline.impactTick(), now + timeline.recoveryTicks(), targetId));
 		emit(player, kind == AttackKind.HORIZONTAL ? NobaraVfxIds.HAMMER_HORIZONTAL : NobaraVfxIds.HAMMER_OVERHEAD, player.getEyePosition(), 1);
 		player.swing(hammerHand, true);
-		return true;
+		return AbilityResult.SUCCESS;
 	}
 
 	public static void openNailEmbedWindow(ServerPlayer player, LivingEntity target, float damage) {

@@ -12,6 +12,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.character.AbilityResult;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityExecutor;
 import jujutsu.mod.character.CharacterSelectionManager;
@@ -134,9 +135,9 @@ public final class JujutsuCommands {
 			source.sendSuccess(() -> Component.literal(label + " did not cast: it is Nobara's."), false);
 			return 0;
 		}
-		boolean cast = CharacterAbilityExecutor.tryCast(player, slot, true);
-		source.sendSuccess(() -> Component.literal(cast ? "Cast " + label + "." : label + " did not cast."), false);
-		return cast ? 1 : 0;
+		AbilityResult result = CharacterAbilityExecutor.tryCast(player, slot, true);
+		source.sendSuccess(() -> Component.literal(result == AbilityResult.SUCCESS ? "Cast " + label + "." : label + " did not cast."), false);
+		return result == AbilityResult.SUCCESS ? 1 : 0;
 	}
 
 	private static int playSingleParticle(CommandSourceStack source, String label, SimpleParticleType type) throws com.mojang.brigadier.exceptions.CommandSyntaxException {

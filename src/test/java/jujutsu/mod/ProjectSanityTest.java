@@ -385,7 +385,7 @@ public final class ProjectSanityTest {
 		assert executor.contains("CharacterSelectionManager.selected(player)") && executor.contains("JujutsuCharacter.NONE")
 				: "The shared gate owns the selection check for every vessel";
 		assert executor.contains("JujutsuCharacters.definition(character)")
-				&& executor.contains("definition.tryCast(player, ability, notify)")
+				&& executor.contains("return definition.tryCast(player, ability, notify)")
 				: "The shared gate must ask the vessel's definition instead of naming vessels";
 		String actionRuntime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/NobaraAbilityRouter.java"));
 		assert actionRuntime.contains("CombatStagger.GLOBAL.isStaggered")
@@ -505,8 +505,8 @@ public final class ProjectSanityTest {
 		assert !runtime.contains("hasMark")
 				: "The aimed swap must refuse plainly with no target — the mark fallback is deleted";
 		String router = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/todo/TodoAbilityRouter.java"));
-		assert router.contains("case USE_CONTEXT -> false;")
-				: "USE_CONTEXT keeps its wire id but Todo must answer it with false";
+		assert router.contains("case USE_CONTEXT -> AbilityResult.UNHANDLED_FAILURE;")
+				: "USE_CONTEXT keeps its wire id but Todo must answer it with UNHANDLED_FAILURE";
 		assert router.contains("case TERTIARY, TERTIARY_SNEAK -> TodoStoneRuntime.tryCast")
 				: "Both V slots must route to the stone runtime";
 		assert router.contains("case SECONDARY, SECONDARY_SNEAK -> TodoPairSwapRuntime.tryCast")

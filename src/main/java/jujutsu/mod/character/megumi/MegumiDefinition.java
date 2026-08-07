@@ -5,6 +5,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.wolf.Wolf;
+import jujutsu.mod.character.AbilityResult;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterDefinition;
 import jujutsu.mod.character.JujutsuCharacter;
@@ -18,7 +19,7 @@ public final class MegumiDefinition implements CharacterDefinition {
 	}
 
 	@Override
-	public boolean tryCast(ServerPlayer player, CharacterAbility slot, boolean notify) {
+	public AbilityResult tryCast(ServerPlayer player, CharacterAbility slot, boolean notify) {
 		return MegumiAbilityRouter.tryCast(player, slot, notify);
 	}
 

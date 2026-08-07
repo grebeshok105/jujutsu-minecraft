@@ -13,6 +13,7 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.character.AbilityResult;
 import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.network.JujutsuNetworking;
@@ -46,19 +47,19 @@ public final class ProjectJjkMegaNailRuntime {
 	 * Attempts to start a Mega Nail on the aimed living target.
 	 *
 	 * <p>All owned embedded nails on the target are atomically consumed and a mega-nail entity
-	 * is spawned at the gather point (in front of the caster). Returns {@code false} when there
-	 * is no valid target or no nails, letting the caller produce the fallback toast.
+	 * is spawned at the gather point (in front of the caster). Returns {@link AbilityResult#UNHANDLED_FAILURE}
+	 * when there is no valid target or no nails, letting the caller produce the fallback toast.
 	 */
-	public static boolean start(ServerPlayer caster) {
+	public static AbilityResult start(ServerPlayer caster) {
 		ServerLevel level = caster.level();
 		long gameTime = level.getGameTime();
 		TargetResolver.Result result = TargetResolver.resolve(level, caster, ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_RANGE);
 		if (result.mode() != TargetResolver.Mode.ENTITY || result.entityId().isEmpty()) {
-			return false;
+			return AbilityResult.UNHANDLED_FAILURE;
 		}
 		Entity entity = level.getEntity(result.entityId().get());
 		if (!(entity instanceof LivingEntity target) || !target.isAlive()) {
-			return false;
+			return AbilityResult.UNHANDLED_FAILURE;
 		}
 		// Collect embedded nails on this target
 		List<ProjectJjkNailEntity> nails = level.getEntitiesOfClass(ProjectJjkNailEntity.class,
@@ -66,7 +67,7 @@ public final class ProjectJjkMegaNailRuntime {
 					nail.isEmbedded() && nail.isOwnedBy(caster.getUUID())
 							&& target.getUUID().equals(nail.anchor().stableId()));
 		if (nails.isEmpty()) {
-			return false;
+			return AbilityResult.UNHANDLED_FAILURE;
 		}
 		// Snapshot weight and count
 		float weight = 0.0f;
@@ -100,7 +101,7 @@ public final class ProjectJjkMegaNailRuntime {
 		JujutsuNetworking.broadcastVfxCue(level, caster.position(), VFX_DELIVERY_RADIUS,
 				cue(level, NobaraVfxIds.CASTER_ACTION, NobaraVfxIds.CASTER_MEGA_NAIL,
 						caster.position(), gameTime, caster));
-		return true;
+		return AbilityResult.SUCCESS;
 	}
 
 	/**
