@@ -29,6 +29,7 @@ import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.character.AbilityResult;
 import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuParticles;
@@ -95,21 +96,23 @@ public final class ProjectJjkRitualRuntime {
 	// -- Hairpin mark detonation ----------------------------------------------------------------
 
 	/** Starts R from the aimed nail/target and chains through owned nails within ten blocks. */
-	public static boolean startDirectedHairpin(ServerPlayer caster) {
+	public static AbilityResult startDirectedHairpin(ServerPlayer caster) {
 		ServerLevel level = caster.level();
 		long gameTime = level.getGameTime();
 		List<ExplosionAnchor> available = collectAllLoadedOwnedNails(level, caster);
 		ExplosionAnchor seed = findDirectedSeed(level, caster, available);
 		if (seed == null) {
 			playCasterSnap(level, caster, 1, gameTime);
-			return true;
+			return AbilityResult.SUCCESS;
 		}
 		List<ExplosionAnchor> anchors = available.stream()
 				.filter(anchor -> anchor.snapshotPosition().distanceToSqr(seed.snapshotPosition())
 						<= ProjectJjkNobaraProfile.HAIRPIN_DIRECTED_CHAIN_RADIUS * ProjectJjkNobaraProfile.HAIRPIN_DIRECTED_CHAIN_RADIUS)
 				.toList();
 		return scheduleHairpin(caster, seed, anchors,
-				ProjectJjkNobaraProfile.HAIRPIN_DIRECTED_CHAIN_DELAY_TICKS, gameTime);
+				ProjectJjkNobaraProfile.HAIRPIN_DIRECTED_CHAIN_DELAY_TICKS, gameTime)
+				? AbilityResult.SUCCESS
+				: AbilityResult.UNHANDLED_FAILURE;
 	}
 
 	private static boolean scheduleHairpin(ServerPlayer caster, ExplosionAnchor directedSeed, List<ExplosionAnchor> anchors, int cadence, long gameTime) {

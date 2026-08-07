@@ -26,14 +26,6 @@ public final class JujutsuMcpdevBridge implements ModInitializer {
 		ServerLifecycleEvents.SERVER_STOPPED.register(s -> server = null);
 	}
 
-	/**
-	 * The live server reference, or {@code null} before a world is loaded or after it stops.
-	 * Volatile read — safe from any thread; callers on the server main thread use it directly.
-	 */
-	static MinecraftServer server() {
-		return server;
-	}
-
 	/** Friendly version of the jujutsumod mod container, or "unknown" when absent. */
 	static String modVersion() {
 		return FabricLoader.getInstance()

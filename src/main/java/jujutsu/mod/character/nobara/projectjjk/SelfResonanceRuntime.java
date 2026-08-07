@@ -13,6 +13,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.character.AbilityResult;
 import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.curse.CurseLink;
 import jujutsu.mod.curse.CurseLinkRegistry;
@@ -32,8 +33,8 @@ public final class SelfResonanceRuntime {
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> { SELECTED.clear(); PENDING.clear(); });
 	}
 
-	public static boolean tryCast(ServerPlayer player) {
-		if (PENDING.containsKey(player.getUUID())) return false;
+	public static AbilityResult tryCast(ServerPlayer player) {
+		if (PENDING.containsKey(player.getUUID())) return AbilityResult.UNHANDLED_FAILURE;
 		List<CurseLink> links = CurseLinkRegistry.GLOBAL.linksForParticipant(player.getUUID());
 		CurseLinkSelection selection = CurseLinkSelection.resolve(links, SELECTED.get(player.getUUID()));
 		if (selection.status() == CurseLinkSelection.Status.NEEDS_SELECTION || selection.status() == CurseLinkSelection.Status.INVALID_SELECTION) {
@@ -41,18 +42,19 @@ public final class SelfResonanceRuntime {
 			if (ServerPlayNetworking.canSend(player, CurseLinkOptionsPayload.TYPE)) {
 				ServerPlayNetworking.send(player, new CurseLinkOptionsPayload(links.stream().map(link -> new CurseLinkOptionsPayload.Entry(link.id(), link.sourceId(), link.techniqueId())).toList()));
 			}
-			return true;
+			// The picker opened: the input was consumed and the player got a UI, so this is not a failure.
+			return AbilityResult.SUCCESS;
 		}
 		if (selection.status() != CurseLinkSelection.Status.READY || selection.link() == null) {
 			player.displayClientMessage(Component.translatable("message.jujutsumod.nobara.self_resonance.no_link"), true);
-			return false;
+			return AbilityResult.HANDLED_FAILURE;
 		}
 		CurseLink link = selection.link();
-		if (!link.participants().contains(player.getUUID())) { SELECTED.remove(player.getUUID()); return false; }
+		if (!link.participants().contains(player.getUUID())) { SELECTED.remove(player.getUUID()); return AbilityResult.UNHANDLED_FAILURE; }
 		Vec3Cue.emitCaster(player);
 		PENDING.put(player.getUUID(), new Pending(link.id(), player.level().getGameTime() + NobaraActionTimeline.SELF_RESONANCE.impactTick()));
 		SELECTED.remove(player.getUUID());
-		return true;
+		return AbilityResult.SUCCESS;
 	}
 
 	private static void tick(MinecraftServer server) {
