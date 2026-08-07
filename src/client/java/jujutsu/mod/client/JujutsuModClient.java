@@ -1,9 +1,11 @@
 package jujutsu.mod.client;
 
 import net.fabricmc.api.ClientModInitializer;
+import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.CharacterSelectionView;
 import jujutsu.mod.client.character.ClientCharacterSelectionManager;
 import jujutsu.mod.client.character.JujutsuCharacterClients;
+import jujutsu.mod.client.hud.AbilityHud;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.input.JujutsuKeybinds;
 import jujutsu.mod.client.network.JujutsuClientNetworking;
@@ -21,6 +23,7 @@ public class JujutsuModClient implements ClientModInitializer {
 		CharacterSelectionView.setClientLookup(ClientCharacterSelectionManager::characterOrNone);
 		JujutsuClientParticles.registerFactories();
 		VfxDirector.initialize();
+		VfxDirector.registerHudContribution(JujutsuMod.id("ability_hud"), AbilityHud::render);
 		// Each vessel installs its own renderers and VFX recipes. Must follow VfxDirector.initialize(),
 		// because the recipes register into the director it builds.
 		JujutsuCharacterClients.registerAll();

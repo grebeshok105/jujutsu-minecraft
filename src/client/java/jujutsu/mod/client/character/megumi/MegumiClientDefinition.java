@@ -5,9 +5,13 @@ import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.minecraft.resources.ResourceLocation;
 import jujutsu.mod.JujutsuMod;
+import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.JujutsuCharacter;
+import jujutsu.mod.character.megumi.MegumiProfile;
+import jujutsu.mod.character.megumi.MegumiProfile;
 import jujutsu.mod.client.character.CharacterClientDefinition;
 import jujutsu.mod.client.character.CharacterRosterEntry;
+import jujutsu.mod.client.character.HudSlot;
 import jujutsu.mod.client.character.JujutsuCharacterIcons;
 import jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes;
 import jujutsu.mod.client.character.megumi.particle.MegumiShadowMoteParticle;
@@ -48,6 +52,49 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 								"screen.jujutsumod.character_select.ability.deep_submerge", "⇧B+"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOOM,
 								"screen.jujutsumod.character_select.ability.shadow_drop", "V")));
+	}
+
+	/**
+	 * The five HUD cells, one per technique slot.
+	 *
+	 * <p>The roster card's sixth cast, the held deep submerge (⇧B+), is the hold gesture of the same
+	 * {@link CharacterAbility#SECONDARY_SNEAK} key and gets no cell of its own — the HUD lists the
+	 * five technique slots, not every cast. Everything else is built from the card's strip in order.
+	 */
+	@Override
+	public List<HudSlot> hudSlots() {
+		List<CharacterRosterEntry.Ability> strip = rosterEntry().abilities();
+		return List.of(
+				hudSlot(strip, 0, CharacterAbility.PRIMARY),
+				hudSlot(strip, 1, CharacterAbility.PRIMARY_SNEAK),
+				hudSlot(strip, 2, CharacterAbility.SECONDARY),
+				hudSlot(strip, 3, CharacterAbility.SECONDARY_SNEAK),
+				hudSlot(strip, 5, CharacterAbility.TERTIARY));
+	}
+
+	/**
+	 * The longest cooldown each technique slot can carry, the denominator of the HUD overlay fraction.
+	 *
+	 * <p>A slot's casts can share a cooldown key at different prices — recalling both dogs is cheaper
+	 * than losing the pack, and a deep submerge costs more than a tap step — so the denominator is the
+	 * largest price any cast on the slot can ask.
+	 */
+	@Override
+	public int maxCooldownTicks(CharacterAbility ability) {
+		return switch (ability) {
+			case PRIMARY -> Math.max(MegumiProfile.RECALL_COOLDOWN_TICKS, MegumiProfile.PACK_DEATH_COOLDOWN_TICKS);
+			case PRIMARY_SNEAK -> MegumiProfile.SIC_COOLDOWN_TICKS;
+			case SECONDARY -> MegumiProfile.SHADOW_TRAP_COOLDOWN_TICKS;
+			case SECONDARY_SNEAK -> Math.max(MegumiProfile.SHADOW_STEP_COOLDOWN_TICKS, MegumiProfile.SUBMERGE_COOLDOWN_TICKS);
+			case TERTIARY -> MegumiProfile.DROP_COOLDOWN_TICKS;
+			default -> 0;
+		};
+	}
+
+	/** One HUD cell: the roster card's ability at {@code index}, bound to its technique slot. */
+	private static HudSlot hudSlot(List<CharacterRosterEntry.Ability> strip, int index, CharacterAbility ability) {
+		CharacterRosterEntry.Ability card = strip.get(index);
+		return new HudSlot(card.icon(), card.nameKey(), ability, card.inputLabel());
 	}
 
 	private static final CharacterSkinAnimation SKIN_ANIMATION = new MegumiSkinAnimationAdapter();
