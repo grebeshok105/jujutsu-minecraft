@@ -134,7 +134,7 @@ public final class CharacterClientRegistryTest {
 				.resolve(character.id()).resolve(name + "AbilityRouter.java");
 		String router = Files.readString(routerFile);
 		int refused = 0;
-		Matcher empty = Pattern.compile("case\\s+([A-Z_,\\s]+?)\\s*->\\s*false\\s*;").matcher(router);
+		Matcher empty = Pattern.compile("case\\s+([A-Z_,\\s]+?)\\s*->\\s*(?:false|AbilityResult\\.UNHANDLED_FAILURE)\\s*;").matcher(router);
 		while (empty.find()) {
 			refused += empty.group(1).split(",").length;
 		}
@@ -152,7 +152,7 @@ public final class CharacterClientRegistryTest {
 	/** The slot names this router answers with a plain {@code false}. */
 	private static java.util.Set<String> refusedNames(String router) {
 		java.util.Set<String> names = new java.util.HashSet<>();
-		Matcher empty = Pattern.compile("case\\s+([A-Z_,\\s]+?)\\s*->\\s*false\\s*;").matcher(router);
+		Matcher empty = Pattern.compile("case\\s+([A-Z_,\\s]+?)\\s*->\\s*(?:false|AbilityResult\\.UNHANDLED_FAILURE)\\s*;").matcher(router);
 		while (empty.find()) {
 			for (String part : empty.group(1).split(",")) {
 				names.add(part.trim());

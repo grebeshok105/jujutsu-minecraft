@@ -2,6 +2,7 @@ package jujutsu.mod.character.nobara;
 
 import java.util.UUID;
 import net.minecraft.server.level.ServerPlayer;
+import jujutsu.mod.character.AbilityResult;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterDefinition;
 import jujutsu.mod.character.JujutsuCharacter;
@@ -24,7 +25,7 @@ public final class NobaraDefinition implements CharacterDefinition {
 	}
 
 	@Override
-	public boolean tryCast(ServerPlayer player, CharacterAbility slot, boolean notify) {
+	public AbilityResult tryCast(ServerPlayer player, CharacterAbility slot, boolean notify) {
 		return NobaraAbilityRouter.tryCast(player, slot, notify);
 	}
 

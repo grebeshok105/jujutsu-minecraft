@@ -121,7 +121,7 @@ public final class NobaraAbilitySlotsTest {
 			if (mapped.contains(slot)) {
 				continue;
 			}
-			assert armOf(router, slot).contains("false")
+			assert armOf(router, slot).contains("UNHANDLED_FAILURE")
 					: slot + " is neither routed to a runtime nor explicitly refused; decide which it is";
 		}
 		// Each call is looked for INSIDE its own arm. Searching the whole file instead would pass with two
@@ -172,9 +172,10 @@ public final class NobaraAbilitySlotsTest {
 	}
 
 	/**
-	 * Scoped to the router on purpose. It cannot claim the player sees exactly one line, because some of
-	 * her runtimes speak for themselves before returning false and this fallback then overwrites them —
-	 * see E10 in KNOWN_ISSUES. What it does pin is that the router adds no second line of its own.
+	 * Scoped to the router on purpose. The router speaks exactly one line, the generic no-target
+	 * fallback, and it fires ONLY when the cast came back UNHANDLED_FAILURE — a runtime that already
+	 * told the player why (HANDLED_FAILURE) is never overwritten. That tri-state gate is the whole
+	 * issue #19 contract, so the gate condition is pinned verbatim.
 	 */
 	private static void assertExactlyOneFallbackMessage() throws Exception {
 		String router = Files.readString(ROUTER);
@@ -182,8 +183,8 @@ public final class NobaraAbilitySlotsTest {
 				: "The router must add at most one line, not one per rejection reason";
 		assert router.contains("message.jujutsumod.nobara.action.no_target")
 				: "The single fallback line must stay the one players already know";
-		assert router.contains("if (!cast && notify)")
-				: "The fallback line must be suppressible, so command and packet callers can differ";
+		assert router.contains("if (result == AbilityResult.UNHANDLED_FAILURE && notify)")
+				: "The fallback must fire only on a silent failure, so a runtime message is never overwritten";
 		String lang = Files.readString(Path.of("src/main/resources/assets/jujutsumod/lang/en_us.json"));
 		assert lang.contains("message.jujutsumod.nobara.action.no_target")
 				: "The fallback line needs a translation";
@@ -197,8 +198,10 @@ public final class NobaraAbilitySlotsTest {
 				: "Selection is checked once, in the shared gate, before any router is reached";
 		String executor = Files.readString(MAIN.resolve("jujutsu/mod/character/CharacterAbilityExecutor.java"));
 		assert executor.contains("JujutsuCharacters.definition(character)")
-				&& executor.contains("definition.tryCast(player, ability, notify)")
+				&& executor.contains("return definition.tryCast(player, ability, notify)")
 				: "The shared gate must ask the vessel's definition rather than name any vessel";
+		assert executor.contains("return AbilityResult.UNHANDLED_FAILURE;")
+				: "The shared gate's own refusals must come back as UNHANDLED_FAILURE: the message is already shown, and the vessel's fallback must not speak over it";
 		assert !executor.contains("JujutsuCharacter.NOBARA") && !executor.contains("JujutsuCharacter.TODO")
 				: "The shared gate must not single out a vessel";
 		String definition = Files.readString(MAIN.resolve("jujutsu/mod/character/nobara/NobaraDefinition.java"));

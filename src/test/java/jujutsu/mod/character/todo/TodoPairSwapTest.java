@@ -133,8 +133,9 @@ public final class TodoPairSwapTest {
 		assert !executor.contains("canonicalSlot")
 				: "The executor must hand the raw input slot to the vessel and never fold it";
 		assert executor.contains("CharacterAbilityCooldowns.isReady(player, ability)")
-				&& executor.contains("definition.tryCast(player, ability, notify)")
-				: "Both the cooldown check and the cast must use the raw input slot, each slot cooling itself";
+				&& executor.contains("return definition.tryCast(player, ability, notify)")
+				&& executor.contains("return AbilityResult.UNHANDLED_FAILURE;")
+				: "Both the cooldown check and the cast must use the raw input slot, each slot cooling itself; the gate's own refusals must come back UNHANDLED_FAILURE so no fallback double-announces them";
 	}
 
 	/**

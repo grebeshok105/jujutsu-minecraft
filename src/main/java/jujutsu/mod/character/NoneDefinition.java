@@ -17,9 +17,9 @@ final class NoneDefinition implements CharacterDefinition {
 	}
 
 	@Override
-	public boolean tryCast(ServerPlayer player, CharacterAbility slot, boolean notify) {
+	public AbilityResult tryCast(ServerPlayer player, CharacterAbility slot, boolean notify) {
 		// Unreachable through the executor, which refuses NONE with a message before dispatching. Stated
 		// here anyway so the answer does not depend on that check staying where it is.
-		return false;
+		return AbilityResult.UNHANDLED_FAILURE;
 	}
 }

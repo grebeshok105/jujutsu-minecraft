@@ -12,13 +12,14 @@ import net.minecraft.server.level.ServerPlayer;
 public final class CharacterAbilityExecutor {
 	private CharacterAbilityExecutor() {}
 
-	public static boolean tryCast(ServerPlayer player, CharacterAbility ability, boolean notify) {
+	public static AbilityResult tryCast(ServerPlayer player, CharacterAbility ability, boolean notify) {
 		JujutsuCharacter character = CharacterSelectionManager.selected(player);
 		if (character == JujutsuCharacter.NONE) {
 			if (notify) {
 				player.displayClientMessage(Component.translatable("message.jujutsumod.character.action.not_selected"), true);
 			}
-			return false;
+			// The message is already on screen; the shared fallback must not speak over it.
+			return AbilityResult.UNHANDLED_FAILURE;
 		}
 		// The slot reaches the vessel as itself: an input position is a cooldown slot, so every input
 		// cools on its own account and two inputs that answer from one router arm stay independent.
@@ -27,7 +28,8 @@ public final class CharacterAbilityExecutor {
 			if (notify) {
 				player.displayClientMessage(Component.translatable("message.jujutsumod.character.action.cooldown"), true);
 			}
-			return false;
+			// The message is already on screen; the shared fallback must not speak over it.
+			return AbilityResult.UNHANDLED_FAILURE;
 		}
 		return definition.tryCast(player, ability, notify);
 	}

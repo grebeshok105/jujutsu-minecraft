@@ -32,6 +32,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.character.AbilityResult;
 import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuEntities;
@@ -56,22 +57,22 @@ public final class NailTrapRuntime {
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> removeOwned(server, handler.player.getUUID()));
 	}
 
-	public static boolean tryPlace(ServerPlayer owner) {
+	public static AbilityResult tryPlace(ServerPlayer owner) {
 		ServerLevel level = owner.level();
 		BlockHitResult centerHit = groundHit(level, owner, owner.getEyePosition(),
 				owner.getEyePosition().add(owner.getLookAngle().scale(ProjectJjkNobaraProfile.NAIL_TRAP_PLACEMENT_RANGE)));
 		if (centerHit == null || owner.getEyePosition().distanceTo(centerHit.getLocation()) > ProjectJjkNobaraProfile.NAIL_TRAP_PLACEMENT_RANGE) {
 			fail(owner, "message.jujutsumod.nobara.trap.no_ground");
-			return false;
+			return AbilityResult.HANDLED_FAILURE;
 		}
 		List<Placement> placements = findPlacements(level, owner, centerHit.getLocation());
 		if (placements.size() != ProjectJjkNobaraProfile.NAIL_TRAP_NAIL_COUNT) {
 			fail(owner, "message.jujutsumod.nobara.trap.unsupported");
-			return false;
+			return AbilityResult.HANDLED_FAILURE;
 		}
 		if (countNails(owner) < ProjectJjkNobaraProfile.NAIL_TRAP_NAIL_COUNT) {
 			fail(owner, "message.jujutsumod.nobara.trap.no_nails");
-			return false;
+			return AbilityResult.HANDLED_FAILURE;
 		}
 
 		consumeNails(owner, ProjectJjkNobaraProfile.NAIL_TRAP_NAIL_COUNT);
@@ -86,7 +87,7 @@ public final class NailTrapRuntime {
 				entities.forEach(Entity::discard);
 				refundNails(owner, ProjectJjkNobaraProfile.NAIL_TRAP_NAIL_COUNT);
 				fail(owner, "message.jujutsumod.nobara.trap.failed");
-				return false;
+				return AbilityResult.HANDLED_FAILURE;
 			}
 			entities.add(nail);
 		}
@@ -105,7 +106,7 @@ public final class NailTrapRuntime {
 		level.playSound(null, centerHit.getLocation().x, centerHit.getLocation().y, centerHit.getLocation().z,
 				JujutsuSounds.PROJECTJJK_MAGIC, SoundSource.PLAYERS, 0.8f, 1.15f);
 		owner.displayClientMessage(Component.translatable("message.jujutsumod.nobara.trap.armed"), true);
-		return true;
+		return AbilityResult.SUCCESS;
 	}
 
 	public static boolean isTrapNail(UUID nailId) {
