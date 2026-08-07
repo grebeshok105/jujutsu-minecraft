@@ -43,6 +43,11 @@ public final class ProjectJjkNailMarks {
 		STACKS.remove(targetId);
 	}
 
+	/** Drops every mark stack. Exists for the dev control surface + gametests. */
+	public static void clearAll() {
+		STACKS.clear();
+	}
+
 	/** Drops fully-expired stacks so the map does not grow without bound. */
 	public static void pruneExpired(long gameTime) {
 		List<UUID> dead = new ArrayList<>();

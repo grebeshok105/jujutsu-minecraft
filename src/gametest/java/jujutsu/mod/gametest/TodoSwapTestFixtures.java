@@ -12,6 +12,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.character.AbilityResult;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.character.CharacterSelectionManager;
@@ -144,9 +145,12 @@ public final class TodoSwapTestFixtures {
 		caster.setYHeadRot(yaw);
 	}
 
-	/** THE production invocation: CharacterAbilityExecutor.tryCast(caster, CharacterAbility.PRIMARY, true). */
+	/**
+	 * THE production invocation: CharacterAbilityExecutor.tryCast(caster, CharacterAbility.PRIMARY, true).
+	 * Returns true exactly when the cast committed (AbilityResult.SUCCESS); refusal paths return false.
+	 */
 	public static boolean castPrimary(ServerPlayer caster) {
-		return jujutsu.mod.character.CharacterAbilityExecutor.tryCast(caster, CharacterAbility.PRIMARY, true);
+		return jujutsu.mod.character.CharacterAbilityExecutor.tryCast(caster, CharacterAbility.PRIMARY, true) == AbilityResult.SUCCESS;
 	}
 
 	/**

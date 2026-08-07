@@ -24,8 +24,16 @@ public final class CharacterAbilityCooldowns {
 	private CharacterAbilityCooldowns() {}
 
 	public static void register() {
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> READY_AT.keySet().removeIf(key -> key.playerId().equals(handler.player.getUUID())));
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> clearAllForPlayer(handler.player.getUUID()));
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> READY_AT.clear());
+	}
+
+	/**
+	 * Drops every cooldown entry for the player across all vessels. Exists for the dev control
+	 * surface + gametests.
+	 */
+	public static void clearAllForPlayer(UUID playerId) {
+		READY_AT.keySet().removeIf(key -> key.playerId().equals(playerId));
 	}
 
 	public static boolean isReady(ServerPlayer player, CharacterAbility ability) {

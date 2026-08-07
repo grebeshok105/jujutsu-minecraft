@@ -6,6 +6,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import jujutsu.mod.JujutsuMod;
+import jujutsu.mod.character.AbilityResult;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterDefinition;
 import jujutsu.mod.character.JujutsuCharacter;
@@ -21,7 +22,7 @@ public final class TodoDefinition implements CharacterDefinition {
 	}
 
 	@Override
-	public boolean tryCast(ServerPlayer player, CharacterAbility slot, boolean notify) {
+	public AbilityResult tryCast(ServerPlayer player, CharacterAbility slot, boolean notify) {
 		return TodoAbilityRouter.tryCast(player, slot, notify);
 	}
 

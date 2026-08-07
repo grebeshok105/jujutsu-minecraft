@@ -10,6 +10,8 @@ Owned by the root AGENTS.md under "Documentation Authority". If two documents di
 
 - BUILDING_IN_SANDBOX.md — build guidance for normal and restricted containers, and the owner of the client-smoke checklist.
 - KNOWN_ISSUES.md — live risk and debt register, and the owner of accepted-tradeoff rationales.
+- MCP_1_21_8_PORT_SPIKE.md — decision record for the MCP 1.21.8 upstream port spike (issue #43): verdict, evidence, and the dev-only bridge facts.
+- MCP_DEV_CONTROLS.md — approved design for the dev-only MCP control surface (issue #43 slice 2): tool table, fixture-reset order, autonomous entry recipe.
 - PROVENANCE.md — ProjectJJK placeholder permission and replacement policy.
 - THIRD_PARTY_NOTICES.md — retained third-party notices that apply to current runtime assets.
 - TODO_BOOGIE_WOOGIE.md — approved design for the original Aoi Todo / Boogie Woogie slice (aimed swap, feint, melee, Black Flash bridge). Kept for rationale, superseded by the code where they differ.

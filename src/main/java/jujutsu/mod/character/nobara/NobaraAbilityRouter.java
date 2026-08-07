@@ -2,6 +2,7 @@ package jujutsu.mod.character.nobara;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import jujutsu.mod.character.AbilityResult;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime;
 import jujutsu.mod.character.nobara.projectjjk.NobaraHammerCombatRuntime;
@@ -25,11 +26,12 @@ import jujutsu.mod.combat.CombatStagger;
 public final class NobaraAbilityRouter {
 	private NobaraAbilityRouter() {}
 
-	public static boolean tryCast(ServerPlayer nobara, CharacterAbility ability, boolean notify) {
+	public static AbilityResult tryCast(ServerPlayer nobara, CharacterAbility ability, boolean notify) {
 		if (CombatStagger.GLOBAL.isStaggered(nobara.getUUID(), nobara.level().getGameTime())) {
 			// Silent: being staggered is already legible on screen, and the fallback line below would
-			// read as "no target", which is the wrong explanation.
-			return false;
+			// read as "no target", which is the wrong explanation. This early return bypasses the
+			// message gate below, so returning UNHANDLED_FAILURE here stays silent by construction.
+			return AbilityResult.UNHANDLED_FAILURE;
 		}
 		// The hold gesture, its release and the empty third technique key are not casts; refusing them
 		// through the switch would show the no-target line to anyone who holds Shift+B out of habit or
@@ -38,31 +40,35 @@ public final class NobaraAbilityRouter {
 		// three arms so it stays exhaustive.
 		if (ability == CharacterAbility.SECONDARY_SNEAK_HOLD || ability == CharacterAbility.SECONDARY_SNEAK_RELEASE
 				|| ability == CharacterAbility.TERTIARY || ability == CharacterAbility.TERTIARY_SNEAK) {
-			return false;
+			return AbilityResult.UNHANDLED_FAILURE;
 		}
-		boolean cast = switch (ability) {
+		AbilityResult result = switch (ability) {
+			// Short-circuit: when the explosive lock refuses, nothing has been said and the fallback
+			// speaks; otherwise the runtime's own result is returned verbatim.
 			case PRIMARY -> ProjectJjkNobaraRuntime.canCastMarkedHairpin(nobara)
-					&& ProjectJjkRitualRuntime.startDirectedHairpin(nobara);
+					? ProjectJjkRitualRuntime.startDirectedHairpin(nobara)
+					: AbilityResult.UNHANDLED_FAILURE;
 			case PRIMARY_SNEAK -> SelfResonanceRuntime.tryCast(nobara);
 			// B — Mega Nail: converges every embedded nail on the aimed target into one piercing strike.
 			case SECONDARY -> ProjectJjkNobaraRuntime.canCastMarkedHairpin(nobara)
-					&& ProjectJjkMegaNailRuntime.start(nobara);
+					? ProjectJjkMegaNailRuntime.start(nobara)
+					: AbilityResult.UNHANDLED_FAILURE;
 			case SECONDARY_SNEAK -> NailTrapRuntime.tryPlace(nobara);
 			case ATTACK_CONTEXT -> NobaraHammerCombatRuntime.handleInput(nobara);
-			// Her right click is vanilla's, and she holds no technique key. Answering false explicitly
-			// rather than adding a default keeps the next new slot a compile error here instead of a
-			// silent no-op.
-			case USE_CONTEXT -> false;
+			// Her right click is vanilla's, and she holds no technique key. Answering UNHANDLED_FAILURE
+			// explicitly rather than adding a default keeps the next new slot a compile error here
+			// instead of a silent no-op.
+			case USE_CONTEXT -> AbilityResult.UNHANDLED_FAILURE;
 			// Unreachable through the early return above; kept so the switch stays exhaustive.
-			case SECONDARY_SNEAK_HOLD -> false;
-			case SECONDARY_SNEAK_RELEASE -> false;
+			case SECONDARY_SNEAK_HOLD -> AbilityResult.UNHANDLED_FAILURE;
+			case SECONDARY_SNEAK_RELEASE -> AbilityResult.UNHANDLED_FAILURE;
 			// Unreachable through the early return above; kept so the switch stays exhaustive.
-			case TERTIARY -> false;
-			case TERTIARY_SNEAK -> false;
+			case TERTIARY -> AbilityResult.UNHANDLED_FAILURE;
+			case TERTIARY_SNEAK -> AbilityResult.UNHANDLED_FAILURE;
 		};
-		if (!cast && notify) {
+		if (result == AbilityResult.UNHANDLED_FAILURE && notify) {
 			nobara.displayClientMessage(Component.translatable("message.jujutsumod.nobara.action.no_target"), true);
 		}
-		return cast;
+		return result;
 	}
 }

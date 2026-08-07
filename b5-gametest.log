@@ -1,0 +1,210 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.5.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Fabric Loom: 1.17.17
+
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :compileClientJava UP-TO-DATE
+> Task :processClientResources UP-TO-DATE
+> Task :clientClasses UP-TO-DATE
+> Task :compileGametestJava UP-TO-DATE
+> Task :generateLog4jConfig
+> Task :generateRemapClasspath
+> Task :generateDLIConfig
+> Task :configureLaunch
+> Task :processGametestResources
+> Task :gametestClasses
+
+> Task :runGameTest
+[15:57:17] [main/INFO] (FabricLoader/GameProvider) Loading Minecraft 1.21.8 with Fabric Loader 0.19.3
+[15:57:17] [main/INFO] (FabricLoader) Loading 44 mods:
+	- fabric-api 0.136.1+1.21.8
+	- fabric-api-base 0.5.0+cd8c0daa2c
+	- fabric-api-lookup-api-v1 1.6.101+946bf4c32c
+	- fabric-biome-api-v1 16.1.0+c21d71cc2c
+	- fabric-block-api-v1 1.1.3+946bf4c32c
+	- fabric-block-view-api-v2 1.0.31+946bf4c32c
+	- fabric-command-api-v2 2.3.1+52fff9ec2c
+	- fabric-content-registries-v0 10.1.0+c75de69d2c
+	- fabric-convention-tags-v1 2.1.41+7f945d5b2c
+	- fabric-convention-tags-v2 2.15.6+eb5df52f2c
+	- fabric-crash-report-info-v1 0.3.15+946bf4c32c
+	- fabric-data-attachment-api-v1 1.8.14+97214db32c
+	- fabric-data-generation-api-v1 23.2.8+2e1c6d322c
+	- fabric-dimensions-v1 4.0.20+948fc79a2c
+	- fabric-entity-events-v1 2.1.2+c9e472732c
+	- fabric-events-interaction-v0 4.0.26+946bf4c32c
+	- fabric-game-rule-api-v1 1.0.73+c64c9c5b2c
+	- fabric-gametest-api-v1 3.1.10+39ce47f52c
+	- fabric-item-api-v1 11.5.0+02ce13f42c
+	- fabric-item-group-api-v1 4.2.14+c5f9bbc12c
+	- fabric-lifecycle-events-v1 2.6.4+db4dfd852c
+	- fabric-loot-api-v2 3.0.56+3f89f5a52c
+	- fabric-loot-api-v3 2.0.3+946bf4c32c
+	- fabric-message-api-v1 6.1.2+946bf4c32c
+	- fabric-networking-api-v1 5.1.0+57cb96dd2c
+	- fabric-object-builder-api-v1 21.1.10+946bf4c32c
+	- fabric-particles-v1 4.1.10+946bf4c32c
+	- fabric-recipe-api-v1 8.1.17+946bf4c32c
+	- fabric-registry-sync-v0 6.1.30+946bf4c32c
+	- fabric-rendering-fluids-v1 3.1.31+fa6cb72b2c
+	- fabric-resource-conditions-api-v1 5.0.25+98e6d6db2c
+	- fabric-resource-loader-v0 3.1.12+020423442c
+	- fabric-screen-handler-api-v1 1.3.139+946bf4c32c
+	- fabric-serialization-api-v1 1.0.0+fc0e5aba2c
+	- fabric-tag-api-v1 1.2.2+946bf4c32c
+	- fabric-transfer-api-v1 6.0.6+946bf4c32c
+	- fabric-transitive-access-wideners-v1 6.5.0+c847ce762c
+	- fabricloader 0.19.3
+	- geckolib 5.2.2
+	- java 21
+	- jujutsumod 1.0.0
+	- jujutsumod-gametest 1.0.0
+	- minecraft 1.21.8
+	- mixinextras 0.5.4
+[15:57:17] [main/INFO] (FabricLoader/Mixin) SpongePowered MIXIN Subsystem Version=0.8.7 Source=file:/C:/Users/KOMP1/.gradle/caches/modules-2/files-2.1/net.fabricmc/sponge-mixin/0.17.3+mixin.0.8.7/41c4a3984a80f4679e759fb9f495587acc5cdac7/sponge-mixin-0.17.3+mixin.0.8.7.jar Service=Knot/Fabric Env=SERVER
+[15:57:17] [main/INFO] (FabricLoader/Mixin) Loaded Fabric development mappings for mixin remapper!
+[15:57:17] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_21
+[15:57:17] [main/WARN] (FabricLoader/Mixin) Error loading class: net/minecraft/client/renderer/entity/EntityRenderer (java.lang.RuntimeException: Cannot load class net.minecraft.client.renderer.entity.EntityRenderer in environment type SERVER)
+[15:57:17] [main/WARN] (FabricLoader/Mixin) @Mixin target net.minecraft.client.renderer.entity.EntityRenderer was not found geckolib.mixins.json:client.EntityRendererMixin from mod geckolib
+[15:57:18] [main/INFO] (FabricLoader/MixinExtras|Service) Initializing MixinExtras via com.llamalad7.mixinextras.service.MixinExtrasServiceImpl(version=0.5.4).
+[15:57:23] [main/INFO] (jujutsumod) Registered jujutsumod attachments
+[15:57:23] [main/INFO] (jujutsumod) JujutsuMod initialized
+[15:57:23] [main/ERROR] (Minecraft) Failed to load properties from file: server.properties
+java.nio.file.NoSuchFileException: server.properties
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85) ~[?:?]
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103) ~[?:?]
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108) ~[?:?]
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:234) ~[?:?]
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380) ~[?:?]
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432) ~[?:?]
+	at java.base/java.nio.file.spi.FileSystemProvider.newInputStream(FileSystemProvider.java:420) ~[?:?]
+	at java.base/java.nio.file.Files.newInputStream(Files.java:160) ~[?:?]
+	at knot/net.minecraft.server.dedicated.Settings.loadFromFile(Settings.java:62) [minecraft-common-5576d99394-1.21.8-loom.mappings.1_21_8.layered+hash.2198-v2.jar:?]
+	at knot/net.minecraft.server.dedicated.DedicatedServerProperties.fromFile(DedicatedServerProperties.java:143) [minecraft-common-5576d99394-1.21.8-loom.mappings.1_21_8.layered+hash.2198-v2.jar:?]
+	at knot/net.minecraft.server.dedicated.DedicatedServerSettings.<init>(DedicatedServerSettings.java:12) [minecraft-common-5576d99394-1.21.8-loom.mappings.1_21_8.layered+hash.2198-v2.jar:?]
+	at knot/net.minecraft.server.Main.main(Main.java:117) [minecraft-common-5576d99394-1.21.8-loom.mappings.1_21_8.layered+hash.2198-v2.jar:?]
+	at net.fabricmc.loader.impl.game.minecraft.MinecraftGameProvider.launch(MinecraftGameProvider.java:514) [fabric-loader-0.19.3.jar:?]
+	at net.fabricmc.loader.impl.launch.knot.Knot.launch(Knot.java:72) [fabric-loader-0.19.3.jar:?]
+	at net.fabricmc.loader.impl.launch.knot.KnotServer.main(KnotServer.java:23) [fabric-loader-0.19.3.jar:?]
+	at net.fabricmc.devlaunchinjector.Main.main(Main.java:86) [dev-launch-injector-0.2.1+build.8.jar:?]
+[15:57:23] [main/WARN] (Minecraft) Failed to load eula.txt
+[15:57:23] [main/INFO] (Minecraft) Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, name=PROD]
+[15:57:23] [main/INFO] (FabricGameTestRunner) Starting test server
+[15:57:25] [main/INFO] (Minecraft) Loaded 1407 recipes
+[15:57:25] [main/INFO] (Minecraft) Loaded 1520 advancements
+[15:57:25] [main/INFO] (BiomeModificationImpl) Applied 0 biome modifications to 0 of 65 new biomes in 1.522 ms
+[15:57:26] [Server thread/INFO] (Minecraft) Preparing start region for dimension minecraft:overworld
+[15:57:26] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 2%
+[15:57:26] [Server thread/INFO] (Minecraft) Time elapsed: 216 ms
+[15:57:26] [Server thread/INFO] (Minecraft) Started game test server
+[15:57:26] [Server thread/INFO] (Minecraft) 29 tests are now running at position 9755884, -59, 9956876!
+[15:57:27] [Server thread/INFO] (Minecraft) Running test environment 'minecraft:default' batch 0 (29 tests)...
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 2 at (9755889.5, -60.0, 9956883.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 4 at (9755894.5, -60.0, 9956879.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 5 at (9755886.5, -60.0, 9956876.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 7 at (9755876.5, -60.0, 9956874.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 9 at (9755887.5, -60.0, 9956884.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 10 at (9755891.5, -60.0, 9956873.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 12 at (9755892.5, -60.0, 9956886.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 13 at (9755879.5, -60.0, 9956883.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 14 at (9755888.5, -60.0, 9956883.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 15 at (9755884.5, -60.0, 9956885.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 17 at (9755881.5, -60.0, 9956871.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 18 at (9755890.5, -60.0, 9956880.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 20 at (9755877.5, -60.0, 9956866.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 21 at (9755884.5, -58.0, 9956876.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 22 at (9755879.5, -60.0, 9956882.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 23 at (9755882.5, -60.0, 9956881.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 24 at (9755879.5, -60.0, 9956881.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 25 at (9755889.5, -60.0, 9956875.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 26 at (9755891.5, -60.0, 9956883.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 27 at (9755876.5, -60.0, 9956885.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 28 at (9755880.5, -60.0, 9956870.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 29 at (9755888.5, -60.0, 9956882.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 30 at (9755893.5, -60.0, 9956867.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 31 at (9755891.5, -60.0, 9956883.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 32 at (9755888.5, -60.0, 9956872.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player[embedded] logged in with entity id 33 at (9755888.5, -60.0, 9956877.5)
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player joined the game
+[15:57:28] [Server thread/WARN] (Minecraft) Can't keep up! Is the server overloaded? Running 2044ms or 40 ticks behind
+[15:57:28] [Server thread/WARN] (jujutsumod) Todo Boogie Woogie commit teleport OVERRIDDEN (test seam) — must be restored
+[15:57:28] [Server thread/INFO] (Minecraft) test-mock-player has made the advancement [We Need to Go Deeper]
+[15:57:29] [Server thread/INFO] (Minecraft) test-mock-player lost connection: gametest disconnect
+[15:57:29] [Server thread/INFO] (Minecraft) test-mock-player left the game
+[15:57:29] [Server thread/INFO] (Minecraft) [++________________XX_____X___]
+[15:57:29] [Server thread/INFO] (Minecraft) [++_+++++_+_++++___XX+___+X+++]
+[15:57:29] [Server thread/INFO] (Minecraft) [++++++++X++++++_+XXX++X_+X+++]
+[15:57:29] [Server thread/INFO] (Minecraft) [++++++++X++++++X+XXX++X_+X+++]
+[15:57:29] [Server thread/INFO] (Minecraft) [++++++++X++++++X+XXX++X_+X+++]
+[15:57:29] [Server thread/INFO] (Minecraft) [++++++++X++++++X+XXX++X_+X+++]
+[15:57:29] [Server thread/INFO] (Minecraft) [++++++++X++++++X+XXX++X_+X+++]
+[15:57:29] [Server thread/INFO] (Minecraft) [++++++++X++++++X+XXX++X++X+++]
+[15:57:29] [Server thread/INFO] (Minecraft) ========= 29 GAME TESTS COMPLETE IN 3.285 s ======================
+[15:57:29] [Server thread/INFO] (Minecraft) 7 required tests failed :(
+[15:57:29] [Server thread/INFO] (Minecraft)    - jujutsumod-gametest:todo_stone_game_tests_stone_ignores_entities_and_does_no_damage: [stoneIgnoresEntitiesAndDoesNoDamage/pass @tick 40 caster=d5acff6b-a720-487e-8aee-879f4a3c548c target=f90c92aa-1607-48ea-89a1-9e1f68e677b5] stone still flying after passing the pig: expected <non-null>, actual <null> on tick 40
+[15:57:29] [Server thread/INFO] (Minecraft)    - jujutsumod-gametest:todo_stone_game_tests_successor_stone_survives_ending_stone: [successorStoneSurvivesEndingStone/midFlight @tick 60 caster=2822befe-bb98-4782-810b-71f30d98c5f7 target=null] stone A still flying at 60: expected <alive>, actual <false> on tick 60
+[15:57:29] [Server thread/INFO] (Minecraft)    - jujutsumod-gametest:todo_stone_game_tests_stone_passes_through_water_and_fire: [stonePassesThroughWaterAndFire/pass @tick 40 caster=74dde3ae-72c8-49d8-a462-8f1d9465827d target=null] velocity unchanged by water or fire: expected <(0.23, -0.0, 2.816687760945886E-17)>, actual <(0.11799999999999992, 0.0, 2.816687760945886E-17)> on tick 40
+[15:57:29] [Server thread/INFO] (Minecraft)    - jujutsumod-gametest:todo_stone_game_tests_death_clears_ref_and_discards_stone: [deathClearsRefAndDiscardsStone/death @tick 6 caster=85810fa5-8769-40c2-b5c0-fd5ac7114c03 target=null] ref cleared by death: expected <empty>, actual <Optional[TodoStoneRef[entityUuid=62c75087-1a4e-4b74-987a-1501174baa50, dimension=ResourceKey[minecraft:dimension / minecraft:overworld], thrownAtGameTime=6]]> on tick 6
+[15:57:29] [Server thread/INFO] (Minecraft)    - jujutsumod-gametest:todo_stone_game_tests_void_exit_vanishes_stone_and_clears_ref: [voidExitVanishesStoneAndClearsRef/fall @tick 10 caster=31b9f258-da46-40fb-8d38-a52c22d91ab2 target=null] stone still falling at tick 10: expected <non-null>, actual <null> on tick 10
+[15:57:29] [Server thread/INFO] (Minecraft)    - jujutsumod-gametest:todo_stone_game_tests_portal_refusal_leaves_stone_in_same_dimension: [portalRefusalLeavesStoneInSameDimension/portal @tick 40 caster=ecfd3c7c-ce11-48e8-843b-553bd49d245a target=null] stone still flying after the portal: expected <non-null>, actual <null> on tick 40
+[15:57:29] [Server thread/INFO] (Minecraft)    - jujutsumod-gametest:todo_stone_game_tests_self_swap_unsafe_destination_refuses_atomically: [selfSwapUnsafeDestinationRefusesAtomically/refuse @tick 14 caster=6e09708c-8e73-4058-bd41-2514682402a2 target=null] stone resolved before refusal: expected <non-null>, actual <null> on tick 14
+[15:57:29] [Server thread/INFO] (Minecraft) ====================================================
+[15:57:29] [Server thread/INFO] (Minecraft) Stopping server
+[15:57:29] [Server thread/INFO] (Minecraft) Saving players
+[15:57:29] [Server thread/INFO] (Minecraft) test-mock-player lost connection: Server closed
+[15:57:29] [Server thread/INFO] (Minecraft) test-mock-player left the game
+[15:57:29] [Server thread/INFO] (Minecraft) Saving worlds
+[15:57:30] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[Test Level]'/minecraft:overworld
+[15:57:30] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[Test Level]'/minecraft:the_end
+[15:57:30] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[Test Level]'/minecraft:the_nether
+[15:57:30] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (world): All chunks are saved
+[15:57:30] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM1): All chunks are saved
+[15:57:30] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
+[15:57:30] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage: All dimensions are saved
+[15:57:30] [Server thread/INFO] (Minecraft) Game test server shutting down
+
+> Task :runGameTest FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':runGameTest' (registered by plugin 'fabric-loom').
+> Process 'command 'C:\Users\KOMP1\scoop\apps\temurin21-jdk\current\bin\java.exe'' finished with non-zero exit value 7
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 20s
+10 actionable tasks: 5 executed, 5 up-to-date

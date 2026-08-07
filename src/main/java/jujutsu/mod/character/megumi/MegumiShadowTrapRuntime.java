@@ -164,6 +164,16 @@ public final class MegumiShadowTrapRuntime {
 				&& dy <= MegumiProfile.SHADOW_TRAP_VERTICAL_REACH;
 	}
 
+	/** Whether the owner has a live shadow trap. Exists for the dev control surface + gametests. */
+	public static boolean hasOwned(UUID ownerId) {
+		return TRAPS.containsKey(ownerId);
+	}
+
+	/** Clears the owner's shadow trap, if any, with its close cue. Exists for the dev control surface + gametests. */
+	public static void clearOwned(MinecraftServer server, UUID ownerId) {
+		clear(server, ownerId, true);
+	}
+
 	static void clear(MinecraftServer server, UUID ownerId, boolean withCue) {
 		if (server == null) {
 			return;

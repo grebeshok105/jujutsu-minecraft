@@ -36,12 +36,14 @@ public interface CharacterDefinition {
 	default void registerServerHooks() {}
 
 	/**
-	 * Runs whatever this vessel puts on that input position, or {@code false} if it puts nothing there.
+	 * Runs whatever this vessel puts on that input position, or says why it could not.
 	 *
-	 * <p>Selection and the slot cooldown are already checked by {@link CharacterAbilityExecutor}; rules
-	 * that belong to one vessel alone, such as Nobara's stagger gate, belong in its router.
+	 * <p>{@link AbilityResult#UNHANDLED_FAILURE} means nothing happened and nobody said anything — the
+	 * shared fallback should speak. Selection and the slot cooldown are already checked by
+	 * {@link CharacterAbilityExecutor}; rules that belong to one vessel alone, such as Nobara's stagger
+	 * gate, belong in its router.
 	 */
-	boolean tryCast(ServerPlayer player, CharacterAbility slot, boolean notify);
+	AbilityResult tryCast(ServerPlayer player, CharacterAbility slot, boolean notify);
 
 	/** Adds this vessel's vanilla attribute modifiers. Called only for the selected vessel. */
 	default void applyAttributes(ServerPlayer player) {}
