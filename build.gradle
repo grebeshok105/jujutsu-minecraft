@@ -87,6 +87,142 @@ dependencies {
 	testImplementation 'com.tngtech.archunit:archunit:1.4.1'
 }
 
+// ============================================================================
+// Dev-only MCP companion (issue #43 spike): a second mod, jujutsumod-mcpdev,
+// compiled from src/mcpdev against BOTH our main output and the upstream MCP
+// server jar. Fully dormant without -PmcpUpstreamJar=<path> (every mcpdev task
+// skips), so normal builds never need the upstream jar. The coupling direction
+// is mcpdev -> {main, upstream}; production classes gain zero MCP imports.
+// ============================================================================
+def mcpUpstreamJar = providers.gradleProperty('mcpUpstreamJar').orNull
+def mcpCompanionEnabled = mcpUpstreamJar != null && !mcpUpstreamJar.isBlank()
+
+sourceSets {
+	// Default conventions already map this set to src/mcpdev/{java,resources};
+	// adding srcDir would register the same directory twice and duplicate every
+	// resource entry (processMcpdevResources fails on the doubled fabric.mod.json).
+	mcpdev {
+		compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+	}
+}
+
+// The Java plugin only creates jar tasks for the main source set; the companion's
+// jar is explicit and must exist before the -PmcpSpike wiring below references it.
+// Skipped like every other mcpdev task without -PmcpUpstreamJar. Gradle 9 no longer
+// attaches archive tasks to assemble implicitly, hence the explicit wiring: with
+// -PmcpUpstreamJar, `assemble` also builds the companion jar.
+tasks.register('jarMcpdev', Jar) {
+	group = 'build'
+	description = 'Assembles the dev-only jujutsumod-mcpdev companion jar'
+	dependsOn tasks.named('mcpdevClasses')
+	from sourceSets.mcpdev.output
+	archiveFileName = "jujutsumod-mcpdev-${project.version}.jar"
+}
+
+tasks.named('assemble') {
+	dependsOn tasks.named('jarMcpdev')
+}
+
+if (mcpCompanionEnabled) {
+	dependencies {
+		mcpdevCompileOnly files(mcpUpstreamJar)
+	}
+}
+
+// No property -> the whole source set is dormant: assemble stays green with the
+// mcpdev tasks skipped instead of failing on a missing upstream jar.
+tasks.matching { it.name.toLowerCase().contains('mcpdev') }.configureEach {
+	onlyIf { mcpCompanionEnabled }
+}
+
+tasks.named('processMcpdevResources') {
+	filesMatching('fabric.mod.json') {
+		expand 'version': project.version
+	}
+}
+
+// Dev-only run knob: ./gradlew runClient -PmcpSpike -PmcpUpstreamJar=... loads the
+// upstream MCP server mod and this companion mod into the dev classpath. Without
+// -PmcpSpike runClient is byte-for-byte the pre-spike configuration.
+//
+// The upstream jar goes through modLocalRuntime so Loom remaps it to dev named
+// mappings; the companion jar is already dev-mapped and must NOT be remapped, so
+// it rides plain localRuntime (same runtime classpath, no Loom checksum/remap
+// pass — Loom checksums mod-configuration files eagerly at configuration time,
+// before jarMcpdev has produced the jar).
+if (project.hasProperty('mcpSpike') && mcpCompanionEnabled) {
+	dependencies {
+		modLocalRuntime files(mcpUpstreamJar)
+		localRuntime files(tasks.named('jarMcpdev'))
+	}
+
+	// C4 (issue #43): autonomous world entry. --quickPlaySingleplayer boots straight into
+	// the save whose folder name is the argument (run/saves/mcp-spike), so the dev-control
+	// surface is reachable with no menu interaction. Seeded + options pre-seeded by
+	// prepareMcpSpikeRun below.
+	loom.runs.named('client') {
+		programArgs '--quickPlaySingleplayer', 'mcp-spike'
+	}
+
+	// Seeds the quickPlay world and pre-seeds options.txt for autonomous runs. Idempotent:
+	// the world is copied only when the target is absent, and options.txt is rewritten only
+	// when one of the two keys is missing or wrong. Never launches the client.
+	tasks.register('prepareMcpSpikeRun') {
+		group = 'fabric'
+		description = 'Seeds the mcp-spike quickPlay world from run/saves/New World and pre-seeds run/options.txt for autonomous client runs'
+		// Capture the project at configuration time: Task.project at execution time is
+		// deprecated (fails in Gradle 10, and this build must stay configuration-cache-safe).
+		Project projectRef = project
+		File runDir = project.file('run')
+		File optionsFile = new File(runDir, 'options.txt')
+		File sourceWorld = new File(runDir, 'saves/New World')
+		File targetWorld = new File(runDir, 'saves/mcp-spike')
+		doLast {
+			// options.txt: keep every existing key, force the two autonomous-run keys.
+			Map<String, String> options = [:]
+			if (optionsFile.exists()) {
+				optionsFile.eachLine('UTF-8') { String line ->
+					int colon = line.indexOf(':')
+					if (colon > 0) {
+						options[line.substring(0, colon)] = line.substring(colon + 1)
+					}
+				}
+			}
+			if (optionsFile.exists()
+					&& options.get('pauseOnLostFocus') == 'false'
+					&& options.get('tutorialStep') == 'none') {
+				logger.lifecycle('prepareMcpSpikeRun: run/options.txt already seeded (pauseOnLostFocus:false, tutorialStep:none)')
+			} else {
+				options['pauseOnLostFocus'] = 'false'
+				options['tutorialStep'] = 'none'
+				optionsFile.parentFile.mkdirs()
+				optionsFile.withWriter('UTF-8') { writer ->
+					options.sort().each { key, value -> writer.writeLine("${key}:${value}") }
+				}
+				logger.lifecycle('prepareMcpSpikeRun: wrote run/options.txt with pauseOnLostFocus:false and tutorialStep:none (all other keys preserved)')
+			}
+
+			// World seed: copy New World -> mcp-spike once; never overwrite an existing seed.
+			if (targetWorld.exists()) {
+				logger.lifecycle('prepareMcpSpikeRun: world run/saves/mcp-spike already present — skipping copy')
+			} else if (sourceWorld.exists()) {
+				projectRef.copy {
+					from sourceWorld
+					into targetWorld
+				}
+				logger.lifecycle('prepareMcpSpikeRun: copied run/saves/New World -> run/saves/mcp-spike')
+			} else {
+				logger.warn('prepareMcpSpikeRun: neither run/saves/mcp-spike nor run/saves/New World exists — skipping world copy; quickPlay will fail until a world exists (launch the game once and create a save, or drop one into run/saves/), then re-run this task or runClient')
+			}
+		}
+	}
+
+	// Automatic wiring: every -PmcpSpike runClient launch seeds itself first.
+	tasks.named('runClient') {
+		dependsOn 'prepareMcpSpikeRun'
+	}
+}
+
 tasks.register('testCharacterPlayerState', JavaExec) {
 	group = 'verification'
 	description = 'Runs persistent character selection and starter-claim tests'
@@ -498,6 +634,15 @@ tasks.register('auditReleaseJarIsolation') {
 				if (name.startsWith('com/tngtech/archunit/')) {
 					offenders << "${name}  (test-only ArchUnit classes)"
 				}
+				if (name.startsWith('com/chapmanjw/')) {
+					offenders << "${name}  (upstream MCP server classes com/chapmanjw/)"
+				}
+				if (name.startsWith('io/modelcontextprotocol/')) {
+					offenders << "${name}  (MCP protocol SDK io/modelcontextprotocol/)"
+				}
+				if (name.startsWith('jujutsu/mcpdev/')) {
+					offenders << "${name}  (dev-only MCP companion classes jujutsu/mcpdev/)"
+				}
 				if (name == 'fabric.mod.json') {
 					if (rootDescriptorText != null) {
 						offenders << "${name}  (second fabric.mod.json descriptor beyond the root one)"
@@ -517,6 +662,10 @@ tasks.register('auditReleaseJarIsolation') {
 								|| descriptor.entrypoints.containsKey('fabric-client-gametest'))) {
 					offenders << "fabric.mod.json  (fabric-gametest / fabric-client-gametest entrypoints present)"
 				}
+				if (descriptor.entrypoints instanceof Map
+						&& descriptor.entrypoints.containsKey('mcp-tools')) {
+					offenders << "fabric.mod.json  (mcp-tools entrypoint present)"
+				}
 			}
 		}
 
@@ -524,7 +673,7 @@ tasks.register('auditReleaseJarIsolation') {
 			throw new GradleException(
 					'Release jar leaks test-mod or dev-only content: ' + jarFile.absolutePath + '\n'
 							+ offenders.collect { "  - ${it}" }.join('\n')
-							+ '\nKeep the gametest source set and test-only libraries out of the release jar.')
+							+ '\nKeep the gametest source set, test-only libraries and the dev-only MCP companion out of the release jar.')
 		}
 		logger.lifecycle("auditReleaseJarIsolation: ${jarFile.name}: ${entryCount} entries scanned, no test-mod or dev-only content")
 	}

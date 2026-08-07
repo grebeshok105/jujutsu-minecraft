@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -99,6 +100,25 @@ public final class MegumiSummonRuntime {
 	static MegumiDivineDogPack pack(UUID ownerId) {
 		return PACKS.get(ownerId);
 	}
+
+	/** Live snapshot of the owner's pack, if one exists. Exists for the dev control surface + gametests. */
+	public static Optional<PackView> packView(MinecraftServer server, UUID ownerId) {
+		if (server == null) {
+			return Optional.empty();
+		}
+		MegumiDivineDogPack pack = PACKS.get(ownerId);
+		if (pack == null) {
+			return Optional.empty();
+		}
+		List<MegumiDivineDogEntity> living = livingDogs(server, ownerId, pack);
+		boolean whiteAlive = living.stream().anyMatch(dog -> dog.getUUID().equals(pack.whiteId()));
+		boolean blackAlive = living.stream().anyMatch(dog -> dog.getUUID().equals(pack.blackId()));
+		return Optional.of(new PackView(
+				pack.dimension().location().toString(), whiteAlive, blackAlive, pack.summonedAtGameTime()));
+	}
+
+	/** Read-only identity of one owner's live pack for observation. Exists for the dev control surface + gametests. */
+	public record PackView(String dimension, boolean whiteAlive, boolean blackAlive, long summonedAtGameTime) {}
 
 	public static boolean tryToggle(ServerPlayer player, boolean notify) {
 		UUID ownerId = player.getUUID();
@@ -570,7 +590,8 @@ public final class MegumiSummonRuntime {
 		DISCONNECT(MegumiCooldownPolicy.Cause.NONE),
 		SERVER_STOPPING(MegumiCooldownPolicy.Cause.NONE),
 		DESELECTED(MegumiCooldownPolicy.Cause.RECALL),
-		SUMMON_ROLLBACK(MegumiCooldownPolicy.Cause.NONE);
+		SUMMON_ROLLBACK(MegumiCooldownPolicy.Cause.NONE),
+		FIXTURE_RESET(MegumiCooldownPolicy.Cause.NONE);
 
 		private final int cooldownTicks;
 

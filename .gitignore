@@ -45,6 +45,7 @@ replay_*.log
 
 .qoder/
 .obsidian/
+.omp/
 
 # Scratch material that must stay out of the repository.
 #

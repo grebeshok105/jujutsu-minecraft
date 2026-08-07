@@ -1,5 +1,6 @@
 package jujutsu.mod.character.nobara.projectjjk;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -7,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 
 /** Server-thread index of currently loaded, non-trap embedded nails grouped by level and owner. */
@@ -57,6 +59,23 @@ public final class EmbeddedNailRegistry {
 		}
 		owned.remove(nail.getUUID());
 		removeEmpty(level, ownerId, owned);
+	}
+
+	/**
+	 * Discards and untracks every loaded nail the owner has embedded, across all levels; returns how
+	 * many were discarded. Loaded-only by design (no chunk loads). Exists for the dev control
+	 * surface + gametests.
+	 */
+	public static int discardOwned(MinecraftServer server, UUID ownerId) {
+		int discarded = 0;
+		for (ServerLevel level : server.getAllLevels()) {
+			for (ProjectJjkNailEntity nail : loadedOwnedNails(level, ownerId)) {
+				nail.discard();
+				untrack(level, nail);
+				discarded++;
+			}
+		}
+		return discarded;
 	}
 
 	public static List<ProjectJjkNailEntity> loadedOwnedNails(ServerLevel level, UUID ownerId) {

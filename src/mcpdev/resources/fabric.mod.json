@@ -1,0 +1,26 @@
+{
+	"schemaVersion": 1,
+	"id": "jujutsumod-mcpdev",
+	"version": "${version}",
+	"name": "Jujutsu Minecraft MCP dev companion",
+	"description": "Dev-only companion exposing Jujutsu read-only status tools through the upstream MCP server's mcp-tools seam (issue #43). Never shipped.",
+	"authors": [
+		"Jujutsu Minecraft team"
+	],
+	"license": "CC0-1.0",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"jujutsu.mcpdev.JujutsuMcpdevBridge"
+		],
+		"mcp-tools": [
+			"jujutsu.mcpdev.JujutsuModStatusToolProvider"
+		]
+	},
+	"depends": {
+		"fabric-api": "*",
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~1.21.8",
+		"jujutsumod": "*"
+	}
+}
