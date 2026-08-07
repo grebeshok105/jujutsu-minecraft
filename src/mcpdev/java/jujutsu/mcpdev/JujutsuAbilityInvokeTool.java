@@ -18,6 +18,7 @@ import com.chapmanjw.minecraft.fabric.mcp.tools.annotations.McpTool;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
+import jujutsu.mod.character.AbilityResult;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.character.CharacterAbilityExecutor;
@@ -81,8 +82,8 @@ public final class JujutsuAbilityInvokeTool extends BaseTool {
 								CharacterAbilityCooldowns.remainingTicks(player, ability));
 						return ToolResult.ofToon(node);
 					}
-					boolean routed = CharacterAbilityExecutor.tryCast(player, ability, notify);
-					node.put("routed", routed);
+					AbilityResult result = CharacterAbilityExecutor.tryCast(player, ability, notify);
+					node.put("routed", result == AbilityResult.SUCCESS);
 					node.put("cooldown_remaining_ticks",
 							CharacterAbilityCooldowns.remainingTicks(player, ability));
 					return ToolResult.ofToon(node);
