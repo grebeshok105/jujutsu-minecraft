@@ -4,10 +4,12 @@ import java.util.List;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.minecraft.resources.ResourceLocation;
 import jujutsu.mod.JujutsuMod;
+import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollItem;
 import jujutsu.mod.client.character.CharacterClientDefinition;
 import jujutsu.mod.client.character.CharacterRosterEntry;
+import jujutsu.mod.client.character.HudSlot;
 import jujutsu.mod.client.character.JujutsuCharacterIcons;
 import jujutsu.mod.client.render.ProjectJjkNailRenderer;
 import jujutsu.mod.client.render.CharacterSkinAnimation;
@@ -46,13 +48,36 @@ public final class NobaraClientDefinition implements CharacterClientDefinition {
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.PIN,
 								"screen.jujutsumod.character_select.ability.hairpin_enlarge", "R"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.LINK,
-								"screen.jujutsumod.character_select.ability.resonance", "⇧R"),
+								"screen.jujutsumod.character_select.ability.resonance", "S+R"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOOM,
 								"screen.jujutsumod.character_select.ability.mega_nail", "B"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOLT,
-								"screen.jujutsumod.character_select.ability.nail_trap", "⇧B"),
+								"screen.jujutsumod.character_select.ability.nail_trap", "S+B"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.FIST,
 								"screen.jujutsumod.character_select.ability.hammer", "LMB")));
+	}
+
+	/**
+	 * The five HUD cells, one per technique slot.
+	 *
+	 * <p>The roster card and the HUD show the same abilities in the same order, so the HUD list is
+	 * built from the card's strip rather than written out a second time.
+	 */
+	@Override
+	public List<HudSlot> hudSlots() {
+		List<CharacterRosterEntry.Ability> strip = rosterEntry().abilities();
+		return List.of(
+				hudSlot(strip, 0, CharacterAbility.PRIMARY),
+				hudSlot(strip, 1, CharacterAbility.PRIMARY_SNEAK),
+				hudSlot(strip, 2, CharacterAbility.SECONDARY),
+				hudSlot(strip, 3, CharacterAbility.SECONDARY_SNEAK),
+				hudSlot(strip, 4, CharacterAbility.ATTACK_CONTEXT));
+	}
+
+	/** One HUD cell: the roster card's ability at {@code index}, bound to its technique slot. */
+	private static HudSlot hudSlot(List<CharacterRosterEntry.Ability> strip, int index, CharacterAbility ability) {
+		CharacterRosterEntry.Ability card = strip.get(index);
+		return new HudSlot(card.icon(), card.nameKey(), ability, card.inputLabel());
 	}
 
 	private static final CharacterSkinAnimation SKIN_ANIMATION =

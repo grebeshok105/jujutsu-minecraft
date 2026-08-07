@@ -1,6 +1,8 @@
 package jujutsu.mod.client.character;
 
+import java.util.List;
 import net.minecraft.resources.ResourceLocation;
+import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.client.render.CharacterSkinAnimation;
 
@@ -23,6 +25,19 @@ public interface CharacterClientDefinition {
 
 	/** What the selection menu shows for this vessel. */
 	CharacterRosterEntry rosterEntry();
+
+	/** The ability slots shown on the in-world HUD. Empty for NONE. */
+	default List<HudSlot> hudSlots() {
+		return List.of();
+	}
+
+	/**
+	 * The longest cooldown the given ability slot can carry, in ticks — the denominator of the HUD's
+	 * cooldown overlay fraction. Zero means the slot never carries a shared cooldown.
+	 */
+	default int maxCooldownTicks(CharacterAbility ability) {
+		return 0;
+	}
 
 	/** GeckoLib pose adapter applied to the vanilla player model, or {@code null} to keep vanilla pose. */
 	default CharacterSkinAnimation skinAnimation() {
