@@ -10,11 +10,14 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.character.CharacterSelectionManager;
 import jujutsu.mod.character.JujutsuCharacter;
+import jujutsu.mod.character.todo.TodoStoneEntity;
+import jujutsu.mod.character.todo.TodoStoneRef;
 import jujutsu.mod.character.todo.TodoTransientState;
 import jujutsu.mod.registry.JujutsuEffects;
 
@@ -32,6 +35,10 @@ import jujutsu.mod.registry.JujutsuEffects;
  * <p>Assertions are driven through the helper with the extended diagnostic format
  * ({@link #diagnostic}), so a red run names the fixture, phase, tick and parties in the JUnit
  * report.
+ *
+ * <p>Stone test helpers ({@link #castTertiary}, {@link #castTertiarySneak}, {@link #resolveStone},
+ * {@link #countStones}, {@link StoneState}), additive to the frozen slice-1 contract — no frozen
+ * member is modified.
  */
 public final class TodoSwapTestFixtures {
 
@@ -67,9 +74,10 @@ public final class TodoSwapTestFixtures {
 	/**
 	 * Creates the Todo caster: helper.makeMockServerPlayerInLevel(), teleports it to the ABSOLUTE
 	 * position derived from relativeFeet with the given rotation (8-arg teleportTo, Set.of()),
-	 * selects TODO via CharacterSelectionManager.select, clears the PRIMARY cooldown (AFTER select),
-	 * removes any momentum effect, then asserts preconditions with diagnostics (alive, not spectator,
-	 * both hands empty, PRIMARY cooldown 0, no momentum, no transient state for the UUID).
+	 * selects TODO via CharacterSelectionManager.select, clears the PRIMARY, TERTIARY and
+	 * TERTIARY_SNEAK cooldowns (AFTER select), removes any momentum effect, then asserts
+	 * preconditions with diagnostics (alive, not spectator, both hands empty, PRIMARY cooldown 0,
+	 * no momentum, no transient state for the UUID).
 	 *
 	 * <p>The teleport lands the body at the centre of the relative block (x + 0.5, z + 0.5), the
 	 * canonical "standing in a block" spot that keeps destination geometry — the rollback test's
@@ -85,6 +93,8 @@ public final class TodoSwapTestFixtures {
 			// The cooldown key resolves the vessel from the current selection, so select() MUST run first.
 			CharacterSelectionManager.select(caster, JujutsuCharacter.TODO);
 			CharacterAbilityCooldowns.clear(caster, CharacterAbility.PRIMARY);
+			CharacterAbilityCooldowns.clear(caster, CharacterAbility.TERTIARY);
+			CharacterAbilityCooldowns.clear(caster, CharacterAbility.TERTIARY_SNEAK);
 			caster.removeEffect(JujutsuEffects.TODO_SWAP_MOMENTUM);
 
 			long tick = helper.getTick();
@@ -137,6 +147,59 @@ public final class TodoSwapTestFixtures {
 	/** THE production invocation: CharacterAbilityExecutor.tryCast(caster, CharacterAbility.PRIMARY, true). */
 	public static boolean castPrimary(ServerPlayer caster) {
 		return jujutsu.mod.character.CharacterAbilityExecutor.tryCast(caster, CharacterAbility.PRIMARY, true);
+	}
+
+	/**
+	 * THE production invocation for the thrown stone:
+	 * CharacterAbilityExecutor.tryCast(caster, CharacterAbility.TERTIARY, true).
+	 *
+	 * <p>TODO: PR #64 lands an AbilityResult enum; until then the boolean is compared with
+	 * {@code == true} — migrate to {@code AbilityResult.SUCCESS} alongside that PR.
+	 */
+	public static boolean castTertiary(ServerPlayer caster) {
+		return jujutsu.mod.character.CharacterAbilityExecutor.tryCast(caster, CharacterAbility.TERTIARY, true);
+	}
+
+	/** THE sneak variant of the thrown stone: TERTIARY_SNEAK, same boolean contract as {@link #castTertiary}. */
+	public static boolean castTertiarySneak(ServerPlayer caster) {
+		return jujutsu.mod.character.CharacterAbilityExecutor.tryCast(caster, CharacterAbility.TERTIARY_SNEAK, true);
+	}
+
+	/**
+	 * Resolves the caster's live stone: {@code TodoTransientState.stone(uuid)} then
+	 * {@code level.getEntity(ref.entityUuid())}. Returns null when the state holds no ref or the
+	 * entity no longer resolves (vanished, swept, or in another dimension).
+	 */
+	public static TodoStoneEntity resolveStone(GameTestHelper helper, ServerPlayer caster) {
+		TodoStoneRef ref = TodoTransientState.stone(caster.getUUID()).orElse(null);
+		if (ref == null) {
+			return null;
+		}
+		return helper.getLevel().getEntity(ref.entityUuid()) instanceof TodoStoneEntity stone ? stone : null;
+	}
+
+	/**
+	 * Counts TodoStoneEntity instances inside the structure bounds. If the bounds are unavailable
+	 * (defensive fallback), counts inside a fixed 32-block box around the structure anchor
+	 * ({@code relativePos(ZERO)}) instead.
+	 */
+	public static int countStones(GameTestHelper helper) {
+		AABB bounds = helper.getBounds();
+		if (bounds == null) {
+			bounds = new AABB(helper.relativePos(BlockPos.ZERO)).inflate(32.0);
+		}
+		return helper.getLevel().getEntitiesOfClass(TodoStoneEntity.class, bounds).size();
+	}
+
+	/**
+	 * Stone flight state for exact-field asserts, read straight from the entity getters.
+	 * Captured AFTER the cast/advance; compared against the flight contract.
+	 */
+	public record StoneState(Vec3 position, Vec3 velocity, int remainingTicks) {}
+
+	/** Captures the stone's flight state from the entity getters: position, velocity, remaining clock. */
+	public static StoneState stoneState(TodoStoneEntity stone) {
+		return new StoneState(stone.position(), stone.getDeltaMovement(), stone.remainingTicks());
 	}
 
 	/**
@@ -195,8 +258,8 @@ public final class TodoSwapTestFixtures {
 	}
 
 	/**
-	 * Cleanup (success AND failure paths): clear PRIMARY cooldown, remove momentum,
-	 * TodoTransientState.dropAll, PlayerList.remove(caster). Never throws.
+	 * Cleanup (success AND failure paths): clear PRIMARY, TERTIARY and TERTIARY_SNEAK cooldowns,
+	 * remove momentum, TodoTransientState.dropAll, PlayerList.remove(caster). Never throws.
 	 *
 	 * <p>Every step is isolated so a teardown exception cannot mask the failure it is cleaning up
 	 * after; the original assert failure is the evidence. PlayerList.remove is the full disconnect
@@ -206,6 +269,8 @@ public final class TodoSwapTestFixtures {
 	public static void cleanupCaster(GameTestHelper helper, ServerPlayer caster) {
 		MinecraftServer server = helper.getLevel().getServer();
 		safe(() -> CharacterAbilityCooldowns.clear(caster, CharacterAbility.PRIMARY));
+		safe(() -> CharacterAbilityCooldowns.clear(caster, CharacterAbility.TERTIARY));
+		safe(() -> CharacterAbilityCooldowns.clear(caster, CharacterAbility.TERTIARY_SNEAK));
 		safe(() -> caster.removeEffect(JujutsuEffects.TODO_SWAP_MOMENTUM));
 		safe(() -> TodoTransientState.dropAll(server, caster.getUUID()));
 		safe(() -> server.getPlayerList().remove(caster));

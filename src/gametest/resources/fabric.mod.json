@@ -9,7 +9,8 @@
 		"fabric-gametest": [
 			"jujutsu.mod.gametest.ServerGameTests",
 			"jujutsu.mod.gametest.TodoAimedSwapGameTests",
-			"jujutsu.mod.gametest.TodoAimedSwapRollbackGameTests"
+			"jujutsu.mod.gametest.TodoAimedSwapRollbackGameTests",
+			"jujutsu.mod.gametest.TodoStoneGameTests"
 		],
 		"fabric-client-gametest": [
 			"jujutsu.mod.gametest.client.ClientLoadCanaryTest",
