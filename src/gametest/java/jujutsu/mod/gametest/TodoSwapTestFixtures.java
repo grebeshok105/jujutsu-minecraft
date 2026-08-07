@@ -156,17 +156,15 @@ public final class TodoSwapTestFixtures {
 	/**
 	 * THE production invocation for the thrown stone:
 	 * CharacterAbilityExecutor.tryCast(caster, CharacterAbility.TERTIARY, true).
-	 *
-	 * <p>TODO: PR #64 lands an AbilityResult enum; until then the boolean is compared with
-	 * {@code == true} — migrate to {@code AbilityResult.SUCCESS} alongside that PR.
+	 * Returns true exactly when the cast committed (AbilityResult.SUCCESS); refusal paths return false.
 	 */
 	public static boolean castTertiary(ServerPlayer caster) {
-		return jujutsu.mod.character.CharacterAbilityExecutor.tryCast(caster, CharacterAbility.TERTIARY, true);
+		return jujutsu.mod.character.CharacterAbilityExecutor.tryCast(caster, CharacterAbility.TERTIARY, true) == AbilityResult.SUCCESS;
 	}
 
-	/** THE sneak variant of the thrown stone: TERTIARY_SNEAK, same boolean contract as {@link #castTertiary}. */
+	/** THE sneak variant of the thrown stone: TERTIARY_SNEAK, same contract as {@link #castTertiary}. */
 	public static boolean castTertiarySneak(ServerPlayer caster) {
-		return jujutsu.mod.character.CharacterAbilityExecutor.tryCast(caster, CharacterAbility.TERTIARY_SNEAK, true);
+		return jujutsu.mod.character.CharacterAbilityExecutor.tryCast(caster, CharacterAbility.TERTIARY_SNEAK, true) == AbilityResult.SUCCESS;
 	}
 
 	/**

@@ -11,8 +11,7 @@
 			"jujutsu.mod.gametest.TodoAimedSwapGameTests",
 			"jujutsu.mod.gametest.TodoAimedSwapRollbackGameTests",
 			"jujutsu.mod.gametest.NobaraAbilityResultGameTests",
-			"jujutsu.mod.gametest.TodoStoneGameTests",
-"jujutsu.mod.gametest.NobaraAbilityResultGameTests"
+			"jujutsu.mod.gametest.TodoStoneGameTests"
 		],
 		"fabric-client-gametest": [
 			"jujutsu.mod.gametest.client.ClientLoadCanaryTest",
