@@ -6,7 +6,7 @@
 - Branch: `feat/mcp-dev-controls` (base = spike head `f31f9cb`; stacks onto `spike/mcp-1.21.8-upstream-port`, PR #62, unmerged)
 - Scope: v0 L3 control/observation surface (7 new `jujutsu_*` MCP tools in the dev-only mcpdev companion, alongside the existing `jujutsu_mod_status`) + autonomous world entry for the spike runClient. No gameplay changes; production gains only small public accessors on existing runtime classes.
 
-## Design contract
+## Verdict
 
 - Committed design: [docs/MCP_DEV_CONTROLS.md](docs/MCP_DEV_CONTROLS.md) (decision-record format; committed before implementation per the brainstorming gate).
 - Spike facts remain owned by [docs/MCP_1_21_8_PORT_SPIKE.md](docs/MCP_1_21_8_PORT_SPIKE.md).
