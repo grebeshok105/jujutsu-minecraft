@@ -7,7 +7,6 @@ import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.character.todo.TodoProfile;
-import jujutsu.mod.character.todo.TodoProfile;
 import jujutsu.mod.client.character.CharacterClientDefinition;
 import jujutsu.mod.client.character.CharacterRosterEntry;
 import jujutsu.mod.client.character.HudSlot;
@@ -45,15 +44,15 @@ public final class TodoClientDefinition implements CharacterClientDefinition {
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.FIST,
 								"screen.jujutsumod.character_select.ability.boogie_woogie", "R"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOLT,
-								"screen.jujutsumod.character_select.ability.fake_clap", "⇧R"),
+								"screen.jujutsumod.character_select.ability.fake_clap", "S+R"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.LINK,
 								"screen.jujutsumod.character_select.ability.pair_swap", "B"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.LINK,
-								"screen.jujutsumod.character_select.ability.triple_swap", "⇧B"),
+								"screen.jujutsumod.character_select.ability.triple_swap", "S+B"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOLT,
 								"screen.jujutsumod.character_select.ability.stone_throw", "V"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.LINK,
-								"screen.jujutsumod.character_select.ability.stone_swap", "⇧V")));
+								"screen.jujutsumod.character_select.ability.stone_swap", "S+V")));
 	}
 
 	/**

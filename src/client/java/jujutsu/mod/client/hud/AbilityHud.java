@@ -86,7 +86,7 @@ public final class AbilityHud {
 		int overlayColor = withAlpha(accent, 140);
 		int labelColor = withAlpha(accent, 200);
 
-		float totalWidth = slots.size() * (CELL + GAP);
+		float totalWidth = slots.size() * CELL + (slots.size() - 1) * GAP;
 		float x = (graphics.guiWidth() - totalWidth) / 2.0f + DRAG.getOffsetX();
 		float y = graphics.guiHeight() - BOTTOM_MARGIN - CELL + DRAG.getOffsetY();
 
@@ -108,6 +108,7 @@ public final class AbilityHud {
 				SDF.add(SdfShape.builder()
 						.rect(sx, y + CELL - overlayHeight, CELL, overlayHeight)
 						.radius(RADIUS)
+						.border(0.0f, 0)
 						.fill(overlayColor)
 						.build());
 			}
@@ -141,7 +142,7 @@ public final class AbilityHud {
 	 * last rendered bounds, and its offset is clamped to keep it fully on-screen.
 	 */
 	static void tickDrag(Minecraft client) {
-		if (client.player == null || STRIP_WIDTH <= 0 || STRIP_HEIGHT <= 0) {
+		if (client.player == null || client.screen != null || STRIP_WIDTH <= 0 || STRIP_HEIGHT <= 0) {
 			DRAG.endDrag();
 			DRAG.update();
 			return;
@@ -155,20 +156,22 @@ public final class AbilityHud {
 		double mouseX = CURSOR_X[0] / guiScale;
 		double mouseY = CURSOR_Y[0] / guiScale;
 
-		if (pressed) {
-			if (!DRAG.isDragging()) {
-				DRAG.startDrag(mouseX, mouseY, STRIP_X, STRIP_Y, STRIP_WIDTH, STRIP_HEIGHT);
-			}
-			if (DRAG.isDragging()) {
-				DRAG.drag(mouseX, mouseY);
-				clampToScreen(client);
-			}
-		} else {
+		if (pressed && !wasPressed && !DRAG.isDragging()) {
+			DRAG.startDrag(mouseX, mouseY, STRIP_X, STRIP_Y, STRIP_WIDTH, STRIP_HEIGHT);
+		}
+		if (pressed && DRAG.isDragging()) {
+			DRAG.drag(mouseX, mouseY);
+		}
+		if (!pressed && DRAG.isDragging()) {
 			DRAG.endDrag();
 		}
-		// Eases the offset back toward its target while idle; a live drag writes it directly.
+		wasPressed = pressed;
+		// Always clamp, not just during drag — a window resize or GUI-scale change can push the strip off-screen.
+		clampToScreen(client);
 		DRAG.update();
 	}
+
+	private static boolean wasPressed;
 
 	/** Confines the offset so the strip stays fully on-screen: bounds are relative to the base anchor. */
 	private static void clampToScreen(Minecraft client) {

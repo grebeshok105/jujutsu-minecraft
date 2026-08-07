@@ -8,7 +8,6 @@ import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.character.megumi.MegumiProfile;
-import jujutsu.mod.character.megumi.MegumiProfile;
 import jujutsu.mod.client.character.CharacterClientDefinition;
 import jujutsu.mod.client.character.CharacterRosterEntry;
 import jujutsu.mod.client.character.HudSlot;
@@ -43,13 +42,13 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BUST,
 								"screen.jujutsumod.character_select.ability.divine_dogs", "R"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.PIN,
-								"screen.jujutsumod.character_select.ability.sic", "⇧R"),
+								"screen.jujutsumod.character_select.ability.sic", "S+R"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.LINK,
 								"screen.jujutsumod.character_select.ability.shadow_trap", "B"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOLT,
-								"screen.jujutsumod.character_select.ability.shadow_step", "⇧B"),
+								"screen.jujutsumod.character_select.ability.shadow_step", "S+B"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOOM,
-								"screen.jujutsumod.character_select.ability.deep_submerge", "⇧B+"),
+								"screen.jujutsumod.character_select.ability.deep_submerge", "S+B+"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOOM,
 								"screen.jujutsumod.character_select.ability.shadow_drop", "V")));
 	}

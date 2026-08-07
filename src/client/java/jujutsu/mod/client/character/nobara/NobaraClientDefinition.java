@@ -48,11 +48,11 @@ public final class NobaraClientDefinition implements CharacterClientDefinition {
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.PIN,
 								"screen.jujutsumod.character_select.ability.hairpin_enlarge", "R"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.LINK,
-								"screen.jujutsumod.character_select.ability.resonance", "⇧R"),
+								"screen.jujutsumod.character_select.ability.resonance", "S+R"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOOM,
 								"screen.jujutsumod.character_select.ability.mega_nail", "B"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOLT,
-								"screen.jujutsumod.character_select.ability.nail_trap", "⇧B"),
+								"screen.jujutsumod.character_select.ability.nail_trap", "S+B"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.FIST,
 								"screen.jujutsumod.character_select.ability.hammer", "LMB")));
 	}
