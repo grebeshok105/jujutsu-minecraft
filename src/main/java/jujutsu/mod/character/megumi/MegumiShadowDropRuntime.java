@@ -225,6 +225,16 @@ public final class MegumiShadowDropRuntime {
 		return Blocks.ANVIL.defaultBlockState();
 	}
 
+	/** Whether the owner has a live shadow drop zone. Exists for the dev control surface + gametests. */
+	public static boolean hasOwned(UUID ownerId) {
+		return DROPS.containsKey(ownerId);
+	}
+
+	/** Clears the owner's shadow drop zone, if any, with its close cue. Exists for the dev control surface + gametests. */
+	public static void clearOwned(MinecraftServer server, UUID ownerId) {
+		clear(server, ownerId, true);
+	}
+
 	static void clear(MinecraftServer server, UUID ownerId, boolean withCue) {
 		if (server == null) {
 			return;

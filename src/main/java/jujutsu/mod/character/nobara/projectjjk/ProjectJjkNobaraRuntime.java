@@ -66,6 +66,13 @@ public final class ProjectJjkNobaraRuntime {
 		PREPARATIONS.remove(player.getUUID());
 	}
 
+	/** Drops the player's prep session, snap clock and explosive-nail count. Exists for the dev control surface + gametests. */
+	public static void clearPlayer(UUID playerId) {
+		ACTIVE_EXPLOSIVE_NAILS.remove(playerId);
+		PREPARATIONS.remove(playerId);
+		LAST_SNAP_AT.remove(playerId);
+	}
+
 	public static void prepareNails(ServerPlayer player, ItemStack usedStack, int useTicks) {
 		int desiredCount = ProjectJjkNobaraProfile.nailCountForUseTicks(ResonantMomentum.accelerateElapsedTicks(player, useTicks));
 		boolean creative = player.getAbilities().instabuild;

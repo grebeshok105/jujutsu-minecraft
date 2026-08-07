@@ -399,6 +399,16 @@ public final class MegumiShadowMoveRuntime {
 		player.setInvisible(player.hasEffect(MobEffects.INVISIBILITY));
 	}
 
+	/** Whether the owner is inside a shadow move. Exists for the dev control surface + gametests. */
+	public static boolean hasOwned(UUID ownerId) {
+		return MOVES.containsKey(ownerId);
+	}
+
+	/** Ends the owner's shadow move, if any, revealing them. Exists for the dev control surface + gametests. */
+	public static void teardownOwned(MinecraftServer server, UUID ownerId) {
+		teardown(server, ownerId);
+	}
+
 	static void teardown(MinecraftServer server, UUID ownerId) {
 		if (server == null) {
 			return;

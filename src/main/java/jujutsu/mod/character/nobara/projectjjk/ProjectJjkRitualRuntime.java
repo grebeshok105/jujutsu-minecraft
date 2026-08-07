@@ -61,7 +61,7 @@ public final class ProjectJjkRitualRuntime {
 		ServerTickEvents.END_SERVER_TICK.register(ProjectJjkRitualRuntime::onServerTick);
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			HAIRPIN_CHAINS.clear();
-			restoreAllGlowTeams(server.getScoreboard());
+			restoreAllGlow(server);
 		});
 	}
 
@@ -338,6 +338,11 @@ public final class ProjectJjkRitualRuntime {
 			return;
 		}
 		restoreGlowTeam(scoreboard, state);
+	}
+
+	/** Restores every scoreboard membership the ritual glow displaced. Exists for the dev control surface + gametests. */
+	public static void restoreAllGlow(MinecraftServer server) {
+		restoreAllGlowTeams(server.getScoreboard());
 	}
 
 	private static void restoreAllGlowTeams(Scoreboard scoreboard) {

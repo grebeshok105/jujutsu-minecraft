@@ -155,6 +155,72 @@ if (project.hasProperty('mcpSpike') && mcpCompanionEnabled) {
 		modLocalRuntime files(mcpUpstreamJar)
 		localRuntime files(tasks.named('jarMcpdev'))
 	}
+
+	// C4 (issue #43): autonomous world entry. --quickPlaySingleplayer boots straight into
+	// the save whose folder name is the argument (run/saves/mcp-spike), so the dev-control
+	// surface is reachable with no menu interaction. Seeded + options pre-seeded by
+	// prepareMcpSpikeRun below.
+	loom.runs.named('client') {
+		programArgs '--quickPlaySingleplayer', 'mcp-spike'
+	}
+
+	// Seeds the quickPlay world and pre-seeds options.txt for autonomous runs. Idempotent:
+	// the world is copied only when the target is absent, and options.txt is rewritten only
+	// when one of the two keys is missing or wrong. Never launches the client.
+	tasks.register('prepareMcpSpikeRun') {
+		group = 'fabric'
+		description = 'Seeds the mcp-spike quickPlay world from run/saves/New World and pre-seeds run/options.txt for autonomous client runs'
+		// Capture the project at configuration time: Task.project at execution time is
+		// deprecated (fails in Gradle 10, and this build must stay configuration-cache-safe).
+		Project projectRef = project
+		File runDir = project.file('run')
+		File optionsFile = new File(runDir, 'options.txt')
+		File sourceWorld = new File(runDir, 'saves/New World')
+		File targetWorld = new File(runDir, 'saves/mcp-spike')
+		doLast {
+			// options.txt: keep every existing key, force the two autonomous-run keys.
+			Map<String, String> options = [:]
+			if (optionsFile.exists()) {
+				optionsFile.eachLine('UTF-8') { String line ->
+					int colon = line.indexOf(':')
+					if (colon > 0) {
+						options[line.substring(0, colon)] = line.substring(colon + 1)
+					}
+				}
+			}
+			if (optionsFile.exists()
+					&& options.get('pauseOnLostFocus') == 'false'
+					&& options.get('tutorialStep') == 'none') {
+				logger.lifecycle('prepareMcpSpikeRun: run/options.txt already seeded (pauseOnLostFocus:false, tutorialStep:none)')
+			} else {
+				options['pauseOnLostFocus'] = 'false'
+				options['tutorialStep'] = 'none'
+				optionsFile.parentFile.mkdirs()
+				optionsFile.withWriter('UTF-8') { writer ->
+					options.sort().each { key, value -> writer.writeLine("${key}:${value}") }
+				}
+				logger.lifecycle('prepareMcpSpikeRun: wrote run/options.txt with pauseOnLostFocus:false and tutorialStep:none (all other keys preserved)')
+			}
+
+			// World seed: copy New World -> mcp-spike once; never overwrite an existing seed.
+			if (targetWorld.exists()) {
+				logger.lifecycle('prepareMcpSpikeRun: world run/saves/mcp-spike already present — skipping copy')
+			} else if (sourceWorld.exists()) {
+				projectRef.copy {
+					from sourceWorld
+					into targetWorld
+				}
+				logger.lifecycle('prepareMcpSpikeRun: copied run/saves/New World -> run/saves/mcp-spike')
+			} else {
+				logger.warn('prepareMcpSpikeRun: neither run/saves/mcp-spike nor run/saves/New World exists — skipping world copy; quickPlay will fail until a world exists (launch the game once and create a save, or drop one into run/saves/), then re-run this task or runClient')
+			}
+		}
+	}
+
+	// Automatic wiring: every -PmcpSpike runClient launch seeds itself first.
+	tasks.named('runClient') {
+		dependsOn 'prepareMcpSpikeRun'
+	}
 }
 
 tasks.register('testCharacterPlayerState', JavaExec) {

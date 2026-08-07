@@ -336,6 +336,13 @@ public final class NobaraHammerCombatRuntime {
 						player.getRandom().nextLong(), direction));
 	}
 
+	/** Drops the player's pending attacks, overhead flag and Black Flash streak. Exists for the dev control surface + gametests. */
+	public static void clearPlayer(UUID playerId) {
+		PENDING.remove(playerId);
+		OVERHEAD_NEXT.remove(playerId);
+		BF_STREAK.remove(playerId);
+	}
+
 	private static void clear() {
 		PENDING.clear();
 		OVERHEAD_NEXT.clear();
