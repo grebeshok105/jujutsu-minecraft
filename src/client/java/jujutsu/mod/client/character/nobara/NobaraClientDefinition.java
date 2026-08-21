@@ -16,6 +16,7 @@ import jujutsu.mod.client.render.CharacterSkinAnimation;
 import jujutsu.mod.client.render.nobara.doll.ProjectJjkStrawDollRenderer;
 import jujutsu.mod.client.render.nobara.NobaraPlayerGeoAnimatable;
 import jujutsu.mod.client.render.nobara.NobaraSkinAnimationAdapter;
+import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.vfx.nobara.NobaraVfxRecipes;
 import jujutsu.mod.client.character.nobara.NobaraEspState;
 import jujutsu.mod.registry.JujutsuEntities;
@@ -109,7 +110,11 @@ public final class NobaraClientDefinition implements CharacterClientDefinition {
 		EntityRendererRegistry.register(JujutsuEntities.PROJECTJJK_NAIL, ProjectJjkNailRenderer::new);
 		NobaraVfxRecipes.register();
 		NobaraEspState.register();
-		NobaraTargetHud.register();
+		// Method reference, not a NobaraTargetHud.register() call: a static call would force the
+		// class <clinit> right here in the entrypoint, and its `new SdfRenderer()` builds a
+		// CachedOrthoProjectionMatrixBuffer -> RenderSystem.getDevice() before the device exists
+		// (client crash 2026-08-21 16:54). The reference defers class init to the first frame.
+		VfxDirector.registerHudContribution(JujutsuMod.id("nobara_target_hud"), NobaraTargetHud::render);
 	}
 
 	@Override

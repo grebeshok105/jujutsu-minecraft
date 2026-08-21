@@ -78,11 +78,6 @@ public final class NobaraTargetHud {
 
 	private NobaraTargetHud() {}
 
-	/** Registers this HUD into the single VfxDirector HUD element. Call from client hooks. */
-	public static void register() {
-		VfxDirector.registerHudContribution(JujutsuMod.id("nobara_target_hud"), NobaraTargetHud::render);
-	}
-
 	/** HUD contribution callback; draws only while the snapshot has targets (non-Nobara is empty). */
 	public static void render(GuiGraphics graphics, DeltaTracker tickCounter) {
 		Minecraft client = Minecraft.getInstance();

@@ -7,7 +7,7 @@
 - `TargetEsp` lost `leaderNailEntityId`; `EspTargetData`/`renderEspBillboard`/`drawBadgeLine` deleted; nail renderer tripwire debt shrunk 5→3 refs (`SourceBoundaryTripwireTest`). MOC metrics: client_java=191, test_java=85.
 - Animations: fade+slide appear (~3t), pop on nail-count change, HP accent pulse, FPS-independent HP chaser (real frame delta into `UiEase.approach`).
 - Review wave: 2 P2 fixed (FPS chaser, vessel subtitle glyphs 3/B/T), 3 P3 fixed (javadoc, plan-spec sign note, CURRENT_STATE dated-bullet split), 1 accepted: `ownedByLocal` accent no longer gated on the ESP snapshot — own nails always draw the orange pulse, even when playing a non-Nobara vessel or before snapshot refresh (cosmetic, smoke item).
-- `docs/knowledge/CURRENT_STATE.md` stays **untracked** (project memory): it mentions a forbidden `docs/research/` path that fails `auditDocumentation` once committed. The 2026-08-21 record lives in KNOWN_ISSUES E14 instead.
+- `docs/knowledge/CURRENT_STATE.md` stays **untracked** (project memory): it names a docs subfolder that the documentation audit forbids, so committing it fails `auditDocumentation`. The 2026-08-21 record lives in KNOWN_ISSUES E14 instead.
 
 ## Verification
 
