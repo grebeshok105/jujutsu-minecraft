@@ -37,24 +37,28 @@ import jujutsu.mod.client.vfx.VfxDirector;
 public final class NobaraTargetHud {
 	private static final SdfRenderer SDF = new SdfRenderer();
 
-	// Palette (fake glass; no framebuffer blur in v1).
-	private static final int GLASS_TOP = 0xE6141820;
-	private static final int GLASS_BOTTOM = 0xC60E1118;
-	private static final int BORDER = 0x59FFFFFF;
+	// Palette — glassy translucency per the reference: the world shows through the cards,
+	// a cool blue tint, bright hairline border, strong top highlight. No framebuffer blur in v1;
+	// the SDF stack's gradient + highlight carries the glass read.
+	private static final int GLASS_TOP = 0x73263B52;
+	private static final int GLASS_BOTTOM = 0x5C1B2C42;
+	private static final int BORDER = 0x73FFFFFF;
 	private static final int GLOW = 0x38E48A36;
 	private static final int TEXT_MAIN = 0xFFF2F5FA;
-	private static final int TEXT_SUB = 0xFF9AA7B5;
+	private static final int TEXT_SUB = 0xFFB9C4D0;
 	private static final int HEALTH_RING = 0xFFFF5A6E;
+	private static final int ORB_TOP = 0xFFFF6B7E;
+	private static final int ORB_BOTTOM = 0xFFE23D55;
 	private static final int NAIL_TOP = 0xFFC8D2DC;
 	private static final int NAIL_BOTTOM = 0xFF8FA0AE;
 	private static final int STAR_GOLD = 0xFFFFC94D;
-	private static final int BADGE_BG = 0xCC1B2733;
+	private static final int BADGE_BG = 0xB3202F40;
 
 	private static final float RADIUS = 8f;
 	private static final float BORDER_WIDTH = 1f;
 	private static final float GLOW_RADIUS = 6f;
-	private static final float HIGHLIGHT = 0.35f;
-	private static final float BADGE_HEIGHT = 12f;
+	private static final float HIGHLIGHT = 0.5f;
+	private static final float BADGE_HEIGHT = 16f;
 	private static final double CHEST_FRACTION = 0.62;
 	private static final double HEAD_OFFSET_BLOCKS = 0.35;
 	private static final double BLOCKS_TO_PX = 16.0;
@@ -130,14 +134,16 @@ public final class NobaraTargetHud {
 		addGlassCard(place.grade.x(), place.grade.y(), place.grade.w(), place.grade.h(), alpha, 0f);
 		addGlassCard(place.nails.x(), place.nails.y(), place.nails.w(), place.nails.h(), alpha, 0f);
 
-		// Health ring inside the health card.
-		float ringSize = place.health.h() * 0.42f;
+		// Health orb: one solid glowing disc — the reference's pulsing heart core.
+		float orbSize = place.health.h() * 0.42f;
+		float orbX = place.health.x() + 7f * place.scale;
+		float orbY = place.health.y() + (place.health.h() - orbSize) / 2f;
 		SDF.add(SdfShape.builder()
-				.rect(place.health.x() + 7f * place.scale, place.health.y() + (place.health.h() - ringSize) / 2f,
-						ringSize, ringSize)
-				.radius(ringSize / 2f)
-				.border(2f, blendAlpha(HEALTH_RING, alpha))
-				.fill(0, 0)
+				.rect(orbX, orbY, orbSize, orbSize)
+				.radius(orbSize / 2f)
+				.border(0f, 0)
+				.glow(5f, blendAlpha(HEALTH_RING, alpha))
+				.fill(blendAlpha(ORB_TOP, alpha), blendAlpha(ORB_BOTTOM, alpha))
 				.build());
 
 		// Nail icon strip inside the nails card.
@@ -175,7 +181,7 @@ public final class NobaraTargetHud {
 		float ringSize = health.h() * 0.42f;
 		float pctX = health.x() + 7f * scale + ringSize + 8f * scale;
 		MsdfFonts.draw(MsdfFonts.Face.BOLD, NobaraTargetLayout.hpPercentText(place.ui.shownHp, place.ui.shownMaxHp),
-				pctX, health.y() + health.h() * 0.22f, 9f * scale, blendAlpha(TEXT_MAIN, alpha));
+				pctX, health.y() + health.h() * 0.20f, 11f * scale, blendAlpha(TEXT_MAIN, alpha));
 		MsdfFonts.draw(MsdfFonts.Face.UI, NobaraTargetLayout.hpRatioText(place.ui.shownHp, place.ui.shownMaxHp),
 				pctX, health.y() + health.h() * 0.58f, 4.5f * scale, blendAlpha(TEXT_SUB, alpha));
 
@@ -193,8 +199,8 @@ public final class NobaraTargetHud {
 
 		Badge badge = place.badge;
 		if (badge != null) {
-			MsdfFonts.drawCentered(MsdfFonts.Face.UI, badge.text(), badge.x() + badge.w() / 2f,
-					badge.y() + BADGE_HEIGHT / 2f - 2.2f, 4.5f, blendAlpha(TEXT_MAIN, alpha));
+			MsdfFonts.drawCentered(MsdfFonts.Face.BOLD, badge.text(), badge.x() + badge.w() / 2f,
+					badge.y() + BADGE_HEIGHT / 2f - 3.2f, 6.5f, blendAlpha(TEXT_MAIN, alpha));
 		}
 	}
 
@@ -256,7 +262,7 @@ public final class NobaraTargetHud {
 			return null;
 		}
 		String name = living.getDisplayName().getString();
-		float w = MsdfFonts.width(MsdfFonts.Face.UI, name, 4.5f) + 10f;
+		float w = MsdfFonts.width(MsdfFonts.Face.BOLD, name, 6.5f) + 12f;
 		double[] pos = WorldToScreen.clampToScreen(
 				headScreen.x() - w / 2f, headScreen.y() - BADGE_HEIGHT - SCREEN_MARGIN,
 				w, BADGE_HEIGHT, guiWidth, guiHeight, SCREEN_MARGIN);
