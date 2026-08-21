@@ -67,6 +67,18 @@ public final class NobaraTargetLayout {
 		if (rankKey.contains("civilian")) {
 			return "-";
 		}
+		// Player targets: the key is a vessel roster subtitle (grade or technique), passed straight
+		// through by rankKeyFor (C6). Map the known subtitle suffixes to the same compact card glyphs
+		// so a sorcerer target never falls back to "?". Display-only, from existing roster data.
+		if (rankKey.endsWith(".nobara.grade") || rankKey.contains(".character_select.nobara.")) {
+			return "3";
+		}
+		if (rankKey.endsWith(".todo.technique") || rankKey.contains(".character_select.todo.")) {
+			return "B";
+		}
+		if (rankKey.endsWith(".megumi.technique") || rankKey.contains(".character_select.megumi.")) {
+			return "T";
+		}
 		return "?";
 	}
 

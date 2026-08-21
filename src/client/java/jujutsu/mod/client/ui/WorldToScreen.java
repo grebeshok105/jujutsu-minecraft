@@ -8,9 +8,9 @@ package jujutsu.mod.client.ui;
  *
  * <p>Convention (pinned by {@code WorldToScreenTest}):
  * <ul>
- *   <li>Forward = {@code Entity.calculateViewVector(pitch, yaw)} exactly: rotate {@code (0,0,1)}
- *       around X by {@code -pitch}, then around Y by {@code -yaw} (radians), i.e.
- *       {@code forward = (-sin(yaw)·cos(pitch), -sin(pitch), cos(yaw)·cos(pitch))}.</li>
+ * <li>Forward = {@code Entity.calculateViewVector(pitch, yaw)} exactly, the closed form
+ *       {@code forward = (-sin(yaw)·cos(pitch), -sin(pitch), cos(yaw)·cos(pitch))} — verified
+ *       against the decompiled 1.21.8 bytecode (identity → {@code (0,0,1)}, yaw=90 → {@code (-1,0,0)}).</li>
  *   <li>Right = normalize(cross(forward, UP=(0,1,0))), falling back to EAST=(1,0,0) when the cross
  *       is degenerate (pitch at ±90°); Up = cross(right, forward).</li>
  *   <li>Camera space: {@code cx = rel·right}, {@code cy = rel·up}, {@code depth = rel·forward}.</li>

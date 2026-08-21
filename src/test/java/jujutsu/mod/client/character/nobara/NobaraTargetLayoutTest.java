@@ -84,6 +84,15 @@ final class NobaraTargetLayoutTest {
 		assertEquals("?", NobaraTargetLayout.gradeDisplay("garbage"));
 	}
 
+	@Test
+	void gradeDisplayMapsVesselSubtitleKeys() {
+		// R4 finding: rankKeyFor hands vessel roster subtitle keys straight to the mapper; they must
+		// not fall back to "?" for sorcerer targets (visual regression vs the old billboard).
+		assertEquals("3", NobaraTargetLayout.gradeDisplay("screen.jujutsumod.character_select.nobara.grade"));
+		assertEquals("B", NobaraTargetLayout.gradeDisplay("screen.jujutsumod.character_select.todo.technique"));
+		assertEquals("T", NobaraTargetLayout.gradeDisplay("screen.jujutsumod.character_select.megumi.technique"));
+	}
+
 	// --- hp texts ---
 
 	@Test

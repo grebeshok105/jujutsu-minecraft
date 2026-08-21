@@ -66,13 +66,14 @@ public final class NobaraTargetHud {
 
 	private static final class TargetUiState {
 		long firstSeenGameTime;
-		long lastSeenGameTime;
 		float shownHp;
 		float shownMaxHp;
 		float lastRawHp;
 		long hpChangedAtGameTime = Long.MIN_VALUE;
 		long countChangedAtGameTime = Long.MIN_VALUE;
 		int lastCount;
+		/** Last frame's gameTime + partialTick, for FPS-independent HP chasing. */
+		double lastFrameTime = Double.NaN;
 	}
 
 	private NobaraTargetHud() {}
@@ -212,7 +213,7 @@ public final class NobaraTargetHud {
 	/** Resolves the target on screen and advances its animation memory; null when off-screen. */
 	private static Placement place(Minecraft client, Camera cam, int guiWidth, int guiHeight,
 			float partialTick, long gameTime, NobaraEspState.TargetEsp esp, LivingEntity living) {
-		TargetUiState ui = track(gameTime, esp, living);
+		TargetUiState ui = track(gameTime, partialTick, esp, living);
 		Vec3 chest = living.getPosition(partialTick).add(0.0, living.getBbHeight() * CHEST_FRACTION, 0.0);
 		WorldToScreen.Projection screen = WorldToScreen.project(
 				chest.x - cam.x(), chest.y - cam.y(), chest.z - cam.z(),
@@ -267,7 +268,7 @@ public final class NobaraTargetHud {
 		return new Badge(name, (float) pos[0], (float) pos[1], w);
 	}
 
-	private static TargetUiState track(long gameTime, NobaraEspState.TargetEsp esp, LivingEntity living) {
+	private static TargetUiState track(long gameTime, float partialTick, NobaraEspState.TargetEsp esp, LivingEntity living) {
 		TargetUiState ui = STATES.computeIfAbsent(esp.targetId(), id -> {
 			TargetUiState fresh = new TargetUiState();
 			fresh.firstSeenGameTime = gameTime;
@@ -277,7 +278,6 @@ public final class NobaraTargetHud {
 			fresh.lastCount = esp.nailCount();
 			return fresh;
 		});
-		ui.lastSeenGameTime = gameTime;
 		float hp = living.getHealth();
 		if (hp != ui.lastRawHp) {
 			ui.hpChangedAtGameTime = gameTime;
@@ -287,9 +287,15 @@ public final class NobaraTargetHud {
 			ui.countChangedAtGameTime = gameTime;
 			ui.lastCount = esp.nailCount();
 		}
-		// Displayed values chase the live ones every frame.
-		ui.shownHp = NobaraTargetAnim.approachValue(ui.shownHp, hp, 1.0f);
-		ui.shownMaxHp = NobaraTargetAnim.approachValue(ui.shownMaxHp, living.getMaxHealth(), 1.0f);
+		// Displayed values chase the live ones every frame, at a rate independent of FPS:
+		// UiEase.approach is tick-exponential, so pass the real elapsed ticks between frames.
+		double frameTime = gameTime + partialTick;
+		double deltaTicks = Double.isNaN(ui.lastFrameTime)
+				? 1.0
+				: Math.max(0.0, Math.min(4.0, frameTime - ui.lastFrameTime));
+		ui.lastFrameTime = frameTime;
+		ui.shownHp = NobaraTargetAnim.approachValue(ui.shownHp, hp, (float) deltaTicks);
+		ui.shownMaxHp = NobaraTargetAnim.approachValue(ui.shownMaxHp, living.getMaxHealth(), (float) deltaTicks);
 		return ui;
 	}
 
