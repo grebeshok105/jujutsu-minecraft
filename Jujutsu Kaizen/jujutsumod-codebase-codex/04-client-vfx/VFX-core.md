@@ -103,7 +103,7 @@ Packed Hairpin explosion intensity clamps depth to `1..3` and keeps the finale b
 
 Client-global slow motion is deliberately absent: the former channel had writers but no consumer. Reintroducing it requires an approved design with an explicitly named consumer and lifecycle.
 
-Effects use cue age to reject or seek late playback rather than replaying stale beats from the start. Persistent visuals are not VFX Core's job: nails are drawn by `ProjectJjkNailRenderer` (see [Nail rendering](Nail-rendering.md)), while transient compression, snap, burst, residue, camera, and sound beats belong to recipes and channels.
+Effects use cue age to reject or seek late playback rather than replaying stale beats from the start. Persistent visuals are not VFX Core's job: nails are drawn by `ProjectJjkNailRenderer` (see [Nail rendering](Nail-rendering.md)), and the target-info overlay is a VfxDirector HUD contribution (`NobaraTargetHud`), while transient compression, snap, burst, residue, camera, and sound beats belong to recipes and channels.
 
 ## HUD is not a Screen
 
