@@ -90,7 +90,7 @@ public final class SdfRenderer implements AutoCloseable {
             if (sceneCopy != null) {
                 RenderSystem.getDevice().createCommandEncoder()
                         .copyTextureToTexture(target.getColorTexture(), sceneCopy,
-                                target.width, target.height, 0, 0, 0, 0, 0);
+                                0, 0, 0, 0, 0, target.width, target.height);
             }
         }
 
