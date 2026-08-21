@@ -1,47 +1,27 @@
-# Session Handoff — Post-merge main (Aug 7-8 wave complete)
+# Session Handoff — nobara-target-hud branch (Aug 21 wave)
 
-## State of main
+## State
 
-- Branch: `main`, HEAD `4dd5729` (post-#67). Everything merged, zero open PRs.
-- All work from the Aug 6-8 wave is in main:
-  - #62 spike MCP bridge on 1.21.8 (upstream port, 105+ tools)
-  - #63 dev-control MCP tools + autonomous world entry (7 jujutsu_* tools)
-  - #64 ability-result contract (AbilityResult tri-state)
-  - #65 Todo stone lifecycle GameTests (21 scenarios, 29/29 green)
-  - #66 L3 completion (ticks_wait, rotation_set, fixture_list)
-  - #67 draggable ability cooldown HUD for all vessels
-- Earlier wave: #59-61 (GameTest infra + Todo aimed swap GameTests).
-
-## What exists now
-
-- MCP dev lane: `src/mcpdev` companion, gated by `-PmcpSpike`/`-PmcpUpstreamJar`; 11 jujutsu tools; quickPlay autonomous entry (`prepareMcpSpikeRun`).
-- GameTest lane: server + client, 29 scenarios green, `runGameTest` in qualityGate.
-- HUD: `AbilityHud` (SDF/MSDF), `hudSlots()` + `maxCooldownTicks()` seams on `CharacterClientDefinition`, drag via DragHandler + GLFW polling.
-- AbilityResult: `jujutsu.mod.character.AbilityResult` — SUCCESS / HANDLED_FAILURE / UNHANDLED_FAILURE.
-
-## Open issues (8)
-
-- #18 localization parity (hardening, easy)
-- #22 static runtime state lifecycle owner (medium)
-- #26 transient radius VFX delivery (medium, client)
-- #23 ClickGui SDF profiling (UNVERIFIED)
-- #24 residual shared-state debt (low)
-- #25 vessel classes into packages (low)
-- #56 brainstorm Todo velocity swap (parked)
-- #45 VFX authoring engine (PARKED, do not implement)
-
-## Rule-of-four artifacts
-
-All pipeline state lives in `D:/WorkFlow/jujutsu-minecraft/.omp/rule-of-four/` (8 pipelines: ability-hud, ability-result, client-gametest-b, mcp-dev-controls, mcp-l3, mcp-port-spike, todo-aimed-swap, todo-stone). Each has plan-spec, block reports, review-spec, evidence.
+- Branch: **`feat/nobara-target-hud`**, HEAD `d241544` (4 commits on `main` `ce3d655`). PR open against main.
+- Feature: Nobara's target ESP moved from the world-space billboard (vanilla Font inside `ProjectJjkNailRenderer`) to a screen-space HUD — `NobaraTargetHud` as one `VfxDirector.registerHudContribution`, name pill above the head + health/grade/nails glass card stack right of the target, projected through the new pure `ui/WorldToScreen` helper (JUnit-covered, no Minecraft imports).
+- `TargetEsp` lost `leaderNailEntityId`; `EspTargetData`/`renderEspBillboard`/`drawBadgeLine` deleted; nail renderer tripwire debt shrunk 5→3 refs (`SourceBoundaryTripwireTest`). MOC metrics: client_java=191, test_java=85.
+- Animations: fade+slide appear (~3t), pop on nail-count change, HP accent pulse, FPS-independent HP chaser (real frame delta into `UiEase.approach`).
+- Review wave: 2 P2 fixed (FPS chaser, vessel subtitle glyphs 3/B/T), 3 P3 fixed (javadoc, plan-spec sign note, CURRENT_STATE dated-bullet split), 1 accepted: `ownedByLocal` accent no longer gated on the ESP snapshot — own nails always draw the orange pulse, even when playing a non-Nobara vessel or before snapshot refresh (cosmetic, smoke item).
+- `docs/knowledge/CURRENT_STATE.md` stays **untracked** (project memory): it mentions a forbidden `docs/research/` path that fails `auditDocumentation` once committed. The 2026-08-21 record lives in KNOWN_ISSUES E14 instead.
 
 ## Verification
 
-- `./gradlew.bat qualityGate --no-daemon --max-workers=1 --no-watch-fs` — green on `4dd5729` (post-hotfix a394643 + HUD).
-- Live MCP proof: autonomous entry, vessel select/invoke/state/reset over MCP, HUD frames captured (`.omp/rule-of-four/ability-hud/hud_*.png`).
+- `./gradlew.bat qualityGate --rerun-tasks` green on `d241544`: 296 JUnit / 0 fail, 34 GameTest, 29 JavaExec, doc + jar-isolation audits.
+- Counts verified by tree scan: main=126, client=191, test=85.
+- NOT yet verified in-game (gate proves none of this): card layout/scale by eye, badge offsets at GUI scales 1/2/4, edge-of-screen clamp feel, accent-on-non-Nobara cosmetic case.
+
+## Deploy
+
+- Jar for the game instance: `./gradlew.bat assemble` → `build/libs/jujutsumod-1.0.0.jar` → copy to `D:/Games/instances/Jujutsu/mods/`, md5-compare.
 
 ## Next candidates
 
-1. New vessel (Yuji / Maki — add-vessel skill)
-2. #18 localization parity (quick win)
-3. #26 VFX delivery polish
-4. #21 remaining slices (Mega Nail, Shadow Drop ceiling, pair/triple atomicity)
+1. Visual polish pass of the target HUD from real screenshots.
+2. New vessel (Yuji / Maki — add-vessel skill)
+3. #18 localization parity (quick win); #26 VFX delivery polish
+4. #21 remaining slices
