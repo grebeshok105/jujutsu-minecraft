@@ -32,12 +32,11 @@ public final class NobaraEspState {
 	 * Immutable data for one target entity that has at least one embedded nail owned by the local
 	 * Nobara player.
 	 *
-	 * @param targetId          the target entity's network id
-	 * @param nailCount         how many embedded nails this target has
-	 * @param nailDepths        depth values, sorted descending
-	 * @param leaderNailEntityId the nail entity with the smallest entity id among this group
+	 * @param targetId   the target entity's network id
+	 * @param nailCount  how many embedded nails this target has
+	 * @param nailDepths depth values, sorted descending
 	 */
-	public record TargetEsp(int targetId, int nailCount, List<Integer> nailDepths, int leaderNailEntityId) {}
+	public record TargetEsp(int targetId, int nailCount, List<Integer> nailDepths) {}
 
 	/**
 	 * Pure data for {@link #aggregate(List)}, avoiding any Minecraft references.
@@ -54,8 +53,8 @@ public final class NobaraEspState {
 	private NobaraEspState() {}
 
 	/**
-	 * Pure aggregation: filters valid nail views, groups by target, computes leader and sorted
-	 * depths. Testable without a running Minecraft instance.
+	 * Pure aggregation: filters valid nail views, groups by target and computes sorted depths.
+	 * Testable without a running Minecraft instance.
 	 *
 	 * @param nails input nail views
 	 * @return an unmodifiable map from target entity id to its {@link TargetEsp}
@@ -73,16 +72,12 @@ public final class NobaraEspState {
 		for (Map.Entry<Integer, List<NailView>> entry : byTarget.entrySet()) {
 			int targetId = entry.getKey();
 			List<NailView> group = entry.getValue();
-			int leaderId = Integer.MAX_VALUE;
 			List<Integer> depths = new ArrayList<>(group.size());
 			for (NailView nail : group) {
-				if (nail.nailEntityId() < leaderId) {
-					leaderId = nail.nailEntityId();
-				}
 				depths.add(nail.depth());
 			}
 			depths.sort(Collections.reverseOrder());
-			result.put(targetId, new TargetEsp(targetId, group.size(), List.copyOf(depths), leaderId));
+			result.put(targetId, new TargetEsp(targetId, group.size(), List.copyOf(depths)));
 		}
 		return Collections.unmodifiableMap(result);
 	}
