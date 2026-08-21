@@ -7,6 +7,8 @@ import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.textures.GpuTexture;
+import com.mojang.blaze3d.textures.GpuTextureView;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.CachedOrthoProjectionMatrixBuffer;
@@ -27,6 +29,11 @@ import java.util.OptionalInt;
  * SDF pipeline. Call {@link #begin()}, add shapes, then {@link #flush()} once per frame from
  * Screen.render. Draws land UNDER the vanilla GuiGraphics batch (which flushes last), so these
  * shapes act as background surfaces - exactly what the dashboard panels need.
+ *
+ * <p>Shapes whose highlight is negative opt into the glass pipeline: before that pass runs,
+ * the main target is copied to an offscreen texture, bound as {@code SceneSampler}, and the
+ * fragment shader refracts it (liquid-glass look). The copy costs one GPU blit per flush and
+ * only happens when at least one glass shape is present.
  */
 public final class SdfRenderer implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger("jujutsumod/sdf");
@@ -38,6 +45,12 @@ public final class SdfRenderer implements AutoCloseable {
             new CachedOrthoProjectionMatrixBuffer("jujutsumod_sdf", 1000.0f, 12000.0f, true);
     private float globalAlpha = 1f;
     private boolean diagLogged;
+
+    /** Offscreen copy of the main target for glass refraction; resized on demand. */
+    private GpuTexture sceneCopy;
+    private GpuTextureView sceneCopyView;
+    private int sceneCopyWidth = -1;
+    private int sceneCopyHeight = -1;
 
     public void begin() {
         shapes.clear();
@@ -55,10 +68,31 @@ public final class SdfRenderer implements AutoCloseable {
         if (shapes.isEmpty()) {
             return;
         }
+        List<SdfShape> opaque = new ArrayList<>(shapes.size());
+        List<SdfShape> glass = new ArrayList<>(shapes.size());
+        for (SdfShape s : shapes) {
+            if (s.highlight() < -0.001f) {
+                glass.add(s);
+            } else {
+                opaque.add(s);
+            }
+        }
+
         Minecraft mc = Minecraft.getInstance();
         var window = mc.getWindow();
         float guiW = window.getGuiScaledWidth();
         float guiH = window.getGuiScaledHeight();
+
+        RenderTarget target = mc.getMainRenderTarget();
+        boolean hasGlass = !glass.isEmpty();
+        if (hasGlass) {
+            ensureSceneCopy(target.width, target.height);
+            if (sceneCopy != null) {
+                RenderSystem.getDevice().createCommandEncoder()
+                        .copyTextureToTexture(target.getColorTexture(), sceneCopy,
+                                target.width, target.height, 0, 0, 0, 0, 0);
+            }
+        }
 
         GpuBufferSlice projSlice = projection.getBuffer(guiW, guiH);
         RenderSystem.backupProjectionMatrix();
@@ -72,49 +106,97 @@ public final class SdfRenderer implements AutoCloseable {
                     new Matrix4f(),
                     0.0f);
 
-            int stride = SdfPipelines.VERTEX_STRIDE;
-            ByteBuffer bytes = ByteBuffer.allocateDirect(shapes.size() * 4 * stride)
-                    .order(java.nio.ByteOrder.nativeOrder());
-            for (SdfShape s : shapes) {
-                float margin = s.glowRadius() + PAD;
-                float x0 = s.x() - margin, x1 = s.x() + s.w() + margin;
-                float y0 = s.y() - margin, y1 = s.y() + s.h() + margin;
-                putVertex(bytes, x0, y0, s);
-                putVertex(bytes, x0, y1, s);
-                putVertex(bytes, x1, y1, s);
-                putVertex(bytes, x1, y0, s);
+            if (!opaque.isEmpty()) {
+                drawBatch(opaque, guiW, guiH, SdfPipelines.SDF_SHAPE, null);
             }
-            bytes.flip();
-
-            // Cached inside the VertexFormat - do NOT close the returned buffer.
-            GpuBuffer vertexBuffer = SdfPipelines.SDF_SHAPE_FORMAT.uploadImmediateVertexBuffer(bytes);
-
-            RenderSystem.AutoStorageIndexBuffer sequential = RenderSystem.getSequentialBuffer(VertexFormat.Mode.QUADS);
-            int indexCount = shapes.size() * 6;
-            GpuBuffer indexBuffer = sequential.getBuffer(indexCount);
-
-            RenderTarget target = mc.getMainRenderTarget();
-            CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
-            if (!diagLogged) {
-                diagLogged = true;
-                LOG.info("SDF flush: shapes={} gui={}x{} alpha={} indexCount={}",
-                        shapes.size(), guiW, guiH, globalAlpha, indexCount);
-            }
-            try (RenderPass pass = encoder.createRenderPass(
-                    () -> "jujutsumod:sdf_shapes",
-                    target.getColorTextureView(), OptionalInt.empty(),
-                    target.getDepthTextureView(), OptionalDouble.empty())) {
-                RenderSystem.bindDefaultUniforms(pass);
-                pass.setUniform("DynamicTransforms", transform);
-                pass.setPipeline(SdfPipelines.SDF_SHAPE);
-                pass.setVertexBuffer(0, vertexBuffer);
-                pass.setIndexBuffer(indexBuffer, sequential.type());
-                pass.drawIndexed(0, 0, indexCount, 1);
+            if (hasGlass && sceneCopyView != null) {
+                drawBatch(glass, guiW, guiH, SdfPipelines.SDF_GLASS, sceneCopyView);
             }
         } catch (RuntimeException | LinkageError error) {
             LOG.error("SDF draw failed", error);
         } finally {
             RenderSystem.restoreProjectionMatrix();
+        }
+        shapes.clear();
+    }
+
+    private void drawBatch(List<SdfShape> batch, float guiW, float guiH,
+            com.mojang.blaze3d.pipeline.RenderPipeline pipeline, GpuTextureView sceneSampler) {
+        Minecraft mc = Minecraft.getInstance();
+        int stride = SdfPipelines.VERTEX_STRIDE;
+        ByteBuffer bytes = ByteBuffer.allocateDirect(batch.size() * 4 * stride)
+                .order(java.nio.ByteOrder.nativeOrder());
+        for (SdfShape s : batch) {
+            float margin = Math.abs(s.glowRadius()) + PAD;
+            float x0 = s.x() - margin, x1 = s.x() + s.w() + margin;
+            float y0 = s.y() - margin, y1 = s.y() + s.h() + margin;
+            putVertex(bytes, x0, y0, s);
+            putVertex(bytes, x0, y1, s);
+            putVertex(bytes, x1, y1, s);
+            putVertex(bytes, x1, y0, s);
+        }
+        bytes.flip();
+
+        // Cached inside the VertexFormat - do NOT close the returned buffer.
+        GpuBuffer vertexBuffer = SdfPipelines.SDF_SHAPE_FORMAT.uploadImmediateVertexBuffer(bytes);
+
+        RenderSystem.AutoStorageIndexBuffer sequential = RenderSystem.getSequentialBuffer(VertexFormat.Mode.QUADS);
+        int indexCount = batch.size() * 6;
+        GpuBuffer indexBuffer = sequential.getBuffer(indexCount);
+
+        RenderTarget target = mc.getMainRenderTarget();
+        CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
+        try (RenderPass pass = encoder.createRenderPass(
+                () -> "jujutsumod:sdf_shapes",
+                target.getColorTextureView(), OptionalInt.empty(),
+                target.getDepthTextureView(), OptionalDouble.empty())) {
+            RenderSystem.bindDefaultUniforms(pass);
+            pass.setUniform("DynamicTransforms", transform());
+            pass.setPipeline(pipeline);
+            if (sceneSampler != null) {
+                pass.bindSampler("SceneSampler", sceneSampler);
+            }
+            pass.setVertexBuffer(0, vertexBuffer);
+            pass.setIndexBuffer(indexBuffer, sequential.type());
+            pass.drawIndexed(0, 0, indexCount, 1);
+        }
+    }
+
+    private GpuBufferSlice transform() {
+        return RenderSystem.getDynamicUniforms().writeTransform(
+                new Matrix4f().setTranslation(0.0f, 0.0f, -11000.0f),
+                new Vector4f(1.0f, 1.0f, 1.0f, 1.0f),
+                new Vector3f(),
+                new Matrix4f(),
+                0.0f);
+    }
+
+    private void ensureSceneCopy(int width, int height) {
+        if (sceneCopy != null && sceneCopyWidth == width && sceneCopyHeight == height && sceneCopyView != null) {
+            return;
+        }
+        if (sceneCopy != null) {
+            sceneCopy.close();
+            sceneCopy = null;
+        }
+        if (sceneCopyView != null) {
+            sceneCopyView.close();
+            sceneCopyView = null;
+        }
+        try {
+            // USAGE_COPY_DST | USAGE_TEXTURE_BINDING: blit destination + shader sampler.
+            sceneCopy = RenderSystem.getDevice().createTexture(
+                    () -> "jujutsumod:sdf_scene_copy",
+                    GpuTexture.USAGE_COPY_DST | GpuTexture.USAGE_TEXTURE_BINDING,
+                    com.mojang.blaze3d.textures.TextureFormat.RGBA8,
+                    width, height, 1, 1);
+            sceneCopyView = RenderSystem.getDevice().createTextureView(sceneCopy);
+            sceneCopyWidth = width;
+            sceneCopyHeight = height;
+        } catch (RuntimeException error) {
+            LOG.error("SDF glass scene copy unavailable; glass falls back to tint only", error);
+            sceneCopy = null;
+            sceneCopyView = null;
         }
     }
 
@@ -138,5 +220,13 @@ public final class SdfRenderer implements AutoCloseable {
     @Override
     public void close() {
         projection.close();
+        if (sceneCopy != null) {
+            sceneCopy.close();
+            sceneCopy = null;
+        }
+        if (sceneCopyView != null) {
+            sceneCopyView.close();
+            sceneCopyView = null;
+        }
     }
 }

@@ -44,10 +44,15 @@ public final class NobaraTargetHud {
 	private static final int GLASS_BOTTOM = 0x5C1B2C42;
 	private static final int BORDER = 0x73FFFFFF;
 	private static final int GLOW = 0x38E48A36;
+	private static final int GLOW_BRIGHT = 0x55BFD8FF;
 	private static final int TEXT_MAIN = 0xFFF2F5FA;
 	private static final int TEXT_SUB = 0xFFB9C4D0;
 	private static final int HEALTH_RING = 0xFFFF5A6E;
 	private static final int ORB_TOP = 0xFFFF6B7E;
+	private static final int ORB_WELL_TOP = 0x59FF5A6E;
+	private static final int ORB_WELL_BOTTOM = 0x33E23D55;
+	private static final int LENS_TOP = 0x4D3A5570;
+	private static final int LENS_BOTTOM = 0x33202C40;
 	private static final int ORB_BOTTOM = 0xFFE23D55;
 	private static final int NAIL_TOP = 0xFFC8D2DC;
 	private static final int NAIL_BOTTOM = 0xFF8FA0AE;
@@ -134,29 +139,41 @@ public final class NobaraTargetHud {
 		addGlassCard(place.grade.x(), place.grade.y(), place.grade.w(), place.grade.h(), alpha, 0f);
 		addGlassCard(place.nails.x(), place.nails.y(), place.nails.w(), place.nails.h(), alpha, 0f);
 
-		// Health orb: one solid glowing disc — the reference's pulsing heart core.
-		float orbSize = place.health.h() * 0.42f;
-		float orbX = place.health.x() + 7f * place.scale;
-		float orbY = place.health.y() + (place.health.h() - orbSize) / 2f;
+		// Health card: glass lens well + solid glowing heart orb inside it (reference top panel).
+		float lensSize = place.health.h() * 0.52f;
+		float lensX = place.health.x() + (place.health.w() - lensSize) / 2f - place.health.w() * 0.22f;
+		float lensY = place.health.y() + (place.health.h() - lensSize) / 2f;
+		addGlassLens(lensX, lensY, lensSize, alpha, HEALTH_RING, ORB_WELL_TOP, ORB_WELL_BOTTOM);
+		float orbSize = lensSize * 0.58f;
 		SDF.add(SdfShape.builder()
-				.rect(orbX, orbY, orbSize, orbSize)
+				.rect(lensX + (lensSize - orbSize) / 2f, lensY + (lensSize - orbSize) / 2f, orbSize, orbSize)
 				.radius(orbSize / 2f)
 				.border(0f, 0)
-				.glow(5f, blendAlpha(HEALTH_RING, alpha))
+				.glow(6f, blendAlpha(HEALTH_RING, alpha))
 				.fill(blendAlpha(ORB_TOP, alpha), blendAlpha(ORB_BOTTOM, alpha))
 				.build());
 
-		// Nail icon strip inside the nails card.
+		// Grade card: round glass lens with the star glyph centered in it.
+		float gradeLens = place.grade.h() * 0.62f;
+		float gradeLensX = place.grade.x() + (place.grade.w() - gradeLens) / 2f - place.grade.w() * 0.22f;
+		float gradeLensY = place.grade.y() + (place.grade.h() - gradeLens) / 2f;
+		addGlassLens(gradeLensX, gradeLensY, gradeLens, alpha, STAR_GOLD, LENS_TOP, LENS_BOTTOM);
+
+		// Nails card: three fanned nails (left-leaning, upright, right-leaning) like the reference.
 		float pop = place.pop;
-		float iconW = 4f * place.scale;
-		float iconH = 14f * place.scale * pop;
-		SDF.add(SdfShape.builder()
-				.rect(place.nails.x() + 10f * place.scale,
-						place.nails.y() + (place.nails.h() - iconH) / 2f, iconW, iconH)
-				.radius(2f * place.scale)
-				.border(0f, 0)
-				.fill(blendAlpha(NAIL_TOP, alpha), blendAlpha(NAIL_BOTTOM, alpha))
-				.build());
+		float nailH = 13f * place.scale * pop;
+		float nailW = 3.4f * place.scale;
+		float cx = place.nails.x() + place.nails.w() * 0.30f;
+		float cy = place.nails.y() + place.nails.h() / 2f;
+		for (int i = -1; i <= 1; i++) {
+			SDF.add(SdfShape.builder()
+					.rect(cx + i * 5.5f * place.scale - nailW / 2f,
+							cy - nailH / 2f + Math.abs(i) * 1.5f * place.scale, nailW, nailH)
+					.radius(nailW / 2f)
+					.border(0f, 0)
+					.fill(blendAlpha(NAIL_TOP, alpha), blendAlpha(NAIL_BOTTOM, alpha))
+					.build());
+		}
 
 		// Name pill above the head; its text is staged for the text pass.
 		Badge badge = place.badge;
@@ -167,34 +184,48 @@ public final class NobaraTargetHud {
 				.rect(badge.x(), badge.y(), badge.w(), BADGE_HEIGHT)
 				.radius(BADGE_HEIGHT / 2f)
 				.border(BORDER_WIDTH, blendAlpha(BORDER, alpha))
-				.glow(4f, blendAlpha(GLOW, alpha * 0.6f))
-				.highlight(0.25f)
+				.glow(5f, blendAlpha(GLOW_BRIGHT, alpha * 0.7f))
+				.highlight(-0.25f)
+				.fill(blendAlpha(BADGE_BG, alpha), blendAlpha(BADGE_BG, alpha))
+				.build());
+		// Small downward pointer under the pill (reference detail).
+		SDF.add(SdfShape.builder()
+				.rect(badge.x() + badge.w() / 2f - 2.5f, badge.y() + BADGE_HEIGHT - 1f, 5f, 5f)
+				.radius(1.2f)
+				.border(0f, 0)
 				.fill(blendAlpha(BADGE_BG, alpha), blendAlpha(BADGE_BG, alpha))
 				.build());
 	}
+
 
 	private static void drawTexts(Placement place) {
 		float alpha = place.alpha;
 		float scale = place.scale;
 
+		// Health: percent + ratio to the right of the orb lens (reference top panel).
 		NobaraTargetLayout.Card health = place.health;
-		float ringSize = health.h() * 0.42f;
-		float pctX = health.x() + 7f * scale + ringSize + 8f * scale;
+		float lensSize = health.h() * 0.52f;
+		float textX = health.x() + (health.w() - lensSize) / 2f - health.w() * 0.22f + lensSize
+				+ 9f * scale;
 		MsdfFonts.draw(MsdfFonts.Face.BOLD, NobaraTargetLayout.hpPercentText(place.ui.shownHp, place.ui.shownMaxHp),
-				pctX, health.y() + health.h() * 0.20f, 11f * scale, blendAlpha(TEXT_MAIN, alpha));
+				textX, health.y() + health.h() * 0.18f, 11f * scale, blendAlpha(TEXT_MAIN, alpha));
 		MsdfFonts.draw(MsdfFonts.Face.UI, NobaraTargetLayout.hpRatioText(place.ui.shownHp, place.ui.shownMaxHp),
-				pctX, health.y() + health.h() * 0.58f, 4.5f * scale, blendAlpha(TEXT_SUB, alpha));
+				textX, health.y() + health.h() * 0.56f, 4.5f * scale, blendAlpha(TEXT_SUB, alpha));
 
+		// Grade: star glyph inside the round lens, rank value right of it.
 		NobaraTargetLayout.Card grade = place.grade;
-		MsdfFonts.drawIcon("D", grade.x() + 8f * scale, grade.y() + grade.h() / 2f - 5.5f * scale,
-				11f * scale, blendAlpha(STAR_GOLD, alpha));
+		float gradeLens = grade.h() * 0.62f;
+		float starX = grade.x() + (grade.w() - gradeLens) / 2f - grade.w() * 0.22f;
+		MsdfFonts.drawIcon("D", starX + gradeLens / 2f - 5.5f * scale,
+				grade.y() + grade.h() / 2f - 6f * scale, 11f * scale, blendAlpha(STAR_GOLD, alpha));
 		MsdfFonts.draw(MsdfFonts.Face.BOLD, NobaraTargetLayout.gradeDisplay(place.rankKey),
-				grade.x() + grade.w() * 0.55f, grade.y() + grade.h() / 2f - 4.5f * scale,
-				9f * scale, blendAlpha(TEXT_MAIN, alpha));
+				grade.x() + grade.w() * 0.62f, grade.y() + grade.h() / 2f - 4.5f * scale,
+				10f * scale, blendAlpha(TEXT_MAIN, alpha));
 
+		// Nails: count centered under the fanned nails.
 		NobaraTargetLayout.Card nails = place.nails;
-		MsdfFonts.draw(MsdfFonts.Face.BOLD, "×" + place.nailCount(),
-				nails.x() + 18f * scale, nails.y() + nails.h() / 2f - 4f * scale * place.pop,
+		MsdfFonts.drawCentered(MsdfFonts.Face.BOLD, "×" + place.nailCount(),
+				nails.x() + nails.w() / 2f, nails.y() + nails.h() * 0.62f,
 				8f * scale * place.pop, blendAlpha(TEXT_MAIN, alpha));
 
 		Badge badge = place.badge;
@@ -321,14 +352,30 @@ public final class NobaraTargetHud {
 		return NobaraEspRanks.rankKey(false, null, living.getMaxHealth());
 	}
 
+	/**
+	 * Glass card: negative highlight routes the shape into {@code SDF_GLASS}, whose fragment
+	 * shader refracts the scene copy behind it. The absolute value keeps the highlight strength.
+	 */
 	private static void addGlassCard(float x, float y, float w, float h, float alpha, float pulse) {
 		SDF.add(SdfShape.builder()
 				.rect(x, y, w, h)
 				.radius(RADIUS)
 				.border(BORDER_WIDTH + pulse, blendAlpha(BORDER, alpha))
-				.glow(GLOW_RADIUS, blendAlpha(GLOW, alpha))
-				.highlight(HIGHLIGHT)
+				.glow(GLOW_RADIUS + 4f, blendAlpha(GLOW_BRIGHT, alpha))
+				.highlight(-HIGHLIGHT)
 				.fill(blendAlpha(GLASS_TOP, alpha), blendAlpha(GLASS_BOTTOM, alpha))
+				.build());
+	}
+
+	/** Interior round "lens well" (orb / star / icon backing) — also glass for refraction. */
+	private static void addGlassLens(float x, float y, float size, float alpha, int glowArgb, int fillTop, int fillBottom) {
+		SDF.add(SdfShape.builder()
+				.rect(x, y, size, size)
+				.radius(size / 2f)
+				.border(BORDER_WIDTH, blendAlpha(BORDER, alpha))
+				.glow(5f, blendAlpha(glowArgb, alpha))
+				.highlight(-0.35f)
+				.fill(blendAlpha(fillTop, alpha), blendAlpha(fillBottom, alpha))
 				.build());
 	}
 
