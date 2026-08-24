@@ -126,9 +126,21 @@ Do not load everything every turn. Prefer the lightest tool that answers the que
 | **mcpvault** | Optional external Obsidian vault. Use it when connected, but never treat an unavailable local vault as a blocker or as newer than the versioned repo Codex. |
 | **codegraph** | Structural “where is / who calls / architecture” questions when `.codegraph/` exists. Build the index with `codegraph init`; query with `codegraph explore "<question or symbol names>"` for the relevant symbols' source plus the call paths between them, or `codegraph node <symbol-or-file>` for one symbol's source and callers. Prefer it over grep for “who calls this”. The index is local-only and never committed — only `.codegraph/.gitignore` is tracked. Re-run `codegraph init` after a refactor, or the graph answers from stale symbols. |
 | **filesystem/search** | Authoritative fallback for current implementation facts. |
+| **GRACE skills** | `.claude/skills/grace-*` — GRACE 4 contract-driven change workflow (init → spec → plan → execute → verify). CLI is a project-local install, see “GRACE (project-local install)” below; never install it globally. |
 | **Repo docs** | `AGENTS.md`, active `SESSION.md`, `docs/README.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`. |
 
 If an optional MCP server, vault, or code graph is unavailable, say so once and continue with the repository. Current code and tests remain authoritative.
+## GRACE (project-local install)
+
+GRACE = Graph-RAG Anchored Code Engineering: a contract-driven change workflow (context artifacts → change spec → plan → assertions/verification → execution gates). Installed **project-locally only**; the owner bans global installs — never run `bun add -g @osovv/grace-cli`.
+
+- Skills: `.claude/skills/grace-*` (15 skills, versioned with the repo). Their contract says “invoke the installed stable `grace` binary” — resolve that through the local shim below, never with `bunx`/`npx`.
+- CLI: `.grace-tools/` holds a project-local `@osovv/grace-cli` install (bun; `node_modules/` is gitignored). Recreate it with `cd .grace-tools && bun install`; update with `bun update @osovv/grace-cli`.
+- Working call paths on this machine (Windows, hybrid msys harness):
+  - bash: `export PATH="$PWD/.grace-tools/bin:$PATH"` then plain `grace …`, or `bash .grace-tools/bin/grace …`
+  - Windows cmd/PowerShell: `.grace-tools\bin\grace.cmd …` (or add `.grace-tools\bin` to PATH)
+  - harness fallback: `bun <repo-root>/.grace-tools/node_modules/@osovv/grace-cli/src/grace.ts …`
+- GRACE 4 state for this project would live in `.grace/` — only create it via the `grace-init` skill with an explicit product decision, same as any other workflow adoption.
 
 ## Documentation Authority
 
