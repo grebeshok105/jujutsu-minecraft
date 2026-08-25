@@ -121,20 +121,35 @@ Do not load everything every turn. Prefer the lightest tool that answers the que
 
 | Tool | When |
 |------|------|
-| **Skills** | Match task → skill and follow its checklist. This repository ships its own under `.claude/skills/`; those are versioned with the architecture they describe and are authoritative for it. User-level skills may also be present but belong to other projects — do not assume a named skill exists without checking. |
+| **Skills** | Match on description, then follow the checklist — no permission needed. Process skills (`brainstorming`, `tdd`, `systematic-debugging`, `verification-before-completion`, `writing-plans`, `dispatching-parallel-agents`, and the rest of the Superpowers / Matt Pocock skill families) apply automatically on description match. This repository ships its own under `.claude/skills/`, including test-adjacent skills: `gametest-authoring`, `vessel-smoke-runner`, `mcp-lane-launch`, plus the `grace-*` family; those are versioned with the architecture and authoritative for it. User-level skills may also be present but belong to other projects — do not assume a named skill exists without checking. |
 | **mcp-runner** | Launch a narrowly relevant public MCP server in the sandbox when it adds real capability; Context7 is useful for current library APIs. Do not install arbitrary servers just for quantity. |
 | **mcpvault** | Optional external Obsidian vault. Use it when connected, but never treat an unavailable local vault as a blocker or as newer than the versioned repo Codex. |
 | **codegraph** | Structural “where is / who calls / architecture” questions when `.codegraph/` exists. Build the index with `codegraph init`; query with `codegraph explore "<question or symbol names>"` for the relevant symbols' source plus the call paths between them, or `codegraph node <symbol-or-file>` for one symbol's source and callers. Prefer it over grep for “who calls this”. The index is local-only and never committed — only `.codegraph/.gitignore` is tracked. Re-run `codegraph init` after a refactor, or the graph answers from stale symbols. |
 | **filesystem/search** | Authoritative fallback for current implementation facts. |
+| **LSP** | Symbol-aware code intelligence (definition, references, rename, diagnostics) — MUST be used for language-server work: check references before touching any exported symbol, run `get_diagnostics` after edits, and never hand-rename across files when LSP can do it. |
+| **MCP dev-lane** | Live in-game testing through the modded client: `mc-world`/`mc-client` in `.omp/mcp.json` (bearer token in env `MC_MCP_TOKEN`). Use `vessel_select` / `ability_invoke` / `state_get` / `fixture_reset` and screenshots to reproduce gameplay claims. Launch via the `mcp-lane-launch` skill. |
+| **context7 / web search** | Current library and API documentation (Fabric, Minecraft, GeckoLib…), fresh versions, breaking changes, issue/PR facts — prefer it over memory. “I remember” is not a source; verify external APIs before coding against them. |
 | **GRACE skills** | `.claude/skills/grace-*` — GRACE 4 contract-driven change workflow (init → spec → plan → execute → verify). CLI is a project-local install, see “GRACE (project-local install)” below; never install it globally. |
 | **Repo docs** | `AGENTS.md`, active `SESSION.md`, `docs/README.md`, and `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`. |
 
-If an optional MCP server, vault, or code graph is unavailable, say so once and continue with the repository. Current code and tests remain authoritative.
+Using any available MCP server, tool, or index is **pre-authorized** — never ask before querying: the MCP dev-lane (`mc-world`/`mc-client`), codegraph, context7, knowledge-rag (project memory base), and mcpvault are all fair game. If one is unavailable, say so once and continue with the repository. Current code and tests remain authoritative.
+
+## Skill Creation (repeated processes become skills)
+
+A process done twice — or once and certain to repeat — becomes a skill, automatically, without asking. This covers smoke runs, launch recipes, migration procedures, debugging recipes, and audit checklists.
+
+- Project-bound skills live in `.claude/skills/<name>/SKILL.md` and are committed with the repo (versioned with the architecture). That is the default home in this project.
+- Personal or runtime recipes not tied to this repo go to managed skills via `manage_skill` (isolated `~/.omp/agent/managed-skills`).
+- Format: frontmatter `name` + `description` (the description is the trigger — write it to match future task wording), a thin body (<500 lines) with when-to-use, steps, and an acceptance check. Authoring workflow: the `skill-authoring` / `writing-skills` skills.
+- Before creating, check `.claude/skills/` and the session skill list for an existing match — extend instead of duplicating.
+- A skill is a living document: update it when a repeat hits a new trap.
+- A new skill counts only after it is proven once on real work — run it and fix what fails.
+
 ## GRACE (project-local install)
 
 GRACE = Graph-RAG Anchored Code Engineering: a contract-driven change workflow (context artifacts → change spec → plan → assertions/verification → execution gates). Installed **project-locally only**; the owner bans global installs — never run `bun add -g @osovv/grace-cli`.
 
-- Skills: `.claude/skills/grace-*` (15 skills, versioned with the repo). Their contract says “invoke the installed stable `grace` binary” — resolve that through the local shim below, never with `bunx`/`npx`.
+- Skills: `.claude/skills/grace-*` (15 skills, versioned with the repo). Their contract says “invoke the installed stable `grace` binary” — resolve that through the local shim below, never with `bunx`/`npx`. In omp the `grace-*` skills are **not** resolvable through `skill://` — read their `SKILL.md` files directly under `.claude/skills/grace-*/`.
 - CLI: `.grace-tools/` holds a project-local `@osovv/grace-cli` install (bun; `node_modules/` is gitignored). Recreate it with `cd .grace-tools && bun install`; update with `bun update @osovv/grace-cli`.
 - Working call paths on this machine (Windows, hybrid msys harness):
   - bash: `export PATH="$PWD/.grace-tools/bin:$PATH"` then plain `grace …`, or `bash .grace-tools/bin/grace …`
@@ -312,6 +327,8 @@ One command owns the word "verified":
 ```
 
 It runs `check` (all source sets compiled, the JUnit suite, and every custom `JavaExec` verification program), the documentation audit `tools/audit_docs.py`, and an audit that every verification `JavaExec` task actually enables assertions. Nothing may be called done, fixed, passing or verified without a green run of exactly this command. While working, run the narrowest task that proves the change; run the gate before any handoff. Never claim a verification you did not run.
+
+**Running tests is pre-authorized — never ask.** Execute any verification task on your own initiative: `./gradlew check`, `qualityGate`, `runGameTest` (server GameTest), `runClientGameTest` (client GameTest lane), `auditReleaseJarIsolation`, `assemble`, focused JavaExec/JUnit tasks, and `auditDocumentation`. The heavy lanes are the default expectation for gameplay-adjacent changes, not something to request permission for; `--rerun-tasks` is fine when a clean proof is needed. The interactive `runClient` smoke is equally at your disposal: run it whenever UI/VFX/gameplay claims need in-game proof, and report what was and was not checked.
 
 **Write new tests as JUnit 5.** `fabric-loader-junit` boots the loader for the test JVM, so a JUnit test can bootstrap Minecraft and exercise registries, codecs and buffers for real — which is the only way to stop asserting behaviour by grepping source text. The existing `JavaExec` programs stay and migrate gradually; [docs/BUILDING_IN_SANDBOX.md](docs/BUILDING_IN_SANDBOX.md) owns the migration order and the reason four state-holding classes go last.
 
