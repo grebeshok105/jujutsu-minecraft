@@ -13,7 +13,6 @@ public final class NobaraTargetAnim {
 
 	public static final float APPEAR_TICKS = 3f;
 	public static final float POP_TICKS = 3f;
-	public static final float PULSE_TICKS = 4f;
 	public static final float SLIDE_PX = 6f;
 
 	/** Card opacity, easing 0 {@literal ->} 1 over {@link #APPEAR_TICKS} ticks (outCubic). */
@@ -36,11 +35,6 @@ public final class NobaraTargetAnim {
 			return 1f;
 		}
 		return 1f + 0.18f * (UiEase.outBack(t) - 1f) * (1f - t);
-	}
-
-	/** Health-card border highlight: 1 at change time, 0 after {@link #PULSE_TICKS} ticks. */
-	public static float pulseAlpha(long sinceChangeTicks, float partialTick) {
-		return 1f - UiEase.clamp01((sinceChangeTicks + partialTick) / PULSE_TICKS);
 	}
 
 	/** Frame-rate independent chaser toward a target health value. */
