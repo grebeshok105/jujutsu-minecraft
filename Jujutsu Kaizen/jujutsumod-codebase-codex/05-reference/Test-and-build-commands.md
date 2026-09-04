@@ -12,7 +12,7 @@ On Windows use `gradlew.bat`. Nothing may be called verified without a green run
 
 What the gate runs:
 
-- `check` — compiles both source sets, runs the Gradle `test` task (JUnit 5), every JavaExec verification program, and the server GameTest lane (`runGameTest` is wired into `check`).
+- `check` — compiles both source sets, runs the Gradle `test` task (JUnit 5), every JavaExec verification program, and the server GameTest lane (`runGameTest` is wired into `check`). GameTest scenarios live in `src/gametest/` (`ServerGameTests` entry, `TodoAimedSwap*` / `TodoStone*` / `NobaraAbilityResult*` suites plus fixtures, and the `client/` canaries incl. `SdfGlassCanaryTest`).
 - `auditDocumentation` — `tools/audit_docs.py`: current-docs set, local links, Codex metrics vs the source tree.
 - `verifyAssertionsEnabled` — fails if any verification JavaExec task would run without `-ea` (VERIFIED — build.gradle:526).
 - `auditReleaseJarIsolation` — the release jar carries no test-mod content (VERIFIED — build.gradle:603).

@@ -202,13 +202,13 @@ geometry belongs to the two-body swaps; the cycle's three edges carry its own.
 
 `CharacterAbility.USE_CONTEXT(5)` keeps its wire id and its client-side pair detector (two right
 clicks within six ticks, the first click deliberately vanilla's), but since the stone rework no
-vessel answers it — every router returns `false`. The slot stays reserved wire format: ids are
+vessel answers it — every router refuses it explicitly (`AbilityResult.UNHANDLED_FAILURE`). The slot stays reserved wire format: ids are
 append-only, and the input grammar survives so a future technique can claim it without touching
 shared code. The entity-mark runtime that used to live here is deleted with the marker system.
 
 ## The stone — `V` and `Shift+V`, the TERTIARY slots
 
-`TodoStoneEntity`, `TodoStoneRuntime`, `TodoTransientState` (the ref), `TodoStoneRef`.
+`TodoStoneEntity`, `TodoStoneRuntime`, `TodoTransientState` (the ref), `TodoStoneRef`. Stone-side planning mirrors the swap shape: `TodoStonePlan` resolves the throw/swap geometry and `SwapCommitTeleport` commits the exchange, same preflight-then-commit discipline as `TodoSwapPlan`.
 
 One small inert stone that exists only in flight. `V` with no live stone throws it from the eye
 position along the look vector: a straight, slow, readable line — `STONE_SPEED_BLOCKS_PER_TICK`,

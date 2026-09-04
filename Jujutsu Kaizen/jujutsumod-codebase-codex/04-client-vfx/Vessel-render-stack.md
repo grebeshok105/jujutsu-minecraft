@@ -93,8 +93,8 @@ world cue is target-fixed; it does not change gameplay timing.
 Skin model IDs follow the vanilla layout: Nobara uses `slim`, while Todo and Megumi use `wide`
 (`classic` in Minecraft skin terminology). Todo's 64x64 skin supplies the full classic four-pixel UV
 coverage for both arm bases; executable coverage prevents a slim-layout texture from being paired with
-wide geometry again. Todo's `1.15` body scale is applied by the common dimensions hook and the client
-third-person render scale. It does not alter reach, damage or speed; the first-person path is unchanged.
+Todo's `1.15` body scale is applied by the common dimensions hook and the client
+third-person render scale. The dimensions hook is the `src/main` mixin `CharacterPlayerDimensionsMixin`, which scales vanilla `getDimensions` from the enum's scalar — the one `src/main` mixin in the project, kept there because dimensions are server-simulated. It does not alter reach, damage or speed; the first-person path is unchanged.
 
 Megumi's per-player `punch_1 -> punch_2 -> kick` bookkeeping lives in
 `MegumiSkinAnimationAdapter`, not in a retired visible renderer. His skin model intentionally returns

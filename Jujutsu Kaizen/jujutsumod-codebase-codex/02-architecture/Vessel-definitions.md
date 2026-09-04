@@ -77,9 +77,7 @@ Two different mechanisms, and conflating them is how "fail-closed" gets promised
 
 Both registry tests derive their expectations from `JujutsuCharacter.values()` or from the source tree, never from a list written beside the switch. A second hand-kept list is the one thing that can disagree with the switch without failing compilation.
 
-## The wire seam
-
-`CharacterAbilityPayload` carries the slot **and the vessel the client believed it was casting as**. The server resolves the real vessel itself and uses the claim only for the comparison — it is a claim to be checked, never an instruction.
+`CharacterAbilityPayload` carries the slot **and the vessel the client believed it was casting as**. The server resolves the real vessel itself and uses the claim only for the comparison — it is a claim to be checked, never an instruction. The client side of that path is the input translator `client/input/JujutsuKeybinds.java`: its one `slot(...)` helper maps (key, sneak) to a slot — R to PRIMARY, B to SECONDARY (buffered for the 6-tick hold window), V to TERTIARY, left click with a technique weapon to ATTACK_CONTEXT, paired right clicks to USE_CONTEXT — with no knowledge of which vessel is selected. A vessel never edits it.
 
 It exists because the selection menu applies a switch locally and closes before the server has confirmed it. Inside that round trip a key press names the vessel the player has already left, and since a slot means a different ability for each vessel, casting it would fire the wrong one. See [Networking](Networking.md).
 

@@ -131,7 +131,7 @@ Source: `client/vfx/VfxHudChannel.java`. Status: VERIFIED API surface.
 | `render` | called only from the director's HUD registration |
 | `clear` | on level change and disconnect |
 
-Timing, seed, and intensity all come from the server cue. The client never damages, never applies marks, and never opens a menu from HUD code. Late packets pass `initialAgeTicks` into the channel starts, which is why most methods have an age-aware overload.
+Particle visuals live in `client/particle/`: eleven factories registered by `JujutsuClientParticles.registerFactories()` (hairpin family + Black-Flash trio), plus the shadow-mote provider registered from Megumi's own client definition. Particle types themselves are shared content in `JujutsuParticles` (see [Registries](../02-architecture/Registries.md)).
 
 There is no cursed-energy resource bar in the current kit.
 
