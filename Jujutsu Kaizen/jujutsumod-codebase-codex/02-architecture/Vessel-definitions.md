@@ -42,7 +42,7 @@ Every vessel runtime already registers its own disconnect, respawn, dimension-ch
 
 ## Client contract
 
-Required: `id()` and `rosterEntry()`. Every vessel has a name and a card.
+Required: `id()`, `rosterEntry()`, `accent()`, `moduleName()`, and `moduleDescription()` — all five are abstract (VERIFIED — CharacterClientDefinition.java has no default for any of them). Every vessel has a name, a card, a colour, and a menu row.
 
 **`rosterEntry()`** — the card: name, role and subtitle keys, a portrait, and the input strip in input order. The record's fields are named for what they hold. They used to be name/technique/grade, into which Nobara passed a full name, a role and a grade while Todo passed a name, a technique and a role, so the field names were wrong for one of them either way. See [GUI character select](../04-client-vfx/GUI-character-select.md).
 
@@ -64,13 +64,15 @@ movement modifiers.
 
 **`registerClientHooks()`** — entity renderers and VFX recipe packs, once at client init, after `VfxDirector.initialize()` because the recipes register into the director it builds. The aggregate `JujutsuVfxRecipes` this replaced was a second hand-kept list of who exists. See [VFX core](../04-client-vfx/VFX-core.md).
 
+**`hudSlots()` / `maxCooldownTicks()`** — the in-world AbilityHud seam (VERIFIED — CharacterClientDefinition.java:29-40). `hudSlots()` lists the slots the HUD strip draws (empty for NONE); `maxCooldownTicks()` is the cooldown-overlay denominator per slot, 0 meaning the slot never carries a shared cooldown. All three vessels implement `hudSlots()`; the strip is hidden while NONE is selected. See [VFX core](../04-client-vfx/VFX-core.md).
+
 **`moduleName` / `moduleDescription` / `moduleStartsEnabled`** — the vessel's row in the Characters tab.
 
 ## What guarantees what
 
 Two different mechanisms, and conflating them is how "fail-closed" gets promised and not delivered.
 
-- **Compile-time** — the exhaustive `switch` with no `default`, in exactly two places: `JujutsuCharacters.definition` and `JujutsuCharacterClients.definition`. A new `JujutsuCharacter` constant stops compilation in both until it is bound. Nothing else on either side switches on a vessel.
+- **Compile-time** — the exhaustive `switch` with no `default`, in exactly two places: `JujutsuCharacters.definition` and `JujutsuCharacterClients.definition`. A new `JujutsuCharacter` constant stops compilation in both until it is bound. Beyond those two switches, a handful of deliberate same-category self-filters remain — see Deliberate residue below (E7) — but no shared dispatch branches on a vessel to decide what to do.
 - **Build-time** — the registry tests. They cover what a switch cannot express: that a definition claims the constant it was bound to, that no client type reached the shared source set, that every vessel runtime exposing `register()` is actually called, and that the sweep used for the attribute clear covers every vessel exactly once.
 
 Both registry tests derive their expectations from `JujutsuCharacter.values()` or from the source tree, never from a list written beside the switch. A second hand-kept list is the one thing that can disagree with the switch without failing compilation.
@@ -91,6 +93,7 @@ Not everything per-vessel is a defect, and these stay on purpose:
 
 - `JujutsuCommands` gates the `hairpin` debug commands on Nobara. A slot is an input position, so `PRIMARY` run as Todo is a teleport; a command named "Hairpin" firing his swap and reporting it as a hairpin is worse than a per-vessel check in a debug command.
 - `TodoBlackFlashRuntime` checks that the damaging player is Todo. That is a vessel's own listener filtering for itself, not shared code branching on a vessel.
+- `TodoSwapMomentumRuntime` checks the same way in its `afterDamage`/`afterKill` guards (TodoSwapMomentumRuntime.java:71-72,100-101) — same own-listener category as the Black Flash filter above.
 - `JujutsuKeybinds` still spells out Nobara's two hammers to decide whether left click counts as `ATTACK_CONTEXT`. It is the last vessel-specific line in the input layer and it leaves when the client definition answers "is this stack my technique weapon".
 
 The stone rework retired a fourth entry: `TodoSwapMarkerItem` refused a thrower who was not Todo through `CharacterSelectionView`. The marker item is deleted, and Todo's stone never re-opens the question — it is an entity thrown by an ability cast the executor already gates on the selection, not an item vanilla can hand to anyone.
@@ -99,4 +102,6 @@ The seam closed E7 and E12 in [KNOWN_ISSUES](../../../docs/KNOWN_ISSUES.md). E10
 
 ## Adding a vessel
 
-See [How to add the next character](../06-maintenance/How-to-add-next-character.md). In short: one enum constant, one server definition, one client definition, one line in each registry, and assets. No shared file changes.
+The executable procedure is the `add-vessel` project skill (`.claude/skills/add-vessel/SKILL.md`) — this note owns the seam rationale, the skill owns the steps. In short: one enum constant, one server definition, one client definition, one line in each registry, and assets. No shared file changes.
+
+Router answers use the `AbilityResult` tri-state (`SUCCESS` / `HANDLED_FAILURE` / `UNHANDLED_FAILURE` — see AbilityResult.java:9-15); the full cast contract lives in `docs/ABILITY_RESULT_CONTRACT.md`.

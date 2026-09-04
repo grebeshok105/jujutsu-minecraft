@@ -73,8 +73,8 @@ switches on a vessel name.
 
 | Vessel | Skin | Live GeckoLib animation source | Adapter/model |
 |---|---|---|---|
-| NOBARA | `textures/entity/character/nobara.png` | `geckolib/animations/projectjjk/npc.animation.json` | `NobaraSkinAnimationModel` |
-| TODO | `textures/entity/character/todo.png` | `geckolib/animations/todo/todo_aoi.animation.json` | `TodoSkinAnimationModel` |
+| NOBARA | `textures/entity/character/nobara.png` | `geckolib/animations/projectjjk/npc.animation.json` | `NobaraSkinAnimationAdapter` |
+| TODO | `textures/entity/character/todo.png` | `geckolib/animations/todo/todo_aoi.animation.json` | `TodoSkinAnimationAdapter` |
 | MEGUMI | `textures/entity/character/megumi.png` | `geckolib/animations/megumi/megumi_fushiguro.animation.json` | `MegumiSkinAnimationAdapter` |
 | NONE | player's own skin | none | `null`, ordinary vanilla pose |
 
@@ -123,8 +123,19 @@ selected vessel's ordinary skin to first-person hands. Vanilla's player layers c
 held items, armor, capes and elytra in third person.
 
 Megumi's Divine Dog renderer remains a dedicated vanilla `WolfRenderer` seam and is unrelated to the
-player skin bridge. Straw Doll, nail and swap-marker renderers remain registered by their vessel
-definitions.
+player skin bridge. Straw Doll and nail renderers remain registered by Nobara's definition; Todo
+registers only `TodoStoneRenderer` — the thrown-marker renderer family was deleted with the marker
+system (VERIFIED — ProjectSanityTest pins the deletion).
+
+## Submerge hiding
+
+Two shared client-side mechanisms, both vessel-agnostic and both currently fed only by Megumi's
+shadow-move cues: `HiddenBodyRenderGate` hides the whole body for a TTL window refreshed by ripple
+cues and fails open on a lost packet (VERIFIED — client/render/HiddenBodyRenderGate.java), while
+`ShadowBodySink` tracks sink/under/emerge progress off the cue's authoritative server start time and
+is read by both the third-person body dive and the first-person camera dive (VERIFIED —
+client/render/ShadowBodySink.java). A lost emerge cue drifts back to visible, never stuck under
+the floor.
 
 ## Verification boundary
 

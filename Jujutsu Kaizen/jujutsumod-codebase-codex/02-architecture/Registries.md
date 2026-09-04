@@ -5,14 +5,14 @@ Status: CURRENT
 | Registry area | Current count | Owner |
 |---|---:|---|
 | Items | 6 | JujutsuItems |
-| Entity types | 1 | JujutsuEntities |
-| Particles | 11 | JujutsuParticles |
-| Sounds | 21 | JujutsuSounds |
-| Effects | 1 | JujutsuEffects |
+| Entity types | 3 | JujutsuEntities |
+| Particles | 12 | JujutsuParticles |
+| Sounds | 24 | JujutsuSounds |
+| Effects | 3 | JujutsuEffects |
 | Data components | 2 | JujutsuDataComponents |
 | Persistent attachments | 1 | JujutsuAttachments |
 
-The single entity type is projectjjk_nail. CharacterPlayerState is stored through the character_state Fabric attachment and copied on death.
+Three entity types are registered (VERIFIED — JujutsuEntities.java:16-18): `projectjjk_nail`, `megumi_divine_dog` (both Divine Dogs ride one type, the pack tells them apart), and `todo_stone`. All three are `noSave()` transients. The twelve particles add `megumi_shadow_mote` to the eleven hairpin/Black-Flash ones; the twenty-four sounds add `aec_boom` and the two mega-nail sounds to the hairpin/projectjjk set; the three effects are `resonant_momentum`, `todo_swap_momentum`, and `megumi_shadow_grip`. CharacterPlayerState is stored through the character_state Fabric attachment and copied on death.
 
 Client mixins (VERIFIED — src/client/resources/jujutsumod.client.mixins.json): CharacterSkinAnimationMixin, CharacterSkinMixin, FirstPersonHandFxMixin, HairpinCameraMixin, HairpinGameRendererMixin, and PlayerRenderContextMixin. All six are `required` and must be smoke-tested on Minecraft updates.
 
