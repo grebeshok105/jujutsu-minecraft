@@ -116,8 +116,6 @@ The shared strip is `AbilityHud` (VERIFIED — client/hud/AbilityHud.java:24-28)
 
 "HUD" in this Codex means in-world combat overlays owned by `VfxDirector`, never the ClickGui menu. Do not merge the concepts: menus are Screens with input focus, HUD draws are one registered element that never takes input.
 
-`VfxDirector` registers exactly one HUD element — `HudElementRegistry.attachElementAfter(VanillaHudElements.MISC_OVERLAYS, jujutsumod:vfx_overlay, VfxDirector::renderHud)` (VERIFIED). Adding a second `HudRenderCallback` for one ability, or a per-effect HUD singleton, is forbidden by this contract; so is a new mixin for a single flash, and so is sending any gameplay packet from HUD code.
-
 ### VfxHudChannel API
 
 Source: `client/vfx/VfxHudChannel.java`. Status: VERIFIED API surface.
