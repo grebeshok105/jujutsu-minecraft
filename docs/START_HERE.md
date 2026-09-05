@@ -33,7 +33,7 @@ To produce the mod jar at `build/libs/jujutsumod-1.0.0.jar`:
 
 | Read | For |
 |---|---|
-| **AGENTS.md** | The rules. Product direction, the vessel seam, technical constraints, the verification policy. This is the contract — read it before touching anything. |
+| **AGENTS.md** | The contract: project essence, autonomy, verification, done. Read before touching anything. |
 | **SESSION.md** | Where the work actually is. What landed recently, what is unverified, what is deliberately left alone. Read it second, every time. |
 | **docs/KNOWN_ISSUES.md** | Accepted tradeoffs, open debt, and the limits of the build-time gate. Read before "fixing" something that was decided on purpose. |
 | **docs/BUILDING_IN_SANDBOX.md** | The full command recipe and the in-game smoke checklist. |

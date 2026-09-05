@@ -110,7 +110,7 @@ This checklist is the owner of the client-smoke scope. The client GameTest lane 
 - Player↔player swap when a second player is available.
 - Empty-hands gate: hold any item and confirm R is refused with the hands-full message and no partial effect.
 - Blocked destination: aim at a target standing where the reciprocal destination is inside solid blocks, and confirm either the small nudge resolves it or the cast is refused atomically with neither party moved.
-- Destination policy sanity: mid-air, in-water, and crawl-space destinations are expected to succeed, and swapping with a target in a boat or minecart is expected to be allowed. This is the deliberate policy documented in AGENTS.md, not a bug to file.
+- Destination policy sanity: mid-air, in-water, and crawl-space destinations are expected to succeed, and swapping with a target in a boat or minecart is expected to be allowed. This is the deliberate policy owned by docs/KNOWN_ISSUES.md, not a bug to file.
 - Cooldown: R is refused for 3 seconds after a success, and is not consumed after a refusal.
 - Out-of-range and no-line-of-sight casts produce the right refusal message.
 
