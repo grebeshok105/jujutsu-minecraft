@@ -7,6 +7,16 @@ description: Use when starting, restarting, or checking the MCP dev lane for the
 
 Start the modded Minecraft client so an agent can drive the game over MCP (vessel select, ability invoke, state reads, screenshots). Proven end-to-end Aug 2026 (PRs #62/#63/#66).
 
+## Home
+
+The lane now runs from the main repository (`D:/WorkFlow/jujutsu-minecraft`, branch lineage with mcpdev sources — `feat/dev-lane-home` and descendants); the old second-clone spike worktree (`D:/WorkFlow/Jujutsu Minecraft/.worktrees/mcp-port-spike`, Aug 2026) is retired. `run/saves/mcp-spike` is already seeded here.
+
+Known dev-lane traps (verified 2026-09-09):
+
+- The singleplayer player UUID changes on every client launch (offline profile) — always query `entity_query @a` first, then use the returned uuid.
+- A new tool class in `src/mcpdev` must be added to `JujutsuModStatusToolProvider.toolClasses()` or it never reaches the live registry.
+- `jujutsu_ticks_wait` without `player_uuid` waits exactly N ticks; with `player_uuid` it exits when the player's PRIMARY cooldown clears (readiness gate), capped at N.
+
 ## Launch
 
 From any worktree that has the mcpdev source set (spike lineage or main after #63):
