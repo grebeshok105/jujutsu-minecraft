@@ -298,7 +298,7 @@ Both allowlist entries went with it. `VesselBoundaryTest#theOneKnownNetworkLeakD
 
 The whole in-world combat HUD the player saw in the 2026-08-21 build was put in a box on request: the bottom-center ability strip (`AbilityHud`, five per-vessel cells, drag) and the Nobara target overlay (`NobaraTargetHud` + `NobaraEspState` 2-tick scan + `NobaraTargetLayout`/`NobaraTargetAnim` geometry/animation + `NobaraEspRanks` classification) no longer exist in `src/` and are not registered — `archive/combat-hud-v1/README.md` is the single source for what moved, which two registration lines were cut (JujutsuModClient `ability_hud`, NobaraClientDefinition `nobara_target_hud`), and how to restore (git mv back, re-add registrations, bump MOC metrics). A verbatim snapshot of the older glass-card look (the jar from 2026-08-21, commit 5d95a0b) sits in `archive/combat-hud-v1/snapshot-glass-5d95a0b-2026-08-21/`.
 
-Untouched: ability input (R / S+R / B / S+B / LMB …), cooldown suppression, VfxDirector + the four remaining contributions (Megumi ×2, Todo ×2), the `hudSlots()`/`maxCooldownTicks()` seam (kept for restore), shared render helpers, assets and the `esp.jujutsumod.rank.*` lang keys. Note for in-game checks: the deployed instance jar still predates the removal until it is rebuilt from `feat/archive-combat-hud`.
+Untouched: ability input (R / S+R / B / S+B / LMB …), cooldown suppression, VfxDirector + the four remaining contributions (Megumi ×2, Todo ×2), the `hudSlots()`/`maxCooldownTicks()` seam (kept for restore), shared render helpers, assets and the `esp.jujutsumod.rank.*` lang keys. The game-instance jar was rebuilt from `feat/archive-combat-hud` and redeployed on 2026-09-09 17:10.
 
 ## Resolved and now in main
 
