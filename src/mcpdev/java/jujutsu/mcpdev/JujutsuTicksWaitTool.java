@@ -184,8 +184,11 @@ public final class JujutsuTicksWaitTool extends BaseTool {
 				}
 				int elapsed = server.getTickCount() - startTick;
 				boolean ticksElapsed = elapsed >= ticks;
-				boolean cooldownClear = player == null
-						|| CharacterAbilityCooldowns.remainingTicks(player, CharacterAbility.PRIMARY) <= 0;
+				// Without a player this is a pure tick wait; the cooldown readiness gate
+				// applies only when a player was given. (A `player == null ||` here would
+				// complete the wait on the very first tick and defeat the pure wait.)
+				boolean cooldownClear = player != null
+						&& CharacterAbilityCooldowns.remainingTicks(player, CharacterAbility.PRIMARY) <= 0;
 				if (ticksElapsed || cooldownClear) {
 					waitedTicks = elapsed;
 					elapsedMs = System.currentTimeMillis() - startMs;
