@@ -2,7 +2,7 @@
 
 ## State
 
-- Branch **`feat/dev-lane-home`**, cut from `feat/archive-combat-hud` @ `7e2b40c`; commit `90979a8` carries the two mcpdev fixes.
+- Branch **`feat/dev-lane-home`**, cut from `feat/archive-combat-hud` @ `7e2b40c`. Tip: `9cc6e77` — commits `90979a8` + `a7d2b9e` (mcpdev fixes), `ed70eed`/`e086aab` (docs/handoff), `9cc6e77` (AGENTS rules).
 - Task: bring the MCP dev lane onto the current code in the main repository, 100% functional. Discovery: the lane code (src/mcpdev + `-PmcpSpike` gradle wiring + `prepareMcpSpikeRun`) was ALREADY in the current lineage — the old second-clone spike (`D:/WorkFlow/Jujutsu Minecraft/.worktrees/mcp-port-spike` @ 19f16a3, Aug 7) was just an old deployment. So the work was: run it here, reconcile, fix what was actually broken.
 - Real bugs found and fixed: `90979a8` (provider trio + pure tick wait) and `a7d2b9e` (review P2: mid-wait player disconnect now fails fast instead of succeeding on the cleared-cooldown gate):
   1. `JujutsuModStatusToolProvider.toolClasses()` never listed the #66 L3 trio — `jujutsu_fixture_list`, `jujutsu_player_set_rotation`, `jujutsu_ticks_wait` existed as files but were absent from the live registry (the old lane had the same gap).
@@ -19,6 +19,8 @@
 - Bonus in-world check of the HUD archive (feat/archive-combat-hud): Nobara selected with hammer held — NO ability strip above the hotbar, NO target panels/name labels on mobs; vision-verified on screenshots.
 - qualityGate green after the fixes (~28 s). Lane shut down cleanly afterwards (never leave it running across sessions).
 - Trap recorded: the singleplayer player UUID changes every client launch (offline profile) — always `entity_query @a` first.
+- Vanilla-HUD scare resolved as a false alarm: hearts/food/XP in 1.21.8 render ABOVE the hotbar (left/right/center), not in the top corners — earlier top-corner crops were the wrong region, and the dev world is in Creative (vanilla hides hearts/food there). Survival proof (gamemode survival + /damage + real desktop screenshot): 10 hearts, 10 drumsticks, XP bar, hotbar all render; chat shows creeper kill. No regression — mod code touches only the crosshair.
+- AGENTS.md rules updated on user request (`9cc6e77`): GitHub-only work (nothing unpushed across sessions), PRs with explicit Russian titles + «Для игрока» opening (release-note scheme) + technical part below, GameTests always run in the gate, autonomy section says never pester the user with repo-answerable questions.
 
 ## Next candidates
 
