@@ -23,6 +23,8 @@ Status: APPROVED DESIGN (implementation in `feat/nobara-esp-and-mega-nail`)
 
 ### ESP
 
+Статус 2026-09-09: решения ниже АРХИВИРОВАНЫ вместе с реализацией — весь ESP/HUD-слой перенесён в `archive/combat-hud-v1` (README: состав, отключённые регистрации, шаги восстановления) и из активной сборки выключен. Запись сохранена как проектная справка для будущего восстановления: owner-поле, агрегатор, рендер, ранг.
+
 - **Owner на клиент**: одно новое synched-поле `DATA_OWNER_UUID` (`OPTIONAL_UUID`) в `ProjectJjkNailEntity`, ставится в `prepare()`. Это расширение существующей синхронизации сущности, не параллельный учёт.
 - **Агрегатор** `NobaraEspState` (client): каждые 2 клиентских тика пересобирает `Map<targetId, TargetEsp>` из `level.entitiesForRendering()`: embedded && owner == local player && цель жива. Гейт: выбранный вессел == NOBARA. Пересборка с нуля ⇒ stale-состояний нет по построению (смерть цели, discard гвоздя, смена вессела, выход — всё сходится к пустой мапе).
 - **Рендер** — ESP переехал в screen-space HUD: `NobaraTargetHud` (регистрация через `VfxDirector.registerHudContribution`, паттерн `AbilityHud`) рисует name badge над целью + стек карточек health/grade/nails справа от цели на существующем SDF/MSDF-стеке; геометрия и анимации — `NobaraTargetLayout`/`NobaraTargetAnim`. Проекция мира на экран изолирована в `ui.WorldToScreen`. Лидер-гвоздь и world-space billboard удалены из `ProjectJjkNailRenderer`; рендерер сохранил только акцентное пульс-кольцо своих гвоздей (0xE48A36). Никаких новых render-хуков и миксинов; world-to-screen изолирован в ui.WorldToScreen (JUnit).

@@ -64,7 +64,7 @@ movement modifiers.
 
 **`registerClientHooks()`** — entity renderers and VFX recipe packs, once at client init, after `VfxDirector.initialize()` because the recipes register into the director it builds. The aggregate `JujutsuVfxRecipes` this replaced was a second hand-kept list of who exists. See [VFX core](../04-client-vfx/VFX-core.md).
 
-**`hudSlots()` / `maxCooldownTicks()`** — the in-world AbilityHud seam (VERIFIED — CharacterClientDefinition.java:29-40). `hudSlots()` lists the slots the HUD strip draws (empty for NONE); `maxCooldownTicks()` is the cooldown-overlay denominator per slot, 0 meaning the slot never carries a shared cooldown. All three vessels implement `hudSlots()`; the strip is hidden while NONE is selected. See [VFX core](../04-client-vfx/VFX-core.md).
+**`hudSlots()` / `maxCooldownTicks()`** — the ability-strip seam of the in-world combat HUD, ARCHIVED 2026-09-09 together with its renderer (`archive/combat-hud-v1`). `hudSlots()` listed the slots the strip drew (empty for NONE); `maxCooldownTicks()` was the cooldown-overlay denominator per slot, 0 meaning the slot never carries a shared cooldown. All three vessels still implement `hudSlots()`; the seam stays on `CharacterClientDefinition` (CharacterClientDefinition.java:29-40) so the strip can be restored without touching vessels.
 
 **`moduleName` / `moduleDescription` / `moduleStartsEnabled`** — the vessel's row in the Characters tab.
 
