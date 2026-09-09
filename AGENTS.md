@@ -91,7 +91,13 @@ DONE only when every relevant item holds: DESIGN SPEC fully implemented; impleme
 
 Git is mandatory. Each self-contained task runs on its own branch/worktree per the current project workflow; changes split into small logical commits (English, conventional-style); each finished task ships as its own PR. PR title and body are in Russian, written for the user, not only developers: what was done, why, key decisions, how it was verified, which tests ran, whether in-game verification happened, known limits.
 
-## 13. Documentation
+## 13. Versioning & GitHub releases
+
+Version grows by step of release size: hotfix / small fix → +0.1, major update → +0.5, super release → +1.0.
+
+Every release ships on GitHub with a status attached: alpha, beta or release. Release notes are written for players, not developers — in Russian (like PRs), beautiful and ad-like, emojis welcome, content-side only: what is new and why it is cool, 0% technical part.
+
+## 14. Documentation
 
 Docs stay current with the code: a change that outdated a document updates it in the same task. Before creating a new markdown file, find the existing place for the information. No sprawl, no temp facts in durable files — this file points at context, it does not store it.
 
