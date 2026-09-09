@@ -4,9 +4,9 @@
 
 - Branch **`feat/dev-lane-home`**, cut from `feat/archive-combat-hud` @ `7e2b40c`; commit `90979a8` carries the two mcpdev fixes.
 - Task: bring the MCP dev lane onto the current code in the main repository, 100% functional. Discovery: the lane code (src/mcpdev + `-PmcpSpike` gradle wiring + `prepareMcpSpikeRun`) was ALREADY in the current lineage — the old second-clone spike (`D:/WorkFlow/Jujutsu Minecraft/.worktrees/mcp-port-spike` @ 19f16a3, Aug 7) was just an old deployment. So the work was: run it here, reconcile, fix what was actually broken.
-- Real bugs found and fixed (`90979a8`):
+- Real bugs found and fixed: `90979a8` (provider trio + pure tick wait) and `a7d2b9e` (review P2: mid-wait player disconnect now fails fast instead of succeeding on the cleared-cooldown gate):
   1. `JujutsuModStatusToolProvider.toolClasses()` never listed the #66 L3 trio — `jujutsu_fixture_list`, `jujutsu_player_set_rotation`, `jujutsu_ticks_wait` existed as files but were absent from the live registry (the old lane had the same gap).
-  2. `JujutsuTicksWaitTool`: `cooldownClear = player == null || …` completed a pure (no-player) tick wait on the first tick — instant return, waited_ticks 0. Gate now applies only with `player_uuid`.
+  2. `JujutsuTicksWaitTool`: `cooldownClear = player == null || …` completed a pure (no-player) tick wait on the first tick — instant return, waited_ticks 0. Gate now applies only with `player_uuid`; the wait revalidates player online status every tick.
 - Local (untracked) setup: `run/saves/mcp-spike` copied from the old spike; `run/config/minecraft_fabric_mcp/config.json` = auth_required:false + log_level:debug.
 - Docs: `.omp/RULES.md` dev-lane section rewritten (home = this repo + traps); `.claude/skills/mcp-lane-launch/SKILL.md` got a Home section; CURRENT_STATE.md record added. SESSION + skill commit pending on this branch.
 
