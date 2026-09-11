@@ -32,7 +32,7 @@ The agent works end to end without micromanagement: understand the goal → rese
 
 Anything answerable through code, docs, git, skills, MCP, LSP, or codegraph is resolved independently. Ordinary technical actions already permitted by this contract need no permission asked. Trivial technical choices never stop execution.
 
-Escalate only real design/product blockers, or forks with fundamentally different behavior or meaning that existing design context cannot resolve.
+Escalate only real design/product blockers, or forks with fundamentally different behavior or meaning that existing design context cannot resolve. Default to action: anything answerable through code, docs, git, skills, MCP, LSP, or codegraph is resolved independently — never bounce routine questions or status checks to the user, never ask for confirmation the repo can answer.
 
 ## 5. Architecture quality
 
@@ -71,7 +71,7 @@ Prefer the lightest tool that answers. All querying is pre-authorized — on fai
 
 ## 10. Verification
 
-Compilation proves nothing. Relevant automated tests must pass, and `qualityGate` must pass fully:
+Compilation proves nothing. Relevant automated tests must pass, and `qualityGate` must pass fully — GameTests included: they always run in the gate, and no PR ships without them green:
 
 ```bash
 ./gradlew qualityGate
@@ -87,9 +87,15 @@ Large or risky changes require **independent review through subagents** — at m
 
 DONE only when every relevant item holds: DESIGN SPEC fully implemented; implementation plan executed; no known open items; tests written or updated; all relevant tests green; `qualityGate` green; mutation checks green where applicable; launch/runtime check green; in-game verification green where applicable; acceptance criteria checked; independent reviews done; findings fixed; docs and project context updated where the change outdated them; final self-review done; git state clean and complete.
 
-## 12. Git workflow
+## 12. Git workflow and GitHub
 
-Git is mandatory. Each self-contained task runs on its own branch/worktree per the current project workflow; changes split into small logical commits (English, conventional-style); each finished task ships as its own PR. PR title and body are in Russian, written for the user, not only developers: what was done, why, key decisions, how it was verified, which tests ran, whether in-game verification happened, known limits.
+Git is mandatory and GitHub is the only home of the work. Each self-contained task runs on its own branch/worktree per the current project workflow; changes split into small logical commits (English, conventional-style); each finished task ships as its own PR. **Nothing task-related may live only on the local machine**: branches, fixes, and docs are pushed to GitHub at task end, so the local repo and GitHub stay synchronous and identical — no unpushed state is ever carried across sessions, no work exists that GitHub does not have.
+
+PRs follow the same scheme as release notes (§13):
+
+- **Title: explicit, readable, in Russian**, naming the task («фикс aim-свапа у Todo», not «fix», «wip», «upd»).
+- **Body opens with «Для игрока»**: what was done and how it works, written for the player — Russian, clear and inviting, emojis welcome, 0% technical part, content-side only.
+- **Below: the full technical part for other agents** — what, why, key decisions, what was verified and how (tests run, GameTests, in-game verification), known limits.
 
 ## 13. Versioning & GitHub releases
 

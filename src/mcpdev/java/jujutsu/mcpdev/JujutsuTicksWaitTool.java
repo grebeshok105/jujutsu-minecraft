@@ -182,10 +182,21 @@ public final class JujutsuTicksWaitTool extends BaseTool {
 							"Server stopped while waiting for ticks"));
 					return;
 				}
+				// Revalidate the player every tick: a mid-wait disconnect must fail fast
+				// (documented contract), not succeed because the disconnect handler
+				// cleared the player's cooldown entries and made the gate read "clear".
+				if (player != null && server.getPlayerList().getPlayer(player.getUUID()) != player) {
+					done.completeExceptionally(new McpException(ErrorCodes.TOOL_HANDLER_ERROR,
+							"Player went offline while waiting for ticks"));
+					return;
+				}
 				int elapsed = server.getTickCount() - startTick;
 				boolean ticksElapsed = elapsed >= ticks;
-				boolean cooldownClear = player == null
-						|| CharacterAbilityCooldowns.remainingTicks(player, CharacterAbility.PRIMARY) <= 0;
+				// Without a player this is a pure tick wait; the cooldown readiness gate
+				// applies only when a player was given. (A `player == null ||` here would
+				// complete the wait on the very first tick and defeat the pure wait.)
+				boolean cooldownClear = player != null
+						&& CharacterAbilityCooldowns.remainingTicks(player, CharacterAbility.PRIMARY) <= 0;
 				if (ticksElapsed || cooldownClear) {
 					waitedTicks = elapsed;
 					elapsedMs = System.currentTimeMillis() - startMs;

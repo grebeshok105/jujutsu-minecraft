@@ -1,3 +1,35 @@
+# Session Handoff — feat/dev-lane-home (2026-09-09)
+
+## State
+
+- Branch **`feat/dev-lane-home`**, cut from `feat/archive-combat-hud` @ `7e2b40c`. Tip: `9cc6e77` — commits `90979a8` + `a7d2b9e` (mcpdev fixes), `ed70eed`/`e086aab` (docs/handoff), `9cc6e77` (AGENTS rules).
+- Task: bring the MCP dev lane onto the current code in the main repository, 100% functional. Discovery: the lane code (src/mcpdev + `-PmcpSpike` gradle wiring + `prepareMcpSpikeRun`) was ALREADY in the current lineage — the old second-clone spike (`D:/WorkFlow/Jujutsu Minecraft/.worktrees/mcp-port-spike` @ 19f16a3, Aug 7) was just an old deployment. So the work was: run it here, reconcile, fix what was actually broken.
+- Real bugs found and fixed: `90979a8` (provider trio + pure tick wait) and `a7d2b9e` (review P2: mid-wait player disconnect now fails fast instead of succeeding on the cleared-cooldown gate):
+  1. `JujutsuModStatusToolProvider.toolClasses()` never listed the #66 L3 trio — `jujutsu_fixture_list`, `jujutsu_player_set_rotation`, `jujutsu_ticks_wait` existed as files but were absent from the live registry (the old lane had the same gap).
+  2. `JujutsuTicksWaitTool`: `cooldownClear = player == null || …` completed a pure (no-player) tick wait on the first tick — instant return, waited_ticks 0. Gate now applies only with `player_uuid`; the wait revalidates player online status every tick.
+- Local (untracked) setup: `run/saves/mcp-spike` copied from the old spike; `run/config/minecraft_fabric_mcp/config.json` = auth_required:false + log_level:debug.
+- Docs: `.omp/RULES.md` dev-lane section rewritten (home = this repo + traps); `.claude/skills/mcp-lane-launch/SKILL.md` got a Home section; CURRENT_STATE.md record added. SESSION + skill commit pending on this branch.
+
+## Verification (all live on current code)
+
+- Lane launched from this repo: `gradlew.bat runClient -PmcpSpike -PmcpUpstreamJar=D:/WorkFlow/mcp-spike-scratch/…/minecraft-fabric-mcp-1.1.0+1.21.8.jar` (+ `JAVA_TOOL_OPTIONS=-Xmx3G`), quickPlay into the copied save, readiness lines on 8765/8766.
+- Registry: 115 tools on 8765 (11 jujutsu), 6 client tools on 8766 — matches intent.
+- Full battery green: mod_status (nobara), vessel_list (4), fixture_list (5), state_get, cooldowns_get/clear, vessel_select round-trip, ability_invoke (Todo aimed clap-swap: routed:true, zombie ↔ player positions exchanged, swap_momentum:true), player_set_rotation (aim), ticks_wait (pure 40 ticks = waited 40 / 2.18 s; uuid-mode exits instantly on clear cooldown), fixture_reset (20-step cleanup manifest), entity_summon/get/kill, command_execute, level time.
+- mc-client: client_status (in_game, Player704), view_capture screenshots (run/lane-shot-*.png).
+- Bonus in-world check of the HUD archive (feat/archive-combat-hud): Nobara selected with hammer held — NO ability strip above the hotbar, NO target panels/name labels on mobs; vision-verified on screenshots.
+- qualityGate green after the fixes (~28 s). Lane shut down cleanly afterwards (never leave it running across sessions).
+- Trap recorded: the singleplayer player UUID changes every client launch (offline profile) — always `entity_query @a` first.
+- Vanilla-HUD scare resolved as a false alarm: hearts/food/XP in 1.21.8 render ABOVE the hotbar (left/right/center), not in the top corners — earlier top-corner crops were the wrong region, and the dev world is in Creative (vanilla hides hearts/food there). Survival proof (gamemode survival + /damage + real desktop screenshot): 10 hearts, 10 drumsticks, XP bar, hotbar all render; chat shows creeper kill. No regression — mod code touches only the crosshair.
+- AGENTS.md rules updated on user request (`9cc6e77`): GitHub-only work (nothing unpushed across sessions), PRs with explicit Russian titles + «Для игрока» opening (release-note scheme) + technical part below, GameTests always run in the gate, autonomy section says never pester the user with repo-answerable questions.
+
+## Next candidates
+
+1. PR for this branch (Russian title/body; base = feat/archive-combat-hud stack).
+2. Optional: wire `MC_MCP_TOKEN` sync if auth_required is ever turned on; the local config keeps auth off for dev.
+3. Old second clone can be archived/removed when no longer needed (kept untouched for now).
+
+---
+
 # Session Handoff — feat/archive-combat-hud (2026-09-09)
 
 ## State

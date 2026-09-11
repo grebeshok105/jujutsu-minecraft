@@ -27,9 +27,12 @@ public final class JujutsuModStatusToolProvider implements ToolProvider {
 				JujutsuAbilityInvokeTool.class,
 				JujutsuCooldownsClearTool.class,
 				JujutsuCooldownsGetTool.class,
+				JujutsuFixtureListTool.class,
 				JujutsuFixtureResetTool.class,
 				JujutsuModStatusTool.class,
+				JujutsuPlayerSetRotationTool.class,
 				JujutsuStateGetTool.class,
+				JujutsuTicksWaitTool.class,
 				JujutsuVesselListTool.class,
 				JujutsuVesselSelectTool.class);
 	}
