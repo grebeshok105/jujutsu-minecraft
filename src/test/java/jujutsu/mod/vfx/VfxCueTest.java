@@ -88,7 +88,9 @@ final class VfxCueTest {
 				"megumi/dogs_summon_body", "megumi/dogs_summon", "megumi/dogs_recall", "megumi/dogs_sic",
 				"megumi/dogs_pounce", "megumi/shadow_trap_open", "megumi/shadow_trap_zone", "megumi/shadow_trap_grip",
 				"megumi/shadow_trap_close", "megumi/shadow_dive", "megumi/shadow_ripple", "megumi/shadow_emerge",
-				"megumi/drop_zone_open", "megumi/drop_zone", "megumi/drop_zone_close"),
+				"megumi/drop_zone_open", "megumi/drop_zone", "megumi/drop_zone_close",
+				"megumi/nue_summon", "megumi/nue_dive", "megumi/nue_shock",
+				"megumi/shikigami_sic", "megumi/shikigami_recall"),
 				paths(MegumiVfxIds.LIVE));
 	}
 

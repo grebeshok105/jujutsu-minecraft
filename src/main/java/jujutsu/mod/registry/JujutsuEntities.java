@@ -8,6 +8,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.megumi.MegumiDivineDogEntity;
+import jujutsu.mod.character.megumi.MegumiNueEntity;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEntity;
 import jujutsu.mod.character.todo.TodoProfile;
 import jujutsu.mod.character.todo.TodoStoneEntity;
@@ -15,6 +16,7 @@ import jujutsu.mod.character.todo.TodoStoneEntity;
 public final class JujutsuEntities {
 	public static final EntityType<ProjectJjkNailEntity> PROJECTJJK_NAIL = createProjectJjkNail("projectjjk_nail");
 	public static final EntityType<MegumiDivineDogEntity> MEGUMI_DIVINE_DOG = createMegumiDivineDog("megumi_divine_dog");
+	public static final EntityType<MegumiNueEntity> MEGUMI_NUE = createMegumiNue("megumi_nue");
 	public static final EntityType<TodoStoneEntity> TODO_STONE = createTodoStone("todo_stone");
 
 	private JujutsuEntities() {}
@@ -22,6 +24,7 @@ public final class JujutsuEntities {
 	public static void register() {
 		register("projectjjk_nail", PROJECTJJK_NAIL);
 		register("megumi_divine_dog", MEGUMI_DIVINE_DOG);
+		register("megumi_nue", MEGUMI_NUE);
 		register("todo_stone", TODO_STONE);
 	}
 
@@ -43,6 +46,17 @@ public final class JujutsuEntities {
 		return EntityType.Builder
 				.<MegumiDivineDogEntity>of(MegumiDivineDogEntity::new, MobCategory.MISC)
 				.sized(0.6f, 0.85f)
+				.clientTrackingRange(96)
+				.updateInterval(2)
+				.noSave()
+				.build(key);
+	}
+
+	private static EntityType<MegumiNueEntity> createMegumiNue(String path) {
+		ResourceKey<EntityType<?>> key = ResourceKey.create(Registries.ENTITY_TYPE, JujutsuMod.id(path));
+		return EntityType.Builder
+				.<MegumiNueEntity>of(MegumiNueEntity::new, MobCategory.MISC)
+				.sized(0.9f, 0.9f)
 				.clientTrackingRange(96)
 				.updateInterval(2)
 				.noSave()

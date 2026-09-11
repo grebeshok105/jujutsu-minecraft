@@ -24,9 +24,9 @@ public final class MegumiAbilityRouter {
 					? AbilityResult.SUCCESS : AbilityResult.UNHANDLED_FAILURE;
 		}
 		return switch (ability) {
-			case PRIMARY -> tryDivineDogs(player, notify)
+			case PRIMARY -> MegumiShikigamiRuntime.tryPrimary(player, notify)
 					? AbilityResult.SUCCESS : AbilityResult.UNHANDLED_FAILURE;
-			case PRIMARY_SNEAK -> trySic(player, notify)
+			case PRIMARY_SNEAK -> MegumiShikigamiRuntime.trySic(player, notify)
 					? AbilityResult.SUCCESS : AbilityResult.UNHANDLED_FAILURE;
 			case SECONDARY -> MegumiShadowTrapRuntime.tryCast(player, notify)
 					? AbilityResult.SUCCESS : AbilityResult.UNHANDLED_FAILURE;
@@ -38,15 +38,9 @@ public final class MegumiAbilityRouter {
 					? AbilityResult.SUCCESS : AbilityResult.UNHANDLED_FAILURE;
 			case TERTIARY -> MegumiShadowDropRuntime.tryCast(player, notify)
 					? AbilityResult.SUCCESS : AbilityResult.UNHANDLED_FAILURE;
-			case ATTACK_CONTEXT, USE_CONTEXT, TERTIARY_SNEAK -> AbilityResult.UNHANDLED_FAILURE;
+			case TERTIARY_SNEAK -> MegumiShikigamiRuntime.tryCycle(player, notify)
+					? AbilityResult.SUCCESS : AbilityResult.UNHANDLED_FAILURE;
+			case ATTACK_CONTEXT, USE_CONTEXT -> AbilityResult.UNHANDLED_FAILURE;
 		};
-	}
-
-	private static boolean tryDivineDogs(ServerPlayer player, boolean notify) {
-		return MegumiSummonRuntime.tryToggle(player, notify);
-	}
-
-	private static boolean trySic(ServerPlayer player, boolean notify) {
-		return MegumiSummonRuntime.trySic(player, notify);
 	}
 }

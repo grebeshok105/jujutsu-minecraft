@@ -140,5 +140,17 @@
   "screen.jujutsumod.character_select.ability.shadow_trap": "Shadow Trap",
   "screen.jujutsumod.character_select.ability.shadow_step": "Shadow Step",
   "screen.jujutsumod.character_select.ability.deep_submerge": "Deep Submerge",
-  "screen.jujutsumod.character_select.ability.shadow_drop": "Shadow Drop"
+  "screen.jujutsumod.character_select.ability.shadow_drop": "Shadow Drop",
+  "screen.jujutsumod.character_select.ability.shikigami_select": "Shikigami Select",
+  "entity.jujutsumod.megumi_nue": "Nue",
+  "jujutsumod.megumi.shikigami.dogs": "Divine Dogs",
+  "jujutsumod.megumi.shikigami.nue": "Nue",
+  "jujutsumod.megumi.shikigami.toad": "Toad",
+  "jujutsumod.megumi.shikigami.rabbits": "Rabbit Escape",
+  "jujutsumod.megumi.shikigami.elephant": "Max Elephant",
+  "message.jujutsumod.megumi.shikigami.selected": "Commanding: %s",
+  "message.jujutsumod.megumi.shikigami.swap": "%s return — %s takes the field",
+  "message.jujutsumod.megumi.shikigami.none": "No shikigami is out.",
+  "message.jujutsumod.megumi.shikigami.no_room": "No safe ground for the shikigami here.",
+  "effect.jujutsumod.megumi_soaked": "Soaked"
 }

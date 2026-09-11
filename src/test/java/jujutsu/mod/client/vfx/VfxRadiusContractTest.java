@@ -55,7 +55,9 @@ final class VfxRadiusContractTest {
 				finiteNone("Megumi shadow kit", Set.of(MegumiVfxIds.SHADOW_TRAP_OPEN, MegumiVfxIds.SHADOW_TRAP_ZONE,
 						MegumiVfxIds.SHADOW_TRAP_GRIP, MegumiVfxIds.SHADOW_TRAP_CLOSE, MegumiVfxIds.SHADOW_DIVE,
 						MegumiVfxIds.SHADOW_RIPPLE, MegumiVfxIds.SHADOW_EMERGE, MegumiVfxIds.DROP_ZONE_OPEN,
-						MegumiVfxIds.DROP_ZONE, MegumiVfxIds.DROP_ZONE_CLOSE)));
+						MegumiVfxIds.DROP_ZONE, MegumiVfxIds.DROP_ZONE_CLOSE)),
+				finiteNone("Megumi shikigami cues", Set.of(MegumiVfxIds.NUE_SUMMON, MegumiVfxIds.NUE_DIVE,
+						MegumiVfxIds.NUE_SHOCK, MegumiVfxIds.SHIKIGAMI_SIC, MegumiVfxIds.SHIKIGAMI_RECALL)));
 
 		Map<ResourceLocation, Set<Double>> deliveries = VfxCompletenessTest.productionDeliveryRadii();
 		Set<ResourceLocation> covered = new HashSet<>();

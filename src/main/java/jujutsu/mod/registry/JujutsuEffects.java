@@ -56,6 +56,15 @@ public final class JujutsuEffects {
 							MegumiProfile.SHADOW_GRIP_JUMP_MULTIPLIER,
 							AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
 
+	/**
+	 * The drench left by Max Elephant's trunk. Pure combo marker with no attribute work of its own:
+	 * Nue's shock reads it for the canon soak-and-zap escalation, and it expires by itself.
+	 */
+	public static final Holder<MobEffect> MEGUMI_SOAKED = Registry.registerForHolder(
+			BuiltInRegistries.MOB_EFFECT,
+			JujutsuMod.id("megumi_soaked"),
+			new MegumiSoakedEffect());
+
 	private JujutsuEffects() {}
 
 	public static void register() {
@@ -77,6 +86,12 @@ public final class JujutsuEffects {
 	private static final class MegumiShadowGripEffect extends MobEffect {
 		private MegumiShadowGripEffect() {
 			super(MobEffectCategory.HARMFUL, 0x102E2B);
+		}
+	}
+
+	private static final class MegumiSoakedEffect extends MobEffect {
+		private MegumiSoakedEffect() {
+			super(MobEffectCategory.HARMFUL, 0x2E6FA8);
 		}
 	}
 }

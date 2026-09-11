@@ -19,6 +19,8 @@ import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.character.megumi.MegumiShadowDropRuntime;
 import jujutsu.mod.character.megumi.MegumiShadowMoveRuntime;
 import jujutsu.mod.character.megumi.MegumiShadowTrapRuntime;
+import jujutsu.mod.character.megumi.MegumiShikigamiRuntime;
+import jujutsu.mod.character.megumi.MegumiShikigamiSelection;
 import jujutsu.mod.character.megumi.MegumiSummonRuntime;
 import jujutsu.mod.character.nobara.projectjjk.EmbeddedNailRegistry;
 import jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime;
@@ -81,6 +83,10 @@ public final class JujutsuFixtureResetTool extends BaseTool {
 					runStep(steps, "todo_drop_everything", () -> TodoStateLifecycle.dropEverything(player));
 					runStep(steps, "megumi_summon_teardown",
 							() -> MegumiSummonRuntime.teardown(server, playerId, MegumiSummonRuntime.TeardownReason.FIXTURE_RESET));
+					runStep(steps, "megumi_shikigami_teardown",
+							() -> MegumiShikigamiRuntime.teardown(server, playerId, MegumiShikigamiRuntime.TeardownReason.FIXTURE_RESET));
+					runStep(steps, "megumi_shikigami_selection_clear",
+							() -> MegumiShikigamiSelection.clear(playerId));
 					runStep(steps, "megumi_shadow_trap_clear", () -> MegumiShadowTrapRuntime.clearOwned(server, playerId));
 					runStep(steps, "megumi_shadow_drop_clear", () -> MegumiShadowDropRuntime.clearOwned(server, playerId));
 					runStep(steps, "megumi_shadow_move_teardown", () -> MegumiShadowMoveRuntime.teardownOwned(server, playerId));

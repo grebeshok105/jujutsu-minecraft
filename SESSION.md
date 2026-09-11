@@ -1,4 +1,22 @@
-# Session Handoff — feat/direwolf-visual (2026-09-11)
+# Session Handoff — feat/megumi-shikigami (2026-09-11)
+
+## State
+
+- Branch **`feat/megumi-shikigami`**, cut from `main` @ `669148e`. Task (user request, «правило 4»): the four remaining Ten Shadows shikigami — **Nue → Toad → Rabbit Escape → Max Elephant**, strictly one at a time, each closed by a green build + in-game verification before the next; assets from the Sorcery Age ten-shadows archive (author permission recorded in the task statement); balance tunable, not final.
+- Pipeline: 4 scouts → plan `.superpowers/rule-of-four/megumi-shikigami/implementation-plan.md` → 3 plan reviews (48 findings adjudicated in `plan-review.md`) → block B5 (foundation + Nue, **main**) → per-shikigami blocks dispatched one at a time → review wave → final report. Recorded deviation: Phase 2 runs sequentially, not as a 4-worker batch (the user requires sequential acceptance).
+- **B5 landed** (uncommitted at the time of writing): shared layer `MegumiShikigami`/`Selection`/`Pack`/`PresentationPolicy`/`Profile`/`FriendlyFire`/`SwapPolicy`/`SpawnPlacement` + `MegumiShikigamiEntity` base + `MegumiShikigamiRuntime` (`tryPrimary` summon/recall/swap, `trySic`, `tryCycle`, `teardown`, `packView`); Nue server (`MegumiNuePolicy/Entity/Brain` — flying dive, soak escalation) and client (`MegumiShikigamiRenderState` with its own GeckoLib bag, `MegumiShikigamiAnimationPolicy`, `MegumiNueGeoAnimatable/Model/Renderer`); VFX ids + recipes; both lang files; `MEGUMI_SOAKED` effect; mcpdev `megumi.shikigami` state block + two new `fixture_reset` steps; unit tests for every new pure type; GameTests S1–S6.
+- Only dog-file change: `TeardownReason.SWAPPED` (0 cooldown) + the recall-transition predicate widened to `RECALL || SWAPPED` in `MegumiSummonRuntime` (the frozen zero-cost swap contract).
+- In-game pass (MCP dev lane, three sessions): summon/hover/visual ✓, dive damage 4.92 (raw 5.0) ✓, soaked escalation 7.38 (×1.5) + SLOWNESS 60 ✓, SIC cooldown 30 ✓, recall 240 ✓, anchor death 400 ✓, free swap from dogs (`PRIMARY` 0) ✓, `fixture_reset` new steps ✓, dog regression (summon + sic damage) ✓. Evidence table in `.superpowers/rule-of-four/megumi-shikigami/progress.md`.
+- Bug found only in game and fixed: the dive's impact test used feet-to-feet distance while the dive steers at the target's eyes — the flyer hovered one body-height above the target and never landed a hit; now measured as target hitbox → body position.
+
+## Next
+
+1. `qualityGate` (GameTests included) → commit B5 → dispatch the Toad block (worker), then its in-game pass; then Rabbit Escape, Max Elephant, integration/docs.
+2. Wave: 4 reviewers + QA, adjudication + fable-judge, deploy jar to `D:/Games/instances/Jujutsu/mods/`, push + PR (Russian title + «Для игрока»), final mechanics/balance report for the user.
+
+---
+
+
 
 ## State
 

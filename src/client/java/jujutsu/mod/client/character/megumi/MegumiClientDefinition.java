@@ -8,6 +8,7 @@ import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.character.megumi.MegumiProfile;
+import jujutsu.mod.character.megumi.MegumiShikigamiProfile;
 import jujutsu.mod.client.character.CharacterClientDefinition;
 import jujutsu.mod.client.character.CharacterRosterEntry;
 import jujutsu.mod.client.character.HudSlot;
@@ -17,6 +18,7 @@ import jujutsu.mod.client.character.megumi.particle.MegumiShadowMoteParticle;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.render.CharacterSkinAnimation;
 import jujutsu.mod.client.render.megumi.MegumiDivineDogRenderer;
+import jujutsu.mod.client.render.megumi.MegumiNueRenderer;
 import jujutsu.mod.client.render.megumi.MegumiSkinAnimationAdapter;
 import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.registry.JujutsuParticles;
@@ -43,6 +45,8 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 								"screen.jujutsumod.character_select.ability.divine_dogs", "R"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.PIN,
 								"screen.jujutsumod.character_select.ability.sic", "S+R"),
+						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BUST,
+								"screen.jujutsumod.character_select.ability.shikigami_select", "S+V"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.LINK,
 								"screen.jujutsumod.character_select.ability.shadow_trap", "B"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOLT,
@@ -66,9 +70,9 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 		return List.of(
 				hudSlot(strip, 0, CharacterAbility.PRIMARY),
 				hudSlot(strip, 1, CharacterAbility.PRIMARY_SNEAK),
-				hudSlot(strip, 2, CharacterAbility.SECONDARY),
-				hudSlot(strip, 3, CharacterAbility.SECONDARY_SNEAK),
-				hudSlot(strip, 5, CharacterAbility.TERTIARY));
+				hudSlot(strip, 3, CharacterAbility.SECONDARY),
+				hudSlot(strip, 4, CharacterAbility.SECONDARY_SNEAK),
+				hudSlot(strip, 6, CharacterAbility.TERTIARY));
 	}
 
 	/**
@@ -81,8 +85,9 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 	@Override
 	public int maxCooldownTicks(CharacterAbility ability) {
 		return switch (ability) {
-			case PRIMARY -> Math.max(MegumiProfile.RECALL_COOLDOWN_TICKS, MegumiProfile.PACK_DEATH_COOLDOWN_TICKS);
-			case PRIMARY_SNEAK -> MegumiProfile.SIC_COOLDOWN_TICKS;
+			case PRIMARY -> Math.max(MegumiShikigamiProfile.maxRecallCooldownTicks(),
+					MegumiShikigamiProfile.maxDeathCooldownTicks());
+			case PRIMARY_SNEAK -> MegumiShikigamiProfile.SIC_COOLDOWN_TICKS;
 			case SECONDARY -> MegumiProfile.SHADOW_TRAP_COOLDOWN_TICKS;
 			case SECONDARY_SNEAK -> Math.max(MegumiProfile.SHADOW_STEP_COOLDOWN_TICKS, MegumiProfile.SUBMERGE_COOLDOWN_TICKS);
 			case TERTIARY -> MegumiProfile.DROP_COOLDOWN_TICKS;
@@ -126,6 +131,7 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 	@Override
 	public void registerClientHooks() {
 		EntityRendererRegistry.register(JujutsuEntities.MEGUMI_DIVINE_DOG, MegumiDivineDogRenderer::new);
+		EntityRendererRegistry.register(JujutsuEntities.MEGUMI_NUE, MegumiNueRenderer::new);
 		ParticleFactoryRegistry.getInstance().register(JujutsuParticles.MEGUMI_SHADOW_MOTE, MegumiShadowMoteParticle.Provider::new);
 		MegumiVfxRecipes.register();
 		VfxDirector.registerHudContribution(JujutsuMod.id("megumi_divine_dogs_cooldown"), MegumiCooldownHud::render);
