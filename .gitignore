@@ -63,4 +63,12 @@ _merge_stash/
 Jujutsu Kaizen/grok-projectjjk-codex/
 Jujutsu Kaizen/Grok ProjectJJK Codex.md
 lightrag.log
+# grace (project-local CLI install)
+.grace-tools/node_modules/
+!.grace-tools/
+!.grace-tools/bin/
+!.grace-tools/bin/*
+!.grace-tools/
+!.grace-tools/bin/
+!.grace-tools/bin/*
 

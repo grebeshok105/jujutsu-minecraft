@@ -172,6 +172,8 @@ One more limit was found on 2026-07-28 and is tracked separately as E15: a rule 
 
 Widened 2026-08-05 by the target ESP: `ProjectJjkNailRenderer` now also references `NobaraEspState` and `NobaraEspRanks` (both correctly under `client.character.nobara`), so the `SourceBoundaryTripwireTest#TRACKED_DEBT` entry for that file grew from three named references to five. The class count above is unchanged — the ESP classes live in the right package; the renderer they feed is still the one mis-homed file. Moving the renderer into `client.render.nobara` shrinks both this entry and the tripwire map together.
 
+Narrowed 2026-08-21 by the target-HUD rework: the world-space billboard and leader nail were deleted from `ProjectJjkNailRenderer` (the ESP overlay moved to the screen-space HUD contribution `NobaraTargetHud`, projected with `ui.WorldToScreen`), so the `TRACKED_DEBT` entry shrank from five named references to three — `NobaraEspRanks` and `NobaraEspState` no longer appear in the file. The class remains mis-homed until it moves into `client.render.nobara`.
+
 ### E15 — Test-suite defects and cleanup are tracked in PR #17
 
 Opened 2026-07-28. Documentation only so far; nothing has been fixed yet.

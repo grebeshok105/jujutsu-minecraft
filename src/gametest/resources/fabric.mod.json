@@ -15,7 +15,8 @@
 		],
 		"fabric-client-gametest": [
 			"jujutsu.mod.gametest.client.ClientLoadCanaryTest",
-			"jujutsu.mod.gametest.client.ClientObservationCanaryTest"
+			"jujutsu.mod.gametest.client.ClientObservationCanaryTest",
+			"jujutsu.mod.gametest.client.SdfGlassCanaryTest"
 		]
 	},
 	"depends": {

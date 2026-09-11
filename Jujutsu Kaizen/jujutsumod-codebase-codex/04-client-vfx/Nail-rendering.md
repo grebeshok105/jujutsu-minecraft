@@ -8,7 +8,7 @@ Aura ownership is state-dependent and deliberate: non-embedded nails (prepared a
 
 Embedded nails are render-attached: the renderer resolves the host entity, computes the anchor from the synchronized local offset rotated by body yaw, and translates by the difference from the entity's own position. That is what keeps a nail from visibly chasing a sprinting target one tick behind.
 
-Target ESP rides the same renderer: `NobaraEspState` (ClientTick every 2 ticks, pure `aggregate()`) marks per-target leader nails, and the renderer draws the accent-colour pulse on locally-owned embedded nails plus one billboard badge (target name + `NobaraEspRanks` rank + nail pips) above the leader nail only while the local player is Nobara. The tracked shared-code references from `ProjectJjkNailRenderer` to `NobaraEspState`/`NobaraEspRanks` are pinned by `SourceBoundaryTripwireTest` (E14).
+Target ESP rode the renderer until 2026-08-21; the billboard and leader nail were removed. The overlay is a screen-space HUD now: `NobaraTargetHud` (VfxDirector HUD contribution) draws a name badge plus health/grade/nails cards, projected from world space by `ui.WorldToScreen`. `ProjectJjkNailRenderer` keeps only the accent-colour pulse on locally-owned embedded nails (`ownedByLocal`); its tracked shared-code references are pinned by `SourceBoundaryTripwireTest` (E14) — three entries: `ProjectJjkNailEmbedding`, `ProjectJjkNailEntity`, `<package nobara>`.
 
 The physical metal model must remain readable without broad aura. Transient particles and camera effects belong to VFX Core, not to a second persistent-effect manager.
 

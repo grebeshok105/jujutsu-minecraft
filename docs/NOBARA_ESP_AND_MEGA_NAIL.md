@@ -25,10 +25,7 @@ Status: APPROVED DESIGN (implementation in `feat/nobara-esp-and-mega-nail`)
 
 - **Owner на клиент**: одно новое synched-поле `DATA_OWNER_UUID` (`OPTIONAL_UUID`) в `ProjectJjkNailEntity`, ставится в `prepare()`. Это расширение существующей синхронизации сущности, не параллельный учёт.
 - **Агрегатор** `NobaraEspState` (client): каждые 2 клиентских тика пересобирает `Map<targetId, TargetEsp>` из `level.entitiesForRendering()`: embedded && owner == local player && цель жива. Гейт: выбранный вессел == NOBARA. Пересборка с нуля ⇒ stale-состояний нет по построению (смерть цели, discard гвоздя, смена вессела, выход — всё сходится к пустой мапе).
-- **Рендер** — по Codex-правилу «persistent visuals живут на entity/state renderer»: `ProjectJjkNailRenderer` получает два дополнения:
-  - пульс-кольцо гвоздя владельца подкрашивается акцентом Нобары (0xE48A36) — «положение гвоздей на теле» уже рендерится, остаётся пометить «свои»;
-  - **лидер-гвоздь** цели (min entity id из агрегатора) рисует один сдержанный биллборд над целью: строка HP (`♥ 12.5/20`), строка ранга, строка `⚲ ×N` + депт-пипсы (`•/••/•••` на гвоздь). Тёмный полупрозрачный фон, без свечения, масштаб nameplate.
-  - Никаких новых render-хуков, миксинов и HUD-каллбеков; ноль world-to-screen математики.
+- **Рендер** — ESP переехал в screen-space HUD: `NobaraTargetHud` (регистрация через `VfxDirector.registerHudContribution`, паттерн `AbilityHud`) рисует name badge над целью + стек карточек health/grade/nails справа от цели на существующем SDF/MSDF-стеке; геометрия и анимации — `NobaraTargetLayout`/`NobaraTargetAnim`. Проекция мира на экран изолирована в `ui.WorldToScreen`. Лидер-гвоздь и world-space billboard удалены из `ProjectJjkNailRenderer`; рендерер сохранил только акцентное пульс-кольцо своих гвоздей (0xE48A36). Никаких новых render-хуков и миксинов; world-to-screen изолирован в ui.WorldToScreen (JUnit).
 - **Ранг**: системы нет ⇒ детерминированная клиентская классификация `NobaraEspRanks` (продуктовое допущение, вынесено в отчёт): игрок → grade его вессела из roster-строки; моб → по maxHealth: ≥100 Special Grade, ≥40 Grade 1, ≥20 Grade 2, иначе Grade 3. Пороги — именованные константы, локализуемые ключи.
 
 ### R feel (механика заморожена)
@@ -71,4 +68,4 @@ Status: APPROVED DESIGN (implementation in `feat/nobara-esp-and-mega-nail`)
 
 ## Не делаем
 
-Кулдаун/ресурс-бар, новые зависимости, изменение других весселов, синхронизацию EmbeddedNailRegistry на клиент (ESP читает уже синхронизированные nail entities), world-to-screen HUD-проекцию.
+Кулдаун/ресурс-бар, новые зависимости, изменение других весселов, синхронизацию EmbeddedNailRegistry на клиент (ESP читает уже синхронизированные nail entities).

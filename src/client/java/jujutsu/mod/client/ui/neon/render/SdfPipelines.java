@@ -61,5 +61,24 @@ public final class SdfPipelines {
                     .withVertexFormat(SDF_SHAPE_FORMAT, VertexFormat.Mode.QUADS)
                     .build());
 
+    /**
+     * Glass variant of {@link #SDF_SHAPE}: identical vertex format, but the fragment shader
+     * samples {@code SceneSampler} — a copy of the main target taken before the pass — to
+     * refract the world behind glass shapes (liquid-glass look). Glass mode is per-shape via
+     * a negative highlight in ShapeParams.w; non-glass shapes take the legacy branch.
+     */
+    public static final RenderPipeline SDF_GLASS = RenderPipelines.register(
+            RenderPipeline.builder(RenderPipelines.MATRICES_PROJECTION_SNIPPET)
+                    .withLocation(ResourceLocation.fromNamespaceAndPath("jujutsumod", "pipeline/sdf_glass"))
+                    .withVertexShader(ResourceLocation.fromNamespaceAndPath("jujutsumod", "core/sdf_glass"))
+                    .withFragmentShader(ResourceLocation.fromNamespaceAndPath("jujutsumod", "core/sdf_glass"))
+                    .withSampler("SceneSampler")
+                    .withBlend(BlendFunction.TRANSLUCENT)
+                    .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+                    .withDepthWrite(false)
+                    .withCull(false)
+                    .withVertexFormat(SDF_SHAPE_FORMAT, VertexFormat.Mode.QUADS)
+                    .build());
+
     private SdfPipelines() {}
 }

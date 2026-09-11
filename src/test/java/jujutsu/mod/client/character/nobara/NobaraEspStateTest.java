@@ -11,8 +11,7 @@ import org.junit.jupiter.api.Test;
  * Aggregation contract for {@link NobaraEspState#aggregate}.
  *
  * <p>The function filters a snapshot of candidate nail views into per-target groups. Each group
- * carries the nail count, embed depths sorted descending, and the smallest nail entity id as the
- * visual leader (the one that renders the billboard).
+ * carries the nail count and its embed depths sorted descending.
  */
 final class NobaraEspStateTest {
 
@@ -63,16 +62,6 @@ final class NobaraEspStateTest {
 	}
 
 	@Test
-	void leaderIsMinimumEntityId() {
-		Map<Integer, NobaraEspState.TargetEsp> result = NobaraEspState.aggregate(List.of(
-				nail(83, 300, 1, true, true, true),
-				nail(17, 300, 1, true, true, true),
-				nail(52, 300, 1, true, true, true)));
-		assertEquals(17, result.get(300).leaderNailEntityId(),
-				"the billboard owner must be stable across refreshes: the minimum nail entity id");
-	}
-
-	@Test
 	void depthsSortedDescending() {
 		Map<Integer, NobaraEspState.TargetEsp> result = NobaraEspState.aggregate(List.of(
 				nail(10, 300, 1, true, true, true),
@@ -97,7 +86,6 @@ final class NobaraEspStateTest {
 		assertEquals(1, result.size(), "filtered nails must not leak into any group");
 		NobaraEspState.TargetEsp target = result.get(300);
 		assertEquals(1, target.nailCount());
-		assertEquals(83, target.leaderNailEntityId());
 		assertEquals(List.of(2), target.nailDepths());
 	}
 }

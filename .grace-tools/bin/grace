@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Local GRACE CLI shim for this repository (project-local install).
+# Never install grace globally (`bun add -g`); the skill contract's `grace`
+# command resolves through this shim when .grace-tools/bin is on PATH.
+set -euo pipefail
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if command -v cygpath >/dev/null 2>&1; then
+  grace_bin="$(cygpath -w "$script_dir/../node_modules/.bin/grace.exe")"
+else
+  grace_bin="$script_dir/../node_modules/.bin/grace.exe"
+fi
+exec "$grace_bin" "$@"

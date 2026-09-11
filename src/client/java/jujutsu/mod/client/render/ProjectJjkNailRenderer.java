@@ -3,7 +3,6 @@ package jujutsu.mod.client.render;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
@@ -17,22 +16,10 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
-import net.minecraft.client.gui.Font;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEmbedding;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEntity;
-import jujutsu.mod.client.character.ClientCharacterSelectionManager;
-import jujutsu.mod.client.character.JujutsuCharacterClients;
-import jujutsu.mod.client.character.nobara.NobaraEspRanks;
-import jujutsu.mod.client.character.nobara.NobaraEspState;
 import jujutsu.mod.client.vfx.VfxPalette;
 import jujutsu.mod.registry.JujutsuItems;
 
@@ -78,11 +65,9 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		state.embeddedAnchorOffset = Vec3.ZERO;
 		state.hasEmbeddedAnchor = false;
 		state.ownedByLocal = false;
-		state.isEspLeader = false;
 		state.trapNail = entity.isTrapNail();
 		state.isMega = entity.isMegaNail();
 		state.megaRenderScale = entity.megaRenderScale();
-		state.espTarget = null;
 		if (state.embedded) {
 			Entity host = entity.embeddedTargetEntityId() < 0 ? null : entity.level().getEntity(entity.embeddedTargetEntityId());
 			if (host instanceof LivingEntity living && living.isAlive()) {
@@ -93,51 +78,11 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 				state.hasEmbeddedAnchor = true;
 				state.direction = safeDirection(ProjectJjkNailEmbedding.worldForward(entity.embeddedLocalForward(), bodyYaw));
 
-				// ESP snapshot check for Nobara
-				int targetId = entity.embeddedTargetEntityId();
-				Map<Integer, NobaraEspState.TargetEsp> snapshot = NobaraEspState.snapshot();
-				NobaraEspState.TargetEsp esp = snapshot.get(targetId);
+				// Accent the mark when the nail belongs to the local client player.
 				var localPlayer = Minecraft.getInstance().player;
-				boolean ownNail = localPlayer != null
-						&& entity.clientOwnerUuid().map(localPlayer.getUUID()::equals).orElse(false);
-				if (esp != null && ownNail) {
+				if (localPlayer != null
+						&& entity.clientOwnerUuid().map(localPlayer.getUUID()::equals).orElse(false)) {
 					state.ownedByLocal = true;
-					state.isEspLeader = esp.leaderNailEntityId() == entity.getId();
-					if (state.isEspLeader) {
-						// Badge sits to the target's right on the viewer's screen, chest height —
-						// smoke rejected the over-the-head placement. Screen-right is the horizontal
-						// perpendicular of camera->target.
-						Vec3 cameraPos = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
-						Vec3 toTarget = hostPosition.subtract(cameraPos);
-						Vec3 screenRight = new Vec3(-toTarget.z, 0.0, toTarget.x);
-						screenRight = screenRight.lengthSqr() < 1.0E-6 ? EAST : screenRight.normalize();
-						Vec3 sideAnchor = hostPosition
-								.add(0.0, living.getBbHeight() * 0.62, 0.0)
-								.add(screenRight.scale(living.getBbWidth() * 0.5 + 1.05));
-						Vec3 billboardOffset = sideAnchor.subtract(state.x, state.y, state.z);
-
-						String rankKey;
-						if (living instanceof Player targetPlayer) {
-							UUID targetUuid = targetPlayer.getUUID();
-							JujutsuCharacter targetVessel = ClientCharacterSelectionManager.characterOrNone(targetUuid);
-							String vesselGradeKey = targetVessel != JujutsuCharacter.NONE
-									? JujutsuCharacterClients.definition(targetVessel).rosterEntry().subtitleKey()
-									: null;
-							rankKey = NobaraEspRanks.rankKey(true, vesselGradeKey, living.getMaxHealth());
-						} else {
-							rankKey = NobaraEspRanks.rankKey(false, null, living.getMaxHealth());
-						}
-
-						state.espTarget = new State.EspTargetData(
-								living.getDisplayName(),
-								living.getHealth(),
-								living.getMaxHealth(),
-								rankKey,
-								esp.nailCount(),
-								esp.nailDepths(),
-								billboardOffset
-						);
-					}
 				}
 			}
 		}
@@ -207,9 +152,6 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		);
 		matrices.popPose();
 		matrices.popPose();
-		if (state.isEspLeader && state.espTarget != null) {
-			renderEspBillboard(state.espTarget, matrices, consumers, packedLight);
-		}
 		super.render(state, matrices, consumers, packedLight);
 	}
 
@@ -353,48 +295,6 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 				CURSED_BLUE_DARK_R, CURSED_BLUE_DARK_G, CURSED_BLUE_DARK_B, Math.round(70.0f * pillarPulse));
 	}
 
-	private static void renderEspBillboard(State.EspTargetData esp, PoseStack matrices, MultiBufferSource consumers, int packedLight) {
-		matrices.pushPose();
-		matrices.translate(esp.billboardOffset().x, esp.billboardOffset().y, esp.billboardOffset().z);
-		matrices.mulPose(Minecraft.getInstance().getEntityRenderDispatcher().cameraOrientation());
-		// Vanilla nameplate matrix (EntityRenderer.renderNameTag): positive X scale.
-		// A negative X mirrors the glyph winding and the whole batch gets culled.
-		matrices.scale(0.025f, -0.025f, 0.025f);
-
-		Font font = Minecraft.getInstance().font;
-		float lineH = font.lineHeight + 2;
-
-		String hpText = String.format(Locale.ROOT, " %.1f/%.1f", esp.hp(), esp.maxHp());
-		Component line1 = Component.literal(esp.name().getString() + " \u2665" + hpText);
-		Component line2 = Component.translatable(esp.rankKey());
-
-		StringBuilder pips = new StringBuilder();
-		for (int d : esp.nailDepths()) {
-			if (!pips.isEmpty()) pips.append(' ');
-			pips.append("\u2022".repeat(d));
-		}
-		Component line3 = Component.literal("\u00D7" + esp.nailCount() + " " + pips);
-
-		org.joml.Matrix4f m = matrices.last().pose();
-		// Two passes per line, exactly like vanilla nameplates: a SEE_THROUGH ghost pass
-		// carries the background (and stays readable behind walls — this is an ESP),
-		// then a NORMAL pass draws the solid glyphs with emissive light.
-		int background = 0x66101416;
-		int emissive = LightTexture.lightCoordsWithEmission(packedLight, 2);
-		drawBadgeLine(font, line1, -lineH * 2.0f, 0xFFE5F1EF, background, m, consumers, packedLight, emissive);
-		drawBadgeLine(font, line2, -lineH, 0xFFB8C4C2, background, m, consumers, packedLight, emissive);
-		drawBadgeLine(font, line3, 0.0f, 0xFFE48A36, background, m, consumers, packedLight, emissive);
-
-		matrices.popPose();
-	}
-
-	private static void drawBadgeLine(Font font, Component line, float y, int color, int background,
-			org.joml.Matrix4f m, MultiBufferSource consumers, int packedLight, int emissive) {
-		float x = -font.width(line) / 2.0f;
-		font.drawInBatch(line, x, y, 0x20FFFFFF, false, m, consumers, Font.DisplayMode.SEE_THROUGH, background, packedLight);
-		font.drawInBatch(line, x, y, color, false, m, consumers, Font.DisplayMode.NORMAL, 0, emissive);
-	}
-
 	private static Vec3 axisSide(Vec3 direction, float width) {
 		Vec3 line = safeDirection(direction);
 		Vec3 side = line.cross(UP);
@@ -437,20 +337,8 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		private boolean hasEmbeddedAnchor;
 		private Vec3 embeddedAnchorOffset = Vec3.ZERO;
 		private boolean ownedByLocal;
-		private boolean isEspLeader;
 		private boolean trapNail;
 		private boolean isMega;
 		private float megaRenderScale;
-		private EspTargetData espTarget;
-
-		public record EspTargetData(
-				Component name,
-				float hp,
-				float maxHp,
-				String rankKey,
-				int nailCount,
-				List<Integer> nailDepths,
-				Vec3 billboardOffset
-		) {}
 	}
 }
