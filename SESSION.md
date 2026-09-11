@@ -1,3 +1,21 @@
+# Session Handoff — feat/direwolf-visual (2026-09-11)
+
+## State
+
+- Branch **`feat/direwolf-visual`**, cut from `feat/dev-lane-home` (@ `14d12c7`; the dev-lane PR is #71 into `feat/archive-combat-hud`).
+- Task (user request, run as the «правило 4» pipeline): replace the Divine Dogs' visual with the Dire Wolf from Mythic Mounts — white and black variants, animations and sounds — keeping the existing dog system (AI, summon, recall, sic, pounce) untouched. Assets imported with the author's personal permission given in the task statement.
+- Pipeline: 4 scouts → plan-spec `.superpowers/rule-of-four/direwolf-visual/plan-spec.md` → 4 workers (assets/audio/render/animation) + main on the integration block → this PR. Reviewer phase is user-gated and not yet run.
+- What landed:
+  - Assets: `geckolib/models/megumi_divine_dog.geo.json` + `geckolib/animations/megumi_divine_dog.animation.json` (upstream Dire Wolf, all 22 clips re-keyed to `animation.megumi_divine_dog.*`), `textures/entity/megumi_divine_dog_white.png` (upstream mount3) and `_black.png` (mount2), 5 ogg samples under `sounds/megumi/`, byte-identical to the archive.
+  - Client: `MegumiDivineDogRenderer` (GeckoLib `GeoReplacedEntityRenderer`, `MODEL_SCALE = 0.5`, phase offset in `preRender`), `MegumiDivineDogModel` (hides the mount-only `saddle`/`bridle`/`chests` bones every frame), `MegumiDivineDogRenderState` (implements GeckoLib's mixin-injected `GeoRenderState`), `MegumiDogGeoAnimatable` (singleton `GeoReplacedEntity` + one base controller) and the pure `MegumiDogAnimationPolicy` (phase > attack > sprint > walk > idle).
+  - Server: `JujutsuSounds` +2 events (`megumi.dog_ambient`, `megumi.dog_growl`), `sounds.json`, both lang files, and a mod-owned `jujutsumod:dire_wolf` entry in the data-driven `wolf_sound_variant` registry, set on every summoned dog next to the existing variant/collar components.
+  - Docs: Codex (`Megumi-Divine-Dogs`, `Registries`, `Vessel-render-stack`, `00-MOC` metrics), `docs/PROVENANCE.md` + `docs/THIRD_PARTY_NOTICES.md` (Mythic Mounts import + permission source), `docs/KNOWN_ISSUES.md` (R3).
+- Verification: `qualityGate` green; JUnit `MegumiDogAnimationPolicyTest` + updated `MegumiPlayerPresentationTest`; live MCP lane pass — both variants render with the expected fur, no mount tack on either variant (found the initially-missed `chests` saddlebags numerically: their UV islands are leather-tinted while fur islands are neutral), NBT carries `sound_variant:"jujutsumod:dire_wolf"` with `variant:snowy` / `variant:black`, a sic'd dog chased and killed a zombie, GeckoLib logged no resource errors.
+- Known limits: the per-clip stride could not be proven from 854×480 captures (region diffs change over time while the dog stands still, and the vision reads are unreliable at that scale) — clip choice is covered by the unit test instead; the dogs not following past `FOLLOW_START_DISTANCE` was observed once and is pre-existing AI behaviour, out of this task's scope.
+- Next: the user-gated reviewer phase (rule-of-four), then PR.
+
+---
+
 # Session Handoff — feat/dev-lane-home (2026-09-09)
 
 ## State

@@ -122,8 +122,7 @@ owns the shared SNAP and CLAP treatments through VFX Core, and `CharacterSkinMix
 selected vessel's ordinary skin to first-person hands. Vanilla's player layers continue to render
 held items, armor, capes and elytra in third person.
 
-Megumi's Divine Dog renderer remains a dedicated vanilla `WolfRenderer` seam and is unrelated to the
-player skin bridge. Straw Doll and nail renderers remain registered by Nobara's definition; Todo
+Megumi's Divine Dog renderer is a dedicated GeckoLib `GeoReplacedEntityRenderer` over the imported Dire Wolf model (client-side animatable, hidden mount tack) and is unrelated to the player skin bridge. Straw Doll and nail renderers remain registered by Nobara's definition; Todo
 registers only `TodoStoneRenderer` — the thrown-marker renderer family was deleted with the marker
 system (VERIFIED — ProjectSanityTest pins the deletion).
 

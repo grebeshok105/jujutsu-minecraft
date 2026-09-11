@@ -86,6 +86,8 @@ Verified 2026-07-26. Still open.
 
 Private author permission is sufficient for current development. A public release still needs a recorded scope covering redistribution, or replacement with original assets. Policy detail lives in [PROVENANCE.md](PROVENANCE.md).
 
+The 2026-09-11 Mythic Mounts Dire Wolf import (Divine Dogs visual) is in the same class: the author's permission is recorded as an owner statement only.
+
 ## High-priority engineering work
 
 ### E1 — No automated in-game smoke test, and no world/teleport coverage for the swap
