@@ -1,0 +1,8 @@
+{
+  "ambient_sound": "jujutsumod:megumi.dog_ambient",
+  "death_sound": "minecraft:entity.wolf.death",
+  "growl_sound": "jujutsumod:megumi.dog_growl",
+  "hurt_sound": "minecraft:entity.wolf.hurt",
+  "pant_sound": "minecraft:entity.wolf.pant",
+  "whine_sound": "minecraft:entity.wolf.whine"
+}

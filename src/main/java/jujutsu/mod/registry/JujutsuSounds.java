@@ -33,7 +33,10 @@ public final class JujutsuSounds {
 	public static final SoundEvent NOBARA_MEGA_CHARGE_RISER = create("nobara.mega_charge_riser");
 	/** Mega Nail: jet-ignition blast at launch. */
 	public static final SoundEvent NOBARA_MEGA_LAUNCH_BLAST = create("nobara.mega_launch_blast");
-
+	/** Dire Wolf (Divine Dogs visual): ambient panting, 4 variants. */
+	public static final SoundEvent MEGUMI_DOG_AMBIENT = create("megumi.dog_ambient");
+	/** Dire Wolf (Divine Dogs visual): growl. */
+	public static final SoundEvent MEGUMI_DOG_GROWL = create("megumi.dog_growl");
 	private JujutsuSounds() {}
 
 	public static void register() {
@@ -61,6 +64,8 @@ public final class JujutsuSounds {
 		register("projectjjk.aec_boom", PROJECTJJK_AEC_BOOM);
 		register("nobara.mega_charge_riser", NOBARA_MEGA_CHARGE_RISER);
 		register("nobara.mega_launch_blast", NOBARA_MEGA_LAUNCH_BLAST);
+		register("megumi.dog_ambient", MEGUMI_DOG_AMBIENT);
+		register("megumi.dog_growl", MEGUMI_DOG_GROWL);
 	}
 
 	private static SoundEvent create(String path) {

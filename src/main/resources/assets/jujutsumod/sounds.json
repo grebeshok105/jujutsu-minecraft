@@ -137,5 +137,20 @@
       "jujutsumod:nobara/mega_launch_blast"
     ],
     "subtitle": "subtitles.jujutsumod.nobara.mega_launch_blast"
+  },
+  "megumi.dog_ambient": {
+    "sounds": [
+      "jujutsumod:megumi/dog_ambient1",
+      "jujutsumod:megumi/dog_ambient2",
+      "jujutsumod:megumi/dog_ambient3",
+      "jujutsumod:megumi/dog_ambient4"
+    ],
+    "subtitle": "subtitles.jujutsumod.megumi.dog_ambient"
+  },
+  "megumi.dog_growl": {
+    "sounds": [
+      "jujutsumod:megumi/dog_growl"
+    ],
+    "subtitle": "subtitles.jujutsumod.megumi.dog_growl"
   }
 }
