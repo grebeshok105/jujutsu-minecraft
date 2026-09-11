@@ -18,8 +18,6 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 public final class MegumiDogGeoAnimatable implements GeoReplacedEntity {
 	public static final MegumiDogGeoAnimatable INSTANCE = new MegumiDogGeoAnimatable();
 	private static final String BASE_CONTROLLER = "megumi_dog_base";
-	private static final double RUN_VELOCITY_THRESHOLD_SQR = 0.02;
-	private static final float ATTACK_ANIM_THRESHOLD = 0.01f;
 	private static final RawAnimation IDLE = loop("animation.megumi_divine_dog.idle");
 	private static final RawAnimation WALK = loop("animation.megumi_divine_dog.walk");
 	private static final RawAnimation SPRINT = loop("animation.megumi_divine_dog.sprint");
@@ -56,9 +54,8 @@ public final class MegumiDogGeoAnimatable implements GeoReplacedEntity {
 		if (velocity == null) {
 			velocity = Vec3.ZERO;
 		}
-		double horizontalSpeedSqr = velocity.x * velocity.x + velocity.z * velocity.z;
-		boolean running = horizontalSpeedSqr > RUN_VELOCITY_THRESHOLD_SQR;
-		boolean attacking = dog.attackAnim > ATTACK_ANIM_THRESHOLD;
+		boolean running = MegumiDogAnimationPolicy.isRunning(velocity.x, velocity.z);
+		boolean attacking = MegumiDogAnimationPolicy.isAttacking(dog.attackAnim);
 		return state.setAndContinue(rawAnimation(MegumiDogAnimationPolicy.decide(dog.phase, moving, running, attacking)));
 	}
 

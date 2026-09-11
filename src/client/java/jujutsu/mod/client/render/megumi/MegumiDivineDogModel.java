@@ -10,8 +10,6 @@ import jujutsu.mod.JujutsuMod;
 public final class MegumiDivineDogModel extends GeoModel<MegumiDogGeoAnimatable> {
 	private static final ResourceLocation MODEL = JujutsuMod.id("megumi_divine_dog");
 	private static final ResourceLocation ANIMATIONS = JujutsuMod.id("megumi_divine_dog");
-	private static final ResourceLocation WHITE = JujutsuMod.id("textures/entity/megumi_divine_dog_white.png");
-	private static final ResourceLocation BLACK = JujutsuMod.id("textures/entity/megumi_divine_dog_black.png");
 
 	@Override
 	public ResourceLocation getModelResource(GeoRenderState renderState) {
@@ -20,7 +18,8 @@ public final class MegumiDivineDogModel extends GeoModel<MegumiDogGeoAnimatable>
 
 	@Override
 	public ResourceLocation getTextureResource(GeoRenderState renderState) {
-		return renderState instanceof MegumiDivineDogRenderState dog && dog.blackVariant ? BLACK : WHITE;
+		return MegumiDivineDogTextures.forVariant(
+				renderState instanceof MegumiDivineDogRenderState dog && dog.blackVariant);
 	}
 
 	@Override

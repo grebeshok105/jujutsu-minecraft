@@ -138,6 +138,21 @@ class MegumiPlayerPresentationTest {
 	}
 
 	@Test
+	void divineDogRendererFeedsTheSyncedVariantAndSwingIntoTheRenderState() throws Exception {
+		String body = methodBody(Files.readString(DIVINE_DOG_RENDERER_SOURCE), "public void extractRenderState(");
+		assertTrue(body.contains("DataComponents.WOLF_VARIANT"),
+				"The texture choice must read the synchronized wolf variant, not a client guess");
+		assertTrue(body.contains("WolfVariants.BLACK"), "Only the black wolf variant may leave the default sheet");
+		assertTrue(body.contains("entity.getAttackAnim(partialTick)"),
+				"The attack clip must be driven by the entity's own swing progress");
+
+		String model = Files.readString(Path.of(
+				"src/client/java/jujutsu/mod/client/render/megumi/MegumiDivineDogModel.java"));
+		assertTrue(model.contains("MegumiDivineDogTextures.forVariant("),
+				"The model must route the synced variant through the shipped Dire Wolf texture set");
+	}
+
+	@Test
 	void modelUsesHorizontalOnlyScaleAndKeepsItsHeadFacingForward() throws Exception {
 		String headLookWeight = methodBody(Files.readString(MODEL_SOURCE), "protected float headLookWeight");
 		assertTrue(headLookWeight.contains("return 0.0f;"),

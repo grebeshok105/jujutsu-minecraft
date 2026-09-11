@@ -239,10 +239,12 @@ public final class MegumiSummonRuntime {
 				.getOrThrow(variantKey);
 		dog.setComponent(DataComponents.WOLF_VARIANT, variant);
 		dog.setComponent(DataComponents.WOLF_COLLAR, collar);
-		Holder<WolfSoundVariant> soundVariant = level.registryAccess()
-				.lookupOrThrow(Registries.WOLF_SOUND_VARIANT)
-				.getOrThrow(DIRE_WOLF_SOUND);
-		dog.setComponent(DataComponents.WOLF_SOUND_VARIANT, soundVariant);
+		// Cosmetic lookup: a world without the mod's variant entry must not veto the summon. An unset
+		// component leaves the dog on the vanilla wolf voice, which its sound hooks already handle.
+		level.registryAccess()
+				.lookup(Registries.WOLF_SOUND_VARIANT)
+				.flatMap(registry -> registry.get(DIRE_WOLF_SOUND))
+				.ifPresent(soundVariant -> dog.setComponent(DataComponents.WOLF_SOUND_VARIANT, soundVariant));
 		return dog;
 	}
 
