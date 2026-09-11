@@ -23,7 +23,7 @@ One command owns the word "verified":
 
 On Windows use `gradlew.bat`. It compiles both source sets, runs every test, audits the documentation and audits the test configuration itself. If it is green, the checkout is sound. If it is red, read the failure before doing anything else — it is designed to say what broke and why.
 
-To produce the mod jar at `build/libs/jujutsumod-1.0.0.jar`:
+To produce the mod jar at `build/libs/jujutsumod-<version>.jar` (`mod_version` in `gradle.properties`):
 
 ```bash
 ./gradlew assemble

@@ -16,7 +16,7 @@ qualityGate is the canonical check and the only command whose green result may b
 - auditDocumentation — runs tools/audit_docs.py, which used to exist only as a CI step, so a documentation break was found after a push instead of before a commit.
 - verifyAssertionsEnabled — reads the real Gradle task model and fails, listing the offenders, if any verification JavaExec task would run with assertions disabled. JavaExec defaults enableAssertions to false, and the verification programs are plain main() classes guarded by assert, so a task that loses its -ea does not fail: it passes unconditionally and silently.
 
-The gate does not build a jar. For the remapped artifact at build/libs/jujutsumod-1.0.0.jar:
+The gate does not build a jar. For the remapped artifact at `build/libs/jujutsumod-<version>.jar` (the version comes from `mod_version` in `gradle.properties`):
 
 ```bash
 ./gradlew assemble --no-daemon
