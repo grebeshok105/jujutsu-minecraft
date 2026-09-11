@@ -215,11 +215,11 @@ Render2D immediately begins and flushes SDF for each shape to preserve MSDF orde
 
 Closed 2026-07-26 on feat/todo-input-slots by the vessel definition seam: every `JujutsuCharacter` constant binds one server definition (`CharacterDefinition` in `JujutsuCharacters`) and one client definition (`CharacterClientDefinition` in `JujutsuCharacterClients`), and the shared files that used to name vessels — mod init, client init, `CharacterAbilityExecutor`, `CharacterCombatModifiers`, `CharacterGeoRenderers`, `ClickGuiTheme`, `JujutsuModules`, `CharacterRosterPanel`, `CharacterSkinMixin` — now ask the registries. The contract is owned by the Codex note `Jujutsu Kaizen/jujutsumod-codebase-codex/02-architecture/Vessel-definitions.md`.
 
-Recounted 2026-08-05 with the stone rework, and the shape of the count changed: nine files carry a direct `JujutsuCharacter.NOBARA`/`.TODO` reference across `src/main` and `src/client`, all deliberate, in three categories:
+Recounted 2026-08-05 with the stone rework, and the shape of the count changed: eight files carry a direct `JujutsuCharacter.NOBARA`/`.TODO` reference across `src/main` and `src/client`, all deliberate, in three categories (recounted 2026-09-09: `NobaraEspState` moved out with the archived combat HUD):
 
 - Four are the `id()` declarations in the vessel definitions themselves (`NobaraDefinition`, `TodoDefinition`, `NobaraClientDefinition`, `TodoClientDefinition`) — a definition naming the constant it speaks for is the seam working, not a leak.
 - `JujutsuCommands` refuses the `hairpin` debug commands unless Nobara is selected, because a slot is an input position and `PRIMARY` cast as Todo would fire his swap while reporting a hairpin.
-- Four are a vessel's own hook or presentation state filtering for itself, which is the seam's accepted self-check form, not shared code branching: `TodoBlackFlashRuntime` and `TodoSwapMomentumRuntime` on the server, `NobaraEspState` and `TodoStatusHud` on the client. (`TodoSwapMarkerItem`, formerly in this list, is deleted with the marker system.)
+- Three are a vessel's own hook or presentation state filtering for itself, which is the seam's accepted self-check form, not shared code branching: `TodoBlackFlashRuntime` and `TodoSwapMomentumRuntime` on the server, `TodoStatusHud` on the client. (`NobaraEspState` was here too until 2026-09-09, when it moved to `archive/combat-hud-v1` with the combat HUD; `TodoSwapMarkerItem`, formerly in this list, is deleted with the marker system.)
 
 One vessel-specific line survives in shared code without naming an enum constant: `JujutsuKeybinds.isTechniqueWeapon` still spells out Nobara's two hammers to decide whether left click counts as `ATTACK_CONTEXT`. It leaves when the client definition can answer "is this stack my technique weapon".
 
@@ -291,6 +291,14 @@ Both allowlist entries went with it. `VesselBoundaryTest#theOneKnownNetworkLeakD
 - Crafting recipes and broader datapack content are intentionally absent.
 - Publication automation for Modrinth/CurseForge should wait until release provenance is clean.
 - Some generic Rich ClickGui modules/components are unused and can be removed after confirming the final UI scope.
+
+## Archived and recoverable
+
+### E16 — Combat HUD (ability strip + Nobara target panel) archived 2026-09-09
+
+The whole in-world combat HUD the player saw in the 2026-08-21 build was put in a box on request: the bottom-center ability strip (`AbilityHud`, five per-vessel cells, drag) and the Nobara target overlay (`NobaraTargetHud` + `NobaraEspState` 2-tick scan + `NobaraTargetLayout`/`NobaraTargetAnim` geometry/animation + `NobaraEspRanks` classification) no longer exist in `src/` and are not registered — `archive/combat-hud-v1/README.md` is the single source for what moved, which two registration lines were cut (JujutsuModClient `ability_hud`, NobaraClientDefinition `nobara_target_hud`), and how to restore (git mv back, re-add registrations, bump MOC metrics). A verbatim snapshot of the older glass-card look (the jar from 2026-08-21, commit 5d95a0b) sits in `archive/combat-hud-v1/snapshot-glass-5d95a0b-2026-08-21/`.
+
+Untouched: ability input (R / S+R / B / S+B / LMB …), cooldown suppression, VfxDirector + the four remaining contributions (Megumi ×2, Todo ×2), the `hudSlots()`/`maxCooldownTicks()` seam (kept for restore), shared render helpers, assets and the `esp.jujutsumod.rank.*` lang keys. The game-instance jar was rebuilt from `feat/archive-combat-hud` and redeployed on 2026-09-09 17:10.
 
 ## Resolved and now in main
 

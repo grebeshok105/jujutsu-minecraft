@@ -9,7 +9,6 @@ Status: CURRENT
 | Public redistribution scope for ProjectJJK placeholders | INFERRED from author permission | Preserve scope durably or replace assets |
 | Post-process quality on all target GPUs | UNKNOWN | Test representative hardware and fallback paths |
 | Global Resonance hit-stop on larger servers | accepted only for 1–2 players | Revisit if product target changes |
-| Nobara's missing `maxCooldownTicks` override (AbilityHud skips her cooldown overlay) | UNKNOWN — default 0 vs intended; Todo and Megumi override | Owner decision: intended or bug |
 
 ## Resolved
 
@@ -17,3 +16,4 @@ Status: CURRENT
 |---|---|---|
 | Second character and required abstractions | VERIFIED — Todo (Aoi Todo) shipped as the real second kit and the seams were extracted from it: the shared GeckoLib-to-vanilla skin animation bridge, the shared CharacterAbility / CharacterAbilityExecutor slot, and the per-vessel definitions — CharacterDefinition / JujutsuCharacters on the server, CharacterClientDefinition / JujutsuCharacterClients on the client | JujutsuCharacters.definition; JujutsuCharacterClients.definition; [Vessel definitions](../02-architecture/Vessel-definitions.md); [Vessel render stack](../04-client-vfx/Vessel-render-stack.md) |
 | Third vessel and no shared summon hierarchy | VERIFIED — Megumi shipped with two transient vanilla Wolf bodies in one runtime pack, deliberately adding no universal summon abstraction | [Megumi Divine Dogs](../03-systems/Megumi-Divine-Dogs.md); [Megumi shadow kit](../03-systems/Megumi-shadow-kit.md) |
+| Nobara's missing `maxCooldownTicks` override | MOOT — the only consumer of the denominator (the AbilityHud cooldown overlay) was archived with the combat HUD on 2026-09-09; the `hudSlots()`/`maxCooldownTicks()` seam stays for a future restore | `archive/combat-hud-v1/README.md` |

@@ -1,3 +1,31 @@
+# Session Handoff — feat/archive-combat-hud (2026-09-09)
+
+## State
+
+- Branch **`feat/archive-combat-hud`**, cut from `feat/codex-actualization` @ `ebef8d6` (that commit adds the AGENTS.md versioning/release rules requested earlier in the day).
+- Task (user request + screenshot of the running game): take the marked combat HUD out of the active build and put it in a recoverable archive — bottom ability strip above the hotbar, the health/rank/nails card panel right of the target, the target-name label above it. No redesign, nothing deleted for good.
+- Ground truth found first: the repo HEAD already carried the thin-bracket target HUD (4268c4a, 2026-08-25), but the deployed game jar (`D:/Games/instances/Jujutsu/mods/`, 2026-08-21 18:10) is exactly commit `5d95a0b` — the older glass-card look with the name pill above the target head, which is what the user marked. Consequences handled: the archive stores the current-tree implementation (the thing a rebuild would ship) and a verbatim glass-era snapshot of the three files that differ.
+- Moved to `archive/combat-hud-v1/` (git mv, README = inventory + cut registrations + restore steps): `AbilityHud` (client/hud), `NobaraTargetHud/Layout/Anim/EspState/EspRanks` (client/character/nobara), 3 JUnit contracts; plus `snapshot-glass-5d95a0b-2026-08-21/` with the three glass-era files.
+- Registration cuts: `JujutsuModClient` — `ability_hud` contribution + import; `NobaraClientDefinition` — `NobaraEspState.register()` + `nobara_target_hud` contribution (+2 imports). Four VfxDirector contributions stay live: `megumi_divine_dogs_cooldown`, `megumi_shadow_dive_veil`, `todo_pair_status`, `todo_stone_status`.
+- Deliberately kept: ability input slots and keybinds, cooldown suppression (`ClientAbilityCooldowns`), the `hudSlots()`/`maxCooldownTicks()` seam on `CharacterClientDefinition` (restore point), shared render helpers (`WorldToScreen`, `UiEase`, SDF/MSDF), HUD assets and `esp.jujutsumod.rank.*` lang keys (inert data, restore-friendly).
+- Docs updated in the same task (current-only discipline): Codex `00-MOC.md` metrics 191/85 → 185/82, `Uncertainties.md` (maxCooldownTicks → Resolved/MOOT), `Vessel-definitions.md`, `Nobara-combat-expansion.md`, `Nail-rendering.md`, `VFX-core.md` (four live contributions), `GUI-render-pipelines.md`; `docs/KNOWN_ISSUES.md` (E7 recount 9→8 files, new "Archived and recoverable / E16"); `docs/NOBARA_ESP_AND_MEGA_NAIL.md` ESP section marked archived; `docs/knowledge/CURRENT_STATE.md` record added.
+
+## Verification
+
+- `./gradlew.bat compileJava compileClientJava compileTestJava` green; `./gradlew.bat qualityGate` green (~52 s, JDK 21 — `JAVA_HOME=C:/Users/KOMP1/scoop/apps/temurin21-jdk/current`).
+- Jar proof: assembled `build/libs/jujutsumod-1.0.0.jar` contains none of the six archived classes; expected survivors (`VfxDirector`, `NobaraClientDefinition`, `MegumiCooldownHud`, `TodoStatusHud`, `HudSlot`) present.
+- Deployed: jar copied to the Jujutsu instance (2026-09-09 17:10), md5 match.
+- Client boot smoke: `runClient` reached the main menu ("Sound engine started", only benign MSDF/vanilla warnings) — no init-time errors from the cut registrations. NOT verified inside a world (selecting Nobara + embedding nails to eyeball HUD absence); absence is architecturally guaranteed by the class removal, but a world-level look remains open if wanted.
+- Commits: `ebef8d6` (docs agents versioning), `0d512ca` (archive + cut), `4264fb0` (docs). Working tree has only untracked noise; `docs/knowledge/` stays untracked by convention.
+
+## Next candidates
+
+1. Optional in-world eyeball check after the user relaunches the instance (the old HUD should be gone; Todo/Megumi chips and abilities unchanged).
+2. PR for this branch (title/body in Russian per convention), base per current open-PR stack (main is still `ce3d655`; the nobara/codex branches carry the newer lineage).
+3. When a release is cut: per new AGENTS.md §13 rules (status alpha/beta/release; notes content-side only, Russian, emojis).
+
+---
+
 # Session Handoff — feat/codex-actualization (2026-09-04)
 
 ## State
