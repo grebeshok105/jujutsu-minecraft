@@ -108,32 +108,33 @@ class MegumiPlayerPresentationTest {
 	}
 
 	@Test
-	void clientDefinitionOwnsADedicatedVanillaDogRendererSeam() throws Exception {
+	void clientDefinitionOwnsADedicatedDogRendererSeam() throws Exception {
 		String definition = Files.readString(CLIENT_DEFINITION_SOURCE);
 		assertTrue(definition.contains("MegumiDivineDogRenderer::new"),
 				"Only Megumi's client definition may register his dedicated Divine Dog renderer");
 
 		String renderer = Files.readString(DIVINE_DOG_RENDERER_SOURCE);
-		assertTrue(renderer.contains("extends WolfRenderer"),
-				"The dedicated Divine Dog renderer must retain vanilla wolf rendering until its later presentation pass");
+		assertTrue(renderer.contains(
+				"GeoReplacedEntityRenderer<MegumiDogGeoAnimatable, MegumiDivineDogEntity, MegumiDivineDogRenderState>"),
+				"The dedicated Divine Dog renderer is the GeckoLib Dire Wolf path, not vanilla wolf rendering");
 	}
 
 	@Test
 	void divineDogRendererConsumesSynchronizedPhaseThroughVerticalTranslationOnly() throws Exception {
 		String state = Files.readString(DIVINE_DOG_RENDER_STATE_SOURCE);
-		assertTrue(state.contains("extends WolfRenderState"));
 		assertTrue(state.contains("MegumiDogPresentationPolicy.Phase phase"));
 		assertTrue(state.contains("float progress"));
 		assertTrue(state.contains("float verticalOffset"));
 
 		String renderer = Files.readString(DIVINE_DOG_RENDERER_SOURCE);
-		assertTrue(renderer.contains("dog.presentationPhase()"));
-		assertTrue(renderer.contains("dog.presentationTicks()"));
+		assertTrue(renderer.contains("entity.presentationPhase()"));
+		assertTrue(renderer.contains("entity.presentationTicks()"));
 		assertTrue(renderer.contains("MegumiDogPresentationPolicy.progress("));
 		assertTrue(renderer.contains("MegumiDogPresentationPolicy.verticalOffset("));
-		assertTrue(renderer.contains("matrices.translate(0.0f, dogState.verticalOffset, 0.0f)"));
-		assertTrue(renderer.contains("super.render(state, matrices, consumers, packedLight)"),
-				"The custom seam must preserve vanilla wolf models, layers, variants and textures");
+		assertTrue(renderer.contains("poseStack.translate(0.0f, renderState.verticalOffset, 0.0f)"),
+				"Presentation must reach the frame as a vertical pose translation");
+		assertTrue(!renderer.contains(".setPos("),
+				"Presentation must never move the authoritative entity position");
 	}
 
 	@Test
