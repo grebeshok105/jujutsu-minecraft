@@ -14,7 +14,7 @@
   - Docs: Codex (`Megumi-Divine-Dogs`, `Registries`, `Vessel-render-stack`, `00-MOC` metrics), `docs/PROVENANCE.md` + `docs/THIRD_PARTY_NOTICES.md` (Mythic Mounts import + permission source), `docs/KNOWN_ISSUES.md` (R3).
 - Verification: `qualityGate` green; JUnit `MegumiDogAnimationPolicyTest` + updated `MegumiPlayerPresentationTest`; live MCP lane pass — both variants render with the expected fur, no mount tack on either variant (found the initially-missed `chests` saddlebags numerically: their UV islands are leather-tinted while fur islands are neutral), NBT carries `sound_variant:"jujutsumod:dire_wolf"` with `variant:snowy` / `variant:black`, a sic'd dog chased and killed a zombie, GeckoLib logged no resource errors.
 - Known limits: the per-clip stride could not be proven from 854×480 captures (region diffs change over time while the dog stands still, and the vision reads are unreliable at that scale) — clip choice is covered by the unit test instead; the dogs not following past `FOLLOW_START_DISTANCE` was observed once and is pre-existing AI behaviour, out of this task's scope.
-- Next: the user-gated reviewer phase (rule-of-four), then PR.
+- Shipped as **PR #72** into `feat/dev-lane-home`; branch pushed, working tree clean. Remaining candidates: none for this task — the Dire Wolf visual is complete. Open elsewhere: the `feat/archive-combat-hud` PR question and the `feat/codex-actualization` / `feat/nobara-target-hud` branches are still ahead of origin.
 
 ---
 
