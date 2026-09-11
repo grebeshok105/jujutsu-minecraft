@@ -1,3 +1,23 @@
+# Session Handoff — feat/direwolf-visual (2026-09-11)
+
+## State
+
+- Branch **`feat/direwolf-visual`**, cut from `feat/dev-lane-home` (@ `14d12c7`; the dev-lane PR is #71 into `feat/archive-combat-hud`).
+- Task (user request, run as the «правило 4» pipeline): replace the Divine Dogs' visual with the Dire Wolf from Mythic Mounts — white and black variants, animations and sounds — keeping the existing dog system (AI, summon, recall, sic, pounce) untouched. Assets imported with the author's personal permission given in the task statement.
+- Pipeline: 4 scouts → plan-spec `.superpowers/rule-of-four/direwolf-visual/plan-spec.md` → 4 workers (assets/audio/render/animation) + main on the integration block → review wave (4 reviewers + QA) → adjudication → this PR. Phase 1.5 (three plan reviews before dispatch) was skipped — recorded as a deviation in the workspace `progress.md`; the reviewer wave covered the plan contracts instead.
+- Review outcome (`review-spec.md`): F1 P1 confirmed + fixed (the custom sound variant is now an optional lookup — a world without the entry no longer aborts the summon), F2/F3 P2 confirmed + fixed (variant→texture mapping extracted into a dependency-free helper with a behavioural test; velocity/swing thresholds moved into the pure policy with boundary tests; the seam test pins the synchronized variant and the entity's own swing), F4 sub-threshold rejected with reason. QA added `MegumiDivineDogResourcesTest` + `MegumiDireWolfSoundContractTest`. Mutation proof: forcing the texture helper to always return the light sheet and raising the speed threshold fails exactly those two new tests.
+- Independent fable-judge pass on the fixed result: **VERIFIED WITH CAVEATS** — every mechanically checkable claim reproduced (`test --rerun-tasks` 275 tests / 0 failures; `qualityGate --rerun-tasks` green in 52 s; 7/7 asset md5 matches; `MegumiDivineDogEntity` untouched), no weakened checks, no scope creep. Caveats: the live-lane pass is not re-runnable by a judge, and the in-game stride by clip remains a known limit.
+- What landed:
+  - Assets: `geckolib/models/megumi_divine_dog.geo.json` + `geckolib/animations/megumi_divine_dog.animation.json` (upstream Dire Wolf, all 22 clips re-keyed to `animation.megumi_divine_dog.*`), `textures/entity/megumi_divine_dog_white.png` (upstream mount3) and `_black.png` (mount2), 5 ogg samples under `sounds/megumi/`, byte-identical to the archive.
+  - Client: `MegumiDivineDogRenderer` (GeckoLib `GeoReplacedEntityRenderer`, `MODEL_SCALE = 0.5`, phase offset in `preRender`), `MegumiDivineDogModel` (hides the mount-only `saddle`/`bridle`/`chests` bones every frame), `MegumiDivineDogRenderState` (implements GeckoLib's mixin-injected `GeoRenderState`), `MegumiDogGeoAnimatable` (singleton `GeoReplacedEntity` + a base locomotion controller and a separate jaw bite controller) and the pure `MegumiDogAnimationPolicy` (a base locomotion layer — phase > sprint > walk > idle — plus a one-shot jaw bite layer).
+  - Server: `JujutsuSounds` +2 events (`megumi.dog_ambient`, `megumi.dog_growl`), `sounds.json`, both lang files, and a mod-owned `jujutsumod:dire_wolf` entry in the data-driven `wolf_sound_variant` registry, set on every summoned dog next to the existing variant/collar components.
+  - Docs: Codex (`Megumi-Divine-Dogs`, `Registries`, `Vessel-render-stack`, `00-MOC` metrics), `docs/PROVENANCE.md` + `docs/THIRD_PARTY_NOTICES.md` (Mythic Mounts import + permission source), `docs/KNOWN_ISSUES.md` (R3).
+- Verification: `qualityGate` green; JUnit `MegumiDogAnimationPolicyTest` + updated `MegumiPlayerPresentationTest`; live MCP lane pass — both variants render with the expected fur, no mount tack on either variant (found the initially-missed `chests` saddlebags numerically: their UV islands are leather-tinted while fur islands are neutral), NBT carries `sound_variant:"jujutsumod:dire_wolf"` with `variant:snowy` / `variant:black`, a sic'd dog chased and killed a zombie, GeckoLib logged no resource errors.
+- Known limits: the per-clip stride could not be proven from 854×480 captures (region diffs change over time while the dog stands still, and the vision reads are unreliable at that scale) — clip choice is covered by the unit test instead; the dogs not following past `FOLLOW_START_DISTANCE` was observed once and is pre-existing AI behaviour, out of this task's scope.
+- Shipped as **PR #72** into `feat/dev-lane-home`; branch pushed, working tree clean. Remaining candidates: none for this task — the Dire Wolf visual is complete. Open elsewhere: the `feat/archive-combat-hud` PR question and the `feat/codex-actualization` / `feat/nobara-target-hud` branches are still ahead of origin.
+
+---
+
 # Session Handoff — feat/dev-lane-home (2026-09-09)
 
 ## State

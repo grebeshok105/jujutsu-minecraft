@@ -1,5 +1,11 @@
 # Third-Party Notices
 
+## Mythic Mounts — Dire Wolf assets (Divine Dogs visual)
+
+The Divine Dogs' Dire Wolf geometry, animation set, two fur textures, and five ambient/growl sounds are extracted from the Mythic Mounts distribution `mythic-mounts-1.20.1-7.4.jar` (package `com.yahoo.chirpycricket.mythicmounts`). Only the runtime assets listed in [PROVENANCE.md](PROVENANCE.md) are bundled; no Mythic Mounts code, mechanics, mounts, taming, or inventory systems are imported.
+
+The Mythic Mounts author has personally given the jujutsumod developer permission to use these assets (project owner statement, recorded 2026-09-11). The permission evidence is not bundled in this repository. Do not expand the imported set; preserve the permission scope or replace the assets before a public release.
+
 ## ProjectJJK temporary placeholders
 
 Some current runtime assets under paths containing `projectjjk` are temporary placeholders used with permission from the ProjectJJK author. They are not relicensed as CC0 by this repository.

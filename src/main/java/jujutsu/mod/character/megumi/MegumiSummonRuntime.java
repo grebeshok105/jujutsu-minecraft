@@ -26,6 +26,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.animal.wolf.WolfSoundVariant;
 import net.minecraft.world.entity.animal.wolf.WolfVariant;
 import net.minecraft.world.entity.animal.wolf.WolfVariants;
 import net.minecraft.world.entity.Entity;
@@ -37,6 +38,7 @@ import net.minecraft.world.item.DyeColor;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.entity.EntityTypeTest;
+import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.vfx.MegumiVfxIds;
@@ -52,6 +54,8 @@ public final class MegumiSummonRuntime {
 	private static final Map<UUID, MegumiDivineDogPack> PACKS = new ConcurrentHashMap<>();
 	private static final Set<UUID> TEARDOWN_IN_PROGRESS = ConcurrentHashMap.newKeySet();
 	private static final AtomicLong NEXT_SUMMON_TOKEN = new AtomicLong();
+	private static final ResourceKey<WolfSoundVariant> DIRE_WOLF_SOUND =
+			ResourceKey.create(Registries.WOLF_SOUND_VARIANT, JujutsuMod.id("dire_wolf"));
 
 	private MegumiSummonRuntime() {}
 
@@ -235,6 +239,12 @@ public final class MegumiSummonRuntime {
 				.getOrThrow(variantKey);
 		dog.setComponent(DataComponents.WOLF_VARIANT, variant);
 		dog.setComponent(DataComponents.WOLF_COLLAR, collar);
+		// Cosmetic lookup: a world without the mod's variant entry must not veto the summon. An unset
+		// component leaves the dog on the vanilla wolf voice, which its sound hooks already handle.
+		level.registryAccess()
+				.lookup(Registries.WOLF_SOUND_VARIANT)
+				.flatMap(registry -> registry.get(DIRE_WOLF_SOUND))
+				.ifPresent(soundVariant -> dog.setComponent(DataComponents.WOLF_SOUND_VARIANT, soundVariant));
 		return dog;
 	}
 

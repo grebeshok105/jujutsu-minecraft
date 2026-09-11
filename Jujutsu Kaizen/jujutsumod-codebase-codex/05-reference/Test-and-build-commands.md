@@ -17,7 +17,7 @@ What the gate runs:
 - `verifyAssertionsEnabled` — fails if any verification JavaExec task would run without `-ea` (VERIFIED — build.gradle:526).
 - `auditReleaseJarIsolation` — the release jar carries no test-mod content (VERIFIED — build.gradle:603).
 
-For a clean proof rather than an up-to-date result, add `--rerun-tasks`. The gate does not build the player-facing jar; that is `./gradlew assemble --no-daemon` → `build/libs/jujutsumod-1.0.0.jar`.
+For a clean proof rather than an up-to-date result, add `--rerun-tasks`. The gate does not build the player-facing jar; that is `./gradlew assemble --no-daemon` → `build/libs/jujutsumod-<version>.jar` (`mod_version` in `gradle.properties`).
 
 What a green gate proves — and does not: shape, contracts, pure logic, plus two neutral GameTest canaries on a headless `ServerLevel`. It proves nothing about ability feel, rendering, or in-world behavior, which stay manual (E1 in `docs/KNOWN_ISSUES.md`).
 

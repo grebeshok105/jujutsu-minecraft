@@ -1,0 +1,1277 @@
+{
+	"format_version": "1.8.0",
+	"animations": {
+		"animation.megumi_divine_dog.lay": {
+			"loop": true,
+			"animation_length": 0.52,
+			"bones": {
+				"main": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 50, 0]
+						},
+						"0.52": {
+							"vector": [0, 50, 0]
+						}
+					},
+					"position": {
+						"0.0": {
+							"vector": [0, -11, 0]
+						},
+						"0.52": {
+							"vector": [0, -11, 0]
+						}
+					}
+				},
+				"head": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, -47.5, 0]
+						},
+						"0.52": {
+							"vector": [0, -47.5, 0]
+						}
+					}
+				},
+				"frontlegr": {
+					"rotation": {
+						"0.0": {
+							"vector": [-82.5, -40, 0]
+						},
+						"0.52": {
+							"vector": [-82.5, -40, 0]
+						}
+					}
+				},
+				"frontlegl": {
+					"rotation": {
+						"0.0": {
+							"vector": [-82.5, -7.5, 0]
+						},
+						"0.52": {
+							"vector": [-82.5, -7.5, 0]
+						}
+					}
+				},
+				"backlegr": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, -80]
+						},
+						"0.52": {
+							"vector": [0, 0, -80]
+						}
+					}
+				},
+				"backlegl": {
+					"rotation": {
+						"0.0": {
+							"vector": [-27.5, 0, -75]
+						},
+						"0.52": {
+							"vector": [-27.5, 0, -75]
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.none": {
+			"animation_length": 1.04
+		},
+		"animation.megumi_divine_dog.body": {
+			"loop": true,
+			"animation_length": 3.166,
+			"bones": {
+				"head": {
+					"position": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"1.32": {
+							"vector": [0, 0.1, 0]
+						},
+						"3.12": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"chest": {
+					"position": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"1.56": {
+							"vector": [0, 0.1, 0]
+						},
+						"3.12": {
+							"vector": [0, 0, 0]
+						}
+					},
+					"scale": {
+						"0.0": {
+							"vector": [1, 1, 1]
+						},
+						"1.56": {
+							"vector": [1.01, 1.01, 1]
+						},
+						"3.12": {
+							"vector": [1, 1, 1]
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.neutral": {
+			"loop": true,
+			"animation_length": 3.166,
+			"bones": {
+				"head": {
+					"position": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"1.32": {
+							"vector": [0, 0.1, 0]
+						},
+						"3.12": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"chest": {
+					"position": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"1.56": {
+							"vector": [0, 0.1, 0]
+						},
+						"3.12": {
+							"vector": [0, 0, 0]
+						}
+					},
+					"scale": {
+						"0.0": {
+							"vector": [1, 1, 1]
+						},
+						"1.56": {
+							"vector": [1.01, 1.01, 1]
+						},
+						"3.12": {
+							"vector": [1, 1, 1]
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.blink": {
+			"loop": true,
+			"animation_length": 2.6,
+			"bones": {
+				"eyelids": {
+					"position": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.96": {
+							"vector": [0, 0, 0],
+							"easing": "step"
+						},
+						"1.08": {
+							"vector": [0, 0, -1],
+							"easing": "step"
+						},
+						"1.32": {
+							"vector": [0, 0, -1],
+							"easing": "step"
+						},
+						"1.44": {
+							"vector": [0, 0, 0],
+							"easing": "step"
+						},
+						"2.6": {
+							"vector": [0, 0, 0]
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.walk": {
+			"loop": true,
+			"animation_length": 0.8,
+			"bones": {
+				"frontlegr": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.2": {
+							"vector": [25, 0, 0]
+						},
+						"0.4": {
+							"vector": [0, 0, 0]
+						},
+						"0.6": {
+							"vector": [-25, 0, 0]
+						},
+						"0.8": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"frontlegl": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.2": {
+							"vector": [-25, 0, 0]
+						},
+						"0.4": {
+							"vector": [0, 0, 0]
+						},
+						"0.6": {
+							"vector": [25, 0, 0]
+						},
+						"0.8": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"backlegr": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.2": {
+							"vector": [-27.5, 0, 0]
+						},
+						"0.4": {
+							"vector": [0, 0, 0]
+						},
+						"0.6": {
+							"vector": [27.5, 0, 0]
+						},
+						"0.8": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"backlegl": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.2": {
+							"vector": [27.5, 0, 0]
+						},
+						"0.4": {
+							"vector": [0, 0, 0]
+						},
+						"0.6": {
+							"vector": [-27.5, 0, 0]
+						},
+						"0.8": {
+							"vector": [0, 0, 0]
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.sprint": {
+			"loop": true,
+			"animation_length": 0.56,
+			"bones": {
+				"frontlegr": {
+					"rotation": {
+						"0.0": {
+							"vector": [-50, 0, 0]
+						},
+						"0.28": {
+							"vector": [27.5, 0, 0]
+						},
+						"0.56": {
+							"vector": [-50, 0, 0]
+						}
+					}
+				},
+				"frontlegl": {
+					"rotation": {
+						"0.0": {
+							"vector": [-50, 0, 0]
+						},
+						"0.28": {
+							"vector": [27.5, 0, 0]
+						},
+						"0.56": {
+							"vector": [-50, 0, 0]
+						}
+					}
+				},
+				"backlegr": {
+					"rotation": {
+						"0.0": {
+							"vector": [40, 0, 0]
+						},
+						"0.28": {
+							"vector": [-37.5, 0, 0]
+						},
+						"0.56": {
+							"vector": [40, 0, 0]
+						}
+					}
+				},
+				"backlegl": {
+					"rotation": {
+						"0.0": {
+							"vector": [40, 0, 0]
+						},
+						"0.28": {
+							"vector": [-37.5, 0, 0]
+						},
+						"0.56": {
+							"vector": [40, 0, 0]
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.fly": {
+			"loop": true,
+			"animation_length": 0.8,
+			"bones": {
+				"frontlegr": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.2": {
+							"vector": [25, 0, 0]
+						},
+						"0.4": {
+							"vector": [0, 0, 0]
+						},
+						"0.6": {
+							"vector": [-25, 0, 0]
+						},
+						"0.8": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"frontlegl": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.2": {
+							"vector": [-25, 0, 0]
+						},
+						"0.4": {
+							"vector": [0, 0, 0]
+						},
+						"0.6": {
+							"vector": [25, 0, 0]
+						},
+						"0.8": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"backlegr": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.2": {
+							"vector": [-27.5, 0, 0]
+						},
+						"0.4": {
+							"vector": [0, 0, 0]
+						},
+						"0.6": {
+							"vector": [27.5, 0, 0]
+						},
+						"0.8": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"backlegl": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.2": {
+							"vector": [27.5, 0, 0]
+						},
+						"0.4": {
+							"vector": [0, 0, 0]
+						},
+						"0.6": {
+							"vector": [-27.5, 0, 0]
+						},
+						"0.8": {
+							"vector": [0, 0, 0]
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.sit": {
+			"loop": true,
+			"bones": {
+				"main": {
+					"position": {
+						"vector": [0, -13, 0]
+					}
+				},
+				"frontlegr": {
+					"rotation": {
+						"vector": [-90, -7.5, 7.5]
+					}
+				},
+				"frontlegl": {
+					"rotation": {
+						"vector": [-90, 7.5, -7.5]
+					}
+				},
+				"backlegr": {
+					"rotation": {
+						"vector": [-97.5, -10, 7.5]
+					}
+				},
+				"backlegl": {
+					"rotation": {
+						"vector": [-90, 10, -7.5]
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.sleep": {
+			"loop": true,
+			"animation_length": 1.841,
+			"bones": {
+				"main": {
+					"position": {
+						"vector": [0, -13, 0]
+					}
+				},
+				"frontlegr": {
+					"rotation": {
+						"vector": [-90, -20, 7.5]
+					}
+				},
+				"frontlegl": {
+					"rotation": {
+						"vector": [-90, -20, -7.5]
+					}
+				},
+				"backlegr": {
+					"rotation": {
+						"vector": [-97.5, -45, 7.5]
+					}
+				},
+				"backlegl": {
+					"rotation": {
+						"vector": [-90, 10, -7.5]
+					}
+				},
+				"head": {
+					"rotation": {
+						"vector": [62.5, -42.5, -30]
+					}
+				},
+				"eyelids": {
+					"position": {
+						"0.0": {
+							"vector": [0, 0, -1]
+						},
+						"1.84": {
+							"vector": [0, 0, -0.9]
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.attack": {
+			"loop": true,
+			"animation_length": 0.92,
+			"bones": {
+				"jaw": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.2": {
+							"vector": [50, 0, 0],
+							"easing": "easeOutCubic"
+						},
+						"0.36": {
+							"vector": [0, 0, 0],
+							"easing": "easeOutCubic"
+						},
+						"0.48": {
+							"vector": [50, 0, 0],
+							"easing": "easeOutCubic"
+						},
+						"0.64": {
+							"vector": [0, 0, 0],
+							"easing": "easeOutCubic"
+						},
+						"0.92": {
+							"vector": [0, 0, 0]
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.sitdown": {
+			"animation_length": 0.52,
+			"bones": {
+				"main": {
+					"position": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.52": {
+							"vector": [0, -13, 0]
+						}
+					}
+				},
+				"frontlegr": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.52": {
+							"vector": [-90, -7.5, 7.5]
+						}
+					}
+				},
+				"frontlegl": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.52": {
+							"vector": [-90, 7.5, -7.5]
+						}
+					}
+				},
+				"backlegr": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.52": {
+							"vector": [-97.5, -10, 7.5]
+						}
+					}
+				},
+				"backlegl": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.52": {
+							"vector": [-90, 10, -7.5]
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.standup": {
+			"animation_length": 0.52,
+			"bones": {
+				"main": {
+					"position": {
+						"0.0": {
+							"vector": [0, -13, 0]
+						},
+						"0.52": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"frontlegr": {
+					"rotation": {
+						"0.0": {
+							"vector": [-90, -7.5, 7.5]
+						},
+						"0.52": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"frontlegl": {
+					"rotation": {
+						"0.0": {
+							"vector": [-90, 7.5, -7.5]
+						},
+						"0.52": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"backlegr": {
+					"rotation": {
+						"0.0": {
+							"vector": [-97.5, -10, 7.5]
+						},
+						"0.52": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"backlegl": {
+					"rotation": {
+						"0.0": {
+							"vector": [-90, 10, -7.5]
+						},
+						"0.52": {
+							"vector": [0, 0, 0]
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.gotosleep": {
+			"animation_length": 0.52,
+			"bones": {
+				"main": {
+					"position": {
+						"0.0": {
+							"vector": [0, -13, 0]
+						},
+						"0.52": {
+							"vector": [0, -13, 0]
+						}
+					}
+				},
+				"frontlegr": {
+					"rotation": {
+						"0.0": {
+							"vector": [-90, -7.5, 7.5]
+						},
+						"0.52": {
+							"vector": [-90, -20, 7.5]
+						}
+					}
+				},
+				"frontlegl": {
+					"rotation": {
+						"0.0": {
+							"vector": [-90, 7.5, -7.5]
+						},
+						"0.52": {
+							"vector": [-90, -20, -7.5]
+						}
+					}
+				},
+				"backlegr": {
+					"rotation": {
+						"0.0": {
+							"vector": [-97.5, -10, 7.5]
+						},
+						"0.52": {
+							"vector": [-97.5, -45, 7.5]
+						}
+					}
+				},
+				"backlegl": {
+					"rotation": {
+						"0.0": {
+							"vector": [-90, 10, -7.5]
+						},
+						"0.52": {
+							"vector": [-90, 10, -7.5]
+						}
+					}
+				},
+				"head": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.52": {
+							"vector": [62.5, -42.5, -30]
+						}
+					}
+				},
+				"eyelids": {
+					"position": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.52": {
+							"vector": [0, 0, -1]
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.wakeup": {
+			"animation_length": 0.52,
+			"bones": {
+				"main": {
+					"position": {
+						"0.0": {
+							"vector": [0, -13, 0]
+						},
+						"0.52": {
+							"vector": [0, -13, 0],
+							"easing": "linear"
+						}
+					}
+				},
+				"frontlegr": {
+					"rotation": {
+						"0.0": {
+							"vector": [-90, -20, 7.5]
+						},
+						"0.52": {
+							"vector": [-90, -7.5, 7.5],
+							"easing": "linear"
+						}
+					}
+				},
+				"frontlegl": {
+					"rotation": {
+						"0.0": {
+							"vector": [-90, -20, -7.5]
+						},
+						"0.52": {
+							"vector": [-90, 7.5, -7.5],
+							"easing": "linear"
+						}
+					}
+				},
+				"backlegr": {
+					"rotation": {
+						"0.0": {
+							"vector": [-97.5, -45, 7.5]
+						},
+						"0.52": {
+							"vector": [-97.5, -10, 7.5],
+							"easing": "linear"
+						}
+					}
+				},
+				"backlegl": {
+					"rotation": {
+						"0.0": {
+							"vector": [-90, 10, -7.5]
+						},
+						"0.52": {
+							"vector": [-90, 10, -7.5],
+							"easing": "linear"
+						}
+					}
+				},
+				"head": {
+					"rotation": {
+						"0.0": {
+							"vector": [62.5, -42.5, -30]
+						},
+						"0.52": {
+							"vector": [0, 0, 0],
+							"easing": "linear"
+						}
+					}
+				},
+				"eyelids": {
+					"position": {
+						"0.0": {
+							"vector": [0, 0, -1]
+						},
+						"0.52": {
+							"vector": [0, 0, 0],
+							"easing": "linear"
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.idle": {
+			"loop": true,
+			"animation_length": 2.206,
+			"bones": {
+				"main": {
+					"position": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"1.04": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"earr": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.36": {
+							"vector": [-15, 0, 0],
+							"easing": "easeInQuart"
+						},
+						"2.04": {
+							"vector": [-15, 0, 0],
+							"easing": "easeInQuart"
+						},
+						"2.2": {
+							"vector": [0, 0, 0],
+							"easing": "easeInQuart"
+						}
+					}
+				},
+				"earrl": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.36": {
+							"vector": [-15, 0, 0],
+							"easing": "easeInQuart"
+						},
+						"2.04": {
+							"vector": [-15, 0, 0],
+							"easing": "easeInQuart"
+						},
+						"2.2": {
+							"vector": [0, 0, 0],
+							"easing": "easeInQuart"
+						}
+					}
+				},
+				"tail": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.36": {
+							"vector": [20, 0, 32.5],
+							"easing": "easeInOutQuart"
+						},
+						"0.76": {
+							"vector": [20, 0, -32.5],
+							"easing": "easeInOutQuart"
+						},
+						"1.24": {
+							"vector": [0, 0, 0]
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.idle2": {
+			"loop": true,
+			"animation_length": 3.68,
+			"bones": {
+				"main": {
+					"position": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"1.04": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"jaw": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.32": {
+							"vector": [15, 0, 0],
+							"easing": "easeOutQuad"
+						},
+						"0.56": {
+							"vector": [10, 0, 0],
+							"easing": "easeOutQuad"
+						},
+						"0.8": {
+							"vector": [15, 0, 0],
+							"easing": "easeOutQuad"
+						},
+						"1.04": {
+							"vector": [10, 0, 0],
+							"easing": "easeOutQuad"
+						},
+						"1.28": {
+							"vector": [15, 0, 0],
+							"easing": "easeOutQuad"
+						},
+						"1.6": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"tail": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.24": {
+							"vector": [12.5, 0, 0],
+							"easing": "easeInOutSine"
+						},
+						"0.48": {
+							"vector": [6.91, 0, 0],
+							"easing": "easeInOutSine"
+						},
+						"0.72": {
+							"vector": [12.93, 0, 0],
+							"easing": "easeInOutSine"
+						},
+						"0.96": {
+							"vector": [4.86, 0, 0],
+							"easing": "easeInOutSine"
+						},
+						"1.6": {
+							"vector": [0, 0, 0]
+						},
+						"3.68": {
+							"vector": [0, 0, 0]
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.idle3": {
+			"loop": true,
+			"animation_length": 4.16,
+			"bones": {
+				"main": {
+					"position": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"1.04": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"earr": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"2.6": {
+							"vector": [0, 0, 0],
+							"easing": "easeOutQuad"
+						}
+					}
+				},
+				"earrl": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"2.6": {
+							"vector": [0, 0, 0],
+							"easing": "easeOutCirc"
+						}
+					}
+				},
+				"tail": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.68": {
+							"vector": [50, 0, 0],
+							"easing": "easeInElastic",
+							"easingArgs": [1]
+						},
+						"1.84": {
+							"vector": [40, 0, 0],
+							"easing": "easeInElastic",
+							"easingArgs": [3]
+						},
+						"2.6": {
+							"vector": [0, 0, 0]
+						},
+						"4.16": {
+							"vector": [0, 0, 0]
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.idle4": {
+			"loop": true,
+			"animation_length": 5.72,
+			"bones": {
+				"main": {
+					"position": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"1.04": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"earr": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.28": {
+							"vector": [-17.5, -20, 0],
+							"easing": "easeInOutSine"
+						},
+						"1.8": {
+							"vector": [-17.5, -20, 0],
+							"easing": "easeInOutSine"
+						},
+						"2.04": {
+							"vector": [-20, 32.5, 0],
+							"easing": "easeInOutSine"
+						},
+						"3.16": {
+							"vector": [-20, 32.5, 0],
+							"easing": "easeInOutSine"
+						},
+						"3.56": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"earrl": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.48": {
+							"vector": [-15, -35, 0],
+							"easing": "easeInOutSine"
+						},
+						"1.92": {
+							"vector": [-15, -35, 0],
+							"easing": "easeInOutSine"
+						},
+						"2.16": {
+							"vector": [-17.5, 7.5, 0],
+							"easing": "easeInOutSine"
+						},
+						"3.28": {
+							"vector": [-17.5, 7.5, 0],
+							"easing": "easeInOutSine"
+						},
+						"3.56": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"tail": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"1.2": {
+							"vector": [27.5, 0, 0],
+							"easing": "easeInElastic",
+							"easingArgs": [2]
+						},
+						"1.72": {
+							"vector": [0, 0, 0]
+						},
+						"5.72": {
+							"vector": [0, 0, 0]
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.idle5": {
+			"loop": true,
+			"animation_length": 4.68,
+			"bones": {
+				"main": {
+					"position": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"1.04": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"tail": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.16": {
+							"vector": [0, 15, 0]
+						},
+						"0.44": {
+							"vector": [0, -15, 0]
+						},
+						"0.76": {
+							"vector": [0, 15, 0]
+						},
+						"1.04": {
+							"vector": [0, -15, 0]
+						},
+						"1.6": {
+							"vector": [0, 0, 0]
+						},
+						"4.68": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"earr": {
+					"rotation": {
+						"0.0": {
+							"vector": [-2.5, 0, 0]
+						},
+						"0.36": {
+							"vector": [-17.5, 0, 22.5],
+							"easing": "easeInOutQuad"
+						},
+						"2.68": {
+							"vector": [-17.5, 0, 22.5],
+							"easing": "easeInOutQuad"
+						},
+						"3.08": {
+							"vector": [-2.5, 0, 0],
+							"easing": "easeInOutSine"
+						}
+					}
+				},
+				"earrl": {
+					"rotation": {
+						"0.0": {
+							"vector": [-2.5, 0, 0]
+						},
+						"0.36": {
+							"vector": [-17.5, 0, -22.5],
+							"easing": "easeInOutQuad"
+						},
+						"2.68": {
+							"vector": [-17.5, 0, -22.5],
+							"easing": "easeInOutQuad"
+						},
+						"3.08": {
+							"vector": [-2.5, 0, 0],
+							"easing": "easeInOutSine"
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.idle6": {
+			"animation_length": 4.16,
+			"bones": {
+				"main": {
+					"position": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"1.04": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"snout": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.36": {
+							"vector": [-2.5, 0, 0],
+							"easing": "easeInQuart"
+						},
+						"0.52": {
+							"vector": [0, 0, 0]
+						},
+						"0.68": {
+							"vector": [-2.5, 0, 0],
+							"easing": "easeInQuart"
+						},
+						"0.84": {
+							"vector": [0, 0, 0]
+						},
+						"1.04": {
+							"vector": [0, 0, 0]
+						},
+						"2.44": {
+							"vector": [-2.5, 0, 0],
+							"easing": "easeInQuart"
+						},
+						"2.6": {
+							"vector": [0, 0, 0]
+						},
+						"2.76": {
+							"vector": [-2.5, 0, 0],
+							"easing": "easeInQuart"
+						},
+						"2.92": {
+							"vector": [0, 0, 0]
+						},
+						"3.12": {
+							"vector": [0, 0, 0]
+						}
+					}
+				},
+				"earr": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.6": {
+							"vector": [-17.5, 0, 0],
+							"easing": "easeInOutCubic"
+						},
+						"1.04": {
+							"vector": [0, 0, 0],
+							"easing": "easeInOutCubic"
+						}
+					}
+				},
+				"earrl": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.6": {
+							"vector": [-17.5, 0, 0],
+							"easing": "easeInOutCubic"
+						},
+						"1.04": {
+							"vector": [0, 0, 0],
+							"easing": "easeInOutCubic"
+						}
+					}
+				}
+			}
+		},
+		"animation.megumi_divine_dog.screenshot": {
+			"loop": true,
+			"bones": {
+				"head": {
+					"rotation": {
+						"vector": [17.5, -62.5, -5]
+					}
+				},
+				"jaw": {
+					"rotation": {
+						"vector": [15, 0, 0]
+					}
+				},
+				"tail": {
+					"rotation": {
+						"vector": [57.5, 0, 0]
+					}
+				}
+			}
+		}
+	},
+	"geckolib_format_version": 2
+}
