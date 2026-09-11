@@ -17,7 +17,7 @@ Known dev-lane traps (verified 2026-09-09):
 - A new tool class in `src/mcpdev` must be added to `JujutsuModStatusToolProvider.toolClasses()` or it never reaches the live registry.
 - `jujutsu_ticks_wait` without `player_uuid` waits exactly N ticks; with `player_uuid` it exits when the player's PRIMARY cooldown clears (readiness gate), capped at N.
 - `jujutsu_vessel_select` takes `vessel_id` (not `vessel`); the tool answers with `previous:` / `selected:` lines.
-- Camera aiming: `jujutsu_player_set_rotation` is server-side only — the client owns its camera. Move the camera through `entity_teleport` with a `facing` point instead.
+- Camera aiming: `jujutsu_player_set_rotation` sets the server-side rotation only and never moves the client camera. `entity_teleport` with a `facing` point moves both the client camera and the server-side rotation, so it also satisfies server-side look resolvers (verified: `PRIMARY_SNEAK` sic returned `routed:true` immediately after a teleport-facing, with no `player_set_rotation`). The only real failure mode is aiming at the wrong thing — check what the camera points at before invoking an aimed ability.
 - Screenshot sessions drift into night: call `command_execute` `time set noon` before a capture series, or every frame comes back as a dark blob.
 - Summoned pets (Divine Dogs) wander around their owner: read the subject's position, teleport the camera to face it and capture in ONE call — any modelling wait lets it leave the frame.
 - Helmet-less zombies burn to death at noon and vanish mid-test; summon `Invulnerable:1b` / `PersistenceRequired:1b` targets (y=-59 in the dev world) when a test needs a lasting victim.
