@@ -1,6 +1,7 @@
 package jujutsu.mod.client.render.megumi;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.gson.JsonArray;
@@ -87,6 +88,17 @@ final class MegumiDivineDogResourcesTest {
 				"Missing white-variant Dire Wolf texture");
 		assertTrue(Files.isRegularFile(TEXTURES.resolve("megumi_divine_dog_black.png")),
 				"Missing black-variant Dire Wolf texture");
+	}
+
+	@Test
+	void theBiteRidesItsOwnControllerAsAOneShotClip() throws Exception {
+		String source = Files.readString(ANIMATABLE_SOURCE);
+		assertTrue(source.contains("thenPlay(\"animation.megumi_divine_dog.attack\")"),
+				"The jaw clip must be a one-shot: a looping bite would never finish and never release the jaw");
+		assertTrue(source.contains("megumi_dog_bite"),
+				"The bite needs its own controller, or its jaw-only clip would freeze the legs while it plays");
+		assertFalse(source.contains("thenLoop(\"animation.megumi_divine_dog.attack\")"),
+				"The bite must not be looped: a looping jaw clip never finishes and never releases the jaw");
 	}
 
 	@Test
