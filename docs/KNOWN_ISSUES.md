@@ -294,7 +294,7 @@ Both allowlist entries went with it. `VesselBoundaryTest#theOneKnownNetworkLeakD
 
 ## Resolved and now in main
 
-These are closed. They are kept as a short list only so a reader does not reopen them; the live behavior is described in AGENTS.md under "Current slice (facts)".
+- These are closed. They are kept as a short list only so a reader does not reopen them; the live behavior is described in the Codex MOC product snapshot and the source it points to.
 
 - Character selection persists through Fabric Data Attachment API and is copied on death.
 - Nobara's starter kit is restored idempotently on every selection — it fills only a missing hammer, doll or nails, so re-selection cannot duplicate held tools. (This deliberately reversed the earlier one-time-claim rule; the persisted claim is now recorded for every vessel and read by nothing — see E12.)

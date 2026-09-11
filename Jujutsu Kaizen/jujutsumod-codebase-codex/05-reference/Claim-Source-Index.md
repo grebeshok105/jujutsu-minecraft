@@ -16,10 +16,10 @@ Status: CURRENT
 | Embedded nail TTL/cap are 1200/30 | ProjectJjkNobaraProfile | VERIFIED |
 | Resonance changes global server TPS | ProjectJjkStrawDollRuntime.resolveImpact, ServerTimeDilation | VERIFIED and accepted |
 | VFX uses one cue/director/recipe path | VfxDirector, JujutsuClientNetworking, NobaraVfxRecipes | VERIFIED |
-| Nobara defines 21 live VFX ids | NobaraVfxIds | VERIFIED |
+| Nobara defines 24 live VFX ids | NobaraVfxIds | VERIFIED |
 | Client mixin count is 6 | jujutsumod.client.mixins.json | VERIFIED |
 | Verification program inventory | build.gradle `verifyAssertionsEnabled` | VERIFIED |
-| Roster panel has three cards (Nobara/Todo/None) | CharacterRosterPanel.CARDS, initialized from JujutsuCharacterClients.inRosterOrder | VERIFIED |
+| Roster panel has four cards (Nobara/Todo/Megumi/None) | CharacterRosterPanel.CARDS, initialized from JujutsuCharacterClients.inRosterOrder | VERIFIED |
 | Vessel skin animation choice sits behind a compile-time exhaustive switch | JujutsuCharacterClients.definition; CharacterSkinAnimationRenderer.apply asks each definition | VERIFIED |
 | NONE means vanilla player rendering and pose | NoneClientDefinition inherits the null skinAnimation default; CharacterSkinAnimationMixin leaves missing adapters untouched | VERIFIED |
 | Boogie Woogie commits only when both destinations are safe | TodoSwapPlan.preflight, TodoBoogieWoogieRuntime.tryCast | VERIFIED |
@@ -28,8 +28,8 @@ Status: CURRENT
 | Todo reuses Nobara's Black Flash cue id | TodoBlackFlashRuntime.afterDamage, NobaraVfxIds.BLACK_FLASH | VERIFIED, known seam |
 | The stone is cast-gated, not item-gated: a non-Todo cast never reaches the stone runtime, and no marker item exists | CharacterAbilityExecutor.tryCast, TodoDefinition → TodoAbilityRouter | VERIFIED |
 | GeckoLib 5 loads only geckolib/models and geckolib/animations | live skin rigs under `geckolib/models/character_skin`, existing animation JSON, archive manifest and ProjectSanityTest | VERIFIED |
-| ClickGui registers one module per vessel, derived from the client registry (three today) | JujutsuModules.registerAll, JujutsuCharacterClients.all | VERIFIED |
-| Boom detonates all loaded owned nails with no aim gate | ProjectJjkRitualRuntime.collectAllLoadedOwnedNails | VERIFIED |
-| ProjectJJK assets are temporary permitted placeholders | user decision, legal import note | VERIFIED for private development |
+| ClickGui registers one module per vessel, derived from the client registry (four today) | JujutsuModules.registerAll, JujutsuCharacterClients.all | VERIFIED |
+| Mega Nail (B) consumes aimed-target embedded nails with a 24-tick charge and 60-tick flight | ProjectJjkMegaNailRuntime, ProjectJjkNobaraProfile | VERIFIED |
+| ProjectJJK assets are temporary permitted placeholders | docs/PROVENANCE.md permission scope, docs/THIRD_PARTY_NOTICES.md | VERIFIED for private development |
 | Rich provenance is release-ready | no durable permission/license found | UNKNOWN |
 | In-game visual feel is correct | no current smoke evidence | UNKNOWN |

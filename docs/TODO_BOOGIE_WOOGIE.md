@@ -7,7 +7,7 @@ past this document: the pair swap, the triple cyclic swap and the thrown stone a
 removed by that same rework. This file stays authoritative only for the aimed swap, the feint,
 melee and the Black Flash bridge.
 
-This is the approved design that the shipped Todo slice was built from, kept for the rationale behind the numbers and the deliberate exclusions. It is not a branch plan and not a description of current code. For current behavior use the source, then AGENTS.md under "Current slice (facts)"; for known gaps use [KNOWN_ISSUES.md](KNOWN_ISSUES.md). Where this document and the code disagree, the code wins.
+This is the approved design that the shipped Todo slice was built from, kept for the rationale behind the numbers and the deliberate exclusions. It is not a branch plan and not a description of current code. For current behavior use the source, then the product snapshot in `Jujutsu Kaizen/jujutsumod-codebase-codex/00-MOC.md`; for known gaps use [KNOWN_ISSUES.md](KNOWN_ISSUES.md). Where this document and the code disagree, the code wins.
 
 Superseded since approval: Todo now has a GeckoLib model, animations, and a player renderer, so the sections below that assume no model and a no-op animation hook are marked inline.
 

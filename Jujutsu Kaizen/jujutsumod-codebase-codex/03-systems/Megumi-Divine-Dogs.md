@@ -42,7 +42,7 @@ With AI disabled during flight, the server owns pounce motion explicitly: each t
 
 `MegumiProfile` is authoritative: Divine Dogs have 60 health, 3 attack damage, 0.34 movement speed and a separate 1.0 navigation speed modifier. Their damage was not raised; durability and approach speed improve while Sic and the per-dog pounce deadline remain the pressure controls.
 
-Every 10 ticks, a dog farther than 32 blocks gets a deterministic safe-ground search around Megumi through radius 3. A point must be loaded, floor-supported, collision-free and contain no fire or lava. Water is valid over safe ground. No result leaves position, navigation and target unchanged until the next retry; there is no exact-owner fallback.
+Every 10 ticks, a dog farther than 32 blocks gets a deterministic safe-ground search around Megumi through radius 3. A point must be loaded, floor-supported, collision-free and contain no fire or lava. Water is valid over safe ground. No result leaves position, navigation and target unchanged until the next retry; there is no exact-owner fallback. Pure-policy types keep tunables and predicates out of the runtimes: `MegumiCooldownPolicy`, `MegumiLifecyclePolicy`, `MegumiGroundSafety`, `MegumiPouncePolicy`, `MegumiTargetPolicy`, `MegumiDogPresentationPolicy`, plus the `MegumiSummonState` phase record — numbers still live in `MegumiProfile`.
 
 ## Evidence boundary
 

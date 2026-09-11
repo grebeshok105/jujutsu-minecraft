@@ -97,17 +97,20 @@ So raising the scrim alpha could never have fixed it. An opaque scrim is still j
 - No mixin and no seventh entry in the client mixin config — Fabric already wraps vanilla's `renderCrosshair` call site.
 - **Replace, not remove.** The vanilla element stays one condition away, so nothing has to be restored on close and an abnormal close cannot leak a permanently hidden crosshair.
 - The gate is true for the whole close animation as well, since the screen stays set until the panel has faded; popping the crosshair back mid-fade would read as a flicker.
-- Every other HUD element, third-person mode, and the F3 debug crosshair are untouched.
+## Shared UI math: UiEase and WorldToScreen
+
+`client/ui/UiEase.java` (VERIFIED — clamp01/outCubic/inOutCubic/outBack/lerp/approach) is the shared easing surface: `ClickGuiTheme` tick/hover/accent easing, roster panel motion, and `NobaraTargetAnim` all ride it — it is not Nobara-private. `client/ui/WorldToScreen.java` (VERIFIED — pure, zero Minecraft imports, MIN_DEPTH 0.5, forward exactly `Entity.calculateViewVector`, `clampToScreen`) is the shared world→screen projector with a JUnit contract (`WorldToScreenTest`); `NobaraTargetLayout`/`NobaraTargetAnim` consume it but do not own it.
+
 
 ## Modules
 
-`JujutsuModules.registerAll` registers one `ModuleStructure` per vessel — three today (`Nobara`, `Todo`, `None`), all in `ModuleCategory.COMBAT` (the sidebar renders that category as "Characters") — built by walking `JujutsuCharacterClients.all()` rather than written out, with each row's label, blurb and starting state coming from that vessel's `moduleName`/`moduleDescription`/`moduleStartsEnabled`. Their in-source purpose is to keep the module repository non-empty; the visible roster is drawn by `CharacterRosterPanel`, which is the only path that sends `SelectCharacterPayload`. Module toggles are UI state and are not server-authoritative.
+`JujutsuModules.registerAll` registers one `ModuleStructure` per vessel — four today (`Nobara`, `Todo`, `Megumi`, `None`), all in `ModuleCategory.COMBAT` (the sidebar renders that category as "Characters") — built by walking `JujutsuCharacterClients.all()` rather than written out, with each row's label, blurb and starting state coming from that vessel's `moduleName`/`moduleDescription`/`moduleStartsEnabled`. Their in-source purpose is to keep the module repository non-empty; the visible roster is drawn by `CharacterRosterPanel`, which is the only path that sends `SelectCharacterPayload`. Module toggles are UI state and are not server-authoritative.
 
 The old asymmetry — two modules against three roster cards, which read like a bug — is gone, and coverage is now structural rather than counted: `ProjectSanityTest.assertClickGuiModulesCoverEveryVessel` checks that the tab really walks the client registry and names nobody, that every vessel's client definition declares its own module label and accent, and that exactly one vessel starts switched on.
 
 ## Shaders present but not live
 
-`src/client/resources/assets/jujutsumod/shaders/core/` holds 26 files. Only two families are wired through the adapters: `msdf.*` (MSDF text) and `sdf_shape.*` (SDF panels). The rest — `rect.*`, `blur.*`, `glass_composite.*`, `kawase_down.*`, `kawase_up.*`, `outline.*`, `glow_outline.*`, `mask_diff.*`, `arc_*`, `texture.*` — are port artifacts kept for research. Status: INFERRED inventory; verify a call site before claiming any of them is a runtime path.
+`src/client/resources/assets/jujutsumod/shaders/core/` holds 28 files (VERIFIED — directory listing). Three families are wired through the adapters: `msdf.*` (MSDF text), `sdf_shape.*` (SDF panels), and `sdf_glass.*` (liquid-glass refraction via `SceneSampler`, per-shape opt-in through a negative highlight — VERIFIED — SdfPipelines.java:70-75). The rest — `rect.*`, `blur.*`, `glass_composite.*`, `kawase_down.*`, `kawase_up.*`, `outline.*`, `glow_outline.*`, `mask_diff.*`, `arc_*`, `texture.*` — are port artifacts kept for research. Honest state: `sdf_glass` is infrastructure with a passing canary (`SdfGlassCanaryTest`) but no production HUD consumer — `NobaraTargetHud` renders deliberately in vanilla GuiGraphics (fill/font/blit), so the glass pipeline currently has no HUD path to ride. Do not present it as the active HUD renderer.
 
 The original Rich `RectPipeline` from 1.21.11 did not compile against 1.21.8 Mojmap, which is why `Render2D` is an adapter over the project's own `SdfRenderer` rather than a port of the upstream GPU path.
 

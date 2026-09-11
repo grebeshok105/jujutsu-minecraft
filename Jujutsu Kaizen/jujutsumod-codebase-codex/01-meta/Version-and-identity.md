@@ -12,7 +12,7 @@ Status: CURRENT
 | Fabric API | 0.136.1+1.21.8 | gradle.properties |
 | GeckoLib | >=5.2.2 | gradle.properties, fabric.mod.json |
 | Gradle | 9.5.1 | gradle-wrapper.properties |
-| Loom | 1.17-SNAPSHOT | gradle.properties |
+| Loom | 1.17.17 | gradle.properties |
 | license declaration | CC0-1.0 with documented third-party exceptions | LICENSE, README, provenance notes |
 
 The project uses split main/client source sets. Current checkout metrics are maintained in 00-MOC.md and validated by tools/audit_docs.py.

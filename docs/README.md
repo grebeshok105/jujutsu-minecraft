@@ -4,7 +4,7 @@ This directory contains current operational documentation plus the approved desi
 
 ## Source-of-truth order
 
-Owned by the root AGENTS.md under "Documentation Authority". If two documents disagree, use the higher source there and update the lower one.
+Owned by the root AGENTS.md ("Documentation" section). If two documents disagree, use the higher source there and update the lower one.
 
 ## Files in this directory
 

@@ -4,11 +4,11 @@ Status: CURRENT
 
 | Area | jujutsumod | Relationship |
 |---|---|---|
-| Character selection | N ClickGui, Nobara/Todo/None, persistent server state | project-specific |
+| Character selection | N ClickGui, Nobara/Todo/Megumi/None, persistent server state | project-specific |
 | Boogie Woogie | server-authoritative atomic two-sided position swap | project-specific, no ProjectJJK counterpart used |
 | Nail preparation/launch | physical owned nail entities | inspired/verified behavior |
 | Directed Hairpin | aimed seed plus 10-block owner chain | adapted |
-| Mass Hairpin | all loaded indexed owner nails | adapted and bounded |
+| Mega Nail (replaces Mass Hairpin) | aimed-target embedded nails, 24-tick charge, UUID homing | adapted |
 | Straw Doll Resonance | remnant + doll + nail + hammer, revalidated | adapted |
 | Hit-stop | global server 10 TPS window | intentional private-play adaptation |
 | Visual pipeline | Fabric-native VFX Core recipes/channels | original architecture |

@@ -39,7 +39,8 @@ The supported shapes are:
 - `worldFixedDisplacement`: an exact world origin with full displacement in `anchorOffset`;
 - `anchored`: an exact origin reconstructed from an entity anchor and its offset;
 - `anchoredWithOffset`: an entity anchor with an explicit pre-existing offset;
-- `anchoredDirected`: the anchored shape with orientation.
+- `anchoredDirected`: the anchored shape with orientation;
+- `anchoredSilentRepeat`: an anchored cue re-emitted by the server pulse for persistent zones (trap zone, drop zone, pair-mark hold) — never re-ticked by the client (VERIFIED — VfxCues.java:61).
 
 `VfxCue` normalizes `direction`. It is therefore orientation only; it must never be the sole owner of a meaningful distance, speed, size, or displacement. `worldFixedDisplacement` stores the complete displacement in `anchorOffset`, including zero displacement as `Vec3.ZERO`; its `direction` is only the normalized orientation derived from that displacement. Packed offsets with an independent direction remain explicit emitter-level transport shapes until a later migration gives them a named factory. Todo's `SWAP_AFTERIMAGE` and `SWAP_ARRIVAL` remain such deliberate local constructions; the latter is read by the shared `jujutsu.mod.vfx.TodoSwapArrivalPayload` model as `speed = anchorOffset.x`, `bodyWidth = anchorOffset.y`, `bodyHeight = anchorOffset.z`, and `direction = cue.direction()`.
 
@@ -68,10 +69,14 @@ was appended for server-confirmed caster animation anchors, `nobara/mega_nail_st
 for the Mega Nail terminal tracer, and `nobara/mega_nail_charge` was appended for the 24-tick
 Mega Nail charge-up (squeezing rings, spiral particles, growing glow). The `nobara/enlarge` id stays
 live as the Mega Nail per-nail consume flash after the standalone Enlarge mechanic was removed.
-TodoVfxIds defines seven live ids. MegumiVfxIds defines five Divine Dog ids. Across the three owners,
-36 declared live ids remain; existing wire strings stay stable and the new strings are explicitly covered by
-the cue test. Every owner exposes explicit `LIVE` and `PLANNED` sets; `PLANNED` is currently empty,
-and every live id must have exactly one recipe plus a production emitter reference. Recipe completeness
+TodoVfxIds defines ten live ids (VERIFIED — TodoVfxIds.java:63-65 LIVE set: boogie_woogie, swap_endpoint,
+feint_tell, pair_mark, swap_afterimage, swap_arrival, momentum_strike, stone_throw, stone_vanish,
+triple_swap). MegumiVfxIds defines fifteen live ids (VERIFIED — MegumiVfxIds.java:35-39 LIVE set: five
+Divine Dogs — dogs_summon_body, dogs_summon, dogs_recall, dogs_sic, dogs_pounce — plus ten shadow-kit
+ids — shadow_trap open/zone/grip/close, shadow_dive/ripple/emerge, drop_zone open/zone/close).
+Across the three owners, 49 declared live ids remain (24 + 10 + 15); existing wire strings stay stable
+and the new strings are explicitly covered by the cue test.
+Every live id must have exactly one recipe plus a production emitter reference. Recipe completeness
 calls the real three recipe packs against the director registry, whose duplicate registration remains a
 hard failure. Emitter coverage scans only compiled `src/main` bytecode at method level and follows
 local helper calls, so an unrelated id mention in the same class cannot satisfy coverage; comments,
@@ -105,11 +110,11 @@ Client-global slow motion is deliberately absent: the former channel had writers
 
 Effects use cue age to reject or seek late playback rather than replaying stale beats from the start. Persistent visuals are not VFX Core's job: nails are drawn by `ProjectJjkNailRenderer` (see [Nail rendering](Nail-rendering.md)), and the target-info overlay is a VfxDirector HUD contribution (`NobaraTargetHud`), while transient compression, snap, burst, residue, camera, and sound beats belong to recipes and channels.
 
-## HUD is not a Screen
+`VfxDirector` registers exactly one HUD element — `HudElementRegistry.attachElementAfter(VanillaHudElements.MISC_OVERLAYS, jujutsumod:vfx_overlay, VfxDirector::renderHud)` (VERIFIED). Adding a second `HudRenderCallback` for one ability, or a per-effect HUD singleton, is forbidden by this contract; so is a new mixin for a single flash, and so is sending any gameplay packet from HUD code. Vessels plug into that one element through the fan-out API `VfxDirector.registerHudContribution(id, contribution)` (VERIFIED — VfxDirector.java:68): six live contributions on HEAD are `ability_hud`, `megumi_divine_dogs_cooldown`, `megumi_shadow_dive_veil`, `nobara_target_hud`, `todo_pair_status`, and `todo_stone_status`.
+
+The shared strip is `AbilityHud` (VERIFIED — client/hud/AbilityHud.java:24-28): a bottom-center SDF/MSDF strip with 20px cells, registered as the `ability_hud` contribution, hidden while no vessel is selected, session-only position (fixed anchor plus drag offset). Per-vessel content comes from the `hudSlots()` + `maxCooldownTicks()` seam on `CharacterClientDefinition` (CharacterClientDefinition.java:29-40) — every vessel implements `hudSlots()`, Todo and Megumi override `maxCooldownTicks()`; Nobara leaves the default 0, so `AbilityHud` skips her cooldown overlay (possible bug, see Uncertainties). Per-vessel status HUDs (`TodoStatusHud`, `MegumiCooldownHud`, `MegumiShadowDiveHud`, `NobaraTargetHud`) are separate contributions on the same path, not separate elements.
 
 "HUD" in this Codex means in-world combat overlays owned by `VfxDirector`, never the ClickGui menu. Do not merge the concepts: menus are Screens with input focus, HUD draws are one registered element that never takes input.
-
-`VfxDirector` registers exactly one HUD element — `HudElementRegistry.attachElementAfter(VanillaHudElements.MISC_OVERLAYS, jujutsumod:vfx_overlay, VfxDirector::renderHud)` (VERIFIED). Adding a second `HudRenderCallback` for one ability, or a per-effect HUD singleton, is forbidden by this contract; so is a new mixin for a single flash, and so is sending any gameplay packet from HUD code.
 
 ### VfxHudChannel API
 
@@ -124,7 +129,7 @@ Source: `client/vfx/VfxHudChannel.java`. Status: VERIFIED API surface.
 | `render` | called only from the director's HUD registration |
 | `clear` | on level change and disconnect |
 
-Timing, seed, and intensity all come from the server cue. The client never damages, never applies marks, and never opens a menu from HUD code. Late packets pass `initialAgeTicks` into the channel starts, which is why most methods have an age-aware overload.
+Particle visuals live in `client/particle/`: eleven factories registered by `JujutsuClientParticles.registerFactories()` (hairpin family + Black-Flash trio), plus the shadow-mote provider registered from Megumi's own client definition. Particle types themselves are shared content in `JujutsuParticles` (see [Registries](../02-architecture/Registries.md)).
 
 There is no cursed-energy resource bar in the current kit.
 
@@ -134,4 +139,4 @@ There is no cursed-energy resource bar in the current kit.
 
 Additional characters add `<Character>VfxIds` / `<Character>VfxRecipes` and register the recipe pack from their own `CharacterClientDefinition`. Own your cue ids: `TodoBlackFlashRuntime` currently broadcasts `NobaraVfxIds.BLACK_FLASH`, which is a known cross-character seam and not a pattern to copy — see [Todo Boogie Woogie](../03-systems/Todo-Boogie-Woogie.md).
 
-First-person hand styles are a shared channel, not a per-vessel mixin: `VfxFirstPersonChannel.Style` currently has SNAP (Nobara) and CLAP (Todo), both handled in `FirstPersonHandFxMixin`. See [Vessel render stack](Vessel-render-stack.md).
+First-person hand styles are a shared channel, not a per-vessel mixin: `VfxFirstPersonChannel.Style` currently has SNAP (Nobara), CLAP (Todo), and SIGN (Megumi dual-hand canine sign) — see VfxFirstPersonChannel.java:18-22 — all handled in `FirstPersonHandFxMixin`. See [Vessel render stack](Vessel-render-stack.md).
