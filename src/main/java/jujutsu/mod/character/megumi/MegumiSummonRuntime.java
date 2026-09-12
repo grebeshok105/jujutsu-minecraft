@@ -239,9 +239,14 @@ public final class MegumiSummonRuntime {
 	 * The body the pack should answer for its owner this tick (issue #76): the owner's recent
 	 * attacker, else the nearest body already aggroed on the owner, filtered through the same
 	 * eligibility rule a manual sic uses. Null when the owner is unharmed and unaggroed.
+	 *
+	 * <p>The freshness window is measured on the OWNER's own clock: vanilla stamps
+	 * {@code lastHurtByMobTimestamp} with the victim's {@code tickCount}, so comparing it against
+	 * {@code level().getGameTime()} silently expires every hit in a world that has been ticking for
+	 * longer than the player has existed — which is every world after a rejoin.
 	 */
-	static LivingEntity retaliationTarget(LivingEntity owner, long gameTime) {
-		LivingEntity aggressor = MegumiRetaliationPolicy.pickAggressor(owner, gameTime,
+	static LivingEntity retaliationTarget(LivingEntity owner) {
+		LivingEntity aggressor = MegumiRetaliationPolicy.pickAggressor(owner, owner.tickCount,
 				MegumiProfile.RETALIATION_WINDOW_TICKS, () -> owner.level().getEntitiesOfClass(
 						LivingEntity.class,
 						owner.getBoundingBox().inflate(MegumiProfile.RETALIATION_RADIUS),
@@ -412,7 +417,7 @@ public final class MegumiSummonRuntime {
 		if (living.isEmpty()) {
 			return;
 		}
-		LivingEntity aggressor = retaliationTarget(owner, owner.level().getGameTime());
+		LivingEntity aggressor = retaliationTarget(owner);
 		if (aggressor == null) {
 			return;
 		}

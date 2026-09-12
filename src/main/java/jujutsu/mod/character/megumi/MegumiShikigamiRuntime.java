@@ -362,7 +362,7 @@ public final class MegumiShikigamiRuntime {
 		if (living.isEmpty()) {
 			return;
 		}
-		LivingEntity aggressor = MegumiSummonRuntime.retaliationTarget(owner, owner.level().getGameTime());
+		LivingEntity aggressor = MegumiSummonRuntime.retaliationTarget(owner);
 		if (aggressor == null) {
 			return;
 		}

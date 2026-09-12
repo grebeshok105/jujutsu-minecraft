@@ -135,9 +135,13 @@ public abstract class MegumiShikigamiEntity extends TamableAnimal {
 	/**
 	 * A mark the pack picked for itself (issue #76): the owner was hit, or something already has the
 	 * owner as its target. Never overrides a manual sic — the runtime skips bodies whose mark the
-	 * owner chose.
+	 * owner chose. The pass re-marks every tick while the window is fresh, so re-marking the same
+	 * body is a no-op rather than a fresh order.
 	 */
 	void assignRetaliationTarget(LivingEntity target) {
+		if (target.getUUID().equals(sicTargetUuid)) {
+			return;
+		}
 		sicTargetUuid = target.getUUID();
 		sicManual = false;
 		setTarget(target);
