@@ -242,3 +242,28 @@ already resolved and verified in this session). Three were real and are fixed:
 
 Also verified from the batch: the scratch material (`.tmp-javap*`, `.factorypath`, `audit/`, `WATCHDOG.yml`)
 has never been committed (`git log --all` on those paths is empty).
+
+### in-game verification of the toad base fix (2026-09-12, lane mc-lane3)
+
+The base-controller change is client render, invisible to the gate, so it was checked in game with a
+falsifiable pair — same framing, same sic, same target class (invulnerable NoAI husks), only the toad's
+own locomotion differs.
+
+- **Stationary strike**: toad frozen in place with `slowness 8` (the proven freeze that still lets the
+  brain tick), target husk placed straight beyond it so the aim ray passes over the player's own body and
+  resolves the husk. Sic routed (`cooldown 30`), tongue landed — husk 20 -> 17.06 (2.94, the armour-
+  reduced tongue hit) — and the toad's own position was **byte-identical** before and after with
+  `velocity 0`. Cropped bursts: **legs SAME, position SAME** (vision), band diff 625-1852 px / 3.3-8.0 mean
+  relative to frame 0 — the only moving thing in the band is the cue's blue particles.
+- **Walking control** (same protocol, freeze cleared): the toad walked 6.6 blocks toward the same target
+  and struck it identically (20 -> 17.06). Same band metric: **6200-7400 px / 20-28 mean**, and the vision
+  reads the legs as **CHANGED** with the position changing — i.e. the metric demonstrably detects a leg
+  cycle, so the stationary result is a measurement, not a blind spot.
+
+Frames: `.omp/anim-check/toad-strike4-*.png` (stationary), `.omp/anim-check/toad-walk-*.png` (control),
+stacks `stack-stat.png` / `stack-walk.png`.
+
+Honest limit: with the camera in line with the target the toad faces away, so the tongue clip's own
+motion is not visible in these frames (the strike is proven by the damage and the action's server-side
+fire; the clip's controller wiring is pinned by `theTongueRidesTheActionControllerAsAOneShotClip` and the
+earlier session's front-facing frames `toad-tongue-pair.png`).
