@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import jujutsu.mod.network.CharacterSelectionSyncPayload;
+import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuAttachments;
 
 public final class CharacterSelectionManager {
@@ -19,6 +20,17 @@ public final class CharacterSelectionManager {
 		// Every switch runs it, including re-selecting the same vessel, which is what the unconditional
 		// Todo cleanup this replaced did.
 		JujutsuCharacters.definition(previous).onDeselected(player);
+		// A real vessel change is a clean slate (issue #84): the deadlines belonged to the vessel that
+		// is leaving, so they go with it. Two deliberate details — this runs AFTER onDeselected (whose
+		// teardown may arm one) and BEFORE the new selection is stored, while both the store and the
+		// cooldown packet still resolve the outgoing vessel; and re-confirming the SAME vessel does not
+		// clear anything, so the menu cannot be used as a cooldown reset.
+		if (previous != character) {
+			CharacterAbilityCooldowns.clearForCharacter(player.getUUID(), previous);
+			for (CharacterAbility ability : CharacterAbility.values()) {
+				JujutsuNetworking.sendAbilityCooldown(player, ability, 0);
+			}
+		}
 		// Recorded for every vessel, not just the ones that hand something out: "has been this vessel at
 		// least once" is a fact about the player, and claimStarter is idempotent.
 		CharacterPlayerState updated = current.withSelectedCharacter(character).claimStarter(character);

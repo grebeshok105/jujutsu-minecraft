@@ -49,6 +49,11 @@ public final class ClientAbilityCooldowns {
 		return (int) Math.min(Integer.MAX_VALUE, remaining);
 	}
 
+	/** Drops one vessel's mirrored deadlines — the client half of the switch-is-a-clean-slate rule. */
+	public static void clearForCharacter(JujutsuCharacter character) {
+		READY_AT.keySet().removeIf(key -> key.character() == character);
+	}
+
 	public static void clear() {
 		READY_AT.clear();
 	}

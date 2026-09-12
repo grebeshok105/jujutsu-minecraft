@@ -31,6 +31,7 @@ import net.minecraft.world.entity.animal.wolf.WolfVariant;
 import net.minecraft.world.entity.animal.wolf.WolfVariants;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.Relative;
 import net.minecraft.world.entity.player.Player;
@@ -188,14 +189,13 @@ public final class MegumiSummonRuntime {
 		ServerLevel level = player.level();
 		TargetResolver.Result result = TargetResolver.resolve(
 				level, player, MegumiProfile.SIC_RANGE,
-				target -> isEligibleTarget(player, target) && !isOwnSummonBody(player, target));
+				target -> isEligibleTarget(player, target));
 		if (result.mode() != TargetResolver.Mode.ENTITY || result.entityId().isEmpty()) {
 			return false;
 		}
 		Entity resolved = level.getEntity(result.entityId().get());
 		if (!(resolved instanceof LivingEntity target)
 				|| !isEligibleTarget(player, target)
-				|| isOwnSummonBody(player, target)
 				|| !player.hasLineOfSight(target)) {
 			return false;
 		}
@@ -213,9 +213,10 @@ public final class MegumiSummonRuntime {
 	}
 
 	/**
-	 * Any body the owner's own shikigami layer has out is never a legal sic target, however it crosses
-	 * the aim: a body standing between the owner and the mark would otherwise be commanded as the mark.
-	 * Shared with the shikigami branch so both readings of the aim agree.
+	 * Any body the owner's own shikigami layer has out is never a legal mark, however it crosses
+	 * the aim: a body standing between the owner and the target would otherwise be commanded as the
+	 * mark. Shared with the shikigami branch so both readings of the aim agree, and read by
+	 * {@link #isEligibleTarget} so auto-acquired targets obey the same rule.
 	 */
 	static boolean isOwnSummonBody(LivingEntity owner, LivingEntity candidate) {
 		return candidate instanceof MegumiShikigamiEntity body && owner.getUUID().equals(body.ownerUuid());
@@ -228,8 +229,31 @@ public final class MegumiSummonRuntime {
 				!target.isRemoved(),
 				target.level() == owner.level(),
 				target instanceof Player player && player.isSpectator(),
-				target instanceof MegumiDivineDogEntity dog && owner.getUUID().equals(dog.ownerUuid()),
+				(isOwnSummonBody(owner, target))
+						|| (target instanceof MegumiDivineDogEntity dog
+								&& owner.getUUID().equals(dog.ownerUuid())),
 				owner.isAlliedTo(target)));
+	}
+
+	/**
+	 * The body the pack should answer for its owner this tick (issue #76): the owner's recent
+	 * attacker, else the nearest body already aggroed on the owner, filtered through the same
+	 * eligibility rule a manual sic uses. Null when the owner is unharmed and unaggroed.
+	 *
+	 * <p>The freshness window is measured on the OWNER's own clock: vanilla stamps
+	 * {@code lastHurtByMobTimestamp} with the victim's {@code tickCount}, so comparing it against
+	 * {@code level().getGameTime()} silently expires every hit in a world that has been ticking for
+	 * longer than the player has existed — which is every world after a rejoin.
+	 */
+	static LivingEntity retaliationTarget(LivingEntity owner) {
+		LivingEntity aggressor = MegumiRetaliationPolicy.pickAggressor(owner, owner.tickCount,
+				MegumiProfile.RETALIATION_WINDOW_TICKS, () -> owner.level().getEntitiesOfClass(
+						LivingEntity.class,
+						owner.getBoundingBox().inflate(MegumiProfile.RETALIATION_RADIUS),
+						candidate -> candidate != owner
+								&& candidate instanceof Mob mob
+								&& mob.getTarget() == owner));
+		return aggressor != null && isEligibleTarget(owner, aggressor) ? aggressor : null;
 	}
 
 	private static MegumiDivineDogEntity createDog(
@@ -370,9 +394,36 @@ public final class MegumiSummonRuntime {
 	private static void tick(MinecraftServer server) {
 		for (UUID ownerId : Set.copyOf(PACKS.keySet())) {
 			reconcile(server, ownerId, RemovalCause.TICK);
+			retaliate(server, ownerId);
 			MegumiDivineDogPack pack = PACKS.get(ownerId);
 			if (pack != null) {
 				recoverLeash(server, ownerId, pack);
+			}
+		}
+	}
+
+	/**
+	 * The dogs answer for their owner without a key press (issue #76), exactly like the non-dog
+	 * pack: the owner's recent attacker, or the nearest body already aggroed on the owner, becomes
+	 * the mark of every dog that carries none. A dog the owner sics by hand keeps its mark.
+	 */
+	private static void retaliate(MinecraftServer server, UUID ownerId) {
+		MegumiDivineDogPack pack = PACKS.get(ownerId);
+		ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
+		if (pack == null || owner == null) {
+			return;
+		}
+		List<MegumiDivineDogEntity> living = livingDogs(server, ownerId, pack);
+		if (living.isEmpty()) {
+			return;
+		}
+		LivingEntity aggressor = retaliationTarget(owner);
+		if (aggressor == null) {
+			return;
+		}
+		for (MegumiDivineDogEntity dog : living) {
+			if (dog.acceptsSicCommand() && !dog.hasManualSicTarget()) {
+				dog.assignRetaliationTarget(aggressor);
 			}
 		}
 	}

@@ -765,4 +765,83 @@ public final class CursedSpiritGameTests {
 		Vec3 velocity = body.getDeltaMovement();
 		return Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
 	}
+	/**
+	 * Issue #85 — a whiffed swing must not cancel the slam. The tracked victim is yanked out of
+	 * reach the moment the windup opens, and a pig parked inside the 3.5 profile radius must still
+	 * take the shockwave while the victim stays untouched (the direct hit keeps its reach rule).
+	 * Before the fix the strike-time reach re-check returned before the AoE block, so the whole
+	 * swing dealt nothing: the "empty attacks" Walking Bed report.
+	 */
+	@GameTest(maxTicks = 220, skyAccess = true)
+	public void greaterSlamStillLandsWhenTheTrackedVictimLeavesReach(GameTestHelper helper) {
+		String fixture = "greaterSlamStillLandsWhenTheTrackedVictimLeavesReach";
+		BlockPos spiritFeet = new BlockPos(2, 1, 2);
+		BlockPos victimFeet = new BlockPos(2, 1, 3);
+		BlockPos pigFeet = new BlockPos(4, 1, 2);
+		CursedSpiritTestFixtures.layStoneFloor(helper);
+		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
+		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, fixture, victimFeet);
+		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
+				JujutsuEntities.GREATER_CURSED_SPIRIT, spiritFeet);
+		spirit.setVariant(CursedSpiritVariant.WALKING_BED);
+		Pig bystander = GameTestFixtures.spawnMob(helper, fixture, EntityType.PIG, pigFeet);
+		CursedSpiritTestFixtures.freezeGround(bystander);
+		double victimMax = victim.getMaxHealth();
+		AtomicBoolean pulled = new AtomicBoolean();
+		AtomicBoolean done = new AtomicBoolean();
+
+		helper.runAtTickTime(2, () -> {
+			helper.assertTrue(spirit.hasLineOfSight(victim),
+					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+							"line of sight to victim", "true", spirit.hasLineOfSight(victim)));
+			helper.assertTrue(bystander.getHealth() == 10.0,
+					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+							"bystander starts whole", "10.0", bystander.getHealth()));
+		});
+		for (long tick = 3; tick <= 210; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				if (done.get()) {
+					return;
+				}
+				try {
+					if (!pulled.get() && spirit.attackAnimationState.isStarted()
+							&& spirit.getTarget() == victim) {
+						// The windup just opened: take the victim out of reach so the strike-time
+						// re-check sees a whiff. The clip runs on to the slam either way. The pull
+						// stays INSIDE the 6x6 pad — off the pad the victim drops out of the arena
+						// and the swing would stop instead of whiffing.
+						Vec3 away = helper.absolutePos(new BlockPos(6, 1, 6)).getCenter();
+						victim.teleportTo(away.x, away.y, away.z);
+						pulled.set(true);
+						return;
+					}
+					if (pulled.get() && bystander.getHealth() < 10.0) {
+						helper.assertTrue(victim.getHealth() == victimMax,
+								CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+										"out-of-reach victim takes no direct hit", victimMax,
+										victim.getHealth()));
+						done.set(true);
+						spirit.discard();
+						bystander.discard();
+						CursedSpiritTestFixtures.cleanupVictim(helper, victim);
+						helper.succeed();
+						return;
+					}
+					if (pollTick == 210) {
+						helper.assertTrue(false, CursedSpiritTestFixtures.diagnostic(fixture,
+								helper.getTick(), null,
+								"bystander splashed by the slam of a whiffed swing",
+								"hp < 10.0", bystander.getHealth()));
+					}
+				} catch (RuntimeException | AssertionError failure) {
+					done.set(true);
+					spirit.discard();
+					bystander.discard();
+					CursedSpiritTestFixtures.cleanupVictim(helper, victim);
+					throw failure;
+				}
+			});
+		}
+	}
 }

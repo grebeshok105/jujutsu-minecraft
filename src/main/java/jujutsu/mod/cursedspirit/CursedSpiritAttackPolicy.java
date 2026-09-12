@@ -84,7 +84,9 @@ public final class CursedSpiritAttackPolicy {
 
 	/**
 	 * Splits nearby bodies into the direct victim (already resolved) and the AoE splash: every
-	 * other living body within {@code aoeRadius} of the attacker.
+	 * other living body within {@code aoeRadius} of the attacker. The splash is the attack's
+	 * ground impact, so it does not depend on the primary still being in reach — a slam whose
+	 * tracked victim escaped still hits the bodies standing in the crater (issue #85).
 	 */
 	public static StrikePlan strikeTargets(LivingEntity primary, List<LivingEntity> nearby,
 			double attackerX, double attackerY, double attackerZ, CursedSpiritTierStats stats) {

@@ -12,8 +12,6 @@ import net.minecraft.world.entity.ai.goal.FollowOwnerGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
-import net.minecraft.world.entity.ai.goal.target.OwnerHurtByTargetGoal;
-import net.minecraft.world.entity.ai.goal.target.OwnerHurtTargetGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
@@ -62,8 +60,11 @@ public final class MegumiElephantEntity extends MegumiShikigamiEntity {
 				(float) MegumiShikigamiProfile.ELEPHANT_FOLLOW_STOP_DISTANCE));
 		goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0f));
 		goalSelector.addGoal(8, new RandomLookAroundGoal(this));
-		targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));
-		targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));
+		// No OwnerHurtByTargetGoal and no OwnerHurtTargetGoal: both set a target straight from the
+		// owner's own fight — the first from whoever hit the owner, the second from whoever the
+		// owner hit — bypassing the pack's priorities and stealing a manual sic's mark (issue #76).
+		// Target acquisition belongs to the sic command and the retaliation pass, which know
+		// eligibility, the sic's precedence and how to re-mark without cancelling a leap.
 	}
 
 	@Override

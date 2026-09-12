@@ -24,8 +24,6 @@ import net.minecraft.world.entity.ai.goal.FollowOwnerGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
-import net.minecraft.world.entity.ai.goal.target.OwnerHurtByTargetGoal;
-import net.minecraft.world.entity.ai.goal.target.OwnerHurtTargetGoal;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.wolf.Wolf;
 import net.minecraft.world.entity.animal.wolf.WolfSoundVariant;
@@ -45,6 +43,8 @@ public final class MegumiDivineDogEntity extends Wolf {
 	private long summonToken;
 	private ResourceKey<Level> recallDimension;
 	private UUID sicTargetUuid;
+	/** True while the current mark came from the owner's own sic command, not from retaliation. */
+	private boolean sicManual;
 	private UUID pounceTargetUuid;
 	private UUID pounceSicTargetUuid;
 	private long nextPounceReadyGameTime;
@@ -64,8 +64,11 @@ public final class MegumiDivineDogEntity extends Wolf {
 				(float) MegumiProfile.FOLLOW_STOP_DISTANCE));
 		goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0f));
 		goalSelector.addGoal(8, new RandomLookAroundGoal(this));
-		targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));
-		targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));
+		// No OwnerHurtByTargetGoal and no OwnerHurtTargetGoal: both set a target straight from the
+		// owner's own fight — the first from whoever hit the owner, the second from whoever the
+		// owner hit — bypassing the pack's priorities and stealing a manual sic's mark (issue #76).
+		// Target acquisition belongs to the sic command and the retaliation pass, which know
+		// eligibility, the sic's precedence and how to re-mark without cancelling a leap.
 	}
 
 	@Override
@@ -128,7 +131,32 @@ public final class MegumiDivineDogEntity extends Wolf {
 	void assignSicTarget(LivingEntity target) {
 		finishPounce();
 		sicTargetUuid = target.getUUID();
+		sicManual = true;
 		super.setTarget(target);
+	}
+
+	/**
+	 * A mark the dogs picked for themselves (issue #76): the owner was hit, or something already has
+	 * the owner as its target. A manual sic outranks it — the runtime skips bodies whose mark the
+	 * owner chose.
+	 *
+	 * <p>The pass re-marks on every tick while the window is fresh, so re-marking the SAME body is a
+	 * no-op: dropping the leap in progress here would cancel the very pounce that lands the blow, and
+	 * a pack would bite once and then stand still for as long as its owner keeps being hit.
+	 */
+	void assignRetaliationTarget(LivingEntity target) {
+		if (target.getUUID().equals(sicTargetUuid)) {
+			return;
+		}
+		finishPounce();
+		sicTargetUuid = target.getUUID();
+		sicManual = false;
+		super.setTarget(target);
+	}
+
+	/** True while the current mark came from the owner's own sic command. */
+	boolean hasManualSicTarget() {
+		return sicManual;
 	}
 
 	UUID sicTargetUuid() {
@@ -195,6 +223,7 @@ public final class MegumiDivineDogEntity extends Wolf {
 
 	void clearSicCommand() {
 		sicTargetUuid = null;
+		sicManual = false;
 		finishPounce();
 	}
 

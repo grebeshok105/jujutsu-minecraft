@@ -119,6 +119,20 @@ public final class MegumiShikigamiProfile {
 	public static final double RABBITS_BUMP_RADIUS = 1.4;
 	public static final double RABBITS_BUMP_KNOCKBACK = 0.35;
 	public static final int RABBITS_BUMP_SLOWNESS_TICKS = 20;
+	/**
+	 * Locomotion for the swarm (issue #78): the bodies spawn inside the FollowOwner stop radius, so
+	 * without a drift driver they never receive a wanted position and only animate a hop in place.
+	 * Every interval a body picks a fresh point on a ring around its owner.
+	 */
+	public static final int RABBIT_DRIFT_INTERVAL_TICKS = 30;
+	public static final double RABBIT_DRIFT_MIN_RADIUS = 1.2;
+	public static final double RABBIT_DRIFT_MAX_RADIUS = 3.6;
+	/**
+	 * Past this distance from the owner a body reunites instead of drifting. Chasing a mark is not
+	 * leashed by it: a mark is placed by the owner's sic or by the retaliation pass, and a body that
+	 * refused to cross this line would ignore an order it was given.
+	 */
+	public static final double RABBIT_DRIFT_LEASH = 9.0;
 	public static final int RABBIT_HOP_INTERVAL_TICKS = 10;
 
 	// --- Max Elephant ---

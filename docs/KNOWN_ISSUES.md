@@ -194,15 +194,18 @@ The gap has only widened with each wave — the input-slots branch put three who
 
 Action: add narrow server/world tests around the real runtimes — valid swap, blocked destination, second-teleport failure and rollback, motion and rotation preservation, cooldown started on success and not on failure, and one stone-leak test per exit path. Keep the existing pure tests as fast checks and keep real runClient smoke for graphics-dependent behavior.
 
-### E1a — Ability cooldown survives respawn and resets on disconnect
+### E1a — Ability cooldown survives respawn and resets on disconnect or a vessel switch
 
-Verified 2026-07-26 against `src/main/java/jujutsu/mod/character/CharacterAbilityCooldowns.java`.
+Verified 2026-07-26 against `src/main/java/jujutsu/mod/character/CharacterAbilityCooldowns.java`;
+switching policy revised 2026-09-12 (issue #84).
 
 `READY_AT` is keyed by `(player UUID, vessel, slot)` and is pruned only on `ServerPlayConnectionEvents.DISCONNECT` and `SERVER_STOPPING`. There is no death or respawn hook, so a running cooldown survives respawn but is cleared by a disconnect/rejoin. For a 60-tick cooldown this is harmless.
 
-The vessel is part of the key because a slot names an input position, so the same slot is a different ability for each vessel; without it one vessel's cooldown refused another's ability after a switch. `CHARACTER_STATE` is `copyOnDeath()`, so the vessel resolves identically after respawn and the policy above is unchanged. Switching away and back does not reset a cooldown: the stored value is an absolute game time, so it resumes where it left off.
+The vessel is part of the key because a slot names an input position, so the same slot is a different ability for each vessel; without it one vessel's cooldown refused another's ability after a switch. `CHARACTER_STATE` is `copyOnDeath()`, so the vessel resolves identically after respawn and the policy above is unchanged.
 
-This is recorded as the intended policy rather than a defect, so that a future refactor cannot change it silently. Confirm it during the next manual smoke; if the desired policy is different, change it deliberately and update this entry.
+**A vessel switch is a clean slate (revised 2026-09-12, issue #84).** This entry used to record the opposite — "switching away and back does not reset a cooldown" — which shipped as a defect: a player who left a vessel mid-cooldown returned to a half-spent deadline with no visible cause. `CharacterSelectionManager.select` now calls `clearForCharacter(player, previousVessel)` for the vessel that is leaving (after `onDeselected`, so a teardown-armed deadline goes too) and mirrors a zero for every slot to that player's client. Re-confirming the **same** vessel clears nothing on purpose: the menu must not be a cooldown-reset button.
+
+Accepted consequence: because the recall and death prices are cooldowns, deselecting and re-selecting a vessel now also clears those prices. The owner asked for the clean slate on 2026-09-12, and the alternative (keeping the price across a switch) is what the issue reported as broken. Respawn and disconnect behaviour is unchanged. Confirm the switch case during the next manual smoke; if the desired policy changes again, change it deliberately and update this entry.
 
 ### E1b — TargetResolver ordering is a cross-character contract
 

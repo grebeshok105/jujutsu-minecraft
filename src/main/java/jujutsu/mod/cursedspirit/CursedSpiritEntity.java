@@ -296,10 +296,14 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant {
 	}
 
 	void beginScreamAnim() {
-		// Same restart rule, plus the looping SCREAMER clip would otherwise hold the ported
-		// setupAnims' walk gate forever.
-		screamAnimationState.stop();
-		screamAnimationState.start(tickCount);
+		// A fresh hit only extends the window while the clip already runs: restarting it on every hit
+		// of a combo re-entered the authored torso swing and the POSITION bob each time, which read as
+		// the model sliding off its hitbox (issue #77). A first hit still stop-then-starts, because a
+		// finished clip never restarts on its own.
+		if (!screamAnimationState.isStarted()) {
+			screamAnimationState.stop();
+			screamAnimationState.start(tickCount);
+		}
 		screamTicks = SCREAM_DURATION_TICKS;
 	}
 

@@ -47,11 +47,6 @@ public final class MegumiShikigamiCrossTests {
 	private static final int SUMMON_TICK = 2;
 	private static final int ACT_TICK = 4;
 
-	/**
-	 * C4 pins this row: vessel deselect costs exactly the Nue recall cooldown (DESELECTED is a
-	 * recall-family reason). Deliberately NOT the profile constant — the red-proof mutates it.
-	 */
-	private static final int EXPECTED_DESELECT_COOLDOWN_TICKS = 240;
 
 	/**
 	 * C7 pins this row: a dimension change dismisses the pack at exactly the Nue recall price
@@ -211,8 +206,8 @@ public final class MegumiShikigamiCrossTests {
 	 * still NUE, PRIMARY reads exactly 240 in the deselect tick.
 	 */
 	@GameTest(maxTicks = 60)
-	public void deselectTearsPackDownButKeepsSelection(GameTestHelper helper) {
-		String fixture = "deselectTearsPackDownButKeepsSelection";
+	public void deselectTearsPackDownAndClearsItsCooldowns(GameTestHelper helper) {
+		String fixture = "deselectTearsPackDownAndClearsItsCooldowns";
 		BlockPos casterFeet = new BlockPos(2, 1, 2);
 		helper.setBlock(casterFeet.below(), Blocks.STONE);
 
@@ -237,16 +232,14 @@ public final class MegumiShikigamiCrossTests {
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "deselect", helper.getTick(), ownerId,
 								"selection after deselect", MegumiShikigami.NUE, selected));
 
-				// The cooldown store keys on (player, vessel, slot) and resolves the vessel from the
-				// live selection, so the deselect only changed the key being read: what the teardown
-				// armed lives under MEGUMI. Switching back must find it exactly where it was left —
-				// that is the player-visible promise (the recall price survives the vessel switch).
+				// Issue #84: the deselect arms the recall cooldown and the switch then clears it — a
+				// vessel change is a clean slate, so re-selecting MEGUMI must not come back to a
+				// half-spent deadline. The teardown itself (pack gone, selection kept) is asserted above.
 				CharacterSelectionManager.select(caster, JujutsuCharacter.MEGUMI);
 				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
-				helper.assertTrue(remaining == EXPECTED_DESELECT_COOLDOWN_TICKS,
+				helper.assertTrue(remaining == 0,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "deselect", helper.getTick(), ownerId,
-								"PRIMARY recall cooldown after re-selecting MEGUMI",
-								EXPECTED_DESELECT_COOLDOWN_TICKS, remaining));
+								"PRIMARY cooldown after re-selecting MEGUMI", 0, remaining));
 			} finally {
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 			}
@@ -549,5 +542,74 @@ public final class MegumiShikigamiCrossTests {
 				helper.setBlock(new BlockPos(dx, 0, dz), Blocks.STONE);
 			}
 		}
+	}
+	/**
+	 * Issue #84 — a vessel switch is a clean slate. Both directions are covered: MEGUMI -> NONE ->
+	 * MEGUMI (the reported case) and MEGUMI -> TODO -> MEGUMI (cross-vessel), each asserting the slot
+	 * reads zero immediately after the switch and after switching back.
+	 *
+	 * <p>Re-confirming the SAME vessel is asserted too, because that is the one path the clearing must
+	 * NOT cover: the menu would otherwise be a free cooldown reset.
+	 */
+	@GameTest(maxTicks = 120, skyAccess = true)
+	public void vesselSwitchClearsAbilityCooldowns(GameTestHelper helper) {
+		String fixture = "vesselSwitchClearsAbilityCooldowns";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		helper.setBlock(casterFeet.below(), Blocks.STONE);
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+
+		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			UUID ownerId = caster.getUUID();
+			MegumiShikigamiSelection.set(ownerId, MegumiShikigami.NUE);
+			boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"summon", helper.getTick(), ownerId, "tryPrimary result", "true", summoned));
+		}));
+
+		helper.runAtTickTime(ACT_TICK, () -> {
+			try {
+				UUID ownerId = caster.getUUID();
+				// Summoning itself costs nothing (the recall price is paid on recall/death), so the
+				// cooldown under test is armed explicitly — this scenario is about the switch, not
+				// about what arms the deadline.
+				CharacterAbilityCooldowns.start(caster, CharacterAbility.PRIMARY, 240);
+				int armed = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				helper.assertTrue(armed > 0, MegumiShikigamiTestFixtures.diagnostic(fixture, "arm",
+						helper.getTick(), ownerId, "cooldown armed before the switch", "> 0", armed));
+
+				CharacterSelectionManager.select(caster, JujutsuCharacter.NONE);
+				int afterDeselect = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				helper.assertTrue(afterDeselect == 0, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"deselect", helper.getTick(), ownerId, "cooldown cleared by the switch to NONE",
+						0, afterDeselect));
+
+				CharacterSelectionManager.select(caster, JujutsuCharacter.MEGUMI);
+				int afterReturn = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				helper.assertTrue(afterReturn == 0, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"return", helper.getTick(), ownerId, "cooldown still clear after re-selecting MEGUMI",
+						0, afterReturn));
+
+				// Cross-vessel: arm MEGUMI again, leave for TODO, and return to a clean slot.
+				MegumiShikigamiSelection.set(ownerId, MegumiShikigami.DOGS);
+				CharacterAbilityCooldowns.start(caster, CharacterAbility.PRIMARY, 240);
+				CharacterSelectionManager.select(caster, JujutsuCharacter.TODO);
+				CharacterSelectionManager.select(caster, JujutsuCharacter.MEGUMI);
+				int afterTodo = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				helper.assertTrue(afterTodo == 0, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"cross-vessel", helper.getTick(), ownerId,
+						"cooldown cleared by the MEGUMI -> TODO -> MEGUMI round trip", 0, afterTodo));
+
+				// Re-confirming the same vessel must NOT clear: the menu is not a reset button.
+				CharacterAbilityCooldowns.start(caster, CharacterAbility.PRIMARY, 240);
+				CharacterSelectionManager.select(caster, JujutsuCharacter.MEGUMI);
+				int afterReconfirm = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				helper.assertTrue(afterReconfirm > 0, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"reconfirm", helper.getTick(), ownerId,
+						"re-confirming the same vessel keeps the cooldown", "> 0", afterReconfirm));
+			} finally {
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+			}
+		});
+		helper.runAtTickTime(20, () -> helper.succeed());
 	}
 }

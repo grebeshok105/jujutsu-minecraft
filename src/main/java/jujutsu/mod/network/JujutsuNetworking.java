@@ -88,6 +88,11 @@ public final class JujutsuNetworking {
 	 * silence one slot while refusing another.
 	 */
 	public static boolean sendAbilityCooldown(ServerPlayer player, CharacterAbility ability, int remainingTicks) {
+		// Fabric's canSend() asserts on the connection rather than reporting false, and a headless
+		// GameTest player has none: nothing to mirror to, so the caller gets the same "not sent" answer.
+		if (player.connection == null) {
+			return false;
+		}
 		if (!ServerPlayNetworking.canSend(player, AbilityCooldownPayload.TYPE)) {
 			return false;
 		}

@@ -35,6 +35,15 @@ Known traps from the shikigami lane (verified 2026-09-12):
 - **`view_capture` costs ~0.3 s**, which is the same order as a 6-tick action window: burst densely, then compare frames numerically (a changed-pixel mask localizes the subject; a vision read on a ~40–150 px subject is unreliable, and the arena's slimes and wild frogs get mis-read as your subject). Clear the noise first (`command_execute kill @e[type=minecraft:slime,distance=..64]`).
 - **A stationary subject needs the camera and the aim on opposite sides.** One direction can serve both when the subject sits *between* the camera and the target: place the target beyond the body along the sight line — the player's own summon is skipped by the resolver (`isOwnBody`), and the body lands in the foreground of the same shot.
 
+Known traps from the bugfix lane (verified 2026-09-12, issues #76–#85):
+
+- **`hub start` does not inherit `JAVA_HOME`.** Launched via the supervisor, `gradlew.bat` picks the machine's Java 17 and loom refuses to configure (`Dependency requires at least JVM runtime version 21`), so the lane dies in 4 s. Always pass `env: {"JAVA_HOME": "C:/Users/KOMP1/scoop/apps/temurin21-jdk/current"}`.
+- **One MCP session per process.** A fresh `initialize` per tool call trips the lane's rate limit after a handful of calls (`initialize failed 429`). Drive the lane from one Python process that imports the throwaway client once (`analysis/mc_mcp.py` caches `_sessions`); the one-line CLI is only for single calls.
+- **`view_capture` answers with base64, it does not write a file.** The result carries `{"type":"image","data":…}`; decode it yourself (`.superpowers/rule-of-four/bugfix-76-85/analysis/shot.py`). Asking for a `path` argument returns nothing useful.
+- **`entity_query` prints a YAML list** — the id line is `- uuid: <uuid>`, not `uuid: <uuid>`; parsers that miss the dash silently see zero entities.
+- **The lane player is mortal and a dead player breaks every probe silently.** A `walking_bed` killed Player770 mid-pass; afterwards `entity_get` answers `Entity not found`, mobs stop aggroing and HP reads come back empty — symptoms that look like a broken feature. Recover with the `computer` tool: window `Minecraft* 1.21.8` → screenshot → vision model locates the Respawn button → click; then keep `command_execute effect give @a resistance 600 1..3 true` on while parking mobs nearby.
+- **Aggression is proven by damage, not by proximity.** For any "the mob attacks the owner" premise, check the owner's HP trajectory (or the attacker's HP delta once the pack answers); a zombie that merely stands nearby may never have set `getTarget()`.
+
 ## Launch
 
 From any worktree that has the mcpdev source set (spike lineage or main after #63):
