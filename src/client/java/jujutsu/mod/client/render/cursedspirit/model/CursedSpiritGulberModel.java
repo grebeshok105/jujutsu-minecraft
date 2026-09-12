@@ -11,6 +11,7 @@ import net.minecraft.client.model.geom.builders.CubeListBuilder;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
+import jujutsu.mod.client.render.cursedspirit.CursedSpiritClips;
 import jujutsu.mod.client.render.cursedspirit.CursedSpiritRenderState;
 import jujutsu.mod.client.render.cursedspirit.anim.CursedSpiritGulberAnimations;
 
@@ -65,8 +66,6 @@ public class CursedSpiritGulberModel extends EntityModel<CursedSpiritRenderState
         root().getAllParts().forEach(ModelPart::resetPose);
         this.head.yRot = state.yRot * 0.017453292f;
         this.head.xRot = state.xRot * 0.017453292f;
-        this.idleAnimation.apply(state.idle, state.ageInTicks);
-        this.attackAnimation.apply(state.attack, state.ageInTicks);
-        this.walkAnimation.applyWalk(state.walkAnimationPos, state.walkAnimationSpeed, 2.5f, 4.0f);
+CursedSpiritClips.apply(state, null, this.attackAnimation, this.idleAnimation, this.walkAnimation, 2.5f, 4.0f);
     }
 }

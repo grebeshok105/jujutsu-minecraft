@@ -11,6 +11,7 @@ import net.minecraft.client.model.geom.builders.CubeListBuilder;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
+import jujutsu.mod.client.render.cursedspirit.CursedSpiritClips;
 import jujutsu.mod.client.render.cursedspirit.CursedSpiritRenderState;
 import jujutsu.mod.client.render.cursedspirit.anim.CursedSpiritWalkingBedAnimations;
 
@@ -133,11 +134,6 @@ public class CursedSpiritWalkingBedModel extends EntityModel<CursedSpiritRenderS
         root().getAllParts().forEach(ModelPart::resetPose);
         this.head.yRot = state.yRot * 0.017453292f;
         this.head.xRot = state.xRot * 0.017453292f;
-        this.screamAnimation.apply(state.scream, state.ageInTicks);
-        this.attackAnimation.apply(state.attack, state.ageInTicks);
-        this.idleAnimation.apply(state.idle, state.ageInTicks);
-        if (!state.scream.isStarted()) {
-            this.walkAnimation.applyWalk(state.walkAnimationPos, state.walkAnimationSpeed, 2.5f, 4.5f);
-        }
+CursedSpiritClips.apply(state, this.screamAnimation, this.attackAnimation, this.idleAnimation, this.walkAnimation, 2.5f, 4.5f);
     }
 }

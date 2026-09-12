@@ -7,8 +7,11 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import net.minecraft.client.animation.AnimationDefinition;
+import net.minecraft.client.model.EntityModel;
+import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import jujutsu.mod.client.render.cursedspirit.anim.CursedSpiritBludAnimations;
 import jujutsu.mod.client.render.cursedspirit.anim.CursedSpiritButcherAnimations;
@@ -42,6 +45,12 @@ final class CursedSpiritRigFixtures {
 	static final Map<CursedSpiritVariant, Class<?>> ANIMATIONS = new EnumMap<>(CursedSpiritVariant.class);
 	static final Map<CursedSpiritVariant, Supplier<LayerDefinition>> LAYERS =
 			new EnumMap<>(CursedSpiritVariant.class);
+	/**
+	 * Variant to model constructor: the clip-arbitration contract bakes a fresh rig and runs
+	 * {@code setupAnim} on it, which needs the concrete model, not just the layer.
+	 */
+	static final Map<CursedSpiritVariant, Function<ModelPart, EntityModel<CursedSpiritRenderState>>> MODELS =
+			new EnumMap<>(CursedSpiritVariant.class);
 	/** Variant to clip name to exact bone-name set (frozen clip bone map). */
 	static final Map<CursedSpiritVariant, Map<String, Set<String>>> BONES =
 			new EnumMap<>(CursedSpiritVariant.class);
@@ -72,6 +81,15 @@ final class CursedSpiritRigFixtures {
 		LAYERS.put(CursedSpiritVariant.GUZZLER, CursedSpiritGuzzlerModel::createBodyLayer);
 		LAYERS.put(CursedSpiritVariant.BLUD, CursedSpiritBludModel::createBodyLayer);
 		LAYERS.put(CursedSpiritVariant.WALKING_BED, CursedSpiritWalkingBedModel::createBodyLayer);
+		MODELS.put(CursedSpiritVariant.PROWLER, CursedSpiritProwlerModel::new);
+		MODELS.put(CursedSpiritVariant.FLOATING_CURSE, CursedSpiritFloatingCurseModel::new);
+		MODELS.put(CursedSpiritVariant.GULBER, CursedSpiritGulberModel::new);
+		MODELS.put(CursedSpiritVariant.KELVIN, CursedSpiritKelvinModel::new);
+		MODELS.put(CursedSpiritVariant.BUTCHER, CursedSpiritButcherModel::new);
+		MODELS.put(CursedSpiritVariant.GUZZLER, CursedSpiritGuzzlerModel::new);
+		MODELS.put(CursedSpiritVariant.BLUD, CursedSpiritBludModel::new);
+		MODELS.put(CursedSpiritVariant.WALKING_BED, CursedSpiritWalkingBedModel::new);
+		MODELS.put(CursedSpiritVariant.WISTIVER, CursedSpiritWistiverModel::new);
 		LAYERS.put(CursedSpiritVariant.WISTIVER, CursedSpiritWistiverModel::createBodyLayer);
 
 		put(CursedSpiritVariant.PROWLER, "IDLE", "body", "head", "in_left_leg", "in_right_leg", "left_arm",
