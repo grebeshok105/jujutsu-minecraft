@@ -99,14 +99,18 @@ public final class CursedSpiritSpawnGameTests {
 						GameTestFixtures.diagnostic(fixture, helper.getTick(),
 								"natural check in the dark room", "true", "see report"));
 
-				// A full crowd refuses: top the room up to exactly MAX_SPIRITS_NEARBY bodies.
+				// A full crowd refuses: top the arena up to exactly MAX_SPIRITS_NEARBY bodies.
 				while (live.size() < CursedSpiritProfile.MAX_SPIRITS_NEARBY) {
 					spawnProbe(helper, live, crowdSpot(live.size()));
 				}
-				CursedSpiritEntity crowded = live.get(live.size() - 1);
-				helper.assertFalse(crowded.checkSpawnRules(level, EntitySpawnReason.NATURAL),
+				// Assert on the in-room probe: its super (light) half is pinned true inside the
+				// sealed room at any sky level, so this observes ONLY the cap half. (The last
+				// crowd body stands under open sky, where daylight alone would refuse — asserting
+				// on it would let the light half mask a broken cap.)
+				helper.assertFalse(darkProbe.checkSpawnRules(level, EntitySpawnReason.NATURAL),
 						GameTestFixtures.diagnostic(fixture, helper.getTick(),
-								"natural check at cap (" + live.size() + " nearby)", "false", "see report"));
+								"natural check on the in-room probe at cap (" + live.size() + " nearby)",
+								"false", "see report"));
 			} finally {
 				for (CursedSpiritEntity spirit : live) {
 					spirit.discard();
