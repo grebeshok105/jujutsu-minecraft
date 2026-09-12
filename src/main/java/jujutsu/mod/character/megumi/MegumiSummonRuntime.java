@@ -241,13 +241,13 @@ public final class MegumiSummonRuntime {
 	 * eligibility rule a manual sic uses. Null when the owner is unharmed and unaggroed.
 	 */
 	static LivingEntity retaliationTarget(LivingEntity owner, long gameTime) {
-		List<LivingEntity> aggroed = owner.level().getEntitiesOfClass(LivingEntity.class,
-				owner.getBoundingBox().inflate(MegumiProfile.RETALIATION_RADIUS),
-				candidate -> candidate != owner
-						&& candidate instanceof Mob mob
-						&& mob.getTarget() == owner);
 		LivingEntity aggressor = MegumiRetaliationPolicy.pickAggressor(owner, gameTime,
-				MegumiProfile.RETALIATION_WINDOW_TICKS, aggroed);
+				MegumiProfile.RETALIATION_WINDOW_TICKS, () -> owner.level().getEntitiesOfClass(
+						LivingEntity.class,
+						owner.getBoundingBox().inflate(MegumiProfile.RETALIATION_RADIUS),
+						candidate -> candidate != owner
+								&& candidate instanceof Mob mob
+								&& mob.getTarget() == owner));
 		return aggressor != null && isEligibleTarget(owner, aggressor) ? aggressor : null;
 	}
 
