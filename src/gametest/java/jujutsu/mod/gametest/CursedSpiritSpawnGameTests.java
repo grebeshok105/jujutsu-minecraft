@@ -91,8 +91,11 @@ public final class CursedSpiritSpawnGameTests {
 				Difficulty before = level.getDifficulty();
 				level.getServer().setDifficulty(Difficulty.PEACEFUL, true);
 				try {
+					// SPAWNER skips the crowd cap, so a false here can only come from the
+					// difficulty gate — with NATURAL the crowding conjunct would decide alone
+					// on a shared level and this assert could never fail.
 					CursedSpiritEntity peacefulProbe = spawnProbe(helper, live, DARK_FEET);
-					helper.assertFalse(peacefulProbe.checkSpawnRules(level, EntitySpawnReason.NATURAL),
+					helper.assertFalse(peacefulProbe.checkSpawnRules(level, EntitySpawnReason.SPAWNER),
 							GameTestFixtures.diagnostic(fixture, helper.getTick(),
 									"peaceful check in the dark room", "false", "see report"));
 				} finally {
