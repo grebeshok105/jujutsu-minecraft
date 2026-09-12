@@ -92,7 +92,6 @@ public final class MegumiShikigamiProfile {
 	// --- Rabbit Escape ---
 	public static final int RABBITS_RECALL_COOLDOWN_TICKS = 120;
 	public static final int RABBITS_DEATH_COOLDOWN_TICKS = 200;
-	public static final int RABBITS_EXPIRY_COOLDOWN_TICKS = 120;
 	public static final int RABBITS_SWARM_SIZE = 10;
 	public static final double RABBIT_HEALTH = 4.0;
 	public static final double RABBIT_ATTACK_DAMAGE = 0.0;

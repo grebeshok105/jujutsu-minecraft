@@ -75,7 +75,7 @@ Every number lives in `MegumiShikigamiProfile`; brains contain no magic constant
 | Dogs (reference) | 240 | 600 |
 | Nue | 240 | 400 |
 | Toad | 240 | 400 |
-| Rabbit Escape | 120 (+ expiry 120) | 200 (anchor loss) |
+| Rabbit Escape | 120 (manual recall and lifetime expiry) | 200 (anchor loss) |
 | Max Elephant | 260 | 600 |
 
 **Nue** (fragile flyer, hitbox 0.9×0.9): 24 health, 4 attack, 0.38 speed; materialize 16 /
@@ -103,7 +103,8 @@ VFX-only strike (no tongue geometry upstream — accepted limit). Sounds: `FROG_
 `FROG_AMBIENT` on emergence, `FROG_TONGUE` windup + `FROG_EAT` impact, `FROG_AMBIENT` idle.
 
 **Rabbit Escape** (swarm, hitbox 0.4×0.4): 10 bodies, 4 health each, 0 damage, 0.32 speed, ring
-radius 2.2; materialize/recall 10 ticks; recall 120 / death 200 / expiry 120. One hidden anchor
+radius 2.2; materialize/recall 10 ticks; recall 120 (lifetime expiry is a recall-family teardown
+and shares the row) / death 200. One hidden anchor
 (random body at summon): anchor loss disperses the whole pack (`teardown(DEATH)`, 200-tick
 cooldown); manual recall and the 300-tick lifetime expiry both cost 120. Upkeep every 20 ticks
 tops the swarm back up by at most 2 (`registerExtraBody`). Per body every 10 ticks: hostiles
@@ -144,7 +145,7 @@ the single destructive entry point: drop the record, cross-level sweep of owned 
 | Dimension change | `DIMENSION_CHANGE` | sink-out | recall row |
 | Server stopping | `SERVER_STOPPING` | vanish | none; `clearAll()` |
 | Dev/MCP fixture reset | `FIXTURE_RESET` | sink-out | none; the tool then clears the selection back to DOGS |
-| Rabbit lifetime expiry | `RECALL` | sink-out + `rabbits_pop` | 120 (expiry row) |
+| Rabbit lifetime expiry | `RECALL` | sink-out + `rabbits_pop` | 120 (recall row) |
 
 Presentation phases (`MegumiShikigamiPresentationPolicy`, parameterized — the dog policy is
 untouched): `MATERIALIZING` (no AI/nav, no combat either way, rises from one block below),

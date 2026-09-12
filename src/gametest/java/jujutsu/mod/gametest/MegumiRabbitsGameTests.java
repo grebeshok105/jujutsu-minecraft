@@ -64,18 +64,13 @@ public final class MegumiRabbitsGameTests {
 	 */
 	private static final int EXPECTED_DEATH_COOLDOWN_TICKS = 200;
 	/**
-	 * S6 pins this row: a manual recall dismisses the swarm at exactly the Rabbit Escape recall
-	 * price. Deliberately NOT {@code MegumiShikigamiProfile.RABBITS_RECALL_COOLDOWN_TICKS} — the
-	 * red-proof mutates that row. (Numerically equal to the S4 expiry price, but a different
-	 * contract: recall is the key press, expiry is the lifetime.)
+	 * S6 and S4 pin this row: a manual recall and a lifetime expiry both dismiss the swarm at the
+	 * Rabbit Escape recall price — expiry is a recall-family teardown, so one row moves both. It is
+	 * deliberately NOT {@code MegumiShikigamiProfile.RABBITS_RECALL_COOLDOWN_TICKS}: the red-proof
+	 * mutates that row (120 -> 121) and the asserts must fail on the balance contract instead of
+	 * following the constant.
 	 */
 	private static final int EXPECTED_RECALL_COOLDOWN_TICKS = 120;
-	/**
-	 * S4 pins this row: lifetime expiry dismisses the pack at exactly the expiry price.
-	 * Deliberately NOT {@code MegumiShikigamiProfile.RABBITS_EXPIRY_COOLDOWN_TICKS} — the
-	 * red-proof mutates that row.
-	 */
-	private static final int EXPECTED_EXPIRY_COOLDOWN_TICKS = 120;
 	/**
 	 * S1 — selecting RABBITS and pressing the technique key summons the swarm with its hidden
 	 * anchor, and one upkeep window later the pack reads full strength: the ring may place fewer
@@ -293,14 +288,14 @@ public final class MegumiRabbitsGameTests {
 								CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
 						long elapsed = level.getGameTime()
 								- (summonedAt.get() + MegumiShikigamiProfile.RABBITS_LIFETIME_TICKS);
-						helper.assertTrue(elapsed >= 0 && elapsed <= EXPECTED_EXPIRY_COOLDOWN_TICKS,
+						helper.assertTrue(elapsed >= 0 && elapsed <= EXPECTED_RECALL_COOLDOWN_TICKS,
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "expired", helper.getTick(), ownerId,
 										"expiry observed within its cooldown window",
-										"[0, " + EXPECTED_EXPIRY_COOLDOWN_TICKS + "]", elapsed));
-						helper.assertTrue(remaining + elapsed == EXPECTED_EXPIRY_COOLDOWN_TICKS,
+										"[0, " + EXPECTED_RECALL_COOLDOWN_TICKS + "]", elapsed));
+						helper.assertTrue(remaining + elapsed == EXPECTED_RECALL_COOLDOWN_TICKS,
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "expired", helper.getTick(), ownerId,
 										"PRIMARY expiry cooldown (elapsed-corrected)",
-										EXPECTED_EXPIRY_COOLDOWN_TICKS, remaining + elapsed));
+										EXPECTED_RECALL_COOLDOWN_TICKS, remaining + elapsed));
 					} finally {
 						MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 					}

@@ -102,11 +102,10 @@ final class MegumiRabbitsBrain {
 	}
 
 	/**
-	 * Lifetime spent: one pop at the swarm centre, then the recall-family teardown — which prices
-	 * expiry at the recall row. There is deliberately no second arm of
-	 * {@code RABBITS_EXPIRY_COOLDOWN_TICKS} here: while the rows agree it would be a no-op, and
-	 * once they diverge the price silently becomes {@code max(recall, expiry)} with no comment
-	 * saying so. A divergent expiry price needs its own teardown reason, not a second arm.
+	 * Lifetime spent: one pop at the swarm centre, then the recall-family teardown — expiry is
+	 * priced by {@code RABBITS_RECALL_COOLDOWN_TICKS}, deliberately, and there is no separate row
+	 * to arm a second time. A divergent expiry price needs its own teardown reason, not a second
+	 * arm that silently becomes {@code max(recall, expiry)} once the rows disagree.
 	 */
 	private static void expire(ServerLevel level, ServerPlayer owner, MegumiShikigamiPack pack,
 			MegumiRabbitEntity body) {
