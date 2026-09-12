@@ -46,7 +46,8 @@ public final class CursedSpiritSpawnIntegration {
 	 * ({@code NO_RESTRICTIONS} + {@code MOTION_BLOCKING_NO_LEAVES}), so the natural pipeline
 	 * still picks a sane surface spot, and the per-spawn gate lives in
 	 * {@code CursedSpiritEntity.checkSpawnRules} (vanilla light check via {@code super}, explicit
-	 * {@code PEACEFUL} refusal, plus {@link CursedSpiritSpawnRules#belowLocalCap}).
+	 * {@code PEACEFUL} refusal, plus {@link CursedSpiritSpawnRules#belowLocalCap} for
+	 * {@code EntitySpawnReason.NATURAL} — spawners, eggs and commands bypass the crowd cap).
 	 */
 	public static void register() {
 		for (SpawnRow row : spawnRows()) {

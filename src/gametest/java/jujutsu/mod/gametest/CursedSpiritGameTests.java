@@ -125,6 +125,10 @@ public final class CursedSpiritGameTests {
 				CursedSpiritTestFixtures.spawnSpirit(helper, fixture, JujutsuEntities.CURSED_SPIRIT, spiritFeet);
 		double victimMax = victim.getMaxHealth();
 		AtomicReference<Double> maxHorizSpeed = new AtomicReference<>(0.0);
+		// The burst must stand out from the body's OWN motion: a flat floor below the walk-speed
+		// row (0.24 for COMMON) would pass on walking alone. Baseline = the peak reached before
+		// the strike landed; the burst has to add at least 0.10 on top of it.
+		AtomicReference<Double> preStrikePeak = new AtomicReference<>(-1.0);
 		AtomicBoolean done = new AtomicBoolean();
 
 		for (long tick = 2; tick <= 120; tick++) {
@@ -138,15 +142,20 @@ public final class CursedSpiritGameTests {
 						Vec3 velocity = spirit.getDeltaMovement();
 						double horiz = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
 						maxHorizSpeed.accumulateAndGet(horiz, Math::max);
+						if (preStrikePeak.get() < 0.0 && victim.getHealth() < victimMax) {
+							// First damage tick: freeze the pre-strike peak as the baseline.
+							preStrikePeak.compareAndSet(-1.0, maxHorizSpeed.get());
+						}
 					}
 					if (pollTick == 120) {
 						helper.assertTrue(victim.getHealth() < victimMax,
 								CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
 										"strike premise: victim damaged", "hp < " + victimMax, victim.getHealth()));
-						helper.assertTrue(maxHorizSpeed.get() >= 0.10,
+						double baseline = Math.max(0.0, preStrikePeak.get());
+						helper.assertTrue(maxHorizSpeed.get() >= baseline + 0.10,
 								CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
-										"peak horizontal speed carries the strikeStep burst",
-										">= 0.10", maxHorizSpeed.get()));
+										"the strikeStep burst adds speed above the body's own baseline",
+										">= baseline " + baseline + " + 0.10", maxHorizSpeed.get()));
 						done.set(true);
 						spirit.discard();
 						CursedSpiritTestFixtures.cleanupVictim(helper, victim);

@@ -196,6 +196,17 @@ class VesselBoundaryTest {
 	}
 
 	@Test
+	void sharedSegmentExceptionsAreExactlyTheTwoJustifiedPairs() {
+		// The exception map is the only way a package under a vessel parent may avoid naming a
+		// vessel, so it must not grow silently: pin the exact pairs, not just their lookups.
+		assertEquals(Map.of(
+				"jujutsu.mod.client.vfx.", Set.of("world"),
+				"jujutsu.mod.client.render.", Set.of("cursedspirit")),
+				SHARED_SEGMENTS_BY_PARENT,
+				"a new shared-segment exception needs the same justification a vessel registration does");
+	}
+
+	@Test
 	void everyPackageUnderAVesselParentNamesARegisteredVessel() {
 		// Fail-closed. The review walked past every rule by inventing `character.nobaranet` and
 		// `character.yuji`: both are vessel code by position, and neither matched a hardcoded pattern.

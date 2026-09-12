@@ -26,7 +26,7 @@ The pack ships vanilla-API Java models and `AnimationDefinition` classes, so the
 ## Spawning
 
 - Natural pipeline only: `BiomeModifications.addSpawn(foundInOverworld(), MONSTER, type, weight, min, max)` from `CursedSpiritSpawnIntegration` — **no** `SpawnPlacements` (its `register` is private in 1.21.8 and there is no Fabric wrapper) and no access widener.
-- The gate lives in `CursedSpiritEntity.checkSpawnRules`: explicit `Difficulty.PEACEFUL → false`, then `super` (`PathfinderMob`'s walk-value light gate — refuses at local brightness ≳12, dim 8–12 passes; deliberately not re-implementing vanilla's rolled darkness), then the local crowd cap `MAX_SPIRITS_NEARBY = 10` within `CROWD_RADIUS = 48`.
+- The gate lives in `CursedSpiritEntity.checkSpawnRules`: explicit `Difficulty.PEACEFUL → false`, then `super` (`PathfinderMob`'s walk-value light gate — refuses at local brightness ≳12, dim 8–12 passes; deliberately not re-implementing vanilla's rolled darkness), then the local crowd cap `MAX_SPIRITS_NEARBY = 10` within `CROWD_RADIUS = 48` **for `EntitySpawnReason.NATURAL` only** — a spawner, spawn egg or command places its spirit regardless of the crowd, vanilla-consistent because population pressure governs natural spawning (and it keeps the cap conjunct out of a shared-level GameTest oracle).
 - No daylight burning (plain `Monster`; they spawn dark and persist); peaceful spawns nothing.
 
 ## Verification boundary

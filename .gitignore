@@ -72,3 +72,11 @@ lightrag.log
 !.grace-tools/bin/
 !.grace-tools/bin/*
 
+
+# Derived reference extracts (regenerable from the raw pack; not our work product)
+.superpowers/**/assets/raw/
+.superpowers/**/decompiled/
+.superpowers/**/assets/references/*.png
+__pycache__/
+.superpowers/**/assets/references/javap/
+.superpowers/**/assets/references/main_sins_javap/

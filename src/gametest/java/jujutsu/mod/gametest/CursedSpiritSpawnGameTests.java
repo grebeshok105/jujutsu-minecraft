@@ -82,11 +82,11 @@ public final class CursedSpiritSpawnGameTests {
 			List<CursedSpiritEntity> live = owned;
 			try {
 				BlockPos center = helper.absolutePos(DARK_FEET);
-				helper.assertTrue(countOwned(live, center) == 0,
-						GameTestFixtures.diagnostic(fixture, helper.getTick(),
-								"premise: this scenario starts with no owned bodies near the arena", "0",
-								countOwned(live, center)));
-
+				// No "starts clean" premise here: owned was just cleared, so any owned-count assert
+				// would be true by construction. Sibling arenas' bodies are the only foreign
+				// bodies, and the light oracles below call the gate with SPAWNER so the cap
+				// conjunct cannot see them.
+				//
 				// PEACEFUL refuses even in the dark room (explicit gate on the entity override).
 				Difficulty before = level.getDifficulty();
 				level.getServer().setDifficulty(Difficulty.PEACEFUL, true);
@@ -119,10 +119,11 @@ public final class CursedSpiritSpawnGameTests {
 				while (live.size() < CursedSpiritProfile.MAX_SPIRITS_NEARBY) {
 					spawnProbe(helper, live, crowdSpot(live.size()));
 				}
-				// Assert on the in-room probe: its super (light) half is pinned true inside the
-				// sealed room at any sky level, so this observes ONLY the cap half. (The last
-				// crowd body stands under open sky, where daylight alone would refuse — asserting
-				// on it would let the light half mask a broken cap.)
+				// Assert on the in-room probe with NATURAL, the only reason the crowd cap applies
+				// to: its super (light) half is pinned true inside the sealed room at any sky
+				// level, so this observes ONLY the cap half. (The last crowd body stands under
+				// open sky, where daylight alone would refuse — asserting on it would let the
+				// light half mask a broken cap.)
 				helper.assertFalse(darkProbe.checkSpawnRules(level, EntitySpawnReason.NATURAL),
 						GameTestFixtures.diagnostic(fixture, helper.getTick(),
 								"natural check on the in-room probe at cap (" + live.size() + " nearby)",
