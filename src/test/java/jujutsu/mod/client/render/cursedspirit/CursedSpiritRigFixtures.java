@@ -132,8 +132,6 @@ final class CursedSpiritRigFixtures {
 				"left_arm2", "left_front_arm", "right_arm", "right_arm2", "right_front_arm", "top_jaw",
 				"top_jaw2");
 		put(CursedSpiritVariant.WISTIVER, "SCREAMER", "bod", "flater", "head", "left_arm", "right_arm");
-		put(CursedSpiritVariant.WISTIVER, "GRAVE", "bod", "head", "jaw", "left_arm", "left_front_arm",
-				"right_arm", "top_jaw");
 	}
 
 	private static void put(CursedSpiritVariant variant, String clip, String... bones) {
