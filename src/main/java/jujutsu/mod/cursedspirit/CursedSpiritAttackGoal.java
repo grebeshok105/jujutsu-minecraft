@@ -18,26 +18,24 @@ import jujutsu.mod.cursedspirit.CursedSpiritAttackPolicy.StrikePlan;
  */
 public class CursedSpiritAttackGoal extends Goal {
 	private final CursedSpiritEntity mob;
-	private final CursedSpiritTierStats stats;
 	private Phase phase = Phase.APPROACH;
 	private int ticksInPhase;
 
 	public CursedSpiritAttackGoal(CursedSpiritEntity mob) {
 		this.mob = mob;
-		this.stats = CursedSpiritProfile.of(mob.tier());
 		setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
+	}
+	// Read live, never cached: the goal is constructed in registerGoals(), which the
+	// superclass constructor runs BEFORE the entity's tier field is assigned — touching the
+	// profile in the constructor NPEs on every spawn (registerGoals-then-field order).
+	private CursedSpiritTierStats stats() {
+		return CursedSpiritProfile.of(mob.tier());
 	}
 
 	@Override
 	public boolean canUse() {
 		LivingEntity target = mob.currentVictim();
 		return target != null && target.isAlive() && mob.hasLineOfSight(target);
-	}
-
-	@Override
-	public boolean canContinueToUse() {
-		LivingEntity target = mob.currentVictim();
-		return target != null && target.isAlive();
 	}
 
 	@Override
@@ -70,11 +68,11 @@ public class CursedSpiritAttackGoal extends Goal {
 			return;
 		}
 		boolean inReach = CursedSpiritAttackPolicy.inReach(
-				mob.distanceTo(target), mob.getBbWidth(), target.getBbWidth(), stats);
+				mob.distanceTo(target), mob.getBbWidth(), target.getBbWidth(), stats());
 		// Increment-then-transition: WINDUP lasts exactly attackWindupTicks ticks before STRIKE,
 		// and RECOVER exactly attackCooldownTicks before the next WINDUP.
 		ticksInPhase++;
-		Phase next = CursedSpiritAttackPolicy.advance(phase, ticksInPhase, inReach, stats);
+		Phase next = CursedSpiritAttackPolicy.advance(phase, ticksInPhase, inReach, stats());
 		if (next == phase) {
 			if (phase == Phase.APPROACH) {
 				mob.getNavigation().moveTo(target, 1.0);
@@ -111,7 +109,8 @@ public class CursedSpiritAttackGoal extends Goal {
 		if (!(mob.level() instanceof ServerLevel level)) {
 			return;
 		}
-		double step = stats.strikeStep();
+		CursedSpiritTierStats row = stats();
+		double step = row.strikeStep();
 		if (step > 0.0) {
 			Vec3 forward = mob.getLookAngle().multiply(1.0, 0.0, 1.0);
 			if (forward.lengthSqr() > 1.0E-6) {
@@ -121,18 +120,18 @@ public class CursedSpiritAttackGoal extends Goal {
 			}
 		}
 		target.hurtServer(level, level.damageSources().mobAttack(mob),
-				CursedSpiritAttackPolicy.primaryDamage(stats));
-		knock(target, stats.attackKnockback());
-		if (stats.aoeRadius() > 0.0) {
+				CursedSpiritAttackPolicy.primaryDamage(row));
+		knock(target, row.attackKnockback());
+		if (row.aoeRadius() > 0.0) {
 			List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class,
-					mob.getBoundingBox().inflate(stats.aoeRadius()),
+					mob.getBoundingBox().inflate(row.aoeRadius()),
 					candidate -> candidate != mob && candidate.isAlive());
 			StrikePlan plan = CursedSpiritAttackPolicy.strikeTargets(target, nearby,
-					mob.getX(), mob.getY(), mob.getZ(), stats);
+					mob.getX(), mob.getY(), mob.getZ(), row);
 			for (LivingEntity splash : plan.aoe()) {
 				splash.hurtServer(level, level.damageSources().mobAttack(mob),
-						CursedSpiritAttackPolicy.aoeDamage(stats));
-				knock(splash, stats.aoeKnockback());
+						CursedSpiritAttackPolicy.aoeDamage(row));
+				knock(splash, row.aoeKnockback());
 			}
 		}
 		// STRIKE lasts exactly one tick: the policy advances to RECOVER on the next tick.
