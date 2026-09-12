@@ -6,6 +6,7 @@ import jujutsu.mod.client.character.ClientCharacterSelectionManager;
 import jujutsu.mod.client.character.JujutsuCharacterClients;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.input.JujutsuKeybinds;
+import jujutsu.mod.client.render.cursedspirit.CursedSpiritClient;
 import jujutsu.mod.client.network.JujutsuClientNetworking;
 import jujutsu.mod.client.particle.JujutsuClientParticles;
 import jujutsu.mod.client.ui.msdf.MsdfFonts;
@@ -24,6 +25,7 @@ public class JujutsuModClient implements ClientModInitializer {
 		// Each vessel installs its own renderers and VFX recipes. Must follow VfxDirector.initialize(),
 		// because the recipes register into the director it builds.
 		JujutsuCharacterClients.registerAll();
+		CursedSpiritClient.register();
 		JujutsuClientNetworking.registerReceivers();
 		JujutsuKeybinds.register();
 		// SDF panels for ClickGui (touching the field registers the pipeline).
