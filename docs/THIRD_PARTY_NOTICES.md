@@ -6,6 +6,20 @@ The Divine Dogs' Dire Wolf geometry, animation set, two fur textures, and five a
 
 The Mythic Mounts author has personally given the jujutsumod developer permission to use these assets (project owner statement, recorded 2026-09-11). The permission evidence is not bundled in this repository. Do not expand the imported set; preserve the permission scope or replace the assets before a public release.
 
+## Sorcery Age — shikigami models (Nue / Toad / Rabbit Escape / Max Elephant)
+
+The four shikigami geometries, animation sets, and body textures listed in [PROVENANCE.md](PROVENANCE.md)
+are extracted from `wood-m-corp/sorcery-age` at commit `40a60272b95a6d408a91963ee26ea297ed8fd200`
+(per-file Git blob SHA-1 manifest inside the owner-provided extract). Only the twelve runtime files
+under `assets/jujutsumod/geckolib/` and `assets/jujutsumod/textures/entity/` are bundled; no Sorcery Age
+code, mechanics, sounds, or data files are imported. `toad_tongue.png` and `toad_wings.png` are
+deliberately unshipped (unreferenced by the imported geo).
+
+The Sorcery Age author has personally given the jujutsumod developer permission to use these assets
+(project owner statement, recorded 2026-09-11). The permission evidence is not bundled in this
+repository. Do not expand the imported set; preserve the permission scope or replace the assets before
+a public release.
+
 ## ProjectJJK temporary placeholders
 
 Some current runtime assets under paths containing `projectjjk` are temporary placeholders used with permission from the ProjectJJK author. They are not relicensed as CC0 by this repository.

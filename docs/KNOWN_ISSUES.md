@@ -62,6 +62,34 @@ Decided 2026-07-26 with the impact pass. Both are recorded in `TodoSwapMomentumR
 
 Owned by [PROVENANCE.md](PROVENANCE.md) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Those files hold the permission scope, the retained upstream notice, and the replacement policy. Only the release-blocking consequences are tracked here, as R3.
 
+### Shikigami selection is in-memory, and three presentation limits ship as-is
+
+Decided with the `feat/megumi-shikigami` branch. Four accepted limits of the Ten Shadows slice
+(Nue / Toad / Rabbit Escape / Max Elephant); reopen any of them only with an explicit owner call,
+not as drive-by "fixes".
+
+1. **The shikigami selection resets on relog.** `MegumiShikigamiSelection` is a static
+   owner-keyed map by design (see its javadoc): only `DISCONNECT` and `SERVER_STOPPING` clear it,
+   vessel deselect deliberately keeps it, and the dev/MCP fixture-reset tool clears it as an extra
+   step. There is no persistence, so a rejoining player is back on `DOGS`. Persist it only through
+   an approved design (the dog pack itself is equally transient).
+2. **Shikigami sounds are vanilla placeholders.** No per-shikigami sounds were found upstream, so
+   Nue speaks phantom, the toad speaks frog, the rabbits speak rabbit, and the elephant speaks
+   ravager, as literals at the call sites (no NEW `JujutsuSounds`/`sounds.json` entries — the
+   bodies still play the existing shared shadow-open swell and recall implosion). Swapping in
+   real voice lines later touches call sites only.
+3. **The Rabbit Escape texture is near-flat upstream.** `megumi_rabbit.png` ships byte-identical
+   to the Sorcery Age source (321 bytes); no cleanup pass is planned. The swarm reads through
+   motion and count, not fur detail.
+4. **The toad tongue is VFX-only.** `toad_tongue.png`/`toad_wings.png` are deliberately unshipped
+   (unreferenced by the imported geo — see PROVENANCE), so the tongue strike has a cue and a yank
+   but no tongue geometry. Adding a tongue model is new art, not a bug fix.
+5. **GameTest displacement oracles must not use `NoAI` mobs.** Measured in game 2026-09-11: a
+   `NoAI:1b` mob is fully frozen — external velocity is stored but the position never integrates,
+   not even gravity. Assert displacement only on AI mobs with zeroed speed (Slowness amplifier
+   100), otherwise assert velocity/effect state. Recorded so a future scenario author cannot
+   re-learn it the red way.
+
 ## Public-release blockers
 
 ### R1 — Rich-Modern provenance is unresolved
