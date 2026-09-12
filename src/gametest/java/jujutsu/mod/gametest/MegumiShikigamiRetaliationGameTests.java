@@ -301,6 +301,7 @@ public final class MegumiShikigamiRetaliationGameTests {
 		AtomicReference<Zombie> attackerRef = new AtomicReference<>();
 		AtomicBoolean firstBlow = new AtomicBoolean();
 		AtomicBoolean secondBlow = new AtomicBoolean();
+		AtomicReference<Float> firstBlowHealth = new AtomicReference<>();
 
 		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, owner, () -> {
 			MegumiShikigamiSelection.set(owner.getUUID(), MegumiShikigami.DOGS);
@@ -345,9 +346,12 @@ public final class MegumiShikigamiRetaliationGameTests {
 				boolean hurt = attacker.getHealth() < attacker.getMaxHealth();
 				if (hurt && !firstBlow.get()) {
 					firstBlow.set(true);
+					firstBlowHealth.set(attacker.getHealth());
 					return;
 				}
-				if (hurt && firstBlow.get() && !secondBlow.get()) {
+				// "Keeps punishing" means a blow landed BELOW the first one, not merely a second tick
+				// that still reads less than max health.
+				if (firstBlow.get() && !secondBlow.get() && attacker.getHealth() < firstBlowHealth.get()) {
 					secondBlow.set(true);
 					attacker.discard();
 					MegumiShikigamiTestFixtures.cleanupCaster(helper, owner);
@@ -364,7 +368,8 @@ public final class MegumiShikigamiRetaliationGameTests {
 							helper.getTick(), owner.getUUID(),
 							firstBlow.get() ? "the pack keeps punishing a fresh mark"
 									: "the pack lands its first blow",
-							firstBlow.get() ? "a second blow" : "any blow", state));
+							firstBlow.get() ? "a blow below " + firstBlowHealth.get() + " hp" : "any blow",
+							state));
 				}
 			});
 		}
