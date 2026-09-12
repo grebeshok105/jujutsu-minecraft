@@ -1,3 +1,47 @@
+# Session Handoff — post-1.6.5 bugfix slice (#76/#77/#78/#84/#85) — 2026-09-12
+
+## State — fixes done, gate green, live-verified, at PR
+
+Branch `fix/cursed-spirits-feedback`, five commits on top of `a3343c1` (the issue-filing commit):
+
+| commit | issue | fix |
+|---|---|---|
+| `4012f67` | #77 | `CursedSpiritClips` arbitrates the layers once per frame (scream > attack > idle+walk) instead of letting nine models stack them; `beginScreamAnim` extends an already-running scream instead of restarting the hurt window |
+| `a165e68` | #85 | the greater slam fires even when the tagged victim leaves reach — only the direct hit keeps the reach rule |
+| `2dc38cd` | #78 | `MegumiRabbitSwarmPolicy` + `RabbitChaseGoal`/`RabbitDriftGoal`: the swarm has a locomotion goal again (ring drift around the owner, chase only inside the band) |
+| `cced503` | #76 | `MegumiRetaliationPolicy` + per-owner pass in both runtimes: the pack answers a `lastHurtByMob` within 100 ticks or a mob whose target is the owner within 16 blocks; `sicManual` keeps an explicit sic on top; vanilla `OwnerHurtByTargetGoal` removed from all five bodies (it stole manual sics); `Facts.ownSummonBody` stops friendly fire |
+| `b1905e5` | #84 | `CharacterAbilityCooldowns.clearForCharacter` on a vessel switch (server + client mirror); re-confirming the SAME vessel clears nothing on purpose |
+
+The pipeline lives in `.superpowers/rule-of-four/bugfix-76-85/` (`implementation-plan.md`, `progress.md`,
+`scout-1..4-report.md`, `analysis/{live_fix_check.py,mc_mcp.py,shot.py}`, frame evidence).
+
+- Barrier: `qualityGate` **BUILD SUCCESSFUL** — **94 GameTest / 0** (was 88), **435 JUnit / 0** (was 421),
+  doc audit + jar isolation green. Every new behaviour carries a red-proof (mutation → red → restore):
+  clip arbitration, whiff slam, rabbit displacement, retaliation (R1/R2 red, R3 stays green), vessel-switch reset.
+- Live MCP pass on the dev lane (`analysis/live_fix_check.py`, one session — a fresh MCP session per call
+  trips the lane's 429): #84 `PRIMARY 231 → 0` across a switch and `0` after switching back; #78 ten bodies,
+  all moving, median **2.80 blocks** with the owner parked; #85 player **20 → 12 HP** beside a `walking_bed`;
+  #76 zombie at **20.0 with no pack → 17.06** (one dog bite) once the pack was out, no sic; #77 five frames
+  with coherent geometry and a clean client log.
+- Trap for the next live pass: the lane player is mortal — a `walking_bed` killed them mid-session, and a dead
+  player breaks every later probe silently (`entity_get` → "Entity not found"). Respawn via `computer` →
+  window "Minecraft* 1.21.8" → vision model locates the button → click; then keep `resistance` on.
+
+## What is where
+
+- `src/client/java/jujutsu/mod/client/render/cursedspirit/CursedSpiritClips.java` — the single clip arbiter (#77).
+- `src/main/java/jujutsu/mod/character/MegumiRabbitSwarmPolicy.java`, `MegumiRetaliationPolicy.java` — pure policies.
+- `src/main/java/jujutsu/mod/character/CharacterAbilityCooldowns.clearForCharacter` + `CharacterSelectionManager.select` — #84.
+- `docs/KNOWN_ISSUES.md` **E1a** was rewritten: it recorded the old "cooldown survives a switch" policy as intended.
+
+## If work continues here
+
+1. Merge this PR, then cut the release (`mod_version` +0.1 — it is a bugfix batch) and ship the RU player-facing notes.
+2. The idea issues are NOT in this slice and still need design specs: #79 (Elephant/Frog kit), #80 (spirits only
+   visible to sorcerers), #81 (level 3–5 + stat spread), #82 (daytime spawning), #86 (ability pools), #83 (cursed tools).
+3. Re-run the manual smoke on the merged build: the owner plays #75's acceptance list; the client must be restarted
+   so the new jar is loaded.
+
 # Session Handoff — cursed spirits (three hostile tiers) — 2026-09-12
 
 ## State — RELEASED as `v1.6.5` beta
