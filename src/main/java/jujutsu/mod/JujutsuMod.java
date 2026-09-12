@@ -30,6 +30,7 @@ public class JujutsuMod implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		JujutsuEntities.register();
+		jujutsu.mod.cursedspirit.CursedSpirits.registerServerHooks();
 		JujutsuAttachments.register();
 		JujutsuDataComponents.register();
 		JujutsuItems.register();

@@ -15,6 +15,8 @@ import jujutsu.mod.character.megumi.MegumiToadEntity;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEntity;
 import jujutsu.mod.character.todo.TodoProfile;
 import jujutsu.mod.character.todo.TodoStoneEntity;
+import jujutsu.mod.cursedspirit.CursedSpiritEntity;
+import jujutsu.mod.cursedspirit.CursedSpiritTier;
 
 public final class JujutsuEntities {
 	public static final EntityType<ProjectJjkNailEntity> PROJECTJJK_NAIL = createProjectJjkNail("projectjjk_nail");
@@ -24,7 +26,12 @@ public final class JujutsuEntities {
 	public static final EntityType<MegumiElephantEntity> MEGUMI_MAX_ELEPHANT = createMegumiMaxElephant("megumi_max_elephant");
 	public static final EntityType<MegumiRabbitEntity> MEGUMI_RABBIT = createMegumiRabbit("megumi_rabbit");
 	public static final EntityType<TodoStoneEntity> TODO_STONE = createTodoStone("todo_stone");
-
+	public static final EntityType<CursedSpiritEntity> LESSER_CURSED_SPIRIT =
+			createCursedSpirit("lesser_cursed_spirit", CursedSpiritTier.LESSER, 0.85f, 1.0f);
+	public static final EntityType<CursedSpiritEntity> CURSED_SPIRIT =
+			createCursedSpirit("cursed_spirit", CursedSpiritTier.COMMON, 0.75f, 1.9f);
+	public static final EntityType<CursedSpiritEntity> GREATER_CURSED_SPIRIT =
+			createCursedSpirit("greater_cursed_spirit", CursedSpiritTier.GREATER, 1.35f, 2.4f);
 	private JujutsuEntities() {}
 
 	public static void register() {
@@ -35,6 +42,9 @@ public final class JujutsuEntities {
 		register("megumi_max_elephant", MEGUMI_MAX_ELEPHANT);
 		register("megumi_rabbit", MEGUMI_RABBIT);
 		register("todo_stone", TODO_STONE);
+		register("lesser_cursed_spirit", LESSER_CURSED_SPIRIT);
+		register("cursed_spirit", CURSED_SPIRIT);
+		register("greater_cursed_spirit", GREATER_CURSED_SPIRIT);
 	}
 
 	private static EntityType<TodoStoneEntity> createTodoStone(String path) {
@@ -113,6 +123,19 @@ public final class JujutsuEntities {
 				.clientTrackingRange(96)
 				.updateInterval(1)
 				.noSave()
+				.build(key);
+	}
+
+	private static EntityType<CursedSpiritEntity> createCursedSpirit(String path, CursedSpiritTier tier,
+			float width, float height) {
+		ResourceKey<EntityType<?>> key = ResourceKey.create(Registries.ENTITY_TYPE, JujutsuMod.id(path));
+		// Hostile world mobs: MONSTER (not the MISC the summons use), frozen hitboxes, and — unlike
+		// every summon type — no .noSave(), so they persist through chunk unload like vanilla mobs.
+		return EntityType.Builder
+				.<CursedSpiritEntity>of((type, level) -> new CursedSpiritEntity(type, level, tier), MobCategory.MONSTER)
+				.sized(width, height)
+				.clientTrackingRange(96)
+				.updateInterval(3)
 				.build(key);
 	}
 

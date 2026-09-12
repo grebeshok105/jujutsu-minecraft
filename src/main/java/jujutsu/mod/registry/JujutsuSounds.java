@@ -37,7 +37,43 @@ public final class JujutsuSounds {
 	public static final SoundEvent MEGUMI_DOG_AMBIENT = create("megumi.dog_ambient");
 	/** Dire Wolf (Divine Dogs visual): growl. */
 	public static final SoundEvent MEGUMI_DOG_GROWL = create("megumi.dog_growl");
-	private JujutsuSounds() {}
+	// Cursed spirits: 34 channels, one row per frozen variant/channel pair (Block 1 ships the
+	// .ogg files and sounds.json keys these constants point at). GULBER and GUZZLER have no
+	// scream — there is deliberately no CURSED_GULBER_SCREAM / CURSED_GUZZLER_SCREAM row.
+	public static final SoundEvent CURSED_PROWLER_AMBIENT = create("cursed.prowler_ambient");
+	public static final SoundEvent CURSED_PROWLER_HURT = create("cursed.prowler_hurt");
+	public static final SoundEvent CURSED_PROWLER_DEATH = create("cursed.prowler_death");
+	public static final SoundEvent CURSED_PROWLER_SCREAM = create("cursed.prowler_scream");
+	public static final SoundEvent CURSED_FLOATING_CURSE_AMBIENT = create("cursed.floating_curse_ambient");
+	public static final SoundEvent CURSED_FLOATING_CURSE_HURT = create("cursed.floating_curse_hurt");
+	public static final SoundEvent CURSED_FLOATING_CURSE_DEATH = create("cursed.floating_curse_death");
+	public static final SoundEvent CURSED_FLOATING_CURSE_SCREAM = create("cursed.floating_curse_scream");
+	public static final SoundEvent CURSED_GULBER_AMBIENT = create("cursed.gulber_ambient");
+	public static final SoundEvent CURSED_GULBER_HURT = create("cursed.gulber_hurt");
+	public static final SoundEvent CURSED_GULBER_DEATH = create("cursed.gulber_death");
+	public static final SoundEvent CURSED_KELVIN_AMBIENT = create("cursed.kelvin_ambient");
+	public static final SoundEvent CURSED_KELVIN_HURT = create("cursed.kelvin_hurt");
+	public static final SoundEvent CURSED_KELVIN_DEATH = create("cursed.kelvin_death");
+	public static final SoundEvent CURSED_KELVIN_SCREAM = create("cursed.kelvin_scream");
+	public static final SoundEvent CURSED_BUTCHER_AMBIENT = create("cursed.butcher_ambient");
+	public static final SoundEvent CURSED_BUTCHER_HURT = create("cursed.butcher_hurt");
+	public static final SoundEvent CURSED_BUTCHER_DEATH = create("cursed.butcher_death");
+	public static final SoundEvent CURSED_BUTCHER_SCREAM = create("cursed.butcher_scream");
+	public static final SoundEvent CURSED_GUZZLER_AMBIENT = create("cursed.guzzler_ambient");
+	public static final SoundEvent CURSED_GUZZLER_HURT = create("cursed.guzzler_hurt");
+	public static final SoundEvent CURSED_GUZZLER_DEATH = create("cursed.guzzler_death");
+	public static final SoundEvent CURSED_BLUD_AMBIENT = create("cursed.blud_ambient");
+	public static final SoundEvent CURSED_BLUD_HURT = create("cursed.blud_hurt");
+	public static final SoundEvent CURSED_BLUD_DEATH = create("cursed.blud_death");
+	public static final SoundEvent CURSED_BLUD_SCREAM = create("cursed.blud_scream");
+	public static final SoundEvent CURSED_WALKING_BED_AMBIENT = create("cursed.walking_bed_ambient");
+	public static final SoundEvent CURSED_WALKING_BED_HURT = create("cursed.walking_bed_hurt");
+	public static final SoundEvent CURSED_WALKING_BED_DEATH = create("cursed.walking_bed_death");
+	public static final SoundEvent CURSED_WALKING_BED_SCREAM = create("cursed.walking_bed_scream");
+	public static final SoundEvent CURSED_WISTIVER_AMBIENT = create("cursed.wistiver_ambient");
+	public static final SoundEvent CURSED_WISTIVER_HURT = create("cursed.wistiver_hurt");
+	public static final SoundEvent CURSED_WISTIVER_DEATH = create("cursed.wistiver_death");
+	public static final SoundEvent CURSED_WISTIVER_SCREAM = create("cursed.wistiver_scream");
 
 	public static void register() {
 		register("hairpin.prep", HAIRPIN_PREP);
@@ -66,6 +102,40 @@ public final class JujutsuSounds {
 		register("nobara.mega_launch_blast", NOBARA_MEGA_LAUNCH_BLAST);
 		register("megumi.dog_ambient", MEGUMI_DOG_AMBIENT);
 		register("megumi.dog_growl", MEGUMI_DOG_GROWL);
+		register("cursed.prowler_ambient", CURSED_PROWLER_AMBIENT);
+		register("cursed.prowler_hurt", CURSED_PROWLER_HURT);
+		register("cursed.prowler_death", CURSED_PROWLER_DEATH);
+		register("cursed.prowler_scream", CURSED_PROWLER_SCREAM);
+		register("cursed.floating_curse_ambient", CURSED_FLOATING_CURSE_AMBIENT);
+		register("cursed.floating_curse_hurt", CURSED_FLOATING_CURSE_HURT);
+		register("cursed.floating_curse_death", CURSED_FLOATING_CURSE_DEATH);
+		register("cursed.floating_curse_scream", CURSED_FLOATING_CURSE_SCREAM);
+		register("cursed.gulber_ambient", CURSED_GULBER_AMBIENT);
+		register("cursed.gulber_hurt", CURSED_GULBER_HURT);
+		register("cursed.gulber_death", CURSED_GULBER_DEATH);
+		register("cursed.kelvin_ambient", CURSED_KELVIN_AMBIENT);
+		register("cursed.kelvin_hurt", CURSED_KELVIN_HURT);
+		register("cursed.kelvin_death", CURSED_KELVIN_DEATH);
+		register("cursed.kelvin_scream", CURSED_KELVIN_SCREAM);
+		register("cursed.butcher_ambient", CURSED_BUTCHER_AMBIENT);
+		register("cursed.butcher_hurt", CURSED_BUTCHER_HURT);
+		register("cursed.butcher_death", CURSED_BUTCHER_DEATH);
+		register("cursed.butcher_scream", CURSED_BUTCHER_SCREAM);
+		register("cursed.guzzler_ambient", CURSED_GUZZLER_AMBIENT);
+		register("cursed.guzzler_hurt", CURSED_GUZZLER_HURT);
+		register("cursed.guzzler_death", CURSED_GUZZLER_DEATH);
+		register("cursed.blud_ambient", CURSED_BLUD_AMBIENT);
+		register("cursed.blud_hurt", CURSED_BLUD_HURT);
+		register("cursed.blud_death", CURSED_BLUD_DEATH);
+		register("cursed.blud_scream", CURSED_BLUD_SCREAM);
+		register("cursed.walking_bed_ambient", CURSED_WALKING_BED_AMBIENT);
+		register("cursed.walking_bed_hurt", CURSED_WALKING_BED_HURT);
+		register("cursed.walking_bed_death", CURSED_WALKING_BED_DEATH);
+		register("cursed.walking_bed_scream", CURSED_WALKING_BED_SCREAM);
+		register("cursed.wistiver_ambient", CURSED_WISTIVER_AMBIENT);
+		register("cursed.wistiver_hurt", CURSED_WISTIVER_HURT);
+		register("cursed.wistiver_death", CURSED_WISTIVER_DEATH);
+		register("cursed.wistiver_scream", CURSED_WISTIVER_SCREAM);
 	}
 
 	private static SoundEvent create(String path) {
