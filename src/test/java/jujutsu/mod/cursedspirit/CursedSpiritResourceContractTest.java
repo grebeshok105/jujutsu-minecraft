@@ -126,6 +126,30 @@ final class CursedSpiritResourceContractTest {
 	}
 
 	@Test
+	void shippedDirsContainExactlyTheFrozenFilesAndNothingElse() throws Exception {
+		TreeSet<String> expectedTextures = new TreeSet<>();
+		for (String variant : TEXTURE_SIZES.keySet()) {
+			expectedTextures.add("cursed_" + variant + ".png");
+		}
+		TreeSet<String> expectedSounds = new TreeSet<>();
+		for (String key : SOUND_KEYS) {
+			expectedSounds.add("cursed_" + key + ".ogg");
+		}
+		assertEquals(expectedTextures, listNames(TEXTURE_DIR),
+				"texture dir drifted from the frozen 9 files (stray or missing)");
+		assertEquals(expectedSounds, listNames(SOUND_DIR),
+				"sound dir drifted from the frozen 34 files (stray or missing)");
+	}
+
+	private static TreeSet<String> listNames(Path dir) throws Exception {
+		TreeSet<String> names = new TreeSet<>();
+		try (var stream = Files.list(dir)) {
+			stream.filter(Files::isRegularFile).forEach(p -> names.add(p.getFileName().toString()));
+		}
+		return names;
+	}
+
+	@Test
 	void textureSheetsArePairwiseNonIdentical() throws Exception {
 		MessageDigest md5 = MessageDigest.getInstance("MD5");
 		Map<String, String> digests = new LinkedHashMap<>();
