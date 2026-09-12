@@ -220,3 +220,25 @@ into `EXPECTED_RECALL_COOLDOWN_TICKS`, and the Codex lifecycle table says "120 (
 Re-proved after the fix: mutating `RABBITS_RECALL_COOLDOWN_TICKS` 120 -> 121 fails **both** S4
 (`PRIMARY expiry cooldown (elapsed-corrected): expected <120>, actual <121> @tick 310`) and S6
 (`PRIMARY recall cooldown: expected <120>, actual <121> @tick 4`); restored, gate green again.
+
+### advisory batch after the judge (2026-09-12) — three real items, rest stale
+
+The advisor's batch arrived as snapshots of earlier states (the `Phase.TRAVELLING` note, the C9 seal
+notes, the C10 read tick, the aim/pitch notes, the swap-order trap, the soak-ratio note were all
+already resolved and verified in this session). Three were real and are fixed:
+
+- **The toad hopped in place while striking standing still.** The body layer mapped ACTION straight to
+  WALK, so a stationary tongue strike ran the hop cycle; only a toad that is actually moving keeps its
+  legs stepping now, and a standing one holds the rest pose (the action layer owns the mouth either way).
+- **The expiry row is live again, properly this time.** Rather than deleting `RABBITS_EXPIRY_COOLDOWN_TICKS`
+  (the plan's tunable) the fix wires its own reason: `TeardownReason.EXPIRED` → `expiryCooldownTicks(type)`,
+  so expiry is priced apart from recall with no double-arm. Red-proof: mutating the expiry row 120 -> 121
+  fails **only** S4 (`PRIMARY expiry cooldown (elapsed-corrected): expected <120>, actual <121> @tick 310`);
+  mutating the recall row fails **only** S6 — the two rows are independent, which is what the plan wanted.
+- **Doc honesty:** the sic dead-zone entry said the elephant "already refuses beyond its reach" — the jet
+  refuses, while the sic still routes and charges (the body then walks in and melees, as V1a showed). Both
+  bodies are described the same way now, and the suspected mirrored pounce yaw in `MegumiSummonRuntime`
+  is filed as recorded debt (7b) instead of being silently left.
+
+Also verified from the batch: the scratch material (`.tmp-javap*`, `.factorypath`, `audit/`, `WATCHDOG.yml`)
+has never been committed (`git log --all` on those paths is empty).

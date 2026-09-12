@@ -251,6 +251,7 @@ public final class MegumiShikigamiRuntime {
 		if (pack != null) {
 			int ticks = reason.appliesRecallCooldown() ? MegumiShikigamiProfile.recallCooldownTicks(pack.type())
 					: reason.appliesDeathCooldown() ? MegumiShikigamiProfile.deathCooldownTicks(pack.type())
+					: reason.appliesExpiryCooldown() ? MegumiShikigamiProfile.expiryCooldownTicks(pack.type())
 					: 0;
 			if (ticks > 0) {
 				MegumiSummonRuntime.startCooldownIfLonger(server.getPlayerList().getPlayer(ownerId),
@@ -575,12 +576,14 @@ public final class MegumiShikigamiRuntime {
 		DIMENSION_CHANGE,
 		SERVER_STOPPING,
 		DESELECTED,
-		FIXTURE_RESET;
+		FIXTURE_RESET,
+		/** The body's own lifetime ran out (Rabbit Escape). Priced by the expiry row, not by recall. */
+		EXPIRED;
 
 		/** Whether the swept bodies play their sink-out instead of vanishing on the spot. */
 		boolean recallsVisually() {
 			return this == RECALL || this == SWAPPED || this == DESELECTED
-					|| this == DIMENSION_CHANGE || this == FIXTURE_RESET;
+					|| this == DIMENSION_CHANGE || this == FIXTURE_RESET || this == EXPIRED;
 		}
 
 		boolean appliesRecallCooldown() {
@@ -589,6 +592,10 @@ public final class MegumiShikigamiRuntime {
 
 		boolean appliesDeathCooldown() {
 			return this == DEATH;
+		}
+
+		boolean appliesExpiryCooldown() {
+			return this == EXPIRED;
 		}
 	}
 }

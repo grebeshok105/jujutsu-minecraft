@@ -52,10 +52,11 @@ public final class MegumiToadGeoAnimatable implements GeoReplacedEntity {
 	}
 
 	/**
-	 * The body layer keeps only the walk cycle: while the tongue is out the legs keep stepping, and the
-	 * imported swing clip shares the body and arms with this cycle, so it rides the action layer too and
-	 * the legs walk under it. Rest is the model's bind pose: no idle clip is authored, so IDLE/SINK stop
-	 * the controller outright.
+	 * The body layer keeps the walk cycle and nothing else: while the tongue is out, a toad that is
+	 * actually walking keeps its legs stepping under the strike, and one standing still holds the rest
+	 * pose — a hop cycle running in place read as a bug. The imported swing clip shares the body and
+	 * arms with this cycle, so it rides the action layer too. Rest is the model's bind pose: no idle
+	 * clip is authored, so IDLE/SINK stop the controller outright.
 	 */
 	private PlayState baseAnimation(AnimationTest<MegumiToadGeoAnimatable> state) {
 		if (!(state.renderState() instanceof MegumiShikigamiRenderState toad)) {
@@ -64,6 +65,9 @@ public final class MegumiToadGeoAnimatable implements GeoReplacedEntity {
 		boolean moving = Boolean.TRUE.equals(state.getDataOrDefault(DataTickets.IS_MOVING, false));
 		MegumiShikigamiAnimationPolicy.Clip clip = MegumiShikigamiAnimationPolicy.toad(
 				toad.phase, moving, toad.actionActive ? 1 : 0, toad.attackAnim);
+		if (clip == MegumiShikigamiAnimationPolicy.Clip.ACTION) {
+			return moving ? state.setAndContinue(WALK) : PlayState.STOP;
+		}
 		if (clip == MegumiShikigamiAnimationPolicy.Clip.IDLE
 				|| clip == MegumiShikigamiAnimationPolicy.Clip.SINK) {
 			return PlayState.STOP;

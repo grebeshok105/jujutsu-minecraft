@@ -102,10 +102,9 @@ final class MegumiRabbitsBrain {
 	}
 
 	/**
-	 * Lifetime spent: one pop at the swarm centre, then the recall-family teardown — expiry is
-	 * priced by {@code RABBITS_RECALL_COOLDOWN_TICKS}, deliberately, and there is no separate row
-	 * to arm a second time. A divergent expiry price needs its own teardown reason, not a second
-	 * arm that silently becomes {@code max(recall, expiry)} once the rows disagree.
+	 * Lifetime spent: one pop at the swarm centre, then the expiry teardown — priced by
+	 * {@code RABBITS_EXPIRY_COOLDOWN_TICKS}, its own row, so ageing out can be tuned apart from a
+	 * manual recall. The sink-out and the cue match the recall-family look.
 	 */
 	private static void expire(ServerLevel level, ServerPlayer owner, MegumiShikigamiPack pack,
 			MegumiRabbitEntity body) {
@@ -126,7 +125,7 @@ final class MegumiRabbitsBrain {
 		MegumiShikigamiRuntime.broadcastCue(level, owner, MegumiVfxIds.RABBITS_POP,
 				centre, body.getId(), Vec3.ZERO);
 		MegumiShikigamiRuntime.teardown(level.getServer(), body.ownerUuid(),
-				MegumiShikigamiRuntime.TeardownReason.RECALL);
+				MegumiShikigamiRuntime.TeardownReason.EXPIRED);
 		LAST_UPKEEP.remove(body.ownerUuid());
 	}
 

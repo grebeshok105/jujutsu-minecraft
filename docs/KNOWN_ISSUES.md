@@ -89,15 +89,23 @@ not as drive-by "fixes".
    not even gravity. Assert displacement only on AI mobs with zeroed speed (Slowness amplifier
    100), otherwise assert velocity/effect state. Recorded so a future scenario author cannot
    re-learn it the red way.
-6. **The toad can spend a sic the tongue cannot reach.** `SIC_RANGE` (the aim) is 20 blocks from
-   the shared resolver while the tongue strikes within 12; a sic at 13–20 blocks plays the snap
-   and the cue, arms the 30-tick `PRIMARY_SNEAK` cooldown and never lands. The elephant already
-   refuses beyond its own reach (review fix); the toad keeps the shared aim until a per-type
-   sic-range contract is agreed — it is a UX wart, not a broken strike.
+6. **The sic can out-range what the body can actually do.** `SIC_RANGE` (the aim) is 20 blocks for
+   every type, while the toad's tongue reaches 12 and the elephant's jet corridor about 13.2 from
+   the body. A sic past those marks still routes, plays the snap and the cue, and arms the 30-tick
+   `PRIMARY_SNEAK` cooldown; the elephant now refuses to *fire* beyond its reach (review fix), and
+   in both cases the body walks in and melees the mark instead — so the command is not wasted, it
+   just does not telegraph the shorter reach. A per-type sic-range contract would fix the tell;
+   until then it is a UX wart, not a broken strike.
 7. **The elephant's jet is level.** `faceTarget` sets yaw only, so the corridor leaves the trunk
    at ~1.9 blocks with no pitch: bodies shorter than about 1.4 blocks (Rabbit Escape sits at 0.2)
    pass under it at any range. Aiming pitch at the target's chest would change which targets are
    hittable, so it is an owner call rather than a silent fix.
+7b. **The Divine Dogs' pounce yaw looks mirrored.** `MegumiSummonRuntime` sets the pounce facing
+   with `atan2(x, z)` where Minecraft's yaw convention needs `atan2(-x, z)` — the same defect the
+   Nue and the Elephant shipped with until this branch. The dogs render correctly under vanilla AI
+   facing and their PR (#72) verified their kit, so this is recorded rather than touched: it is a
+   cosmetic pounce-facing question in a frozen system, and it deserves its own pass with the same
+   frame evidence the shikigami got.
 8. **The rabbit `run` clip is asymmetric upstream.** `megumi_rabbit.animation.json`'s `run` bends
    the left knee without the left foot and the right foot without the right knee (`walk` is
    symmetric). Shipped byte-identical to the Sorcery Age source; the swarm reads through motion

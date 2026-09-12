@@ -29,6 +29,18 @@ public final class MegumiShikigamiProfile {
 		};
 	}
 
+	/**
+	 * What a body's own expiry costs, if it has one. Only Rabbit Escape ages out — the swarm spending
+	 * its lifetime is its dismissal — so the other types answer zero and the row exists as the single
+	 * place to price that dismissal separately from a manual recall.
+	 */
+	public static int expiryCooldownTicks(MegumiShikigami type) {
+		return switch (type) {
+			case RABBITS -> RABBITS_EXPIRY_COOLDOWN_TICKS;
+			case DOGS, NUE, TOAD, ELEPHANT -> 0;
+		};
+	}
+
 	public static int maxRecallCooldownTicks() {
 		int max = 0;
 		for (MegumiShikigami type : MegumiShikigami.values()) {
@@ -92,6 +104,7 @@ public final class MegumiShikigamiProfile {
 	// --- Rabbit Escape ---
 	public static final int RABBITS_RECALL_COOLDOWN_TICKS = 120;
 	public static final int RABBITS_DEATH_COOLDOWN_TICKS = 200;
+	public static final int RABBITS_EXPIRY_COOLDOWN_TICKS = 120;
 	public static final int RABBITS_SWARM_SIZE = 10;
 	public static final double RABBIT_HEALTH = 4.0;
 	public static final double RABBIT_ATTACK_DAMAGE = 0.0;
