@@ -1,3 +1,59 @@
+# Session Handoff — cursed spirits (three hostile tiers) — 2026-09-12
+
+## State — READY FOR PR (branch `feat/cursed-spirits`)
+
+Three hostile cursed-spirit **tiers** (`lesser_cursed_spirit` / `cursed_spirit` /
+`greater_cursed_spirit`) with nine visual **variants** imported from the Sons of Sins pack, natural
+overworld spawning, and the full combat-core seam set (stagger floor, Boogie Woogie immunity for
+greater bodies, nail marks + remnant minting, Megumi sic targeting). Gameplay belongs to the tier,
+look belongs to the variant: one entity class, one profile, one variant enum.
+
+- Barrier: `qualityGate` **BUILD SUCCESSFUL** — **88 GameTest cases / 0 failures** (was 67 before this
+  slice), **421 JUnit / 0**, doc audit + jar isolation + assertion checks green (log:
+  `.superpowers/rule-of-four/cursed-spirits/gate-log.txt`).
+- Review wave: four reviewers (assets, server core, client stack, spawn+integration). Verdicts GO for
+  the first three; the fourth's NO-GO items (spawn-GameTest fratricide, missing R7/R8/R16 scenarios,
+  weak oracles) were all fixed and re-proved. Adjudication + resolutions:
+  `.superpowers/rule-of-four/cursed-spirits/{review-spec.md, judge-followups.md}`.
+- Independent QA: 420 JUnit + 88 GameTest green, docs audit green, provenance hashes verified 5/5,
+  every accepted limit cross-checked against the code; judge: all load-bearing claims VERIFIED.
+  The five never-reddened integration scenarios were reddened by one batched mutation lane (5 mutations,
+  7 lane reds + 2 JUnit reds, then restored green) — evidence in `progress.md`.
+- **P0 found by the live MCP pass and fixed**: `ATTACK_END` was byte id 63, and the vanilla client
+  listener casts id 63 to `Sniffer` unconditionally — so every client near a spirit that finished an
+  attack was disconnected (`ClassCastException` + Network Protocol Error). Ids moved to the private
+  range 100–103, pinned by `CursedSpiritAnimationStateTest`; live re-check: a real attack cycle with a
+  client attached, zero protocol errors, player HP 20 → 19, spirit scream fired.
+- Live evidence (MCP lane, `analysis/mc_mcp.py`-driven frames + NBT): 20 naturally spawned cursed
+  spirits scattered across the night map; variant NBT round-trip (`PROWLER` → `Variant:"prowler"`);
+  textured renders, no missing-texture frames; Todo swap actually moved the player against a COMMON
+  spirit and refused (`routed: false`, cooldown 0, positions unchanged) against the GREATER one;
+  Megumi dogs sic killed the sicced spirit.
+
+## What is where
+
+- Codex note: `Jujutsu Kaizen/jujutsumod-codebase-codex/03-systems/Cursed-spirits.md` (shape, seams,
+  render stack, spawning gate incl. the NATURAL-only crowd cap, verification boundary, tuning pointers),
+  linked from `00-MOC.md` (metrics bumped to 160/225/116).
+- Accepted limits: `docs/KNOWN_ISSUES.md` → "Cursed spirits ship with accepted limits (slice 1)".
+- Provenance: `docs/PROVENANCE.md` + `docs/THIRD_PARTY_NOTICES.md` (Sons of Sins import, permission
+  recorded 2026-09-12, sha256 manifest re-verified).
+- Pipeline artifacts: `.superpowers/rule-of-four/cursed-spirits/` — `implementation-plan.md` (rev 3),
+  `progress.md` (every red, every root cause, the batched-mutation table), `port-map.md`,
+  `live-protocol.md`, `review-*-report.md`, `review-spec.md`, `judge-followups.md`, `gate-log.txt`,
+  `pr-body.md`. The derived third-party extracts (`assets/raw/**`, `decompiled/**`, javap dumps) stay
+  on disk but are gitignored.
+
+## If work continues here
+
+- `feat/cursed-spirits` is **not yet pushed/PR'd** at the time of writing; the next step is the PR
+  (title + body in Russian per AGENTS §12, `pr-body.md` is the draft) and then the release notes if the
+  owner wants a version bump.
+- Balance is a first pass: `CursedSpiritProfile` rows and `CursedSpiritVariant` weights are the tuning
+  surface; nothing has been measured against long play yet.
+- The live pass left the dev world with summoned parade spirits around (309, -60, 306) — harmless, the
+  world is the MCP dev world.
+
 # Session Handoff — shikigami slice shipped as v1.6.0 beta (2026-09-12)
 
 ## State — RELEASED

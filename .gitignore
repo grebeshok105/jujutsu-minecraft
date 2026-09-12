@@ -80,3 +80,6 @@ lightrag.log
 __pycache__/
 .superpowers/**/assets/references/javap/
 .superpowers/**/assets/references/main_sins_javap/
+.superpowers/
+.tmp-javap*/
+.factorypath
