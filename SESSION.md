@@ -1,22 +1,26 @@
-# Session Handoff — feat/megumi-shikigami (2026-09-11 → 09-12)
+# Session Handoff — shikigami slice shipped as v1.6.0 beta (2026-09-12)
 
-## State — COMPLETE (PR open)
+## State — RELEASED
 
-**Branch `feat/megumi-shikigami` @ `59603ba`, pushed. PR #74 → `main`:**
-<https://github.com/grebeshok105/jujutsu-minecraft/pull/74>
+**`main` @ `6b01532` (`chore(release): 1.6.0`), tag `v1.6.0` pushed.**
+Release (beta, jar attached): <https://github.com/grebeshok105/jujutsu-minecraft/releases/tag/v1.6.0>
+PR #74 (squash-merged as `94408a7`): <https://github.com/grebeshok105/jujutsu-minecraft/pull/74>
+The feature branch `feat/megumi-shikigami` is kept on the remote on purpose: the squash on `main`
+collapses its commits, so the remote branch is the only copy of the incremental history.
 
-Four Ten Shadows shikigami on a new layer over the existing summons system: **Nue, Toad, Rabbit Escape,
-Max Elephant**. The Divine Dogs are untouched except the deliberate free-swap pair (`TeardownReason.SWAPPED`
-+ the widened recall predicate). All four were accepted in game over the MCP dev lane; the review wave
-(4 reviewers + QA) and the fable-judge pass are closed.
+Four Ten Shadows shikigami shipped on a new layer over the existing summons system: **Nue, Toad,
+Rabbit Escape, Max Elephant**. The Divine Dogs are untouched apart from the deliberate free swap
+(`TeardownReason.SWAPPED` + the widened recall predicate).
 
-- `qualityGate` at `59603ba`: **BUILD SUCCESSFUL — 67 GameTest cases / 0 failures, 371 JUnit / 0**.
-- Every new check was observed failing on its mutation before it was accepted (the red-proof table lives in
-  `.superpowers/rule-of-four/megumi-shikigami/progress.md`); the judge re-ran four of them itself.
-- The judge's one refutation (a write-only `RABBITS_EXPIRY_COOLDOWN_TICKS` row and the S4 claim that
-  hung off it) is fixed in `59603ba` and re-proved.
-- Commits: `d781c3b` (Nue + the layer), `2c51107` (the other three bodies), `b4a11fc` (docs),
-  `5579d4b` (review-wave fixes), `59603ba` (judge fix). Nothing task-related is left uncommitted.
+- `qualityGate` at the release commit: **BUILD SUCCESSFUL — 67 GameTest cases / 0 failures, 371 JUnit / 0**.
+  Every new check was observed failing on its mutation first; the fable-judge pass re-ran four of those
+  itself and its single refutation (a write-only expiry row) is fixed and re-proved.
+- In game over the MCP lane: Nue dive (4.92) and soaked dive (7.38, x1.5), toad tongue (2.94) with the
+  pull chain, rabbit swarm (bump 4.91 + slowness, anchor death/recall/expiry), elephant jet (3.76 +
+  soak, owner inside the corridor spared, plant drift 0.000), plus a stationary-vs-walking frame pair
+  proving the toad's rest-pose fix.
+- The jar is installed in `D:/Games/instances/Jujutsu/mods/jujutsumod-1.6.0.jar` (the 1.1.0 build moved
+  to `mods/_old/`, dated `.bak` copies kept alongside).
 
 ## What is where
 
@@ -24,27 +28,22 @@ Max Elephant**. The Divine Dogs are untouched except the deliberate free-swap pa
   the clip-layering rule, the lifecycle table).
 - Accepted limits (owner calls): `docs/KNOWN_ISSUES.md` → "Shikigami selection is in-memory, and the slice
   ships with accepted limits" (relog resets the selection; vanilla placeholder voices; no tongue geometry;
-  the toad's sic can out-range its tongue; the elephant's jet is level; the rabbit run clip is asymmetric).
+  the sic can out-range the tongue/jet; the elephant's jet is level; the rabbit run clip is asymmetric;
+  the dog pounce yaw is filed as suspected-mirrored).
 - Provenance: `docs/PROVENANCE.md` + `docs/THIRD_PARTY_NOTICES.md` (Sorcery Age ten-shadows import).
+- Balance: one table in `SESSION.md`'s predecessor and in the PR body; every row lives in
+  `MegumiShikigamiProfile` (recall/death/expiry cooldowns, damage, ranges, timings).
 - Pipeline artifacts (local working material, untracked by the same convention as
   `.superpowers/rule-of-four/direwolf-visual/`): `.superpowers/rule-of-four/megumi-shikigami/` —
   `implementation-plan.md`, `plan-review.md`, `scout-1..4-report.md`, `review-*.md`, `qa-report.md`,
   `judge-report.md`, `block-fix-report.md`, `progress.md` (every measurement plus the oracle traps),
   `pr-body.md`.
-
-## Balance — one table, all rows in `MegumiShikigamiProfile`
-
-| Body | HP | Damage | Cooldowns (recall / death) | The rows that matter |
-|---|---|---|---|---|
-| Nue | 24 | dive 5.0, x1.5 on soaked | 240 / 400 | dive speed 0.55 b/t, impact radius 1.6, charge 60, hover 3.0 |
-| Toad | 80 | tongue 3.0 | 240 / 400 | tongue 12 blocks, windup 6, pull 0.65 + 0.25 lift, stagger 8, internal 100 |
-| Rabbit Escape | 4 each x 10 | none (the bump only shoves) | 120 / 200 | 10 bodies on a 2.2 ring, bump 0.35 + slowness 20 per 10-tick window, lifetime 300, upkeep 2 per 20 |
-| Max Elephant | 120 | jet 1.0 per 2 ticks, melee 6.0 | 260 / 600 | windup 8, jet 40 ticks / 16 range, soak 100 ticks, plants while firing |
+- Lane traps learned here live in the project skill `.claude/skills/mcp-lane-launch/SKILL.md`.
 
 ## If work continues here
 
-Nothing is blocked. The deferred items above are deliberate and named in `KNOWN_ISSUES.md`; reopening any of
-them is an owner call, not a drive-by fix.
+Nothing is blocked. Balance is deliberately draft — tuning means editing `MegumiShikigamiProfile` only.
+The deferred items above are owner calls, not drive-by fixes.
 
 ---
 
