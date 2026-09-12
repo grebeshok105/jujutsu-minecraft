@@ -122,28 +122,28 @@ public class CursedSpiritAttackGoal extends Goal {
 		}
 		CursedSpiritTierStats row = stats();
 		// Strike-time reach re-check: the windup clock alone enters STRIKE, so a victim that
-		// sprints out mid-swing must take nothing — no direct damage, no knockback, no AoE.
-		// Deliberately reach only, no line-of-sight re-check (see canContinueToUse): a momentary
-		// sight blip must not void the swing, but distance does. A whiff still runs out the
-		// swing clock through RECOVER, so the attack clip plays to its normal end.
-		if (!CursedSpiritAttackPolicy.inReach(
+		// sprints out mid-swing must take no direct damage and no knockback. Deliberately reach
+		// only, no line-of-sight re-check (see canContinueToUse): a momentary sight blip must not
+		// void the swing, but distance does. A whiff still runs out the swing clock through
+		// RECOVER, and the slam below still lands — the swing is never empty (issue #85).
+		if (CursedSpiritAttackPolicy.inReach(
 				mob.distanceTo(target), mob.getBbWidth(), target.getBbWidth(), row)) {
-			phase = Phase.RECOVER;
-			ticksInPhase = 0;
-			return;
-		}
-		double step = row.strikeStep();
-		if (step > 0.0) {
-			Vec3 forward = mob.getLookAngle().multiply(1.0, 0.0, 1.0);
-			if (forward.lengthSqr() > 1.0E-6) {
-				forward = forward.normalize();
-				mob.setDeltaMovement(mob.getDeltaMovement().add(forward.scale(step)));
-				mob.hurtMarked = true;
+			double step = row.strikeStep();
+			if (step > 0.0) {
+				Vec3 forward = mob.getLookAngle().multiply(1.0, 0.0, 1.0);
+				if (forward.lengthSqr() > 1.0E-6) {
+					forward = forward.normalize();
+					mob.setDeltaMovement(mob.getDeltaMovement().add(forward.scale(step)));
+					mob.hurtMarked = true;
+				}
 			}
+			target.hurtServer(level, level.damageSources().mobAttack(mob),
+					CursedSpiritAttackPolicy.primaryDamage(row));
+			knock(target, row.attackKnockback());
 		}
-		target.hurtServer(level, level.damageSources().mobAttack(mob),
-				CursedSpiritAttackPolicy.primaryDamage(row));
-		knock(target, row.attackKnockback());
+		// The slam is a ground impact centred on the body, not a targeted hit: whoever stands in
+		// the crater takes the shockwave even when the tracked victim escaped reach (issue #85).
+		// Tiers 1-2 carry radius 0, so their whiff behaviour is unchanged.
 		if (row.aoeRadius() > 0.0) {
 			List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class,
 					mob.getBoundingBox().inflate(row.aoeRadius()),
