@@ -24,6 +24,7 @@ public final class ClientCharacterSelectionManager {
 		JujutsuCharacter character = JujutsuCharacter.byId(payload.characterId());
 		// Always remember the selection, including NONE — UI defaults must match the server.
 		Selection previous = SELECTIONS.put(payload.playerId(), new Selection(character, model(payload.modelId())));
+		forgetPreviousVessel(previous, character);
 		cancelFirstPersonOnVesselChange(payload.playerId(), previous, character);
 		refreshDimensions(payload.playerId());
 	}
@@ -31,8 +32,20 @@ public final class ClientCharacterSelectionManager {
 	/** Optimistic local update after Confirm (before server echo). */
 	public static void applyLocal(UUID playerId, JujutsuCharacter character, PlayerSkin.Model model) {
 		Selection previous = SELECTIONS.put(playerId, new Selection(character, model));
+		forgetPreviousVessel(previous, character);
 		cancelFirstPersonOnVesselChange(playerId, previous, character);
 		refreshDimensions(playerId);
+	}
+
+	/**
+	 * The vessel that just left takes its mirrored cooldowns with it (issue #84): the server wipes the
+	 * same set, and a stale deadline here would keep suppressing input (or drawing a spinner) for an
+	 * ability the server would already accept. Re-confirming the same vessel clears nothing.
+	 */
+	private static void forgetPreviousVessel(Selection previous, JujutsuCharacter character) {
+		if (previous != null && previous.character() != character) {
+			ClientAbilityCooldowns.clearForCharacter(previous.character());
+		}
 	}
 
 	/**

@@ -30,6 +30,9 @@ class CharacterAbilityCooldownsClearAllTest {
 		UUID alice = UUID.randomUUID();
 		UUID bob = UUID.randomUUID();
 		Map<Object, Long> readyAt = readyAt();
+		// The map is static and the other cases in this class seed it too: start from empty so the
+		// size assertion measures this scenario, not whatever ran before it.
+		readyAt.clear();
 		readyAt.put(key(alice, JujutsuCharacter.TODO, CharacterAbility.PRIMARY), 100L);
 		readyAt.put(key(alice, JujutsuCharacter.TODO, CharacterAbility.SECONDARY), 200L);
 		readyAt.put(key(alice, JujutsuCharacter.MEGUMI, CharacterAbility.PRIMARY), 300L);
@@ -65,5 +68,32 @@ class CharacterAbilityCooldownsClearAllTest {
 				.getDeclaredConstructor(UUID.class, JujutsuCharacter.class, CharacterAbility.class);
 		assertTrue(constructor.trySetAccessible());
 		return constructor.newInstance(playerId, character, ability);
+	}
+	@Test
+	void clearForCharacterDropsExactlyTheNamedVesselsKeysForThatPlayer() throws Exception {
+		UUID alice = UUID.randomUUID();
+		UUID bob = UUID.randomUUID();
+		Map<Object, Long> readyAt = readyAt();
+		readyAt.clear();
+		readyAt.put(key(alice, JujutsuCharacter.MEGUMI, CharacterAbility.PRIMARY), 100L);
+		readyAt.put(key(alice, JujutsuCharacter.MEGUMI, CharacterAbility.PRIMARY_SNEAK), 150L);
+		readyAt.put(key(alice, JujutsuCharacter.TODO, CharacterAbility.PRIMARY), 200L);
+		readyAt.put(key(bob, JujutsuCharacter.MEGUMI, CharacterAbility.PRIMARY), 300L);
+
+		CharacterAbilityCooldowns.clearForCharacter(alice, JujutsuCharacter.MEGUMI);
+
+		assertEquals(2, readyAt.size(), "only the leaving vessel's keys for this player may go");
+		assertTrue(readyAt.containsKey(key(alice, JujutsuCharacter.TODO, CharacterAbility.PRIMARY)),
+				"the player's other vessel keeps its deadline");
+		assertTrue(readyAt.containsKey(key(bob, JujutsuCharacter.MEGUMI, CharacterAbility.PRIMARY)),
+				"another player's same vessel is untouched");
+	}
+
+	@Test
+	void clearForCharacterWithNoKeysIsANoOp() throws Exception {
+		Map<Object, Long> readyAt = readyAt();
+		readyAt.clear();
+		CharacterAbilityCooldowns.clearForCharacter(UUID.randomUUID(), JujutsuCharacter.NOBARA);
+		assertTrue(readyAt.isEmpty());
 	}
 }

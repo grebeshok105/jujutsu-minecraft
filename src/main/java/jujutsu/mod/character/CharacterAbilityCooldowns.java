@@ -36,6 +36,15 @@ public final class CharacterAbilityCooldowns {
 		READY_AT.keySet().removeIf(key -> key.playerId().equals(playerId));
 	}
 
+	/**
+	 * Drops every deadline the given vessel owns for the player. The selection change calls this for
+	 * the vessel that is leaving (issue #84): a switch is a clean slate, so returning to a vessel
+	 * never greets the player with a cooldown that was left half-spent.
+	 */
+	public static void clearForCharacter(UUID playerId, JujutsuCharacter character) {
+		READY_AT.keySet().removeIf(key -> key.playerId().equals(playerId) && key.character() == character);
+	}
+
 	public static boolean isReady(ServerPlayer player, CharacterAbility ability) {
 		return remainingTicks(player, ability) <= 0;
 	}
@@ -54,9 +63,8 @@ public final class CharacterAbilityCooldowns {
 
 	/**
 	 * Drops one entry. The caller must still be selected as the vessel that started it — the key resolves
-	 * the vessel from the player, so clearing after a switch silently removes nothing. That rules out
-	 * calling this from a selection change to wipe the old vessel's cooldowns; it would not work, and it
-	 * would be the wrong thing anyway, since a cooldown resumes where it left off on switching back.
+	 * the vessel from the player, so clearing after a switch silently removes nothing. A selection change
+	 * goes through {@link #clearForCharacter} instead, which names the vessel that is leaving.
 	 */
 	public static void clear(ServerPlayer player, CharacterAbility ability) {
 		READY_AT.remove(keyFor(player, ability));
