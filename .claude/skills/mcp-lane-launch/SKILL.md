@@ -23,6 +23,18 @@ Known dev-lane traps (verified 2026-09-09):
 - Helmet-less zombies burn to death at noon and vanish mid-test; summon `Invulnerable:1b` / `PersistenceRequired:1b` targets (y=-59 in the dev world) when a test needs a lasting victim.
 - Judge frames numerically (mean luminance, silhouette bbox, region diffs); 854x480 vision reads are unreliable for mob detail. Crop tight and aim before asking a vision model anything.
 
+Known traps from the shikigami lane (verified 2026-09-12):
+
+- **Ability slots on the wire** (`MegumiAbilityRouter`, not the keybinds): summon/recall/swap = `PRIMARY`, sic = `PRIMARY_SNEAK`, shikigami cycle = `TERTIARY_SNEAK`. `SECONDARY*` is the shadow trap/step branch — pressing it returns `routed:false` and says nothing about the feature you meant to drive.
+- **`facing` pitch is inverted from intuition.** `entity_teleport` passes the point to vanilla `/tp … facing`, and MC xRot is positive-down: a facing point *below* your eye (e.g. `target.y - 0.6` to "aim at the feet") yields a **negative** pitch, i.e. the camera looks up. Pass a point *above* the subject, read `client_status.pitch` back, and iterate until the pitch is positive (+15..+40 for a subject 2.5–4 blocks away) before spending a sic.
+- **`sense_crosshair` / `sense_raycast` return `MISS` for entity targets even when the crosshair is on one** (observed next to a frame that plainly shows the zombie centred). Oracles that do work: the invoke's `routed:` flag, the cooldown charge, and the target's HP delta.
+- **Aim math is fine once the orbit is right**: from a correct pitch the sic resolves and `routed:true` appears immediately, with `cooldown_remaining_ticks: 30`. A `routed:false` with `0` cooldown is an aim/resolve failure, never an ability bug.
+- **`jujutsu_fixture_reset` resets the shikigami selection to DOGS**, so cycle explicitly (`TERTIARY_SNEAK` until `state_get` reads `selected:`), and read `megumi.shikigami.selected` / `type` around every summon and sic — a sic pressed while DOGS is selected routes to the *dog* runtime and silently does nothing for the new bodies.
+- **To observe a stationary animation, freeze the body with `entity_apply_effect … minecraft:slowness, amplifier 8`** (the brain keeps ticking, the legs stop). Re-assert it in the same cell as the measurement: the effect expires, the body then walks off, and `velocity 0` from an earlier read means nothing.
+- **`entity_apply_effect` takes `uuid` and no `dimension`** (`additionalProperties:false` makes the extra key fail the whole call). `entity_summon` / `entity_teleport` take `position` and `facing` as objects. `entity_kill` takes a `uuid`; for selectors use `command_execute` with `/kill @e[...]`.
+- **`view_capture` costs ~0.3 s**, which is the same order as a 6-tick action window: burst densely, then compare frames numerically (a changed-pixel mask localizes the subject; a vision read on a ~40–150 px subject is unreliable, and the arena's slimes and wild frogs get mis-read as your subject). Clear the noise first (`command_execute kill @e[type=minecraft:slime,distance=..64]`).
+- **A stationary subject needs the camera and the aim on opposite sides.** One direction can serve both when the subject sits *between* the camera and the target: place the target beyond the body along the sight line — the player's own summon is skipped by the resolver (`isOwnBody`), and the body lands in the foreground of the same shot.
+
 ## Launch
 
 From any worktree that has the mcpdev source set (spike lineage or main after #63):
