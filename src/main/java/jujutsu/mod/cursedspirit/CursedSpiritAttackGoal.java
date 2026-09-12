@@ -38,6 +38,17 @@ public class CursedSpiritAttackGoal extends Goal {
 		return target != null && target.isAlive() && mob.hasLineOfSight(target);
 	}
 
+	/**
+	 * Deliberately looser than {@link #canUse()}: a momentary line-of-sight blip mid-swing must
+	 * not abort the strike (the default would delegate to {@code canUse()} and {@link #stop()}
+	 * would cut the attack clip). Only a dead or gone target ends the swing.
+	 */
+	@Override
+	public boolean canContinueToUse() {
+		LivingEntity target = mob.currentVictim();
+		return target != null && target.isAlive();
+	}
+
 	@Override
 	public void start() {
 		phase = Phase.APPROACH;

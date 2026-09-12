@@ -108,8 +108,9 @@ public final class CursedSpiritGameTests {
 
 	/**
 	 * R4 — the common strike carries the profile {@code strikeStep} burst: peak horizontal speed
-	 * over the strike window reads at/above 0.30 (ground walk caps at the 0.24 speed row; the
-	 * 0.35 impulse peaks near 0.59), with victim damage as the strike premise.
+	 * over the strike window reads at/above 0.10, with victim damage as the strike premise. The
+	 * body spawns in reach so it stands (no walk motion); the 0.35 impulse is sampled
+	 * post-friction at ~0.19, against a 0.0 standing baseline.
 	 */
 	@GameTest(maxTicks = 150, skyAccess = true)
 	public void commonStrikeCarriesStepBurst(GameTestHelper helper) {
@@ -142,10 +143,10 @@ public final class CursedSpiritGameTests {
 						helper.assertTrue(victim.getHealth() < victimMax,
 								CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
 										"strike premise: victim damaged", "hp < " + victimMax, victim.getHealth()));
-						helper.assertTrue(maxHorizSpeed.get() >= 0.30,
+						helper.assertTrue(maxHorizSpeed.get() >= 0.10,
 								CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
-										"peak horizontal speed carries the 0.35 strikeStep burst",
-										">= 0.30", maxHorizSpeed.get()));
+										"peak horizontal speed carries the strikeStep burst",
+										">= 0.10", maxHorizSpeed.get()));
 						done.set(true);
 						spirit.discard();
 						CursedSpiritTestFixtures.cleanupVictim(helper, victim);
@@ -407,6 +408,10 @@ public final class CursedSpiritGameTests {
 				JujutsuEntities.LESSER_CURSED_SPIRIT, lesserFeet);
 		CursedSpiritEntity common = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
 				JujutsuEntities.CURSED_SPIRIT, commonFeet);
+		// Slowness-frozen: the exchange oracles capture pre-cast positions same-tick, but the
+		// bodies must not wander between setup and the cast callbacks (aim/LOS/range flake).
+		CursedSpiritTestFixtures.freezeGround(lesser);
+		CursedSpiritTestFixtures.freezeGround(common);
 		AtomicBoolean asserted = new AtomicBoolean();
 
 		helper.runAtTickTime(2, () -> {
@@ -453,6 +458,14 @@ public final class CursedSpiritGameTests {
 				CharacterAbilityCooldowns.clear(caster, CharacterAbility.PRIMARY);
 				TodoSwapTestFixtures.BodyState commonBefore = TodoSwapTestFixtures.BodyState.capture(common);
 				TodoSwapTestFixtures.BodyState casterBefore = TodoSwapTestFixtures.BodyState.capture(caster);
+				helper.assertTrue(caster.hasLineOfSight(common),
+						TodoSwapTestFixtures.diagnostic(fixture, "resolve2", helper.getTick(),
+								caster.getUUID(), common.getUUID(), "line of sight to common", "true",
+								caster.hasLineOfSight(common)));
+				helper.assertTrue(caster.distanceTo(common) <= TodoProfile.BOOGIE_WOOGIE_RANGE,
+						TodoSwapTestFixtures.diagnostic(fixture, "resolve2", helper.getTick(),
+								caster.getUUID(), common.getUUID(), "common in swap range",
+								"<= " + TodoProfile.BOOGIE_WOOGIE_RANGE, caster.distanceTo(common)));
 				TodoSwapTestFixtures.aimAt(caster, common.position().add(0.0, common.getBbHeight() / 2.0, 0.0));
 				boolean swapped = TodoSwapTestFixtures.castPrimary(caster);
 				helper.assertTrue(swapped, TodoSwapTestFixtures.diagnostic(fixture, "commit2",
@@ -543,12 +556,35 @@ public final class CursedSpiritGameTests {
 		double farMax = far.getMaxHealth();
 		AtomicBoolean done = new AtomicBoolean();
 
-		helper.runAtTickTime(8, () -> {
-			helper.assertTrue(spirit.getTarget() == near,
-					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
-							"spirit acquired the nearer victim", near.getUUID(),
-							spirit.getTarget() == null ? "null" : spirit.getTarget().getUUID()));
-		});
+		// Acquisition premise: the target-goal scan interval makes any single early tick racy,
+		// so poll to tick 30 (the strike oracle below is unchanged). Cleanup on failure: two
+		// victims must not linger for the neighbour arenas. The message names removal state
+		// (both victims plus the spirit) so a null target self-explains (unscanned vs body gone).
+		AtomicBoolean acquired = new AtomicBoolean();
+		for (long tick = 8; tick <= 30; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				if (spirit.getTarget() == near) {
+					acquired.set(true);
+				}
+				if (pollTick == 30) {
+					try {
+						helper.assertTrue(acquired.get(),
+								CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+										"spirit acquired the nearer victim by tick 30 [nearRemoved="
+												+ near.isRemoved() + " farRemoved=" + far.isRemoved()
+												+ " spiritRemoved=" + spirit.isRemoved() + "]",
+										near.getUUID(),
+										spirit.getTarget() == null ? "null" : spirit.getTarget().getUUID()));
+					} catch (RuntimeException | AssertionError failure) {
+						spirit.discard();
+						CursedSpiritTestFixtures.cleanupVictim(helper, near);
+						CursedSpiritTestFixtures.cleanupVictim(helper, far);
+						throw failure;
+					}
+				}
+			});
+		}
 		for (long tick = 9; tick <= 120; tick++) {
 			final long pollTick = tick;
 			helper.runAtTickTime(pollTick, () -> {

@@ -156,10 +156,12 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant {
 	@Override
 	public boolean checkSpawnRules(net.minecraft.world.level.LevelAccessor level,
 			EntitySpawnReason reason) {
-		// javap-verified on 1.21.8: Mob.checkSpawnRules is a bare `return true` — Monster's
-		// difficulty+darkness rules live in the STATIC checkMonsterSpawnRules, which only runs via
-		// SpawnPlacements.register (private in 1.21.8, so unreachable). The explicit PEACEFUL gate
-		// below is therefore load-bearing; the crowd-cap conjunct is Block 4's serialized row.
+		// javap-verified on 1.21.8: super is PathfinderMob's walk-target gate
+		// (`getWalkTargetValue(blockPos, level) >= 0`, light-sensitive via Monster's
+		// `-getPathfindingCostFromLightLevels` override) — darkness flows through it. Mob's own
+		// checkSpawnRules is a bare `return true` and Monster's difficulty gate lives in the
+		// STATIC checkMonsterSpawnRules (SpawnPlacements-only, unreachable), so the explicit
+		// PEACEFUL gate below is load-bearing for difficulty. Crowd cap is Block 4's row.
 		if (level.getDifficulty() == net.minecraft.world.Difficulty.PEACEFUL) {
 			return false;
 		}
