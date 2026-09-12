@@ -1,6 +1,10 @@
 # Session Handoff — cursed spirits (three hostile tiers) — 2026-09-12
 
-## State — READY FOR PR (branch `feat/cursed-spirits`)
+## State — RELEASED as `v1.6.5` beta
+
+PR #75 squash-merged into `main` as `3a0936c`; the release commit bumps `mod_version` to **1.6.5**
+and the GitHub release carries `jujutsumod-1.6.5.jar` (beta). The feature branch stays on the
+remote on purpose, as with the shikigami slice: the squash collapses its commits.
 
 Three hostile cursed-spirit **tiers** (`lesser_cursed_spirit` / `cursed_spirit` /
 `greater_cursed_spirit`) with nine visual **variants** imported from the Sons of Sins pack, natural
