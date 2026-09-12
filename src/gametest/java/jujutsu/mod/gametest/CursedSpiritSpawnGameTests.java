@@ -28,10 +28,10 @@ import jujutsu.mod.registry.JujutsuEntities;
  * fixture-relative and the crowd count is queried by radius around the structure, never by
  * absolute coordinates. Light settles a few ticks after the blocks go down, so construction
  * happens at tick 1 while every oracle runs at tick 15. All spawns use {@code helper.spawn}
- * (full AI — a spawn-gate probe is not an attacker, and every oracle reads state synchronously
- * in the same callback, so nothing can wander between placement and the check). Every spawned
- * body is discarded on all paths (try/finally plus the tick-30 sweep) so the shared level stays
- * clean for sibling classes.
+ * (full AI) and every oracle reads state synchronously in the same callback, so nothing can
+ * wander between placement and the check). Cleanup is owner-scoped: every spawned body is
+ * tracked in a local list and discarded on all paths (try/finally over owned references
+ * only — never a radius sweep, so sibling scenarios sharing the level are untouched).
  *
  * <p><b>Gates.</b> This class is registered in {@code fabric.mod.json} by Block 4's serialized
  * edit (after {@code block-2 report filed}); the cap/peaceful phases additionally need
@@ -49,13 +49,12 @@ public final class CursedSpiritSpawnGameTests {
 	/** Glowstone next to the lit feet: block light 14 at the feet whatever the sky does. */
 	private static final BlockPos LIT_LAMP = new BlockPos(6, 1, 3);
 
-	private static final int SETUP_TICK = 1;
 	private static final int ORACLE_TICK = 15;
 	private static final int SWEEP_TICK = 30;
 
 	/**
-	 * Lit refuses, dark allows, peaceful refuses, a full crowd refuses — then the arena is swept
-	 * clean and the test succeeds.
+	 * Lit refuses, dark allows, peaceful refuses, a full crowd refuses — then the arena is
+	 * asserted clean (owned bodies already discarded) and the test succeeds.
 	 */
 	@GameTest(maxTicks = 60)
 	public void spawnGateRefusesLightPeacefulAndCrowdButAllowsDark(GameTestHelper helper) {
@@ -63,8 +62,6 @@ public final class CursedSpiritSpawnGameTests {
 		buildDarkRoom(helper);
 		helper.setBlock(LIT_FEET.below(), Blocks.STONE);
 		helper.setBlock(LIT_LAMP, Blocks.GLOWSTONE);
-
-		helper.runAtTickTime(SETUP_TICK, () -> clearNearbySpirits(helper));
 
 		helper.runAtTickTime(ORACLE_TICK, () -> {
 			ServerLevel level = helper.getLevel();
@@ -159,14 +156,5 @@ public final class CursedSpiritSpawnGameTests {
 	private static int countNearby(ServerLevel level, BlockPos absoluteCenter) {
 		return level.getEntitiesOfClass(CursedSpiritEntity.class,
 				new AABB(absoluteCenter).inflate(CursedSpiritProfile.CROWD_RADIUS + 8.0)).size();
-	}
-
-	private static void clearNearbySpirits(GameTestHelper helper) {
-		ServerLevel level = helper.getLevel();
-		BlockPos center = helper.absolutePos(DARK_FEET);
-		for (CursedSpiritEntity spirit : level.getEntitiesOfClass(CursedSpiritEntity.class,
-				new AABB(center).inflate(CursedSpiritProfile.CROWD_RADIUS + 8.0))) {
-			spirit.discard();
-		}
 	}
 }
