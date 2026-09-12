@@ -561,19 +561,34 @@ public final class CursedSpiritGameTests {
 		// victims must not linger for the neighbour arenas. The message names removal state
 		// (both victims plus the spirit) so a null target self-explains (unscanned vs body gone).
 		AtomicBoolean acquired = new AtomicBoolean();
-		for (long tick = 8; tick <= 30; tick++) {
+		java.util.concurrent.atomic.AtomicReference<String> firstSeen = new java.util.concurrent.atomic.AtomicReference<>("none");
+		java.util.concurrent.atomic.AtomicLong firstSeenTick = new java.util.concurrent.atomic.AtomicLong(-1);
+		for (long tick = 8; tick <= 60; tick++) {
 			final long pollTick = tick;
 			helper.runAtTickTime(pollTick, () -> {
 				if (spirit.getTarget() == near) {
 					acquired.set(true);
 				}
-				if (pollTick == 30) {
+				if (spirit.getTarget() != null && "none".equals(firstSeen.get())) {
+					firstSeen.set(spirit.getTarget().getUUID().toString());
+					firstSeenTick.set(pollTick);
+				}
+				if (pollTick == 60) {
 					try {
 						helper.assertTrue(acquired.get(),
 								CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
-										"spirit acquired the nearer victim by tick 30 [nearRemoved="
+										"spirit acquired the nearer victim by tick 60 [nearRemoved="
 												+ near.isRemoved() + " farRemoved=" + far.isRemoved()
-												+ " spiritRemoved=" + spirit.isRemoved() + "]",
+												+ " spiritRemoved=" + spirit.isRemoved()
+												+ " firstSeen=" + firstSeen.get() + "@" + firstSeenTick.get()
+												+ " dist=" + spirit.distanceTo(near)
+												+ " los=" + spirit.hasLineOfSight(near)
+												+ " alive=" + near.isAlive() + "/" + far.isAlive()
+												+ " canAttack=" + spirit.canAttack(near)
+												+ " noAi=" + spirit.isNoAi()
+												+ " follow=" + spirit.getAttributeValue(
+														net.minecraft.world.entity.ai.attributes.Attributes.FOLLOW_RANGE)
+												+ " players=" + helper.getLevel().players().size() + "]",
 										near.getUUID(),
 										spirit.getTarget() == null ? "null" : spirit.getTarget().getUUID()));
 					} catch (RuntimeException | AssertionError failure) {

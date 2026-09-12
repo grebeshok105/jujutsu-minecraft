@@ -11,6 +11,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.tags.TagKey;
@@ -32,6 +33,7 @@ import jujutsu.mod.character.megumi.MegumiAbilityRouter;
 import jujutsu.mod.character.megumi.MegumiDivineDogEntity;
 import jujutsu.mod.character.megumi.MegumiProfile;
 import jujutsu.mod.character.megumi.MegumiShikigamiRuntime;
+import jujutsu.mod.character.nobara.projectjjk.EmbeddedNailRegistry;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEntity;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailMarks;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraProfile;
@@ -101,6 +103,7 @@ public void nailImpactMarksTheSpiritAndDirectedHairpinPunishes(GameTestHelper he
 							ProjectJjkNailMarks.marks(spirit.getUUID(), level.getGameTime())));
 			TodoSwapTestFixtures.aimAt(caster,
 					spirit.position().add(0.0, spirit.getBbHeight() / 2.0, 0.0));
+			CursedSpiritTestFixtures.freezeGround(spirit);
 			launchNailAt(level, caster, spirit);
 		} catch (RuntimeException | AssertionError failure) {
 			cleanup(fixture, helper, caster, spirit);
@@ -109,22 +112,47 @@ public void nailImpactMarksTheSpiritAndDirectedHairpinPunishes(GameTestHelper he
 	});
 
 	for (int tick = 3; tick <= MARK_POLL_DEADLINE; tick++) {
-		helper.runAtTickTime(tick, () -> {
-			if (marked.get()) {
+		final int pollTick = tick;
+		helper.runAtTickTime(pollTick, () -> {
+			if (castDone.get()) {
 				return;
 			}
-			if (ProjectJjkNailMarks.marks(spirit.getUUID(), level.getGameTime()) < 1) {
+			if (ProjectJjkNailMarks.marks(spirit.getUUID(), level.getGameTime()) >= 1) {
+				marked.set(true);
+			}
+			if (!marked.get()) {
 				return;
 			}
 			try {
-				marked.set(true);
 				List<ProjectJjkNailEntity> embedded = level.getEntitiesOfClass(ProjectJjkNailEntity.class,
 						spirit.getBoundingBox().inflate(2.0),
 						nail -> nail.isEmbedded() && nail.isOwnedBy(caster.getUUID())
 								&& spirit.getUUID().equals(nail.embeddedTargetUuid()));
-				helper.assertTrue(!embedded.isEmpty(), CursedSpiritTestFixtures.diagnostic(
-						fixture, helper.getTick(), caster.getUUID(), spirit.getUUID(),
-						"premise: embedded owned nail on the spirit", ">= 1", embedded.size()));
+				// The embedded-nail flag reads true one tick before the registry tracks the nail,
+				// and the directed chain is built from the REGISTRY: wait for both instead of
+				// casting into an empty chain (which returns SUCCESS and does nothing).
+				List<ProjectJjkNailEntity> chained = EmbeddedNailRegistry.loadedOwnedNails(level, caster.getUUID());
+				if (embedded.isEmpty() || chained.isEmpty()) {
+					if (pollTick == MARK_POLL_DEADLINE) {
+						helper.assertTrue(!embedded.isEmpty(), CursedSpiritTestFixtures.diagnostic(
+								fixture, helper.getTick(), caster.getUUID(), spirit.getUUID(),
+								"premise: embedded owned nail on the spirit", ">= 1", embedded.size()));
+						helper.assertTrue(!chained.isEmpty(), CursedSpiritTestFixtures.diagnostic(
+								fixture, helper.getTick(), caster.getUUID(), spirit.getUUID(),
+								"premise: the tracked nail chain materialized before the deadline",
+								">= 1", chained.size()));
+					}
+					return;
+				}
+				// Re-aim at the body's CURRENT centre: the directed seed comes from the caster's
+				// look vector, so a stale aim (set before the spirit settled) would send the
+				// chain elsewhere and the cast would resolve to nothing.
+				TodoSwapTestFixtures.aimAt(caster,
+						spirit.position().add(0.0, spirit.getBbHeight() / 2.0, 0.0));
+				helper.assertTrue(!embedded.isEmpty() && !chained.isEmpty(),
+						CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(), caster.getUUID(),
+								spirit.getUUID(), "premise: embedded owned nail tracked in the chain",
+								">= 1 / >= 1", embedded.size() + " / " + chained.size()));
 				hpBefore.set((double) spirit.getHealth());
 				marksBefore.set(ProjectJjkNailMarks.marks(spirit.getUUID(), level.getGameTime()));
 				AbilityResult result = CharacterAbilityExecutor.tryCast(caster, CharacterAbility.PRIMARY, true);
@@ -200,12 +228,31 @@ public void twoNailImpactsMintCurseRemnantsForEveryTier(GameTestHelper helper) {
 	AtomicBoolean mintedCommon = new AtomicBoolean();
 	AtomicBoolean firstHitGreater = new AtomicBoolean();
 	AtomicBoolean mintedGreater = new AtomicBoolean();
+	// The second nail must clear the victim's hurt-immunity window (vanilla rejects damage
+	// while invulnerableTime > 10), so it launches 26 ticks after the first impact was seen —
+	// a fixed tick races a slow first flight.
+	java.util.concurrent.atomic.AtomicLong markTickLesser = new java.util.concurrent.atomic.AtomicLong(-1);
+	java.util.concurrent.atomic.AtomicLong markTickCommon = new java.util.concurrent.atomic.AtomicLong(-1);
+	java.util.concurrent.atomic.AtomicLong markTickGreater = new java.util.concurrent.atomic.AtomicLong(-1);
+	AtomicBoolean secondLaunchLesser = new AtomicBoolean();
+	java.util.concurrent.atomic.AtomicReference<Vec3> launchPosLesser =
+			new java.util.concurrent.atomic.AtomicReference<>(Vec3.ZERO);
+	java.util.concurrent.atomic.AtomicReference<ProjectJjkNailEntity> secondNailLesser =
+			new java.util.concurrent.atomic.AtomicReference<>();
+	java.util.concurrent.atomic.AtomicReference<String> launchGeomLesser =
+			new java.util.concurrent.atomic.AtomicReference<>("");
+	AtomicBoolean secondLaunchCommon = new AtomicBoolean();
+	AtomicBoolean secondLaunchGreater = new AtomicBoolean();
 
 	helper.runAtTickTime(2, () -> {
 		try {
 			CursedSpiritTestFixtures.freezeGround(lesser);
 			CursedSpiritTestFixtures.freezeGround(common);
 			CursedSpiritTestFixtures.freezeGround(greater);
+			helper.assertTrue(level.getServer().getPlayerList().getPlayer(caster.getUUID()) != null,
+					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(), caster.getUUID(), null,
+							"premise: the caster resolves through the player list (the mint path needs a live player)",
+							"non-null", "null"));
 			TodoSwapTestFixtures.aimAt(caster,
 					lesser.position().add(0.0, lesser.getBbHeight() / 2.0, 0.0));
 			launchNailAt(level, caster, lesser);
@@ -216,12 +263,14 @@ public void twoNailImpactsMintCurseRemnantsForEveryTier(GameTestHelper helper) {
 	});
 
 	for (int tick = 3; tick <= 60; tick++) {
-		helper.runAtTickTime(tick, () -> {
+		final int pollTick = tick;
+		helper.runAtTickTime(pollTick, () -> {
 			if (firstHitLesser.get()
 					|| ProjectJjkNailMarks.marks(lesser.getUUID(), level.getGameTime()) < 1) {
 				return;
 			}
 			firstHitLesser.set(true);
+			markTickLesser.set(pollTick);
 			helper.assertTrue(remnantFor(caster, lesser.getUUID()) == null,
 					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(), caster.getUUID(),
 							lesser.getUUID(), "premise: one hit mints nothing", "null",
@@ -229,20 +278,33 @@ public void twoNailImpactsMintCurseRemnantsForEveryTier(GameTestHelper helper) {
 		});
 	}
 
-	helper.runAtTickTime(64, () -> {
-		try {
-			helper.assertTrue(firstHitLesser.get(), CursedSpiritTestFixtures.diagnostic(fixture,
-					helper.getTick(), caster.getUUID(), lesser.getUUID(),
-					"first nail marked the lesser spirit", ">= 1 mark", ProjectJjkNailMarks.marks(
-							lesser.getUUID(), level.getGameTime())));
-			TodoSwapTestFixtures.aimAt(caster,
-					lesser.position().add(0.0, lesser.getBbHeight() / 2.0, 0.0));
-			launchNailAt(level, caster, lesser);
-		} catch (RuntimeException | AssertionError failure) {
-			cleanupAll(helper, caster, lesser, common, greater);
-			throw failure;
-		}
-	});
+	for (int tick = 4; tick <= 129; tick++) {
+		final int pollTick = tick;
+		helper.runAtTickTime(pollTick, () -> {
+			if (!firstHitLesser.get() || secondLaunchLesser.get()) {
+				return;
+			}
+			if (pollTick < markTickLesser.get() + 26) {
+				return;
+			}
+			try {
+				secondLaunchLesser.set(true);
+				containOnPad(helper, fixture, caster, lesser, new BlockPos(4, 1, 1));
+				launchPosLesser.set(lesser.position());
+				TodoSwapTestFixtures.aimAt(caster,
+						lesser.position().add(0.0, lesser.getBbHeight() / 2.0, 0.0));
+				launchGeomLesser.set("bb=" + lesser.getBbHeight() + " w=" + lesser.getBbWidth()
+						+ " eye=" + caster.getEyeHeight() + " caster=" + caster.position()
+						+ " spirit=" + lesser.position() + " origin=" + helper.absolutePos(BlockPos.ZERO)
+						+ " feetBlock=" + level.getBlockState(lesser.blockPosition())
+						+ " below=" + level.getBlockState(lesser.blockPosition().below()));
+				secondNailLesser.set(launchNailAt(level, caster, lesser));
+			} catch (RuntimeException | AssertionError failure) {
+				cleanupAll(helper, caster, lesser, common, greater);
+				throw failure;
+			}
+		});
+	}
 
 	for (int tick = 65; tick <= 125; tick++) {
 		helper.runAtTickTime(tick, () -> {
@@ -264,7 +326,13 @@ public void twoNailImpactsMintCurseRemnantsForEveryTier(GameTestHelper helper) {
 			helper.assertTrue(mintedLesser.get(), CursedSpiritTestFixtures.diagnostic(fixture,
 					helper.getTick(), caster.getUUID(), lesser.getUUID(),
 					"second hit minted the lesser remnant", "curse:<uuid>",
-					remnantFor(caster, lesser.getUUID())));
+					remnantFor(caster, lesser.getUUID()) + " marks="
+							+ ProjectJjkNailMarks.marks(lesser.getUUID(), level.getGameTime())
+							+ " hp=" + lesser.getHealth()
+							+ " " + nailState(level, caster, lesser)
+							+ " launched2=" + secondLaunchLesser.get()
+							+ " moved=" + launchPosLesser.get().distanceTo(lesser.position())
+							+ " at=" + lesser.position() + " geom=" + launchGeomLesser.get()));
 			TodoSwapTestFixtures.aimAt(caster,
 					common.position().add(0.0, common.getBbHeight() / 2.0, 0.0));
 			launchNailAt(level, caster, common);
@@ -275,12 +343,14 @@ public void twoNailImpactsMintCurseRemnantsForEveryTier(GameTestHelper helper) {
 	});
 
 	for (int tick = 130; tick <= 190; tick++) {
-		helper.runAtTickTime(tick, () -> {
+		final int pollTick = tick;
+		helper.runAtTickTime(pollTick, () -> {
 			if (firstHitCommon.get()
 					|| ProjectJjkNailMarks.marks(common.getUUID(), level.getGameTime()) < 1) {
 				return;
 			}
 			firstHitCommon.set(true);
+			markTickCommon.set(pollTick);
 			helper.assertTrue(remnantFor(caster, common.getUUID()) == null,
 					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(), caster.getUUID(),
 							common.getUUID(), "premise: one hit mints nothing", "null",
@@ -288,20 +358,27 @@ public void twoNailImpactsMintCurseRemnantsForEveryTier(GameTestHelper helper) {
 		});
 	}
 
-	helper.runAtTickTime(194, () -> {
-		try {
-			helper.assertTrue(firstHitCommon.get(), CursedSpiritTestFixtures.diagnostic(fixture,
-					helper.getTick(), caster.getUUID(), common.getUUID(),
-					"first nail marked the common spirit", ">= 1 mark", ProjectJjkNailMarks.marks(
-							common.getUUID(), level.getGameTime())));
-			TodoSwapTestFixtures.aimAt(caster,
-					common.position().add(0.0, common.getBbHeight() / 2.0, 0.0));
-			launchNailAt(level, caster, common);
-		} catch (RuntimeException | AssertionError failure) {
-			cleanupAll(helper, caster, lesser, common, greater);
-			throw failure;
-		}
-	});
+	for (int tick = 134; tick <= 259; tick++) {
+		final int pollTick = tick;
+		helper.runAtTickTime(pollTick, () -> {
+			if (!firstHitCommon.get() || secondLaunchCommon.get()) {
+				return;
+			}
+			if (pollTick < markTickCommon.get() + 26) {
+				return;
+			}
+			try {
+				secondLaunchCommon.set(true);
+				containOnPad(helper, fixture, caster, common, new BlockPos(6, 1, 3));
+				TodoSwapTestFixtures.aimAt(caster,
+						common.position().add(0.0, common.getBbHeight() / 2.0, 0.0));
+				launchNailAt(level, caster, common);
+			} catch (RuntimeException | AssertionError failure) {
+				cleanupAll(helper, caster, lesser, common, greater);
+				throw failure;
+			}
+		});
+	}
 
 	for (int tick = 195; tick <= 255; tick++) {
 		helper.runAtTickTime(tick, () -> {
@@ -323,7 +400,11 @@ public void twoNailImpactsMintCurseRemnantsForEveryTier(GameTestHelper helper) {
 			helper.assertTrue(mintedCommon.get(), CursedSpiritTestFixtures.diagnostic(fixture,
 					helper.getTick(), caster.getUUID(), common.getUUID(),
 					"second hit minted the common remnant", "curse:<uuid>",
-					remnantFor(caster, common.getUUID())));
+					remnantFor(caster, common.getUUID()) + " marks="
+							+ ProjectJjkNailMarks.marks(common.getUUID(), level.getGameTime())
+							+ " hp=" + common.getHealth()
+							+ " " + nailState(level, caster, common)
+							+ " launched2=" + secondLaunchCommon.get()));
 			TodoSwapTestFixtures.aimAt(caster,
 					greater.position().add(0.0, greater.getBbHeight() / 2.0, 0.0));
 			launchNailAt(level, caster, greater);
@@ -334,12 +415,14 @@ public void twoNailImpactsMintCurseRemnantsForEveryTier(GameTestHelper helper) {
 	});
 
 	for (int tick = 260; tick <= 320; tick++) {
-		helper.runAtTickTime(tick, () -> {
+		final int pollTick = tick;
+		helper.runAtTickTime(pollTick, () -> {
 			if (firstHitGreater.get()
 					|| ProjectJjkNailMarks.marks(greater.getUUID(), level.getGameTime()) < 1) {
 				return;
 			}
 			firstHitGreater.set(true);
+			markTickGreater.set(pollTick);
 			helper.assertTrue(remnantFor(caster, greater.getUUID()) == null,
 					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(), caster.getUUID(),
 							greater.getUUID(), "premise: one hit mints nothing", "null",
@@ -347,20 +430,27 @@ public void twoNailImpactsMintCurseRemnantsForEveryTier(GameTestHelper helper) {
 		});
 	}
 
-	helper.runAtTickTime(324, () -> {
-		try {
-			helper.assertTrue(firstHitGreater.get(), CursedSpiritTestFixtures.diagnostic(fixture,
-					helper.getTick(), caster.getUUID(), greater.getUUID(),
-					"first nail marked the greater spirit", ">= 1 mark", ProjectJjkNailMarks.marks(
-							greater.getUUID(), level.getGameTime())));
-			TodoSwapTestFixtures.aimAt(caster,
-					greater.position().add(0.0, greater.getBbHeight() / 2.0, 0.0));
-			launchNailAt(level, caster, greater);
-		} catch (RuntimeException | AssertionError failure) {
-			cleanupAll(helper, caster, lesser, common, greater);
-			throw failure;
-		}
-	});
+	for (int tick = 264; tick <= 390; tick++) {
+		final int pollTick = tick;
+		helper.runAtTickTime(pollTick, () -> {
+			if (!firstHitGreater.get() || secondLaunchGreater.get()) {
+				return;
+			}
+			if (pollTick < markTickGreater.get() + 26) {
+				return;
+			}
+			try {
+				secondLaunchGreater.set(true);
+				containOnPad(helper, fixture, caster, greater, new BlockPos(5, 1, 5));
+				TodoSwapTestFixtures.aimAt(caster,
+						greater.position().add(0.0, greater.getBbHeight() / 2.0, 0.0));
+				launchNailAt(level, caster, greater);
+			} catch (RuntimeException | AssertionError failure) {
+				cleanupAll(helper, caster, lesser, common, greater);
+				throw failure;
+			}
+		});
+	}
 
 	for (int tick = 325; tick <= 385; tick++) {
 		helper.runAtTickTime(tick, () -> {
@@ -381,7 +471,11 @@ public void twoNailImpactsMintCurseRemnantsForEveryTier(GameTestHelper helper) {
 		helper.assertTrue(mintedGreater.get(), CursedSpiritTestFixtures.diagnostic(fixture,
 				helper.getTick(), caster.getUUID(), greater.getUUID(),
 				"second hit minted the greater remnant", "curse:<uuid>",
-				remnantFor(caster, greater.getUUID())));
+				remnantFor(caster, greater.getUUID()) + " marks="
+						+ ProjectJjkNailMarks.marks(greater.getUUID(), level.getGameTime())
+						+ " hp=" + greater.getHealth()
+							+ " " + nailState(level, caster, greater)
+							+ " launched2=" + secondLaunchGreater.get()));
 		for (CursedSpiritEntity spirit : List.of(lesser, common, greater)) {
 			helper.assertTrue(spirit.getType().is(CURSE_TAG), CursedSpiritTestFixtures.diagnostic(
 					fixture, helper.getTick(), caster.getUUID(), spirit.getUUID(),
@@ -897,7 +991,8 @@ public void todoForcedBlackFlashOutDamagesTheSameUnforcedMelee(GameTestHelper he
 				new BlockPos(1, 1, 1), -90.0f, 0.0f);
 		ServerLevel level = helper.getLevel();
 		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
-				JujutsuEntities.LESSER_CURSED_SPIRIT, new BlockPos(7, 1, 1));
+				JujutsuEntities.LESSER_CURSED_SPIRIT, new BlockPos(6, 1, 1));
+		CursedSpiritTestFixtures.freezeGround(spirit);
 		AtomicBoolean sicced = new AtomicBoolean();
 
 		helper.runAtTickTime(2, () -> {
@@ -910,6 +1005,14 @@ public void todoForcedBlackFlashOutDamagesTheSameUnforcedMelee(GameTestHelper he
 			try {
 				TodoSwapTestFixtures.aimAt(caster,
 						spirit.position().add(0.0, spirit.getBbHeight() / 2.0, 0.0));
+				helper.assertTrue(spirit.isAlive() && caster.hasLineOfSight(spirit)
+								&& caster.distanceTo(spirit) <= MegumiProfile.SIC_RANGE,
+						CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+								caster.getUUID(), spirit.getUUID(),
+								"premise: sic target alive, in range and in sight",
+								"alive + <= " + MegumiProfile.SIC_RANGE + " + LOS",
+								spirit.isAlive() + " / " + caster.distanceTo(spirit) + " / "
+										+ caster.hasLineOfSight(spirit)));
 				AbilityResult result = MegumiAbilityRouter.tryCast(caster, CharacterAbility.PRIMARY_SNEAK, false);
 				helper.assertTrue(result == AbilityResult.SUCCESS, CursedSpiritTestFixtures.diagnostic(
 						fixture, helper.getTick(), caster.getUUID(), spirit.getUUID(), "sic cast result",
@@ -990,7 +1093,8 @@ public void todoForcedBlackFlashOutDamagesTheSameUnforcedMelee(GameTestHelper he
 	 * The production projectile, not a shortcut: the entity is prepared with its owner, launched at
 	 * the aimed point and added to the level exactly like the runtime's launch path does.
 	 */
-	private static void launchNailAt(ServerLevel level, ServerPlayer caster, CursedSpiritEntity spirit) {
+	private static ProjectJjkNailEntity launchNailAt(ServerLevel level, ServerPlayer caster,
+			CursedSpiritEntity spirit) {
 		ProjectJjkNailEntity nail = JujutsuEntities.PROJECTJJK_NAIL.create(level, EntitySpawnReason.COMMAND);
 		if (nail == null) {
 			throw new IllegalStateException("projectjjk_nail entity type did not create an instance");
@@ -1000,6 +1104,7 @@ public void todoForcedBlackFlashOutDamagesTheSameUnforcedMelee(GameTestHelper he
 		nail.prepare(caster, from, chest.subtract(from).normalize());
 		nail.launchAt(chest, 0, false);
 		level.addFreshEntity(nail);
+		return nail;
 	}
 
 	/** The remnant stack bound to the spirit's UUID, or null when none is minted yet. */
@@ -1031,6 +1136,45 @@ public void todoForcedBlackFlashOutDamagesTheSameUnforcedMelee(GameTestHelper he
 		helper.assertTrue(visual == RemnantVisualType.CURSE, CursedSpiritTestFixtures.diagnostic(
 				fixture, helper.getTick(), caster.getUUID(), spirit.getUUID(),
 				"remnant visual type for a curse-tagged mob", RemnantVisualType.CURSE, visual));
+	}
+
+	/**
+	 * Puts a knocked-back body back on its pad spot before the next shot. Production knockback
+	 * (0.9) can slide a hit body past the 6x6 stone pad and off the arena floor, after which a
+	 * follow-up nail flies into the pad's edge instead of the body — the shot's geometry, not
+	 * the impact logic, would then be under test.
+	 */
+	private static void containOnPad(GameTestHelper helper, String fixture, ServerPlayer caster,
+			CursedSpiritEntity spirit, BlockPos spot) {
+		BlockPos absolute = helper.absolutePos(spot);
+		spirit.teleportTo(helper.getLevel(), absolute.getX() + 0.5, absolute.getY(),
+				absolute.getZ() + 0.5, java.util.Set.of(), spirit.getYRot(), spirit.getXRot(), false);
+		helper.assertTrue(helper.getLevel().getBlockState(absolute.below()).is(Blocks.STONE),
+				CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(), caster.getUUID(),
+						spirit.getUUID(), "premise: the spirit stands on the stone pad", "stone",
+						helper.getLevel().getBlockState(absolute.below())));
+	}
+
+	/** Nail accounting around a body: how many owned nails are near it and how many embedded. */
+	private static String nailState(ServerLevel level, ServerPlayer caster, CursedSpiritEntity spirit) {
+		List<ProjectJjkNailEntity> near = level.getEntitiesOfClass(ProjectJjkNailEntity.class,
+				spirit.getBoundingBox().inflate(4.0), nail -> nail.isOwnedBy(caster.getUUID()));
+		long embedded = near.stream().filter(ProjectJjkNailEntity::isEmbedded).count();
+		long here = near.stream().filter(nail -> nail.isEmbedded()
+				&& spirit.getUUID().equals(nail.embeddedTargetUuid())).count();
+		long ground = near.stream().filter(nail -> nail.isEmbedded()
+				&& nail.embeddedTargetUuid() == null).count();
+		StringBuilder who = new StringBuilder();
+		for (ProjectJjkNailEntity nail : near) {
+			String anchored = nail.isEmbedded()
+					? (nail.embeddedTargetUuid() == null
+							? "block@" + nail.anchor().blockPos() + "=" + nail.anchor().blockStateSignature()
+							: nail.embeddedTargetUuid().toString().substring(0, 4))
+					: "flying";
+			who.append(anchored).append('/').append(nail.isRemoved() ? "gone" : "live").append(' ');
+		}
+		return "nails=" + near.size() + " embedded=" + embedded + " here=" + here + " ground=" + ground
+				+ " who=[" + who.toString().trim() + "]";
 	}
 
 	/** Every nail entity owned by the caster, wherever it embedded or fell. */
