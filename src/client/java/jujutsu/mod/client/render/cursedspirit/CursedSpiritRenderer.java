@@ -21,8 +21,13 @@ public class CursedSpiritRenderer extends
 	private final Map<CursedSpiritVariant, EntityModel<CursedSpiritRenderState>> rigs;
 
 	public CursedSpiritRenderer(EntityRendererProvider.Context context, float shadowRadius) {
-		super(context, CursedSpiritModels.bakeAll(context).get(CursedSpiritVariant.PROWLER), shadowRadius);
-		this.rigs = CursedSpiritModels.bakeAll(context);
+		this(context, shadowRadius, CursedSpiritModels.bakeAll(context));
+	}
+
+	private CursedSpiritRenderer(EntityRendererProvider.Context context, float shadowRadius,
+			Map<CursedSpiritVariant, EntityModel<CursedSpiritRenderState>> rigs) {
+		super(context, rigs.get(CursedSpiritVariant.PROWLER), shadowRadius);
+		this.rigs = rigs;
 	}
 
 	@Override
