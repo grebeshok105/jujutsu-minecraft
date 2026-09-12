@@ -165,6 +165,13 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant {
 		if (level.getDifficulty() == net.minecraft.world.Difficulty.PEACEFUL) {
 			return false;
 		}
+		if (reason != EntitySpawnReason.NATURAL) {
+			// The crowd cap is population pressure for natural spawning only: a spawner, spawn
+			// egg or command places its spirit even in a crowded spot. It also keeps the cap
+			// conjunct out of the shared-GameTest-level oracle, where sibling arenas' bodies
+			// are legitimately nearby.
+			return super.checkSpawnRules(level, reason);
+		}
 		return super.checkSpawnRules(level, reason)
 				&& CursedSpiritSpawnRules.belowLocalCap(level, this.blockPosition());
 	}

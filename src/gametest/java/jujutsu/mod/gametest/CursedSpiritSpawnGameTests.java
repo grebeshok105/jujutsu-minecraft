@@ -8,10 +8,12 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import jujutsu.mod.cursedspirit.CursedSpiritEntity;
 import jujutsu.mod.cursedspirit.CursedSpiritProfile;
+import jujutsu.mod.cursedspirit.CursedSpiritSpawnRules;
 import jujutsu.mod.registry.JujutsuEntities;
 
 /**
@@ -97,17 +99,21 @@ public final class CursedSpiritSpawnGameTests {
 					level.getServer().setDifficulty(before, true);
 				}
 
-				// Light refuses in the lit cell.
+				// Light refuses in the lit cell. SPAWNER reason keeps the crowd cap out of this
+				// oracle: sibling arenas share the level, so a NATURAL call here could refuse
+				// for crowding and mask a broken light half.
 				CursedSpiritEntity litProbe = spawnProbe(helper, live, LIT_FEET);
-				helper.assertFalse(litProbe.checkSpawnRules(level, EntitySpawnReason.NATURAL),
+				helper.assertFalse(litProbe.checkSpawnRules(level, EntitySpawnReason.SPAWNER),
 						GameTestFixtures.diagnostic(fixture, helper.getTick(),
-								"natural check in the lit cell", "false", "see report"));
+								"light check in the lit cell " + gateDiagnostic(level, helper.absolutePos(LIT_FEET)),
+								"false", "see report"));
 
 				// Darkness allows in the sealed room (stray probes still far below the cap).
 				CursedSpiritEntity darkProbe = spawnProbe(helper, live, DARK_FEET);
-				helper.assertTrue(darkProbe.checkSpawnRules(level, EntitySpawnReason.NATURAL),
+				helper.assertTrue(darkProbe.checkSpawnRules(level, EntitySpawnReason.SPAWNER),
 						GameTestFixtures.diagnostic(fixture, helper.getTick(),
-								"natural check in the dark room", "true", "see report"));
+								"light check in the dark room " + gateDiagnostic(level, helper.absolutePos(DARK_FEET)),
+								"true", "see report"));
 
 				// A full crowd refuses: top the arena up to exactly MAX_SPIRITS_NEARBY bodies.
 				while (live.size() < CursedSpiritProfile.MAX_SPIRITS_NEARBY) {
@@ -136,6 +142,22 @@ public final class CursedSpiritSpawnGameTests {
 							countOwned(owned, center)));
 			helper.succeed();
 		});
+	}
+
+	/**
+	 * Compact world-state probe for the spawn-gate assertions: how many cursed spirits the
+	 * production cap counts around {@code absoluteCenter}, the block light there (the light
+	 * half of {@code super.checkSpawnRules}) and whether the cheap pure cap predicate agrees.
+	 * Purely informational — the assertions still read the production gate itself.
+	 */
+	private static String gateDiagnostic(ServerLevel level, BlockPos absoluteCenter) {
+		int nearby = level.getEntitiesOfClass(CursedSpiritEntity.class,
+				new AABB(absoluteCenter).inflate(CursedSpiritProfile.CROWD_RADIUS)).size();
+		int blockLight = level.getBrightness(LightLayer.BLOCK, absoluteCenter);
+		int skyLight = level.getBrightness(LightLayer.SKY, absoluteCenter);
+		return "[worldNearby=" + nearby + "/" + CursedSpiritProfile.MAX_SPIRITS_NEARBY
+				+ " blockLight=" + blockLight + " skyLight=" + skyLight
+				+ " belowCap=" + CursedSpiritSpawnRules.belowLocalCap(level, absoluteCenter) + "]";
 	}
 
 	private static void buildDarkRoom(GameTestHelper helper) {
