@@ -11,17 +11,18 @@ Branch `fix/cursed-spirits-feedback`, five commits on top of `a3343c1` (the issu
 | `2dc38cd` | #78 | `MegumiRabbitSwarmPolicy` + `RabbitChaseGoal`/`RabbitDriftGoal`: the swarm has a locomotion goal again (ring drift around the owner, chase only inside the band) |
 | `cced503` | #76 | `MegumiRetaliationPolicy` + per-owner pass in both runtimes: the pack answers a `lastHurtByMob` within 100 ticks or a mob whose target is the owner within 16 blocks; `sicManual` keeps an explicit sic on top; vanilla `OwnerHurtByTargetGoal` removed from all five bodies (it stole manual sics); `Facts.ownSummonBody` stops friendly fire |
 | `b1905e5` | #84 | `CharacterAbilityCooldowns.clearForCharacter` on a vessel switch (server + client mirror); re-confirming the SAME vessel clears nothing on purpose |
+| `f0b1051` | #76 (follow-up) | three defects found by re-reading the first pass: the retaliation window compared the entity clock against the level clock (vanilla stamps `lastHurtByMobTimestamp` with `tickCount`), the per-tick re-mark cancelled every pounce, and `OwnerHurtTargetGoal` stole a manual sic. Each has its own GameTest + mutation proof |
 
 The pipeline lives in `.superpowers/rule-of-four/bugfix-76-85/` (`implementation-plan.md`, `progress.md`,
 `scout-1..4-report.md`, `analysis/{live_fix_check.py,mc_mcp.py,shot.py}`, frame evidence).
 
-- Barrier: `qualityGate` **BUILD SUCCESSFUL** — **94 GameTest / 0** (was 88), **435 JUnit / 0** (was 421),
+- Barrier: `qualityGate` **BUILD SUCCESSFUL** — **97 GameTest / 0** (was 88), **435 JUnit / 0** (was 421),
   doc audit + jar isolation green. Every new behaviour carries a red-proof (mutation → red → restore):
   clip arbitration, whiff slam, rabbit displacement, retaliation (R1/R2 red, R3 stays green), vessel-switch reset.
 - Live MCP pass on the dev lane (`analysis/live_fix_check.py`, one session — a fresh MCP session per call
   trips the lane's 429): #84 `PRIMARY 231 → 0` across a switch and `0` after switching back; #78 ten bodies,
   all moving, median **2.80 blocks** with the owner parked; #85 player **20 → 12 HP** beside a `walking_bed`;
-  #76 zombie at **20.0 with no pack → 17.06** (one dog bite) once the pack was out, no sic; #77 five frames
+  #76 a 12-HP zombie brought **12 → 9.2 → 0.38 → dead** in ~60 ticks by the pack with both dogs alive and the owner untouched (the earlier 'one bite then silence' was the pack being killed: `Divine Dog was slain by Husk`); #77 five frames
   with coherent geometry and a clean client log.
 - Trap for the next live pass: the lane player is mortal — a `walking_bed` killed them mid-session, and a dead
   player breaks every later probe silently (`entity_get` → "Entity not found"). Respawn via `computer` →
