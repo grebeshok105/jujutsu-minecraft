@@ -1,19 +1,19 @@
-# Session Handoff — released as `v1.7` beta (2026-09-12)
+# Session Handoff — released as `v1.7.0` beta (2026-09-12)
 
 ## State — RELEASED
 
 The post-1.6.5 bugfix slice shipped: PR **#87** squash-merged as `8bbc582`, the stronger punishment
-oracle as PR **#88** (`d03960f`), then `chore(release): 1.7` = `1f883ba` on `main`.
+oracle as PR **#88** (`d03960f`), then `chore(release): 1.7.0` = `bc370ff` on `main` (the first cut carried the two-part `1.7`; three-part is the repo convention, and the jar name outlives the mistake, so the tag was re-cut before anyone could depend on it).
 
-- GitHub release `v1.7` (prerelease/beta) carries `jujutsumod-1.7.jar` — 17 741 018 bytes,
-  md5 `d6fba6038bec502adc3bde1e2dfd6382`, body byte-identical to `.superpowers/rule-of-four/bugfix-76-85/release-1.7.md`
-  (4427 bytes, verified after publishing — the check that caught a mangled body last release).
-- Game instance `D:/Games/instances/Jujutsu/mods/` now holds exactly one mod jar, `jujutsumod-1.7.jar`
+- GitHub release `v1.7.0` (prerelease/beta) carries `jujutsumod-1.7.0.jar` — 17 741 018 bytes,
+  md5 `8359d6b553ae9c29670f64fab5ef5dbd`, body byte-identical to `.superpowers/rule-of-four/bugfix-76-85/release-1.7.0.md`
+  (4431 bytes, verified after publishing — the check that caught a mangled body last release).
+- Game instance `D:/Games/instances/Jujutsu/mods/` now holds exactly one mod jar, `jujutsumod-1.7.0.jar`
   (md5 matches the build); `1.6.5` moved to `jujutsumod-1.6.5.jar.bak-20260912b`.
 - Issues **#76, #77, #78, #84, #85** are closed with a comment pointing at the release. Only the idea
   issues stay open (#79–#83, #86 — all `BRAINSTORM ONLY:`, they need design specs before work).
 
-## What 1.7 fixes
+## What 1.7.0 fixes
 
 Five reported bugs (#77 animation arbitration, #85 whiff slam, #78 rabbit locomotion, #84 cooldown
 reset on a vessel switch, #76 pack retaliation) plus three defects found by re-reading the retaliation
@@ -24,7 +24,7 @@ green, jar isolation 1502 entries.
 
 ## If work continues here
 
-1. Owner smoke-tests 1.7 in their own instance (the jar is deployed; a full game restart is required).
+1. Owner smoke-tests 1.7.0 in their own instance (the jar is deployed; a full game restart is required).
 2. Next slice candidates are the idea issues: #79 (Elephant/Frog gameplay), #80 (spirits only visible
    to sorcerers), #81 (level 3–5 + stat spread), #82 (daytime spawning), #86 (per-spirit ability pools),
    #83 (cursed tools) — each needs a DESIGN SPEC first, per the vessel/systemic rules.
