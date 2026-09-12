@@ -71,13 +71,17 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant {
 	}
 
 	public CursedSpiritVariant variant() {
-		List<CursedSpiritVariant> roster = CursedSpiritVariant.variantsOf(tier);
+		CursedSpiritVariant[] all = CursedSpiritVariant.values();
 		int ordinal = entityData.get(DATA_VARIANT);
-		if (ordinal < 0 || ordinal >= CursedSpiritVariant.values().length) {
-			return roster.get(0);
+		CursedSpiritVariant stored = ordinal >= 0 && ordinal < all.length ? all[ordinal] : all[0];
+		// The tier field is assigned after the superclass constructor (which defines the synched
+		// data), so this stays total even when the tier is not set yet or the stored ordinal
+		// belongs to another tier's roster.
+		if (tier == null || stored.tier() == tier) {
+			return stored;
 		}
-		CursedSpiritVariant stored = CursedSpiritVariant.values()[ordinal];
-		return stored.tier() == tier ? stored : roster.get(0);
+		List<CursedSpiritVariant> roster = CursedSpiritVariant.variantsOf(tier);
+		return roster.isEmpty() ? all[0] : roster.get(0);
 	}
 
 	/** Server-side (and test) variant assignment. */
@@ -150,13 +154,25 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant {
 	}
 
 	@Override
+	public boolean checkSpawnRules(net.minecraft.world.level.LevelAccessor level,
+			EntitySpawnReason reason) {
+		// javap-verified on 1.21.8: Mob.checkSpawnRules is a bare `return true` — Monster's
+		// difficulty+darkness rules live in the STATIC checkMonsterSpawnRules, which only runs via
+		// SpawnPlacements.register (private in 1.21.8, so unreachable). The explicit PEACEFUL gate
+		// below is therefore load-bearing; any light gating belongs in Block 4's conjunct.
+		if (level.getDifficulty() == net.minecraft.world.Difficulty.PEACEFUL) {
+			return false;
+		}
+		return super.checkSpawnRules(level, reason);
+	}
+	@Override
 	protected void defineSynchedData(SynchedEntityData.Builder builder) {
 		super.defineSynchedData(builder);
-		builder.define(DATA_VARIANT, defaultVariantOrdinal());
-	}
-
-	private int defaultVariantOrdinal() {
-		return CursedSpiritVariant.variantsOf(tier).get(0).ordinal();
+		// Tier-independent by necessity: this runs inside the superclass constructor, before the
+		// tier field is assigned — any roster lookup here throws (P0: summon crash). The real
+		// variant resolves in finalizeSpawn (weighted roll) and on NBT load (validated id);
+		// variant() falls back to the tier roster head for the window in between.
+		builder.define(DATA_VARIANT, 0);
 	}
 
 	@Override
