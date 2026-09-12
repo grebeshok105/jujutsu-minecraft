@@ -2,6 +2,14 @@
 
 ## State — RELEASED as `v1.6.5` beta
 
+Owner feedback from the first play session after 1.6.5 was filed as issues **#76–#86** on 2026-09-12:
+bugs — #77 (cursed-spirit jitter and the model sliding off on hit), #78 (Rabbit Escape stands in place),
+#84 (cooldowns survive a vessel switch), #85 (Walking Bed attacks deal nothing), #76 (shikigami should
+retaliate on their own); ideas — #79 (fill out Elephant/Frog), #80 (spirits visible only to sorcerers),
+#81 (random spirit level 3–5 + stat spread), #82 (daytime spawning), #83 (BRAINSTORM: cursed tools),
+#86 (per-spirit ability pools and tier variation). Bodies carry file-level starting points and acceptance
+criteria, so they are ready to pick up as the next slice.
+
 PR #75 squash-merged into `main` as `3a0936c`; the release commit bumps `mod_version` to **1.6.5**
 and the GitHub release carries `jujutsumod-1.6.5.jar` (beta). The feature branch stays on the
 remote on purpose, as with the shikigami slice: the squash collapses its commits.
