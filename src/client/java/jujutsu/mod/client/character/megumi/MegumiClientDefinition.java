@@ -18,7 +18,10 @@ import jujutsu.mod.client.character.megumi.particle.MegumiShadowMoteParticle;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.render.CharacterSkinAnimation;
 import jujutsu.mod.client.render.megumi.MegumiDivineDogRenderer;
+import jujutsu.mod.client.render.megumi.MegumiElephantRenderer;
 import jujutsu.mod.client.render.megumi.MegumiNueRenderer;
+import jujutsu.mod.client.render.megumi.MegumiRabbitRenderer;
+import jujutsu.mod.client.render.megumi.MegumiToadRenderer;
 import jujutsu.mod.client.render.megumi.MegumiSkinAnimationAdapter;
 import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.registry.JujutsuParticles;
@@ -132,6 +135,9 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 	public void registerClientHooks() {
 		EntityRendererRegistry.register(JujutsuEntities.MEGUMI_DIVINE_DOG, MegumiDivineDogRenderer::new);
 		EntityRendererRegistry.register(JujutsuEntities.MEGUMI_NUE, MegumiNueRenderer::new);
+		EntityRendererRegistry.register(JujutsuEntities.MEGUMI_TOAD, MegumiToadRenderer::new);
+		EntityRendererRegistry.register(JujutsuEntities.MEGUMI_RABBIT, MegumiRabbitRenderer::new);
+		EntityRendererRegistry.register(JujutsuEntities.MEGUMI_MAX_ELEPHANT, MegumiElephantRenderer::new);
 		ParticleFactoryRegistry.getInstance().register(JujutsuParticles.MEGUMI_SHADOW_MOTE, MegumiShadowMoteParticle.Provider::new);
 		MegumiVfxRecipes.register();
 		VfxDirector.registerHudContribution(JujutsuMod.id("megumi_divine_dogs_cooldown"), MegumiCooldownHud::render);

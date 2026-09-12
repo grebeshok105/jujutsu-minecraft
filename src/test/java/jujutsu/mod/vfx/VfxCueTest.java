@@ -90,7 +90,10 @@ final class VfxCueTest {
 				"megumi/shadow_trap_close", "megumi/shadow_dive", "megumi/shadow_ripple", "megumi/shadow_emerge",
 				"megumi/drop_zone_open", "megumi/drop_zone", "megumi/drop_zone_close",
 				"megumi/nue_summon", "megumi/nue_dive", "megumi/nue_shock",
-				"megumi/shikigami_sic", "megumi/shikigami_recall"),
+				"megumi/shikigami_sic", "megumi/shikigami_recall",
+				"megumi/toad_summon", "megumi/toad_tongue",
+				"megumi/rabbits_summon", "megumi/rabbits_pop",
+				"megumi/elephant_summon", "megumi/elephant_jet"),
 				paths(MegumiVfxIds.LIVE));
 	}
 

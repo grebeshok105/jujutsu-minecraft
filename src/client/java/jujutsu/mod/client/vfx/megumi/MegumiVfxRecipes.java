@@ -63,6 +63,9 @@ public final class MegumiVfxRecipes {
 	// Shikigami slice: dive streak outlives the dive commit by a beat; the shock owns its flash.
 	private static final int NUE_DIVE_DURATION_TICKS = 8;
 	private static final int NUE_SHOCK_DURATION_TICKS = 12;
+	private static final int TOAD_TONGUE_DURATION_TICKS = 8;
+	private static final int RABBITS_POP_DURATION_TICKS = 6;
+	private static final int ELEPHANT_JET_DURATION_TICKS = 8;
 
 	public static void register() {
 		VfxDirector.register(MegumiVfxIds.DOGS_SUMMON_BODY, MegumiVfxRecipes::summonBody);
@@ -85,6 +88,93 @@ public final class MegumiVfxRecipes {
 		VfxDirector.register(MegumiVfxIds.NUE_SHOCK, MegumiVfxRecipes::nueShock);
 		VfxDirector.register(MegumiVfxIds.SHIKIGAMI_SIC, MegumiVfxRecipes::shikigamiSic);
 		VfxDirector.register(MegumiVfxIds.SHIKIGAMI_RECALL, MegumiVfxRecipes::shikigamiRecall);
+		VfxDirector.register(MegumiVfxIds.TOAD_SUMMON, MegumiVfxRecipes::toadSummon);
+		VfxDirector.register(MegumiVfxIds.TOAD_TONGUE, MegumiVfxRecipes::toadTongue);
+		VfxDirector.register(MegumiVfxIds.RABBITS_SUMMON, MegumiVfxRecipes::rabbitsSummon);
+		VfxDirector.register(MegumiVfxIds.RABBITS_POP, MegumiVfxRecipes::rabbitsPop);
+		VfxDirector.register(MegumiVfxIds.ELEPHANT_SUMMON, MegumiVfxRecipes::elephantSummon);
+		VfxDirector.register(MegumiVfxIds.ELEPHANT_JET, MegumiVfxRecipes::elephantJet);
+	}
+
+	/** Rabbit Escape's summon pool: one shared shadow over a scatter of small pops. */
+	private static VfxInstance rabbitsSummon(VfxCue cue) {
+		return VfxInstance.of(SUMMON_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 origin = cue.origin();
+			RandomSource random = random(cue, 0x52414201L);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN, SUMMON_DURATION_TICKS);
+			context.burst(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.10, 0.0), 12, 0.55, 0.14, random);
+			context.burst(ParticleTypes.POOF, origin.add(0.0, 0.15, 0.0), 8, 0.45, 0.10, random);
+		});
+	}
+
+	/** One rabbit arriving (upkeep), bumping a hostile, or the swarm's expiry burst. */
+	private static VfxInstance rabbitsPop(VfxCue cue) {
+		return VfxInstance.of(RABBITS_POP_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 origin = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0x52414202L);
+			context.burst(ParticleTypes.POOF, origin.add(0.0, 0.15, 0.0), 10, 0.30, 0.08, random);
+			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.05, 0.0), 8, 0.45, 0.0, 0.05, random);
+		});
+	}
+
+	/** Max Elephant's summon pool: a heavy shadow opening. */
+	private static VfxInstance elephantSummon(VfxCue cue) {
+		return VfxInstance.of(SUMMON_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 origin = cue.origin();
+			RandomSource random = random(cue, 0x454C3101L);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN, SUMMON_DURATION_TICKS);
+			context.burst(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.20, 0.0), 20, 0.70, 0.16, random);
+			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.06, 0.0), 16, 1.6, 0.0, 0.08, random);
+		});
+	}
+
+	/** The trunk jet: the windup splash and every damage pulse ride this cue. */
+	private static VfxInstance elephantJet(VfxCue cue) {
+		return VfxInstance.of(ELEPHANT_JET_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 trunk = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0x454C3102L);
+			context.burst(ParticleTypes.SPLASH, trunk, 18, 0.60, 0.30, random);
+			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, trunk, 10, 0.55, 0.02, 0.10, random);
+		});
+	}
+
+	/** Toad's summon pool: the shared shadow opening over a wet splash. */
+	private static VfxInstance toadSummon(VfxCue cue) {
+		return VfxInstance.of(SUMMON_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 origin = cue.origin();
+			RandomSource random = random(cue, 0x70440001L);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN, SUMMON_DURATION_TICKS);
+			context.burst(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.10, 0.0), 14, 0.40, 0.13, random);
+			context.burst(ParticleTypes.SPLASH, origin.add(0.0, 0.25, 0.0), 10, 0.45, 0.12, random);
+		});
+	}
+
+	/** The tongue: a short flick on the body, then the grab flash on the target. */
+	private static VfxInstance toadTongue(VfxCue cue) {
+		return VfxInstance.of(TOAD_TONGUE_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 target = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0x70440002L);
+			context.burst(ParticleTypes.SPLASH, target, 10, 0.35, 0.15, random);
+			context.burst(SHADOW_DARK, target, 6, 0.20, 0.10, random);
+		});
 	}
 
 	// --- shikigami slice (Nue / Toad / Rabbit Escape / Max Elephant) ---

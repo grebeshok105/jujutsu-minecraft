@@ -302,10 +302,10 @@ public final class MegumiShikigamiRuntime {
 		long gameTime = body.level().getGameTime();
 		switch (body.shikigamiType()) {
 			case NUE -> MegumiNueBrain.tick((ServerLevel) body.level(), owner, pack, (MegumiNueEntity) body, gameTime);
+			case TOAD -> MegumiToadBrain.tick((ServerLevel) body.level(), owner, pack, (MegumiToadEntity) body, gameTime);
+			case RABBITS -> MegumiRabbitsBrain.tick((ServerLevel) body.level(), owner, pack, (MegumiRabbitEntity) body, gameTime);
+			case ELEPHANT -> MegumiElephantBrain.tick((ServerLevel) body.level(), owner, pack, (MegumiElephantEntity) body, gameTime);
 			case DOGS -> throw new IllegalStateException("dogs never enter the shikigami runtime");
-			case TOAD, RABBITS, ELEPHANT -> {
-				// Block 1/2/3 owns this arm; no-op until the type's summon arm exists.
-			}
 		}
 	}
 
@@ -395,8 +395,12 @@ public final class MegumiShikigamiRuntime {
 			switch (type) {
 				case NUE -> broadcastCue(level, player, MegumiVfxIds.NUE_SUMMON,
 						body.position(), body.getId(), Vec3.ZERO);
-				case TOAD, RABBITS, ELEPHANT -> throw new UnsupportedOperationException(
-						"summon cue for " + type.id() + " ships with its own block");
+				case TOAD -> broadcastCue(level, player, MegumiVfxIds.TOAD_SUMMON,
+						body.position(), body.getId(), Vec3.ZERO);
+				case RABBITS -> broadcastCue(level, player, MegumiVfxIds.RABBITS_SUMMON,
+						body.position(), body.getId(), Vec3.ZERO);
+				case ELEPHANT -> broadcastCue(level, player, MegumiVfxIds.ELEPHANT_SUMMON,
+						body.position(), body.getId(), Vec3.ZERO);
 				case DOGS -> throw new IllegalStateException("dogs do not use the shikigami runtime");
 			}
 		}
@@ -407,10 +411,58 @@ public final class MegumiShikigamiRuntime {
 			ServerLevel level, ServerPlayer owner, MegumiShikigami type, long token) {
 		return switch (type) {
 			case NUE -> spawnNue(level, owner, token);
+			case TOAD -> spawnToad(level, owner, token);
+			case RABBITS -> spawnRabbits(level, owner, token);
+			case ELEPHANT -> spawnElephant(level, owner, token);
 			case DOGS -> throw new IllegalStateException("dogs do not use the shikigami runtime");
-			case TOAD, RABBITS, ELEPHANT -> throw new UnsupportedOperationException(
-					"this type's spawn arm is owned by a later block");
 		};
+	}
+
+	private static List<MegumiShikigamiEntity> spawnRabbits(ServerLevel level, ServerPlayer owner, long token) {
+		List<Vec3> spots = MegumiShikigamiSpawnPlacement.ring(level, owner.position(),
+				MegumiShikigamiProfile.RABBITS_SWARM_SIZE, MegumiShikigamiProfile.RABBITS_SPAWN_RADIUS,
+				JujutsuEntities.MEGUMI_RABBIT.getDimensions());
+		List<MegumiShikigamiEntity> bodies = new ArrayList<>(spots.size());
+		for (Vec3 spot : spots) {
+			MegumiRabbitEntity rabbit = new MegumiRabbitEntity(JujutsuEntities.MEGUMI_RABBIT, level);
+			rabbit.setPos(spot);
+			rabbit.setYRot(owner.getYRot());
+			rabbit.setTame(true, false);
+			rabbit.setOwner(owner);
+			rabbit.configureSummon(owner.getUUID(), token);
+			bodies.add(rabbit);
+		}
+		return bodies;
+	}
+
+	private static List<MegumiShikigamiEntity> spawnElephant(ServerLevel level, ServerPlayer owner, long token) {
+		Vec3 spot = MegumiShikigamiSpawnPlacement.ground(level, owner.position(),
+				owner.getYRot(), JujutsuEntities.MEGUMI_MAX_ELEPHANT.getDimensions());
+		if (spot == null) {
+			return List.of();
+		}
+		MegumiElephantEntity elephant = new MegumiElephantEntity(JujutsuEntities.MEGUMI_MAX_ELEPHANT, level);
+		elephant.setPos(spot);
+		elephant.setYRot(owner.getYRot());
+		elephant.setTame(true, false);
+		elephant.setOwner(owner);
+		elephant.configureSummon(owner.getUUID(), token);
+		return List.of(elephant);
+	}
+
+	private static List<MegumiShikigamiEntity> spawnToad(ServerLevel level, ServerPlayer owner, long token) {
+		Vec3 spot = MegumiShikigamiSpawnPlacement.ground(level, owner.position(),
+				owner.getYRot(), JujutsuEntities.MEGUMI_TOAD.getDimensions());
+		if (spot == null) {
+			return List.of();
+		}
+		MegumiToadEntity toad = new MegumiToadEntity(JujutsuEntities.MEGUMI_TOAD, level);
+		toad.setPos(spot);
+		toad.setYRot(owner.getYRot());
+		toad.setTame(true, false);
+		toad.setOwner(owner);
+		toad.configureSummon(owner.getUUID(), token);
+		return List.of(toad);
 	}
 
 	private static List<MegumiShikigamiEntity> spawnNue(ServerLevel level, ServerPlayer owner, long token) {
