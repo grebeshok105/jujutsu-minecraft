@@ -91,10 +91,16 @@ final class MegumiNueBrain {
 				? living : null;
 	}
 
-	private static float yawTo(Vec3 velocity) {
+	/**
+	 * Yaw facing a velocity under the Minecraft convention ({@code x = -sin(yaw)},
+	 * {@code z = cos(yaw)}): the x component is negated, exactly like the elephant's aim and the
+	 * shared base helper. The unnegated form mirrors the model across Z (eastbound flight faces
+	 * west) while steering stays correct. Package-visible for the axis pin test.
+	 */
+	static float yawTo(Vec3 velocity) {
 		if (velocity.horizontalDistanceSqr() < 1.0E-8) {
 			return Float.NaN;
 		}
-		return (float) (Math.atan2(velocity.x, velocity.z) * (180.0 / Math.PI));
+		return (float) (Math.atan2(-velocity.x, velocity.z) * (180.0 / Math.PI));
 	}
 }

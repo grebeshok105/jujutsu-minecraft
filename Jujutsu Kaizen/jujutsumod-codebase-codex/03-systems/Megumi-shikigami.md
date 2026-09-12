@@ -16,8 +16,9 @@ Server code lives under `jujutsu.mod.character.megumi` (`MegumiShikigami*`, `Meg
 `MegumiToad*`, `MegumiRabbit*`/`MegumiRabbits*`, `MegumiElephant*`); client render stacks live
 under `jujutsu.mod.client.render.megumi`. Each shikigami is one `MegumiShikigamiEntity` subclass
 plus one server brain plus one client animatable/model/renderer triple, mirroring the shipped dog
-pattern. Implementation status on this branch: Nue is landed (`d781c3b`); Toad, Rabbit Escape, and
-Max Elephant follow the frozen plan blocks on the same branch.
+pattern. Implementation status on this branch: all four bodies ship — Nue in `d781c3b`, Toad,
+Rabbit Escape and Max Elephant in `2c51107` — each accepted in game over the MCP dev lane, with
+the review-wave fixes landing on top.
 
 ## Slot map
 
@@ -84,7 +85,10 @@ within 24 blocks and line of sight: straight-line steering at the target's eyes 
 blocks/tick, 40-tick timeout, impact at box-to-point distance ≤ 1.6 → 5.0 owner-attributed damage,
 stagger 12 ticks, `SLOWNESS` 40 ticks, 60-tick charge cooldown. The canon combo: a
 `MEGUMI_SOAKED` target (Max Elephant's primer) takes ×1.5 damage, 20-tick stagger, 60-tick slow.
-Clips `idle`/`fly`/`attack` (+ unused `flight_feet`/`grab_feet` kept as imported); policy
+Clips `idle`/`fly`/`attack` on the body layer; the imported `flight_feet` (legs and feet, four of
+ten bones) and `grab_feet` (talons) ride a second `megumi_nue_feet` controller, because a partial
+clip on the body controller freezes every bone it does not name — the wings used to lock for the
+whole of fast travel. Policy
 `MegumiShikigamiAnimationPolicy.nue`: phase rise/sink outranks the `attack` one-shot, which
 outranks travel. Sounds: shared shadow-open swell plus `PHANTOM_FLAP`/`PHANTOM_AMBIENT` on
 emergence, shared implosion on recall, `PHANTOM_AMBIENT` sic accent, `PHANTOM_BITE` + quiet `TRIDENT_THUNDER` on impact — vanilla placeholders plus the existing mod-owned shadow sounds, no new entries.

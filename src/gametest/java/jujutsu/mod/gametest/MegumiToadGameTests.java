@@ -133,10 +133,11 @@ public final class MegumiToadGameTests {
 	 * S2 — sic on an AI zombie with zeroed speed 5 blocks away ends in a tongue strike: the
 	 * strike is detected through the tongue's stagger (nothing else in the arena staggers), the
 	 * zombie's health dropped by at least the armoured tongue hit, its peak toward-the-toad
-	 * speed over the strike window reads at least 0.3 (binding), and the zombie's own
-	 * displacement from its strike-tick spot toward the toad reads at least 0.5 blocks within
-	 * 12 further ticks (secondary, non-vacuous: Slowness 100 removes self-motion while full AI
-	 * keeps physics, so only the grab can move it).
+	 * speed over the strike window reads at least 0.5 (binding against the 0.65 contract), and
+	 * the zombie's own displacement from its strike-tick spot toward the toad reads at least 1.5
+	 * blocks within 12 further ticks (secondary, non-vacuous: Slowness 100 removes self-motion
+	 * while full AI keeps physics, so only the grab can move it; in-game the pull drags
+	 * 6.0→3.16 blocks within 6 ticks, so both floors sit ~2× below observed).
 	 */
 	@GameTest(maxTicks = 150)
 	public void toadTonguePullsTheTargetTowardTheBody(GameTestHelper helper) {
@@ -212,10 +213,10 @@ public final class MegumiToadGameTests {
 				if (!struck.get() && CombatStagger.GLOBAL.isStaggered(zombie.getUUID(), gameTime)) {
 					try {
 						double dropped = healthBefore.get() - zombie.getHealth();
-						helper.assertTrue(dropped >= 2.0,
+						helper.assertTrue(dropped >= 2.5,
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "strike",
 										helper.getTick(), caster.getUUID(),
-										"tongue damage (3.0 vs 2 armour)", ">= 2.0", dropped));
+										"tongue damage (3.0 vs 2 armour, 2.94 observed)", ">= 2.5", dropped));
 						struck.set(true);
 						struckTick.set(pollTick);
 						List<MegumiToadEntity> strikeBodies = toadOwnedBy(level, caster.getUUID());
@@ -263,14 +264,14 @@ public final class MegumiToadGameTests {
 						Vec3 displacement = zombie.position().subtract(zombieStrike);
 						double towardDisplacement =
 								(displacement.x * toToad.x + displacement.z * toToad.z) / reach;
-						helper.assertTrue(towardDisplacement >= 0.5,
+						helper.assertTrue(towardDisplacement >= 1.5,
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "pull",
 										helper.getTick(), caster.getUUID(),
-										"zombie displacement toward the toad", ">= 0.5", towardDisplacement));
-						helper.assertTrue(maxTowardSpeed.get() >= 0.3,
+										"zombie displacement toward the toad", ">= 1.5", towardDisplacement));
+						helper.assertTrue(maxTowardSpeed.get() >= 0.5,
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "pull",
 										helper.getTick(), caster.getUUID(),
-										"peak toward-the-toad speed", ">= 0.3", maxTowardSpeed.get()));
+										"peak toward-the-toad speed", ">= 0.5", maxTowardSpeed.get()));
 						done.set(true);
 						zombie.discard();
 					} finally {

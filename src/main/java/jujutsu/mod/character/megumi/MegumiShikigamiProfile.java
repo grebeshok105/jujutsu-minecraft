@@ -119,7 +119,6 @@ public final class MegumiShikigamiProfile {
 	public static final double ELEPHANT_FOLLOW_STOP_DISTANCE = 4.0;
 	public static final int ELEPHANT_MATERIALIZE_TICKS = 30;
 	public static final int ELEPHANT_RECALL_TICKS = 16;
-	public static final double ELEPHANT_JET_RANGE = 16.0;
 	public static final int ELEPHANT_JET_WINDUP_TICKS = 8;
 	public static final int ELEPHANT_JET_DURATION_TICKS = 40;
 	public static final int ELEPHANT_JET_PULSE_TICKS = 2;

@@ -62,9 +62,9 @@ Decided 2026-07-26 with the impact pass. Both are recorded in `TodoSwapMomentumR
 
 Owned by [PROVENANCE.md](PROVENANCE.md) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Those files hold the permission scope, the retained upstream notice, and the replacement policy. Only the release-blocking consequences are tracked here, as R3.
 
-### Shikigami selection is in-memory, and three presentation limits ship as-is
+### Shikigami selection is in-memory, and the slice ships with accepted limits
 
-Decided with the `feat/megumi-shikigami` branch. Four accepted limits of the Ten Shadows slice
+Decided with the `feat/megumi-shikigami` branch. Accepted limits of the Ten Shadows slice
 (Nue / Toad / Rabbit Escape / Max Elephant); reopen any of them only with an explicit owner call,
 not as drive-by "fixes".
 
@@ -89,6 +89,19 @@ not as drive-by "fixes".
    not even gravity. Assert displacement only on AI mobs with zeroed speed (Slowness amplifier
    100), otherwise assert velocity/effect state. Recorded so a future scenario author cannot
    re-learn it the red way.
+6. **The toad can spend a sic the tongue cannot reach.** `SIC_RANGE` (the aim) is 20 blocks from
+   the shared resolver while the tongue strikes within 12; a sic at 13–20 blocks plays the snap
+   and the cue, arms the 30-tick `PRIMARY_SNEAK` cooldown and never lands. The elephant already
+   refuses beyond its own reach (review fix); the toad keeps the shared aim until a per-type
+   sic-range contract is agreed — it is a UX wart, not a broken strike.
+7. **The elephant's jet is level.** `faceTarget` sets yaw only, so the corridor leaves the trunk
+   at ~1.9 blocks with no pitch: bodies shorter than about 1.4 blocks (Rabbit Escape sits at 0.2)
+   pass under it at any range. Aiming pitch at the target's chest would change which targets are
+   hittable, so it is an owner call rather than a silent fix.
+8. **The rabbit `run` clip is asymmetric upstream.** `megumi_rabbit.animation.json`'s `run` bends
+   the left knee without the left foot and the right foot without the right knee (`walk` is
+   symmetric). Shipped byte-identical to the Sorcery Age source; the swarm reads through motion
+   and count, and editing a third-party clip is a new asset revision, not a bug fix.
 
 ## Public-release blockers
 

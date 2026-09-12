@@ -25,7 +25,7 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 - Nobara's starter kit is restored idempotently on every selection; Todo and Megumi have no starter items in their current slices.
 - Shared input slots — R, Shift+R, B, Shift+B, V, Shift+V, plus contextual left click with a technique weapon and the hold/release gesture — mean whatever the selected vessel's own router says; each vessel binds one server and one client definition. See [Vessel definitions](02-architecture/Vessel-definitions.md).
 - Nobara, Todo and Megumi use ordinary 64x64 player skins through vanilla `PlayerRenderer`; one shared GeckoLib-to-`PlayerModel` bridge evaluates their authored third-person packs on invisible rigs. Nobara uses `slim`, Todo and Megumi use `wide`, and Todo's body scale is 1.15 without reach/damage/speed changes. NONE keeps the ordinary vanilla pose. The former visible Geo player stack and superseded skin packs are retained outside runtime under `archive/character-player-gecko/` and `archive/character-skin-animation/`.
-- Transient combat effects use VfxCue → VfxDirector → character recipes, each registered by its vessel's own client definition. Megumi owns `jujutsu.mod.vfx.MegumiVfxIds` and `jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes`; his twenty `megumi/*` wire ids are five Divine Dogs plus ten shadow-kit ids plus five shikigami-slice ids (Nue trio + sic marker + recall sweep), appended and never renumbered.
+- Transient combat effects use VfxCue → VfxDirector → character recipes, each registered by its vessel's own client definition. Megumi owns `jujutsu.mod.vfx.MegumiVfxIds` and `jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes`; his twenty-six `megumi/*` wire ids are five Divine Dogs plus ten shadow-kit ids plus eleven shikigami-slice ids (Nue trio + sic marker + recall sweep + Toad pair + Elephant pair + Rabbit pair), appended and never renumbered.
 - World transient rendering keeps lifecycle and dispatch in `VfxWorldChannel` while `HairpinWorldEffects`, `BlackFlashWorldEffects`, `SwapWorldEffects`, `ShadowWorldEffects`, and shared `VfxWorldGeometry` own the extracted visual families; the cap remains 48.
 - `VfxCameraChannel` keeps production wall-clock behavior through `System::currentTimeMillis` while its package-private millisecond supplier seam makes deterministic start, expiry, overlap, clamp, strength, and clear contracts executable without sleeps.
 - A completed Boogie Woogie emits its own cues — afterimage and arrival — which the feint does not, and opens a 24-tick window on Todo's next hit. The marker system is deleted: Todo's stone exists only in flight (V throws or self-swaps, Shift+V feeds a target into it), and B → Shift+B runs the fixed triple cycle Todo→A→T→Todo. Contracts: [Todo — Boogie Woogie and combat slice](03-systems/Todo-Boogie-Woogie.md), design `docs/TODO_STONE_REWORK.md`.
@@ -38,7 +38,7 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 |---|---:|
 | Main Java files | 148 |
 | Client Java files | 203 |
-| Test Java files | 99 |
+| Test Java files | 104 |
 | Verification programs | 29 |
 | Client mixins | 6 |
 | Network payloads | 8 |

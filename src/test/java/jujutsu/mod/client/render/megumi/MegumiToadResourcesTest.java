@@ -17,8 +17,9 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Cross-artifact contract for the imported Toad visual: every animation id named in client code
- * must exist in the shipped animation set, and the tongue must be a one-shot — a looping tongue
- * would never finish and never release the jaw.
+ * must exist in the shipped animation set, and the tongue must be a one-shot on the action
+ * layer — a looping tongue would never finish and never release the jaw, and a tongue on the
+ * body controller would freeze the whole toad for the length of the strike.
  */
 final class MegumiToadResourcesTest {
 	private static final Path CLIENT = Path.of("src/client/java/jujutsu/mod/client/render/megumi");
@@ -72,12 +73,38 @@ final class MegumiToadResourcesTest {
 	}
 
 	@Test
-	void theTongueRidesTheBaseControllerAsAOneShotClip() throws Exception {
+	void theTongueRidesTheActionControllerAsAOneShotClip() throws Exception {
 		String source = Files.readString(ANIMATABLE_SOURCE);
 		assertTrue(source.contains("thenPlay(\"animation.megumi_toad.tongue\")"),
 				"The tongue clip must be a one-shot: a looping tongue would never finish and never release the jaw");
 		assertFalse(source.contains("thenLoop(\"animation.megumi_toad.tongue\")"),
 				"The tongue must not be looped: a looping tongue clip never finishes and never releases the jaw");
+		assertTrue(source.contains("\"megumi_toad_action\""),
+				"The tongue needs its own action controller, or its clip would freeze the walk cycle while it plays");
+		String baseArm = methodBody(source, "baseAnimation");
+		assertFalse(baseArm.contains("TONGUE"),
+				"The base controller must never reference the tongue clip: it owns the walk cycle only");
+		String actionArm = methodBody(source, "actionAnimation");
+		assertTrue(actionArm.contains("TONGUE"),
+				"The action layer must play the tongue clip");
+		assertTrue(source.indexOf("this::baseAnimation") < source.indexOf("this::actionAnimation"),
+				"The base controller registers first so the action layer wins the bones they share");
+	}
+
+	@Test
+	void theTongueClipTouchesNoBoneTheWalkCycleUses() throws Exception {
+		JsonObject animations = JsonParser.parseString(Files.readString(ANIMATION_JSON))
+				.getAsJsonObject().getAsJsonObject("animations");
+		Set<String> tongue = boneNames(animations, "animation.megumi_toad.tongue");
+		Set<String> walk = boneNames(animations, "animation.megumi_toad.walk");
+		Set<String> overlap = new TreeSet<>(tongue);
+		overlap.retainAll(walk);
+		assertTrue(overlap.isEmpty(),
+				"The tongue overlays the walk cycle, which is only safe while it animates the mouth alone: " + overlap);
+		Set<String> swing = boneNames(animations, "animation.megumi_toad.attack");
+		assertTrue(!swing.contains("left_leg") && !swing.contains("right_leg")
+				&& !swing.contains("left_thigh") && !swing.contains("right_thigh"),
+				"The swing shares the torso with the walk but must leave the legs stepping: " + swing);
 	}
 
 	@Test
@@ -85,5 +112,29 @@ final class MegumiToadResourcesTest {
 		JsonObject root = JsonParser.parseString(Files.readString(ANIMATION_JSON)).getAsJsonObject();
 		assertTrue(root.has("geckolib_format_version"), "The Toad set must stamp geckolib_format_version");
 		assertEquals(2, root.get("geckolib_format_version").getAsInt());
+	}
+
+	private static String methodBody(String source, String method) {
+		int start = source.indexOf(" " + method + "(");
+		int open = source.indexOf('{', start);
+		int depth = 0;
+		for (int i = open; i < source.length(); i++) {
+			char c = source.charAt(i);
+			if (c == '{') {
+				depth++;
+			} else if (c == '}') {
+				depth--;
+				if (depth == 0) {
+					return source.substring(open, i + 1);
+				}
+			}
+		}
+		throw new IllegalArgumentException("No body found for " + method);
+	}
+
+	private static Set<String> boneNames(JsonObject animations, String clip) {
+		Set<String> bones = new TreeSet<>();
+		animations.getAsJsonObject(clip).getAsJsonObject("bones").keySet().forEach(bones::add);
+		return bones;
 	}
 }

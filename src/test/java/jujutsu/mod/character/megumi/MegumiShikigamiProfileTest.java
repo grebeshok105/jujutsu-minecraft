@@ -28,6 +28,24 @@ class MegumiShikigamiProfileTest {
 	}
 
 	@Test
+	void theToadBlockIsTheTuningSurfaceForTheTongue() {
+		assertEquals(80.0, MegumiShikigamiProfile.TOAD_HEALTH);
+		assertEquals(4.0, MegumiShikigamiProfile.TOAD_ATTACK_DAMAGE);
+		assertEquals(0.22, MegumiShikigamiProfile.TOAD_SPEED);
+		assertEquals(6.0, MegumiShikigamiProfile.TOAD_FOLLOW_START);
+		assertEquals(2.5, MegumiShikigamiProfile.TOAD_FOLLOW_STOP);
+		assertEquals(16, MegumiShikigamiProfile.TOAD_MATERIALIZE_TICKS);
+		assertEquals(12, MegumiShikigamiProfile.TOAD_RECALL_TICKS);
+		assertEquals(12.0, MegumiShikigamiProfile.TOAD_TONGUE_RANGE);
+		assertEquals(6, MegumiShikigamiProfile.TOAD_TONGUE_WINDUP_TICKS);
+		assertEquals(100, MegumiShikigamiProfile.TOAD_TONGUE_COOLDOWN_TICKS);
+		assertEquals(3.0, MegumiShikigamiProfile.TOAD_TONGUE_DAMAGE);
+		assertEquals(0.65, MegumiShikigamiProfile.TOAD_TONGUE_PULL_SPEED);
+		assertEquals(0.25, MegumiShikigamiProfile.TOAD_TONGUE_PULL_UP);
+		assertEquals(8, MegumiShikigamiProfile.TOAD_TONGUE_STAGGER_TICKS);
+	}
+
+	@Test
 	void losingAShikigamiAlwaysCostsMoreThanRecallingIt() {
 		for (MegumiShikigami type : MegumiShikigami.values()) {
 			assertTrue(MegumiShikigamiProfile.deathCooldownTicks(type)

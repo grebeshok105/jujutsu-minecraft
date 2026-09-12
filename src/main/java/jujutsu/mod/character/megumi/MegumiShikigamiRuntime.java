@@ -108,16 +108,29 @@ public final class MegumiShikigamiRuntime {
 		boolean swappedOut = false;
 		switch (action) {
 			case DELEGATE_DOGS -> {
-				if (ours != null) {
+				// The dogs answer first: their summon can be refused (no room, other reasons) and the
+				// refusal must not cost the player the shikigami already out. Only once the dogs are
+				// committed does the shikigami pack step aside.
+				boolean dogs = MegumiSummonRuntime.tryToggle(player, notify);
+				if (dogs && ours != null) {
 					teardown(player.getServer(), ownerId, TeardownReason.SWAPPED);
 				}
-				return MegumiSummonRuntime.tryToggle(player, notify);
+				return dogs;
 			}
 			case RECALL_SELF -> {
 				teardown(player.getServer(), ownerId, TeardownReason.RECALL);
 				return true;
 			}
 			case RECALL_OTHER_THEN_SUMMON -> {
+				// Stage the arrival before anything is torn down: a placement failure (a cave, a wall of
+				// the owner's own bodies) used to cost the previous body for a no_room message, which is
+				// the whole point of the swap being free. The staged bodies are not in the level yet, so
+				// the sweep that follows cannot see them.
+				long token = NEXT_SUMMON_TOKEN.incrementAndGet();
+				List<MegumiShikigamiEntity> staged = spawnBodies(player.level(), player, selection, token);
+				if (staged.isEmpty()) {
+					return rejectNoRoom(player, notify);
+				}
 				if (ours != null) {
 					teardown(player.getServer(), ownerId, TeardownReason.SWAPPED);
 					swappedOut = true;
@@ -126,7 +139,7 @@ public final class MegumiShikigamiRuntime {
 					MegumiSummonRuntime.teardown(player.getServer(), ownerId, MegumiSummonRuntime.TeardownReason.SWAPPED);
 					swappedOut = true;
 				}
-				boolean summoned = summon(player, selection, notify);
+				boolean summoned = commitSummon(player, selection, token, staged, notify);
 				if (summoned && swappedOut && notify) {
 					player.displayClientMessage(Component.translatable("message.jujutsumod.megumi.shikigami.swap",
 							Component.translatable(activeType != null ? nameKey(activeType) : nameKey(MegumiShikigami.DOGS)),
@@ -319,13 +332,16 @@ public final class MegumiShikigamiRuntime {
 			return !body.canFinishRecallWithoutPack();
 		}
 		if (pack.type() != body.shikigamiType()) {
-			return true;
+			// A swap-out body: its pack record is gone because a different type arrived, but the sink it
+			// started is still playing. Discarding here cut the twelve-tick recall to one tick; the body
+			// has its own finisher, so only a body that cannot finish may be swept.
+			return !body.canFinishRecallWithoutPack();
 		}
 		return !pack.contains(body.getUUID(), body.summonToken(), body.level().dimension());
 	}
 
 	private static boolean isOwnBody(ServerPlayer player, LivingEntity candidate) {
-		return candidate instanceof MegumiShikigamiEntity body && player.getUUID().equals(body.ownerUuid());
+		return MegumiSummonRuntime.isOwnSummonBody(player, candidate);
 	}
 
 	private static void tick(MinecraftServer server) {
@@ -367,16 +383,26 @@ public final class MegumiShikigamiRuntime {
 	}
 
 	private static boolean summon(ServerPlayer player, MegumiShikigami type, boolean notify) {
-		ServerLevel level = player.level();
 		long token = NEXT_SUMMON_TOKEN.incrementAndGet();
-		List<MegumiShikigamiEntity> bodies = spawnBodies(level, player, type, token);
-		if (bodies.isEmpty()) {
+		List<MegumiShikigamiEntity> staged = spawnBodies(player.level(), player, type, token);
+		if (staged.isEmpty()) {
 			return rejectNoRoom(player, notify);
 		}
-		List<MegumiShikigamiEntity> inserted = new ArrayList<>(bodies.size());
-		for (MegumiShikigamiEntity body : bodies) {
+		return commitSummon(player, type, token, staged, notify);
+	}
+
+	/**
+	 * Inserts an already-staged summon into the level and registers its pack. The staging half is
+	 * separate so a swap can prove the arrival has somewhere to stand before the outgoing pack is
+	 * swept — a refused swap must leave the previous body in the world.
+	 */
+	private static boolean commitSummon(ServerPlayer player, MegumiShikigami type, long token,
+			List<MegumiShikigamiEntity> staged, boolean notify) {
+		ServerLevel level = player.level();
+		List<MegumiShikigamiEntity> inserted = new ArrayList<>(staged.size());
+		for (MegumiShikigamiEntity body : staged) {
 			if (!level.addFreshEntity(body)) {
-				for (MegumiShikigamiEntity other : inserted) {
+				for (MegumiShikigamiEntity other : staged) {
 					other.discard();
 				}
 				return rejectNoRoom(player, notify);

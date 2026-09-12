@@ -16,8 +16,11 @@ import jujutsu.mod.vfx.MegumiVfxIds;
 /**
  * Max Elephant's sic behaviour: a short windup, then a trunk water jet that hoses every hostile
  * in the corridor — damage, a shove along the jet, douse, and the {@code MEGUMI_SOAKED} combo
- * marker Nue's shock consumes. The aim re-resolves every tick from the body's facing, so the jet
- * tracks the sic target while it stays valid.
+ * marker Nue's shock consumes. The corridor is 12 blocks of water from a trunk 1.2 ahead of the
+ * body (about 13.2 from the body itself), and the trigger is gated on exactly that reach: a sic
+ * past it starts no jet and burns no jet cooldown instead of firing a blank volley. The aim
+ * re-resolves every tick from the body's facing, so the jet tracks the sic target while it stays
+ * valid.
  */
 final class MegumiElephantBrain {
 	private MegumiElephantBrain() {}
@@ -38,15 +41,29 @@ final class MegumiElephantBrain {
 		elephant.beginJet(MegumiShikigamiProfile.ELEPHANT_JET_WINDUP_TICKS
 				+ MegumiShikigamiProfile.ELEPHANT_JET_DURATION_TICKS);
 		// A firing elephant plants its feet: melee approach would drag the trunk off aim, so the
-		// vanilla target drops for the jet's duration and is restored when the jet ends.
+		// vanilla target drops for the jet's duration and is restored when the jet ends. Clearing
+		// the target alone does not hold the body — MeleeAttackGoal/FollowOwnerGoal keep driving
+		// on the pending path — so navigation stops and the goals suspend exactly like Nue's dive.
 		elephant.setTarget(null);
+		elephant.getNavigation().stop();
+		elephant.setNoAi(true);
+		// The windup tell: the plan's sound table gives the jet an audible start, mirroring the
+		// toad's FROG_TONGUE at tongue commit.
+		level.playSound(null, elephant.getX(), elephant.getY(), elephant.getZ(), SoundEvents.RAVAGER_ATTACK,
+				SoundSource.NEUTRAL, 0.7f, 1.0f);
 	}
 
 	private static void tickJet(ServerLevel level, ServerPlayer owner,
 			MegumiElephantEntity elephant, long gameTime) {
 		if (elephant.actionTicks() <= 0) {
 			elephant.endJet();
+			// Goals resume exactly as Nue's dive ends: NoAI clears on an ACTIVE body, so the
+			// follow behaviour picks up where the jet interrupted it. This covers the natural end
+			// and the early-exit path alike — both funnel through here.
+			elephant.setNoAi(!elephant.combatEnabled());
 			elephant.markAttackUsed(gameTime, MegumiShikigamiProfile.ELEPHANT_JET_COOLDOWN_TICKS);
+			// The plant dropped the vanilla target for the jet's duration; hand it back, or the body
+			// stands there with its command spent while the sic mark walks away.
 			LivingEntity standing = resolve(level, elephant.sicTargetUuid());
 			if (standing != null) {
 				elephant.setTarget(standing);
@@ -114,8 +131,21 @@ final class MegumiElephantBrain {
 
 	private static boolean canStartJet(MegumiElephantEntity elephant, LivingEntity target, long gameTime) {
 		return elephant.attackReady(gameTime)
-				&& elephant.distanceTo(target) <= MegumiShikigamiProfile.ELEPHANT_JET_RANGE
+				&& jetTriggerInReach(elephant.distanceTo(target))
 				&& elephant.hasLineOfSight(target);
+	}
+
+	/**
+	 * Whether a feet-to-feet sic distance can actually be hosed: the corridor runs
+	 * {@code ELEPHANT_JET_LENGTH} forward from a trunk {@code ELEPHANT_TRUNK_FORWARD} ahead of the
+	 * body, so anything past their sum eats a windup, twenty VFX'd pulses, and a 220-tick lockout
+	 * for zero effect. Refusing here is silent and cheap — no windup, no sound, no jet cooldown —
+	 * and the body keeps melee-approaching until the target is genuinely reachable.
+	 * Package-visible for the reach pin test.
+	 */
+	static boolean jetTriggerInReach(double distanceFeet) {
+		return distanceFeet <= MegumiShikigamiProfile.ELEPHANT_JET_LENGTH
+				+ MegumiShikigamiProfile.ELEPHANT_TRUNK_FORWARD;
 	}
 
 	private static void faceTarget(MegumiElephantEntity elephant, LivingEntity target) {

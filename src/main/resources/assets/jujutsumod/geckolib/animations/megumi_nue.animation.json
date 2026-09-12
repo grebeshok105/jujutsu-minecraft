@@ -549,6 +549,7 @@
     },
     "animation.megumi_nue.flight_feet": {
       "loop": true,
+      "animation_length": 0.5,
       "bones": {
         "right_foot": {
           "rotation": {
@@ -590,6 +591,7 @@
     },
     "animation.megumi_nue.grab_feet": {
       "loop": true,
+      "animation_length": 0.5,
       "bones": {
         "right_foot": {
           "rotation": {

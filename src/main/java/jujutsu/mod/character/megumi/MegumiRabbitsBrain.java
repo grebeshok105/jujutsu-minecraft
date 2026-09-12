@@ -1,5 +1,6 @@
 package jujutsu.mod.character.megumi;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -12,7 +13,6 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
-import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.vfx.MegumiVfxIds;
 
@@ -21,16 +21,27 @@ import jujutsu.mod.vfx.MegumiVfxIds;
  * upkeep) exactly once per tick, while every body bumps hostiles on its own window.
  */
 final class MegumiRabbitsBrain {
-	private static final Map<UUID, Long> LAST_UPKEEP = new ConcurrentHashMap<>();
+	/**
+	 * The last upkeep window per owner, stamped with the pack it belonged to. The teardown stays
+	 * type-agnostic and never touches this map, so a stale entry from a previous pack must be
+	 * recognizable as stale: any mark whose token differs from the live pack reads as a fresh
+	 * pack starting from its own summon tick.
+	 */
+	private record UpkeepMark(long summonToken, long gameTime) {}
 
-	private MegumiRabbitsBrain() {}
+	private static final Map<UUID, UpkeepMark> LAST_UPKEEP = new ConcurrentHashMap<>();
 
 	static void tick(ServerLevel level, ServerPlayer owner, MegumiShikigamiPack pack,
 			MegumiRabbitEntity body, long gameTime) {
 		if (body.getUUID().equals(pack.anchorId())) {
+			// The sweep is the leak fix the type-agnostic teardown cannot do: any anchor tick
+			// drops upkeep marks whose pack is already gone (recall, death, disconnect, ...), so
+			// one inert entry per past summoner cannot accumulate for a server lifetime.
+			dropUpkeepWithoutPack();
 			if (anchorLost(level, pack, body.ownerUuid())) {
 				MegumiShikigamiRuntime.teardown(level.getServer(), body.ownerUuid(),
 						MegumiShikigamiRuntime.TeardownReason.DEATH);
+				LAST_UPKEEP.remove(body.ownerUuid());
 				return;
 			}
 			if (MegumiRabbitsPolicy.expired(pack.summonedAtGameTime(), gameTime,
@@ -40,7 +51,49 @@ final class MegumiRabbitsBrain {
 			}
 			upkeep(level, owner, pack, gameTime);
 		}
-		bump(level, owner, body, gameTime);
+		bump(level, owner, pack, body, gameTime);
+	}
+
+	/**
+	 * The upkeep window for this pack: the stored mark, unless it belongs to a previous pack
+	 * (different token), in which case the fresh pack starts from its own summon tick. A stale
+	 * mark must never top a new swarm up early — or hold it back when the stamp is newer than
+	 * the summon. Package-visible for the clock pin test.
+	 */
+	static long lastUpkeepOrDefault(UUID ownerId, long summonToken, long summonedAtGameTime) {
+		UpkeepMark mark = LAST_UPKEEP.get(ownerId);
+		return mark != null && mark.summonToken() == summonToken ? mark.gameTime() : summonedAtGameTime;
+	}
+
+	static void noteUpkeep(UUID ownerId, long summonToken, long gameTime) {
+		LAST_UPKEEP.put(ownerId, new UpkeepMark(summonToken, gameTime));
+	}
+
+	/**
+	 * Drops every upkeep mark whose owner currently holds no pack. Returns the dropped count, so
+	 * the leak fix stays red-proofable without exposing the map. Package-visible for the test.
+	 */
+	static int dropUpkeepWithoutPack() {
+		List<UUID> stale = new ArrayList<>();
+		for (UUID ownerId : LAST_UPKEEP.keySet()) {
+			if (ownerId == null || MegumiShikigamiRuntime.pack(ownerId) == null) {
+				stale.add(ownerId);
+			}
+		}
+		for (UUID ownerId : stale) {
+			LAST_UPKEEP.remove(ownerId);
+		}
+		return stale.size();
+	}
+
+	/**
+	 * First-window stagger by spawn order: body {@code 0} may bump at once, body {@code 9} waits
+	 * nine ticks, so the ten-strong swarm shoves in a ripple instead of one stacked volley. The
+	 * period itself is untouched — every later window still advances by the profile row.
+	 * Package-visible for the stagger pin test.
+	 */
+	static int staggerOffset(int bodyIndex) {
+		return Math.floorMod(Math.max(0, bodyIndex), MegumiShikigamiProfile.RABBITS_BUMP_PERIOD_TICKS);
 	}
 
 	private static boolean anchorLost(ServerLevel level, MegumiShikigamiPack pack, UUID ownerId) {
@@ -48,7 +101,13 @@ final class MegumiRabbitsBrain {
 				.noneMatch(body -> body.getUUID().equals(pack.anchorId()));
 	}
 
-	/** Lifetime spent: one pop at the swarm centre, then the recall-family teardown. */
+	/**
+	 * Lifetime spent: one pop at the swarm centre, then the recall-family teardown — which prices
+	 * expiry at the recall row. There is deliberately no second arm of
+	 * {@code RABBITS_EXPIRY_COOLDOWN_TICKS} here: while the rows agree it would be a no-op, and
+	 * once they diverge the price silently becomes {@code max(recall, expiry)} with no comment
+	 * saying so. A divergent expiry price needs its own teardown reason, not a second arm.
+	 */
 	private static void expire(ServerLevel level, ServerPlayer owner, MegumiShikigamiPack pack,
 			MegumiRabbitEntity body) {
 		List<MegumiShikigamiEntity> living =
@@ -69,27 +128,21 @@ final class MegumiRabbitsBrain {
 				centre, body.getId(), Vec3.ZERO);
 		MegumiShikigamiRuntime.teardown(level.getServer(), body.ownerUuid(),
 				MegumiShikigamiRuntime.TeardownReason.RECALL);
-		if (owner != null) {
-			MegumiSummonRuntime.startCooldownIfLonger(owner, CharacterAbility.PRIMARY,
-					MegumiShikigamiProfile.RABBITS_EXPIRY_COOLDOWN_TICKS);
-		}
+		LAST_UPKEEP.remove(body.ownerUuid());
 	}
 
 	/** Replaces fallen bodies at the owner's ring, capped by the batch row; pops a cue per body. */
 	private static void upkeep(ServerLevel level, ServerPlayer owner, MegumiShikigamiPack pack,
 			long gameTime) {
-		if (owner == null) {
-			return;
-		}
 		UUID ownerId = owner.getUUID();
 		List<MegumiShikigamiEntity> living =
 				MegumiShikigamiRuntime.livingBodies(level.getServer(), ownerId, pack);
-		long last = LAST_UPKEEP.getOrDefault(ownerId, pack.summonedAtGameTime());
+		long last = lastUpkeepOrDefault(ownerId, pack.summonToken(), pack.summonedAtGameTime());
 		if (!MegumiRabbitsPolicy.shouldRespawn(living.size(), MegumiShikigamiProfile.RABBITS_SWARM_SIZE,
 				gameTime, last, MegumiShikigamiProfile.RABBITS_RESPAWN_INTERVAL_TICKS)) {
 			return;
 		}
-		LAST_UPKEEP.put(ownerId, gameTime);
+		noteUpkeep(ownerId, pack.summonToken(), gameTime);
 		int batch = MegumiRabbitsPolicy.respawnBatch(living.size(),
 				MegumiShikigamiProfile.RABBITS_SWARM_SIZE, MegumiShikigamiProfile.RABBITS_RESPAWN_BATCH);
 		if (batch <= 0) {
@@ -120,10 +173,20 @@ final class MegumiRabbitsBrain {
 	 * away from the body plus slowness. The window always advances, victims or not, so an idle
 	 * body scans once per period instead of every tick.
 	 */
-	private static void bump(ServerLevel level, ServerPlayer owner, MegumiRabbitEntity body,
-			long gameTime) {
-		if (owner == null
-				|| !MegumiRabbitsPolicy.bumpReady(body.nextBumpGameTime(), gameTime)) {
+	private static void bump(ServerLevel level, ServerPlayer owner, MegumiShikigamiPack pack,
+			MegumiRabbitEntity body, long gameTime) {
+		if (owner == null) {
+			return;
+		}
+		if (body.nextBumpGameTime() == 0L) {
+			// Virgin body: every spawn leaves the window at zero, so without this all ten bodies
+			// fire on the same tick and stay aligned, stacking N x 0.35 impulse plus N duplicate
+			// sounds and cues onto one victim. Seed the first window by spawn order instead and
+			// sit this tick out — the window advances from the seeded value like any other.
+			body.postponeBump(gameTime + staggerOffset(pack.bodyIds().indexOf(body.getUUID())));
+			return;
+		}
+		if (!MegumiRabbitsPolicy.bumpReady(body.nextBumpGameTime(), gameTime)) {
 			return;
 		}
 		body.postponeBump(gameTime + MegumiShikigamiProfile.RABBITS_BUMP_PERIOD_TICKS);

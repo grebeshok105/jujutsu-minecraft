@@ -45,7 +45,7 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 				SKIN, true,
 				List.of(
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BUST,
-								"screen.jujutsumod.character_select.ability.divine_dogs", "R"),
+								"screen.jujutsumod.character_select.ability.shikigami_summon", "R"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.PIN,
 								"screen.jujutsumod.character_select.ability.sic", "S+R"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BUST,

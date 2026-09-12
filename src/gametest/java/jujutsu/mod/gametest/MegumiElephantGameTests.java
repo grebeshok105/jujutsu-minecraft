@@ -14,6 +14,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.entity.EntityTypeTest;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
@@ -30,12 +32,12 @@ import jujutsu.mod.registry.JujutsuEffects;
 
 /**
  * Max Elephant (Ten Shadows selection layer) server scenarios — summon (S1), the trunk jet on a
- * plain target (S2), the jet sparing its owner (S3), recall (S4) — exercised through the
- * production runtime calls {@code MegumiShikigamiRuntime.tryPrimary} / {@code trySic}.
+ * plain target (S2), the jet sparing its owner (S3), recall (S4), death (S5) — exercised through
+ * the production runtime calls {@code MegumiShikigamiRuntime.tryPrimary} / {@code trySic}.
  *
- * <p><b>Pinned literals.</b> S4 asserts the literal 260 ticks rather than the profile constant ON
- * PURPOSE: the red-proof mutates the profile row (260-&gt;261) and the assert must follow the
- * balance contract, not the constant. S2/S3 assert the literal [0.9, 1.1] drop band for the same
+ * <p><b>Pinned literals.</b> S4/S5 assert the literals 260/600 ticks rather than the profile
+ * constants ON PURPOSE: the red-proof mutates the profile rows (260-&gt;261, 600-&gt;601) and the
+ * assert must follow the balance contract, not the constant. S2/S3 assert the literal [0.9, 1.1] drop band for the same
  * reason (the {@code ELEPHANT_JET_DAMAGE} row): one pulse at face value, shaved ~6% by the
  * zombie's armour, detected on the first soaked tick (exactly one pulse by construction), while
  * every timing number references {@link MegumiShikigamiProfile} directly.
@@ -53,6 +55,8 @@ public final class MegumiElephantGameTests {
 
 	private static final int SUMMON_TICK = 2;
 	private static final int RECALL_TICK = 4;
+	/** Past the 30-tick materialization with margin: {@code hurtServer} is gated on ACTIVE. */
+	private static final int KILL_TICK = 40;
 	/** Past the 30-tick materialization with margin: the jet brain needs the ACTIVE phase. */
 	private static final int SIC_TICK = 36;
 	private static final int JET_WINDOW_TICKS = MegumiShikigamiProfile.ELEPHANT_JET_WINDUP_TICKS
@@ -63,6 +67,12 @@ public final class MegumiElephantGameTests {
 	 * NOT {@code MegumiShikigamiProfile.ELEPHANT_RECALL_COOLDOWN_TICKS}.
 	 */
 	private static final int EXPECTED_RECALL_COOLDOWN_TICKS = 260;
+	/**
+	 * S5 pins this row: losing the body costs exactly the elephant death cooldown. Deliberately
+	 * NOT {@code MegumiShikigamiProfile.ELEPHANT_DEATH_COOLDOWN_TICKS} — the red-proof mutates
+	 * that row.
+	 */
+	private static final int EXPECTED_DEATH_COOLDOWN_TICKS = 600;
 	/**
 	 * S2/S3 pin this band, not the profile row: one jet pulse deals
 	 * {@code ELEPHANT_JET_DAMAGE} face value, but the zombie's 2 armour points shave ~6% off
@@ -196,6 +206,164 @@ public final class MegumiElephantGameTests {
 					"gone", helper.getTick(), caster.getUUID(), "owned elephant bodies in level", "0", bodies.size()));
 		});
 		helper.runAtTickTime(30, () -> helper.succeed());
+	}
+
+	/**
+	 * S5 — killing the elephant body routes through the death reconciliation: PRIMARY reads exactly
+	 * 600 ticks and the pack record is gone. The kill waits past the 30-tick materialization with
+	 * an explicit ACTIVE premise, because {@code hurtServer} on the body is gated on combat being
+	 * enabled.
+	 */
+	@GameTest(maxTicks = 80)
+	public void elephantDeathChargesDeathCooldownAndClearsPack(GameTestHelper helper) {
+		String fixture = "elephantDeathChargesDeathCooldownAndClearsPack";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		paveFloor(helper, 0, 4, 0, 4);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+
+		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			UUID ownerId = caster.getUUID();
+			MegumiShikigamiSelection.set(ownerId, MegumiShikigami.ELEPHANT);
+			boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"summon", helper.getTick(), ownerId, "tryPrimary result", "true", summoned));
+		}));
+
+		helper.runAtTickTime(KILL_TICK, () -> {
+			try {
+				UUID ownerId = caster.getUUID();
+				List<MegumiElephantEntity> bodies = elephantsOwnedBy(level, ownerId);
+				helper.assertTrue(bodies.size() == 1,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "kill", helper.getTick(), ownerId,
+								"owned elephant bodies in level", "1", bodies.size()));
+				MegumiElephantEntity body = bodies.get(0);
+				helper.assertTrue(body.combatEnabled(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"kill", helper.getTick(), ownerId, "body ACTIVE before kill", "true", body.combatEnabled()));
+
+				// The real damage pipeline (AFTER_DEATH -> reconcile -> death cooldown), not die().
+				boolean damaged = body.hurtServer(level, level.damageSources().genericKill(), Float.MAX_VALUE);
+				helper.assertTrue(damaged, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"kill", helper.getTick(), ownerId, "lethal damage applied", "true", damaged));
+
+				// AFTER_DEATH reconciles synchronously inside hurtServer, so the same-tick read is exact.
+				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				helper.assertTrue(remaining == EXPECTED_DEATH_COOLDOWN_TICKS,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "kill", helper.getTick(), ownerId,
+								"PRIMARY death cooldown", EXPECTED_DEATH_COOLDOWN_TICKS, remaining));
+
+				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "kill", caster);
+			} finally {
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+			}
+		});
+		helper.runAtTickTime(60, () -> helper.succeed());
+	}
+
+	/**
+	 * S6 — the jet plants the body: once the sic commits, the body runs NoAI with no vanilla
+	 * target (melee/follow goals suspended, pending path cancelled), and when the jet's action
+	 * timer runs out the goals resume with the sic target restored. The NoAI window is the binding
+	 * oracle — clearing the target alone never stops the goals from walking the trunk off aim.
+	 * The zombie fights at 200 health so it survives all twenty pulses and is still a valid
+	 * restore target when the jet ends.
+	 */
+	@GameTest(maxTicks = 120)
+	public void elephantJetSuspendsAiWhileFiring(GameTestHelper helper) {
+		String fixture = "elephantJetSuspendsAiWhileFiring";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		BlockPos zombieFeet = new BlockPos(5, 1, 6);
+		paveFloor(helper, 0, 6, 0, 7);
+		helper.setBlock(new BlockPos(5, 4, 6), Blocks.STONE);
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
+		zombie.setPersistenceRequired();
+		AttributeInstance health = zombie.getAttribute(Attributes.MAX_HEALTH);
+		helper.assertTrue(health != null, MegumiShikigamiTestFixtures.diagnostic(fixture,
+				"setup", helper.getTick(), caster.getUUID(), "zombie health attribute", "present", "absent"));
+		health.setBaseValue(200.0);
+		zombie.setHealth(200.0f);
+		AtomicBoolean planted = new AtomicBoolean();
+
+		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			UUID ownerId = caster.getUUID();
+			MegumiShikigamiSelection.set(ownerId, MegumiShikigami.ELEPHANT);
+			boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"summon", helper.getTick(), ownerId, "tryPrimary result", "true", summoned));
+		}));
+
+		helper.runAtTickTime(SIC_TICK, () -> {
+			try {
+				UUID ownerId = caster.getUUID();
+				List<MegumiElephantEntity> bodies = elephantsOwnedBy(level, ownerId);
+				helper.assertTrue(bodies.size() == 1,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "sic", helper.getTick(), ownerId,
+								"owned elephant bodies in level", "1", bodies.size()));
+				helper.assertTrue(bodies.get(0).combatEnabled(),
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "sic", helper.getTick(), ownerId,
+								"body ACTIVE before sic", "true", bodies.get(0).combatEnabled()));
+				helper.assertTrue(!bodies.get(0).isNoAi(),
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "sic", helper.getTick(), ownerId,
+								"goals live before sic", "NoAI false", "NoAI true"));
+				helper.assertTrue(zombie.isAlive(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"sic", helper.getTick(), ownerId, "zombie alive", "true", zombie.isAlive()));
+				TodoSwapTestFixtures.aimAt(caster, zombie.position().add(0.0, zombie.getBbHeight() / 2.0, 0.0));
+				boolean sicced = MegumiShikigamiRuntime.trySic(caster, false);
+				helper.assertTrue(sicced, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"sic", helper.getTick(), ownerId, "trySic result", "true", sicced));
+			} catch (RuntimeException | AssertionError failure) {
+				zombie.discard();
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+				throw failure;
+			}
+		});
+
+		long deadline = SIC_TICK + JET_WINDOW_TICKS + 10;
+		for (long tick = SIC_TICK + 1; tick <= deadline; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				List<MegumiElephantEntity> live = elephantsOwnedBy(level, caster.getUUID());
+				if (live.isEmpty() || zombie.isRemoved()) {
+					return;
+				}
+				MegumiElephantEntity body = live.get(0);
+				if (body.isNoAi()) {
+					helper.assertTrue(body.getTarget() == null,
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "jet", helper.getTick(),
+									caster.getUUID(), "no vanilla target while planted", "null",
+									String.valueOf(body.getTarget())));
+					planted.set(true);
+					return;
+				}
+				if (!planted.get()) {
+					return;
+				}
+				try {
+					helper.assertTrue(zombie.isAlive(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+							"jet", helper.getTick(), caster.getUUID(), "zombie survived the jet", "alive", "dead"));
+					helper.assertTrue(body.getTarget() == zombie,
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "jet", helper.getTick(),
+									caster.getUUID(), "sic target restored after the jet", "zombie",
+									String.valueOf(body.getTarget())));
+					zombie.discard();
+				} finally {
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+				}
+				helper.succeed();
+			});
+		}
+		helper.runAtTickTime(deadline + 1, () -> {
+			try {
+				helper.assertTrue(planted.get(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"jet", helper.getTick(), caster.getUUID(), "planted jet observed", "true", planted.get()));
+			} finally {
+				zombie.discard();
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+			}
+		});
 	}
 
 	private void runJetScenario(GameTestHelper helper, String fixture, boolean ownerInCorridor) {

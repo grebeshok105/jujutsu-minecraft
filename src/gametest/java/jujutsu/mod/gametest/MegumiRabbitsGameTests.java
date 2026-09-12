@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -26,14 +28,15 @@ import jujutsu.mod.character.megumi.MegumiShikigamiSelection;
 
 /**
  * Rabbit Escape (Ten Shadows selection layer) server scenarios — summon + upkeep top-up (S1),
- * anchor loss (S2), non-anchor replacement (S3), lifetime expiry (S4), and the bump shove (S5) —
- * exercised through the production runtime call {@code MegumiShikigamiRuntime.tryPrimary}, the
- * same hop the vessel router reaches for the PRIMARY slot.
+ * anchor loss (S2), non-anchor replacement (S3), lifetime expiry (S4), the bump shove (S5), and
+ * manual recall (S6) — exercised through the production runtime call
+ * {@code MegumiShikigamiRuntime.tryPrimary}, the same hop the vessel router reaches for the
+ * PRIMARY slot.
  *
- * <p><b>Pinned literals.</b> S2/S4 assert the literal 200/120 ticks rather than the profile
- * constants ON PURPOSE: the red-proof mutates the profile row (200-&gt;201, 120-&gt;121) and the
- * assert must follow the balance contract, not the constant. Every other number references
- * {@link MegumiShikigamiProfile} directly.
+ * <p><b>Pinned literals.</b> S2/S4/S6 assert the literal 200/120/120 ticks rather than the
+ * profile constants ON PURPOSE: the red-proof mutates the profile row (200-&gt;201,
+ * 120-&gt;121) and the assert must follow the balance contract, not the constant. Every other
+ * number references {@link MegumiShikigamiProfile} directly.
  *
  * <p><b>Traps avoided.</b> World offset is random per run, so nothing asserts absolute positions:
  * bodies are found by owner-UUID scan, never by bounds — and the S5 victim is parked by
@@ -51,9 +54,9 @@ public final class MegumiRabbitsGameTests {
 	// so the implicit public no-arg constructor is required (private would fail entrypoint load).
 
 	private static final int SUMMON_TICK = 2;
+	private static final int RECALL_TICK = 4;
 	private static final int KILL_TICK = 25;
 	private static final int ZOMBIE_TICK = 14;
-
 	/**
 	 * S2 pins this row: losing the anchor disperses the pack at exactly the Rabbit Escape death
 	 * price. Deliberately NOT {@code MegumiShikigamiProfile.RABBITS_DEATH_COOLDOWN_TICKS} — the
@@ -61,12 +64,18 @@ public final class MegumiRabbitsGameTests {
 	 */
 	private static final int EXPECTED_DEATH_COOLDOWN_TICKS = 200;
 	/**
+	 * S6 pins this row: a manual recall dismisses the swarm at exactly the Rabbit Escape recall
+	 * price. Deliberately NOT {@code MegumiShikigamiProfile.RABBITS_RECALL_COOLDOWN_TICKS} — the
+	 * red-proof mutates that row. (Numerically equal to the S4 expiry price, but a different
+	 * contract: recall is the key press, expiry is the lifetime.)
+	 */
+	private static final int EXPECTED_RECALL_COOLDOWN_TICKS = 120;
+	/**
 	 * S4 pins this row: lifetime expiry dismisses the pack at exactly the expiry price.
 	 * Deliberately NOT {@code MegumiShikigamiProfile.RABBITS_EXPIRY_COOLDOWN_TICKS} — the
 	 * red-proof mutates that row.
 	 */
 	private static final int EXPECTED_EXPIRY_COOLDOWN_TICKS = 120;
-
 	/**
 	 * S1 — selecting RABBITS and pressing the technique key summons the swarm with its hidden
 	 * anchor, and one upkeep window later the pack reads full strength: the ring may place fewer
@@ -248,12 +257,65 @@ public final class MegumiRabbitsGameTests {
 
 	/**
 	 * S4 — the swarm expires after its lifetime: the pack record is gone and PRIMARY carries the
-	 * expiry price. The cooldown read is a band, not an exact tick: expiry fires on a body tick a
-	 * few ticks before this assert, so the remaining time has already decayed.
+	 * expiry price. The read is exact, not a band: the anchor fires expiry on the first body tick
+	 * with {@code gameTime - summonedAt >= LIFETIME}, arming {@code summonedAt + LIFETIME + 120},
+	 * so {@code remaining + elapsed == 120} on any later tick of the same cooldown window. A
+	 * mutated expiry row (120-&gt;121) reads back 121 and fails the assert.
 	 */
 	@GameTest(maxTicks = 360)
 	public void rabbitsSwarmExpiresAfterLifetime(GameTestHelper helper) {
 		String fixture = "rabbitsSwarmExpiresAfterLifetime";
+		layFloor(helper);
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+		AtomicLong summonedAt = new AtomicLong(-1L);
+
+		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			UUID ownerId = caster.getUUID();
+			MegumiShikigamiSelection.set(ownerId, MegumiShikigami.RABBITS);
+			boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"summon", helper.getTick(), ownerId, "tryPrimary result", "true", summoned));
+			Optional<PackView> view = MegumiShikigamiRuntime.packView(level.getServer(), ownerId);
+			helper.assertTrue(view.isPresent(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"summon", helper.getTick(), ownerId, "pack view present", "present", "absent"));
+			summonedAt.set(view.get().summonedAtGameTime());
+		}));
+
+		helper.runAtTickTime(
+				SUMMON_TICK + MegumiShikigamiProfile.RABBITS_LIFETIME_TICKS + 8, () -> {
+					try {
+						UUID ownerId = caster.getUUID();
+						MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "expired", caster);
+						int remaining =
+								CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+						long elapsed = level.getGameTime()
+								- (summonedAt.get() + MegumiShikigamiProfile.RABBITS_LIFETIME_TICKS);
+						helper.assertTrue(elapsed >= 0 && elapsed <= EXPECTED_EXPIRY_COOLDOWN_TICKS,
+								MegumiShikigamiTestFixtures.diagnostic(fixture, "expired", helper.getTick(), ownerId,
+										"expiry observed within its cooldown window",
+										"[0, " + EXPECTED_EXPIRY_COOLDOWN_TICKS + "]", elapsed));
+						helper.assertTrue(remaining + elapsed == EXPECTED_EXPIRY_COOLDOWN_TICKS,
+								MegumiShikigamiTestFixtures.diagnostic(fixture, "expired", helper.getTick(), ownerId,
+										"PRIMARY expiry cooldown (elapsed-corrected)",
+										EXPECTED_EXPIRY_COOLDOWN_TICKS, remaining + elapsed));
+					} finally {
+						MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+					}
+				});
+		helper.runAtTickTime(320, () -> helper.succeed());
+	}
+
+	/**
+	 * S6 — pressing the key again while the swarm is out recalls it through the recall-family
+	 * teardown: PRIMARY reads exactly 120 ticks and the pack record is gone. The recall sits on a
+	 * later tick than the summon — the runtime drops same-tick duplicate presses.
+	 */
+	@GameTest(maxTicks = 60)
+	public void rabbitsManualRecallChargesRecallCooldownAndClearsPack(GameTestHelper helper) {
+		String fixture = "rabbitsManualRecallChargesRecallCooldownAndClearsPack";
 		layFloor(helper);
 		BlockPos casterFeet = new BlockPos(2, 1, 2);
 
@@ -268,22 +330,156 @@ public final class MegumiRabbitsGameTests {
 					"summon", helper.getTick(), ownerId, "tryPrimary result", "true", summoned));
 		}));
 
-		helper.runAtTickTime(
-				SUMMON_TICK + MegumiShikigamiProfile.RABBITS_LIFETIME_TICKS + 8, () -> {
-					try {
-						UUID ownerId = caster.getUUID();
-						MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "expired", caster);
-						int remaining =
-								CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
-						helper.assertTrue(remaining > 0 && remaining <= EXPECTED_EXPIRY_COOLDOWN_TICKS,
-								MegumiShikigamiTestFixtures.diagnostic(fixture, "expired", helper.getTick(), ownerId,
-										"PRIMARY expiry cooldown", "(0, " + EXPECTED_EXPIRY_COOLDOWN_TICKS + "]",
-										remaining));
-					} finally {
-						MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
-					}
-				});
-		helper.runAtTickTime(320, () -> helper.succeed());
+		helper.runAtTickTime(RECALL_TICK, () -> {
+			try {
+				UUID ownerId = caster.getUUID();
+				boolean recalled = MegumiShikigamiRuntime.tryPrimary(caster, false);
+				helper.assertTrue(recalled, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"recall", helper.getTick(), ownerId, "second tryPrimary result", "true", recalled));
+
+				// Same-tick read: the cooldown was just armed, so the remaining time is exact.
+				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				helper.assertTrue(remaining == EXPECTED_RECALL_COOLDOWN_TICKS,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "recall", helper.getTick(), ownerId,
+								"PRIMARY recall cooldown", EXPECTED_RECALL_COOLDOWN_TICKS, remaining));
+
+				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "recall", caster);
+			} finally {
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+			}
+		});
+
+		// The recall sink plays out after the record is gone; past it +2 no owned body remains.
+		helper.runAtTickTime(RECALL_TICK + MegumiShikigamiProfile.RABBITS_RECALL_TICKS + 2, () -> {
+			List<MegumiRabbitEntity> bodies = rabbitsOwnedBy(level, caster.getUUID());
+			helper.assertTrue(bodies.isEmpty(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"gone", helper.getTick(), caster.getUUID(), "owned rabbit bodies in level", "0", bodies.size()));
+		});
+		helper.runAtTickTime(30, () -> helper.succeed());
+	}
+
+	/**
+	 * S7 — a resummoned swarm starts its own upkeep clock: summon, lose a body, let the upkeep
+	 * top the pack up (stamping the old window), recall, resummon, lose another body, and read
+	 * the count long before one respawn interval has passed since the NEW summon. A stale clock
+	 * tops the pack up on the next anchor tick; the fresh clock holds the replacement until the
+	 * interval passes.
+	 */
+	@GameTest(maxTicks = 140)
+	public void rabbitsResummonDoesNotInheritUpkeepClock(GameTestHelper helper) {
+		String fixture = "rabbitsResummonDoesNotInheritUpkeepClock";
+		layFloor(helper);
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+		AtomicInteger earlyCount = new AtomicInteger(-1);
+		AtomicInteger fullStrength = new AtomicInteger(-1);
+
+		// Baseline while the new bodies are still materializing (no brain tick can have fired an
+		// upkeep yet): a stale clock topping up before the 113 read shows up as count growth.
+		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			UUID ownerId = caster.getUUID();
+			MegumiShikigamiSelection.set(ownerId, MegumiShikigami.RABBITS);
+			boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"summon", helper.getTick(), ownerId, "tryPrimary result", "true", summoned));
+		}));
+
+		// Lose a non-anchor body so the first pack's upkeep visibly fires and stamps its window.
+		helper.runAtTickTime(KILL_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			killNonAnchor(helper, fixture, level, caster);
+		}));
+
+		// Recall long after the top-up: the old window is far in the past, so a stale clock would
+		// top the next pack up on its first anchor tick.
+		helper.runAtTickTime(100, () -> {
+			try {
+				UUID ownerId = caster.getUUID();
+				boolean recalled = MegumiShikigamiRuntime.tryPrimary(caster, false);
+				helper.assertTrue(recalled, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"recall", helper.getTick(), ownerId, "second tryPrimary result", "true", recalled));
+				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "recall", caster);
+			} catch (RuntimeException | AssertionError failure) {
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+				throw failure;
+			}
+		});
+
+		helper.runAtTickTime(102, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			UUID ownerId = caster.getUUID();
+			boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"resummon", helper.getTick(), ownerId, "tryPrimary result", "true", summoned));
+			helper.assertTrue(MegumiShikigamiRuntime.packView(level.getServer(), ownerId).isPresent(),
+					MegumiShikigamiTestFixtures.diagnostic(fixture,
+							"resummon", helper.getTick(), ownerId, "pack view present", "present", "absent"));
+		}));
+		helper.runAtTickTime(110, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			UUID ownerId = caster.getUUID();
+			Optional<PackView> view = MegumiShikigamiRuntime.packView(level.getServer(), ownerId);
+			helper.assertTrue(view.isPresent(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"baseline", helper.getTick(), ownerId, "pack view present", "present", "absent"));
+			earlyCount.set(view.get().aliveBodies());
+		}));
+
+		helper.runAtTickTime(113, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			UUID ownerId = caster.getUUID();
+			Optional<PackView> view = MegumiShikigamiRuntime.packView(level.getServer(), ownerId);
+			helper.assertTrue(view.isPresent(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"count", helper.getTick(), ownerId, "pack view present", "present", "absent"));
+			helper.assertTrue(view.get().aliveBodies() == earlyCount.get(),
+					MegumiShikigamiTestFixtures.diagnostic(fixture, "count", helper.getTick(), ownerId,
+							"no top-up before the fresh upkeep window",
+							earlyCount.get(), view.get().aliveBodies()));
+			fullStrength.set(view.get().aliveBodies());
+		}));
+
+		helper.runAtTickTime(114, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			killNonAnchor(helper, fixture, level, caster);
+		}));
+
+		// Tick 116 is two ticks after the kill but only fourteen after the resummon: the fresh
+		// clock (interval 20) cannot have fired yet, while a stale clock fires at once.
+		helper.runAtTickTime(116, () -> {
+			try {
+				UUID ownerId = caster.getUUID();
+				Optional<PackView> view = MegumiShikigamiRuntime.packView(level.getServer(), ownerId);
+				helper.assertTrue(view.isPresent(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"replaced", helper.getTick(), ownerId, "pack survives", "present", "absent"));
+				helper.assertTrue(view.get().aliveBodies() == fullStrength.get() - 1,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "replaced", helper.getTick(), ownerId,
+								"alive bodies before the fresh upkeep window",
+								fullStrength.get() - 1, view.get().aliveBodies()));
+			} finally {
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+			}
+		});
+		helper.runAtTickTime(130, () -> helper.succeed());
+	}
+
+	/**
+	 * Kills one non-anchor body through the production damage pipeline (a bare {@code die} never
+	 * synchronously reconciles the pack), with the ACTIVE premise the body's damage gate needs.
+	 */
+	private static void killNonAnchor(GameTestHelper helper, String fixture, ServerLevel level,
+			ServerPlayer caster) {
+		UUID ownerId = caster.getUUID();
+		Optional<PackView> view = MegumiShikigamiRuntime.packView(level.getServer(), ownerId);
+		helper.assertTrue(view.isPresent(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+				"kill", helper.getTick(), ownerId, "pack view present", "present", "absent"));
+		UUID anchorId = UUID.fromString(view.get().anchorId());
+		MegumiRabbitEntity victim = rabbitsOwnedBy(level, ownerId).stream()
+				.filter(body -> !body.getUUID().equals(anchorId))
+				.findFirst()
+				.orElse(null);
+		helper.assertTrue(victim != null, MegumiShikigamiTestFixtures.diagnostic(fixture,
+				"kill", helper.getTick(), ownerId, "non-anchor rabbit present", "present", "absent"));
+		helper.assertTrue(victim.combatEnabled(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+				"kill", helper.getTick(), ownerId, "victim ACTIVE before kill", "true", victim.combatEnabled()));
+		boolean damaged = victim.hurtServer(level, level.damageSources().genericKill(), Float.MAX_VALUE);
+		helper.assertTrue(damaged, MegumiShikigamiTestFixtures.diagnostic(fixture,
+				"kill", helper.getTick(), ownerId, "lethal damage applied", "true", damaged));
 	}
 
 	/**

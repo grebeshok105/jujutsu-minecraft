@@ -37,7 +37,7 @@ Status: CURRENT
 
 ## Issue #43 — MCP-спайк ЗАВЕРШЁН (PR #62, ждёт CI после outage и мержа)
 
-- Вердикт: **PASS, архитектура A (port/fork upstream)**, fallback B. Decision record: `docs/MCP_1_21_8_PORT_SPIKE.md` в ветке `spike/mcp-1.21.8-upstream-port` (worktree `.worktrees/mcp-port-spike`); `docs/research/` в этом репо запрещён аудитом — record живёт в `docs/`.
+- Вердикт: **PASS, архитектура A (port/fork upstream)**, fallback B. Decision record: `docs/MCP_1_21_8_PORT_SPIKE.md` в ветке `spike/mcp-1.21.8-upstream-port` (worktree `.worktrees/mcp-port-spike`); отдельный research-подкаталог в этом репо запрещён аудитом — record живёт прямо в `docs/`.
 - PR #62 (не мержить); upstream fork: `grebeshok105/minecraft-java-fabric-mcp-server`, ветка `mc-1.21.8-target` (5 коммитов на `0caf461`: target → SSE hold-open → seam → jackson fields → review-hardening `dd8cfdd`). Наши коммиты: e170ee8 + bf3df86 + 6fbd081.
 - Live-доказано (Windows, OMP 17.2.5, print-режим `omp -p` из probe-cwd с `.omp/mcp.json` type http): 105 тулов, `jujutsu_mod_status` → `{mod_version, selected_vessel: todo}` через production `CharacterSelectionManager`, bounded-мутация summon→despawn по UUID с откатом мира, view_capture 854×480 (реальный кадр), shutdown освобождает 8765/8766, auth 401 fail-closed.
 - Ключевые ловушки 1.21.8 (проверены живьём): Mojang переименовал `ResourceLocation`→`Identifier` МЕЖДУ 1.21.8 и 1.21.11 (порт = stonecutter-условки `mc_gte_21_11`); **MC 1.21.8 несёт parent-classloader Jackson 2.13.4.2**, который затеняет nested 2.22 → `ObjectNode.properties()` (2.15+) падает, лечится `fields()`; закрытая DOMAIN_TO_CATEGORY-карта upstream реджектит незнакомые домены — seam требует `ToolProvider.domainCategories()`.

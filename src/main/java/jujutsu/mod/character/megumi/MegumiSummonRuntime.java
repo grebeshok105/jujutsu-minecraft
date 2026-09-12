@@ -187,13 +187,15 @@ public final class MegumiSummonRuntime {
 
 		ServerLevel level = player.level();
 		TargetResolver.Result result = TargetResolver.resolve(
-				level, player, MegumiProfile.SIC_RANGE, target -> isEligibleTarget(player, target));
+				level, player, MegumiProfile.SIC_RANGE,
+				target -> isEligibleTarget(player, target) && !isOwnSummonBody(player, target));
 		if (result.mode() != TargetResolver.Mode.ENTITY || result.entityId().isEmpty()) {
 			return false;
 		}
 		Entity resolved = level.getEntity(result.entityId().get());
 		if (!(resolved instanceof LivingEntity target)
 				|| !isEligibleTarget(player, target)
+				|| isOwnSummonBody(player, target)
 				|| !player.hasLineOfSight(target)) {
 			return false;
 		}
@@ -208,6 +210,15 @@ public final class MegumiSummonRuntime {
 				new Vec3(0.0, target.getBbHeight() * 0.55, 0.0));
 		startCooldownIfLonger(player, CharacterAbility.PRIMARY_SNEAK, MegumiProfile.SIC_COOLDOWN_TICKS);
 		return true;
+	}
+
+	/**
+	 * Any body the owner's own shikigami layer has out is never a legal sic target, however it crosses
+	 * the aim: a body standing between the owner and the mark would otherwise be commanded as the mark.
+	 * Shared with the shikigami branch so both readings of the aim agree.
+	 */
+	static boolean isOwnSummonBody(LivingEntity owner, LivingEntity candidate) {
+		return candidate instanceof MegumiShikigamiEntity body && owner.getUUID().equals(body.ownerUuid());
 	}
 
 	static boolean isEligibleTarget(LivingEntity owner, LivingEntity target) {
