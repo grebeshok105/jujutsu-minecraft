@@ -152,5 +152,209 @@
       "jujutsumod:megumi/dog_growl"
     ],
     "subtitle": "subtitles.jujutsumod.megumi.dog_growl"
+  },
+  "cursed.prowler_ambient": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_prowler_ambient"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.prowler_ambient"
+  },
+  "cursed.prowler_hurt": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_prowler_hurt"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.prowler_hurt"
+  },
+  "cursed.prowler_death": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_prowler_death"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.prowler_death"
+  },
+  "cursed.prowler_scream": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_prowler_scream"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.prowler_scream"
+  },
+  "cursed.floating_curse_ambient": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_floating_curse_ambient"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.floating_curse_ambient"
+  },
+  "cursed.floating_curse_hurt": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_floating_curse_hurt"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.floating_curse_hurt"
+  },
+  "cursed.floating_curse_death": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_floating_curse_death"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.floating_curse_death"
+  },
+  "cursed.floating_curse_scream": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_floating_curse_scream"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.floating_curse_scream"
+  },
+  "cursed.gulber_ambient": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_gulber_ambient"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.gulber_ambient"
+  },
+  "cursed.gulber_hurt": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_gulber_hurt"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.gulber_hurt"
+  },
+  "cursed.gulber_death": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_gulber_death"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.gulber_death"
+  },
+  "cursed.kelvin_ambient": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_kelvin_ambient"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.kelvin_ambient"
+  },
+  "cursed.kelvin_hurt": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_kelvin_hurt"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.kelvin_hurt"
+  },
+  "cursed.kelvin_death": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_kelvin_death"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.kelvin_death"
+  },
+  "cursed.kelvin_scream": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_kelvin_scream"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.kelvin_scream"
+  },
+  "cursed.butcher_ambient": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_butcher_ambient"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.butcher_ambient"
+  },
+  "cursed.butcher_hurt": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_butcher_hurt"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.butcher_hurt"
+  },
+  "cursed.butcher_death": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_butcher_death"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.butcher_death"
+  },
+  "cursed.butcher_scream": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_butcher_scream"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.butcher_scream"
+  },
+  "cursed.guzzler_ambient": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_guzzler_ambient"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.guzzler_ambient"
+  },
+  "cursed.guzzler_hurt": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_guzzler_hurt"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.guzzler_hurt"
+  },
+  "cursed.guzzler_death": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_guzzler_death"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.guzzler_death"
+  },
+  "cursed.blud_ambient": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_blud_ambient"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.blud_ambient"
+  },
+  "cursed.blud_hurt": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_blud_hurt"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.blud_hurt"
+  },
+  "cursed.blud_death": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_blud_death"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.blud_death"
+  },
+  "cursed.blud_scream": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_blud_scream"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.blud_scream"
+  },
+  "cursed.walking_bed_ambient": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_walking_bed_ambient"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.walking_bed_ambient"
+  },
+  "cursed.walking_bed_hurt": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_walking_bed_hurt"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.walking_bed_hurt"
+  },
+  "cursed.walking_bed_death": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_walking_bed_death"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.walking_bed_death"
+  },
+  "cursed.walking_bed_scream": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_walking_bed_scream"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.walking_bed_scream"
+  },
+  "cursed.wistiver_ambient": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_wistiver_ambient"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.wistiver_ambient"
+  },
+  "cursed.wistiver_hurt": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_wistiver_hurt"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.wistiver_hurt"
+  },
+  "cursed.wistiver_death": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_wistiver_death"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.wistiver_death"
+  },
+  "cursed.wistiver_scream": {
+    "sounds": [
+      "jujutsumod:cursed/cursed_wistiver_scream"
+    ],
+    "subtitle": "subtitles.jujutsumod.cursed.wistiver_scream"
   }
 }

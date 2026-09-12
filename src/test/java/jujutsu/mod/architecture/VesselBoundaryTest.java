@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.ToIntFunction;
@@ -73,6 +74,22 @@ class VesselBoundaryTest {
 			"jujutsu.mod.client.character.",
 			"jujutsu.mod.client.render.",
 			"jujutsu.mod.client.vfx.");
+
+	/**
+	 * Package segments that sit under a vessel parent but belong to a <em>shared</em> system, pinned per
+	 * parent. Scoped rather than global so {@code character.world} or {@code render.world} still fails;
+	 * a new entry must be justified the same way a vessel registration is.
+	 *
+	 * <ul>
+	 * <li>{@code vfx → world}: shared world-space VFX core, consumed by every vessel.</li>
+	 * <li>{@code render → cursedspirit}: shared hostile-mob render tree (ported models/animations plus one
+	 * renderer per visual variant). Its gameplay seam is the cursed-spirit tier, not a vessel; the
+	 * server-side module lives in {@code jujutsu.mod.cursedspirit}.</li>
+	 * </ul>
+	 */
+	private static final Map<String, Set<String>> SHARED_SEGMENTS_BY_PARENT = Map.of(
+			"jujutsu.mod.client.vfx.", Set.of("world"),
+			"jujutsu.mod.client.render.", Set.of("cursedspirit"));
 
 	/**
 	 * Content registries. Registering a vessel's item, entity, effect or component is not dispatch, so
@@ -179,6 +196,17 @@ class VesselBoundaryTest {
 	}
 
 	@Test
+	void sharedSegmentExceptionsAreExactlyTheTwoJustifiedPairs() {
+		// The exception map is the only way a package under a vessel parent may avoid naming a
+		// vessel, so it must not grow silently: pin the exact pairs, not just their lookups.
+		assertEquals(Map.of(
+				"jujutsu.mod.client.vfx.", Set.of("world"),
+				"jujutsu.mod.client.render.", Set.of("cursedspirit")),
+				SHARED_SEGMENTS_BY_PARENT,
+				"a new shared-segment exception needs the same justification a vessel registration does");
+	}
+
+	@Test
 	void everyPackageUnderAVesselParentNamesARegisteredVessel() {
 		// Fail-closed. The review walked past every rule by inventing `character.nobaranet` and
 		// `character.yuji`: both are vessel code by position, and neither matched a hardcoded pattern.
@@ -190,7 +218,7 @@ class VesselBoundaryTest {
 						continue;
 					}
 					String segment = pkg.substring(parent.length()).split("\\.")[0];
-					if (parent.equals("jujutsu.mod.client.vfx.") && segment.equals("world")) {
+					if (SHARED_SEGMENTS_BY_PARENT.getOrDefault(parent, Set.of()).contains(segment)) {
 						continue;
 					}
 					assertTrue(VESSEL_IDS.contains(segment),

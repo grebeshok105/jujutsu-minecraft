@@ -130,7 +130,8 @@ public final class TodoBoogieWoogieRuntime {
 				&& !TodoTargetSafety.hasUnsafeTransportState(target.isPassenger(), target.isVehicle(), leashed)
 				&& !(target instanceof ArmorStand)
 				&& target.level() == todo.level()
-				&& hasFinitePosition(target.position());
+				&& hasFinitePosition(target.position())
+				&& !jujutsu.mod.combat.CombatTags.isBoogieWoogieImmune(target);
 	}
 
 	/**

@@ -36,9 +36,9 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 
 | Metric | Value |
 |---|---:|
-| Main Java files | 148 |
-| Client Java files | 203 |
-| Test Java files | 104 |
+| Main Java files | 160 |
+| Client Java files | 225 |
+| Test Java files | 117 |
 | Verification programs | 29 |
 | Client mixins | 6 |
 | Network payloads | 8 |
@@ -80,6 +80,7 @@ The audit runs inside ./gradlew qualityGate, so these counters are checked befor
 - [Megumi Divine Dogs](03-systems/Megumi-Divine-Dogs.md)
 - [Megumi shikigami — Nue / Toad / Rabbit Escape / Max Elephant](03-systems/Megumi-shikigami.md)
 - [Megumi shadow kit](03-systems/Megumi-shadow-kit.md)
+- [Cursed spirits — three hostile tiers](03-systems/Cursed-spirits.md)
 
 ## Client and VFX
 

@@ -37,10 +37,23 @@ public final class CharacterCombatModifiers {
 		applyForSelection(player, CharacterSelectionManager.selected(player));
 	}
 
+	/**
+	 * Maps requested stagger ticks to applied ticks for any living body.
+	 *
+	 * <p>Non-positive requests pass through untouched. Players scale through their selected
+	 * vessel's definition; mobs implementing {@link jujutsu.mod.combat.StaggerResistant} scale
+	 * through their own resistance (cursed-spirit tiers); everything else takes full ticks.
+	 */
 	public static int adjustedStaggerTicks(LivingEntity entity, int requestedTicks) {
-		if (requestedTicks <= 0 || !(entity instanceof ServerPlayer player)) {
+		if (requestedTicks <= 0) {
 			return requestedTicks;
 		}
-		return JujutsuCharacters.of(player).adjustIncomingStaggerTicks(requestedTicks);
+		if (entity instanceof ServerPlayer player) {
+			return JujutsuCharacters.of(player).adjustIncomingStaggerTicks(requestedTicks);
+		}
+		if (entity instanceof jujutsu.mod.combat.StaggerResistant resistant) {
+			return resistant.adjustIncomingStaggerTicks(requestedTicks);
+		}
+		return requestedTicks;
 	}
 }

@@ -69,3 +69,19 @@ Upstream notice retained:
 > LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 > OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 > SOFTWARE.
+
+## Sons of Sins — cursed-spirit textures and voices
+
+The nine cursed-spirit body textures and 34 ambient/hurt/death/scream voices listed in
+[PROVENANCE.md](PROVENANCE.md) are extracted from the Sons of Sins distribution
+`sons_of_sins-2.2.1d-neoforge-1.21.1.jar` (package `net.mcreator.sonsofsins`). Only the
+43 runtime files under `assets/jujutsumod/textures/entity/cursed/` and
+`assets/jujutsumod/sounds/cursed/` are bundled; no Sons of Sins code, models, animations,
+mechanics, or data files are imported. `wistiver_screamer.ogg`, the `*_ghost.png`
+overlays, the `*_glowing.png`/`walking_bed_eye.png` emissives, and all other creatures'
+and props' assets are deliberately unshipped.
+
+The Sons of Sins author has personally given the jujutsumod developer permission to use
+and adapt these assets (project owner statement, recorded 2026-09-12). The permission
+evidence is not bundled in this repository. Do not expand the imported set; preserve the
+permission scope or replace the assets before a public release.
