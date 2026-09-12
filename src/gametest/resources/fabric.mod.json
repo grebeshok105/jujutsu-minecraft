@@ -18,7 +18,8 @@
 			"jujutsu.mod.gametest.MegumiElephantGameTests",
 			"jujutsu.mod.gametest.MegumiShikigamiCrossTests",
 			"jujutsu.mod.gametest.CursedSpiritGameTests",
-			"jujutsu.mod.gametest.CursedSpiritSpawnGameTests"
+			"jujutsu.mod.gametest.CursedSpiritSpawnGameTests",
+			"jujutsu.mod.gametest.CursedSpiritIntegrationGameTests"
 		],
 		"fabric-client-gametest": [
 			"jujutsu.mod.gametest.client.ClientLoadCanaryTest",
