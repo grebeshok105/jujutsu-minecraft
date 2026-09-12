@@ -17,6 +17,12 @@ public final class MegumiProfile {
 	public static final int RECALL_COOLDOWN_TICKS = 240;
 	public static final int PACK_DEATH_COOLDOWN_TICKS = 600;
 	public static final int SIC_COOLDOWN_TICKS = 30;
+	/**
+	 * Retaliation (issue #76): how long the owner's last attacker stays worth answering, and how far
+	 * a pack looks for bodies that already have the owner as their target.
+	 */
+	public static final int RETALIATION_WINDOW_TICKS = 100;
+	public static final double RETALIATION_RADIUS = 16.0;
 	public static final double POUNCE_MIN_RANGE = 3.0;
 	public static final double POUNCE_MAX_RANGE = 8.0;
 	public static final int POUNCE_COOLDOWN_TICKS = 80;

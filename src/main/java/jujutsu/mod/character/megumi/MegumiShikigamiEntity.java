@@ -45,6 +45,8 @@ public abstract class MegumiShikigamiEntity extends TamableAnimal {
 	private long summonToken;
 	private ResourceKey<Level> recallDimension;
 	private UUID sicTargetUuid;
+	/** True while the current mark came from the owner's own sic command, not from retaliation. */
+	private boolean sicManual;
 	private long nextAttackReadyGameTime;
 
 	protected MegumiShikigamiEntity(EntityType<? extends TamableAnimal> type, Level level) {
@@ -126,7 +128,24 @@ public abstract class MegumiShikigamiEntity extends TamableAnimal {
 
 	void assignSicTarget(LivingEntity target) {
 		sicTargetUuid = target.getUUID();
+		sicManual = true;
 		setTarget(target);
+	}
+
+	/**
+	 * A mark the pack picked for itself (issue #76): the owner was hit, or something already has the
+	 * owner as its target. Never overrides a manual sic — the runtime skips bodies whose mark the
+	 * owner chose.
+	 */
+	void assignRetaliationTarget(LivingEntity target) {
+		sicTargetUuid = target.getUUID();
+		sicManual = false;
+		setTarget(target);
+	}
+
+	/** True while the current mark came from the owner's own ⇧R command. */
+	boolean hasManualSicTarget() {
+		return sicManual;
 	}
 
 	UUID sicTargetUuid() {
@@ -147,6 +166,7 @@ public abstract class MegumiShikigamiEntity extends TamableAnimal {
 
 	void clearSicCommand() {
 		sicTargetUuid = null;
+		sicManual = false;
 		setTarget(null);
 	}
 

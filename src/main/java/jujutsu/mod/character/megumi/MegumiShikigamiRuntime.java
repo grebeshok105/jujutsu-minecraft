@@ -191,14 +191,13 @@ public final class MegumiShikigamiRuntime {
 		ServerLevel level = player.level();
 		TargetResolver.Result result = TargetResolver.resolve(
 				level, player, MegumiShikigamiProfile.SIC_RANGE,
-				target -> MegumiSummonRuntime.isEligibleTarget(player, target) && !isOwnBody(player, target));
+				target -> MegumiSummonRuntime.isEligibleTarget(player, target));
 		if (result.mode() != TargetResolver.Mode.ENTITY || result.entityId().isEmpty()) {
 			return false;
 		}
 		Entity resolved = level.getEntity(result.entityId().get());
 		if (!(resolved instanceof LivingEntity target)
 				|| !MegumiSummonRuntime.isEligibleTarget(player, target)
-				|| isOwnBody(player, target)
 				|| !player.hasLineOfSight(target)) {
 			return false;
 		}
@@ -341,13 +340,36 @@ public final class MegumiShikigamiRuntime {
 		return !pack.contains(body.getUUID(), body.summonToken(), body.level().dimension());
 	}
 
-	private static boolean isOwnBody(ServerPlayer player, LivingEntity candidate) {
-		return MegumiSummonRuntime.isOwnSummonBody(player, candidate);
-	}
-
 	private static void tick(MinecraftServer server) {
 		for (UUID ownerId : Set.copyOf(PACKS.keySet())) {
 			reconcile(server, ownerId, RemovalCause.TICK);
+			retaliate(server, ownerId);
+		}
+	}
+
+	/**
+	 * The pack answers for its owner without a key press (issue #76): whoever just hit the owner, or
+	 * the nearest body already aggroed on the owner, becomes the mark of every body that carries
+	 * none. A body the owner sics by hand keeps its mark — ⇧R outranks this pass.
+	 */
+	private static void retaliate(MinecraftServer server, UUID ownerId) {
+		MegumiShikigamiPack pack = PACKS.get(ownerId);
+		ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
+		if (pack == null || owner == null || TEARDOWN_IN_PROGRESS.contains(ownerId)) {
+			return;
+		}
+		List<MegumiShikigamiEntity> living = livingBodies(server, ownerId, pack);
+		if (living.isEmpty()) {
+			return;
+		}
+		LivingEntity aggressor = MegumiSummonRuntime.retaliationTarget(owner, owner.level().getGameTime());
+		if (aggressor == null) {
+			return;
+		}
+		for (MegumiShikigamiEntity body : living) {
+			if (body.acceptsSicCommand() && !body.hasManualSicTarget()) {
+				body.assignRetaliationTarget(aggressor);
+			}
 		}
 	}
 

@@ -16,7 +16,6 @@ import net.minecraft.world.entity.ai.control.MoveControl;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.FollowOwnerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
-import net.minecraft.world.entity.ai.goal.target.OwnerHurtByTargetGoal;
 import net.minecraft.world.level.Level;
 
 /**
@@ -71,7 +70,9 @@ public final class MegumiRabbitEntity extends MegumiShikigamiEntity {
 		// swarm a reason to hop, so the pack mills around its owner instead of running in place.
 		goalSelector.addGoal(7, new RabbitDriftGoal(this));
 		goalSelector.addGoal(8, new RandomLookAroundGoal(this));
-		targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));
+		// No OwnerHurtByTargetGoal: vanilla would set the owner's attacker as the target directly,
+		// bypassing the pack's priorities and stealing a manual sic's mark. The retaliation pass
+		// owns that behaviour now, with eligibility and the sic outranking it (issue #76).
 	}
 
 	@Override

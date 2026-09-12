@@ -17,6 +17,7 @@
 			"jujutsu.mod.gametest.MegumiRabbitsGameTests",
 			"jujutsu.mod.gametest.MegumiElephantGameTests",
 			"jujutsu.mod.gametest.MegumiShikigamiCrossTests",
+			"jujutsu.mod.gametest.MegumiShikigamiRetaliationGameTests",
 			"jujutsu.mod.gametest.CursedSpiritGameTests",
 			"jujutsu.mod.gametest.CursedSpiritSpawnGameTests",
 			"jujutsu.mod.gametest.CursedSpiritIntegrationGameTests"

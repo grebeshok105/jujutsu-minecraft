@@ -24,7 +24,6 @@ import net.minecraft.world.entity.ai.goal.FollowOwnerGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
-import net.minecraft.world.entity.ai.goal.target.OwnerHurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.OwnerHurtTargetGoal;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.wolf.Wolf;
@@ -45,6 +44,8 @@ public final class MegumiDivineDogEntity extends Wolf {
 	private long summonToken;
 	private ResourceKey<Level> recallDimension;
 	private UUID sicTargetUuid;
+	/** True while the current mark came from the owner's own sic command, not from retaliation. */
+	private boolean sicManual;
 	private UUID pounceTargetUuid;
 	private UUID pounceSicTargetUuid;
 	private long nextPounceReadyGameTime;
@@ -64,7 +65,9 @@ public final class MegumiDivineDogEntity extends Wolf {
 				(float) MegumiProfile.FOLLOW_STOP_DISTANCE));
 		goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0f));
 		goalSelector.addGoal(8, new RandomLookAroundGoal(this));
-		targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));
+		// No OwnerHurtByTargetGoal: vanilla would set the owner's attacker as the target directly,
+		// bypassing the pack's priorities and stealing a manual sic's mark. The retaliation pass
+		// owns that behaviour now, with eligibility and the sic outranking it (issue #76).
 		targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));
 	}
 
@@ -128,7 +131,25 @@ public final class MegumiDivineDogEntity extends Wolf {
 	void assignSicTarget(LivingEntity target) {
 		finishPounce();
 		sicTargetUuid = target.getUUID();
+		sicManual = true;
 		super.setTarget(target);
+	}
+
+	/**
+	 * A mark the dogs picked for themselves (issue #76): the owner was hit, or something already has
+	 * the owner as its target. A manual sic outranks it — the runtime skips bodies whose mark the
+	 * owner chose.
+	 */
+	void assignRetaliationTarget(LivingEntity target) {
+		finishPounce();
+		sicTargetUuid = target.getUUID();
+		sicManual = false;
+		super.setTarget(target);
+	}
+
+	/** True while the current mark came from the owner's own sic command. */
+	boolean hasManualSicTarget() {
+		return sicManual;
 	}
 
 	UUID sicTargetUuid() {
@@ -195,6 +216,7 @@ public final class MegumiDivineDogEntity extends Wolf {
 
 	void clearSicCommand() {
 		sicTargetUuid = null;
+		sicManual = false;
 		finishPounce();
 	}
 
