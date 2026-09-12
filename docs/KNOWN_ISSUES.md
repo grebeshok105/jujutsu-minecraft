@@ -111,6 +111,41 @@ not as drive-by "fixes".
    symmetric). Shipped byte-identical to the Sorcery Age source; the swarm reads through motion
    and count, and editing a third-party clip is a new asset revision, not a bug fix.
 
+### Cursed spirits ship with accepted limits (slice 1)
+
+1. **Balance is a first pass.** Every number lives in `CursedSpiritProfile` (tier rows + the shared
+   crowd cap) and `CursedSpiritVariant` (look/weights/sounds); treat the table as the tuning
+   surface, not a contract. The plan's numbers were chosen for feel, not measured against live
+   play yet.
+2. **No VFX for the tier bodies.** Model animation, sounds and knockback carry the read; the VFX
+   Core is untouched. If the greater tier's slam reads flat in play, that is the time to revisit —
+   not before.
+3. **The spawn light gate is `PathfinderMob`'s walk-value, not vanilla's rolled darkness.** It
+   refuses at local brightness ≳12 (glowstone) and allows dim 8–12; vanilla's `isDarkEnoughToSpawn`
+   roll is deliberately not re-implemented (it would duplicate engine logic). The local crowd cap
+   (10 within 48 blocks) plus the spawn weights keep the world from flooding; a stricter
+   vanilla-dark feel needs one extra conjunct in `CursedSpiritEntity.checkSpawnRules`.
+4. **Attack playback follows the profile, not the clip.** Non-looping clips are stop-then-started
+   on every swing (`startIfStopped` would freeze the second attack) and the scream state is
+   stopped by a server timer (`SCREAM_DURATION_TICKS = 12`, the authored SCREAMER length). If a
+   clip's length is edited later, the walk gate and the scream window still key off the state, so
+   the read stays consistent — but the timing contract is the profile, not the asset.
+5. **Several authored clips are deliberately not shipped**: `WISTIVER.GRAVE`, `PROWLER.CLIMB`,
+   `GULBER.SIT`, `BLUD.TELEPORT_IN/OUT`, `WALKING_BED.MASK/CRAWL_*` (no driver state or unused by
+   the pack's own `setupAnim`). A clip without a driver is not shipped — the same rule that
+   removed them from the contracts.
+6. **Cursed spirits render through the vanilla model stack, not GeckoLib.** The pack ships
+   vanilla-API Java models and `AnimationDefinition` classes, so the port is near-verbatim (see
+   the Codex note). This is a deliberate second render path next to the GeckoLib house style; the
+   vessel-boundary guard carries a scoped, documented `render → cursedspirit` exception.
+7. **Strike reach is re-checked at the strike moment; line of sight is not.** A momentary LOS blip
+   mid-swing must not abort an attack (recorded melee forgiveness), but a target that leaves reach
+   no longer takes the hit.
+8. **Greater spirits are immune to Boogie Woogie by tag** (`jujutsumod:boogie_woogie_immune`), a
+   design choice: a 150-HP elite that a swap can teleport is a different fight.
+9. **FLOATING_CURSE is rigged from `Modelcurse_ghost` and glides** — the pack authored no walk
+   clip for it, and its attack clip comes from the ghost animation set (wired explicitly).
+
 ## Public-release blockers
 
 ### R1 — Rich-Modern provenance is unresolved
