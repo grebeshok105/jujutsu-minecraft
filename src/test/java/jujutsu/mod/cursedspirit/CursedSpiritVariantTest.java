@@ -8,7 +8,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.SharedConstants;
+import net.minecraft.server.Bootstrap;
 import net.minecraft.util.RandomSource;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -17,6 +20,15 @@ import org.junit.jupiter.api.Test;
  * (unknown/cross-tier ids re-roll, valid ids survive).
  */
 final class CursedSpiritVariantTest {
+	// The roll/resolve tests touch CursedSpiritEntity statics, whose class init defines
+	// synched entity data — that needs a bootstrapped game. Without this, the class passes
+	// only when another test (e.g. CursedSpiritRegistryTest) bootstraps first in the same fork.
+	@BeforeAll
+	static void bootstrapMinecraft() {
+		SharedConstants.tryDetectVersion();
+		Bootstrap.bootStrap();
+	}
+
 	@Test
 	void frozenRosterMatchesTiers() {
 		assertEquals(List.of(CursedSpiritVariant.PROWLER, CursedSpiritVariant.FLOATING_CURSE,

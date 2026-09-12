@@ -24,14 +24,17 @@ import jujutsu.mod.registry.JujutsuEntities;
  * requirement on the entity override. A crowd of exactly {@code MAX_SPIRITS_NEARBY} then flips
  * the dark-room check to false (the cap half).
  *
- * <p><b>Traps avoided.</b> World offset is random per run, so every position here is
- * fixture-relative and the crowd count is queried by radius around the structure, never by
- * absolute coordinates. Light settles a few ticks after the blocks go down, so construction
- * happens at tick 1 while every oracle runs at tick 15. All spawns use {@code helper.spawn}
- * (full AI) and every oracle reads state synchronously in the same callback, so nothing can
- * wander between placement and the check). Cleanup is owner-scoped: every spawned body is
- * tracked in a local list and discarded on all paths (try/finally over owned references
- * only — never a radius sweep, so sibling scenarios sharing the level are untouched).
+	 * fixture-relative and the crowd count is queried by radius around the structure, never by
+	 * absolute coordinates. Light settles a few ticks after the blocks go down, so construction
+	 * happens at tick 1 while every oracle runs at tick 15. All spawns use {@code helper.spawn}
+	 * (full AI) and every oracle reads state synchronously in the same callback, so nothing can
+	 * wander between placement and the check). Cleanup is owner-scoped: every spawned body is
+	 * tracked in a list and discarded on all paths (try/finally over owned references
+	 * only — never a radius sweep, so sibling scenarios sharing the level are untouched).
+	 * The premise and the final sweep are owner-scoped the same way: they count only the bodies
+	 * this scenario spawned (a neighbour arena's legitimate bodies must not red them), and the
+	 * radius they use is exactly the production {@code CursedSpiritProfile.CROWD_RADIUS}, so the
+	 * test observes what production enforces.
  *
  * <p><b>Gates.</b> This class is registered in {@code fabric.mod.json} by Block 4's serialized
  * edit (after {@code block-2 report filed}); the cap/peaceful phases additionally need
@@ -51,10 +54,18 @@ public final class CursedSpiritSpawnGameTests {
 
 	private static final int ORACLE_TICK = 15;
 	private static final int SWEEP_TICK = 30;
+	/**
+	 * Every body this scenario spawns. A field (not a callback-local) so the sweep tick can
+	 * verify the oracle tick's cleanup: the premise and the sweep count only these owned
+	 * references, never a by-type radius query, so a sibling arena's legitimate bodies sharing
+	 * the level cannot red them. Cleared at the start of the oracle tick, so a repeat run on
+	 * the same instance cannot inherit stale references.
+	 */
+	private final List<CursedSpiritEntity> owned = new ArrayList<>();
 
 	/**
-	 * Lit refuses, dark allows, peaceful refuses, a full crowd refuses — then the arena is
-	 * asserted clean (owned bodies already discarded) and the test succeeds.
+	 * Lit refuses, dark allows, peaceful refuses, a full crowd refuses — then the owned bodies
+	 * are asserted discarded and the test succeeds.
 	 */
 	@GameTest(maxTicks = 60)
 	public void spawnGateRefusesLightPeacefulAndCrowdButAllowsDark(GameTestHelper helper) {
@@ -65,12 +76,14 @@ public final class CursedSpiritSpawnGameTests {
 
 		helper.runAtTickTime(ORACLE_TICK, () -> {
 			ServerLevel level = helper.getLevel();
-			List<CursedSpiritEntity> live = new ArrayList<>();
+			owned.clear();
+			List<CursedSpiritEntity> live = owned;
 			try {
 				BlockPos center = helper.absolutePos(DARK_FEET);
-				helper.assertTrue(countNearby(level, center) == 0,
+				helper.assertTrue(countOwned(live, center) == 0,
 						GameTestFixtures.diagnostic(fixture, helper.getTick(),
-								"premise: no stray spirits near the arena", "0", countNearby(level, center)));
+								"premise: this scenario starts with no owned bodies near the arena", "0",
+								countOwned(live, center)));
 
 				// PEACEFUL refuses even in the dark room (explicit gate on the entity override).
 				Difficulty before = level.getDifficulty();
@@ -116,11 +129,11 @@ public final class CursedSpiritSpawnGameTests {
 		});
 
 		helper.runAtTickTime(SWEEP_TICK, () -> {
-			ServerLevel level = helper.getLevel();
 			BlockPos center = helper.absolutePos(DARK_FEET);
-			helper.assertTrue(countNearby(level, center) == 0,
+			helper.assertTrue(countOwned(owned, center) == 0,
 					GameTestFixtures.diagnostic(fixture, helper.getTick(),
-							"sweep: arena clean after the oracles", "0", countNearby(level, center)));
+							"sweep: owned bodies discarded after the oracles", "0",
+							countOwned(owned, center)));
 			helper.succeed();
 		});
 	}
@@ -153,8 +166,20 @@ public final class CursedSpiritSpawnGameTests {
 		return spirit;
 	}
 
-	private static int countNearby(ServerLevel level, BlockPos absoluteCenter) {
-		return level.getEntitiesOfClass(CursedSpiritEntity.class,
-				new AABB(absoluteCenter).inflate(CursedSpiritProfile.CROWD_RADIUS + 8.0)).size();
+	/**
+	 * Owned bodies (non-removed) inside the production crowd radius of the arena centre. Scoped
+	 * to the {@code live} references this scenario created — never a by-type level query — and
+	 * measured with exactly {@code CursedSpiritProfile.CROWD_RADIUS}, the radius production
+	 * enforces in {@code CursedSpiritSpawnRules}.
+	 */
+	private static int countOwned(List<CursedSpiritEntity> live, BlockPos absoluteCenter) {
+		AABB box = new AABB(absoluteCenter).inflate(CursedSpiritProfile.CROWD_RADIUS);
+		int nearby = 0;
+		for (CursedSpiritEntity spirit : live) {
+			if (!spirit.isRemoved() && box.contains(spirit.position())) {
+				nearby++;
+			}
+		}
+		return nearby;
 	}
 }

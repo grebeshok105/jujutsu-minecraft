@@ -121,6 +121,17 @@ public class CursedSpiritAttackGoal extends Goal {
 			return;
 		}
 		CursedSpiritTierStats row = stats();
+		// Strike-time reach re-check: the windup clock alone enters STRIKE, so a victim that
+		// sprints out mid-swing must take nothing — no direct damage, no knockback, no AoE.
+		// Deliberately reach only, no line-of-sight re-check (see canContinueToUse): a momentary
+		// sight blip must not void the swing, but distance does. A whiff still runs out the
+		// swing clock through RECOVER, so the attack clip plays to its normal end.
+		if (!CursedSpiritAttackPolicy.inReach(
+				mob.distanceTo(target), mob.getBbWidth(), target.getBbWidth(), row)) {
+			phase = Phase.RECOVER;
+			ticksInPhase = 0;
+			return;
+		}
 		double step = row.strikeStep();
 		if (step > 0.0) {
 			Vec3 forward = mob.getLookAngle().multiply(1.0, 0.0, 1.0);
