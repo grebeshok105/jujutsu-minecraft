@@ -25,7 +25,7 @@ the review-wave fixes landing on top.
 | Input | Ability | Answers |
 |---|---|---|
 | `R` | technique key (`PRIMARY`) | `MegumiShikigamiRuntime.tryPrimary` — summon / recall / swap the selection, or the dogs when `DOGS` is selected |
-| `S+R` | sic (`PRIMARY_SNEAK`) | `MegumiShikigamiRuntime.trySic` — send every living ordered body at the aimed target; `SIC_COOLDOWN_TICKS = 30` on `PRIMARY_SNEAK` |
+| `S+R` | sic (`PRIMARY_SNEAK`) | `MegumiShikigamiRuntime.trySic` — send every living ordered body at the aimed target; `SIC_COOLDOWN_TICKS = 30` on `PRIMARY_SNEAK`. Bodies also answer **by themselves**: every tick the per-owner pass in `MegumiShikigamiRuntime.retaliate` / `MegumiSummonRuntime.retaliate` marks the owner's aggressor (`MegumiRetaliationPolicy.pickAggressor` — the owner's last attacker for `RETALIATION_WINDOW_TICKS = 100`, else the nearest mob already targeting the owner inside `RETALIATION_RADIUS = 16`). A sic set by hand outranks it (`hasManualSicTarget`), and `MegumiTargetPolicy.Facts.ownSummonBody` keeps the pack off its own bodies (issue #76) |
 | `S+V` | select (`TERTIARY_SNEAK`) | `MegumiShikigamiRuntime.tryCycle` — advance the selection, action-bar feedback, never a cooldown |
 | `B` / `S+B` (+hold) / `V` | shadow kit | unchanged: trap / step / deep submerge / drop (`MegumiAbilityRouter`) |
 
@@ -111,7 +111,10 @@ tops the swarm back up by at most 2 (`registerExtraBody`). Per body every 10 tic
 within 1.4 that pass eligibility and friendly-fire are bumped (0.35 knockback, slight up),
 `SLOWNESS` 20 ticks, `rabbits_pop` cue. Pure policy: `shouldRespawn` / `expired` / `bumpReady` /
 `respawnBatch`. Clips `walk`/`run`/`attack`; hop movement is a small own `MoveControl` (jump
-every 10 ticks while moving). Sounds: `RABBIT_AMBIENT` summon/idle, `RABBIT_HURT` bump. The
+every 10 ticks while moving). Bodies spawn inside `FollowOwnerGoal`'s stop radius, so they need their
+own locomotion — `RabbitChaseGoal` (4) closes on the mark while `MegumiRabbitSwarmPolicy.shouldChase`
+holds, `RabbitDriftGoal` (7) picks a fresh ring point every `RABBIT_DRIFT_INTERVAL_TICKS = 30` while
+the body sits inside `RABBIT_DRIFT_LEASH = 9` of the owner and carries no mark (issue #78). Sounds: `RABBIT_AMBIENT` summon/idle, `RABBIT_HURT` bump. The
 near-flat upstream texture ships as-is (accepted limit).
 
 **Max Elephant** (heavy, hitbox 2.0×2.2): 120 health, 6 attack, 0.18 speed; materialize 30 /
