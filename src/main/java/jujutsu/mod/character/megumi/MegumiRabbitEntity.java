@@ -1,5 +1,10 @@
 package jujutsu.mod.character.megumi;
 
+import java.util.EnumSet;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.EntityType;
@@ -58,7 +63,13 @@ public final class MegumiRabbitEntity extends MegumiShikigamiEntity {
 	@Override
 	protected void registerGoals() {
 		goalSelector.addGoal(0, new FloatGoal(this));
+		// Chase before the follow: a body with a mark services it instead of standing in the ring
+		// (manual sic and the runtime's retaliation both arrive as getTarget()).
+		goalSelector.addGoal(4, new RabbitChaseGoal(this));
 		goalSelector.addGoal(6, new FollowOwnerGoal(this, 1.0, 6.0f, 3.0f));
+		// Issue #78: nothing in the imported kit ever asked a body to move. The drift goal gives the
+		// swarm a reason to hop, so the pack mills around its owner instead of running in place.
+		goalSelector.addGoal(7, new RabbitDriftGoal(this));
 		goalSelector.addGoal(8, new RandomLookAroundGoal(this));
 		targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));
 	}
@@ -91,6 +102,101 @@ public final class MegumiRabbitEntity extends MegumiShikigamiEntity {
 	void postponeBump(long nextBumpGameTime) {
 		this.nextBumpGameTime = nextBumpGameTime;
 	}
+	/**
+	 * Closes on whatever mark the body carries until it is inside bump range — the brain's shove is
+	 * the swarm's only weapon, and it needs the body next to the victim to land.
+	 */
+	private static final class RabbitChaseGoal extends Goal {
+		private final MegumiRabbitEntity rabbit;
+
+		private RabbitChaseGoal(MegumiRabbitEntity rabbit) {
+			this.rabbit = rabbit;
+			setFlags(EnumSet.of(Flag.MOVE));
+		}
+
+		@Override
+		public boolean canUse() {
+			return serviced();
+		}
+
+		@Override
+		public boolean canContinueToUse() {
+			return serviced();
+		}
+
+		private boolean serviced() {
+			LivingEntity target = rabbit.getTarget();
+			return target != null
+					&& target.isAlive()
+					&& MegumiRabbitSwarmPolicy.shouldChase(rabbit.distanceTo(target));
+		}
+
+		@Override
+		public void tick() {
+			LivingEntity target = rabbit.getTarget();
+			if (target != null) {
+				rabbit.getNavigation().moveTo(target, 1.0);
+			}
+		}
+
+		@Override
+		public void stop() {
+			rabbit.getNavigation().stop();
+		}
+	}
+
+	/**
+	 * Picks a fresh point on a ring around the owner every {@code RABBIT_DRIFT_INTERVAL_TICKS}, which
+	 * is what actually moves the swarm: the bodies spawn inside the follow goal's stop radius, so
+	 * before this goal nothing ever handed them a wanted position (issue #78).
+	 */
+	private static final class RabbitDriftGoal extends Goal {
+		private final MegumiRabbitEntity rabbit;
+		private int ticksUntilDrift;
+
+		private RabbitDriftGoal(MegumiRabbitEntity rabbit) {
+			this.rabbit = rabbit;
+			setFlags(EnumSet.of(Flag.MOVE));
+		}
+
+		@Override
+		public boolean canUse() {
+			return rabbit.getTarget() == null && withinLeash();
+		}
+
+		@Override
+		public boolean canContinueToUse() {
+			return rabbit.getTarget() == null && withinLeash();
+		}
+
+		private boolean withinLeash() {
+			LivingEntity owner = rabbit.getOwner();
+			return owner != null
+					&& owner.isAlive()
+					&& MegumiRabbitSwarmPolicy.shouldDrift(rabbit.distanceTo(owner));
+		}
+
+		@Override
+		public void tick() {
+			LivingEntity owner = rabbit.getOwner();
+			if (owner == null || ticksUntilDrift-- > 0) {
+				return;
+			}
+			ticksUntilDrift = MegumiShikigamiProfile.RABBIT_DRIFT_INTERVAL_TICKS;
+			RandomSource random = rabbit.getRandom();
+			Vec3 point = MegumiRabbitSwarmPolicy.driftTarget(owner.getX(), owner.getY(), owner.getZ(),
+					random.nextDouble() * Math.PI * 2.0,
+					MegumiRabbitSwarmPolicy.driftRadius(random.nextDouble()));
+			rabbit.getNavigation().moveTo(point.x, point.y, point.z, 1.0);
+		}
+
+		@Override
+		public void stop() {
+			ticksUntilDrift = 0;
+			rabbit.getNavigation().stop();
+		}
+	}
+
 	/**
 	 * Ground steering with a hop: faces the wanted point, feeds the profile speed into the travel
 	 * step, and every {@code RABBIT_HOP_INTERVAL_TICKS} while moving flags a jump so the body

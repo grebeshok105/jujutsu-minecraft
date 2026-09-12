@@ -1,5 +1,9 @@
 package jujutsu.mod.gametest;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import net.minecraft.world.phys.Vec3;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -669,5 +673,86 @@ public final class MegumiRabbitsGameTests {
 				zombie = null;
 			}
 		}
+	}
+	/**
+	 * Issue #78 — the swarm must cover ground, not animate a hop in place. Bodies spawn on a
+	 * 2.2-block ring, inside the follow goal's 3-block stop radius, and before the drift goal no
+	 * goal ever handed them a wanted position: the hop control idled and displacement stayed ~0.
+	 * The oracle measures coordinates, never leg animation: median horizontal travel of the bodies
+	 * that survived both samples.
+	 */
+	@GameTest(maxTicks = 320, skyAccess = true)
+	public void rabbitsCoverGroundAfterSummon(GameTestHelper helper) {
+		String fixture = "rabbitsCoverGroundAfterSummon";
+		// Wider than the standard patch: the drift ring reaches ~3.6 blocks around the owner, and a
+		// rabbit that steps off a 7x7 pad into the void would read as a failed swarm.
+		for (int dx = -1; dx <= 7; dx++) {
+			for (int dz = -1; dz <= 7; dz++) {
+				helper.setBlock(new BlockPos(dx, 0, dz), Blocks.STONE);
+				helper.setBlock(new BlockPos(dx, 4, dz), Blocks.STONE);
+			}
+		}
+		BlockPos casterFeet = new BlockPos(3, 1, 3);
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+		AtomicReference<Map<UUID, Vec3>> start = new AtomicReference<>(Map.of());
+		AtomicBoolean done = new AtomicBoolean();
+
+		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			UUID ownerId = caster.getUUID();
+			MegumiShikigamiSelection.set(ownerId, MegumiShikigami.RABBITS);
+			boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"summon", helper.getTick(), ownerId, "tryPrimary result", "true", summoned));
+		}));
+
+		helper.runAtTickTime(SUMMON_TICK + 30, () -> {
+			UUID ownerId = caster.getUUID();
+			List<MegumiRabbitEntity> bodies = rabbitsOwnedBy(level, ownerId);
+			helper.assertTrue(bodies.size() == MegumiShikigamiProfile.RABBITS_SWARM_SIZE,
+					MegumiShikigamiTestFixtures.diagnostic(fixture, "sample", helper.getTick(), ownerId,
+							"live swarm size", MegumiShikigamiProfile.RABBITS_SWARM_SIZE, bodies.size()));
+			helper.assertTrue(bodies.get(0).combatEnabled(),
+					MegumiShikigamiTestFixtures.diagnostic(fixture, "sample", helper.getTick(), ownerId,
+							"swarm ACTIVE", "true", bodies.get(0).combatEnabled()));
+			Map<UUID, Vec3> positions = new HashMap<>();
+			for (MegumiRabbitEntity body : bodies) {
+				positions.put(body.getUUID(), body.position());
+			}
+			start.set(positions);
+		});
+
+		helper.runAtTickTime(SUMMON_TICK + 30 + 140, () -> {
+			if (done.get()) {
+				return;
+			}
+			UUID ownerId = caster.getUUID();
+			Map<UUID, Vec3> initial = start.get();
+			helper.assertTrue(!initial.isEmpty(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"measure", helper.getTick(), ownerId, "start sample captured", "non-empty", initial.size()));
+			List<Double> travelled = new ArrayList<>();
+			for (MegumiRabbitEntity body : rabbitsOwnedBy(level, ownerId)) {
+				Vec3 from = initial.get(body.getUUID());
+				if (from == null) {
+					continue;
+				}
+				Vec3 now = body.position();
+				travelled.add(Math.sqrt((now.x - from.x) * (now.x - from.x) + (now.z - from.z) * (now.z - from.z)));
+			}
+			travelled.sort(Double::compare);
+			double median = travelled.isEmpty() ? 0.0 : travelled.get(travelled.size() / 2);
+			try {
+				helper.assertTrue(median >= 1.0, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"measure", helper.getTick(), ownerId, "median horizontal travel",
+						">= 1.0 block", median + " over " + travelled.size() + " bodies"));
+				done.set(true);
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+				helper.succeed();
+			} catch (RuntimeException | AssertionError failure) {
+				done.set(true);
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+				throw failure;
+			}
+		});
 	}
 }
