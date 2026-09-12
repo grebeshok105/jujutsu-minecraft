@@ -9,6 +9,7 @@ Owned by the root AGENTS.md ("Documentation" section). If two documents disagree
 ## Files in this directory
 
 - BUILDING_IN_SANDBOX.md — build guidance for normal and restricted containers, and the owner of the client-smoke checklist.
+- HIGH_PRIORITY_PLAN.md — the code-verified remediation plans for the two high-priority register entries: decoding limits for the curse-link options packet, and the runtime/world verification backlog. Point-in-time by design; delete it when both plans have landed.
 - KNOWN_ISSUES.md — live risk and debt register, and the owner of accepted-tradeoff rationales.
 - MCP_1_21_8_PORT_SPIKE.md — decision record for the MCP 1.21.8 upstream port spike (issue #43): verdict, evidence, and the dev-only bridge facts.
 - MCP_DEV_CONTROLS.md — approved design for the dev-only MCP control surface (issue #43 slice 2): tool table, fixture-reset order, autonomous entry recipe.
