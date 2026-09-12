@@ -42,11 +42,24 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant {
 	/** NBT key for the variant string id (persistence contract). */
 	public static final String VARIANT_TAG = "Variant";
 
-	/** Frozen animation sync ids (Warden precedent 61/62; avoids LivingEntity's own ids). */
-	public static final byte ATTACK_START = 61;
-	public static final byte SCREAM_START = 62;
-	public static final byte ATTACK_END = 63;
-	public static final byte SCREAM_END = 64;
+	/**
+	 * Animation sync ids, broadcast through the vanilla entity-event channel.
+	 *
+	 * <p>They live in a private high range on purpose. {@code ClientPacketListener.handleEntityEvent}
+	 * special-cases three ids with an unconditional cast — 21 ({@code checkcast Guardian}), 35
+	 * (totem) and 63 ({@code checkcast Sniffer} + {@code SnifferSoundInstance}) — so an id of 63
+	 * broadcast by a non-sniffer kills the client with a {@code ClassCastException} and the
+	 * connection dies with "Network Protocol Error" (found live, 2026-09-12). Vanilla's own
+	 * entity-event tables stay far below 100 ({@code Entity} → 53, {@code LivingEntity} → 3/46/47…),
+	 * so 100–103 cannot be claimed by another mob's handler either.
+	 *
+	 * <p>Pinned by {@code CursedSpiritAnimationStateTest}: exact values, distinctness, the 0..127
+	 * byte range, and exclusion of the vanilla listener's reserved set.
+	 */
+	public static final byte ATTACK_START = 100;
+	public static final byte SCREAM_START = 101;
+	public static final byte ATTACK_END = 102;
+	public static final byte SCREAM_END = 103;
 	/** All SCREAMER clips are 0.56 s = 11.2 ticks, rounded up (plan rev 3 pinned literal). */
 	public static final int SCREAM_DURATION_TICKS = 12;
 
