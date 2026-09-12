@@ -55,6 +55,14 @@ class MegumiLifecyclePolicyTest {
 	}
 
 	@Test
+	void aSwapDismissesTheOutgoingPackForFree() {
+		assertEquals(0, MegumiSummonRuntime.TeardownReason.SWAPPED.cooldownTicks(),
+				"swapping to another shikigami must not start the recall cooldown");
+		assertTrue(MegumiSummonRuntime.TeardownReason.RECALL.cooldownTicks() > 0,
+				"the manual recall keeps its own cost");
+	}
+
+	@Test
 	void recallingPresentationBodyDoesNotOwnAnotherTeardownCooldown() {
 		assertTrue(MegumiLifecyclePolicy.dogOwnsTeardownCooldown(
 				MegumiDogPresentationPolicy.Phase.MATERIALIZING));
@@ -69,7 +77,7 @@ class MegumiLifecyclePolicyTest {
 		String source = Files.readString(SUMMON_RUNTIME_SOURCE);
 		String teardown = source.substring(
 				source.indexOf("public static void teardown"),
-				source.indexOf("private static void broadcastCue"));
+				source.indexOf("static void broadcastCue"));
 		assertEquals(1, occurrences(teardown, "startCooldownIfLonger("),
 				"teardown must apply its reason-selected cooldown once after the discard sweep");
 	}
@@ -79,9 +87,10 @@ class MegumiLifecyclePolicyTest {
 		String runtime = Files.readString(SUMMON_RUNTIME_SOURCE);
 		String teardown = runtime.substring(
 				runtime.indexOf("public static void teardown"),
-				runtime.indexOf("private static void broadcastCue"));
+				runtime.indexOf("static void broadcastCue"));
 		assertTrue(teardown.contains(
-				"dogCleanupAction(reason == TeardownReason.RECALL, belongedToRemovedPack)"));
+				"dogCleanupAction(reason == TeardownReason.RECALL || reason == TeardownReason.SWAPPED"),
+				"A manual recall and a shikigami swap are the only teardowns that play the recall transition");
 		assertTrue(teardown.contains("dog.beginRecall()"),
 				"Manual recall must transition the real dog instead of discarding it immediately");
 		assertTrue(teardown.contains("dog.discard()"),

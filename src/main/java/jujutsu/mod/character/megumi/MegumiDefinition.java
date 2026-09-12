@@ -27,7 +27,16 @@ public final class MegumiDefinition implements CharacterDefinition {
 	public void registerServerHooks() {
 		FabricDefaultAttributeRegistry.register(JujutsuEntities.MEGUMI_DIVINE_DOG,
 				createDivineDogAttributes());
+		FabricDefaultAttributeRegistry.register(JujutsuEntities.MEGUMI_NUE,
+				MegumiNueEntity.createAttributes());
+		FabricDefaultAttributeRegistry.register(JujutsuEntities.MEGUMI_TOAD,
+				MegumiToadEntity.createAttributes());
+		FabricDefaultAttributeRegistry.register(JujutsuEntities.MEGUMI_MAX_ELEPHANT,
+				MegumiElephantEntity.createAttributes());
+		FabricDefaultAttributeRegistry.register(JujutsuEntities.MEGUMI_RABBIT,
+				MegumiRabbitEntity.createAttributes());
 		MegumiSummonRuntime.register();
+		MegumiShikigamiRuntime.register();
 		MegumiShadowTrapRuntime.register();
 		MegumiShadowMoveRuntime.register();
 		MegumiShadowDropRuntime.register();
@@ -44,6 +53,8 @@ public final class MegumiDefinition implements CharacterDefinition {
 	public void onDeselected(ServerPlayer player) {
 		MegumiSummonRuntime.teardown(player.getServer(), player.getUUID(),
 				MegumiSummonRuntime.TeardownReason.DESELECTED);
+		MegumiShikigamiRuntime.teardown(player.getServer(), player.getUUID(),
+				MegumiShikigamiRuntime.TeardownReason.DESELECTED);
 		MegumiShadowTrapRuntime.clear(player.getServer(), player.getUUID(), true);
 		MegumiShadowDropRuntime.clear(player.getServer(), player.getUUID(), true);
 		MegumiShadowMoveRuntime.teardown(player.getServer(), player.getUUID());

@@ -62,6 +62,55 @@ Decided 2026-07-26 with the impact pass. Both are recorded in `TodoSwapMomentumR
 
 Owned by [PROVENANCE.md](PROVENANCE.md) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Those files hold the permission scope, the retained upstream notice, and the replacement policy. Only the release-blocking consequences are tracked here, as R3.
 
+### Shikigami selection is in-memory, and the slice ships with accepted limits
+
+Decided with the `feat/megumi-shikigami` branch. Accepted limits of the Ten Shadows slice
+(Nue / Toad / Rabbit Escape / Max Elephant); reopen any of them only with an explicit owner call,
+not as drive-by "fixes".
+
+1. **The shikigami selection resets on relog.** `MegumiShikigamiSelection` is a static
+   owner-keyed map by design (see its javadoc): only `DISCONNECT` and `SERVER_STOPPING` clear it,
+   vessel deselect deliberately keeps it, and the dev/MCP fixture-reset tool clears it as an extra
+   step. There is no persistence, so a rejoining player is back on `DOGS`. Persist it only through
+   an approved design (the dog pack itself is equally transient).
+2. **Shikigami sounds are vanilla placeholders.** No per-shikigami sounds were found upstream, so
+   Nue speaks phantom, the toad speaks frog, the rabbits speak rabbit, and the elephant speaks
+   ravager, as literals at the call sites (no NEW `JujutsuSounds`/`sounds.json` entries — the
+   bodies still play the existing shared shadow-open swell and recall implosion). Swapping in
+   real voice lines later touches call sites only.
+3. **The Rabbit Escape texture is near-flat upstream.** `megumi_rabbit.png` ships byte-identical
+   to the Sorcery Age source (321 bytes); no cleanup pass is planned. The swarm reads through
+   motion and count, not fur detail.
+4. **The toad tongue is VFX-only.** `toad_tongue.png`/`toad_wings.png` are deliberately unshipped
+   (unreferenced by the imported geo — see PROVENANCE), so the tongue strike has a cue and a yank
+   but no tongue geometry. Adding a tongue model is new art, not a bug fix.
+5. **GameTest displacement oracles must not use `NoAI` mobs.** Measured in game 2026-09-11: a
+   `NoAI:1b` mob is fully frozen — external velocity is stored but the position never integrates,
+   not even gravity. Assert displacement only on AI mobs with zeroed speed (Slowness amplifier
+   100), otherwise assert velocity/effect state. Recorded so a future scenario author cannot
+   re-learn it the red way.
+6. **The sic can out-range what the body can actually do.** `SIC_RANGE` (the aim) is 20 blocks for
+   every type, while the toad's tongue reaches 12 and the elephant's jet corridor about 13.2 from
+   the body. A sic past those marks still routes, plays the snap and the cue, and arms the 30-tick
+   `PRIMARY_SNEAK` cooldown; the elephant now refuses to *fire* beyond its reach (review fix), and
+   in both cases the body walks in and melees the mark instead — so the command is not wasted, it
+   just does not telegraph the shorter reach. A per-type sic-range contract would fix the tell;
+   until then it is a UX wart, not a broken strike.
+7. **The elephant's jet is level.** `faceTarget` sets yaw only, so the corridor leaves the trunk
+   at ~1.9 blocks with no pitch: bodies shorter than about 1.4 blocks (Rabbit Escape sits at 0.2)
+   pass under it at any range. Aiming pitch at the target's chest would change which targets are
+   hittable, so it is an owner call rather than a silent fix.
+7b. **The Divine Dogs' pounce yaw looks mirrored.** `MegumiSummonRuntime` sets the pounce facing
+   with `atan2(x, z)` where Minecraft's yaw convention needs `atan2(-x, z)` — the same defect the
+   Nue and the Elephant shipped with until this branch. The dogs render correctly under vanilla AI
+   facing and their PR (#72) verified their kit, so this is recorded rather than touched: it is a
+   cosmetic pounce-facing question in a frozen system, and it deserves its own pass with the same
+   frame evidence the shikigami got.
+8. **The rabbit `run` clip is asymmetric upstream.** `megumi_rabbit.animation.json`'s `run` bends
+   the left knee without the left foot and the right foot without the right knee (`walk` is
+   symmetric). Shipped byte-identical to the Sorcery Age source; the swarm reads through motion
+   and count, and editing a third-party clip is a new asset revision, not a bug fix.
+
 ## Public-release blockers
 
 ### R1 — Rich-Modern provenance is unresolved

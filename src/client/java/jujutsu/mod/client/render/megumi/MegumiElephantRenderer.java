@@ -1,0 +1,51 @@
+package jujutsu.mod.client.render.megumi;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import org.jetbrains.annotations.Nullable;
+import software.bernie.geckolib.cache.object.BakedGeoModel;
+import software.bernie.geckolib.renderer.GeoReplacedEntityRenderer;
+import jujutsu.mod.character.megumi.MegumiElephantEntity;
+import jujutsu.mod.character.megumi.MegumiShikigamiPresentationPolicy;
+
+/** GeckoLib renderer for Max Elephant: the imported model replaces the placeholder body entirely. */
+public final class MegumiElephantRenderer extends
+		GeoReplacedEntityRenderer<MegumiElephantGeoAnimatable, MegumiElephantEntity, MegumiShikigamiRenderState> {
+	/**
+	 * The upstream body pivot sits off-origin ([35,0,0]) and the silhouette is authored large;
+	 * scale/offset compensate here only — the geo file itself is never edited. Tuned in game.
+	 */
+	private static final float MODEL_SCALE = 0.6f;
+
+	public MegumiElephantRenderer(EntityRendererProvider.Context context) {
+		super(context, new MegumiElephantModel(), MegumiElephantGeoAnimatable.INSTANCE);
+		withScale(MODEL_SCALE);
+	}
+
+	@Override
+	protected MegumiShikigamiRenderState createBaseRenderState(MegumiElephantEntity entity) {
+		return new MegumiShikigamiRenderState();
+	}
+
+	@Override
+	public void extractRenderState(MegumiElephantEntity entity, MegumiShikigamiRenderState state, float partialTick) {
+		super.extractRenderState(entity, state, partialTick);
+		state.phase = entity.phase();
+		state.progress = MegumiShikigamiPresentationPolicy.progress(state.phase, entity.phaseTicks(),
+				partialTick, entity.materializeTicks(), entity.recallTicks());
+		state.verticalOffset = MegumiShikigamiPresentationPolicy.verticalOffset(state.phase, state.progress);
+		state.actionActive = entity.actionTicks() > 0;
+		state.attackAnim = entity.getAttackAnim(partialTick);
+	}
+
+	/** Same offset contract as the Nue renderer: shift first, then let GeckoLib capture the anchor. */
+	@Override
+	public void preRender(MegumiShikigamiRenderState renderState, PoseStack poseStack, BakedGeoModel model,
+			@Nullable MultiBufferSource bufferSource, @Nullable VertexConsumer buffer, boolean isReRender,
+			int packedLight, int packedOverlay, int renderColor) {
+		poseStack.translate(0.0f, renderState.verticalOffset, 0.0f);
+		super.preRender(renderState, poseStack, model, bufferSource, buffer, isReRender, packedLight, packedOverlay, renderColor);
+	}
+}

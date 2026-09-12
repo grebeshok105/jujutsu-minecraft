@@ -32,11 +32,39 @@ public final class MegumiVfxIds {
 	/** The zone collapses: the block is on its way down. */
 	public static final ResourceLocation DROP_ZONE_CLOSE = JujutsuMod.id("megumi/drop_zone_close");
 
+	// --- shikigami slice (Nue / Toad / Rabbit Escape / Max Elephant) ---
+	/** Nue's summon pool. */
+	public static final ResourceLocation NUE_SUMMON = JujutsuMod.id("megumi/nue_summon");
+	/** Nue commits to a dive: a trailing streak at the body. */
+	public static final ResourceLocation NUE_DIVE = JujutsuMod.id("megumi/nue_dive");
+	/** The electric discharge on impact. */
+	public static final ResourceLocation NUE_SHOCK = JujutsuMod.id("megumi/nue_shock");
+	/** Generic sic command marker at the ordered target. */
+	public static final ResourceLocation SHIKIGAMI_SIC = JujutsuMod.id("megumi/shikigami_sic");
+	/** Generic recall sweep when any shikigami pack is dismissed. */
+	public static final ResourceLocation SHIKIGAMI_RECALL = JujutsuMod.id("megumi/shikigami_recall");
+	/** Toad's summon splash. */
+	public static final ResourceLocation TOAD_SUMMON = JujutsuMod.id("megumi/toad_summon");
+	/** The tongue windup and the grab flash. */
+	public static final ResourceLocation TOAD_TONGUE = JujutsuMod.id("megumi/toad_tongue");
+	/** Max Elephant's summon pool. */
+	public static final ResourceLocation ELEPHANT_SUMMON = JujutsuMod.id("megumi/elephant_summon");
+	/** Jet start and the per-pulse emission at the trunk. */
+	public static final ResourceLocation ELEPHANT_JET = JujutsuMod.id("megumi/elephant_jet");
+	/** Rabbit Escape's summon pool. */
+	public static final ResourceLocation RABBITS_SUMMON = JujutsuMod.id("megumi/rabbits_summon");
+	/** Upkeep pop, bump puff and the expiry burst of the rabbit swarm. */
+	public static final ResourceLocation RABBITS_POP = JujutsuMod.id("megumi/rabbits_pop");
+
 	public static final Set<ResourceLocation> LIVE = Set.of(
 			DOGS_SUMMON_BODY, DOGS_SUMMON, DOGS_RECALL, DOGS_SIC, DOGS_POUNCE,
 			SHADOW_TRAP_OPEN, SHADOW_TRAP_ZONE, SHADOW_TRAP_GRIP, SHADOW_TRAP_CLOSE,
 			SHADOW_DIVE, SHADOW_RIPPLE, SHADOW_EMERGE,
-			DROP_ZONE_OPEN, DROP_ZONE, DROP_ZONE_CLOSE);
+			DROP_ZONE_OPEN, DROP_ZONE, DROP_ZONE_CLOSE,
+			NUE_SUMMON, NUE_DIVE, NUE_SHOCK, SHIKIGAMI_SIC, SHIKIGAMI_RECALL,
+			TOAD_SUMMON, TOAD_TONGUE,
+			ELEPHANT_SUMMON, ELEPHANT_JET,
+			RABBITS_SUMMON, RABBITS_POP);
 	public static final Set<ResourceLocation> PLANNED = Set.of();
 
 	private MegumiVfxIds() {}

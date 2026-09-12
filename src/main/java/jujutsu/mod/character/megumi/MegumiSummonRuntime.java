@@ -187,13 +187,15 @@ public final class MegumiSummonRuntime {
 
 		ServerLevel level = player.level();
 		TargetResolver.Result result = TargetResolver.resolve(
-				level, player, MegumiProfile.SIC_RANGE, target -> isEligibleTarget(player, target));
+				level, player, MegumiProfile.SIC_RANGE,
+				target -> isEligibleTarget(player, target) && !isOwnSummonBody(player, target));
 		if (result.mode() != TargetResolver.Mode.ENTITY || result.entityId().isEmpty()) {
 			return false;
 		}
 		Entity resolved = level.getEntity(result.entityId().get());
 		if (!(resolved instanceof LivingEntity target)
 				|| !isEligibleTarget(player, target)
+				|| isOwnSummonBody(player, target)
 				|| !player.hasLineOfSight(target)) {
 			return false;
 		}
@@ -208,6 +210,15 @@ public final class MegumiSummonRuntime {
 				new Vec3(0.0, target.getBbHeight() * 0.55, 0.0));
 		startCooldownIfLonger(player, CharacterAbility.PRIMARY_SNEAK, MegumiProfile.SIC_COOLDOWN_TICKS);
 		return true;
+	}
+
+	/**
+	 * Any body the owner's own shikigami layer has out is never a legal sic target, however it crosses
+	 * the aim: a body standing between the owner and the mark would otherwise be commanded as the mark.
+	 * Shared with the shikigami branch so both readings of the aim agree.
+	 */
+	static boolean isOwnSummonBody(LivingEntity owner, LivingEntity candidate) {
+		return candidate instanceof MegumiShikigamiEntity body && owner.getUUID().equals(body.ownerUuid());
 	}
 
 	static boolean isEligibleTarget(LivingEntity owner, LivingEntity target) {
@@ -303,7 +314,7 @@ public final class MegumiSummonRuntime {
 			return;
 		}
 		MegumiDivineDogPack pack = PACKS.remove(ownerId);
-		ServerPlayer owner = reason == TeardownReason.RECALL
+		ServerPlayer owner = reason == TeardownReason.RECALL || reason == TeardownReason.SWAPPED
 				? server.getPlayerList().getPlayer(ownerId)
 				: null;
 		boolean foundCooldownOwningDog = false;
@@ -319,7 +330,8 @@ public final class MegumiSummonRuntime {
 					boolean belongedToRemovedPack = MegumiSummonState.belongsToPack(
 							pack, dog.getUUID(), dog.summonToken(), dog.level().dimension());
 					MegumiLifecyclePolicy.DogCleanupAction cleanupAction = MegumiLifecyclePolicy
-							.dogCleanupAction(reason == TeardownReason.RECALL, belongedToRemovedPack);
+							.dogCleanupAction(reason == TeardownReason.RECALL || reason == TeardownReason.SWAPPED,
+									belongedToRemovedPack);
 					if (cleanupAction == MegumiLifecyclePolicy.DogCleanupAction.BEGIN_RECALL) {
 						if (owner != null) {
 							broadcastDogCue(level, owner, MegumiVfxIds.DOGS_RECALL, dog);
@@ -601,7 +613,9 @@ public final class MegumiSummonRuntime {
 		SERVER_STOPPING(MegumiCooldownPolicy.Cause.NONE),
 		DESELECTED(MegumiCooldownPolicy.Cause.RECALL),
 		SUMMON_ROLLBACK(MegumiCooldownPolicy.Cause.NONE),
-		FIXTURE_RESET(MegumiCooldownPolicy.Cause.NONE);
+		FIXTURE_RESET(MegumiCooldownPolicy.Cause.NONE),
+		/** Dismissed because the player swapped to another shikigami: visual recall, no cooldown. */
+		SWAPPED(MegumiCooldownPolicy.Cause.NONE);
 
 		private final int cooldownTicks;
 

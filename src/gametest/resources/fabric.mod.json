@@ -11,7 +11,12 @@
 			"jujutsu.mod.gametest.TodoAimedSwapGameTests",
 			"jujutsu.mod.gametest.TodoAimedSwapRollbackGameTests",
 			"jujutsu.mod.gametest.NobaraAbilityResultGameTests",
-			"jujutsu.mod.gametest.TodoStoneGameTests"
+			"jujutsu.mod.gametest.TodoStoneGameTests",
+			"jujutsu.mod.gametest.MegumiShikigamiGameTests",
+			"jujutsu.mod.gametest.MegumiToadGameTests",
+			"jujutsu.mod.gametest.MegumiRabbitsGameTests",
+			"jujutsu.mod.gametest.MegumiElephantGameTests",
+			"jujutsu.mod.gametest.MegumiShikigamiCrossTests"
 		],
 		"fabric-client-gametest": [
 			"jujutsu.mod.gametest.client.ClientLoadCanaryTest",

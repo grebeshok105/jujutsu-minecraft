@@ -22,6 +22,8 @@ import jujutsu.mod.character.CharacterSelectionManager;
 import jujutsu.mod.character.megumi.MegumiShadowDropRuntime;
 import jujutsu.mod.character.megumi.MegumiShadowMoveRuntime;
 import jujutsu.mod.character.megumi.MegumiShadowTrapRuntime;
+import jujutsu.mod.character.megumi.MegumiShikigamiRuntime;
+import jujutsu.mod.character.megumi.MegumiShikigamiSelection;
 import jujutsu.mod.character.megumi.MegumiSummonRuntime;
 import jujutsu.mod.character.nobara.projectjjk.EmbeddedNailRegistry;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailMarks;
@@ -113,6 +115,17 @@ public final class JujutsuStateGetTool extends BaseTool {
 					megumi.put("trap", MegumiShadowTrapRuntime.hasOwned(playerId));
 					megumi.put("move", MegumiShadowMoveRuntime.hasOwned(playerId));
 					megumi.put("drop", MegumiShadowDropRuntime.hasOwned(playerId));
+					ObjectNode shikigami = megumi.putObject("shikigami");
+					shikigami.put("selected", MegumiShikigamiSelection.selected(playerId).id());
+					MegumiShikigamiRuntime.packView(server, playerId).ifPresentOrElse(
+							pack -> {
+								shikigami.put("type", pack.type());
+								shikigami.put("dimension", pack.dimension());
+								shikigami.put("alive_bodies", pack.aliveBodies());
+								shikigami.put("anchor_alive", pack.anchorAlive());
+								shikigami.put("anchor_id", pack.anchorId());
+							},
+							() -> shikigami.putNull("type"));
 
 					ObjectNode nobara = node.putObject("nobara");
 					nobara.put("embedded_nails_loaded", EmbeddedNailRegistry.loadedOwnedNails(player.level(), playerId).size());

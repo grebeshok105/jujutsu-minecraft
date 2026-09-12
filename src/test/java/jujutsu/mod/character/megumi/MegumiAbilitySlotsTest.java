@@ -18,10 +18,10 @@ class MegumiAbilitySlotsTest {
 		// Each arm binds one slot to one runtime; the boolean runtime result is mapped to the
 		// tri-state contract at the router (`true -> SUCCESS`, `false -> UNHANDLED_FAILURE`, the
 		// refusal arm answering UNHANDLED_FAILURE directly).
-		assertTrue(source.contains("case PRIMARY -> tryDivineDogs(player, notify)"),
-				"PRIMARY must remain summon/recall");
-		assertTrue(source.contains("case PRIMARY_SNEAK -> trySic(player, notify)"),
-				"PRIMARY_SNEAK must remain Sic");
+		assertTrue(source.contains("case PRIMARY -> MegumiShikigamiRuntime.tryPrimary(player, notify)"),
+				"PRIMARY must route to the shikigami selector (dogs included)");
+		assertTrue(source.contains("case PRIMARY_SNEAK -> MegumiShikigamiRuntime.trySic(player, notify)"),
+				"PRIMARY_SNEAK must route to the shikigami Sic (dogs included)");
 		assertTrue(source.contains("case SECONDARY -> MegumiShadowTrapRuntime.tryCast(player, notify)"),
 				"SECONDARY must remain the shadow trap");
 		assertTrue(source.contains("case SECONDARY_SNEAK -> MegumiShadowMoveRuntime.tryTap(player, notify)"),
@@ -30,8 +30,10 @@ class MegumiAbilitySlotsTest {
 				"SECONDARY_SNEAK_HOLD must start the hold submerge");
 		assertTrue(source.contains("case SECONDARY_SNEAK_RELEASE -> MegumiShadowMoveRuntime.tryRelease(player)"),
 				"SECONDARY_SNEAK_RELEASE must end the hold submerge");
-		assertTrue(source.contains("case ATTACK_CONTEXT, USE_CONTEXT, TERTIARY_SNEAK -> AbilityResult.UNHANDLED_FAILURE;"),
-				"the context slots and the sneaking third key must stay one explicit refusal arm");
+		assertTrue(source.contains("case TERTIARY_SNEAK -> MegumiShikigamiRuntime.tryCycle(player, notify)"),
+				"TERTIARY_SNEAK must cycle the shikigami selection");
+		assertTrue(source.contains("case ATTACK_CONTEXT, USE_CONTEXT -> AbilityResult.UNHANDLED_FAILURE;"),
+				"the two context slots must stay one explicit refusal arm");
 		assertTrue(source.contains("case TERTIARY -> MegumiShadowDropRuntime.tryCast(player, notify)"),
 				"TERTIARY must route to the shadow drop runtime");
 		// Every runtime arm must carry the boolean -> AbilityResult mapping, and the early-return
