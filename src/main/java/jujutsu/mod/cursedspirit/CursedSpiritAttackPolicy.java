@@ -6,8 +6,10 @@ import net.minecraft.world.entity.LivingEntity;
 
 /**
  * Pure attack math for the cursed-spirit strike. No level, no entity, no randomness — every number
- * comes from the passed {@link CursedSpiritTierStats} row, so tests can mutate a row and watch the
- * derived numbers move (R20 anti-duplication proof).
+ * comes from the passed rows, so tests can mutate a row and watch the derived numbers move (R20
+ * anti-duplication proof). Damage arrives as the individual's rolled {@link CursedSpiritGradeStats}
+ * (grade = the power axis, D2); the tier row carries only the combat pattern (AoE fraction and
+ * friends), never power stats.
  */
 public final class CursedSpiritAttackPolicy {
 	private CursedSpiritAttackPolicy() {}
@@ -106,14 +108,20 @@ public final class CursedSpiritAttackPolicy {
 		return new StrikePlan(primary, List.copyOf(aoe));
 	}
 
-	/** Direct-strike damage, straight from the profile row. */
-	public static float primaryDamage(CursedSpiritTierStats stats) {
-		return (float) stats.attackDamage();
+	/**
+	 * Direct-strike damage: the individual's rolled grade damage, straight through. The goal
+	 * passes {@code mob.gradeStats()} — never a tier constant.
+	 */
+	public static float primaryDamage(CursedSpiritGradeStats gradeStats) {
+		return (float) gradeStats.attackDamage();
 	}
 
-	/** AoE damage: the profile fraction of the direct strike. */
-	public static float aoeDamage(CursedSpiritTierStats stats) {
-		return (float) (stats.attackDamage() * stats.aoeDamageScale());
+	/**
+	 * AoE damage: the tier's pattern fraction of the individual's rolled grade damage. Mutating
+	 * either row moves the result (pattern-mutation covers both).
+	 */
+	public static float aoeDamage(CursedSpiritGradeStats gradeStats, CursedSpiritTierStats stats) {
+		return (float) (gradeStats.attackDamage() * stats.aoeDamageScale());
 	}
 	/** Ticks from one STRIKE to the next WINDUP, straight from the profile row. */
 	public static int cooldownTicks(CursedSpiritTierStats stats) {

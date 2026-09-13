@@ -14,13 +14,39 @@ import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 
 /** One transient Max Elephant body: a heavy bruiser that hoses hostiles with its trunk jet. */
 public final class MegumiElephantEntity extends MegumiShikigamiEntity {
 	private boolean jetActive;
+	/** Last footprint sample: where the body was and when, for the walking gate. */
+	private Vec3 footprintSamplePos;
+	private long footprintSampleTick;
 
 	public MegumiElephantEntity(EntityType<? extends TamableAnimal> type, Level level) {
 		super(type, level);
+	}
+
+	/**
+	 * Per-tick movement since the previous footprint sample, or {@link Vec3#ZERO} on the first call
+	 * (nothing to compare against yet).
+	 *
+	 * <p>The walking gate cannot read {@code getDeltaMovement()}: this brain runs before the body's
+	 * own travel for the tick, so the velocity field there is a leftover fraction of the real step
+	 * and sits below any honest walking threshold. Measuring where the body actually went over the
+	 * footprint period is both closer to "is the elephant walking" and independent of tick order.
+	 */
+	Vec3 sampleFootprintStep(long gameTime) {
+		Vec3 now = position();
+		Vec3 previous = footprintSamplePos;
+		long previousTick = footprintSampleTick;
+		footprintSamplePos = now;
+		footprintSampleTick = gameTime;
+		long elapsed = gameTime - previousTick;
+		if (previous == null || elapsed <= 0L) {
+			return Vec3.ZERO;
+		}
+		return now.subtract(previous).scale(1.0 / elapsed);
 	}
 
 	public static AttributeSupplier.Builder createAttributes() {

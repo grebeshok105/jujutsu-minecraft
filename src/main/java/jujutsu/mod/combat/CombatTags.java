@@ -24,4 +24,18 @@ public final class CombatTags {
 	public static boolean isBoogieWoogieImmune(Entity target) {
 		return target != null && target.getType().is(BOOGIE_WOOGIE_IMMUNE);
 	}
+
+	/**
+	 * Entity types the Toad refuses to grab (issue #79): boss-grade bodies and things that would
+	 * either drag the toad or make no sense pinned. Membership is data (see
+	 * {@code data/jujutsumod/tags/entity_type/ungrabbable.json}) — the greater cursed spirit is the
+	 * precedent, the tag itself is the first one this mod ships for grabbing.
+	 */
+	public static final TagKey<EntityType<?>> UNGRABBABLE = TagKey.create(
+			Registries.ENTITY_TYPE,
+			JujutsuMod.id("ungrabbable"));
+
+	public static boolean isUngrabbable(Entity target) {
+		return target != null && target.getType().is(UNGRABBABLE);
+	}
 }

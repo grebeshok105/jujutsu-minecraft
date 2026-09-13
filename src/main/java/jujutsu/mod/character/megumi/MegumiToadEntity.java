@@ -1,8 +1,13 @@
 package jujutsu.mod.character.megumi;
 
+import java.util.UUID;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -14,6 +19,7 @@ import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import jujutsu.mod.combat.HoldSupport;
 
 /** One transient Toad body: a ground walker whose sic command answers with a tongue grab. */
 public final class MegumiToadEntity extends MegumiShikigamiEntity {
@@ -69,6 +75,126 @@ public final class MegumiToadEntity extends MegumiShikigamiEntity {
 	protected void onActivated() {
 		playSpatial(SoundEvents.FROG_LONG_JUMP, 0.55f, 0.95f);
 		playSpatial(SoundEvents.FROG_AMBIENT, 0.5f, 1.0f);
+	}
+
+	// --- The grab (issue #79) -----------------------------------------------------------------
+	// All of it is transient on purpose: shikigami bodies are registered .noSave(), so a hold never
+	// outlives its body and needs no NBT. The state also lives in its own fields, never in the sic
+	// mark: beginRecall/setPresentationPhase call clearSicCommand(), which would silently end a hold.
+
+	/** The target the current windup is committed to (a sic mark or the body's own pick). */
+	private UUID grabIntentUuid;
+	/** The victim currently pinned, or null. */
+	private UUID grabbedUuid;
+	private long grabEndGameTime;
+	private boolean grabbedIsPlayer;
+	private UUID throwFlashUuid;
+	private long throwFlashUntil;
+	private long nextGrabScanGameTime;
+
+	UUID grabIntentUuid() {
+		return grabIntentUuid;
+	}
+	void beginGrabIntent(LivingEntity target) {
+		grabIntentUuid = target.getUUID();
+	}
+
+	void clearGrabIntent() {
+		grabIntentUuid = null;
+	}
+
+	public UUID grabbedUuid() {
+		return grabbedUuid;
+	}
+
+	public long grabEndGameTime() {
+		return grabEndGameTime;
+	}
+
+	public boolean grabbedIsPlayer() {
+		return grabbedIsPlayer;
+	}
+
+	public boolean isHolding() {
+		return grabbedUuid != null;
+	}
+
+	void beginGrab(LivingEntity victim, long endGameTime) {
+		grabbedUuid = victim.getUUID();
+		grabEndGameTime = endGameTime;
+		grabbedIsPlayer = victim instanceof Player;
+		grabIntentUuid = null;
+	}
+
+	/** Ends the hold (throw, break, recall, death) without touching the victim. */
+	void clearGrab() {
+		grabbedUuid = null;
+		grabbedIsPlayer = false;
+		grabEndGameTime = 0L;
+		grabIntentUuid = null;
+	}
+
+	void markThrown(LivingEntity victim, long untilGameTime) {
+		throwFlashUuid = victim.getUUID();
+		throwFlashUntil = untilGameTime;
+	}
+
+	public UUID throwFlashUuid() {
+		return throwFlashUuid;
+	}
+
+	public long throwFlashUntil() {
+		return throwFlashUntil;
+	}
+
+	public long nextGrabScanGameTime() {
+		return nextGrabScanGameTime;
+	}
+
+	void markGrabScan(long untilGameTime) {
+		nextGrabScanGameTime = untilGameTime;
+	}
+
+	/** The grab is control, not damage: a held victim takes no melee from the body that holds it. */
+	@Override
+	public boolean doHurtTarget(ServerLevel level, Entity target) {
+		if (isHolding() && target.getUUID().equals(grabbedUuid)) {
+			return false;
+		}
+		return super.doHurtTarget(level, target);
+	}
+
+	/** Nothing the held victim does can hurt its holder (R12). */
+	@Override
+	public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
+		Entity attacker = source.getEntity();
+		if (attacker != null && isHolding() && attacker.getUUID().equals(grabbedUuid)) {
+			return false;
+		}
+		return super.hurtServer(level, source, amount);
+	}
+
+	@Override
+	void beginRecall() {
+		releaseHeldVictim();
+		super.beginRecall();
+	}
+
+	@Override
+	public void remove(Entity.RemovalReason reason) {
+		if (!level().isClientSide()) {
+			releaseHeldVictim();
+		}
+		super.remove(reason);
+	}
+
+	/** Frees whoever is held — recall, death and removal all funnel through here. */
+	private void releaseHeldVictim() {
+		if (grabbedUuid != null && level() instanceof ServerLevel serverLevel
+				&& serverLevel.getEntity(grabbedUuid) instanceof LivingEntity victim) {
+			HoldSupport.release(victim);
+		}
+		clearGrab();
 	}
 
 	@Override

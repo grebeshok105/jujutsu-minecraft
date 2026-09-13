@@ -10,7 +10,7 @@ import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.cursedspirit.CursedSpiritAttackPolicy.Phase;
 import jujutsu.mod.cursedspirit.CursedSpiritAttackPolicy.StrikePlan;
-
+import jujutsu.mod.cursedspirit.perception.CursePerception;
 /**
  * Melee brain for all three tiers: APPROACH the target, WINDUP, STRIKE (direct damage plus the
  * greater tier's AoE slam and the common tier's lunging step), RECOVER, repeat. Every number comes
@@ -80,22 +80,42 @@ public class CursedSpiritAttackGoal extends Goal {
 		}
 		boolean inReach = CursedSpiritAttackPolicy.inReach(
 				mob.distanceTo(target), mob.getBbWidth(), target.getBbWidth(), stats());
+		// Block 3 (#86): ability movement owns navigation. While any takesMovement window is
+		// open the goal neither approaches nor retreats; retreat (regen) outranks the melee
+		// approach but never a movement owner.
+		long now = mob.level().getGameTime();
+		boolean moveOwned = mob.abilityBrain().movementOwned(now);
+		boolean retreat = !moveOwned && mob.abilityBrain().shouldRetreat(now, true);
 		// Increment-then-transition: WINDUP lasts exactly attackWindupTicks ticks before STRIKE,
 		// and RECOVER exactly attackCooldownTicks before the next WINDUP.
 		ticksInPhase++;
 		Phase next = CursedSpiritAttackPolicy.advance(phase, ticksInPhase, inReach, stats());
 		if (next == phase) {
 			if (phase == Phase.APPROACH) {
-				mob.getNavigation().moveTo(target, 1.0);
+				if (moveOwned) {
+					mob.getLookControl().setLookAt(target, 30.0f, 30.0f);
+				} else if (retreat) {
+					retreatFrom(target);
+				} else {
+					mob.getNavigation().moveTo(target, 1.0);
+				}
+				mob.abilityBrain().decideInCombat(mob, mob.grade(), target, now);
 			} else if (phase == Phase.WINDUP) {
 				mob.getLookControl().setLookAt(target, 30.0f, 30.0f);
+			} else if (phase == Phase.RECOVER) {
+				mob.abilityBrain().decideInCombat(mob, mob.grade(), target, now);
 			}
 			return;
 		}
-		enter(target, next);
+		enter(target, next, now);
 	}
-
-	private void enter(LivingEntity target, Phase next) {
+	private void enter(LivingEntity target, Phase next, long now) {
+		// Block 3 (#86): no new WINDUP while an ability owns the attack clip.
+		if (next == Phase.WINDUP && mob.abilityBrain().attackClipOccupied(now)) {
+			phase = Phase.APPROACH;
+			ticksInPhase = 0;
+			return;
+		}
 		phase = next;
 		ticksInPhase = 0;
 		switch (next) {
@@ -114,6 +134,25 @@ public class CursedSpiritAttackGoal extends Goal {
 				broadcast(CursedSpiritEntity.ATTACK_END);
 			}
 		}
+	}
+
+	/**
+	 * Regen retreat (Block 3, #86): walk away from the target while the HoT runs. A plain
+	 * navigation move inside the existing goal — never a second goal.
+	 */
+	private void retreatFrom(LivingEntity target) {
+		Vec3 away = mob.position().subtract(target.position());
+		away = new Vec3(away.x, 0.0, away.z);
+		if (away.lengthSqr() < 1.0E-6) {
+			away = new Vec3(mob.getLookAngle().x, 0.0, mob.getLookAngle().z);
+		}
+		if (away.lengthSqr() < 1.0E-6) {
+			return;
+		}
+		away = away.normalize();
+		Vec3 spot = mob.position().add(away.scale(8.0));
+		mob.getNavigation().moveTo(spot.x, spot.y, spot.z, 1.0);
+		mob.getLookControl().setLookAt(target, 30.0f, 30.0f);
 	}
 
 	private void strike(LivingEntity target) {
@@ -137,22 +176,26 @@ public class CursedSpiritAttackGoal extends Goal {
 					mob.hurtMarked = true;
 				}
 			}
-			target.hurtServer(level, level.damageSources().mobAttack(mob),
-					CursedSpiritAttackPolicy.primaryDamage(row));
+		target.hurtServer(level, level.damageSources().mobAttack(mob),
+				CursedSpiritAttackPolicy.primaryDamage(mob.gradeStats()));
 			knock(target, row.attackKnockback());
 		}
 		// The slam is a ground impact centred on the body, not a targeted hit: whoever stands in
 		// the crater takes the shockwave even when the tracked victim escaped reach (issue #85).
 		// Tiers 1-2 carry radius 0, so their whiff behaviour is unchanged.
 		if (row.aoeRadius() > 0.0) {
+			// Issue #80: the shockwave spares non-perceiving players standing in the crater.
+			// Curse↔curse and curse↔mob pairs always pass mayTouch, so the second spirit in
+			// the blast still takes its damage (pinned by GameTest).
 			List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class,
 					mob.getBoundingBox().inflate(row.aoeRadius()),
-					candidate -> candidate != mob && candidate.isAlive());
+					candidate -> candidate != mob && candidate.isAlive()
+							&& CursePerception.mayTouch(mob, candidate));
 			StrikePlan plan = CursedSpiritAttackPolicy.strikeTargets(target, nearby,
 					mob.getX(), mob.getY(), mob.getZ(), row);
 			for (LivingEntity splash : plan.aoe()) {
 				splash.hurtServer(level, level.damageSources().mobAttack(mob),
-						CursedSpiritAttackPolicy.aoeDamage(row));
+						CursedSpiritAttackPolicy.aoeDamage(mob.gradeStats(), row));
 				knock(splash, row.aoeKnockback());
 			}
 		}

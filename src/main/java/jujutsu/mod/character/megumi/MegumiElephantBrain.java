@@ -1,6 +1,7 @@
 package jujutsu.mod.character.megumi;
 
 import java.util.UUID;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -10,6 +11,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.block.state.BlockState;
 import jujutsu.mod.registry.JujutsuEffects;
 import jujutsu.mod.vfx.MegumiVfxIds;
 
@@ -27,6 +29,10 @@ final class MegumiElephantBrain {
 
 	static void tick(ServerLevel level, ServerPlayer owner, MegumiShikigamiPack pack,
 			MegumiElephantEntity elephant, long gameTime) {
+		// The presence is constant: it runs whether or not the body is jetting, because it is what
+		// the body *is*, not an action it takes.
+		tickPresence(level, owner, elephant, gameTime);
+		tickFootprint(level, elephant, gameTime);
 		if (elephant.jetActive()) {
 			tickJet(level, owner, elephant, gameTime);
 			return;
@@ -163,5 +169,81 @@ final class MegumiElephantBrain {
 		return id != null && level.getEntity(id) instanceof LivingEntity living
 				&& living.isAlive() && !living.isRemoved() && living.level() == level
 				? living : null;
+	}
+
+	/**
+	 * The presence (issue #79): Max Elephant is an area of pressure. Everything not on the owner's
+	 * own side is shoved away on the presence period, and anything the hostility policy calls
+	 * hostile takes damage on top. A velocity impulse, not {@code knockback()} — knockback
+	 * resistance (iron golems, ravagers) would eat the shove, and the shove is the whole point.
+	 */
+	private static void tickPresence(ServerLevel level, ServerPlayer owner,
+			MegumiElephantEntity elephant, long gameTime) {
+		if (!MegumiElephantPresencePolicy.presenceDue(gameTime)) {
+			return;
+		}
+		AABB sweep = elephant.getBoundingBox().inflate(MegumiShikigamiProfile.ELEPHANT_PRESENCE_RADIUS);
+		for (LivingEntity candidate : level.getEntitiesOfClass(LivingEntity.class, sweep,
+				entity -> entity.isAlive() && !entity.isRemoved() && !entity.isSpectator())) {
+			if (candidate == elephant
+					|| MegumiShikigamiFriendlyFire.isOwnSideOnly(owner, candidate)
+					|| !MegumiElephantPresencePolicy.inside(elephant.distanceTo(candidate))) {
+				continue;
+			}
+			candidate.setDeltaMovement(MegumiElephantPresencePolicy.pushVelocity(
+					elephant.position(), candidate.position(),
+					MegumiShikigamiProfile.ELEPHANT_PRESENCE_PUSH,
+					MegumiShikigamiProfile.ELEPHANT_PRESENCE_KNOCKBACK));
+			candidate.hurtMarked = true;
+			if (MegumiHostilityPolicy.isHostile(owner, candidate, gameTime)) {
+				DamageSource source = owner != null
+						? level.damageSources().playerAttack(owner)
+						: level.damageSources().magic();
+				// A zone, not a hit: the pulse is due every ELEPHANT_PRESENCE_PERIOD_TICKS, and the
+				// vanilla 20-tick hurt cooldown would silently swallow every second one (the plan's
+				// balance is one pulse per period). Vanilla zones that ignore the cooldown —
+				// lava, cactus, the void — express the same intent.
+				candidate.invulnerableTime = 0;
+				candidate.hurtServer(level, source,
+						(float) MegumiShikigamiProfile.ELEPHANT_PRESENCE_DAMAGE);
+			}
+		}
+	}
+
+	/**
+	 * The footprint (issue #79): while walking, the body crushes what its feet pass over. The
+	 * trigger is movement, never a collision — the wooden floor of a room has to break even when the
+	 * body walks through open space — and the block allowlist keeps a base's storage out of it.
+	 */
+	private static void tickFootprint(ServerLevel level, MegumiElephantEntity elephant, long gameTime) {
+		if (!MegumiElephantPresencePolicy.footprintDue(gameTime)) {
+			return;
+		}
+		// Sampled movement, not the velocity field: see MegumiElephantEntity#sampleFootprintStep.
+		Vec3 motion = elephant.sampleFootprintStep(gameTime);
+		if (!MegumiElephantPresencePolicy.footprintMoves(motion)) {
+			return;
+		}
+		AABB box = elephant.getBoundingBox();
+		Vec3 heading = MegumiElephantPresencePolicy.footprintHeading(motion);
+		double reach = Math.max(box.getXsize(), box.getZsize()) * 0.5;
+		BlockPos min = BlockPos.containing(
+				box.minX - Math.abs(heading.x) * reach, box.minY - 1.0, box.minZ - Math.abs(heading.z) * reach);
+		BlockPos max = BlockPos.containing(
+				box.maxX + Math.abs(heading.x) * reach, box.minY + 1.0, box.maxZ + Math.abs(heading.z) * reach);
+		int budget = MegumiShikigamiProfile.ELEPHANT_FOOTPRINT_BUDGET;
+		for (BlockPos pos : BlockPos.betweenClosed(min, max)) {
+			if (budget <= 0) {
+				return;
+			}
+			BlockState state = level.getBlockState(pos);
+			if (state.isAir() || !state.getFluidState().isEmpty()
+					|| !MegumiShikigamiTags.breaksAllowed(state)) {
+				continue;
+			}
+			if (level.destroyBlock(pos.immutable(), false, elephant, 512)) {
+				budget--;
+			}
+		}
 	}
 }

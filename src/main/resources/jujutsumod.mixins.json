@@ -3,7 +3,9 @@
 	"package": "jujutsu.mod.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"CharacterPlayerDimensionsMixin"
+		"CharacterPlayerDimensionsMixin",
+		"CursedSpiritTrackingMixin",
+		"CursedSpiritPushMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

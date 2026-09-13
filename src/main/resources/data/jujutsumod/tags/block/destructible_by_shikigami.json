@@ -1,0 +1,23 @@
+{
+  "values": [
+    "minecraft:dirt",
+    "minecraft:grass_block",
+    "minecraft:coarse_dirt",
+    "minecraft:podzol",
+    "minecraft:mycelium",
+    "minecraft:moss_block",
+    "minecraft:gravel",
+    "minecraft:sand",
+    "minecraft:red_sand",
+    "minecraft:soul_sand",
+    "minecraft:glass",
+    "minecraft:glass_pane",
+    "minecraft:torch",
+    "minecraft:wall_torch",
+    "#minecraft:leaves",
+    "#minecraft:planks",
+    "#minecraft:fences",
+    "#minecraft:flowers",
+    "#minecraft:crops"
+  ]
+}

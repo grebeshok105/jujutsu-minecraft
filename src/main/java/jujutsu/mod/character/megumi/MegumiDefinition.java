@@ -9,6 +9,7 @@ import jujutsu.mod.character.AbilityResult;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterDefinition;
 import jujutsu.mod.character.JujutsuCharacter;
+import jujutsu.mod.cursedspirit.perception.PerceptionFlags;
 import jujutsu.mod.registry.JujutsuEntities;
 
 /** Megumi's server definition; gameplay hooks are added with the Divine Dog runtime. */
@@ -16,6 +17,11 @@ public final class MegumiDefinition implements CharacterDefinition {
 	@Override
 	public JujutsuCharacter id() {
 		return JujutsuCharacter.MEGUMI;
+	}
+
+	@Override
+	public PerceptionFlags cursePerception() {
+		return PerceptionFlags.PERCEIVER;
 	}
 
 	@Override
