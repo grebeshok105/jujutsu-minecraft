@@ -67,8 +67,14 @@ public final class CursedSpiritEffectGameTests {
 				new BlockPos(2, 1, 4));
 		// The outsider is a perceiving mage on purpose: a NONE outsider would be spared by
 		// the perception gate, and only a mage proves the radius did the sparing.
+		// Geometry: the blast is centred on the LANDING body, which drifts toward the target
+		// and can touch down ~1 block past the crater (4,1,2). The worst case is GRADE_3:
+		// hitRadius = radius 4.0 + half player width 0.3 = 4.3. (1,1,6) sits 5.66 from the
+		// crater — outside under every landing point; the old (6,1,6) had only 4.47→4.1 of
+		// clearance and flaked whenever a GRADE_3 roll landed long (observed: 20.0→8.0 = the
+		// GRADE_3 12.0 slam damage).
 		ServerPlayer outside = CursedSpiritTestFixtures.setupVictim(helper, fixture,
-				new BlockPos(6, 1, 6));
+				new BlockPos(1, 1, 6));
 		CharacterSelectionManager.select(outside, JujutsuCharacter.MEGUMI);
 		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
 				JujutsuEntities.CURSED_SPIRIT, new BlockPos(2, 1, 2));

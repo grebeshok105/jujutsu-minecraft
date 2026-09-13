@@ -123,6 +123,14 @@ public final class CursedSpiritShelterGameTests {
 			owned.add(CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
 					JujutsuEntities.LESSER_CURSED_SPIRIT, SPIRIT_START));
 			approachFrom[0] = owned.get(0).position().distanceToSqr(victim.position());
+			// Deterministic combat seed: vanilla NearestAttackableTargetGoal.canUse passes a
+			// random gate (nextInt(~10) == 0 per tick), so an unlucky roll can skip acquisition
+			// for the whole 90-tick poll window (~1/13 000 tail — seen as a CI flake where
+			// shelter stayed legally active with target=null). This scenario asserts the
+			// combat-silences-shelter arbitration (R-oracle), not acquisition latency, so the
+			// target is seeded directly; acquisition itself is covered by the perception
+			// scenarios and lesser_acquires_victim_and_deals_melee_damage.
+			owned.get(0).setTarget(victim);
 		});
 		// History: tick-100 red showed 9.25 == 9.25 with a live target, and tick-150 forensics
 		// showed dist=2.52 (body HAD approached) — the old block-quantized metric
@@ -142,6 +150,7 @@ public final class CursedSpiritShelterGameTests {
 							JujutsuEntities.LESSER_CURSED_SPIRIT, SPIRIT_START);
 					owned.set(0, fresh);
 					approachFrom[0] = fresh.position().distanceToSqr(victims.get(0).position());
+					fresh.setTarget(victims.get(0));
 					spirit = fresh;
 				}
 				topUpVictim();
