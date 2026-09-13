@@ -1,12 +1,18 @@
 package jujutsu.mod.cursedspirit;
 
 /**
- * One row of per-tier balance numbers. All fields are read by the entity, the attack goal and the
- * spawn integration — tuning happens here, never in logic.
+ * One row of per-tier balance numbers: morphology (hitbox lives on the type),
+ * combat pattern (windup/cooldown/reach/AoE/knockback/stagger), XP and spawn
+ * rows.
  *
- * @param maxHealth health assigned at attribute registration
- * @param attackDamage direct strike damage
- * @param movementSpeed ground speed
+ * <p>Power stats ({@code MAX_HEALTH}/{@code ATTACK_DAMAGE}/
+ * {@code MOVEMENT_SPEED}) are deliberately NOT here: they belong to the
+ * grade ({@link CursedSpiritGradeProfile} bands + per-individual
+ * {@link CursedSpiritGradeStats}), with the tier contributing only an
+ * archetype rank inside the band (D2). All fields are read by the entity,
+ * the attack goal and the spawn integration — tuning happens here, never in
+ * logic.
+ *
  * @param followRange target acquisition and AI follow range
  * @param knockbackResistance vanilla knockback resistance attribute
  * @param staggerMultiplier scales incoming stagger ticks (floor 1, see the entity)
@@ -16,7 +22,7 @@ package jujutsu.mod.cursedspirit;
  * @param attackKnockback knockback dealt on a direct strike
  * @param strikeStep forward impulse on the attacker at STRIKE (0 disables)
  * @param aoeRadius slam radius around the attacker at STRIKE (0 disables the AoE)
- * @param aoeDamageScale AoE damage as a fraction of {@code attackDamage}
+ * @param aoeDamageScale AoE damage as a fraction of the rolled grade damage
  * @param aoeKnockback knockback dealt to AoE bodies
  * @param xpReward experience dropped on death
  * @param spawnWeight natural-spawn weight row
@@ -24,9 +30,6 @@ package jujutsu.mod.cursedspirit;
  * @param spawnMaxGroup natural-spawn group maximum
  */
 public record CursedSpiritTierStats(
-		double maxHealth,
-		double attackDamage,
-		double movementSpeed,
 		double followRange,
 		double knockbackResistance,
 		double staggerMultiplier,

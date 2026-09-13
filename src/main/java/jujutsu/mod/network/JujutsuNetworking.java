@@ -1,5 +1,8 @@
 package jujutsu.mod.network;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -58,19 +61,46 @@ public final class JujutsuNetworking {
 	}
 
 	public static int broadcastVfxCue(ServerLevel level, Vec3 center, double radius, VfxCue cue) {
-		double radiusSqr = radius * radius;
+		return broadcastVfxCue(level, center, radius, cue, player -> true);
+	}
+
+	/**
+	 * Issue #80: curse cues go to an audience, not a radius. Curse call sites pass
+	 * {@code CursePerception::perceives}; the old call shape keeps the allow-all filter.
+	 */
+	public static int broadcastVfxCue(ServerLevel level, Vec3 center, double radius, VfxCue cue,
+			Predicate<ServerPlayer> audience) {
 		VfxCuePayload payload = new VfxCuePayload(cue);
 		int sent = 0;
-		for (ServerPlayer player : level.players()) {
-			if (player.position().distanceToSqr(center) > radiusSqr) {
-				continue;
-			}
+		for (ServerPlayer player : recipients(level, center, radius, audience)) {
 			if (ServerPlayNetworking.canSend(player, VfxCuePayload.TYPE)) {
 				ServerPlayNetworking.send(player, payload);
 				sent++;
 			}
 		}
 		return sent;
+	}
+
+	/**
+	 * The pure audience selection behind the broadcast: in radius and accepted by the
+	 * filter. Kept separate so GameTests can assert the audience directly — the
+	 * {@code sent} counter stays 0 for placed victims (no negotiated channels, probe 1e)
+	 * and can never serve as an oracle.
+	 */
+	public static List<ServerPlayer> recipients(ServerLevel level, Vec3 center, double radius,
+			Predicate<ServerPlayer> audience) {
+		double radiusSqr = radius * radius;
+		List<ServerPlayer> out = new ArrayList<>();
+		for (ServerPlayer player : level.players()) {
+			if (player.position().distanceToSqr(center) > radiusSqr) {
+				continue;
+			}
+			if (!audience.test(player)) {
+				continue;
+			}
+			out.add(player);
+		}
+		return out;
 	}
 
 	public static boolean sendVfxCue(ServerPlayer player, VfxCue cue) {

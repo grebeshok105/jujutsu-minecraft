@@ -1,10 +1,14 @@
 # Known Issues and Technical Debt
 
 Status: CURRENT LIVE REGISTER
+Last code verification: 2026-09-13 (Cursed Saga branch `feat/cursed-saga` before commit:
+qualityGate green — 142/142 GameTests, 541 JUnit; live MCP smoke 16/17 oracle checks green,
+the 17th a driver-timing artifact documented in the Cursed Saga continuation notes).
+Earlier verifications: 2026-07-29. Entries carrying a "Verified 2026-07-29" line were re-checked
+against source on that date; E3, E4, and E6 were last checked on 2026-07-23 — treat their detail
+as older than the rest.
 
-Last code verification: 2026-07-29. Entries carrying a "Verified 2026-07-29" line were re-checked against source on that date. E3, E4, and E6 were last checked on 2026-07-23 and were not re-verified in this pass; treat their detail as older than the rest.
-
-Applies to: main and the active branch refactor/vfx-remove-dead-surface. The earlier branch fix/persistence-nail-lifecycle-docs-sync no longer exists; its work is in main.
+Applies to: main and the active branch `feat/cursed-saga` (Cursed Saga). The earlier branch refactor/vfx-remove-dead-surface and fix/persistence-nail-lifecycle-docs-sync no longer exist; their work is in main.
 
 Owner hierarchy: current code/tests → AGENTS.md → SESSION.md → Codebase Codex → this register
 
@@ -111,6 +115,20 @@ not as drive-by "fixes".
    symmetric). Shipped byte-identical to the Sorcery Age source; the swarm reads through motion
    and count, and editing a third-party clip is a new asset revision, not a bug fix.
 
+9. **The MCP dev-lane save can kill the lane player before it loads.** Verified
+   2026-09-13: persisted cursed spirits (they are the only summon-like entities that
+   save — shikigami are `noSave()`) gathered near the spawn over several live passes,
+   and a freshly booted lane player died inside the same crowd before the world finished
+   loading. A dead singleplayer player sits on the death screen, which pauses the
+   integrated server: entities freeze (`NoAI:1b` forever, TNT fuse never burns), MCP
+   tools still answer (onMainThread tasks run between paused ticks), and every entity
+   oracle silently voids. Win32 foreground cannot always be re-taken for the Respawn
+   click (AnyDesk holds it; PostMessage does not reach LWJGL input). Recovery is
+   offline: stop the lane, delete `run/saves/mcp-spike` (the retired spike worktree at
+   `D:/WorkFlow/Jujutsu Minecraft/.worktrees/mcp-port-spike/run/saves/mcp-spike` holds
+   the seeded copy), relaunch. The live driver (`live_block5b.py`) now refuses to run
+   its oracles on a dead player for exactly this reason.
+
 ### Cursed spirits ship with accepted limits (slice 1)
 
 1. **Balance is a first pass.** Every number lives in `CursedSpiritProfile` (tier rows + the shared
@@ -142,9 +160,52 @@ not as drive-by "fixes".
    mid-swing must not abort an attack (recorded melee forgiveness), but a target that leaves reach
    no longer takes the hit.
 8. **Greater spirits are immune to Boogie Woogie by tag** (`jujutsumod:boogie_woogie_immune`), a
-   design choice: a 150-HP elite that a swap can teleport is a different fight.
+   design choice: a greater-tier elite that a swap can teleport is a different fight. (The
+   "150-HP elite" phrasing retired with the Cursed Saga grade axis — HP now belongs to the
+   grade, the tier keeps morphology and the combat pattern.)
 9. **FLOATING_CURSE is rigged from `Modelcurse_ghost` and glides** — the pack authored no walk
    clip for it, and its attack clip comes from the ghost animation set (wired explicitly).
+
+### Cursed Saga ships with accepted limits (slice 2: #79–#82, #86)
+
+1. **Balance is a first pass again, and the power axis moved.** Health/damage/speed now belong to
+   the rolled **grade** (5→3 spawnable, absolute disjoint bands), while the tier keeps morphology
+   and the combat pattern. Two slice-1 reads are deliberately retired: "greater = 150 HP elite"
+   (a greater body is now whatever grade it rolled, position-nudged inside the band) and
+   "lesser = the fastest" (speed is ordered by grade: 0.22–0.25 / 0.26–0.29 / 0.30–0.33). The
+   archetype ranks inside a band are pinned by a unit test on purpose: a rebalance edits that test.
+2. **Curse VFX go to an audience, not a radius.** Every curse cue (dash, slam, acid zone, spit,
+   fear, regen, armor, berserk, runner) is broadcast through the `Predicate<ServerPlayer>`
+   overload with `CursePerception::perceives`, on top of the tracking filter and the address-only
+   voice sink. A non-perceiver standing inside the radius sees and hears nothing of the curse —
+   including its world effects such as the acid pool.
+3. **Held-by-the-toad mobs carry no marker after the throw.** Both kinds of victim are pinned by
+   the same `HoldSupport` marker and both drop it at throw/recall/death. (A mob's `GRIPPED` was
+   previously left to expire on its own — a foreign HARMFUL icon for up to 10 ticks.)
+4. **Client suppression zeroes both recomputed input fields.** `HoldInputMixin` writes
+   `keyPresses` **and** `moveVector` after `ClientInput.tick()`: zeroing only the first left WASD
+   locomotion alive and rubber-banded the victim against the server pin. Jump/sneak/sprint and
+   locomotion are suppressed; attack, item use, inventory and hotbar stay available (by design).
+   The client half is not GameTest-able — its acceptance lives in the live lane.
+5. **Servers keep the curse in one runtime state.** `CARRIED` (runner) and the hold markers are
+   cleared on every exit path, expiry included — a stuck entry would deny attack/break/place with
+   no visible cause, so the expiry branch routes through the effect's own `end()`.
+6. **Fear inverts input, not text.** The fear debuffs invert movement axes, mouse buttons and the
+   hotbar mirror through the canonical per-input-type handlers (`MouseHandler`/`KeyboardHandler`),
+   so GUIs inherit the mapping. Text entry (chat, anvil, signs) is not covered by the input matrix
+   and is a live-check item, not a promise.
+7. **A greater-tier body is `ungrabbable` by tag, and that is a morphology call, not a level
+   gate** (`ungrabbable.json`, precedent recorded in the plan): "don't forbid grabbing by power"
+   is honoured inside the grabbable tiers — hold length still falls with the victim's health, so a
+   grade-3 curse is held shorter than a grade-5 one.
+8. **Fear/runner windows can outlive a vessel switch.** The window is not cancelled when the victim
+   stops being a perceiver mid-effect (the runner's hold ends on the next `mayTouch` loss; the fear
+   debuff is a timed effect that expires on its own). Accepted: the window is seconds long, and
+   cancelling would need per-victim perception tracking for no player-visible gain.
+9. **`fabric-gametest` entrypoints are a hand-maintained list — a GameTest class that is not in it
+   silently never runs.** This slice shipped two such classes (grade + ability, 8 scenarios) and
+   the lane was green without them; both reviews found it independently. Treat "class on disk ==
+   class in entrypoints" as part of any lane claim.
 
 ## Public-release blockers
 

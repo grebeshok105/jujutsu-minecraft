@@ -14,6 +14,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.animal.Pig;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.character.CharacterSelectionManager;
+import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
@@ -53,9 +55,9 @@ public final class CursedSpiritGameTests {
 		BlockPos spiritFeet = new BlockPos(2, 1, 2);
 		BlockPos victimFeet = new BlockPos(4, 1, 2);
 		CursedSpiritTestFixtures.layStoneFloor(helper);
-		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
-
 		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, fixture, victimFeet);
+		// Issue #80: curses acquire/damage perceivers only — a NONE victim is correctly ignored.
+		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
 		ServerLevel level = helper.getLevel();
 		CursedSpiritEntity spirit =
 				CursedSpiritTestFixtures.spawnSpirit(helper, fixture, JujutsuEntities.LESSER_CURSED_SPIRIT, spiritFeet);
@@ -121,6 +123,8 @@ public final class CursedSpiritGameTests {
 		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
 
 		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, fixture, victimFeet);
+		// Issue #80: curses acquire/damage perceivers only — a NONE victim is correctly ignored.
+		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
 		CursedSpiritEntity spirit =
 				CursedSpiritTestFixtures.spawnSpirit(helper, fixture, JujutsuEntities.CURSED_SPIRIT, spiritFeet);
 		double victimMax = victim.getMaxHealth();
@@ -186,6 +190,8 @@ public final class CursedSpiritGameTests {
 		CursedSpiritTestFixtures.layStoneFloor(helper);
 		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
 		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, fixture, victimFeet);
+		// Issue #80: curses acquire/damage perceivers only — a NONE victim is correctly ignored.
+		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
 		ServerLevel level = helper.getLevel();
 		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
 				JujutsuEntities.GREATER_CURSED_SPIRIT, spiritFeet);
@@ -268,10 +274,18 @@ public final class CursedSpiritGameTests {
 		CursedSpiritEntity spirit =
 				CursedSpiritTestFixtures.spawnSpirit(helper, fixture, JujutsuEntities.CURSED_SPIRIT, spiritFeet);
 
+		AtomicReference<Double> maxAtFirstHit = new AtomicReference<>(0.0);
 		helper.runAtTickTime(2, () -> {
-			helper.assertTrue(spirit.getHealth() == 45.0,
+			// Absolute HP lives on the grade axis (Block 2 bands), not in this scenario: the R11
+			// contract is RELATIVE — both sources reduce by their full face amount.
+			double max = spirit.getMaxHealth();
+			maxAtFirstHit.set(max);
+			helper.assertTrue(max > 0.0,
 					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
-							"common starts at profile health", "45.0", spirit.getHealth()));
+							"spirit starts at positive rolled health", "> 0", spirit.getHealth()));
+			helper.assertTrue(spirit.getHealth() == max,
+					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+							"spirit starts whole", max, spirit.getHealth()));
 			helper.assertTrue(!spirit.isInvulnerable(),
 					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
 							"no god-mode flag", "false", spirit.isInvulnerable()));
@@ -283,9 +297,10 @@ public final class CursedSpiritGameTests {
 			boolean accepted = spirit.hurtServer(level, level.damageSources().magic(), 7.0f);
 			helper.assertTrue(accepted, CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
 					"second source accepted past invuln window", "true", accepted));
-			helper.assertTrue(Math.abs(spirit.getHealth() - 33.0) < 0.01,
+			double expected = maxAtFirstHit.get() - 5.0 - 7.0;
+			helper.assertTrue(Math.abs(spirit.getHealth() - expected) < 0.01,
 					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
-							"both sources reduced HP (45 - 5 - 7)", "33.0", spirit.getHealth()));
+							"both sources reduced HP (max - 5 - 7)", expected, spirit.getHealth()));
 			spirit.discard();
 			helper.succeed();
 		});
@@ -558,6 +573,10 @@ public final class CursedSpiritGameTests {
 
 		ServerPlayer near = CursedSpiritTestFixtures.setupVictim(helper, fixture, nearFeet);
 		ServerPlayer far = CursedSpiritTestFixtures.setupVictim(helper, fixture, farFeet);
+		// Issue #80: the far oracle must prove REACH, not perception — a NONE far victim would
+		// stay untouched trivially. Both victims perceive; only geometry spares the far one.
+		CharacterSelectionManager.select(near, JujutsuCharacter.MEGUMI);
+		CharacterSelectionManager.select(far, JujutsuCharacter.MEGUMI);
 		CursedSpiritEntity spirit =
 				CursedSpiritTestFixtures.spawnSpirit(helper, fixture, JujutsuEntities.CURSED_SPIRIT, spiritFeet);
 		CursedSpiritTestFixtures.freezeGround(spirit);
@@ -781,6 +800,10 @@ public final class CursedSpiritGameTests {
 		CursedSpiritTestFixtures.layStoneFloor(helper);
 		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
 		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, fixture, victimFeet);
+		// Issue #80: the windup pull triggers on the TRACKED victim — a NONE body is never
+		// acquired, so the slam oracle would wait forever. The victim perceives; the pig is a
+		// mob and always does.
+		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
 		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
 				JujutsuEntities.GREATER_CURSED_SPIRIT, spiritFeet);
 		spirit.setVariant(CursedSpiritVariant.WALKING_BED);
@@ -829,10 +852,21 @@ public final class CursedSpiritGameTests {
 						return;
 					}
 					if (pollTick == 210) {
-						helper.assertTrue(false, CursedSpiritTestFixtures.diagnostic(fixture,
-								helper.getTick(), null,
-								"bystander splashed by the slam of a whiffed swing",
-								"hp < 10.0", bystander.getHealth()));
+						Vec3 spiritPos = spirit.position();
+						Vec3 victimPos = victim.position();
+						Vec3 pigPos = bystander.position();
+						helper.assertTrue(false, net.minecraft.network.chat.Component.literal(String.format(java.util.Locale.ROOT,
+								"whiff slam forensics: pulled=%s anim=%s target=%s spirit=(%.2f,%.2f,%.2f) "
+										+ "victim=(%.2f,%.2f,%.2f) dist=%.2f victimHp=%.1f/%.1f pig=(%.2f,%.2f,%.2f) "
+										+ "pigDist=%.2f pigHp=%.1f spiritAlive=%s",
+								pulled.get(), spirit.attackAnimationState.isStarted(),
+								spirit.getTarget() == victim ? "victim" : String.valueOf(spirit.getTarget()),
+								spiritPos.x, spiritPos.y, spiritPos.z,
+								victimPos.x, victimPos.y, victimPos.z, spirit.distanceTo(victim),
+								victim.getHealth(), victimMax,
+								pigPos.x, pigPos.y, pigPos.z,
+								Math.sqrt(pigPos.distanceToSqr(spiritPos)), bystander.getHealth(),
+								spirit.isAlive())));
 					}
 				} catch (RuntimeException | AssertionError failure) {
 					done.set(true);

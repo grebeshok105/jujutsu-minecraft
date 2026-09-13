@@ -14,6 +14,7 @@ import net.minecraft.world.phys.AABB;
 import jujutsu.mod.cursedspirit.CursedSpiritEntity;
 import jujutsu.mod.cursedspirit.CursedSpiritProfile;
 import jujutsu.mod.cursedspirit.CursedSpiritSpawnRules;
+import jujutsu.mod.cursedspirit.CursedSpiritSpawnSchedule;
 import jujutsu.mod.registry.JujutsuEntities;
 
 /**
@@ -87,29 +88,28 @@ public final class CursedSpiritSpawnGameTests {
 				// bodies, and the light oracles below call the gate with SPAWNER so the cap
 				// conjunct cannot see them.
 				//
-				// PEACEFUL refuses even in the dark room (explicit gate on the entity override).
-				Difficulty before = level.getDifficulty();
-				level.getServer().setDifficulty(Difficulty.PEACEFUL, true);
-				try {
-					// SPAWNER skips the crowd cap, so a false here can only come from the
-					// difficulty gate — with NATURAL the crowding conjunct would decide alone
-					// on a shared level and this assert could never fail.
-					CursedSpiritEntity peacefulProbe = spawnProbe(helper, live, DARK_FEET);
-					helper.assertFalse(peacefulProbe.checkSpawnRules(level, EntitySpawnReason.SPAWNER),
-							GameTestFixtures.diagnostic(fixture, helper.getTick(),
-									"peaceful check in the dark room", "false", "see report"));
-				} finally {
-					level.getServer().setDifficulty(before, true);
-				}
+				// PEACEFUL refuses even in the dark room. The gate is asserted on the pure predicate,
+				// NOT by flipping the level's difficulty: this level is shared with every other
+				// structure, and a global PEACEFUL window makes Mob.checkDespawn discard their
+				// Monster bodies for as long as it is open (observed as cross-scenario flake).
+				// The entity calls exactly this predicate, so the end-to-end refusal is one line.
+				helper.assertFalse(CursedSpiritSpawnRules.difficultyAllows(Difficulty.PEACEFUL),
+						GameTestFixtures.diagnostic(fixture, helper.getTick(),
+								"peaceful gate predicate", "false", "see report"));
 
-				// Light refuses in the lit cell. SPAWNER reason keeps the crowd cap out of this
-				// oracle: sibling arenas share the level, so a NATURAL call here could refuse
-				// for crowding and mask a broken light half.
+			// Block 4 day branch: pin the chance to 0.0 so this oracle observes the vanilla
+			// light half alone — at day with the BALANCE default the roll would allow 60% of
+			// the time on the shared level clock and flake.
+			CursedSpiritSpawnSchedule.pinDayChance(0.0);
+			try {
 				CursedSpiritEntity litProbe = spawnProbe(helper, live, LIT_FEET);
 				helper.assertFalse(litProbe.checkSpawnRules(level, EntitySpawnReason.SPAWNER),
 						GameTestFixtures.diagnostic(fixture, helper.getTick(),
 								"light check in the lit cell " + gateDiagnostic(level, helper.absolutePos(LIT_FEET)),
 								"false", "see report"));
+			} finally {
+				CursedSpiritSpawnSchedule.resetDayChance();
+			}
 
 				// Darkness allows in the sealed room (stray probes still far below the cap).
 				CursedSpiritEntity darkProbe = spawnProbe(helper, live, DARK_FEET);

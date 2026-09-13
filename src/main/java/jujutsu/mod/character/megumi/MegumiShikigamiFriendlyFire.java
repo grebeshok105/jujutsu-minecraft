@@ -27,4 +27,20 @@ public final class MegumiShikigamiFriendlyFire {
 		}
 		return candidate instanceof MegumiDivineDogEntity dog && owner.getUUID().equals(dog.ownerUuid());
 	}
+
+	/**
+	 * The narrow "our side" gate (issue #79): the owner and the bodies they control — nothing else.
+	 * Unlike {@link #isProtected}, allies and neutrals are <em>not</em> excluded, because the
+	 * presence's job is to shove them aside (without damage). Mixing the two gates is exactly how an
+	 * ally ends up immune to an area effect that should clear it.
+	 */
+	public static boolean isOwnSideOnly(LivingEntity owner, Entity candidate) {
+		if (candidate == null || owner == null || candidate == owner) {
+			return true;
+		}
+		if (candidate instanceof MegumiShikigamiEntity body && owner.getUUID().equals(body.ownerUuid())) {
+			return true;
+		}
+		return candidate instanceof MegumiDivineDogEntity dog && owner.getUUID().equals(dog.ownerUuid());
+	}
 }

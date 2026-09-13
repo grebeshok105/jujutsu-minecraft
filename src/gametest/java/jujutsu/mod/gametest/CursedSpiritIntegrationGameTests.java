@@ -671,14 +671,19 @@ public void todoForcedBlackFlashOutDamagesTheSameUnforcedMelee(GameTestHelper he
 		});
 	}
 
-	/**
-	 * R8 — the straw-doll ritual burns the marked spirit and spares the unmarked control. Two
-	 * nail impacts mint a remnant bound to the marked COMMON spirit (45 HP survives the 2x2.0
-	 * nail damage plus the ritual), then {@code tryStart} with hammer main-hand + doll offhand
-	 * schedules the impact one {@code DOLL_STRIKE} windup later. Oracle: the marked drop is
-	 * banded around {@code RESONANCE_DAMAGE} (28.0) with the heavy stagger, while the control's
-	 * HP never moves.
-	 */
+/**
+ * R8 — the straw-doll ritual burns the marked spirit and spares the unmarked control. Two
+ * nail impacts mint a remnant bound to the marked spirit, then {@code tryStart} with hammer
+ * main-hand + doll offhand schedules the impact one {@code DOLL_STRIKE} windup later.
+ *
+ * <p>Oracle: the marked HP drop equals {@code min(RESONANCE_DAMAGE, HP before impact)} ± 8.0.
+ * The expected bar comes from {@code ProjectJjkNobaraProfile.RESONANCE_DAMAGE} capped by the
+ * live grade-rolled remaining HP — never a magic literal: since the grade move a grade-5 body
+ * holds only 12.0–20.0 HP ({@code CursedSpiritGradeProfile.health(GRADE_5)}, band max below
+ * 28.0), the 28.0 resonance overkills it and the visible drop is the whole remaining bar
+ * (≈12.0 here), while a higher-grade body would show the full 28.0. The heavy stagger still
+ * lands and the control's HP never moves.
+ */
 	@GameTest(maxTicks = 280, skyAccess = true)
 	public void strawDollRitualBurnsMarkedSpiritAndSparesUnmarked(GameTestHelper helper) {
 		String fixture = "strawDollRitualBurnsMarkedSpiritAndSparesUnmarked";
@@ -800,13 +805,15 @@ public void todoForcedBlackFlashOutDamagesTheSameUnforcedMelee(GameTestHelper he
 				}
 				try {
 					double dropped = markedHpBeforeImpact.get() - marked.getHealth();
+					// Resonance overkills low-grade bodies: the visible drop caps at the remaining HP.
+					double expected = Math.min(ProjectJjkNobaraProfile.RESONANCE_DAMAGE,
+							markedHpBeforeImpact.get());
 					helper.assertTrue(
-							dropped >= ProjectJjkNobaraProfile.RESONANCE_DAMAGE - 8.0
-									&& dropped <= ProjectJjkNobaraProfile.RESONANCE_DAMAGE + 8.0,
+							dropped >= expected - 8.0 && dropped <= expected + 8.0,
 							CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(), caster.getUUID(),
-									marked.getUUID(), "resonance damage band around "
-											+ ProjectJjkNobaraProfile.RESONANCE_DAMAGE,
-									ProjectJjkNobaraProfile.RESONANCE_DAMAGE + " ± 8.0", dropped));
+									marked.getUUID(), "resonance damage band around min(RESONANCE_DAMAGE, HP before) = "
+											+ expected,
+									expected + " ± 8.0", dropped));
 					helper.assertTrue(
 							CombatStagger.GLOBAL.isStaggered(marked.getUUID(), level.getGameTime()),
 							CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(), caster.getUUID(),

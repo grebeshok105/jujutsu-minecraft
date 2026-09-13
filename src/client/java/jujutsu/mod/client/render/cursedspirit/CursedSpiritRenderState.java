@@ -11,6 +11,8 @@ import jujutsu.mod.cursedspirit.CursedSpiritVariant;
  */
 public class CursedSpiritRenderState extends LivingEntityRenderState {
 	public CursedSpiritVariant variant = CursedSpiritVariant.PROWLER;
+	/** Issue #80: whether the source body is a curse subject (for {@code CurseRenderGate}). */
+	public boolean curseSubject = true;
 	public final AnimationState idle = new AnimationState();
 	public final AnimationState attack = new AnimationState();
 	public final AnimationState scream = new AnimationState();

@@ -94,13 +94,25 @@ outranks travel. Sounds: shared shadow-open swell plus `PHANTOM_FLAP`/`PHANTOM_A
 emergence, shared implosion on recall, `PHANTOM_AMBIENT` sic accent, `PHANTOM_BITE` + quiet `TRIDENT_THUNDER` on impact — vanilla placeholders plus the existing mod-owned shadow sounds, no new entries.
 
 **Toad** (grappler, hitbox 1.3×1.0): 80 health, 4 attack, 0.22 speed; materialize 16 / recall 12;
-recall 240 / death 400. Tongue within 12 blocks + owner line of sight: 6-tick windup
-(`beginAction`), strike on the final action tick → 3.0 owner-attributed damage, yank toward the
-toad at 0.65 horizontal + 0.25 up (`MegumiToadPolicy.pullVelocity`), stagger 8 ticks, 100-tick
-tongue cooldown. Pure policy: `pullVelocity` (zero horizontal when degenerate), `canTongue`
-(inclusive range), `strikeTickReached` (== 1). Clips `howl`/`walk`/`attack`/`tongue`; tongue is a
-VFX-only strike (no tongue geometry upstream — accepted limit). Sounds: `FROG_LONG_JUMP` +
-`FROG_AMBIENT` on emergence, `FROG_TONGUE` windup + `FROG_EAT` impact, `FROG_AMBIENT` idle.
+recall 240 / death 400. The tongue is the visual — the mechanic is the grab (issue #79): in reach
+(12 blocks, inclusive) with owner line of sight, a 6-tick windup commits on the final action tick
+(`actionTicks == 1`) and the hold starts. No damage, no yank: the value is control. The victim hangs
+1.2 blocks in front of the body at feet level (`MegumiToadPolicy.anchor`), re-pinned every tick through
+the shared `HoldSupport` — server teleport plus the invisible `GRIPPED` marker on a 10-tick refresh.
+That marker is also the client half: `HoldInputMixin` blanks a held player's movement input (attacks,
+items, inventory, hotbar stay), so the client never rubber-bands against the pin. Mobs additionally get
+navigation stop plus heavy Slowness, but never `NoAI` — a held mob keeps aiming and attacking. Hold length
+scales with victim toughness: base 90 ticks minus 0.20 per max-health point (and, for non-players, 6.0 per
+hitbox-volume block), clamped 60–100; then the victim is thrown away from the owner (1.6 + 0.35 up,
+an 8-tick stagger applied first so the launch reads as a hit) and released. The bind snaps early if the
+body is dragged past 16 blocks from its owner, and while a hold lasts body and victim neither damage each
+other. Target priority: the owner's sic mark first, else the body's own nearest eligible pick rescanned
+every 20 ticks — a self-pick never overwrites an order. Who may be grabbed is data
+(`jujutsumod:ungrabbable` — greater cursed spirit, dragon, wither, warden, golem, elder guardian — read
+through `CombatTags`). The plain `MeleeAttackGoal` bite (4 attack) stays for everything the grab is not for.
+Pure policy: `canGrab` / `holdTicksFor` / `anchor` / `throwVelocity` / `bindBroken` / `strikeTickReached`.
+Clips `howl`/`walk`/`attack`/`tongue`; tongue is a VFX-only strike (no tongue geometry upstream — accepted limit). Sounds: `FROG_LONG_JUMP` +
+`FROG_AMBIENT` on emergence, `FROG_TONGUE` windup + `FROG_EAT` on the commit, `FROG_LONG_JUMP` on the throw, `FROG_AMBIENT` idle.
 
 **Rabbit Escape** (swarm, hitbox 0.4×0.4): 10 bodies, 4 health each, 0 damage, 0.32 speed, ring
 radius 2.2; materialize/recall 10 ticks; recall 120 / death 200, and the 300-tick lifetime expiry is
@@ -122,8 +134,21 @@ recall 16; recall 260 / death 600. Trunk jet within 16 blocks + line of sight: 8
 40-tick firing window, one pulse every 2 ticks down a 12-long, 1.4-half-width corridor from the
 trunk (`MegumiElephantPolicy.inJetCorridor`, excludes behind the trunk): 1.0 owner-attributed
 damage, 0.5 knockback with small up, douse (`clearFire`), `MEGUMI_SOAKED` 100 ticks, 220-tick jet
-cooldown. Friendly-fire bodies in the corridor take nothing. Clips `idle`/`walk`/`run`/`attack`/
-`shoot` (the authored `loop:true` on `shoot` does not govern `RawAnimation` playback — the action
+cooldown. The jet never fires blank: past corridor reach no jet starts and no cooldown burns
+(`jetTriggerInReach`). Friendly-fire bodies in the corridor take nothing.
+Presence (issue #79): the walking body is pressure. Every 10 ticks, everything living inside 3.5 blocks
+that is not on the owner's side is shoved away (0.7 velocity impulse + 1.1 lift — an impulse, not
+`knockback()`, so knockback resistance does not eat it), and whatever `MegumiHostilityPolicy` calls
+hostile takes 1.0 owner-attributed damage on top, with `invulnerableTime` zeroed so every pulse lands.
+Hostile means any of: `Enemy` archetype, currently targeting the owner, or a fresh aggressor (100-tick
+window). Allies are pushed, never hurt; the body never touches itself.
+Footprint (issue #79): while walking, the feet crush litter. Every 10 ticks the body samples its real
+displacement since the last sample (`sampleFootprintStep` — position delta over elapsed ticks, never the
+velocity field) and, above 0.05 blocks/tick horizontal, destroys up to 4 blocks under and just ahead of
+its feet without drops. What counts as litter is an allowlist (`jujutsumod:destructible_by_shikigami`:
+dirt-family, sand, gravel, glass, torches, leaves, planks, fences, flowers, crops — chests, ores and
+anything functional are not members). A standing elephant sweeps nothing.
+Clips `idle`/`walk`/`run`/`attack`/`shoot` (the authored `loop:true` on `shoot` does not govern `RawAnimation` playback — the action
 controller holds it one-shot while `actionTicks > 0`, dog precedent). Sounds: quiet
 `RAVAGER_ROAR` summon, `RAVAGER_ATTACK` windup + `GENERIC_SPLASH` per pulse, `RAVAGER_AMBIENT`
 idle. The off-origin `body` pivot is upstream data; only renderer scale/offset may compensate.
@@ -189,18 +214,20 @@ placeholders. VFX ids (`MegumiVfxIds`, all in `LIVE` with recipes in `MegumiVfxR
 JUnit plus architecture checks cover selection order/defaults, the swap-decision table,
 teardown-reason → cooldown mapping (`SWAPPED` = 0), presentation transitions and combat gates,
 spawn-placement offset math, friendly-fire membership, per-type pure policies (dive velocity,
-impact predicate, soaked escalation; tongue pull/range/strike; rabbit respawn/expiry/bump;
-elephant corridor), resource contracts (geo identifiers, clip keys, one-shot attack/tongue,
+impact predicate, soaked escalation; grab reach/hold/anchor/throw/bind-break/strike; rabbit respawn/expiry/bump;
+elephant corridor/presence/footprint/hostility), resource contracts (geo identifiers, clip keys, one-shot attack/tongue,
 texture paths, `geckolib_format_version`), router-arm and roster/HUD pins, and the lang key sets.
 
 GameTests (`MegumiShikigamiGameTests`, `MegumiToadGameTests`, `MegumiRabbitsGameTests`,
 `MegumiElephantGameTests`, `MegumiShikigamiCrossTests`) cover summon → pack shape, recall and
 death cooldowns per type, the zero-cooldown swap, sic-driven abilities end to end (dive damage +
-slow, tongue pull, bump knockback + slow, jet damage + soak), the swarm upkeep/expiry/anchor
+slow, toad hold without damage + throw, bump knockback + slow, jet damage + soak), the swarm upkeep/expiry/anchor
 rules, friendly fire inside the jet corridor, and the cross-type guarantees (one-active,
 fixture-reset teardown with the selection back to DOGS, deselect teardown with the selection kept).
 
-Oracle trap, measured in game 2026-09-11: a `NoAI:1b` mob is FULLY FROZEN — external velocity is stored but the position never integrates, not even gravity. Displacement-based oracles ("distance decreased", knockback travel) must use an AI mob with zeroed speed (Slowness amplifier 100) or assert velocity/effect state instead (`getDeltaMovement`, effects). The tongue/bump scenarios pin the pull through the velocity vector for exactly this reason.
+Oracle trap, measured in game 2026-09-11: a `NoAI:1b` mob is FULLY FROZEN — external velocity is stored but the position never integrates, not even gravity. Displacement-based oracles ("distance decreased", knockback travel) must use an AI mob with zeroed speed (Slowness amplifier 100) or assert velocity/effect state instead (`getDeltaMovement`, effects). The hold/throw scenarios pin the grip through the anchor position and the throw through the velocity vector for exactly this reason.
++
+Cursed Saga (issue #79) extends both sides: unit pins for hold length, anchor, throw, bind-break, presence, footprint and hostility, plus in-game Toad-hold and Elephant-pressure/footprint scenarios beside the sic-driven ability cases.
 
 No automated test boots the client, renders a frame, or plays audio. Summon-geometry feel on
 floors, ledges, water, and tight rooms; flight/pull/knockback feel; kill attribution; spatial

@@ -6,19 +6,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 /**
- * Profile invariants (Step 9): every tier row is sane, spawn weights order T1&gt;T2&gt;T3, groups
- * are well-formed, and the R20 linkage — logic reads the passed row, so a test-side mutated copy
- * moves the derived policy numbers.
+ * Profile invariants (Step 9): every tier row is sane, spawn weights order
+ * T1&gt;T2&gt;T3, groups are well-formed, and the R20 linkage — logic reads
+ * the passed row, so a test-side mutated copy moves the derived policy
+ * numbers. Power stats (HP/damage/speed) are NOT here: they live on the
+ * grade axis (D2), this profile keeps morphology and combat pattern only.
  */
 final class CursedSpiritProfileTest {
 	@Test
 	void tierRowsArePositiveAndSane() {
 		for (CursedSpiritTier tier : CursedSpiritTier.values()) {
 			CursedSpiritTierStats stats = CursedSpiritProfile.of(tier);
-			assertTrue(stats.maxHealth() > 0, tier + " maxHealth");
-			assertTrue(stats.attackDamage() > 0, tier + " attackDamage");
-			assertTrue(stats.movementSpeed() > 0, tier + " movementSpeed");
 			assertTrue(stats.followRange() > 0, tier + " followRange");
+			assertTrue(stats.knockbackResistance() >= 0, tier + " knockbackResistance");
+			assertTrue(stats.staggerMultiplier() > 0, tier + " staggerMultiplier");
 			assertTrue(stats.attackWindupTicks() > 0, tier + " windup");
 			assertTrue(stats.attackCooldownTicks() > stats.attackWindupTicks(),
 					tier + " cooldown must exceed windup");
@@ -57,22 +58,26 @@ final class CursedSpiritProfileTest {
 	}
 
 	/**
-	 * R20 linkage: mutating a profile row (test-side copy) moves the derived strike numbers, which
-	 * proves the goal/policy read the profile instead of literals.
+	 * R20 linkage: mutating a profile row (test-side copy) moves the derived
+	 * combat numbers, which proves the goal/policy read the profile instead
+	 * of literals. Damage itself arrives as grade stats (D2); the tier row
+	 * contributes the AoE fraction.
 	 */
 	@Test
-	void mutatedProfileRowMovesDerivedDamage() {
+	void mutatedProfileRowMovesDerivedCombat() {
 		CursedSpiritTierStats base = CursedSpiritProfile.of(CursedSpiritTier.COMMON);
 		CursedSpiritTierStats mutated = new CursedSpiritTierStats(
-				base.maxHealth(), base.attackDamage() + 2.0, base.movementSpeed(), base.followRange(),
-				base.knockbackResistance(), base.staggerMultiplier(), base.attackWindupTicks(),
-				base.attackCooldownTicks(), base.attackReach(), base.attackKnockback(), base.strikeStep(),
-				3.0, 0.5, base.aoeKnockback(), base.xpReward(), base.spawnWeight(),
+				base.followRange(), base.knockbackResistance(), base.staggerMultiplier(),
+				base.attackWindupTicks(), base.attackCooldownTicks(), base.attackReach() + 1.0,
+				base.attackKnockback(), base.strikeStep(), base.aoeRadius(), 0.5,
+				base.aoeKnockback(), base.xpReward(), base.spawnWeight(),
 				base.spawnMinGroup(), base.spawnMaxGroup());
-		assertEquals((float) base.attackDamage(), CursedSpiritAttackPolicy.primaryDamage(base));
-		assertEquals((float) (base.attackDamage() + 2.0), CursedSpiritAttackPolicy.primaryDamage(mutated));
-		assertEquals(0.0f, CursedSpiritAttackPolicy.aoeDamage(base));
-		assertEquals((float) ((base.attackDamage() + 2.0) * 0.5), CursedSpiritAttackPolicy.aoeDamage(mutated));
+		CursedSpiritGradeStats grade = new CursedSpiritGradeStats(32.0, 7.5, 0.275);
+		assertEquals(7.5f, CursedSpiritAttackPolicy.primaryDamage(grade));
+		assertEquals(0.0f, CursedSpiritAttackPolicy.aoeDamage(grade, base));
+		assertEquals((float) (7.5 * 0.5), CursedSpiritAttackPolicy.aoeDamage(grade, mutated));
+		assertTrue(CursedSpiritAttackPolicy.inReach(
+				base.attackReach() + 0.75, 0.75, 0.0, mutated));
 		assertEquals(base.attackCooldownTicks(), CursedSpiritAttackPolicy.cooldownTicks(base));
 	}
 }

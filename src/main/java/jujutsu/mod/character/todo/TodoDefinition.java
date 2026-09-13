@@ -10,6 +10,7 @@ import jujutsu.mod.character.AbilityResult;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterDefinition;
 import jujutsu.mod.character.JujutsuCharacter;
+import jujutsu.mod.cursedspirit.perception.PerceptionFlags;
 
 /** Todo on the server: a heavier melee that shrugs off stagger, and three casts on the shared slots. */
 public final class TodoDefinition implements CharacterDefinition {
@@ -19,6 +20,11 @@ public final class TodoDefinition implements CharacterDefinition {
 	@Override
 	public JujutsuCharacter id() {
 		return JujutsuCharacter.TODO;
+	}
+
+	@Override
+	public PerceptionFlags cursePerception() {
+		return PerceptionFlags.PERCEIVER;
 	}
 
 	@Override

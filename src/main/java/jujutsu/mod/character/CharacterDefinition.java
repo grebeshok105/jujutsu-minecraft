@@ -2,7 +2,7 @@ package jujutsu.mod.character;
 
 import java.util.UUID;
 import net.minecraft.server.level.ServerPlayer;
-
+import jujutsu.mod.cursedspirit.perception.PerceptionFlags;
 /**
  * Everything the server needs to know about one vessel, in one place.
  *
@@ -66,6 +66,15 @@ public interface CharacterDefinition {
 	default int adjustIncomingStaggerTicks(int requestedTicks) {
 		return requestedTicks;
 	}
+	/**
+	 * What this vessel may do with curses (issue #80). Default is {@link PerceptionFlags#NONE}:
+	 * a future vessel that forgets this method is a non-mage, never an accidental perceiver.
+	 * The three sorcerer vessels override this with {@link PerceptionFlags#PERCEIVER}.
+	 */
+	default PerceptionFlags cursePerception() {
+		return PerceptionFlags.NONE;
+	}
+
 
 	/**
 	 * Answers a curse-link choice the player just made, or {@code false} if this vessel asked no question.

@@ -6,6 +6,7 @@ import jujutsu.mod.character.AbilityResult;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterDefinition;
 import jujutsu.mod.character.JujutsuCharacter;
+import jujutsu.mod.cursedspirit.perception.PerceptionFlags;
 import jujutsu.mod.character.nobara.projectjjk.EmbeddedNailRegistry;
 import jujutsu.mod.character.nobara.projectjjk.NailAnchorLifecycle;
 import jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime;
@@ -22,6 +23,11 @@ public final class NobaraDefinition implements CharacterDefinition {
 	@Override
 	public JujutsuCharacter id() {
 		return JujutsuCharacter.NOBARA;
+	}
+
+	@Override
+	public PerceptionFlags cursePerception() {
+		return PerceptionFlags.PERCEIVER;
 	}
 
 	@Override

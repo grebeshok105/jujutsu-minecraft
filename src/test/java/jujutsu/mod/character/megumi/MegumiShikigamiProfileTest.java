@@ -28,7 +28,7 @@ class MegumiShikigamiProfileTest {
 	}
 
 	@Test
-	void theToadBlockIsTheTuningSurfaceForTheTongue() {
+	void theToadBlockIsTheTuningSurfaceForTheGrab() {
 		assertEquals(80.0, MegumiShikigamiProfile.TOAD_HEALTH);
 		assertEquals(4.0, MegumiShikigamiProfile.TOAD_ATTACK_DAMAGE);
 		assertEquals(0.22, MegumiShikigamiProfile.TOAD_SPEED);
@@ -36,13 +36,40 @@ class MegumiShikigamiProfileTest {
 		assertEquals(2.5, MegumiShikigamiProfile.TOAD_FOLLOW_STOP);
 		assertEquals(16, MegumiShikigamiProfile.TOAD_MATERIALIZE_TICKS);
 		assertEquals(12, MegumiShikigamiProfile.TOAD_RECALL_TICKS);
-		assertEquals(12.0, MegumiShikigamiProfile.TOAD_TONGUE_RANGE);
-		assertEquals(6, MegumiShikigamiProfile.TOAD_TONGUE_WINDUP_TICKS);
-		assertEquals(100, MegumiShikigamiProfile.TOAD_TONGUE_COOLDOWN_TICKS);
-		assertEquals(3.0, MegumiShikigamiProfile.TOAD_TONGUE_DAMAGE);
-		assertEquals(0.65, MegumiShikigamiProfile.TOAD_TONGUE_PULL_SPEED);
-		assertEquals(0.25, MegumiShikigamiProfile.TOAD_TONGUE_PULL_UP);
-		assertEquals(8, MegumiShikigamiProfile.TOAD_TONGUE_STAGGER_TICKS);
+		assertEquals(12.0, MegumiShikigamiProfile.TOAD_GRAB_RANGE);
+		assertEquals(6, MegumiShikigamiProfile.TOAD_GRAB_WINDUP_TICKS);
+		assertEquals(100, MegumiShikigamiProfile.TOAD_GRAB_COOLDOWN_TICKS);
+		assertEquals(90, MegumiShikigamiProfile.TOAD_GRAB_HOLD_BASE);
+		assertEquals(60, MegumiShikigamiProfile.TOAD_GRAB_HOLD_MIN);
+		assertEquals(100, MegumiShikigamiProfile.TOAD_GRAB_HOLD_MAX);
+		assertEquals(1.6, MegumiShikigamiProfile.TOAD_THROW_SPEED);
+		assertEquals(0.35, MegumiShikigamiProfile.TOAD_THROW_LIFT);
+		assertEquals(1.2, MegumiShikigamiProfile.TOAD_GRIP_OFFSET);
+	}
+
+	@Test
+	void theToadHoldBandIsAWindowNotAValue() {
+		// The policy clamps into [MIN, MAX]; a base outside its own band would silently mean the
+		// clamp, not the number, is the tuning surface.
+		assertTrue(MegumiShikigamiProfile.TOAD_GRAB_HOLD_MIN <= MegumiShikigamiProfile.TOAD_GRAB_HOLD_BASE,
+				"base is inside the clamp band");
+		assertTrue(MegumiShikigamiProfile.TOAD_GRAB_HOLD_BASE <= MegumiShikigamiProfile.TOAD_GRAB_HOLD_MAX,
+				"base is inside the clamp band");
+		assertTrue(MegumiShikigamiProfile.TOAD_GRAB_HOLD_MIN < MegumiShikigamiProfile.TOAD_GRAB_HOLD_MAX,
+				"the band has room to move in");
+	}
+
+	@Test
+	void theElephantBlockIsTheTuningSurfaceForThePresence() {
+		assertEquals(3.5, MegumiShikigamiProfile.ELEPHANT_PRESENCE_RADIUS);
+		assertEquals(10, MegumiShikigamiProfile.ELEPHANT_PRESENCE_PERIOD_TICKS);
+		assertEquals(1.0, MegumiShikigamiProfile.ELEPHANT_PRESENCE_DAMAGE);
+		assertEquals(1.1, MegumiShikigamiProfile.ELEPHANT_PRESENCE_KNOCKBACK);
+		assertEquals(0.7, MegumiShikigamiProfile.ELEPHANT_PRESENCE_PUSH);
+		assertEquals(100, MegumiShikigamiProfile.ELEPHANT_PRESENCE_AGGRESSION_WINDOW_TICKS);
+		assertEquals(10, MegumiShikigamiProfile.ELEPHANT_FOOTPRINT_PERIOD_TICKS);
+		assertEquals(0.05, MegumiShikigamiProfile.ELEPHANT_FOOTPRINT_MIN_SPEED);
+		assertEquals(4, MegumiShikigamiProfile.ELEPHANT_FOOTPRINT_BUDGET);
 	}
 
 	@Test

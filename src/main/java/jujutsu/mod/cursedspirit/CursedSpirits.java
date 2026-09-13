@@ -1,6 +1,7 @@
 package jujutsu.mod.cursedspirit;
 
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
+import jujutsu.mod.cursedspirit.perception.CursedSpiritInteractionGates;
 import jujutsu.mod.registry.JujutsuEntities;
 
 /**
@@ -18,5 +19,9 @@ public final class CursedSpirits {
 		FabricDefaultAttributeRegistry.register(JujutsuEntities.GREATER_CURSED_SPIRIT,
 				CursedSpiritEntity.createAttributes(CursedSpiritTier.GREATER));
 		CursedSpiritSpawnIntegration.register();
+		CursedSpiritInteractionGates.register();
+		// Block 3 (#86): acid zone pulse and the runner's exactly-three action denies.
+		jujutsu.mod.cursedspirit.ability.effects.AcidZoneRuntime.register();
+		jujutsu.mod.cursedspirit.ability.effects.RunnerEffect.register();
 	}
 }

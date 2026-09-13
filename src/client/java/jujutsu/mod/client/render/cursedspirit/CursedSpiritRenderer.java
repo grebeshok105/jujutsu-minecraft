@@ -10,6 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.cursedspirit.CursedSpiritEntity;
 import jujutsu.mod.cursedspirit.CursedSpiritVariant;
+import jujutsu.mod.cursedspirit.perception.CursePerception;
 
 /**
  * One renderer class, three instances (one per tier type). Per-variant model dispatch
@@ -32,6 +33,12 @@ public class CursedSpiritRenderer extends
 
 	@Override
 	public void render(CursedSpiritRenderState state, PoseStack poses, MultiBufferSource buffers, int light) {
+		// Issue #80: subjects render for perceivers only. The subject bit comes from the
+		// entity via extractRenderState (isSubject, not instanceof), so future curse bodies
+		// inherit the rule through their own renderers.
+		if (!CurseRenderGate.shouldRender(state.curseSubject)) {
+			return;
+		}
 		EntityModel<CursedSpiritRenderState> rig = this.rigs.get(state.variant);
 		if (rig != null) {
 			this.model = rig;
@@ -48,6 +55,7 @@ public class CursedSpiritRenderer extends
 	public void extractRenderState(CursedSpiritEntity entity, CursedSpiritRenderState state, float tickDelta) {
 		super.extractRenderState(entity, state, tickDelta);
 		state.variant = entity.variant();
+		state.curseSubject = CursePerception.isSubject(entity);
 		state.idle.copyFrom(entity.idleAnimationState);
 		state.attack.copyFrom(entity.attackAnimationState);
 		state.scream.copyFrom(entity.screamAnimationState);

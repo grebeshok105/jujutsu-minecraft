@@ -1,8 +1,15 @@
 package jujutsu.mod.cursedspirit;
 
 /**
- * Every balance number for the cursed-spirit tiers. The single editable profile (R20): brains,
- * goals and spawn rows read these rows, never literals.
+ * Every non-grade balance number for the cursed-spirit tiers. The single
+ * editable profile (R20): brains, goals and spawn rows read these rows,
+ * never literals.
+ *
+ * <p>Power stats (HP/damage/speed) are NOT here — they moved to the grade
+ * axis ({@link CursedSpiritGradeProfile} + per-individual
+ * {@link CursedSpiritGradeStats}, D2). What stays per tier is morphology and
+ * combat pattern: follow range, knockback resistance, stagger recovery,
+ * windup/cooldown/reach/AoE, XP and the natural-spawn rows.
  */
 public final class CursedSpiritProfile {
 	private CursedSpiritProfile() {}
@@ -15,15 +22,15 @@ public final class CursedSpiritProfile {
 	public static CursedSpiritTierStats of(CursedSpiritTier tier) {
 		return switch (tier) {
 			case LESSER -> new CursedSpiritTierStats(
-					14.0, 3.0, 0.30, 16.0, 0.0, 1.0,
+					16.0, 0.0, 1.0,
 					5, 20, 2.0, 0.4, 0.0,
 					0.0, 0.0, 0.0, 5, 65, 2, 4);
 			case COMMON -> new CursedSpiritTierStats(
-					45.0, 5.0, 0.24, 24.0, 0.0, 1.0,
+					24.0, 0.0, 1.0,
 					9, 30, 2.5, 0.9, 0.35,
 					0.0, 0.0, 0.0, 15, 20, 1, 2);
 			case GREATER -> new CursedSpiritTierStats(
-					150.0, 8.0, 0.17, 32.0, 0.85, 0.4,
+					32.0, 0.85, 0.4,
 					14, 60, 3.0, 1.0, 0.0,
 					3.5, 0.6, 1.2, 40, 5, 1, 1);
 		};

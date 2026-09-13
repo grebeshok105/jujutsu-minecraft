@@ -83,7 +83,7 @@ public final class MegumiShikigamiProfile {
 	/** Nue hovers this far above the owner's head while off-command. */
 	public static final double NUE_HOVER_HEIGHT = 3.0;
 
-	// --- Toad (rows for the cooldown table + tongue; full block owns the rest) ---
+	// --- Toad (grab kit: the tongue is the visual, the grab is the mechanic) ---
 	public static final int TOAD_RECALL_COOLDOWN_TICKS = 240;
 	public static final int TOAD_DEATH_COOLDOWN_TICKS = 400;
 	public static final double TOAD_HEALTH = 80.0;
@@ -93,13 +93,26 @@ public final class MegumiShikigamiProfile {
 	public static final double TOAD_FOLLOW_STOP = 2.5;
 	public static final int TOAD_MATERIALIZE_TICKS = 16;
 	public static final int TOAD_RECALL_TICKS = 12;
-	public static final double TOAD_TONGUE_RANGE = 12.0;
-	public static final int TOAD_TONGUE_WINDUP_TICKS = 6;
-	public static final int TOAD_TONGUE_COOLDOWN_TICKS = 100;
-	public static final double TOAD_TONGUE_DAMAGE = 3.0;
-	public static final double TOAD_TONGUE_PULL_SPEED = 0.65;
-	public static final double TOAD_TONGUE_PULL_UP = 0.25;
-	public static final int TOAD_TONGUE_STAGGER_TICKS = 8;
+	/** Rollback switch: false turns grabbing off without touching the brain. */
+	public static final boolean TOAD_GRAB_ENABLED = true;
+	public static final double TOAD_GRAB_RANGE = 12.0;
+	public static final int TOAD_GRAB_WINDUP_TICKS = 6;
+	public static final int TOAD_GRAB_HOLD_BASE = 90;
+	public static final int TOAD_GRAB_HOLD_MIN = 60;
+	public static final int TOAD_GRAB_HOLD_MAX = 100;
+	/** Ticks of hold removed per point of the victim's max health. */
+	public static final double TOAD_GRAB_HOLD_HP_PENALTY = 0.20;
+	/** Ticks of hold removed per block of the victim's hitbox volume (players are exempt). */
+	public static final double TOAD_GRAB_HOLD_SIZE_PENALTY = 6.0;
+	public static final int TOAD_GRAB_COOLDOWN_TICKS = 100;
+	/** The grab breaks when the body is dragged further than this from its owner. */
+	public static final double TOAD_GRAB_BIND_RANGE = 16.0;
+	public static final double TOAD_THROW_SPEED = 1.6;
+	public static final double TOAD_THROW_LIFT = 0.35;
+	/** Stagger applied on the throw, before the toss velocity — it makes the launch read as a hit. */
+	public static final int TOAD_THROW_STAGGER_TICKS = 8;
+	/** The held victim hangs this far in front of the toad. */
+	public static final double TOAD_GRIP_OFFSET = 1.2;
 
 	// --- Rabbit Escape ---
 	public static final int RABBITS_RECALL_COOLDOWN_TICKS = 120;
@@ -156,4 +169,17 @@ public final class MegumiShikigamiProfile {
 	public static final int ELEPHANT_JET_COOLDOWN_TICKS = 220;
 	/** Trunk origin sits this far in front of the elephant's eyes (geometry, kept out of the brain). */
 	public static final double ELEPHANT_TRUNK_FORWARD = 1.2;
+	/** Every how many ticks the walking body sweeps the ground it is standing on. */
+	public static final int ELEPHANT_FOOTPRINT_PERIOD_TICKS = 10;
+	/** Horizontal speed below which the body counts as standing still (no sweep while parked). */
+	public static final double ELEPHANT_FOOTPRINT_MIN_SPEED = 0.05;
+	/** Blocks destroyed per sweep (a budget, not a target: fewer are destroyed when fewer qualify). */
+	public static final int ELEPHANT_FOOTPRINT_BUDGET = 4;
+	public static final double ELEPHANT_PRESENCE_RADIUS = 3.5;
+	public static final int ELEPHANT_PRESENCE_PERIOD_TICKS = 10;
+	public static final double ELEPHANT_PRESENCE_DAMAGE = 1.0;
+	public static final double ELEPHANT_PRESENCE_KNOCKBACK = 1.1;
+	public static final double ELEPHANT_PRESENCE_PUSH = 0.7;
+	/** How long a hit on the owner (or the pack) keeps marking its author hostile. */
+	public static final int ELEPHANT_PRESENCE_AGGRESSION_WINDOW_TICKS = 100;
 }

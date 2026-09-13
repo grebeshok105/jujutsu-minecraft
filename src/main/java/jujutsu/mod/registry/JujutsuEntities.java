@@ -17,6 +17,7 @@ import jujutsu.mod.character.todo.TodoProfile;
 import jujutsu.mod.character.todo.TodoStoneEntity;
 import jujutsu.mod.cursedspirit.CursedSpiritEntity;
 import jujutsu.mod.cursedspirit.CursedSpiritTier;
+import jujutsu.mod.cursedspirit.ability.effects.CursedSpiritAcidSpitEntity;
 
 public final class JujutsuEntities {
 	public static final EntityType<ProjectJjkNailEntity> PROJECTJJK_NAIL = createProjectJjkNail("projectjjk_nail");
@@ -26,6 +27,8 @@ public final class JujutsuEntities {
 	public static final EntityType<MegumiElephantEntity> MEGUMI_MAX_ELEPHANT = createMegumiMaxElephant("megumi_max_elephant");
 	public static final EntityType<MegumiRabbitEntity> MEGUMI_RABBIT = createMegumiRabbit("megumi_rabbit");
 	public static final EntityType<TodoStoneEntity> TODO_STONE = createTodoStone("todo_stone");
+	public static final EntityType<CursedSpiritAcidSpitEntity> CURSED_ACID_SPIT =
+			createCursedAcidSpit("cursed_acid_spit");
 	public static final EntityType<CursedSpiritEntity> LESSER_CURSED_SPIRIT =
 			createCursedSpirit("lesser_cursed_spirit", CursedSpiritTier.LESSER, 0.85f, 1.0f);
 	public static final EntityType<CursedSpiritEntity> CURSED_SPIRIT =
@@ -37,6 +40,7 @@ public final class JujutsuEntities {
 	public static void register() {
 		register("projectjjk_nail", PROJECTJJK_NAIL);
 		register("megumi_divine_dog", MEGUMI_DIVINE_DOG);
+		register("cursed_acid_spit", CURSED_ACID_SPIT);
 		register("megumi_nue", MEGUMI_NUE);
 		register("megumi_toad", MEGUMI_TOAD);
 		register("megumi_max_elephant", MEGUMI_MAX_ELEPHANT);
@@ -59,6 +63,19 @@ public final class JujutsuEntities {
 				.noSave()
 				.build(key);
 	}
+	private static EntityType<CursedSpiritAcidSpitEntity> createCursedAcidSpit(String path) {
+		ResourceKey<EntityType<?>> key = ResourceKey.create(Registries.ENTITY_TYPE, JujutsuMod.id(path));
+		return EntityType.Builder
+				.<CursedSpiritAcidSpitEntity>of(CursedSpiritAcidSpitEntity::new, MobCategory.MISC)
+				.sized(0.35f, 0.35f)
+				.clientTrackingRange(96)
+				.updateInterval(1)
+				// A glob exists only in flight: it must never outlive the cast, and an unloaded
+				// chunk discarding it is an expiry like any other.
+				.noSave()
+				.build(key);
+	}
+
 
 	private static EntityType<MegumiDivineDogEntity> createMegumiDivineDog(String path) {
 		ResourceKey<EntityType<?>> key = ResourceKey.create(Registries.ENTITY_TYPE, JujutsuMod.id(path));

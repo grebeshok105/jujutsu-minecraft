@@ -38,6 +38,21 @@ final class CursedSpiritSpawnRulesTest {
 	}
 
 	@Test
+	void difficultyGateRefusesPeacefulAndNothingElse() {
+		// The gate moved out of the entity so the lane stops flipping the SHARED level's difficulty
+		// (a global PEACEFUL window makes Mob.checkDespawn discard sibling arenas' Monster bodies);
+		// the entity calls exactly this predicate, so this is the end-to-end refusal for PEACEFUL.
+		assertFalse(CursedSpiritSpawnRules.difficultyAllows(net.minecraft.world.Difficulty.PEACEFUL),
+				"peaceful refuses the spawn");
+		assertTrue(CursedSpiritSpawnRules.difficultyAllows(net.minecraft.world.Difficulty.EASY),
+				"easy allows it");
+		assertTrue(CursedSpiritSpawnRules.difficultyAllows(net.minecraft.world.Difficulty.NORMAL),
+				"normal allows it");
+		assertTrue(CursedSpiritSpawnRules.difficultyAllows(net.minecraft.world.Difficulty.HARD),
+				"hard allows it");
+	}
+
+	@Test
 	void spawnWeightsOrderLesserAboveCommonAboveGreater() {
 		int lesser = CursedSpiritProfile.of(CursedSpiritTier.LESSER).spawnWeight();
 		int common = CursedSpiritProfile.of(CursedSpiritTier.COMMON).spawnWeight();

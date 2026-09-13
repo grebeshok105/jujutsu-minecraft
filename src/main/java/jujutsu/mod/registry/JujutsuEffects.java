@@ -65,6 +65,29 @@ public final class JujutsuEffects {
 			JujutsuMod.id("megumi_soaked"),
 			new MegumiSoakedEffect());
 
+	/**
+	 * The hold marker (issue #79): whoever carries it is being held in place by something else — the
+	 * Toad's grab or a cursed spirit's runner — so the client must not fight the server's pin with
+	 * its own movement input. A pure marker: no attribute work and no icon, position is enforced by
+	 * {@code HoldSupport}. One id for both systems on purpose: the mechanic is one, only the VFX
+	 * differ.
+	 */
+	public static final Holder<MobEffect> GRIPPED = Registry.registerForHolder(
+			BuiltInRegistries.MOB_EFFECT,
+			JujutsuMod.id("gripped"),
+			new GrippedEffect());
+
+	/**
+	 * The fear marker (Block 3, #86): whoever carries it is feared by a cursed spirit — the
+	 * client inverts that player's input while it lasts. A pure marker like GRIPPED: the
+	 * readable debuffs (DARKNESS, NAUSEA) ride alongside it as separate vanilla effects, and
+	 * position/behaviour stay server-side. Suppressed from HUD (applied invisible).
+	 */
+	public static final Holder<MobEffect> CURSED_FEAR = Registry.registerForHolder(
+			BuiltInRegistries.MOB_EFFECT,
+			JujutsuMod.id("cursed_fear"),
+			new CursedFearEffect());
+
 	private JujutsuEffects() {}
 
 	public static void register() {
@@ -92,6 +115,17 @@ public final class JujutsuEffects {
 	private static final class MegumiSoakedEffect extends MobEffect {
 		private MegumiSoakedEffect() {
 			super(MobEffectCategory.HARMFUL, 0x2E6FA8);
+		}
+	}
+	private static final class GrippedEffect extends MobEffect {
+		private GrippedEffect() {
+			super(MobEffectCategory.HARMFUL, 0x4A5D23);
+		}
+	}
+
+	private static final class CursedFearEffect extends MobEffect {
+		private CursedFearEffect() {
+			super(MobEffectCategory.HARMFUL, 0x1A0B2E);
 		}
 	}
 }
