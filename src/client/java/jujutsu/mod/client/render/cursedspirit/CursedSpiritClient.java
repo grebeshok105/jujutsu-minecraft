@@ -2,6 +2,7 @@ package jujutsu.mod.client.render.cursedspirit;
 
 import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import jujutsu.mod.client.vfx.cursedspirit.CursedSpiritVfxRecipes;
 import jujutsu.mod.client.render.cursedspirit.model.CursedSpiritBludModel;
 import jujutsu.mod.client.render.cursedspirit.model.CursedSpiritButcherModel;
 import jujutsu.mod.client.render.cursedspirit.model.CursedSpiritFloatingCurseModel;
@@ -23,6 +24,7 @@ public final class CursedSpiritClient {
 	}
 
 	public static void register() {
+		CursedSpiritVfxRecipes.register();
 		EntityModelLayerRegistry.registerModelLayer(CursedSpiritModels.layer(CursedSpiritVariant.PROWLER),
 				CursedSpiritProwlerModel::createBodyLayer);
 		EntityModelLayerRegistry.registerModelLayer(CursedSpiritModels.layer(CursedSpiritVariant.FLOATING_CURSE),
@@ -47,5 +49,7 @@ public final class CursedSpiritClient {
 				context -> new CursedSpiritRenderer(context, 0.4f));
 		EntityRendererRegistry.register(JujutsuEntities.GREATER_CURSED_SPIRIT,
 				context -> new CursedSpiritRenderer(context, 0.7f));
+		EntityRendererRegistry.register(JujutsuEntities.CURSED_ACID_SPIT,
+				CursedSpiritAcidSpitRenderer::new);
 	}
 }

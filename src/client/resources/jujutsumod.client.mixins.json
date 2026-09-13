@@ -8,7 +8,10 @@
     "FirstPersonHandFxMixin",
     "HairpinCameraMixin",
     "HairpinGameRendererMixin",
-    "PlayerRenderContextMixin"
+    "HoldInputMixin",
+    "PlayerRenderContextMixin",
+    "FearMouseMixin",
+    "FearKeyboardMixin"
   ],
   "injectors": {
     "defaultRequire": 1
