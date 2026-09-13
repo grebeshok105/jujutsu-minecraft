@@ -20,10 +20,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import jujutsu.mod.vfx.MegumiVfxIds;
+import jujutsu.mod.vfx.CursedSpiritVfxIds;
+import jujutsu.mod.client.vfx.cursedspirit.CursedSpiritVfxRecipes;
 import jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes;
 import jujutsu.mod.client.vfx.nobara.NobaraVfxRecipes;
 import jujutsu.mod.client.vfx.todo.TodoVfxRecipes;
+import jujutsu.mod.vfx.MegumiVfxIds;
 import jujutsu.mod.vfx.NobaraVfxIds;
 import jujutsu.mod.vfx.TodoVfxIds;
 import net.minecraft.resources.ResourceLocation;
@@ -41,7 +43,8 @@ final class VfxCompletenessTest {
 	private static final List<Owner> OWNERS = List.of(
 			new Owner("Nobara", NobaraVfxIds.LIVE, NobaraVfxIds.PLANNED),
 			new Owner("Todo", TodoVfxIds.LIVE, TodoVfxIds.PLANNED),
-			new Owner("Megumi", MegumiVfxIds.LIVE, MegumiVfxIds.PLANNED));
+			new Owner("Megumi", MegumiVfxIds.LIVE, MegumiVfxIds.PLANNED),
+			new Owner("Curse", CursedSpiritVfxIds.LIVE, CursedSpiritVfxIds.PLANNED));
 
 	@BeforeEach
 	void clearBefore() {
@@ -66,7 +69,8 @@ final class VfxCompletenessTest {
 			}
 		}
 
-		for (Class<?> ownerClass : List.of(NobaraVfxIds.class, TodoVfxIds.class, MegumiVfxIds.class)) {
+		for (Class<?> ownerClass : List.of(NobaraVfxIds.class, TodoVfxIds.class, MegumiVfxIds.class,
+				CursedSpiritVfxIds.class)) {
 			for (Field field : ownerClass.getDeclaredFields()) {
 				if (field.getType() != ResourceLocation.class || !Modifier.isStatic(field.getModifiers())
 						|| !Modifier.isPublic(field.getModifiers())) {
@@ -76,7 +80,7 @@ final class VfxCompletenessTest {
 				assertEquals(1, countStates(id), ownerClass.getSimpleName() + "." + field.getName());
 			}
 		}
-		assertEquals(60, allIds.size());
+		assertEquals(69, allIds.size());
 	}
 
 	@Test
@@ -84,10 +88,11 @@ final class VfxCompletenessTest {
 		NobaraVfxRecipes.register();
 		TodoVfxRecipes.register();
 		MegumiVfxRecipes.register();
+		CursedSpiritVfxRecipes.register();
 
 		Set<ResourceLocation> live = liveIds();
 		assertEquals(live, VfxDirector.registeredRecipeIdsForTest());
-		assertEquals(60, VfxDirector.registeredRecipeIdsForTest().size());
+		assertEquals(69, VfxDirector.registeredRecipeIdsForTest().size());
 		for (ResourceLocation id : VfxDirector.registeredRecipeIdsForTest()) {
 			assertEquals(1, ownerCount(id), "recipe owner count for " + id);
 			assertFalse(plannedIds().contains(id));
@@ -361,7 +366,8 @@ final class VfxCompletenessTest {
 
 	private static Map<String, ResourceLocation> idFields() {
 		Map<String, ResourceLocation> fields = new HashMap<>();
-		for (Class<?> owner : List.of(NobaraVfxIds.class, TodoVfxIds.class, MegumiVfxIds.class)) {
+		for (Class<?> owner : List.of(NobaraVfxIds.class, TodoVfxIds.class, MegumiVfxIds.class,
+				CursedSpiritVfxIds.class)) {
 			for (Field field : owner.getDeclaredFields()) {
 				if (field.getType() == ResourceLocation.class && Modifier.isStatic(field.getModifiers())
 						&& Modifier.isPublic(field.getModifiers())) {

@@ -17,9 +17,10 @@ import org.junit.jupiter.api.Test;
  * client with a {@code ClassCastException} and the connection dies with "Network Protocol
  * Error" — the defect the live pass found on 2026-09-12, when ATTACK_END was 63.
  *
- * <p>So this test pins three things: the exact quartet (a change must be deliberate), the byte
+ * <p>So this test pins three things: the exact sextet (a change must be deliberate), the byte
  * range, and exclusion of the reserved set. The reserved set is the javap-verified table from
  * the 1.21.8 client jar; extend it (with the same javap evidence) before moving an id.
+ * Ability telegraphs 104/105 ride the same packet, so they pin here too (Step 9).
  */
 final class CursedSpiritAnimationStateTest {
 
@@ -27,23 +28,27 @@ final class CursedSpiritAnimationStateTest {
 	private static final Set<Integer> RESERVED_VANILLA_EVENT_IDS = Set.of(21, 35, 63);
 
 	@Test
-	void animationIdsAreExactlyTheFrozenQuartet() {
+	void animationIdsAreExactlyTheFrozenSextet() {
 		assertEquals(100, CursedSpiritEntity.ATTACK_START);
 		assertEquals(101, CursedSpiritEntity.SCREAM_START);
 		assertEquals(102, CursedSpiritEntity.ATTACK_END);
 		assertEquals(103, CursedSpiritEntity.SCREAM_END);
+		assertEquals(104, CursedSpiritEntity.ABILITY_WINDUP);
+		assertEquals(105, CursedSpiritEntity.ABILITY_RELEASE);
 	}
 
 	@Test
 	void animationIdsAreDistinctAndFitASignedByte() {
 		long distinct = java.util.stream.Stream.of(CursedSpiritEntity.ATTACK_START,
 						CursedSpiritEntity.SCREAM_START, CursedSpiritEntity.ATTACK_END,
-						CursedSpiritEntity.SCREAM_END)
+						CursedSpiritEntity.SCREAM_END, CursedSpiritEntity.ABILITY_WINDUP,
+						CursedSpiritEntity.ABILITY_RELEASE)
 				.distinct()
 				.count();
-		assertEquals(4, distinct, "the four animation ids must be distinct");
+		assertEquals(6, distinct, "the six animation ids must be distinct");
 		for (byte id : new byte[]{CursedSpiritEntity.ATTACK_START, CursedSpiritEntity.SCREAM_START,
-				CursedSpiritEntity.ATTACK_END, CursedSpiritEntity.SCREAM_END}) {
+				CursedSpiritEntity.ATTACK_END, CursedSpiritEntity.SCREAM_END,
+				CursedSpiritEntity.ABILITY_WINDUP, CursedSpiritEntity.ABILITY_RELEASE}) {
 			assertTrue(id >= 0 && id <= 127, "id " + id + " must stay a non-negative signed byte");
 		}
 	}
@@ -51,7 +56,8 @@ final class CursedSpiritAnimationStateTest {
 	@Test
 	void animationIdsAvoidTheVanillaListenersReservedSet() {
 		for (byte id : new byte[]{CursedSpiritEntity.ATTACK_START, CursedSpiritEntity.SCREAM_START,
-				CursedSpiritEntity.ATTACK_END, CursedSpiritEntity.SCREAM_END}) {
+				CursedSpiritEntity.ATTACK_END, CursedSpiritEntity.SCREAM_END,
+				CursedSpiritEntity.ABILITY_WINDUP, CursedSpiritEntity.ABILITY_RELEASE}) {
 			assertFalse(RESERVED_VANILLA_EVENT_IDS.contains((int) id),
 					"id " + id + " is cast unconditionally by the vanilla client listener "
 							+ "(63 → Sniffer): broadcasting it disconnects every client in range");

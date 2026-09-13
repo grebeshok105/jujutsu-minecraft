@@ -19,8 +19,14 @@
 			"jujutsu.mod.gametest.MegumiShikigamiCrossTests",
 			"jujutsu.mod.gametest.MegumiShikigamiRetaliationGameTests",
 			"jujutsu.mod.gametest.CursedSpiritGameTests",
+			"jujutsu.mod.gametest.CursedSpiritGradeGameTests",
+			"jujutsu.mod.gametest.CursedSpiritAbilityGameTests",
+			"jujutsu.mod.gametest.CursedSpiritPerceptionGameTests",
 			"jujutsu.mod.gametest.CursedSpiritSpawnGameTests",
-			"jujutsu.mod.gametest.CursedSpiritIntegrationGameTests"
+			"jujutsu.mod.gametest.CursedSpiritDaySpawnGameTests",
+			"jujutsu.mod.gametest.CursedSpiritShelterGameTests",
+			"jujutsu.mod.gametest.CursedSpiritIntegrationGameTests",
+			"jujutsu.mod.gametest.CursedSpiritEffectGameTests"
 		],
 		"fabric-client-gametest": [
 			"jujutsu.mod.gametest.client.ClientLoadCanaryTest",

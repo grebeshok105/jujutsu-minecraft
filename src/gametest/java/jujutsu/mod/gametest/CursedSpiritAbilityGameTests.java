@@ -1,0 +1,285 @@
+package jujutsu.mod.gametest;
+
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import net.fabricmc.fabric.api.gametest.v1.GameTest;
+import net.minecraft.core.BlockPos;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.character.CharacterSelectionManager;
+import jujutsu.mod.character.JujutsuCharacter;
+import jujutsu.mod.cursedspirit.CursedSpiritEntity;
+import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityId;
+import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityParams;
+import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityProfile;
+import jujutsu.mod.cursedspirit.ability.effects.DashEffect;
+import jujutsu.mod.cursedspirit.ability.effects.RunnerEffect;
+import jujutsu.mod.registry.JujutsuEffects;
+import jujutsu.mod.registry.JujutsuEntities;
+
+/**
+ * Block 3 in-world ability scenarios (short form): pool shape (R44), dash hit/miss
+ * (R52), runner carry with an unbroken GRIPPED marker (R54).
+ *
+ * <p>Every behaviour scenario pins its pool through
+ * {@code forcePoolForTest} and asserts the effect actually started: without the id in
+ * the pool the start call refuses, and an unasserted refuse would pass vacuously.
+ */
+public final class CursedSpiritAbilityGameTests {
+	/** R44 — a newborn pool is exactly three distinct ids. */
+	@GameTest(maxTicks = 20, skyAccess = true)
+	public void poolHasThreeDistinctAbilities(GameTestHelper helper) {
+		String fixture = "poolHasThreeDistinctAbilities";
+		CursedSpiritTestFixtures.layStoneFloor(helper);
+		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
+		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
+				JujutsuEntities.CURSED_SPIRIT, new BlockPos(2, 1, 2));
+		helper.runAtTickTime(1, () -> {
+			spirit.gradeStats();
+			spirit.rollAbilityPool();
+			List<CursedSpiritAbilityId> pool = spirit.abilityBrain().pool();
+			helper.assertTrue(pool.size() == 3,
+					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+							"pool size 3", 3, pool.size()));
+			helper.assertTrue(Set.copyOf(pool).size() == 3,
+					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+							"pool distinct", "3 distinct", pool));
+			spirit.discard();
+			helper.succeed();
+		});
+	}
+
+	/** R52 hit — a stationary victim in the dash line takes damage. */
+	@GameTest(maxTicks = 100, skyAccess = true)
+	public void dashHitsStationaryTarget(GameTestHelper helper) {
+		String fixture = "dashHitsStationaryTarget";
+		CursedSpiritTestFixtures.layStoneFloor(helper);
+		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
+		ServerLevel level = helper.getLevel();
+		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, fixture,
+				new BlockPos(4, 1, 2));
+		// Perceiving vessel: without it mayTouch gates the dash off and the hit premise dies.
+		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
+		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
+				JujutsuEntities.CURSED_SPIRIT, new BlockPos(2, 1, 2));
+		CursedSpiritTestFixtures.freezeGround(spirit);
+		double victimMax = victim.getMaxHealth();
+		AtomicBoolean done = new AtomicBoolean();
+		helper.runAtTickTime(1, () -> {
+			spirit.gradeStats();
+			spirit.rollAbilityPool();
+			spirit.abilityBrain().forcePoolForTest(List.of(CursedSpiritAbilityId.DASH,
+					CursedSpiritAbilityId.REGEN, CursedSpiritAbilityId.ARMOR));
+			CursedSpiritAbilityParams params = CursedSpiritAbilityProfile.of(
+					CursedSpiritAbilityId.DASH, spirit.grade());
+			helper.assertTrue(DashEffect.start(spirit, victim, level.getGameTime(), params,
+					spirit.abilityBrain()), CursedSpiritTestFixtures.diagnostic(fixture,
+					helper.getTick(), "dash started", "true", "false"));
+		});
+		for (long tick = 2; tick <= 60; tick++) {
+			final long poll = tick;
+			helper.runAtTickTime(poll, () -> {
+				if (done.get()) {
+					return;
+				}
+				try {
+					if (victim.getHealth() < victimMax) {
+						done.set(true);
+						cleanup(helper, spirit, victim);
+						helper.succeed();
+					} else if (poll == 60) {
+						helper.assertTrue(false, CursedSpiritTestFixtures.diagnostic(fixture,
+								helper.getTick(), "stationary victim damaged by tick 60",
+								"hp < " + victimMax, victim.getHealth()));
+					}
+				} catch (RuntimeException | AssertionError failure) {
+					done.set(true);
+					cleanup(helper, spirit, victim);
+					throw failure;
+				}
+			});
+		}
+	}
+
+	/** R52 miss — a victim that leaves the frozen line takes nothing. Red-proof: re-aiming
+	 * the dash mid-flight would hit and turn this red. */
+	@GameTest(maxTicks = 100, skyAccess = true)
+	public void dashMissesDodgedTarget(GameTestHelper helper) {
+		String fixture = "dashMissesDodgedTarget";
+		CursedSpiritTestFixtures.layStoneFloor(helper);
+		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
+		ServerLevel level = helper.getLevel();
+		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, fixture,
+				new BlockPos(4, 1, 2));
+		// Perceiving vessel: without it the gate (not the dodge) voids the damage.
+		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
+		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
+				JujutsuEntities.CURSED_SPIRIT, new BlockPos(2, 1, 2));
+		CursedSpiritTestFixtures.freezeGround(spirit);
+		double victimMax = victim.getMaxHealth();
+		AtomicReference<Vec3> dashFrom = new AtomicReference<>();
+		helper.runAtTickTime(1, () -> {
+			spirit.gradeStats();
+			spirit.rollAbilityPool();
+			spirit.abilityBrain().forcePoolForTest(List.of(CursedSpiritAbilityId.DASH,
+					CursedSpiritAbilityId.REGEN, CursedSpiritAbilityId.ARMOR));
+			CursedSpiritAbilityParams params = CursedSpiritAbilityProfile.of(
+					CursedSpiritAbilityId.DASH, spirit.grade());
+			helper.assertTrue(DashEffect.start(spirit, victim, level.getGameTime(), params,
+					spirit.abilityBrain()), CursedSpiritTestFixtures.diagnostic(fixture,
+					helper.getTick(), "dash started", "true", "false"));
+			dashFrom.set(spirit.position());
+			// Same-tick sidestep: the dash commits to the victim's old line while the victim
+			// is already gone — a homing dash would still connect, a fixed course misses.
+			// (A tick-2 dodge arrives after the 0.9-b/tick dash already covers the 2-block
+			// gap, so the old oracle timed out instead of dodging.)
+			BlockPos escape = helper.absolutePos(new BlockPos(4, 1, 5));
+			victim.teleportTo(level, escape.getX() + 0.5, escape.getY(), escape.getZ() + 0.5,
+					Set.of(), 0.0f, 0.0f, false);
+		});
+		helper.runAtTickTime(60, () -> {
+			helper.assertTrue(victim.getHealth() == victimMax,
+					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+							"dodged victim undamaged", victimMax, victim.getHealth()));
+			helper.assertTrue(spirit.position().distanceTo(dashFrom.get()) > 3.0,
+					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+							"dash travelled (miss is not a refused start)", "> 3.0",
+							spirit.position().distanceTo(dashFrom.get())));
+			cleanup(helper, spirit, victim);
+			helper.succeed();
+		});
+	}
+
+	/** R54 — the run drops both hands at the start spot, holds GRIPPED every carry tick,
+	 * and ends on its window. */
+	@GameTest(maxTicks = 130, skyAccess = true)
+	public void runnerCarriesWithUnbrokenMarker(GameTestHelper helper) {
+		String fixture = "runnerCarriesWithUnbrokenMarker";
+		CursedSpiritTestFixtures.layStoneFloor(helper);
+		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
+		ServerLevel level = helper.getLevel();
+		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, fixture,
+				new BlockPos(4, 1, 2));
+		// Perceiving vessel: the grab is control, so a NONE victim refuses the start.
+		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
+		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
+				JujutsuEntities.CURSED_SPIRIT, new BlockPos(2, 1, 2));
+		AtomicBoolean gap = new AtomicBoolean();
+		AtomicReference<Vec3> startPos = new AtomicReference<>();
+		helper.runAtTickTime(1, () -> {
+			spirit.gradeStats();
+			spirit.rollAbilityPool();
+			spirit.abilityBrain().forcePoolForTest(List.of(CursedSpiritAbilityId.GRAB_RUNNER,
+					CursedSpiritAbilityId.REGEN, CursedSpiritAbilityId.ARMOR));
+			startPos.set(victim.position());
+			victim.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.DIAMOND_SWORD));
+			victim.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(Items.SHIELD));
+			CursedSpiritAbilityParams params = CursedSpiritAbilityProfile.of(
+					CursedSpiritAbilityId.GRAB_RUNNER, spirit.grade());
+			helper.assertTrue(RunnerEffect.start(spirit, victim, level.getGameTime(), params,
+					spirit.abilityBrain()), CursedSpiritTestFixtures.diagnostic(fixture,
+					helper.getTick(), "run started", "true", "false"));
+		});
+		for (long tick = 2; tick <= 85; tick++) {
+			helper.runAtTickTime(tick, () -> {
+				if (spirit.abilityBrain().isActive(CursedSpiritAbilityId.GRAB_RUNNER,
+						level.getGameTime()) && !victim.hasEffect(JujutsuEffects.GRIPPED)) {
+					gap.set(true);
+				}
+			});
+		}
+		helper.runAtTickTime(90, () -> {
+			helper.assertTrue(!gap.get(), CursedSpiritTestFixtures.diagnostic(fixture,
+					helper.getTick(), "GRIPPED every carry tick", "no gap", "gap"));
+			helper.assertTrue(victim.getMainHandItem().isEmpty() && victim.getOffhandItem().isEmpty(),
+					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+							"both hands dropped", "empty", "held"));
+			List<ItemEntity> drops = level.getEntitiesOfClass(ItemEntity.class,
+					new AABB(startPos.get(), startPos.get()).inflate(8.0));
+			helper.assertTrue(drops.size() == 2, CursedSpiritTestFixtures.diagnostic(fixture,
+					helper.getTick(), "two drops near run start", 2, drops.size()));
+			helper.assertTrue(!spirit.abilityBrain().isActive(CursedSpiritAbilityId.GRAB_RUNNER,
+					level.getGameTime()), CursedSpiritTestFixtures.diagnostic(fixture,
+					helper.getTick(), "run ended by tick 90", "inactive", "active"));
+			// P0: window expiry routes through end(), so the carry set is empty again —
+			// a stuck UUID would deny the victim attacks/breaks/placements until restart.
+			helper.assertTrue(RunnerEffect.carriedCount() == 0, CursedSpiritTestFixtures.diagnostic(
+					fixture, helper.getTick(), "carry set empty after window", 0,
+					RunnerEffect.carriedCount()));
+			helper.assertTrue(!RunnerEffect.isRunnerVictim(victim), CursedSpiritTestFixtures.diagnostic(
+					fixture, helper.getTick(), "victim released after window", "false",
+					RunnerEffect.isRunnerVictim(victim)));
+			cleanup(helper, spirit, victim);
+			helper.succeed();
+		});
+	}
+
+	/** Fear cast range — a victim beyond the profile radius never catches
+	 * {@code CURSED_FEAR}, while the same pair in range does (the gate discriminates,
+	 * so the negative assert cannot pass vacuously). */
+	@GameTest(maxTicks = 60, skyAccess = true)
+	public void fearBeyondCastRangeCatchesNothing(GameTestHelper helper) {
+		String fixture = "fearBeyondCastRangeCatchesNothing";
+		CursedSpiritTestFixtures.layStoneFloor(helper);
+		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
+		ServerLevel level = helper.getLevel();
+		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, fixture,
+				new BlockPos(4, 1, 2));
+		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
+		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
+				JujutsuEntities.CURSED_SPIRIT, new BlockPos(2, 1, 2));
+		CursedSpiritTestFixtures.freezeGround(spirit);
+		helper.runAtTickTime(1, () -> {
+			spirit.gradeStats();
+			spirit.rollAbilityPool();
+			spirit.abilityBrain().forcePoolForTest(List.of(CursedSpiritAbilityId.FEAR,
+					CursedSpiritAbilityId.REGEN, CursedSpiritAbilityId.ARMOR));
+			double castRange = CursedSpiritAbilityProfile
+					.of(CursedSpiritAbilityId.FEAR, spirit.grade()).radius();
+			Vec3 hidden = spirit.position().add(castRange + 3.0, 0.0, 0.0);
+			victim.teleportTo(level, hidden.x, hidden.y, hidden.z, Set.of(), 0.0f, 0.0f, false);
+			helper.assertTrue(spirit.distanceTo(victim) > castRange,
+					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+							"victim beyond cast range", ">" + castRange,
+							spirit.distanceTo(victim)));
+			spirit.abilityBrain().decideInCombat(spirit, spirit.grade(), victim,
+					level.getGameTime());
+			helper.assertTrue(!spirit.abilityBrain().isActive(CursedSpiritAbilityId.FEAR,
+					level.getGameTime()), CursedSpiritTestFixtures.diagnostic(fixture,
+					helper.getTick(), "no fear window beyond range", "inactive", "active"));
+		});
+		helper.runAtTickTime(5, () -> {
+			try {
+				helper.assertTrue(!victim.hasEffect(JujutsuEffects.CURSED_FEAR),
+						CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+								"no fear debuff beyond range", "absent", "present"));
+				Vec3 close = spirit.position().add(3.0, 0.0, 0.0);
+				victim.teleportTo(level, close.x, close.y, close.z, Set.of(), 0.0f, 0.0f,
+						false);
+				spirit.abilityBrain().decideInCombat(spirit, spirit.grade(), victim,
+						level.getGameTime());
+				helper.assertTrue(victim.hasEffect(JujutsuEffects.CURSED_FEAR),
+						CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+								"fear lands in range", "present", "absent"));
+			} finally {
+				cleanup(helper, spirit, victim);
+			}
+			helper.succeed();
+		});
+	}
+
+	private static void cleanup(GameTestHelper helper, CursedSpiritEntity spirit,
+			ServerPlayer victim) {
+		spirit.discard();
+		CursedSpiritTestFixtures.cleanupVictim(helper, victim);
+	}
+}

@@ -71,8 +71,16 @@ final class CursedSpiritAttackPolicyTest {
 	}
 
 	@Test
-	void cooldownAndDamageReadTheRow() {
+	void cooldownReadsTheTierRowAndDamageReadsTheGradeStats() {
 		assertEquals(COMMON.attackCooldownTicks(), CursedSpiritAttackPolicy.cooldownTicks(COMMON));
-		assertEquals((float) COMMON.attackDamage(), CursedSpiritAttackPolicy.primaryDamage(COMMON));
+		CursedSpiritGradeStats grade = new CursedSpiritGradeStats(32.0, 7.5, 0.275);
+		assertEquals(7.5f, CursedSpiritAttackPolicy.primaryDamage(grade));
+		CursedSpiritGradeStats mutated = new CursedSpiritGradeStats(32.0, 9.5, 0.275);
+		assertEquals(9.5f, CursedSpiritAttackPolicy.primaryDamage(mutated));
+		CursedSpiritTierStats greater = CursedSpiritProfile.of(CursedSpiritTier.GREATER);
+		assertEquals((float) (7.5 * greater.aoeDamageScale()),
+				CursedSpiritAttackPolicy.aoeDamage(grade, greater));
+		assertEquals((float) (9.5 * greater.aoeDamageScale()),
+				CursedSpiritAttackPolicy.aoeDamage(mutated, greater));
 	}
 }
