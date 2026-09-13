@@ -1,3 +1,38 @@
+# Session Handoff — released as `v1.7.5` beta (2026-09-13)
+
+## State — RELEASED
+
+The Cursed Saga epic shipped: PR **#89** (`feat/cursed-saga`, 6 commits) merged as `e772a7d`,
+`chore(release): 1.7.5` = `b18363f` on `main`, tag `v1.7.5`, GitHub release (prerelease/beta) carries
+`jujutsumod-1.7.5.jar` (md5 `1803f152f1f2e6bcf06be00060d5f966`). Release notes are player-facing
+Russian per §13; the technical part lives in the PR body.
+
+- Idea issues **#79, #80, #81, #82, #86** closed with release comments — all five were implemented
+  (toad grab via shared `HoldSupport` pin + elephant presence/footprint; mage-only perception;
+  grade 5/4/3 axis with discrete bands; day spawn schedule + shelter; 8-ability pool, 3 per spirit).
+  **#83** (cursed tools) stays parked — it was never in this epic's scope.
+- Game instance `D:/Games/instances/Jujutsu/mods/` holds exactly one live mod jar, `jujutsumod-1.7.5.jar`
+  (md5 matches the build); `1.7.0` moved to `jujutsumod-1.7.0.jar.bak-20260913`.
+- Verification at release: `qualityGate` green — **142/142 GameTests, 541 JUnit**, doc audit + jar
+  isolation green; live MCP smoke **16/17** (elephant summon→pack→ACTIVE→presence pulse→jet, toad
+  summon→grab pin drift 0.000; the 17th was a driver-timing artifact, not a mod bug). Mutation
+  red-proof on Block 5 (HOLD_MIN mutation reds the suite, revert re-greens).
+- Post-release de-flake (`3a66419`, on main above the release commit): two intermittent CI reds
+  root-caused to test oracles, not product — `combatSilencesShelter` now seeds the target directly
+  (vanilla `NearestAttackableTargetGoal` random gate, ~1/13 000 tail) and the slam outsider moved
+  from (6,1,6) to (1,1,6) (body-centred blast drifts ~1 block past the crater; grade-3 hitRadius 4.3
+  vs the old 4.47→4.1 clearance). Verified by 5 consecutive green lane runs + green CI.
+
+## If work continues here
+
+1. Independent reviewer pass never ran (provider 429, ~6 h window) — re-run before relying on the
+   branch for the next slice; PR #89 body carries the full technical summary.
+2. `docs/KNOWN_ISSUES.md` #9: dev-lane death trap — persisted spirits near spawn can kill a fresh
+   lane player and pause the integrated server; offline save cleanup is the recovery path.
+3. Pipeline artifacts: `.superpowers/rule-of-four/cursed-saga/` — `implementation-plan.md` (rev 2.4+),
+   `plan-review.md`, `scout-1..4-report.md`, `block-5-report.md`, `progress.md`, `analysis/` live scripts.
+4. Next idea candidates: #83 (cursed tools) needs a DESIGN SPEC first, per the brainstorm gate.
+
 # Session Handoff — released as `v1.7.0` beta (2026-09-12)
 
 ## State — RELEASED
