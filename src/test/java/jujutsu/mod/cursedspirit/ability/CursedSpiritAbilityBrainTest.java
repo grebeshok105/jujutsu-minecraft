@@ -108,10 +108,44 @@ final class CursedSpiritAbilityBrainTest {
 	}
 
 	@Test
+	void duplicateStoredIdsFailLoad() {
+		// "dash,dash,dash" decodes to a full-length list but violates the distinct trio.
+		// Red-proof: dropping the HashSet check accepts the pool and goes green.
+		MapValueOutput output = new MapValueOutput();
+		output.putString(CursedSpiritAbilityBrain.ABILITIES_TAG, "dash,dash,dash");
+		CursedSpiritAbilityBrain brain = new CursedSpiritAbilityBrain();
+		assertFalse(brain.loadFrom(new MapValueInput(output.strings, output.longs)));
+		assertTrue(brain.pool().isEmpty());
+	}
+
+	@Test
+	void storedPoolMustBeEligibleForTheGrade() {
+		// The grade-aware overload re-uses the rank gate: every v1 id is rank-eligible at
+		// GRADE_5, so this pins the plumbing — a pool that decodes and a gate consulted.
+		MapValueOutput output = new MapValueOutput();
+		output.putString(CursedSpiritAbilityBrain.ABILITIES_TAG, "dash,regen,armor");
+		CursedSpiritAbilityBrain brain = new CursedSpiritAbilityBrain();
+		assertTrue(brain.loadFrom(new MapValueInput(output.strings, output.longs),
+				CursedSpiritGrade.GRADE_5));
+		assertEquals(List.of(CursedSpiritAbilityId.DASH, CursedSpiritAbilityId.REGEN,
+				CursedSpiritAbilityId.ARMOR), brain.pool());
+		// The same list rejected syntactically stays rejected with a grade.
+		MapValueOutput dup = new MapValueOutput();
+		dup.putString(CursedSpiritAbilityBrain.ABILITIES_TAG, "dash,dash,dash");
+		CursedSpiritAbilityBrain second = new CursedSpiritAbilityBrain();
+		assertFalse(second.loadFrom(new MapValueInput(dup.strings, dup.longs),
+				CursedSpiritGrade.GRADE_5));
+		assertTrue(second.pool().isEmpty());
+	}
+
+	@Test
 	void forcedPoolRejectsAnythingButATrio() {
 		CursedSpiritAbilityBrain brain = new CursedSpiritAbilityBrain();
 		assertThrows(IllegalArgumentException.class,
 				() -> brain.forcePoolForTest(List.of(CursedSpiritAbilityId.DASH)));
+		assertThrows(IllegalArgumentException.class,
+				() -> brain.forcePoolForTest(List.of(CursedSpiritAbilityId.DASH,
+						CursedSpiritAbilityId.DASH, CursedSpiritAbilityId.ARMOR)));
 	}
 
 	@Test

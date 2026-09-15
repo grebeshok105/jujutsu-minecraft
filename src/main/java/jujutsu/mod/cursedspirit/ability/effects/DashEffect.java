@@ -69,6 +69,9 @@ public final class DashEffect {
 		if (horizontal > 1.0E-6) {
 			target.push(push.x / horizontal * state.params().strength(), 0.1,
 					push.z / horizontal * state.params().strength());
+			// hurtMarked marks the velocity for sync: a ServerPlayer's movement is
+			// client-authoritative, so a bare push() never reaches the client.
+			target.hurtMarked = true;
 		}
 		level.broadcastEntityEvent(spirit, CursedSpiritEntity.ABILITY_RELEASE);
 		brain.forceEnd(CursedSpiritAbilityId.DASH);

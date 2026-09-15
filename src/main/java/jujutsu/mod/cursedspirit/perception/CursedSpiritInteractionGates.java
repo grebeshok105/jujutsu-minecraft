@@ -22,7 +22,7 @@ public final class CursedSpiritInteractionGates {
 		ServerLivingEntityEvents.ALLOW_DAMAGE.register(CursedSpiritInteractionGates::allowDamage);
 		AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
 			if (entity != null && CursePerception.isSubject(entity)
-					&& !CursePerception.perceives(player)) {
+					&& !CursePerception.canInteract(player)) {
 				return InteractionResult.FAIL;
 			}
 			return InteractionResult.PASS;
@@ -31,14 +31,25 @@ public final class CursedSpiritInteractionGates {
 
 	static boolean allowDamage(LivingEntity victim, DamageSource source, float amount) {
 		Entity attacker = source.getEntity();
-		// Curse → non-perceiving player: the blow does not exist for the victim.
-		if (attacker != null && CursePerception.isSubject(attacker)
-				&& victim instanceof Player && !CursePerception.perceives(victim)) {
+		// The accountable entity: for direct blows this IS getEntity (a melee attacker, or the
+		// shooter vanilla stores as causing entity on arrow/trident sources); when the causing
+		// entity is absent or is itself a projectile/owned body, the owner chain recovers the
+		// player behind it — a non-interactor's arrow, trident or TNT cannot reach the curse
+		// through the indirection.
+		Entity responsible = CursePerception.responsibleParty(
+				attacker != null ? attacker : source.getDirectEntity());
+		// Curse → player without the interaction right: the blow does not exist for the victim.
+		// The subject check covers both a direct curse attacker and a curse-owned body
+		// (projectile, summon) resolved through the owner chain.
+		if (victim instanceof Player && !CursePerception.canInteract(victim)
+				&& (CursePerception.isSubject(attacker) || CursePerception.isSubject(responsible))) {
 			return false;
 		}
-		// Non-perceiving player → curse: blind swings cannot connect.
+		// Player without the interaction right → curse: blind swings and owned projectiles
+		// alike cannot connect. A projectile with no player owner (dispenser, world trap)
+		// resolves to null and stays an honest world hazard.
 		if (CursePerception.isSubject(victim)
-				&& attacker instanceof Player && !CursePerception.perceives(attacker)) {
+				&& responsible instanceof Player && !CursePerception.canInteract(responsible)) {
 			return false;
 		}
 		return true;

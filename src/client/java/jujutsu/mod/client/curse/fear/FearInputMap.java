@@ -63,4 +63,13 @@ public final class FearInputMap {
 	public static int remapKey(int glfwKey) {
 		return REMAP.getOrDefault(glfwKey, glfwKey);
 	}
+
+	/**
+	 * Mouse look delta under fear: negated while the inversion is active, the input
+	 * unchanged otherwise. Applies to the yaw/pitch deltas handed to
+	 * {@code LocalPlayer.turn(DD)V} — both axes mirror together.
+	 */
+	public static double lookDelta(double delta, boolean fearActive) {
+		return fearActive ? -delta : delta;
+	}
 }
