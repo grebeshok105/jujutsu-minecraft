@@ -340,15 +340,32 @@ public final class CursedSpiritPerceptionGameTests {
 				// Flush login/placement traffic so only the probe sound is observed.
 				drainSoundPackets(none);
 				drainSoundPackets(mage);
+				int mageSentBefore = sentCount(mage);
+				int noneSentBefore = sentCount(none);
 				spirit.playSound(net.minecraft.sounds.SoundEvents.ZOMBIE_AMBIENT, 1.0f, 1.0f);
+				int mageSentDelta = sentCount(mage) - mageSentBefore;
+				int noneSentDelta = sentCount(none) - noneSentBefore;
+				// Control probe: a packet we send through the same connection.send path —
+				// separates "spirit send never queued" from "loopback read is blind".
+				mage.connection.send(new net.minecraft.network.protocol.game.ClientboundSoundPacket(
+						net.minecraft.core.Holder.direct(net.minecraft.sounds.SoundEvents.ZOMBIE_AMBIENT),
+						net.minecraft.sounds.SoundSource.HOSTILE, 9999.0, 9999.0, 9999.0,
+						1.0f, 1.0f, 0L));
+				List<Object> noneRaw = drainSoundPackets(none);
+				List<Object> mageRaw = drainSoundPackets(mage);
 				List<net.minecraft.network.protocol.game.ClientboundSoundPacket> noneHeard =
-						soundPacketsAt(drainSoundPackets(none), spirit);
+						soundPacketsAt(noneRaw, spirit);
 				List<net.minecraft.network.protocol.game.ClientboundSoundPacket> mageHeard =
-						soundPacketsAt(drainSoundPackets(mage), spirit);
+						soundPacketsAt(mageRaw, spirit);
 				helper.assertTrue(noneHeard.isEmpty(),
-						diag(fixture, 5, "none hears nothing", "[]", noneHeard));
+						diag(fixture, 5, "none hears nothing", "[]",
+								noneHeard + " raw=" + outboundSummary(noneRaw)
+										+ " " + connectionDiag(none)));
 				helper.assertTrue(!mageHeard.isEmpty(),
-						diag(fixture, 5, "mage hears the sound", ">=1", mageHeard.size()));
+						diag(fixture, 5, "mage hears the sound", ">=1",
+								mageHeard.size() + " raw=" + outboundSummary(mageRaw)
+										+ " sentDelta=" + mageSentDelta
+										+ "/" + noneSentDelta + " " + connectionDiag(mage)));
 			} finally {
 				cleanup(helper, spirit, none);
 				CursedSpiritTestFixtures.cleanupVictim(helper, mage);
@@ -431,8 +448,17 @@ public final class CursedSpiritPerceptionGameTests {
 	 * {@code ServerPlayer.connection} (the listener) → its protected {@code connection}
 	 * field → the netty {@code channel}; the fixture builds a real {@code EmbeddedChannel},
 	 * so written packets queue as outbound messages.
+	 *
+	 * <p>Two EmbeddedChannel realities had to be learned at runtime: {@code Connection.send}
+	 * called off the event loop (the GameTest thread) does NOT write immediately — it
+	 * schedules the write on the channel's event loop, and an {@code EmbeddedChannel}'s
+	 * embedded loop only runs queued tasks inside {@code runPendingTasks()} /
+	 * {@code runScheduledPendingTasks()}. So the drain must pump both first, or every queue
+	 * reads empty regardless of what was sent. Second: with only the {@code Connection}
+	 * handler installed the pipeline holds no encoder, so outbound entries are the raw
+	 * packet objects — no unwrapping needed.
 	 */
-	private static List<net.minecraft.network.protocol.game.ClientboundSoundPacket> drainSoundPackets(
+	private static List<Object> drainSoundPackets(
 			ServerPlayer player) {
 		try {
 			Field connectionField = net.minecraft.server.network.ServerCommonPacketListenerImpl.class
@@ -443,12 +469,21 @@ public final class CursedSpiritPerceptionGameTests {
 			channelField.setAccessible(true);
 			io.netty.channel.embedded.EmbeddedChannel channel =
 					(io.netty.channel.embedded.EmbeddedChannel) channelField.get(connection);
-			List<net.minecraft.network.protocol.game.ClientboundSoundPacket> heard = new ArrayList<>();
+			// Pump the embedded loop so writes scheduled by send() from this thread land in
+			// the outbound queue before we read it.
+			channel.runPendingTasks();
+			channel.runScheduledPendingTasks();
+			channel.runPendingTasks();
+			channel.flush();
+			List<Object> heard = new ArrayList<>();
 			Object outbound;
 			while ((outbound = channel.readOutbound()) != null) {
-				if (outbound instanceof net.minecraft.network.protocol.game.ClientboundSoundPacket sound) {
-					heard.add(sound);
-				}
+				heard.add(outbound);
+			}
+			Object queued;
+			java.util.Queue<Object> leftovers = channel.outboundMessages();
+			while ((queued = leftovers.poll()) != null) {
+				heard.add(queued);
 			}
 			return heard;
 		} catch (ReflectiveOperationException failure) {
@@ -458,16 +493,71 @@ public final class CursedSpiritPerceptionGameTests {
 
 	/** Keeps only packets emitted at the spirit's position (isolates the probe sound). */
 	private static List<net.minecraft.network.protocol.game.ClientboundSoundPacket> soundPacketsAt(
-			List<net.minecraft.network.protocol.game.ClientboundSoundPacket> packets,
-			CursedSpiritEntity spirit) {
+			List<Object> packets, CursedSpiritEntity spirit) {
 		List<net.minecraft.network.protocol.game.ClientboundSoundPacket> at = new ArrayList<>();
-		for (net.minecraft.network.protocol.game.ClientboundSoundPacket packet : packets) {
-			if (packet.getX() == spirit.getX() && packet.getY() == spirit.getY()
+		for (Object outbound : packets) {
+			if (outbound instanceof net.minecraft.network.protocol.game.ClientboundSoundPacket packet
+					&& packet.getX() == spirit.getX() && packet.getY() == spirit.getY()
 					&& packet.getZ() == spirit.getZ()) {
 				at.add(packet);
 			}
 		}
 		return at;
+	}
+
+	/** Class-name histogram of a raw outbound drain, for failure diagnostics. */
+	private static String outboundSummary(List<Object> raw) {
+		java.util.Map<String, Integer> counts = new java.util.TreeMap<>();
+		for (Object outbound : raw) {
+			String name = outbound == null ? "null" : outbound.getClass().getName();
+			counts.merge(name, 1, Integer::sum);
+		}
+		return counts.toString();
+	}
+
+	/** {@code Connection.sentPackets} — bumped in {@code sendPacket} before loop dispatch. */
+	private static int sentCount(ServerPlayer player) {
+		try {
+			Field connectionField = net.minecraft.server.network.ServerCommonPacketListenerImpl.class
+					.getDeclaredField("connection");
+			connectionField.setAccessible(true);
+			Object connection = connectionField.get(player.connection);
+			Field sentField = net.minecraft.network.Connection.class.getDeclaredField("sentPackets");
+			sentField.setAccessible(true);
+			return (int) sentField.get(connection);
+		} catch (ReflectiveOperationException failure) {
+			return -1;
+		}
+	}
+
+	/**
+	 * Send-path diagnostic: {@code Connection.sentPackets} is incremented in
+	 * {@code sendPacket} BEFORE the event-loop dispatch, so it separates "send never
+	 * fired" (counter still) from "fired but the loopback queue stayed empty". Also
+	 * dumps channel state and pipeline handler names.
+	 */
+	private static String connectionDiag(ServerPlayer player) {
+		try {
+			Field connectionField = net.minecraft.server.network.ServerCommonPacketListenerImpl.class
+					.getDeclaredField("connection");
+			connectionField.setAccessible(true);
+			Object connection = connectionField.get(player.connection);
+			Field channelField = net.minecraft.network.Connection.class.getDeclaredField("channel");
+			channelField.setAccessible(true);
+			io.netty.channel.embedded.EmbeddedChannel channel =
+					(io.netty.channel.embedded.EmbeddedChannel) channelField.get(connection);
+			Field sentField = net.minecraft.network.Connection.class.getDeclaredField("sentPackets");
+			sentField.setAccessible(true);
+			java.util.List<String> handlers = new ArrayList<>();
+			for (java.util.Map.Entry<String, io.netty.channel.ChannelHandler> e : channel.pipeline()) {
+				handlers.add(e.getKey() + ":" + e.getValue().getClass().getSimpleName());
+			}
+			return "conn[sent=" + sentField.get(connection) + " open=" + channel.isOpen()
+					+ " active=" + channel.isActive() + " registered=" + channel.isRegistered()
+					+ " pipeline=" + handlers + "]";
+		} catch (ReflectiveOperationException failure) {
+			return "conn[diag broke: " + failure + "]";
+		}
 	}
 
 	private static void cleanup(GameTestHelper helper, CursedSpiritEntity spirit, ServerPlayer victim) {
