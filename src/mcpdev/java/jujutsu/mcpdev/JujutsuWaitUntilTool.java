@@ -101,6 +101,11 @@ public final class JujutsuWaitUntilTool extends BaseTool {
 			throw new McpException(ErrorCodes.TOOL_INPUT_INVALID,
 					"Invalid mode: " + mode + " (expected any|all)");
 		}
+		// Structural validation runs on the HTTP thread so malformed conditions
+		// surface as TOOL_INPUT_INVALID, not the flattened main-thread code.
+		for (JsonNode cond : conditionsNode) {
+			validate(cond);
+		}
 		MinecraftServer server = JujutsuMcpdevPlayers.requireServer();
 
 		CompletableFuture<Void> done = new CompletableFuture<>();
@@ -197,6 +202,45 @@ public final class JujutsuWaitUntilTool extends BaseTool {
 			default:
 				throw new McpException(ErrorCodes.TOOL_INPUT_INVALID,
 						"Unknown condition type: '" + type + "'");
+		}
+	}
+
+	/**
+	 * Structural validation only — checks the condition type is known and every
+	 * required field is present and parseable. Entity presence is intentionally
+	 * not checked: a wait may legitimately target an entity that spawns later.
+	 */
+	private static void validate(JsonNode cond) {
+		String type = cond.path("type").asText("");
+		switch (type) {
+			case "entity_dead", "entity_gone", "effect_on", "effect_off",
+					"health_below", "health_above" ->
+				uuidArg(cond, "uuid");
+			case "entity_present" -> {
+				String typeId = cond.path("type_id").asText(cond.path("entity_type").asText(""));
+				if (typeId.isBlank()) {
+					throw new McpException(ErrorCodes.TOOL_INPUT_INVALID,
+							"entity_present condition requires 'type_id'");
+				}
+				ResourceLocation.parse(typeId);
+				if (cond.has("near_uuid")) {
+					uuidArg(cond, "near_uuid");
+				}
+			}
+			case "cooldown_clear" -> {
+				uuidArg(cond, "player_uuid");
+				parseAbility(cond.path("slot").asText(""));
+			}
+			default ->
+				throw new McpException(ErrorCodes.TOOL_INPUT_INVALID,
+						"Unknown condition type: '" + type + "'");
+		}
+		if (type.startsWith("effect_")) {
+			effectHolder(cond);
+		}
+		if (type.startsWith("health_") && !cond.has("value")) {
+			throw new McpException(ErrorCodes.TOOL_INPUT_INVALID,
+					"health_* condition requires 'value'");
 		}
 	}
 
@@ -310,7 +354,19 @@ public final class JujutsuWaitUntilTool extends BaseTool {
 				boolean allMatch = true;
 				boolean anyMatch = false;
 				for (int i = 0; i < conditions.size(); i++) {
-					boolean m = evaluate(server, conditions.get(i));
+					// In `any` mode a condition that already matched — or that is not
+					// needed once another holds — must not abort the wait: a dead
+					// entity makes every later require(uuid) throw. Errors only
+					// propagate while no condition has matched yet.
+					boolean m;
+					try {
+						m = evaluate(server, conditions.get(i));
+					} catch (McpException e) {
+						if (requireAll) {
+							throw e;
+						}
+						m = false;
+					}
 					matched[i] = matched[i] || m;
 					allMatch &= m;
 					anyMatch |= m;

@@ -11,8 +11,6 @@ import com.chapmanjw.minecraft.fabric.mcp.protocol.ArgumentReader;
 import com.chapmanjw.minecraft.fabric.mcp.protocol.Schemas;
 import com.chapmanjw.minecraft.fabric.mcp.protocol.ToolContext;
 import com.chapmanjw.minecraft.fabric.mcp.protocol.ToolResult;
-import com.chapmanjw.minecraft.fabric.mcp.protocol.error.ErrorCodes;
-import com.chapmanjw.minecraft.fabric.mcp.protocol.error.McpException;
 import com.chapmanjw.minecraft.fabric.mcp.tools.BaseTool;
 import com.chapmanjw.minecraft.fabric.mcp.tools.annotations.McpTool;
 
