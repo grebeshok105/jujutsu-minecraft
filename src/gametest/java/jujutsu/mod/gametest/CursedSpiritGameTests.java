@@ -878,4 +878,81 @@ public final class CursedSpiritGameTests {
 			});
 		}
 	}
+
+	/**
+	 * Issue #99 — the slam dead zone. The tracked victim is yanked mid-windup into the ring
+	 * PAST the hitbox-edge reach boundary (3.0 + halves 0.675 + 0.3 = 3.975 centre) but still
+	 * inside the crater the splash collects (mob box inflated by 3.5, edge reach ~4.175 from
+	 * centre). Pull spot (5,1,5) sits at ~4.24 centre distance: before the fix the victim took
+	 * zero damage there — out of direct reach AND excluded from the AoE by strikeTargets.
+	 * After the fix the shockwave hit lands. The in-reach double-dip is impossible by
+	 * construction: the directHit flag gates the fallback AND vanilla's 10-tick invulnerability
+	 * window would swallow a same-tick second hurt regardless.
+	 */
+	@GameTest(maxTicks = 220, skyAccess = true)
+	public void greaterSlamHitsVictimInCraterRingPastReach(GameTestHelper helper) {
+		String fixture = "greaterSlamHitsVictimInCraterRingPastReach";
+		BlockPos spiritFeet = new BlockPos(2, 1, 2);
+		BlockPos victimFeet = new BlockPos(2, 1, 3);
+		CursedSpiritTestFixtures.layStoneFloor(helper);
+		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
+		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, fixture, victimFeet);
+		// Perceiving victim (issue #80): a NONE body is never acquired, so the slam never runs.
+		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
+		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
+				JujutsuEntities.GREATER_CURSED_SPIRIT, spiritFeet);
+		double victimMax = victim.getMaxHealth();
+		AtomicBoolean pulled = new AtomicBoolean();
+		AtomicBoolean done = new AtomicBoolean();
+
+		helper.runAtTickTime(2, () -> {
+			helper.assertTrue(spirit.hasLineOfSight(victim),
+					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+							"line of sight to victim", "true", spirit.hasLineOfSight(victim)));
+		});
+		for (long tick = 3; tick <= 210; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				if (done.get()) {
+					return;
+				}
+				try {
+					if (!pulled.get() && spirit.attackAnimationState.isStarted()
+							&& spirit.getTarget() == victim) {
+						// The windup just opened: drop the victim into the dead-zone ring —
+						// outside direct reach, inside the crater the splash collects. The pull
+						// stays inside the pad so the victim remains a valid target.
+						Vec3 ring = helper.absolutePos(new BlockPos(5, 1, 5)).getCenter();
+						victim.teleportTo(ring.x, ring.y, ring.z);
+						pulled.set(true);
+						return;
+					}
+					if (pulled.get() && victim.getHealth() < victimMax) {
+						done.set(true);
+						spirit.discard();
+						CursedSpiritTestFixtures.cleanupVictim(helper, victim);
+						helper.succeed();
+						return;
+					}
+					if (pollTick == 210) {
+						Vec3 spiritPos = spirit.position();
+						Vec3 victimPos = victim.position();
+						helper.assertTrue(false, net.minecraft.network.chat.Component.literal(String.format(java.util.Locale.ROOT,
+								"dead-zone forensics: pulled=%s anim=%s target=%s spirit=(%.2f,%.2f,%.2f) "
+										+ "victim=(%.2f,%.2f,%.2f) dist=%.2f victimHp=%.1f/%.1f spiritAlive=%s",
+								pulled.get(), spirit.attackAnimationState.isStarted(),
+								spirit.getTarget() == victim ? "victim" : String.valueOf(spirit.getTarget()),
+								spiritPos.x, spiritPos.y, spiritPos.z,
+								victimPos.x, victimPos.y, victimPos.z, spirit.distanceTo(victim),
+								victim.getHealth(), victimMax, spirit.isAlive())));
+					}
+				} catch (RuntimeException | AssertionError failure) {
+					done.set(true);
+					spirit.discard();
+					CursedSpiritTestFixtures.cleanupVictim(helper, victim);
+					throw failure;
+				}
+			});
+		}
+	}
 }
