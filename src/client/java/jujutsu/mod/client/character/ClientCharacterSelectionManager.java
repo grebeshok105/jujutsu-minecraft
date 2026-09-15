@@ -24,7 +24,7 @@ public final class ClientCharacterSelectionManager {
 		JujutsuCharacter character = JujutsuCharacter.byId(payload.characterId());
 		// Always remember the selection, including NONE — UI defaults must match the server.
 		Selection previous = SELECTIONS.put(payload.playerId(), new Selection(character, model(payload.modelId())));
-		forgetPreviousVessel(previous, character);
+		forgetPreviousVessel(payload.playerId(), localPlayerId(), previous, character);
 		cancelFirstPersonOnVesselChange(payload.playerId(), previous, character);
 		refreshDimensions(payload.playerId());
 	}
@@ -32,7 +32,7 @@ public final class ClientCharacterSelectionManager {
 	/** Optimistic local update after Confirm (before server echo). */
 	public static void applyLocal(UUID playerId, JujutsuCharacter character, PlayerSkin.Model model) {
 		Selection previous = SELECTIONS.put(playerId, new Selection(character, model));
-		forgetPreviousVessel(previous, character);
+		forgetPreviousVessel(playerId, localPlayerId(), previous, character);
 		cancelFirstPersonOnVesselChange(playerId, previous, character);
 		refreshDimensions(playerId);
 	}
@@ -41,11 +41,18 @@ public final class ClientCharacterSelectionManager {
 	 * The vessel that just left takes its mirrored cooldowns with it (issue #84): the server wipes the
 	 * same set, and a stale deadline here would keep suppressing input (or drawing a spinner) for an
 	 * ability the server would already accept. Re-confirming the same vessel clears nothing.
+	 * Only applies to the local player (issue #95): another player's selection sync must never
+	 * wipe this client's mirrored deadlines.
 	 */
-	private static void forgetPreviousVessel(Selection previous, JujutsuCharacter character) {
-		if (previous != null && previous.character() != character) {
+	static void forgetPreviousVessel(UUID playerId, UUID localPlayerId, Selection previous, JujutsuCharacter character) {
+		if (previous != null && previous.character() != character && playerId.equals(localPlayerId)) {
 			ClientAbilityCooldowns.clearForCharacter(previous.character());
 		}
+	}
+
+	private static UUID localPlayerId() {
+		LocalPlayer local = Minecraft.getInstance().player;
+		return local == null ? null : local.getUUID();
 	}
 
 	/**
