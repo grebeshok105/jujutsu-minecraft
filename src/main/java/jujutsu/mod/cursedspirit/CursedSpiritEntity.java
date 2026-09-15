@@ -380,6 +380,9 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant, Cur
 		}
 		applyStats(loadedGrade, loadedStats);
 		setHealth(Math.min(getHealth(), getMaxHealth()));
+			// POST-MERGE (block C, fix/review-abilities-spawn): switch to
+		// loadFrom(input, grade()) once the grade-gated overload lands — grade is
+		// already applied above via applyStats.
 		if (!abilityBrain.loadFrom(input)) {
 			rollAbilityPool();
 		}
@@ -404,6 +407,9 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant, Cur
 
 	@Override
 	public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
+		// POST-MERGE (block C, fix/review-abilities-spawn): the absorb overload
+		// absorb(grade, pool, amount, source) takes the DamageSource for source
+		// filtering — pass `source` once that signature exists on this base.
 		float afterArmor = ArmorEffect.absorb(grade(), abilityBrain.pool(), amount);
 		if (afterArmor <= 0.0f) {
 			ArmorEffect.emitBlocked(this, level.getGameTime());
