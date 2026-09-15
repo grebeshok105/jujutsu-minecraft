@@ -26,6 +26,13 @@ public class CursedSpiritShelterGoal extends Goal {
 	private final CursedSpiritEntity mob;
 	private BlockPos shelterTarget;
 	private long nextScanGameTime;
+	/** selfScore cache: the score query is ~10 block reads — far too heavy for a per-tick call. */
+	private double cachedSelfScore = -1.0;
+	private long selfScoreCachedAt = Long.MIN_VALUE;
+	private long navigationStartedAt;
+	private int failedNavigations;
+	private boolean arrived;
+	private boolean gaveUp;
 
 	public CursedSpiritShelterGoal(CursedSpiritEntity mob) {
 		this.mob = mob;
@@ -55,12 +62,12 @@ public class CursedSpiritShelterGoal extends Goal {
 			shelterTarget = null;
 			return false;
 		}
-		double selfScore = CursedSpiritShelterPolicy.shelterScoreAt(level, mob.blockPosition());
+		long now = level.getGameTime();
+		double selfScore = selfScore(level, now);
 		if (!CursedSpiritShelterPolicy.wants(true, false, selfScore)) {
 			shelterTarget = null;
 			return false;
 		}
-		long now = level.getGameTime();
 		if (shelterTarget != null && now < nextScanGameTime) {
 			return true;
 		}
@@ -82,12 +89,21 @@ public class CursedSpiritShelterGoal extends Goal {
 		if (mob.currentVictim() != null || shelterTarget == null) {
 			return false;
 		}
-		double selfScore = CursedSpiritShelterPolicy.shelterScoreAt(level, mob.blockPosition());
-		return selfScore < CursedSpiritShelterPolicy.SETTLED_AT;
+		// Settle is arrival, not a score threshold: a partial-shade cell (~0.55) is a
+		// legal target (picked because it beats the current spot), so demanding
+		// SETTLED_AT here made the goal run forever, re-issuing moveTo every tick.
+		if (arrived || gaveUp) {
+			return false;
+		}
+		return selfScore(level, level.getGameTime()) < CursedSpiritShelterPolicy.SETTLED_AT;
 	}
 
 	@Override
 	public void start() {
+		arrived = false;
+		gaveUp = false;
+		failedNavigations = 0;
+		navigationStartedAt = mob.level().getGameTime();
 		if (shelterTarget != null) {
 			mob.getNavigation().moveTo(shelterTarget.getX() + 0.5, shelterTarget.getY(),
 					shelterTarget.getZ() + 0.5, CursedSpiritShelterPolicy.SEEK_SPEED);
@@ -96,10 +112,26 @@ public class CursedSpiritShelterGoal extends Goal {
 
 	@Override
 	public void tick() {
-		if (shelterTarget != null && mob.getNavigation().isDone()) {
-			mob.getNavigation().moveTo(shelterTarget.getX() + 0.5, shelterTarget.getY(),
-					shelterTarget.getZ() + 0.5, CursedSpiritShelterPolicy.SEEK_SPEED);
+		if (shelterTarget == null || !mob.getNavigation().isDone()) {
+			return;
 		}
+		if (reachedTarget()) {
+			// Arrived on a cell that scored strictly above the old spot — settle. The goal
+			// ends, the MOVE flag frees, and the next canUse re-scans for something better.
+			arrived = true;
+			return;
+		}
+		failedNavigations++;
+		if (failedNavigations >= CursedSpiritShelterPolicy.MAX_NAV_FAILURES
+				|| mob.level().getGameTime() - navigationStartedAt
+						>= CursedSpiritShelterPolicy.NAV_TIMEOUT_TICKS) {
+			// Unreachable cell (wall, gap): give up instead of re-pathing every tick.
+			// stop() arms the scan cooldown, so the next attempt is SCAN_PERIOD_TICKS out.
+			gaveUp = true;
+			return;
+		}
+		mob.getNavigation().moveTo(shelterTarget.getX() + 0.5, shelterTarget.getY(),
+				shelterTarget.getZ() + 0.5, CursedSpiritShelterPolicy.SEEK_SPEED);
 	}
 
 	@Override
@@ -140,6 +172,29 @@ public class CursedSpiritShelterGoal extends Goal {
 			return null;
 		}
 		return best;
+	}
+
+	/** Close enough to the cell centre to count the run as done. */
+	private boolean reachedTarget() {
+		double dx = mob.getX() - (shelterTarget.getX() + 0.5);
+		double dz = mob.getZ() - (shelterTarget.getZ() + 0.5);
+		double dy = mob.getY() - shelterTarget.getY();
+		double radius = CursedSpiritShelterPolicy.ARRIVE_RADIUS_BLOCKS;
+		return dx * dx + dz * dz <= radius * radius
+				&& Math.abs(dy) <= CursedSpiritShelterPolicy.ARRIVE_RADIUS_Y;
+	}
+
+	/**
+	 * Current spot's shelter score, cached for {@code SCAN_PERIOD_TICKS}: the query costs
+	 * a sky check plus an up-scan of block reads, which must not run per tick per spirit.
+	 */
+	private double selfScore(Level level, long now) {
+		if (cachedSelfScore < 0.0 || now - selfScoreCachedAt
+				>= CursedSpiritShelterPolicy.SCAN_PERIOD_TICKS) {
+			cachedSelfScore = CursedSpiritShelterPolicy.shelterScoreAt(level, mob.blockPosition());
+			selfScoreCachedAt = now;
+		}
+		return cachedSelfScore;
 	}
 
 	private static boolean isStandable(Level level, BlockPos feetPos) {
