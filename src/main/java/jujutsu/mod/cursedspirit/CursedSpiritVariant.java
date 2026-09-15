@@ -2,6 +2,7 @@ package jujutsu.mod.cursedspirit;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import net.minecraft.sounds.SoundEvent;
 import jujutsu.mod.registry.JujutsuSounds;
 
@@ -37,6 +38,24 @@ public enum CursedSpiritVariant {
 	WISTIVER(CursedSpiritTier.GREATER, 1, 0.85f, 0.0f,
 			JujutsuSounds.CURSED_WISTIVER_AMBIENT, JujutsuSounds.CURSED_WISTIVER_HURT,
 			JujutsuSounds.CURSED_WISTIVER_DEATH, JujutsuSounds.CURSED_WISTIVER_SCREAM);
+
+	/**
+	 * The shared roster array and per-tier lists. {@code values()} clones on every call and the
+	 * renderer asks for the variant every frame, so the enum caches both shapes once; the lists
+	 * are unmodifiable and must stay that way (callers iterate, never mutate).
+	 */
+	private static final CursedSpiritVariant[] ALL = values();
+	private static final Map<CursedSpiritTier, List<CursedSpiritVariant>> BY_TIER = byTier();
+
+	private static Map<CursedSpiritTier, List<CursedSpiritVariant>> byTier() {
+		Map<CursedSpiritTier, List<CursedSpiritVariant>> map =
+				new java.util.EnumMap<>(CursedSpiritTier.class);
+		for (CursedSpiritVariant variant : ALL) {
+			map.computeIfAbsent(variant.tier, tier -> new ArrayList<>()).add(variant);
+		}
+		map.replaceAll((tier, roster) -> java.util.Collections.unmodifiableList(roster));
+		return map;
+	}
 
 	private final CursedSpiritTier tier;
 	private final int weight;
@@ -104,20 +123,17 @@ public enum CursedSpiritVariant {
 		return screamSound;
 	}
 
-	/** All variants of one tier, in roster order. */
+	/**
+	 * All variants of one tier, in roster order. Returns the shared unmodifiable list — the
+	 * per-frame callers (entity variant read, renderer) must not pay a fresh allocation.
+	 */
 	public static List<CursedSpiritVariant> variantsOf(CursedSpiritTier tier) {
-		List<CursedSpiritVariant> variants = new ArrayList<>();
-		for (CursedSpiritVariant variant : values()) {
-			if (variant.tier == tier) {
-				variants.add(variant);
-			}
-		}
-		return variants;
+		return BY_TIER.getOrDefault(tier, List.of());
 	}
 
 	/** Lookup by {@link #id()}; empty when unknown (the entity re-rolls instead). */
 	public static java.util.Optional<CursedSpiritVariant> byId(String id) {
-		for (CursedSpiritVariant variant : values()) {
+		for (CursedSpiritVariant variant : ALL) {
 			if (variant.id().equals(id)) {
 				return java.util.Optional.of(variant);
 			}

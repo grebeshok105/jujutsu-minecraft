@@ -206,6 +206,17 @@ not as drive-by "fixes".
    silently never runs.** This slice shipped two such classes (grade + ability, 8 scenarios) and
    the lane was green without them; both reviews found it independently. Treat "class on disk ==
    class in entrypoints" as part of any lane claim.
+10. **A spirit's melee strike reads the grade row, not the `ATTACK_DAMAGE` attribute.**
+   `CursedSpiritAttackGoal.strike` prices the hit through
+   `CursedSpiritAttackPolicy.primaryDamage(mob.gradeStats())`, so any transient modifier on the
+   body is silently ignored by the direct hit — most visibly the berserk latch, whose
+   `ATTACK_DAMAGE` modifier (+30→50%) raises the attribute but not the swing (the same applies to
+   `/attribute` edits and future damage systems; the AoE shockwave reads its own
+   `aoeDamage(gradeStats, row)` row). The attribute stays registered and base-synced
+   (`createAttributes`/`applyStats`) because vanilla combat plumbing reads it, so this is a
+   standing seam decision, not a missing registration: switching the strike to
+   `mob.getAttributeValue(Attributes.ATTACK_DAMAGE)` is cheap when an owner call wants berserk to
+   boost melee — flagged for awareness, accepted for now.
 
 ## Public-release blockers
 

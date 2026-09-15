@@ -102,6 +102,9 @@ public final class MegumiShikigamiCrossTests {
 				helper.assertTrue(pack.aliveBodies() == 1,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "swap", helper.getTick(), ownerId,
 								"alive bodies", "1", pack.aliveBodies()));
+				helper.assertTrue(pack.anchorAlive(),
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "swap", helper.getTick(), ownerId,
+								"anchor alive (the javadoc's anchored body)", "true", pack.anchorAlive()));
 
 				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
 				helper.assertTrue(remaining == 0,
@@ -404,6 +407,10 @@ public final class MegumiShikigamiCrossTests {
 				helper.assertTrue(view.get().aliveBodies() == 1,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "press", helper.getTick(), ownerId,
 								"alive bodies", "1", view.get().aliveBodies()));
+				helper.assertTrue(view.get().anchorAlive(),
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "press", helper.getTick(), ownerId,
+								"anchor alive (the javadoc's anchored body)", "true",
+								view.get().anchorAlive()));
 
 				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
 				helper.assertTrue(remaining == 0,
