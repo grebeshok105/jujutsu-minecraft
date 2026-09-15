@@ -273,6 +273,7 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant, Cur
 		return rollVariant(tier, random);
 	}
 
+	@Override
 	public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty,
 			EntitySpawnReason spawnReason, SpawnGroupData spawnData) {
 		if (!gradeSet) {
@@ -303,32 +304,30 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant, Cur
 		if (!CursedSpiritSpawnRules.difficultyAllows(level.getDifficulty())) {
 			return false;
 		}
-		if (reason != EntitySpawnReason.NATURAL) {
-			// The crowd cap is population pressure for natural spawning only: a spawner, spawn
-			// egg or command places its spirit even in a crowded spot. It also keeps the cap
-			// conjunct out of the shared-GameTest-level oracle, where sibling arenas' bodies
-			// are legitimately nearby.
-			if (super.checkSpawnRules(level, reason)) {
-				return true;
-			}
-			// Block 4 (#82, Step 2): daylight is no absolute ban — a passed day roll still allows
-			// the spawn after the vanilla light half refuses. Strictly weaker, never stricter, and
-			// day-only: at night a refused light half stays refused.
-			if (!CursedSpiritSpawnSchedule.isDaytime(level.dayTime())) {
-				return false;
-			}
-			return CursedSpiritSpawnRules.daylightAllows(level);
-	}
-	if (!CursedSpiritSpawnRules.belowLocalCap(level, this.blockPosition())) {
-		return false;
-	}
-	if (super.checkSpawnRules(level, reason)) {
-		return true;
-	}
-	if (!CursedSpiritSpawnSchedule.isDaytime(level.dayTime())) {
-		return false;
-	}
-	return CursedSpiritSpawnRules.daylightAllows(level);
+		if (reason != EntitySpawnReason.NATURAL && reason != EntitySpawnReason.CHUNK_GENERATION) {
+			// Non-natural placements (spawner, egg, command, summon, patrol...) get the bare
+			// vanilla gate: no crowd cap — a spawner places its spirit even in a crowded
+			// spot — and crucially NO day roll. The 0.6 daylight mercy is population
+			// pressure relief for the natural spawn loop only; a spawner or command must
+			// never luck past the light check. (Post-merge review: the roll previously
+			// also armed the non-natural branch.)
+			return super.checkSpawnRules(level, reason);
+		}
+		// Natural branch (world-gen chunk population and the natural spawn loop share it):
+		// crowd cap first, then the vanilla light gate, then the day roll.
+		if (!CursedSpiritSpawnRules.belowLocalCap(level, this.blockPosition())) {
+			return false;
+		}
+		if (super.checkSpawnRules(level, reason)) {
+			return true;
+		}
+		// Block 4 (#82, Step 2): daylight is no absolute ban — a passed day roll still allows
+		// the spawn after the vanilla light half refuses. Strictly weaker, never stricter, and
+		// day-only: at night a refused light half stays refused.
+		if (!CursedSpiritSpawnSchedule.isDaytime(level.dayTime())) {
+			return false;
+		}
+		return CursedSpiritSpawnRules.daylightAllows(level);
 	}
 	@Override
 	protected void defineSynchedData(SynchedEntityData.Builder builder) {
@@ -367,7 +366,11 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant, Cur
 				input.getDoubleOr(CursedSpiritGradeNbt.STAT_HP, Double.NaN),
 				input.getDoubleOr(CursedSpiritGradeNbt.STAT_DAMAGE, Double.NaN),
 				input.getDoubleOr(CursedSpiritGradeNbt.STAT_SPEED, Double.NaN));
-		rollSeed = input.getLongOr(CursedSpiritGradeNbt.ROLL_SEED, 0L);
+		// An absent RollSeed (old saves, hand-edited NBT) must not collapse every loaded body
+		// onto seed 0 — identical ability pools. Re-roll the seed the same way the corrupt-
+		// stats fallback below does.
+		rollSeed = input.getLong(CursedSpiritGradeNbt.ROLL_SEED)
+				.orElseGet(() -> level().random.nextLong());
 		if (loadedGrade == null || !CursedSpiritGradeNbt.statsInBand(loadedStats, loadedGrade)) {
 			rollSeed = level().random.nextLong();
 			CursedSpiritRollPolicy.Newborn fallback =
@@ -449,13 +452,17 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant, Cur
 			idleAnimationState.start(tickCount);
 		}
 		if (!level().isClientSide) {
-			// Issue #80: a live target that stops perceiving (vessel switch) is dropped
-			// promptly instead of being hunted until death.
+			// Issue #80: a live target that loses the interaction right (vessel switch)
+			// is dropped promptly instead of being hunted until death.
 			LivingEntity target = getTarget();
-			if (target != null && !CursePerception.mayTouch(this, target)) {
+			if (target != null && !CursePerception.interacts(this, target)) {
 				setTarget(null);
 			}
-			abilityBrain.tick(this, (ServerLevel) level(), level().getGameTime());
+			// Brain work (regen, VFX, cooldowns) is for living bodies only — a corpse in the
+			// death window must not keep ticking it.
+			if (isAlive()) {
+				abilityBrain.tick(this, (ServerLevel) level(), level().getGameTime());
+			}
 		}
 		if (!level().isClientSide && screamTicks > 0) {
 			screamTicks--;
@@ -482,13 +489,33 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant, Cur
 		// wins the shared MOVE flag, above stroll (7) so the shelter walk is not wandered off.
 		goalSelector.addGoal(5, new CursedSpiritShelterGoal(this));
 		goalSelector.addGoal(7, new RandomStrollGoal(this, 0.8));
-		goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0f));
+		goalSelector.addGoal(8, new PerceiverLookAtPlayerGoal(this, 8.0f));
 		goalSelector.addGoal(8, new RandomLookAroundGoal(this));
 		targetSelector.addGoal(1, new HurtByTargetGoal(this));
 		// Issue #80: non-perceiving players are never valid targets. The selector stops
 		// acquisition; the setTarget filter below stops retaliation paths that bypass it.
 		targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true,
 				(target, targetLevel) -> CursePerception.canInteract(target)));
+	}
+
+	/**
+	 * Issue #80 look gate: the spirit must not visibly stare at a non-perceiving player —
+	 * a perceiver watching it track "thin air" leaks the invisible player's position.
+	 * 1.21.8's {@link LookAtPlayerGoal} takes no {@code Predicate} (javap-verified: the
+	 * candidate filter is a constructor-built {@code TargetingConditions}), so the gate is
+	 * a subclass rechecking the picked candidate. Nearest-wins stands: when the closest
+	 * player cannot perceive the spirit the goal simply idles that poll instead of
+	 * skipping to a farther perceiver — an accepted simplification, the leak is closed.
+	 */
+	private static final class PerceiverLookAtPlayerGoal extends LookAtPlayerGoal {
+		private PerceiverLookAtPlayerGoal(net.minecraft.world.entity.Mob mob, float lookDistance) {
+			super(mob, Player.class, lookDistance);
+		}
+
+		@Override
+		public boolean canUse() {
+			return super.canUse() && CursePerception.perceives(lookAt);
+		}
 	}
 
 	void beginAttackAnim() {
@@ -530,7 +557,7 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant, Cur
 	 */
 	@Override
 	public void setTarget(LivingEntity target) {
-		if (target != null && !CursePerception.mayTouch(this, target)) {
+		if (target != null && !CursePerception.interacts(this, target)) {
 			super.setTarget(null);
 			return;
 		}
@@ -545,28 +572,53 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant, Cur
 	 */
 	@Override
 	public boolean canCollideWith(Entity other) {
-		return other != null && CursePerception.mayTouch(this, other) && super.canCollideWith(other);
+		return other != null && CursePerception.interacts(this, other) && super.canCollideWith(other);
 	}
 
 	/**
-	 * Issue #80: curse voices go to perceivers only, one packet each. Vanilla
-	 * {@code Level.playSound} takes an <i>excluded</i> entity, never an addressee, and the
-	 * server broadcast reaches everyone in range — so the one-to-all super call would voice
-	 * the curse to nearby non-perceivers. This is the single voice sink (ambient, hurt and
-	 * the server-side death sound all flow through {@code makeSound}); client-side playback
-	 * stays on the super path, where the tracking filter already removed non-perceivers.
+	 * Issue #80: curse voices go to perceivers only, one packet each. {@code makeSound} is
+	 * the voice entry (ambient, hurt and the server-side death sound all flow through it);
+	 * it delegates to {@link #playSound} — the shared funnel below — so the audience rule
+	 * lives in exactly one place.
 	 */
 	@Override
 	public void makeSound(SoundEvent sound) {
+		if (sound != null) {
+			playSound(sound, getSoundVolume(), getVoicePitch());
+		}
+	}
+
+	/**
+	 * The single sound sink (javap-verified on 1.21.8): every voice AND every mechanical
+	 * sound — {@code playCombinationStepSounds}, {@code playMuffledStepSound},
+	 * {@code playSwimSound}/{@code waterSwimSound}, {@code playBlockFallSound},
+	 * {@code causeFallDamage}'s fall sound, thorns' {@code playSecondaryHurtSound} — funnels
+	 * into {@code Entity.playSound(SoundEvent,float,float)}, whose body is a bare
+	 * {@code level.playSound(null, x,y,z,...)} server broadcast to ALL players in radius.
+	 * Without this override a non-perceiver heard the invisible spirit's footsteps, falls
+	 * and splashes. Vanilla {@code Level.playSound} takes an <i>excluded</i> entity, never
+	 * an addressee, so the server path addresses one {@link ClientboundSoundPacket} per
+	 * perceiver in range instead. Client-side playback stays on the super path, where the
+	 * tracking filter already removed non-perceivers.
+	 */
+	@Override
+	public void playSound(SoundEvent sound, float volume, float pitch) {
 		if (sound == null || isSilent()) {
 			return;
 		}
-		if (level().isClientSide || !(level() instanceof ServerLevel server)) {
-			super.makeSound(sound);
+		if (level() instanceof ServerLevel server) {
+			sendSoundToPerceivers(server, sound, volume, pitch);
 			return;
 		}
-		float volume = getSoundVolume();
-		float pitch = getVoicePitch();
+		super.playSound(sound, volume, pitch);
+	}
+
+	/**
+	 * The per-perceiver send loop behind {@link #playSound}: one addressed packet for each
+	 * perceiver inside the sound's range, none for anyone else.
+	 */
+	private void sendSoundToPerceivers(ServerLevel server, SoundEvent sound,
+			float volume, float pitch) {
 		Holder<SoundEvent> holder = BuiltInRegistries.SOUND_EVENT.wrapAsHolder(sound);
 		double range = sound.getRange(volume);
 		double rangeSqr = range * range;
