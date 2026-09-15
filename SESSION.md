@@ -53,8 +53,10 @@ PRs **#100–#103**. Follow-up tooling PR **#105** added eight `jujutsu_*` dev-c
 
 ## If work continues here
 
-1. The fix batch is merged but **unreleased** — `mod_version` is still 1.7.5; a release cut is an
-   owner call, then the usual jar deploy into `D:/Games/instances/Jujutsu/mods/`.
+1. The fix batch shipped as **v1.7.6 beta hotfix** (2026-09-15): `chore(release): 1.7.6` = `56679ce`,
+   tag `v1.7.6`, GitHub prerelease carries `jujutsumod-1.7.6.jar`; deployed to
+   `D:/Games/instances/Jujutsu/mods/` (1.7.5 → `.bak-20260915`); issues #90–#99 carry release
+   comments. Lane re-verified live: `jujutsu_mod_status` reports `mod_version: 1.7.6`.
 2. **#104** is the standing instability item (episodic GameTest flakes); first suspect is the toad
    self-pick cooldown window vs the sic deadline.
 3. **#22** (shared static runtime state) stays open as systemic debt — the concrete ZONES/CARRIED
