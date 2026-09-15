@@ -39,7 +39,8 @@ final class MegumiToadBrain {
 	private static final int GRIP_MARKER_TICKS = 10;
 	/** Slowness keeps a held mob from walking out of the grip between velocity resets. */
 	private static final int GRIP_SLOWNESS_TICKS = 10;
-	private static final int GRIP_SLOWNESS_AMPLIFIER = 5;
+	/** The spec's grip slowness is "Slowness 100" — the high amplifier, not a gentle drain. */
+	private static final int GRIP_SLOWNESS_AMPLIFIER = 100;
 	/** How long the client keeps drawing the toss after it happened. */
 	private static final int THROW_FLASH_TICKS = 10;
 
@@ -64,9 +65,15 @@ final class MegumiToadBrain {
 			// Mid-windup: the intent is already recorded and re-checked on the commit tick.
 			return;
 		}
+		// Owner LoS gates only the owner's own ORDER (an owner cannot sic what it cannot see).
+		// A self-picked target answers to the body's own senses instead: nearestGrabbable already
+		// required the toad's LoS, and the commit below re-checks it — an owner standing in a
+		// cellar must not blind its toad (issue #90).
+		boolean ownerOrdered = toad.sicTargetUuid() != null
+				&& toad.sicTargetUuid().equals(target.getUUID());
 		if (owner == null || !toad.attackReady(gameTime)
 				|| !MegumiToadPolicy.canGrab(toad.distanceTo(target))
-				|| !owner.hasLineOfSight(target)) {
+				|| (ownerOrdered && !owner.hasLineOfSight(target))) {
 			return;
 		}
 		toad.beginGrabIntent(target);
@@ -107,6 +114,8 @@ final class MegumiToadBrain {
 						&& !candidate.isRemoved()
 						&& !candidate.isSpectator()
 						&& !CombatTags.isUngrabbable(candidate)
+						&& !candidate.isPassenger()
+						&& !HoldSupport.isHeld(candidate)
 						&& MegumiSummonRuntime.isEligibleTarget(owner, candidate)
 						&& MegumiToadPolicy.canGrab(toad.distanceTo(candidate))
 						&& toad.hasLineOfSight(candidate));
@@ -125,11 +134,22 @@ final class MegumiToadBrain {
 	/** The tongue has landed: nothing is damaged, the hold starts (R1). */
 	private static void commitGrab(ServerLevel level, ServerPlayer owner, MegumiToadEntity toad,
 			LivingEntity target, long gameTime) {
+		// Re-check eligibility at the commit tick: six ticks of windup are enough for the target
+		// to die, be grabbed by another holder, mount something, or leave the owner's side.
 		boolean valid = target.isAlive()
 				&& !target.isRemoved()
+				// A passenger escapes the pin: the vehicle re-asserts the rider's position in
+				// rideTick. Refusing is the honest gate — a teleport mid-ride is a lie either way.
+				&& !target.isPassenger()
+				// One victim, one holder: the shared GRIPPED marker is a single flag, so a second
+				// holder's release would strip the deny-state the first still owns (issue #90).
+				&& !HoldSupport.isHeld(target)
 				&& !CombatTags.isUngrabbable(target)
+				&& (owner == null || MegumiSummonRuntime.isEligibleTarget(owner, target))
 				&& MegumiToadPolicy.canGrab(toad.distanceTo(target))
-				&& (owner != null ? owner.hasLineOfSight(target) : toad.hasLineOfSight(target));
+				// The tongue is the body's: the toad's own LoS is the commit gate (issue #90 —
+				// a sic ordered while the owner saw the target must not land through a wall).
+				&& toad.hasLineOfSight(target);
 		if (valid) {
 			int holdTicks = MegumiToadPolicy.holdTicksFor(target.getMaxHealth(), hitboxVolume(target),
 					target instanceof Player);
@@ -146,8 +166,20 @@ final class MegumiToadBrain {
 	/** Every held tick: plant the body, pin the victim to the anchor, watch for the exit. */
 	private static void tickHold(ServerLevel level, ServerPlayer owner, MegumiToadEntity toad,
 			long gameTime) {
-		LivingEntity victim = resolve(level, toad.grabbedUuid());
+		// resolveHeld (not resolve) keeps a dead-but-still-present victim reachable so its
+		// marker can be lifted explicitly — a respawned player would otherwise re-enter the
+		// level still GRIPPED (issue #90).
+		LivingEntity victim = resolveHeld(level, toad.grabbedUuid());
 		if (victim == null) {
+			toad.clearGrab();
+			return;
+		}
+		// Death or disconnect is a release, not a throw: the toss is for a live exit. Without
+		// this guard a corpse is re-pinned for the death window and a respawned player is
+		// dragged back to the anchor (issue #90).
+		if (!victim.isAlive()
+				|| (victim instanceof ServerPlayer player && player.hasDisconnected())) {
+			HoldSupport.release(victim);
 			toad.clearGrab();
 			return;
 		}
@@ -162,6 +194,13 @@ final class MegumiToadBrain {
 		toad.setDeltaMovement(Vec3.ZERO);
 		Vec3 anchor = MegumiToadPolicy.anchor(toad.position(), toad.getLookAngle(),
 				MegumiShikigamiProfile.TOAD_GRIP_OFFSET);
+		// Collision probe with the victim's own box: a body facing a wall or lava would bury the
+		// anchor inside solid blocks and suffocate the victim mid-hold (issue #90). Fall back to
+		// the body's feet — always in-bounds for the body itself.
+		if (!level.noCollision(victim, victim.getBoundingBox()
+				.move(anchor.subtract(victim.position())))) {
+			anchor = toad.position();
+		}
 		// One pin for both kinds of victim: the anchor is written every tick, so the victim hangs
 		// TOAD_GRIP_OFFSET in front of the body instead of freezing wherever the tongue found it.
 		HoldSupport.applyHold(victim, anchor, GRIP_MARKER_TICKS);
@@ -189,7 +228,14 @@ final class MegumiToadBrain {
 		// drop it here — otherwise a thrown mob keeps a foreign HARMFUL icon for the marker's rest.
 		HoldSupport.release(victim);
 		if (!(victim instanceof Player)) {
-			victim.removeEffect(MobEffects.SLOWNESS);
+			// Strip only the tail of our own grip refresh: a slowness that predates the grab or
+			// came from somewhere else (different amplifier, or longer than one refresh window)
+			// belongs to its owner and survives the throw.
+			MobEffectInstance active = victim.getEffect(MobEffects.SLOWNESS);
+			if (active != null && active.getAmplifier() == GRIP_SLOWNESS_AMPLIFIER
+					&& active.getDuration() <= GRIP_SLOWNESS_TICKS) {
+				victim.removeEffect(MobEffects.SLOWNESS);
+			}
 		}
 		toad.markThrown(victim, gameTime + THROW_FLASH_TICKS);
 		toad.clearGrab();
@@ -206,6 +252,13 @@ final class MegumiToadBrain {
 	private static LivingEntity resolve(ServerLevel level, UUID id) {
 		return id != null && level.getEntity(id) instanceof LivingEntity living
 				&& living.isAlive() && !living.isRemoved() && living.level() == level
+				? living : null;
+	}
+
+	/** Like {@link #resolve} but keeps a dead victim reachable so its marker can be lifted. */
+	private static LivingEntity resolveHeld(ServerLevel level, UUID id) {
+		return id != null && level.getEntity(id) instanceof LivingEntity living
+				&& !living.isRemoved() && living.level() == level
 				? living : null;
 	}
 }

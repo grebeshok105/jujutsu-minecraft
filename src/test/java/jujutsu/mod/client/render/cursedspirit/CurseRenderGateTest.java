@@ -1,5 +1,6 @@
 package jujutsu.mod.client.render.cursedspirit;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
@@ -43,6 +44,34 @@ final class CurseRenderGateTest {
 	void spiritRendererStartsWithGate() throws Exception {
 		assertTrue(firstStatement(Files.readString(SPIRIT_RENDERER)).contains(
 				"CurseRenderGate.shouldRender"), "render must open with the gate");
+	}
+
+	// --- Issue #80 render leak: shadow + F3+B hitbox for non-perceivers ---
+
+	@Test
+	void nonSubjectIsNeverHiddenFromView() {
+		assertFalse(CurseRenderGate.hiddenFromView(false),
+				"non-subjects keep their shadow and hitbox");
+	}
+
+	@Test
+	void hiddenFromViewIsShouldRenderNegated() throws Exception {
+		String src = Files.readString(GATE);
+		String body = src.substring(src.indexOf("hiddenFromView(boolean isCurseSubject)"));
+		assertTrue(body.contains("return !shouldRender(isCurseSubject)"),
+				"hiddenFromView must be the gate's negation, not a second rule");
+	}
+
+	@Test
+	void extractRenderStateSuppressesLeakPaths() throws Exception {
+		String src = Files.readString(SPIRIT_RENDERER);
+		String body = src.substring(src.indexOf("extractRenderState"));
+		assertTrue(body.contains("CurseRenderGate.hiddenFromView(state.curseSubject)"),
+				"hidden branch must consult the gate");
+		assertTrue(body.contains("state.isInvisible = true"),
+				"isInvisible gates both the dispatcher shadow and the F3+B hitbox");
+		assertTrue(body.contains("state.displayFireAnimation = false"),
+				"the on-fire flame ignores isInvisible and needs its own flag");
 	}
 
 	@Test

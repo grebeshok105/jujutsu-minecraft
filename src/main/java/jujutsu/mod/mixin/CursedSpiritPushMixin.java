@@ -21,7 +21,8 @@ import jujutsu.mod.cursedspirit.perception.CursePerception;
  *
  * <p>Hot-path cost is two {@code instanceof} checks for the overwhelmingly common unmarked
  * pair; the tag lookup inside {@code isSubject} only runs past a marker hit. Non-player pairs
- * always pass {@code mayTouch} and behave exactly as before.
+ * always pass {@code interacts} and behave exactly as before. The gate reads the interaction
+ * right ({@code canInteract}), not mere perception: displacement is contact, not sensation.
  *
  * <p>Method descriptor (probe 1, javap-verified on 1.21.8):
  * {@code push(Lnet/minecraft/world/entity/Entity;)V}.
@@ -31,7 +32,7 @@ public abstract class CursedSpiritPushMixin {
 	@Inject(method = "push(Lnet/minecraft/world/entity/Entity;)V", at = @At("HEAD"), cancellable = true)
 	private void jujutsumod$gateUnperceivedPush(Entity other, CallbackInfo ci) {
 		Entity self = (Entity) (Object) this;
-		if (other != null && !CursePerception.mayTouch(self, other)) {
+		if (other != null && !CursePerception.interacts(self, other)) {
 			ci.cancel();
 		}
 	}

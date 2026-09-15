@@ -47,4 +47,23 @@ final class FearInputMapTest {
 		assertEquals(256, FearInputMap.remapKey(256));
 		assertEquals(290, FearInputMap.remapKey(290));
 	}
+
+	/**
+	 * Look deltas (yaw/pitch args of {@code LocalPlayer.turn}) mirror under fear and
+	 * pass through untouched when it is inactive. Red-proofs: dropping the negation or
+	 * flipping the predicate → both sides red.
+	 */
+	@Test
+	void lookDeltaMirrorsUnderFear() {
+		assertEquals(-12.5, FearInputMap.lookDelta(12.5, true));
+		assertEquals(3.0, FearInputMap.lookDelta(-3.0, true));
+		assertEquals(-0.0, FearInputMap.lookDelta(0.0, true));
+	}
+
+	@Test
+	void lookDeltaIsIdentityWithoutFear() {
+		assertEquals(12.5, FearInputMap.lookDelta(12.5, false));
+		assertEquals(-3.0, FearInputMap.lookDelta(-3.0, false));
+		assertEquals(0.0, FearInputMap.lookDelta(0.0, false));
+	}
 }

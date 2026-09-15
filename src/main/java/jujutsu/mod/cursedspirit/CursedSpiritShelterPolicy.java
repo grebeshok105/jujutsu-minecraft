@@ -38,6 +38,14 @@ public final class CursedSpiritShelterPolicy {
 	public static final double SEEK_SPEED = 1.0;
 	/** Standable-candidate budget per scan (nearest-first), so one scan cannot stall a tick. */
 	public static final int MAX_CANDIDATES = 48;
+	/** One run gives up after this many failed navigations toward the picked cell. */
+	public static final int MAX_NAV_FAILURES = 5;
+	/** One run gives up after this many ticks without reaching the picked cell. */
+	public static final int NAV_TIMEOUT_TICKS = 300;
+	/** Horizontal distance to the cell centre that counts as arrived. BALANCE. */
+	public static final double ARRIVE_RADIUS_BLOCKS = 1.5;
+	/** Vertical slack for the arrival check (one block up/down still counts). */
+	public static final double ARRIVE_RADIUS_Y = 2.0;
 
 	private static final double PARTIAL_BASE = 0.4;
 	private static final double PARTIAL_RANGE = 0.2;

@@ -2,6 +2,8 @@ package jujutsu.mod.cursedspirit.ability.effects;
 
 import java.util.List;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.world.damagesource.DamageSource;
 import jujutsu.mod.cursedspirit.CursedSpiritEntity;
 import jujutsu.mod.cursedspirit.CursedSpiritGrade;
 import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityId;
@@ -18,6 +20,20 @@ import jujutsu.mod.vfx.VfxCues;
  */
 public final class ArmorEffect {
 	private ArmorEffect() {
+	}
+
+	/**
+	 * Source-aware absorption (review #90): the shell absorbs <em>attacks</em>, not
+	 * hazards — sources in {@link DamageTypeTags#BYPASSES_ARMOR} (fire, fall, drowning,
+	 * cactus, magic…) pass through at full amount, matching what vanilla armor would
+	 * do. A {@code null} source keeps the legacy absorb-everything behaviour.
+	 */
+	public static float absorb(CursedSpiritGrade grade, List<CursedSpiritAbilityId> pool,
+			float amount, DamageSource source) {
+		if (source != null && source.is(DamageTypeTags.BYPASSES_ARMOR)) {
+			return amount;
+		}
+		return absorb(grade, pool, amount);
 	}
 
 	/** Incoming damage after absorption; 0 means the hit never reaches the body. */
