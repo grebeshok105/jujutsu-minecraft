@@ -253,7 +253,9 @@ public final class MegumiSummonRuntime {
 						candidate -> candidate != owner
 								&& candidate instanceof Mob mob
 								&& mob.getTarget() == owner));
-		return aggressor != null && isEligibleTarget(owner, aggressor) ? aggressor : null;
+		return aggressor != null && isEligibleTarget(owner, aggressor)
+				&& MegumiRetaliationPolicy.withinRadius(owner, aggressor, MegumiProfile.RETALIATION_RADIUS)
+				? aggressor : null;
 	}
 
 	private static MegumiDivineDogEntity createDog(
@@ -419,6 +421,15 @@ public final class MegumiSummonRuntime {
 		}
 		LivingEntity aggressor = retaliationTarget(owner);
 		if (aggressor == null) {
+			// Issue #96: the mark was never meant to outlive the answer. With no aggressor in reach,
+			// every mark the pack gave itself expires; a manual sic is the owner's order and stands.
+			for (MegumiDivineDogEntity dog : living) {
+				if (dog.sicTargetUuid() != null
+						&& MegumiRetaliationPolicy.markExpiresWithoutAggressor(dog.hasManualSicTarget())) {
+					dog.clearSicCommand();
+					dog.setTarget(null);
+				}
+			}
 			return;
 		}
 		for (MegumiDivineDogEntity dog : living) {

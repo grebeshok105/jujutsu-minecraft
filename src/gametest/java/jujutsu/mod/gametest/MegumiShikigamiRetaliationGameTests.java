@@ -2,8 +2,10 @@ package jujutsu.mod.gametest;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
@@ -11,6 +13,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.entity.EntityTypeTest;
@@ -625,6 +628,237 @@ public final class MegumiShikigamiRetaliationGameTests {
 					helper.assertTrue(heldMark.get(), MegumiShikigamiTestFixtures.diagnostic(fixture,
 							"priority", helper.getTick(), owner.getUUID(),
 							"the pack carried the sic mark", "mark targeted at least once", heldMark.get()));
+					helper.succeed();
+				}
+			});
+		}
+	}
+
+	/**
+	 * Issue #96 (radius half) — a retaliation mark is an answer, not a life sentence: the moment the
+	 * aggressor leaves the pack's reach, the mark the pack placed for itself expires and the body
+	 * stands down. The attacker stays alive and keeps hunting the owner the whole time, so the ONLY
+	 * thing that ends the answer is the distance — pre-fix the pack dragged the mark forever.
+	 */
+	@GameTest(maxTicks = 400, skyAccess = true)
+	public void retaliationMarkExpiresWhenTheAggressorLeavesRadius(GameTestHelper helper) {
+		String fixture = "retaliationMarkExpiresWhenTheAggressorLeavesRadius";
+		layPad(helper);
+		ServerPlayer owner = setupDamageableOwner(helper, fixture, new BlockPos(3, 1, 3));
+		ServerLevel level = helper.getLevel();
+		AtomicBoolean summoned = new AtomicBoolean();
+		AtomicReference<Zombie> attackerRef = new AtomicReference<>();
+		AtomicBoolean marked = new AtomicBoolean();
+		AtomicBoolean relocated = new AtomicBoolean();
+		AtomicBoolean answered = new AtomicBoolean();
+
+		helper.runAtTickTime(SUMMON_TICK, () -> summonToad(helper, fixture, owner, summoned));
+
+		helper.runAtTickTime(ATTACK_TICK, () -> {
+			helper.assertTrue(summoned.get(), MegumiShikigamiTestFixtures.diagnostic(fixture, "attack",
+					helper.getTick(), owner.getUUID(), "summon succeeded before the attack", "true",
+					summoned.get()));
+			Zombie attacker = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, new BlockPos(3, 1, 6));
+			attacker.setPersistenceRequired();
+			CursedSpiritTestFixtures.freezeGround(attacker);
+			// Deep health pool: the pack may land blows while the mark stands; the attacker must
+			// still be alive when it is moved, or the clear would be the kill, not the radius.
+			attacker.getAttribute(Attributes.MAX_HEALTH).setBaseValue(500.0);
+			attacker.setHealth(500.0f);
+			attackerRef.set(attacker);
+			owner.hurtServer(level, level.damageSources().mobAttack(attacker), 1.0f);
+		});
+
+		for (long tick = ATTACK_TICK + 1; tick <= ATTACK_TICK + 240; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				if (answered.get()) {
+					return;
+				}
+				Zombie attacker = attackerRef.get();
+				List<MegumiShikigamiEntity> bodies = bodiesOwnedBy(level, owner.getUUID());
+				if (attacker == null || bodies.isEmpty()) {
+					return;
+				}
+				if (!marked.get() && bodies.stream().anyMatch(body -> body.getTarget() == attacker)) {
+					marked.set(true);
+					// The aggressor walks out of reach while still fresh in the window.
+					attacker.teleportTo(level, attacker.getX() + 40.0, attacker.getY(), attacker.getZ(),
+							Set.of(), 0.0f, 0.0f, false);
+					relocated.set(true);
+					return;
+				}
+				if (relocated.get() && attacker.isAlive()
+						&& bodies.stream().allMatch(body -> body.getTarget() != attacker)) {
+					answered.set(true);
+					attacker.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, owner);
+					CursedSpiritTestFixtures.cleanupVictim(helper, owner);
+					helper.succeed();
+					return;
+				}
+				if (pollTick == ATTACK_TICK + 240) {
+					attacker.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, owner);
+					CursedSpiritTestFixtures.cleanupVictim(helper, owner);
+					helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture, "expire",
+							helper.getTick(), owner.getUUID(),
+							!marked.get() ? "pack acquires the owner's attacker"
+									: "mark expires once the aggressor leaves the radius",
+							"no body on " + attacker.getUUID(),
+							"marked=" + marked.get() + " relocated=" + relocated.get()
+									+ " distance=" + attacker.distanceTo(owner)
+									+ " targets=" + bodies.stream()
+											.map(body -> String.valueOf(body.getTarget())).toList()));
+				}
+			});
+		}
+	}
+
+	/**
+	 * Issue #96 (window half) — same rule measured on the clock: the aggressor stays in reach and
+	 * keeps hunting, but once the freshness window closes the self-placed mark must lapse. The
+	 * attacker never lands a second hit and never targets the owner itself, so the only signal that
+	 * ever names it is the one scripted hit.
+	 */
+	@GameTest(maxTicks = 400, skyAccess = true)
+	public void retaliationMarkExpiresWhenTheWindowCloses(GameTestHelper helper) {
+		String fixture = "retaliationMarkExpiresWhenTheWindowCloses";
+		layPad(helper);
+		ServerPlayer owner = setupDamageableOwner(helper, fixture, new BlockPos(3, 1, 3));
+		ServerLevel level = helper.getLevel();
+		AtomicBoolean summoned = new AtomicBoolean();
+		AtomicReference<Zombie> attackerRef = new AtomicReference<>();
+		AtomicBoolean marked = new AtomicBoolean();
+		AtomicBoolean answered = new AtomicBoolean();
+
+		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, owner, () -> {
+			MegumiShikigamiSelection.set(owner.getUUID(), MegumiShikigami.DOGS);
+			AbilityResult result = MegumiAbilityRouter.tryCast(owner, CharacterAbility.PRIMARY, false);
+			boolean ok = result == AbilityResult.SUCCESS;
+			summoned.set(ok);
+			helper.assertTrue(ok, MegumiShikigamiTestFixtures.diagnostic(fixture, "summon",
+					helper.getTick(), owner.getUUID(), "dogs summoned", AbilityResult.SUCCESS, result));
+		}));
+
+		helper.runAtTickTime(ATTACK_TICK, () -> {
+			helper.assertTrue(summoned.get(), MegumiShikigamiTestFixtures.diagnostic(fixture, "attack",
+					helper.getTick(), owner.getUUID(), "summon succeeded before the attack", "true",
+					summoned.get()));
+			Zombie attacker = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, new BlockPos(3, 1, 6));
+			attacker.setPersistenceRequired();
+			attacker.setNoAi(true);
+			CursedSpiritTestFixtures.freezeGround(attacker);
+			attacker.getAttribute(Attributes.MAX_HEALTH).setBaseValue(500.0);
+			attacker.setHealth(500.0f);
+			attackerRef.set(attacker);
+			owner.hurtServer(level, level.damageSources().mobAttack(attacker), 1.0f);
+		});
+
+		for (long tick = ATTACK_TICK + 1; tick <= ATTACK_TICK + 260; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				if (answered.get()) {
+					return;
+				}
+				Zombie attacker = attackerRef.get();
+				List<MegumiDivineDogEntity> dogs = dogsOwnedBy(level, owner.getUUID());
+				if (attacker == null || dogs.isEmpty()) {
+					return;
+				}
+				if (!marked.get() && dogs.stream().anyMatch(dog -> dog.getTarget() == attacker)) {
+					marked.set(true);
+					return;
+				}
+				if (marked.get() && attacker.isAlive()
+						&& pollTick > ATTACK_TICK + 110
+						&& dogs.stream().allMatch(dog -> dog.getTarget() != attacker)) {
+					answered.set(true);
+					attacker.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, owner);
+					CursedSpiritTestFixtures.cleanupVictim(helper, owner);
+					helper.succeed();
+					return;
+				}
+				if (pollTick == ATTACK_TICK + 260) {
+					attacker.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, owner);
+					CursedSpiritTestFixtures.cleanupVictim(helper, owner);
+					helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture, "expire",
+							helper.getTick(), owner.getUUID(),
+							!marked.get() ? "pack acquires the owner's attacker"
+									: "mark expires once the window closes",
+							"no dog on " + attacker.getUUID(),
+							"marked=" + marked.get()
+									+ " stamp=" + owner.getLastHurtByMobTimestamp()
+									+ " ownerTickCount=" + owner.tickCount
+									+ " targets=" + dogs.stream()
+											.map(dog -> String.valueOf(dog.getTarget())).toList()));
+				}
+			});
+		}
+	}
+
+	/**
+	 * Issue #96 (the owner's order half) — the expiry only ever touches marks the pack placed for
+	 * itself: a manual sic is not a retaliation mark, so with no hit on the owner at all (no
+	 * aggressor to answer, every tick) the sic mark still stands. The mark carries a deep health
+	 * pool so the pack's own punishment cannot end the scenario early.
+	 */
+	@GameTest(maxTicks = 320, skyAccess = true)
+	public void aManualSicMarkSurvivesWithoutAnyAggressor(GameTestHelper helper) {
+		String fixture = "aManualSicMarkSurvivesWithoutAnyAggressor";
+		layPad(helper);
+		ServerPlayer owner = setupDamageableOwner(helper, fixture, new BlockPos(3, 1, 3));
+		ServerLevel level = helper.getLevel();
+		AtomicBoolean summoned = new AtomicBoolean();
+		AtomicReference<Zombie> markRef = new AtomicReference<>();
+		AtomicLong lastMarkedTick = new AtomicLong(-1);
+		AtomicBoolean answered = new AtomicBoolean();
+
+		helper.runAtTickTime(SUMMON_TICK, () -> summonToad(helper, fixture, owner, summoned));
+
+		helper.runAtTickTime(ATTACK_TICK, () -> {
+			owner.setYRot(0.0f);
+			owner.setXRot(0.0f);
+			owner.yHeadRot = 0.0f;
+			Zombie mark = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, new BlockPos(3, 1, 6));
+			mark.setPersistenceRequired();
+			mark.setNoAi(true);
+			CursedSpiritTestFixtures.freezeGround(mark);
+			mark.getAttribute(Attributes.MAX_HEALTH).setBaseValue(500.0);
+			mark.setHealth(500.0f);
+			markRef.set(mark);
+			boolean ok = MegumiShikigamiRuntime.trySic(owner, false);
+			helper.assertTrue(ok, MegumiShikigamiTestFixtures.diagnostic(fixture, "sic", helper.getTick(),
+					owner.getUUID(), "sic resolved the aimed mark", "true", ok));
+		});
+
+		for (long tick = ATTACK_TICK + 1; tick <= ATTACK_TICK + 200; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				if (answered.get()) {
+					return;
+				}
+				Zombie mark = markRef.get();
+				List<MegumiShikigamiEntity> bodies = bodiesOwnedBy(level, owner.getUUID());
+				if (mark == null || bodies.isEmpty()) {
+					return;
+				}
+				if (bodies.stream().anyMatch(body -> body.getTarget() == mark)) {
+					lastMarkedTick.set(pollTick);
+				}
+				if (pollTick == ATTACK_TICK + 200) {
+					answered.set(true);
+					boolean held = mark.isAlive() && lastMarkedTick.get() > ATTACK_TICK + 150;
+					mark.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, owner);
+					CursedSpiritTestFixtures.cleanupVictim(helper, owner);
+					helper.assertTrue(held, MegumiShikigamiTestFixtures.diagnostic(fixture, "hold",
+							helper.getTick(), owner.getUUID(),
+							"the manual sic mark stands with no aggressor at all",
+							"mark targeted past tick " + (ATTACK_TICK + 150),
+							"lastMarkedTick=" + lastMarkedTick.get() + " markAlive=" + mark.isAlive()));
 					helper.succeed();
 				}
 			});
