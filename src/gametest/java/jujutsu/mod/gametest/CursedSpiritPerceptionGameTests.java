@@ -2,10 +2,12 @@ package jujutsu.mod.gametest;
 
 import net.minecraft.network.chat.Component;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicBoolean;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
@@ -14,6 +16,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Cow;
 import net.minecraft.world.phys.Vec3;
@@ -312,6 +315,159 @@ public final class CursedSpiritPerceptionGameTests {
 			// InvocationTargetException included: it extends ReflectiveOperationException.
 			throw new IllegalStateException("tracker drive reflection broke", failure);
 		}
+	}
+
+	/**
+	 * Post-merge review F1 — the shared sound sink: a server-side {@code playSound} (the
+	 * funnel for footsteps, swims, falls AND voices) reaches the mage's connection as a
+	 * {@code ClientboundSoundPacket} and sends nothing to the NONE victim. The oracle reads
+	 * the REAL outbound packet queue of each victim's loopback {@code EmbeddedChannel} —
+	 * red-proof: without the {@code playSound} override the vanilla broadcast lands in both
+	 * queues and the negative arm fails.
+	 */
+	@GameTest(maxTicks = 40, skyAccess = true)
+	public void spiritSoundsReachPerceiversOnly(GameTestHelper helper) {
+		String fixture = "spiritSoundsReachPerceiversOnly";
+		CursedSpiritTestFixtures.layStoneFloor(helper);
+		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
+		ServerPlayer none = CursedSpiritTestFixtures.setupVictim(helper, fixture, new BlockPos(4, 1, 2));
+		ServerPlayer mage = CursedSpiritTestFixtures.setupVictim(helper, fixture, new BlockPos(4, 1, 4));
+		CharacterSelectionManager.select(mage, JujutsuCharacter.MEGUMI);
+		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
+				JujutsuEntities.LESSER_CURSED_SPIRIT, new BlockPos(2, 1, 2));
+		helper.runAtTickTime(5, () -> {
+			try {
+				// Flush login/placement traffic so only the probe sound is observed.
+				drainSoundPackets(none);
+				drainSoundPackets(mage);
+				spirit.playSound(net.minecraft.sounds.SoundEvents.ZOMBIE_AMBIENT, 1.0f, 1.0f);
+				List<net.minecraft.network.protocol.game.ClientboundSoundPacket> noneHeard =
+						soundPacketsAt(drainSoundPackets(none), spirit);
+				List<net.minecraft.network.protocol.game.ClientboundSoundPacket> mageHeard =
+						soundPacketsAt(drainSoundPackets(mage), spirit);
+				helper.assertTrue(noneHeard.isEmpty(),
+						diag(fixture, 5, "none hears nothing", "[]", noneHeard));
+				helper.assertTrue(!mageHeard.isEmpty(),
+						diag(fixture, 5, "mage hears the sound", ">=1", mageHeard.size()));
+			} finally {
+				cleanup(helper, spirit, none);
+				CursedSpiritTestFixtures.cleanupVictim(helper, mage);
+			}
+			helper.succeed();
+		});
+	}
+
+	/**
+	 * Post-merge review F3 — projectile owner chain: an arrow owned by a NONE victim (a)
+	 * is refused by the damage gate even when the damage source names only the arrow as
+	 * the direct entity (causing entity absent — the owner chain must recover the player),
+	 * and (b) is not even a hit candidate ({@code canHitEntity} answers false through the
+	 * projectile mixin), so it cannot stick into or bounce off the invisible body. The
+	 * mage's arrow passes both arms — red-proof: with the mixin/gate off, the NONE arrow
+	 * hits and the first two asserts fail.
+	 */
+	@GameTest(maxTicks = 40, skyAccess = true)
+	public void nonPerceiverProjectileCannotHitSpirit(GameTestHelper helper) {
+		String fixture = "nonPerceiverProjectileCannotHitSpirit";
+		CursedSpiritTestFixtures.layStoneFloor(helper);
+		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
+		ServerLevel level = helper.getLevel();
+		ServerPlayer none = CursedSpiritTestFixtures.setupVictim(helper, fixture, new BlockPos(4, 1, 2));
+		ServerPlayer mage = CursedSpiritTestFixtures.setupVictim(helper, fixture, new BlockPos(4, 1, 4));
+		CharacterSelectionManager.select(mage, JujutsuCharacter.MEGUMI);
+		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
+				JujutsuEntities.LESSER_CURSED_SPIRIT, new BlockPos(2, 1, 2));
+		helper.runAtTickTime(5, () -> {
+			try {
+				net.minecraft.world.entity.projectile.Arrow noneArrow =
+						helper.spawn(EntityType.ARROW, new BlockPos(3, 1, 3));
+				noneArrow.setOwner(none);
+				net.minecraft.world.entity.projectile.Arrow mageArrow =
+						helper.spawn(EntityType.ARROW, new BlockPos(3, 1, 4));
+				mageArrow.setOwner(mage);
+				helper.assertTrue(!canHitEntity(noneArrow, spirit),
+						diag(fixture, 5, "none arrow is no hit candidate", "false", true));
+				helper.assertTrue(canHitEntity(mageArrow, spirit),
+						diag(fixture, 5, "mage arrow stays a candidate", "true", false));
+				// Causing entity deliberately absent: the gate must walk arrow → owner.
+				net.minecraft.core.Holder<net.minecraft.world.damagesource.DamageType> arrowType =
+						level.registryAccess()
+								.lookupOrThrow(net.minecraft.core.registries.Registries.DAMAGE_TYPE)
+								.getOrThrow(net.minecraft.world.damagesource.DamageTypes.ARROW);
+				boolean noneAllowed = ServerLivingEntityEvents.ALLOW_DAMAGE.invoker()
+						.allowDamage(spirit, new DamageSource(arrowType, noneArrow), 5.0f);
+				boolean mageAllowed = ServerLivingEntityEvents.ALLOW_DAMAGE.invoker()
+						.allowDamage(spirit, new DamageSource(arrowType, mageArrow), 5.0f);
+				helper.assertTrue(!noneAllowed,
+						diag(fixture, 5, "none-owned arrow damage refused", "false", noneAllowed));
+				helper.assertTrue(mageAllowed,
+						diag(fixture, 5, "mage-owned arrow damage allowed", "true", mageAllowed));
+				noneArrow.discard();
+				mageArrow.discard();
+			} finally {
+				cleanup(helper, spirit, none);
+				CursedSpiritTestFixtures.cleanupVictim(helper, mage);
+			}
+			helper.succeed();
+		});
+	}
+
+	/** Invokes the real (mixin-injected) {@code Projectile.canHitEntity} reflectively. */
+	private static boolean canHitEntity(net.minecraft.world.entity.projectile.Projectile projectile,
+			net.minecraft.world.entity.Entity target) {
+		try {
+			java.lang.reflect.Method canHit = net.minecraft.world.entity.projectile.Projectile.class
+					.getDeclaredMethod("canHitEntity", net.minecraft.world.entity.Entity.class);
+			canHit.setAccessible(true);
+			return (boolean) canHit.invoke(projectile, target);
+		} catch (ReflectiveOperationException failure) {
+			throw new IllegalStateException("canHitEntity reflection broke", failure);
+		}
+	}
+
+	/**
+	 * Drains the victim's loopback channel and returns every queued
+	 * {@code ClientboundSoundPacket}. The chain is the same one {@code send} walks:
+	 * {@code ServerPlayer.connection} (the listener) → its protected {@code connection}
+	 * field → the netty {@code channel}; the fixture builds a real {@code EmbeddedChannel},
+	 * so written packets queue as outbound messages.
+	 */
+	private static List<net.minecraft.network.protocol.game.ClientboundSoundPacket> drainSoundPackets(
+			ServerPlayer player) {
+		try {
+			Field connectionField = net.minecraft.server.network.ServerCommonPacketListenerImpl.class
+					.getDeclaredField("connection");
+			connectionField.setAccessible(true);
+			Object connection = connectionField.get(player.connection);
+			Field channelField = net.minecraft.network.Connection.class.getDeclaredField("channel");
+			channelField.setAccessible(true);
+			io.netty.channel.embedded.EmbeddedChannel channel =
+					(io.netty.channel.embedded.EmbeddedChannel) channelField.get(connection);
+			List<net.minecraft.network.protocol.game.ClientboundSoundPacket> heard = new ArrayList<>();
+			Object outbound;
+			while ((outbound = channel.readOutbound()) != null) {
+				if (outbound instanceof net.minecraft.network.protocol.game.ClientboundSoundPacket sound) {
+					heard.add(sound);
+				}
+			}
+			return heard;
+		} catch (ReflectiveOperationException failure) {
+			throw new IllegalStateException("packet-queue reflection broke", failure);
+		}
+	}
+
+	/** Keeps only packets emitted at the spirit's position (isolates the probe sound). */
+	private static List<net.minecraft.network.protocol.game.ClientboundSoundPacket> soundPacketsAt(
+			List<net.minecraft.network.protocol.game.ClientboundSoundPacket> packets,
+			CursedSpiritEntity spirit) {
+		List<net.minecraft.network.protocol.game.ClientboundSoundPacket> at = new ArrayList<>();
+		for (net.minecraft.network.protocol.game.ClientboundSoundPacket packet : packets) {
+			if (packet.getX() == spirit.getX() && packet.getY() == spirit.getY()
+					&& packet.getZ() == spirit.getZ()) {
+				at.add(packet);
+			}
+		}
+		return at;
 	}
 
 	private static void cleanup(GameTestHelper helper, CursedSpiritEntity spirit, ServerPlayer victim) {

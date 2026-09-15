@@ -18,6 +18,7 @@ import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 import jujutsu.mod.cursedspirit.CursedSpiritEntity;
 import jujutsu.mod.cursedspirit.CursedSpiritGrade;
+import jujutsu.mod.cursedspirit.CursedSpiritGradeNbt;
 import jujutsu.mod.cursedspirit.CursedSpiritGradeStats;
 import jujutsu.mod.cursedspirit.CursedSpiritRollPolicy;
 import jujutsu.mod.registry.JujutsuEntities;
@@ -157,6 +158,89 @@ public final class CursedSpiritGradeGameTests {
 			}
 		});
 		helper.runAtTickTime(SWEEP_TICK, () -> helper.succeed());
+	}
+
+	/**
+	 * Post-merge review F4 — NBT junk never yields a broken or seed-0 body: an unknown
+	 * grade, NaN/out-of-band stats and fully missing keys all take the fallback re-roll,
+	 * and a save that simply lacks {@code RollSeed} (old worlds) re-rolls the seed instead
+	 * of collapsing to the identical-pool seed 0. Red-proof: point the read back at
+	 * {@code getLongOr(RollSeed, 0L)} or let {@code inBandsOf} accept NaN and the matching
+	 * arm fails.
+	 */
+	@GameTest(maxTicks = 60)
+	public void corruptNbtFallsBackToValidRoll(GameTestHelper helper) {
+		String fixture = "corruptNbtFallsBackToValidRoll";
+		CursedSpiritTestFixtures.layStoneFloor(helper);
+		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
+		helper.runAtTickTime(ORACLE_TICK, () -> {
+			ServerLevel level = helper.getLevel();
+			owned.clear();
+			try {
+				// A donor body supplies a structurally valid save to mutate.
+				CursedSpiritEntity donor = finalizeOne(helper, 0);
+				TagValueOutput saved = TagValueOutput.createWithoutContext(ProblemReporter.DISCARDING);
+				donor.saveWithoutId(saved);
+				CompoundTag valid = saved.buildResult();
+				EntityType<CursedSpiritEntity> type = typeOf(donor);
+				donor.discard();
+				owned.remove(donor);
+
+				// (a) Unknown grade → fallback re-roll.
+				CompoundTag badGrade = valid.copy();
+				badGrade.putInt(CursedSpiritGradeNbt.GRADE, 99);
+				CursedSpiritEntity a = loadFromTag(helper, level, type, badGrade);
+				assertValidRolled(helper, fixture, a, "grade=99");
+
+				// (b) NaN stats under a valid grade → stats fail the band check → fallback.
+				CompoundTag nanStats = valid.copy();
+				nanStats.putDouble(CursedSpiritGradeNbt.STAT_HP, Double.NaN);
+				CursedSpiritEntity b = loadFromTag(helper, level, type, nanStats);
+				assertValidRolled(helper, fixture, b, "NaN StatHp");
+
+				// (c) Everything missing → grade 0 resolves empty → fallback.
+				CursedSpiritEntity c = loadFromTag(helper, level, type, new CompoundTag());
+				assertValidRolled(helper, fixture, c, "empty tag");
+
+				// (d) Valid save minus RollSeed → loaded data kept, seed re-rolled non-zero.
+				CompoundTag noSeed = valid.copy();
+				noSeed.remove(CursedSpiritGradeNbt.ROLL_SEED);
+				CursedSpiritEntity d = loadFromTag(helper, level, type, noSeed);
+				helper.assertTrue(d.rollSeed() != 0L,
+						diag(fixture, helper, "missing RollSeed re-rolled", d.rollSeed()));
+				helper.assertTrue(d.grade() == gradeStoredIn(valid),
+						diag(fixture, helper, "grade kept without seed", d.grade()));
+			} finally {
+				discardOwned();
+			}
+		});
+		helper.runAtTickTime(SWEEP_TICK, () -> helper.succeed());
+	}
+
+	private static CursedSpiritGrade gradeStoredIn(CompoundTag tag) {
+		return CursedSpiritRollPolicy.resolveLoaded(tag.getInt(CursedSpiritGradeNbt.GRADE).orElse(0))
+				.filter(CursedSpiritGrade.SPAWNABLE_V1::contains)
+				.orElse(CursedSpiritGrade.GRADE_5);
+	}
+
+	private CursedSpiritEntity loadFromTag(GameTestHelper helper, ServerLevel level,
+			EntityType<CursedSpiritEntity> type, CompoundTag tag) {
+		CursedSpiritEntity spirit = type.create(level, EntitySpawnReason.LOAD);
+		helper.assertTrue(spirit != null, diag("loadFromTag", helper, "recreated", type));
+		spirit.load(TagValueInput.create(ProblemReporter.DISCARDING, level.registryAccess(), tag));
+		spirit.setPersistenceRequired();
+		owned.add(spirit);
+		return spirit;
+	}
+
+	private static void assertValidRolled(GameTestHelper helper, String fixture,
+			CursedSpiritEntity spirit, String arm) {
+		helper.assertTrue(CursedSpiritGrade.SPAWNABLE_V1.contains(spirit.grade()),
+				diag(fixture, helper, arm + " grade valid", spirit.grade()));
+		helper.assertTrue(spirit.gradeStats().inBandsOf(spirit.grade()),
+				diag(fixture, helper, arm + " stats in band", spirit.gradeStats()));
+		helper.assertTrue(spirit.rollSeed() != 0L,
+				diag(fixture, helper, arm + " seed non-zero", spirit.rollSeed()));
 	}
 
 	private Map<CursedSpiritGrade, double[]> sampleGrades(GameTestHelper helper, int count) {
