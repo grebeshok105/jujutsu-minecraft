@@ -110,6 +110,19 @@ public final class CursedSpiritSpawnGameTests {
 						GameTestFixtures.diagnostic(fixture, helper.getTick(),
 								"light check in the lit cell " + gateDiagnostic(level, helper.absolutePos(LIT_FEET)),
 								"false", "see report"));
+
+				// NATURAL branch end-to-end (#94): the day scenarios all ride SPAWNER, which
+				// bypasses belowLocalCap. The lit cell must refuse under NATURAL too — the
+				// light half is branch-independent — so a mutant that short-circuits the light
+				// half for NATURAL goes red. This assert lives inside the pin: outside it the
+				// BALANCE day roll (0.6) could allow the spawn through the day branch and the
+				// oracle would flake by ~60%. A positive below-cap NATURAL assert is not
+				// possible on this shared level — sibling arenas' bodies legitimately sit
+				// inside CROWD_RADIUS (population-racy; the reason the light oracles ride
+				// SPAWNER). The cap refusal under NATURAL is pinned by the at-cap assert below.
+				helper.assertFalse(litProbe.checkSpawnRules(level, EntitySpawnReason.NATURAL),
+						GameTestFixtures.diagnostic(fixture, helper.getTick(),
+								"natural check in the lit cell", "false", "see report"));
 			} finally {
 				CursedSpiritSpawnSchedule.resetDayChance();
 			}
@@ -120,17 +133,6 @@ public final class CursedSpiritSpawnGameTests {
 						GameTestFixtures.diagnostic(fixture, helper.getTick(),
 								"light check in the dark room " + gateDiagnostic(level, helper.absolutePos(DARK_FEET)),
 								"true", "see report"));
-
-				// NATURAL branch end-to-end (#94): the day scenarios all ride SPAWNER, which
-				// bypasses belowLocalCap. The refusal side is pinned here — a lit cell still
-				// refuses under NATURAL, so a mutant that short-circuits the light half for
-				// NATURAL goes red. The crowd-cap refusal under NATURAL is pinned by the
-				// at-cap assert below. A positive below-cap assert would be population-racy:
-				// sibling arenas' bodies legitimately sit inside CROWD_RADIUS of this shared
-				// level, which is exactly why the light oracles above ride SPAWNER.
-				helper.assertFalse(litProbe.checkSpawnRules(level, EntitySpawnReason.NATURAL),
-						GameTestFixtures.diagnostic(fixture, helper.getTick(),
-								"natural check in the lit cell", "false", "see report"));
 
 				// A full crowd refuses: top the arena up to exactly MAX_SPIRITS_NEARBY bodies.
 				while (live.size() < CursedSpiritProfile.MAX_SPIRITS_NEARBY) {

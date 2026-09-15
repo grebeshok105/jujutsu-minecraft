@@ -112,7 +112,17 @@ public class CursedSpiritShelterGoal extends Goal {
 
 	@Override
 	public void tick() {
-		if (shelterTarget == null || !mob.getNavigation().isDone()) {
+		if (shelterTarget == null) {
+			return;
+		}
+		// The timeout is evaluated before the isDone check: a path that stays "in progress"
+		// without ever completing (blocked, shoved off-node) would otherwise never give up.
+		if (mob.level().getGameTime() - navigationStartedAt
+				>= CursedSpiritShelterPolicy.NAV_TIMEOUT_TICKS) {
+			gaveUp = true;
+			return;
+		}
+		if (!mob.getNavigation().isDone()) {
 			return;
 		}
 		if (reachedTarget()) {
@@ -122,9 +132,7 @@ public class CursedSpiritShelterGoal extends Goal {
 			return;
 		}
 		failedNavigations++;
-		if (failedNavigations >= CursedSpiritShelterPolicy.MAX_NAV_FAILURES
-				|| mob.level().getGameTime() - navigationStartedAt
-						>= CursedSpiritShelterPolicy.NAV_TIMEOUT_TICKS) {
+		if (failedNavigations >= CursedSpiritShelterPolicy.MAX_NAV_FAILURES) {
 			// Unreachable cell (wall, gap): give up instead of re-pathing every tick.
 			// stop() arms the scan cooldown, so the next attempt is SCAN_PERIOD_TICKS out.
 			gaveUp = true;
