@@ -195,7 +195,7 @@ final class MegumiElephantBrain {
 					MegumiShikigamiProfile.ELEPHANT_PRESENCE_PUSH,
 					MegumiShikigamiProfile.ELEPHANT_PRESENCE_KNOCKBACK));
 			candidate.hurtMarked = true;
-			if (MegumiHostilityPolicy.isHostile(owner, candidate, gameTime)) {
+			if (MegumiHostilityPolicy.isHostile(owner, candidate)) {
 				DamageSource source = owner != null
 						? level.damageSources().playerAttack(owner)
 						: level.damageSources().magic();
