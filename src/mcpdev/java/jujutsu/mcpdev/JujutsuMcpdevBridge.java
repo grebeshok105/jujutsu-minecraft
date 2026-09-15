@@ -23,7 +23,11 @@ public final class JujutsuMcpdevBridge implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		ServerLifecycleEvents.SERVER_STARTING.register(s -> server = s);
-		ServerLifecycleEvents.SERVER_STOPPED.register(s -> server = null);
+		ServerLifecycleEvents.SERVER_STOPPED.register(s -> {
+			server = null;
+			JujutsuCombatLog.clear();
+		});
+		JujutsuCombatLog.register();
 	}
 
 	/**
