@@ -44,8 +44,18 @@ final class MegumiShikigamiTagContractTest {
 	void footprintAllowlistHoldsTheLitter() throws Exception {
 		Set<String> values = readValues(TAG_DIR.resolve("block/destructible_by_shikigami.json"));
 		assertTrue(values.contains("minecraft:dirt"), "dirt is the canonical litter: " + values);
-		assertTrue(values.contains("#minecraft:planks"), "planks are the room floor of the spec: " + values);
-		assertTrue(values.contains("#minecraft:crops"), "crops are litter: " + values);
+		assertTrue(values.contains("minecraft:sand"), "sand is natural terrain: " + values);
+		assertTrue(values.contains("#minecraft:leaves"), "leaves are natural terrain: " + values);
+	}
+
+	@Test
+	void footprintAllowlistSparsBaseBlocks() throws Exception {
+		Set<String> values = readValues(TAG_DIR.resolve("block/destructible_by_shikigami.json"));
+		assertFalse(values.contains("#minecraft:planks"), "planks are a base block, never litter: " + values);
+		assertFalse(values.contains("#minecraft:fences"), "fences are a base block, never litter: " + values);
+		assertFalse(values.contains("minecraft:glass"), "glass is a base block, never litter: " + values);
+		assertFalse(values.contains("minecraft:torch"), "a torch is placed by a player, never litter: " + values);
+		assertFalse(values.contains("#minecraft:crops"), "crops are planted by a player, never litter: " + values);
 	}
 
 	@Test
