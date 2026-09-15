@@ -833,11 +833,16 @@ public final class CursedSpiritGameTests {
 				try {
 					if (!pulled.get() && spirit.attackAnimationState.isStarted()
 							&& spirit.getTarget() == victim) {
-						// The windup just opened: take the victim out of reach so the strike-time
-						// re-check sees a whiff. The clip runs on to the slam either way. The pull
-						// stays INSIDE the 6x6 pad — off the pad the victim drops out of the arena
-						// and the swing would stop instead of whiffing.
-						Vec3 away = helper.absolutePos(new BlockPos(6, 1, 6)).getCenter();
+						// The windup just opened: take the victim out of direct reach so the
+						// strike-time re-check sees a whiff, but keep it inside the slam crater so
+						// the #99 path still pays out the AoE hit. The pull MUST be spirit-relative:
+						// the band between hitbox-edge reach (3.0 + 0.675 + 0.3 ≈ 3.98) and the
+						// inflated-box crater bound (3.5 + 0.675 + victim half-width ≈ 4.48 per
+						// axis) is narrow, so an absolute corner spot lands outside the crater
+						// whenever the spirit's approach position drifts — the CI flake. Diagonal
+						// 3.2/3.2 keeps both invariants: centre distance 4.53 > reach, per-axis
+						// 3.2 < box bound, and the spot stays inside the 6x6 pad.
+						Vec3 away = spirit.position().add(3.2, 0.0, 3.2);
 						victim.teleportTo(away.x, away.y, away.z);
 						pulled.set(true);
 						return;
