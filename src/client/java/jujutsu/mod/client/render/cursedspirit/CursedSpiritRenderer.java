@@ -56,6 +56,15 @@ public class CursedSpiritRenderer extends
 		super.extractRenderState(entity, state, tickDelta);
 		state.variant = entity.variant();
 		state.curseSubject = CursePerception.isSubject(entity);
+		if (CurseRenderGate.hiddenFromView(state.curseSubject)) {
+			// Issue #80 render leak: EntityRenderDispatcher draws the shadow and the
+			// F3+B hitbox past our early return in render(). javap-verified 1.21.8:
+			// both paths are gated on EntityRenderState.isInvisible (shadow also needs
+			// getShadowRadius > 0), while the on-fire flame checks displayFireAnimation
+			// only — suppress all three so a non-perceiver sees nothing.
+			state.isInvisible = true;
+			state.displayFireAnimation = false;
+		}
 		state.idle.copyFrom(entity.idleAnimationState);
 		state.attack.copyFrom(entity.attackAnimationState);
 		state.scream.copyFrom(entity.screamAnimationState);
