@@ -33,6 +33,12 @@ import jujutsu.mod.character.megumi.MegumiShikigamiSelection;
 import jujutsu.mod.character.megumi.MegumiToadEntity;
 import jujutsu.mod.character.megumi.MegumiToadPolicy;
 import jujutsu.mod.combat.HoldSupport;
+import jujutsu.mod.cursedspirit.CursedSpiritEntity;
+import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityId;
+import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityParams;
+import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityProfile;
+import jujutsu.mod.cursedspirit.ability.effects.RunnerEffect;
+import jujutsu.mod.registry.JujutsuEntities;
 
 /**
  * Toad (Ten Shadows selection layer) server scenarios, block 1 — summon (S1), the grab on a mob:
@@ -824,6 +830,10 @@ public final class MegumiToadGameTests {
 
 		AtomicBoolean done = new AtomicBoolean();
 		AtomicLong grabTick = new AtomicLong(-1L);
+		// Owner health sampled the tick the hold is first observed: only damage taken AFTER that
+		// snapshot counts. The zombie is a full-AI body parked in melee reach, so it can land a
+		// bite during the windup — and a pre-grab bite must not satisfy a hold oracle (issue #92).
+		AtomicReference<Double> healthAtGrab = new AtomicReference<>();
 
 		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, owner, () -> {
 			MegumiShikigamiSelection.set(owner.getUUID(), MegumiShikigami.TOAD);
@@ -868,6 +878,7 @@ public final class MegumiToadGameTests {
 					}
 					if (grabTick.get() < 0) {
 						grabTick.set(pollTick);
+						healthAtGrab.set((double) owner.getHealth());
 						// The hold pins the body; it must not disarm it. No setNoAi on a held mob is
 						// the design's own rule.
 						helper.assertTrue(!zombie.isNoAi(),
@@ -880,7 +891,7 @@ public final class MegumiToadGameTests {
 						owner.teleportTo(level, zombie.getX() + 1.0, zombie.getY(), zombie.getZ() + 1.0,
 								Set.of(), 0.0f, 0.0f, false);
 					}
-					if (owner.getHealth() < owner.getMaxHealth()) {
+					if (healthAtGrab.get() != null && owner.getHealth() < healthAtGrab.get()) {
 						done.set(true);
 						zombie.discard();
 						CursedSpiritTestFixtures.cleanupVictim(helper, owner);
@@ -899,10 +910,11 @@ public final class MegumiToadGameTests {
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "bite", pollTick,
 										owner.getUUID(), "a held victim can still hurt its owner",
 										"damage lands (true)", false));
-						helper.assertTrue(owner.getHealth() < owner.getMaxHealth(),
+						helper.assertTrue(owner.getHealth() < healthAtGrab.get(),
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "bite", pollTick,
 										owner.getUUID(), "owner health after the held victim's hit",
-										"< " + owner.getMaxHealth(), owner.getHealth()));
+										"< " + healthAtGrab.get() + " (snapshot at the grab)",
+										owner.getHealth()));
 						done.set(true);
 						zombie.discard();
 						CursedSpiritTestFixtures.cleanupVictim(helper, owner);
@@ -1124,6 +1136,706 @@ public final class MegumiToadGameTests {
 					zombie.discard();
 					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 					helper.succeed();
+				} catch (RuntimeException | AssertionError failure) {
+					done.set(true);
+					zombie.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+					throw failure;
+				}
+			});
+		}
+	}
+
+	/**
+	 * Issue #90 — the self-pick answers to the TOAD's line of sight, not the owner's: with the
+	 * owner exiled behind a solid wall (its own LoS to the zombie provably cut), the body's
+	 * throttled self-pick still commits to a GRAB by the deadline. The sic path is unreachable
+	 * ({@code trySic} never called) and the retaliation pass cannot arm (the slowed victim never
+	 * lands a hit), so a hold proves the owner-LoS gate no longer blinds a self-picked target.
+	 * Red-proof: restore the unconditional {@code owner.hasLineOfSight} check in
+	 * {@code MegumiToadBrain.tick} and the deadline assert fires — nothing ever holds.
+	 */
+	@GameTest(maxTicks = 160)
+	public void toadSelfPickIgnoresOwnerLineOfSight(GameTestHelper helper) {
+		String fixture = "toadSelfPickIgnoresOwnerLineOfSight";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		BlockPos zombieFeet = new BlockPos(6, 1, 5);
+		// The owner is exiled behind a full wall plane: the exile pad sits far enough that the
+		// owner↔zombie ray crosses the wall, while the toad — already spawned next to the
+		// summon pad — keeps its own line to the victim in open air.
+		BlockPos exileFeet = new BlockPos(10, 1, 10);
+		layStoneFloor(helper);
+		helper.setBlock(zombieFeet.below(), Blocks.STONE);
+		helper.setBlock(exileFeet.below(), Blocks.STONE);
+		laySkyCover(helper);
+		for (int dz = 5; dz <= 12; dz++) {
+			for (int dy = 1; dy <= 4; dy++) {
+				helper.setBlock(new BlockPos(8, dy, dz), Blocks.STONE);
+			}
+		}
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
+		zombie.setPersistenceRequired();
+		zombie.setNoAi(false);
+		// Same zeroed-speed AI body as R2: full AI keeps physics while Slowness 100 removes
+		// self-motion — and guarantees the victim can never land the hit that would arm the
+		// retaliation pass, so only the self-pick can name it.
+		zombie.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 2400, 100, false, false, false), caster);
+
+		final long selfPickDeadline = SUMMON_TICK + 100;
+		AtomicBoolean done = new AtomicBoolean();
+		AtomicBoolean frozen = new AtomicBoolean();
+
+		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			MegumiShikigamiSelection.set(caster.getUUID(), MegumiShikigami.TOAD);
+			boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"summon", helper.getTick(), caster.getUUID(), "tryPrimary result", "true", summoned));
+		}));
+
+		helper.runAtTickTime(SUMMON_TICK + 4, () -> {
+			try {
+				BlockPos exilePad = helper.absolutePos(exileFeet);
+				caster.teleportTo(level, exilePad.getX() + 0.5, exilePad.getY(), exilePad.getZ() + 0.5,
+						Set.of(), 0.0f, 0.0f, false);
+				// Premise, not scenery: the gate under test reads exactly this call, so the run
+				// must prove the owner's LoS is truly cut before the self-pick can fire.
+				helper.assertTrue(!caster.hasLineOfSight(zombie),
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "exile", helper.getTick(),
+								caster.getUUID(), "owner LoS to the victim behind the wall",
+								"blocked (false)", "clear"));
+			} catch (RuntimeException | AssertionError failure) {
+				done.set(true);
+				zombie.discard();
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+				throw failure;
+			}
+		});
+
+		// No sic block on purpose: trySic is never called in this scenario.
+		for (long tick = SUMMON_TICK + 5; tick <= selfPickDeadline; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				if (done.get()) {
+					return;
+				}
+				List<MegumiToadEntity> bodies = toadOwnedBy(level, caster.getUUID());
+				try {
+					// Freeze the body at first sight (Slowness-100, same trick as the victims):
+					// a wandering body could drift behind the wall itself and blur which side's
+					// LoS the commit answered.
+					if (!frozen.get() && !bodies.isEmpty()) {
+						bodies.get(0).addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 2400,
+								100, false, false, false));
+						frozen.set(true);
+					}
+					if (bodies.size() != 1 || !bodies.get(0).combatEnabled()) {
+						if (pollTick == selfPickDeadline) {
+							helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
+									"grab", pollTick, caster.getUUID(), "body ACTIVE for the self-pick",
+									"1 ACTIVE body", bodies.size() + " bodies"));
+						}
+						return;
+					}
+					MegumiToadEntity body = bodies.get(0);
+					if (!body.isHolding() || !zombie.getUUID().equals(body.grabbedUuid())) {
+						if (pollTick == selfPickDeadline) {
+							helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
+									"grab", pollTick, caster.getUUID(),
+									"self-pick grab committed with the owner blind",
+									"holding zombie by tick " + selfPickDeadline, "not holding"));
+						}
+						return;
+					}
+					done.set(true);
+					zombie.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+					helper.succeed();
+				} catch (RuntimeException | AssertionError failure) {
+					done.set(true);
+					zombie.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+					throw failure;
+				}
+			});
+		}
+	}
+
+	/**
+	 * Issue #90 — a held victim's death is a release, not a re-pin: the zombie is grabbed, then
+	 * killed mid-hold through the real damage pipeline, and the body must drop the grab (and the
+	 * GRIPPED marker) within a few ticks — long before the recorded hold end. Red-proof: remove
+	 * the {@code !victim.isAlive()} exit from {@code MegumiToadBrain.tickHold} and the corpse
+	 * stays pinned until the hold timer expires, so the deadline assert fires.
+	 */
+	@GameTest(maxTicks = 200)
+	public void heldVictimDeathReleasesTheGrab(GameTestHelper helper) {
+		String fixture = "heldVictimDeathReleasesTheGrab";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		BlockPos zombieFeet = new BlockPos(6, 1, 5);
+		layStoneFloor(helper);
+		helper.setBlock(zombieFeet.below(), Blocks.STONE);
+		laySkyCover(helper);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
+		zombie.setPersistenceRequired();
+		zombie.setNoAi(false);
+		zombie.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 2400, 100, false, false, false), caster);
+
+		AtomicBoolean done = new AtomicBoolean();
+		AtomicBoolean killed = new AtomicBoolean();
+		AtomicLong killTick = new AtomicLong(-1L);
+
+		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			MegumiShikigamiSelection.set(caster.getUUID(), MegumiShikigami.TOAD);
+			boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"summon", helper.getTick(), caster.getUUID(), "tryPrimary result", "true", summoned));
+		}));
+
+		helper.runAtTickTime(SIC_TICK, () -> {
+			try {
+				TodoSwapTestFixtures.aimAt(caster, zombie.position().add(0.0, zombie.getBbHeight() / 2.0, 0.0));
+				boolean sicced = MegumiShikigamiRuntime.trySic(caster, false);
+				helper.assertTrue(sicced, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"sic", helper.getTick(), caster.getUUID(), "trySic result", "true", sicced));
+			} catch (RuntimeException | AssertionError failure) {
+				zombie.discard();
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+				throw failure;
+			}
+		});
+
+		for (long tick = SIC_TICK + 1; tick <= HOLD_DEADLINE_TICK; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				if (done.get()) {
+					return;
+				}
+				try {
+					if (!killed.get()) {
+						List<MegumiToadEntity> bodies = toadOwnedBy(level, caster.getUUID());
+						if (bodies.size() != 1 || !bodies.get(0).isHolding()
+								|| !zombie.getUUID().equals(bodies.get(0).grabbedUuid())) {
+							if (pollTick == GRAB_DEADLINE_TICK || pollTick == HOLD_DEADLINE_TICK) {
+								helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
+										"grab", pollTick, caster.getUUID(), "grab committed before the kill",
+										"holding by tick " + GRAB_DEADLINE_TICK, "not holding"));
+							}
+							return;
+						}
+						killed.set(true);
+						killTick.set(pollTick);
+						boolean damaged = zombie.hurtServer(level,
+								level.damageSources().genericKill(), Float.MAX_VALUE);
+						helper.assertTrue(damaged && !zombie.isAlive(),
+								MegumiShikigamiTestFixtures.diagnostic(fixture, "kill", pollTick,
+										caster.getUUID(), "lethal damage applied mid-hold",
+										"dead", zombie.isAlive()));
+						return;
+					}
+					// The release must land promptly — a handful of ticks after the kill, not at
+					// the recorded hold end (which sits 60+ ticks out).
+					if (pollTick < killTick.get() + 10) {
+						return;
+					}
+					List<MegumiToadEntity> bodies = toadOwnedBy(level, caster.getUUID());
+					helper.assertTrue(bodies.isEmpty() || bodies.stream().noneMatch(MegumiToadEntity::isHolding),
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "release", pollTick,
+									caster.getUUID(), "grab dropped after the victim's death",
+									"not holding", "still holding"));
+					helper.assertTrue(!HoldSupport.isHeld(zombie),
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "release", pollTick,
+									caster.getUUID(), "GRIPPED marker lifted off the dead victim",
+									"false", HoldSupport.isHeld(zombie)));
+					done.set(true);
+					zombie.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+					helper.succeed();
+				} catch (RuntimeException | AssertionError failure) {
+					done.set(true);
+					zombie.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+					throw failure;
+				}
+			});
+		}
+	}
+
+	/**
+	 * Issue #90 — one victim, one holder: a victim carrying the shared GRIPPED marker cannot be
+	 * started by a runner nor committed by the toad, and the refusal never strips the existing
+	 * pin. Runner + runner is covered by a real first {@code RunnerEffect.start} (the positive
+	 * control — a free victim IS taken) followed by a second spirit's refused start; runner +
+	 * toad by siccing the toad at a player the marker already pins. Red-proof: drop the
+	 * {@code isRunnerVictim || isHeld} guard from {@code RunnerEffect.start} and the second
+	 * start lands; drop {@code !HoldSupport.isHeld} from {@code commitGrab} and the toad holds.
+	 */
+	@GameTest(maxTicks = 200)
+	public void alreadyHeldVictimRefusesSecondHolder(GameTestHelper helper) {
+		String fixture = "alreadyHeldVictimRefusesSecondHolder";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		// Both victims start PAST TOAD_GRAB_RANGE from the caster's corner: inside it the toad's
+		// own self-pick would legally commit on one before the scripted sic, and a held victim
+		// would trip the runner's deny gate for the wrong reason. The sic victim is teleported
+		// into range at SIC_TICK, already GRIPPED, so the refusal is exactly the gate under test.
+		BlockPos victimFeet = new BlockPos(12, 1, 13);
+		BlockPos runnerVictimFeet = new BlockPos(13, 1, 13);
+		layStoneFloor(helper);
+		helper.setBlock(victimFeet.below(), Blocks.STONE);
+		helper.setBlock(runnerVictimFeet.below(), Blocks.STONE);
+		// Spirit pads sit past TOAD_GRAB_RANGE from the caster's corner: inside it a wandering
+		// self-pick could legally commit on a spirit and fake a broken refuse-assert.
+		BlockPos spiritFeetA = new BlockPos(12, 1, 11);
+		BlockPos spiritFeetB = new BlockPos(13, 1, 11);
+		helper.setBlock(spiritFeetA.below(), Blocks.STONE);
+		helper.setBlock(spiritFeetB.below(), Blocks.STONE);
+		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, fixture, victimFeet);
+		ServerPlayer runnerVictim = CursedSpiritTestFixtures.setupVictim(helper, fixture, runnerVictimFeet);
+		// Perceiving vessels: the runner start refuses a NONE victim outright, which is not the
+		// gate under test.
+		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
+		CharacterSelectionManager.select(runnerVictim, JujutsuCharacter.MEGUMI);
+		ServerLevel level = helper.getLevel();
+
+		CursedSpiritEntity spiritA = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
+				JujutsuEntities.CURSED_SPIRIT, spiritFeetA);
+		CursedSpiritEntity spiritB = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
+				JujutsuEntities.CURSED_SPIRIT, spiritFeetB);
+		// NoAI: the spirits exist only as {@code RunnerEffect.start} handles — a live combat AI
+		// could fire its own runner on a bystander and burn the one-start-per-tick budget or the
+		// cooldown the manual start asserts on.
+		spiritA.setNoAi(true);
+		spiritB.setNoAi(true);
+
+		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			MegumiShikigamiSelection.set(caster.getUUID(), MegumiShikigami.TOAD);
+			boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"summon", helper.getTick(), caster.getUUID(), "tryPrimary result", "true", summoned));
+		}));
+
+		// Pin the body to the caster pad before its first self-pick scan (ACTIVE ~summon+16):
+		// the spirits sit past TOAD_GRAB_RANGE from the pad, but a body left free to wander
+		// toward them would close the gap, self-pick a spirit, and spend the very cooldown the
+		// refuse assert reads. NoAI kills the goal loop outright — the brain is runtime-driven.
+		helper.runAtTickTime(SUMMON_TICK + 4, () -> {
+			try {
+				List<MegumiToadEntity> bodies = toadOwnedBy(level, caster.getUUID());
+				if (bodies.size() == 1) {
+					MegumiToadEntity body = bodies.get(0);
+					BlockPos bodyPad = helper.absolutePos(casterFeet);
+					body.teleportTo(bodyPad.getX() + 0.5, bodyPad.getY(), bodyPad.getZ() + 0.5);
+					body.setNoAi(true);
+				}
+			} catch (RuntimeException | AssertionError failure) {
+				RunnerEffect.end(spiritA, runnerVictim.getUUID(), spiritA.abilityBrain());
+				spiritA.discard();
+				spiritB.discard();
+				CursedSpiritTestFixtures.cleanupVictim(helper, victim);
+				CursedSpiritTestFixtures.cleanupVictim(helper, runnerVictim);
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+				throw failure;
+			}
+		});
+
+		helper.runAtTickTime(SIC_TICK, () -> {
+			try {
+				for (CursedSpiritEntity spirit : List.of(spiritA, spiritB)) {
+					spirit.gradeStats();
+					spirit.rollAbilityPool();
+					spirit.abilityBrain().forcePoolForTest(List.of(CursedSpiritAbilityId.GRAB_RUNNER,
+							CursedSpiritAbilityId.REGEN, CursedSpiritAbilityId.ARMOR));
+				}
+				CursedSpiritAbilityParams params = CursedSpiritAbilityProfile.of(
+						CursedSpiritAbilityId.GRAB_RUNNER, spiritA.grade());
+				helper.assertTrue(jujutsu.mod.cursedspirit.perception.CursePerception.mayTouch(
+						spiritA, runnerVictim), CursedSpiritTestFixtures.diagnostic(fixture,
+						helper.getTick(), "premise: victim perceives the spirit", "true", "false"));
+				long now = level.getGameTime();
+				helper.assertTrue(spiritA.abilityBrain().pool().contains(CursedSpiritAbilityId.GRAB_RUNNER),
+						net.minecraft.network.chat.Component.literal("diag pool"));
+				helper.assertTrue(!spiritA.abilityBrain().isActive(CursedSpiritAbilityId.GRAB_RUNNER, now),
+						net.minecraft.network.chat.Component.literal("diag active"));
+				helper.assertTrue(spiritA.abilityBrain().ready(CursedSpiritAbilityId.GRAB_RUNNER, now),
+						net.minecraft.network.chat.Component.literal("diag ready"));
+				helper.assertTrue(!spiritA.abilityBrain().movementOwned(now), net.minecraft.network.chat.Component.literal("diag movementOwned"));
+				// Runner + runner: the first start lands (positive control — the start itself
+				// works on a free victim), the second is refused while the first holds.
+				helper.assertTrue(RunnerEffect.start(spiritA, runnerVictim, level.getGameTime(), params,
+						spiritA.abilityBrain()), CursedSpiritTestFixtures.diagnostic(fixture,
+						helper.getTick(), "first runner start on a free victim", "true", "false"));
+				helper.assertTrue(!RunnerEffect.start(spiritB, runnerVictim, level.getGameTime(), params,
+						spiritB.abilityBrain()), CursedSpiritTestFixtures.diagnostic(fixture,
+						helper.getTick(), "second runner start on a carried victim",
+						"refused (false)", "true"));
+
+				// The toad-side victim teleports into grab range only now: spawned past
+				// TOAD_GRAB_RANGE so the body's self-pick could never reach it first.
+				BlockPos victimPad = helper.absolutePos(new BlockPos(6, 1, 5));
+				victim.teleportTo(victimPad.getX() + 0.5, victimPad.getY(), victimPad.getZ() + 0.5);
+				// The toad-side victim carries the same marker directly — equivalent to a toad or
+				// runner pin, and immune to the runner window's own lifecycle inside the test.
+				HoldSupport.applyHold(victim, victim.position(), 600);
+				helper.assertTrue(HoldSupport.isHeld(victim), CursedSpiritTestFixtures.diagnostic(
+						fixture, helper.getTick(), "premise: victim carries GRIPPED", "true", "false"));
+				helper.assertTrue(!RunnerEffect.start(spiritB, victim, level.getGameTime(), params,
+						spiritB.abilityBrain()), CursedSpiritTestFixtures.diagnostic(fixture,
+						helper.getTick(), "runner start on a GRIPPED victim", "refused (false)", "true"));
+
+				TodoSwapTestFixtures.aimAt(caster, victim.position().add(0.0, victim.getBbHeight() / 2.0, 0.0));
+				boolean sicced = MegumiShikigamiRuntime.trySic(caster, false);
+				helper.assertTrue(sicced, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"sic", helper.getTick(), caster.getUUID(), "trySic result", "true", sicced));
+			} catch (RuntimeException | AssertionError failure) {
+				RunnerEffect.end(spiritA, runnerVictim.getUUID(), spiritA.abilityBrain());
+				RunnerEffect.end(spiritB, victim.getUUID(), spiritB.abilityBrain());
+				HoldSupport.release(victim);
+				spiritA.discard();
+				spiritB.discard();
+				CursedSpiritTestFixtures.cleanupVictim(helper, victim);
+				CursedSpiritTestFixtures.cleanupVictim(helper, runnerVictim);
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+				throw failure;
+			}
+		});
+
+		helper.runAtTickTime(GRAB_DEADLINE_TICK, () -> {
+			try {
+				List<MegumiToadEntity> bodies = toadOwnedBy(level, caster.getUUID());
+				helper.assertTrue(bodies.size() == 1,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "refuse", helper.getTick(),
+								caster.getUUID(), "Toad body present", "1", bodies.size()));
+				MegumiToadEntity body = bodies.get(0);
+				// Runner + toad: the commit ran (cooldown armed) and refused the held victim.
+				helper.assertTrue(!body.isHolding(),
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "refuse", helper.getTick(),
+								caster.getUUID(), "grab on an already-held victim", "refused (false)",
+								body.isHolding()));
+				helper.assertTrue(!body.attackReady(level.getGameTime()),
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "refuse", helper.getTick(),
+								caster.getUUID(), "the commit ran and armed its cooldown",
+								"cooldown armed", "still ready"));
+				// The deny contract held throughout: the marker the toad refused was never stripped.
+				helper.assertTrue(HoldSupport.isHeld(victim),
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "refuse", helper.getTick(),
+								caster.getUUID(), "existing pin intact after the refused commit",
+								"GRIPPED", "marker lost"));
+			} finally {
+				RunnerEffect.end(spiritA, runnerVictim.getUUID(), spiritA.abilityBrain());
+				RunnerEffect.end(spiritB, victim.getUUID(), spiritB.abilityBrain());
+				HoldSupport.release(victim);
+				spiritA.discard();
+				spiritB.discard();
+				CursedSpiritTestFixtures.cleanupVictim(helper, victim);
+				CursedSpiritTestFixtures.cleanupVictim(helper, runnerVictim);
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+				helper.succeed();
+			}
+		});
+	}
+
+	/**
+	 * Issue #90 — the grip anchor has a collision probe: once the grab has committed, a 1-block
+	 * stone ring is raised around the body so EVERY look direction lands the anchor inside solid
+	 * blocks. The probe must fall back to the body's feet instead of burying the victim (a wall
+	 * pin at feet level collides the box; at eye level it would suffocate). Red-proof: remove the
+	 * {@code noCollision} check from {@code tickHold} and the victim stays at the anchor — the
+	 * {@code <= 1.0} distance assert fires (1.2-block offset).
+	 */
+	@GameTest(maxTicks = 200)
+	public void anchorInsideAWallFallsBackToTheBody(GameTestHelper helper) {
+		String fixture = "anchorInsideAWallFallsBackToTheBody";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		BlockPos zombieFeet = new BlockPos(6, 1, 5);
+		// The body is re-pinned to this pad the moment it is seen: a free body wanders — possibly
+		// out of the structure's cell space, where setBlock writes outside the template and the
+		// wall ring would never materialize.
+		BlockPos bodyPad = new BlockPos(4, 1, 4);
+		layStoneFloor(helper);
+		helper.setBlock(zombieFeet.below(), Blocks.STONE);
+		helper.setBlock(bodyPad.below(), Blocks.STONE);
+		laySkyCover(helper);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
+		zombie.setPersistenceRequired();
+		zombie.setNoAi(false);
+		zombie.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 2400, 100, false, false, false), caster);
+
+		AtomicBoolean done = new AtomicBoolean();
+		AtomicBoolean walled = new AtomicBoolean();
+		AtomicBoolean frozen = new AtomicBoolean();
+		AtomicLong wallTick = new AtomicLong(-1L);
+		AtomicReference<String> freezeDiag = new AtomicReference<>("never");
+		AtomicReference<Double> zombieHealth = new AtomicReference<>((double) zombie.getHealth());
+
+		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			MegumiShikigamiSelection.set(caster.getUUID(), MegumiShikigami.TOAD);
+			boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"summon", helper.getTick(), caster.getUUID(), "tryPrimary result", "true", summoned));
+		}));
+
+		helper.runAtTickTime(SIC_TICK, () -> {
+			try {
+				TodoSwapTestFixtures.aimAt(caster, zombie.position().add(0.0, zombie.getBbHeight() / 2.0, 0.0));
+				boolean sicced = MegumiShikigamiRuntime.trySic(caster, false);
+				helper.assertTrue(sicced, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"sic", helper.getTick(), caster.getUUID(), "trySic result", "true", sicced));
+			} catch (RuntimeException | AssertionError failure) {
+				done.set(true);
+				zombie.discard();
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+				throw failure;
+			}
+		});
+
+		for (long tick = SIC_TICK + 1; tick <= HOLD_DEADLINE_TICK; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				if (done.get()) {
+					return;
+				}
+				List<MegumiToadEntity> bodies = toadOwnedBy(level, caster.getUUID());
+				try {
+					// Re-pin + freeze the body at first sight (Slowness-100, same trick as the
+					// zombie): the goal loop can re-arm movement after the brain plants the feet,
+					// and a drifting body would leave the ring around a spot it no longer
+					// occupies — or outside the template, where setBlock writes nothing.
+					if (!frozen.get() && !bodies.isEmpty()) {
+						MegumiToadEntity body0 = bodies.get(0);
+						BlockPos pad = helper.absolutePos(bodyPad);
+						freezeDiag.set("t" + pollTick + " from=" + body0.blockPosition()
+								+ " pad=" + pad);
+						body0.teleportTo(pad.getX() + 0.5, pad.getY(), pad.getZ() + 0.5);
+						body0.setNoAi(true);
+						body0.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 2400,
+								100, false, false, false));
+						frozen.set(true);
+					}
+					if (bodies.size() != 1 || !bodies.get(0).isHolding()
+							|| !zombie.getUUID().equals(bodies.get(0).grabbedUuid())) {
+						if (pollTick == GRAB_DEADLINE_TICK || pollTick == HOLD_DEADLINE_TICK) {
+							helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
+									"grab", pollTick, caster.getUUID(), "grab committed after the sic",
+									"holding by tick " + GRAB_DEADLINE_TICK, "not holding"));
+						}
+						return;
+					}
+					MegumiToadEntity body = bodies.get(0);
+					if (!walled.get()) {
+						// The ring goes up only after the commit: a 1-high wall at Chebyshev
+						// distance 1 catches the victim's box at the 1.2-block anchor in every
+						// look direction, without needing to know which way the body faces.
+						walled.set(true);
+						wallTick.set(pollTick);
+						// The ring is built around the pinned pad — NOT the body's live cell:
+						// the body was teleported to a known in-bounds spot at first sight, and
+						// anchoring the ring to that literal keeps every setBlock inside the
+						// template no matter where the entity claims to stand. Chebyshev-2 fill
+						// (minus the body's own column), four cells tall (dy -1..2): the anchor
+						// carries the look vector's y component, so a body looking up or down
+						// writes it a full block off the feet layer — a single-layer ring reads
+						// as air and the probe never fires.
+						for (int dx = -2; dx <= 2; dx++) {
+							for (int dy = -1; dy <= 2; dy++) {
+								for (int dz = -2; dz <= 2; dz++) {
+									if (dx == 0 && dz == 0) {
+										continue;
+									}
+									helper.setBlock(bodyPad.offset(dx, dy, dz), Blocks.STONE);
+								}
+							}
+						}
+						return;
+					}
+					// Give the brain two ticks to re-pin at the fallback, then assert.
+					if (pollTick < wallTick.get() + 3) {
+						return;
+					}
+					double distance = Math.hypot(zombie.getX() - body.getX(), zombie.getZ() - body.getZ());
+					Vec3 anchorNow = MegumiToadPolicy.anchor(body.position(), body.getLookAngle(),
+							MegumiShikigamiProfile.TOAD_GRIP_OFFSET);
+					boolean probeClear = level.noCollision(zombie, zombie.getBoundingBox()
+							.move(anchorNow.subtract(zombie.position())));
+					helper.assertTrue(!probeClear, net.minecraft.network.chat.Component.literal(
+							"diag probe at dist=" + distance + " anchor=" + anchorNow
+									+ " victim=" + zombie.position()
+									+ " cell=" + helper.relativePos(zombie.blockPosition())
+									+ " blockAtAnchor=" + level.getBlockState(
+											net.minecraft.core.BlockPos.containing(anchorNow))
+									+ " bodyCell=" + helper.relativePos(body.blockPosition())
+									+ " bodyAbs=" + body.blockPosition()
+									+ " freeze=" + freezeDiag.get() + " wallTick=" + wallTick.get()));
+					helper.assertTrue(distance <= 1.0,
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "anchor", pollTick,
+									caster.getUUID(), "victim pinned at the body (wall fallback)",
+									"<= 1.0", distance));
+					helper.assertTrue(zombie.getHealth() == zombieHealth.get().doubleValue(),
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "anchor", pollTick,
+									caster.getUUID(), "no suffocation damage while pinned",
+									zombieHealth.get(), zombie.getHealth()));
+					if (pollTick >= wallTick.get() + 8) {
+						done.set(true);
+						zombie.discard();
+						MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+						helper.succeed();
+					}
+				} catch (RuntimeException | AssertionError failure) {
+					done.set(true);
+					zombie.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+					throw failure;
+				}
+			});
+		}
+	}
+
+	/**
+	 * Issue #90 — the commit gate is the TOAD's line of sight, not the owner's: a sic ordered on
+	 * a target the owner can see but the body cannot (a solid wall between them) winds up and
+	 * then refuses — the cooldown arms on the commit tick while no hold ever starts. Red-proof:
+	 * swap {@code toad.hasLineOfSight} back to the owner's LoS in {@code commitGrab} and the grab
+	 * lands through the wall, tripping the holding assert.
+	 */
+	@GameTest(maxTicks = 160)
+	public void sicThroughAWallRefusesTheGrab(GameTestHelper helper) {
+		String fixture = "sicThroughAWallRefusesTheGrab";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		// The zombie spawns PAST TOAD_GRAB_RANGE: inside it the toad's own self-pick would
+		// commit a legal grab before the scripted sic. It is teleported into the wall shadow
+		// at SIC_TICK, so every held tick still answers "a wall refused the grab".
+		BlockPos zombieFeet = new BlockPos(13, 1, 12);
+		layStoneFloor(helper);
+		helper.setBlock(zombieFeet.below(), Blocks.STONE);
+		laySkyCover(helper);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
+		zombie.setPersistenceRequired();
+		zombie.setNoAi(false);
+		zombie.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 2400, 100, false, false, false), caster);
+
+		AtomicBoolean done = new AtomicBoolean();
+
+		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			MegumiShikigamiSelection.set(caster.getUUID(), MegumiShikigami.TOAD);
+			boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"summon", helper.getTick(), caster.getUUID(), "tryPrimary result", "true", summoned));
+		}));
+
+		helper.runAtTickTime(SIC_TICK, () -> {
+			try {
+				List<MegumiToadEntity> bodies = toadOwnedBy(level, caster.getUUID());
+				helper.assertTrue(bodies.size() == 1,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "sic", helper.getTick(),
+								caster.getUUID(), "owned Toad bodies in level", "1", bodies.size()));
+				MegumiToadEntity body = bodies.get(0);
+				// Pin the body to a known pad and freeze it (Slowness-100, same trick as the
+				// zombie victims): an unfrozen body wanders off the summon spot, which would
+				// make every midpoint/owner placement below a guess about where it stood.
+				BlockPos bodyPad = helper.absolutePos(casterFeet);
+				body.teleportTo(bodyPad.getX() + 0.5, bodyPad.getY(), bodyPad.getZ() + 0.5);
+				body.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 2400, 100,
+						false, false, false));
+				// The victim lands in range on the far side of the coming wall.
+				BlockPos zombiePad = helper.absolutePos(new BlockPos(11, 1, 8));
+				zombie.teleportTo(zombiePad.getX() + 0.5, zombiePad.getY(), zombiePad.getZ() + 0.5);
+				// A solid cube on the body↔victim midpoint: the toad's low eye ray crosses it,
+				// while the owner — teleported next to the victim — keeps its own LoS so the
+				// windup starts and the refusal is the toad's commit gate, not the order's.
+				double separation = body.position().distanceTo(zombie.position());
+				helper.assertTrue(separation >= 4.0, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"wall", helper.getTick(), caster.getUUID(), "body far enough for a wall",
+						">= 4.0", separation));
+				// setBlock works in structure-relative coords; entity positions are absolute.
+				BlockPos wallCore = helper.relativePos(BlockPos.containing(
+						body.position().add(zombie.position()).scale(0.5)));
+				for (int dx = -1; dx <= 1; dx++) {
+					for (int dz = -1; dz <= 1; dz++) {
+						for (int dy = 0; dy <= 2; dy++) {
+							helper.setBlock(wallCore.offset(dx, dy, dz), Blocks.STONE);
+						}
+					}
+				}
+				// The owner stands off the body↔victim axis entirely (perpendicular offset):
+				// its own LoS stays clear of the wall, the aim ray cannot clip the toad (a ray
+				// that hits the body resolves to an own-summon mark and trySic refuses for the
+				// wrong reason), and the segment never grazes the wall cube — an on-axis owner
+				// shoots straight down the wall line and the block clip can win the resolve.
+				Vec3 bodyToZombie = zombie.position().subtract(body.position());
+				double bzLen = Math.hypot(bodyToZombie.x, bodyToZombie.z);
+				double perpX = -bodyToZombie.z / bzLen;
+				double perpZ = bodyToZombie.x / bzLen;
+				BlockPos ownerPad = helper.relativePos(BlockPos.containing(
+						zombie.position().add(perpX * 2.5, 0.0, perpZ * 2.5)));
+				helper.setBlock(ownerPad.below(), Blocks.STONE);
+				caster.teleportTo(level,
+						zombie.getX() + perpX * 2.5, zombie.getY(),
+						zombie.getZ() + perpZ * 2.5,
+						Set.of(), 0.0f, 0.0f, false);
+				TodoSwapTestFixtures.aimAt(caster, zombie.position().add(0.0, zombie.getBbHeight() / 2.0, 0.0));
+				jujutsu.mod.combat.TargetResolver.Result probe = jujutsu.mod.combat.TargetResolver.resolve(
+						level, caster, MegumiShikigamiProfile.SIC_RANGE,
+						t -> true);
+				helper.assertTrue(probe.mode() == jujutsu.mod.combat.TargetResolver.Mode.ENTITY
+						&& probe.entityId().orElse(-1) == zombie.getId(),
+						net.minecraft.network.chat.Component.literal("diag resolve mode=" + probe.mode()
+								+ " id=" + probe.entityId() + " zombie=" + zombie.getId()
+								+ " point=" + probe.point() + " caster=" + caster.position()
+								+ " eye=" + caster.getEyePosition() + " zpos=" + zombie.position()
+								+ " blockAtPoint=" + level.getBlockState(
+										net.minecraft.core.BlockPos.containing(probe.point()))));
+				helper.assertTrue(body.combatEnabled(), net.minecraft.network.chat.Component.literal("diag combatEnabled"));
+				helper.assertTrue(caster.hasLineOfSight(zombie), net.minecraft.network.chat.Component.literal("diag owner LoS"));
+				boolean sicced = MegumiShikigamiRuntime.trySic(caster, false);
+				helper.assertTrue(sicced, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"sic", helper.getTick(), caster.getUUID(), "trySic result", "true", sicced));
+			} catch (RuntimeException | AssertionError failure) {
+				done.set(true);
+				zombie.discard();
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+				throw failure;
+			}
+		});
+
+		for (long tick = SIC_TICK + 1; tick <= GRAB_DEADLINE_TICK; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				if (done.get()) {
+					return;
+				}
+				List<MegumiToadEntity> bodies = toadOwnedBy(level, caster.getUUID());
+				try {
+					helper.assertTrue(bodies.size() == 1,
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "refuse", pollTick,
+									caster.getUUID(), "Toad body present", "1", bodies.size()));
+					MegumiToadEntity body = bodies.get(0);
+					helper.assertTrue(!body.isHolding(),
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "refuse", pollTick,
+									caster.getUUID(), "no grab through a wall", "not holding",
+									"holding " + body.grabbedUuid()));
+					if (pollTick == GRAB_DEADLINE_TICK) {
+						helper.assertTrue(!body.attackReady(level.getGameTime()),
+								MegumiShikigamiTestFixtures.diagnostic(fixture, "refuse", pollTick,
+										caster.getUUID(), "the commit ran and armed its cooldown",
+										"cooldown armed", "still ready"));
+						done.set(true);
+						zombie.discard();
+						MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+						helper.succeed();
+					}
 				} catch (RuntimeException | AssertionError failure) {
 					done.set(true);
 					zombie.discard();

@@ -182,11 +182,13 @@ not as drive-by "fixes".
 3. **Held-by-the-toad mobs carry no marker after the throw.** Both kinds of victim are pinned by
    the same `HoldSupport` marker and both drop it at throw/recall/death. (A mob's `GRIPPED` was
    previously left to expire on its own — a foreign HARMFUL icon for up to 10 ticks.)
-4. **Client suppression zeroes both recomputed input fields.** `HoldInputMixin` writes
-   `keyPresses` **and** `moveVector` after `ClientInput.tick()`: zeroing only the first left WASD
-   locomotion alive and rubber-banded the victim against the server pin. Jump/sneak/sprint and
-   locomotion are suppressed; attack, item use, inventory and hotbar stay available (by design).
-   The client half is not GameTest-able — its acceptance lives in the live lane.
+4. **Client suppression zeroes the recomputed input and skips the locomotion copy.**
+   `HoldInputMixin` writes `keyPresses = Input.EMPTY` after `ClientInput.tick()` **and** cancels
+   `applyInput()` — the only reader of `moveVector`, which is `protected` on `ClientInput` and
+   cannot be shadowed from the mixin. Zeroing only the first left WASD locomotion alive and
+   rubber-banded the victim against the server pin. Jump/sneak/sprint and locomotion are
+   suppressed; attack, item use, inventory and hotbar stay available (by design). The client
+   half is not GameTest-able — its acceptance lives in the live lane.
 5. **Servers keep the curse in one runtime state.** `CARRIED` (runner) and the hold markers are
    cleared on every exit path, expiry included — a stuck entry would deny attack/break/place with
    no visible cause, so the expiry branch routes through the effect's own `end()`.

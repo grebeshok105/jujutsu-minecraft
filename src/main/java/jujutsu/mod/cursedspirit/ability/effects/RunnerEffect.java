@@ -3,6 +3,7 @@ package jujutsu.mod.cursedspirit.ability.effects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
@@ -72,6 +73,10 @@ public final class RunnerEffect {
 				isRunnerVictim(player) && isBlockPlacement(player.getItemInHand(hand))
 						? InteractionResult.FAIL
 						: InteractionResult.PASS);
+		// Same convention as every static runtime in the repo: the deny-set is JVM state,
+		// so a server stop inside a carry must not leak it into the next world — a stale
+		// entry would deny attack/break/place to that UUID for the rest of the session.
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> CARRIED.clear());
 	}
 
 	public static boolean isRunnerVictim(Player player) {
@@ -92,6 +97,12 @@ public final class RunnerEffect {
 			CursedSpiritAbilityParams params, CursedSpiritAbilityBrain brain) {
 		// Issue #80: the grab is control — never starts on a non-perceiving player.
 		if (!CursePerception.mayTouch(spirit, victim)) {
+			return false;
+		}
+		// One victim, one holder (issue #90): the shared GRIPPED marker is a single flag, so a
+		// second holder's release would strip the deny-state the first still owns. Refuse the
+		// start on a victim already carried by another runner or held by a toad.
+		if (isRunnerVictim(victim) || HoldSupport.isHeld(victim)) {
 			return false;
 		}
 		if (!brain.tryStart(CursedSpiritAbilityId.GRAB_RUNNER, now + params.durationTicks(), params,
@@ -149,9 +160,15 @@ public final class RunnerEffect {
 			return;
 		}
 		CARRIED.remove(victimUuid);
-		if (spirit.level() instanceof ServerLevel level
-				&& level.getEntity(victimUuid) instanceof ServerPlayer victim) {
-			HoldSupport.release(victim);
+		if (spirit.level() instanceof ServerLevel level) {
+			if (level.getEntity(victimUuid) instanceof ServerPlayer victim) {
+				HoldSupport.release(victim);
+			}
+			// end() runs from tick (victim loss), cancelAllFor (removal) and expiry — none of
+			// them passes through the windup site, so the release cue is broadcast here. A
+			// repeat ABILITY_RELEASE on a client that never saw the windup is harmless
+			// (endAttackAnim is a no-op then).
+			level.broadcastEntityEvent(spirit, CursedSpiritEntity.ABILITY_RELEASE);
 		}
 	}
 
