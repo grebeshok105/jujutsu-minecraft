@@ -160,9 +160,15 @@ public final class RunnerEffect {
 			return;
 		}
 		CARRIED.remove(victimUuid);
-		if (spirit.level() instanceof ServerLevel level
-				&& level.getEntity(victimUuid) instanceof ServerPlayer victim) {
-			HoldSupport.release(victim);
+		if (spirit.level() instanceof ServerLevel level) {
+			if (level.getEntity(victimUuid) instanceof ServerPlayer victim) {
+				HoldSupport.release(victim);
+			}
+			// end() runs from tick (victim loss), cancelAllFor (removal) and expiry — none of
+			// them passes through the windup site, so the release cue is broadcast here. A
+			// repeat ABILITY_RELEASE on a client that never saw the windup is harmless
+			// (endAttackAnim is a no-op then).
+			level.broadcastEntityEvent(spirit, CursedSpiritEntity.ABILITY_RELEASE);
 		}
 	}
 
