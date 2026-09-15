@@ -121,14 +121,13 @@ public final class CursedSpiritSpawnGameTests {
 								"light check in the dark room " + gateDiagnostic(level, helper.absolutePos(DARK_FEET)),
 								"true", "see report"));
 
-				// NATURAL below the cap: the day scenarios all ride SPAWNER, which bypasses
-				// belowLocalCap, so this is the only end-to-end pin on the crowd-cap branch.
-				// The lit cell still refuses under NATURAL — the light half is
-				// branch-independent.
-				helper.assertTrue(darkProbe.checkSpawnRules(level, EntitySpawnReason.NATURAL),
-						GameTestFixtures.diagnostic(fixture, helper.getTick(),
-								"natural check below cap in the dark room",
-								"true", "see report"));
+				// NATURAL branch end-to-end (#94): the day scenarios all ride SPAWNER, which
+				// bypasses belowLocalCap. The refusal side is pinned here — a lit cell still
+				// refuses under NATURAL, so a mutant that short-circuits the light half for
+				// NATURAL goes red. The crowd-cap refusal under NATURAL is pinned by the
+				// at-cap assert below. A positive below-cap assert would be population-racy:
+				// sibling arenas' bodies legitimately sit inside CROWD_RADIUS of this shared
+				// level, which is exactly why the light oracles above ride SPAWNER.
 				helper.assertFalse(litProbe.checkSpawnRules(level, EntitySpawnReason.NATURAL),
 						GameTestFixtures.diagnostic(fixture, helper.getTick(),
 								"natural check in the lit cell", "false", "see report"));
