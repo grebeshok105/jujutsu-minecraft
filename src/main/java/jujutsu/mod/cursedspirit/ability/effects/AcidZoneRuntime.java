@@ -3,6 +3,7 @@ package jujutsu.mod.cursedspirit.ability.effects;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -47,6 +48,9 @@ public final class AcidZoneRuntime {
 
 	public static void register() {
 		ServerTickEvents.END_SERVER_TICK.register(AcidZoneRuntime::tick);
+		// The static pool outlives a world inside one JVM: an integrated-server stop
+		// without this clear would leak phantom zones into the next world.
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> ZONES.clear());
 	}
 
 	/**
