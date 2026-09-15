@@ -345,6 +345,12 @@ public final class CursedSpiritPerceptionGameTests {
 				spirit.playSound(net.minecraft.sounds.SoundEvents.ZOMBIE_AMBIENT, 1.0f, 1.0f);
 				int mageSentDelta = sentCount(mage) - mageSentBefore;
 				int noneSentDelta = sentCount(none) - noneSentBefore;
+				String aud = "aud[players=" + ((ServerLevel) spirit.level()).players().size()
+						+ " perceives(mage)=" + jujutsu.mod.cursedspirit.perception.CursePerception.perceives(mage)
+						+ " perceives(none)=" + jujutsu.mod.cursedspirit.perception.CursePerception.perceives(none)
+						+ " sel=" + CharacterSelectionManager.selected(mage)
+						+ " distSqr=" + mage.distanceToSqr(spirit.getX(), spirit.getY(), spirit.getZ())
+						+ " spiritPos=" + spirit.position() + " magePos=" + mage.position() + "]";
 				// Control probe: a packet we send through the same connection.send path —
 				// separates "spirit send never queued" from "loopback read is blind".
 				mage.connection.send(new net.minecraft.network.protocol.game.ClientboundSoundPacket(
@@ -365,7 +371,7 @@ public final class CursedSpiritPerceptionGameTests {
 						diag(fixture, 5, "mage hears the sound", ">=1",
 								mageHeard.size() + " raw=" + outboundSummary(mageRaw)
 										+ " sentDelta=" + mageSentDelta
-										+ "/" + noneSentDelta + " " + connectionDiag(mage)));
+										+ "/" + noneSentDelta + " " + aud + " " + connectionDiag(mage)));
 			} finally {
 				cleanup(helper, spirit, none);
 				CursedSpiritTestFixtures.cleanupVictim(helper, mage);
@@ -491,14 +497,21 @@ public final class CursedSpiritPerceptionGameTests {
 		}
 	}
 
-	/** Keeps only packets emitted at the spirit's position (isolates the probe sound). */
+	/**
+	 * Keeps only packets emitted at the spirit's position (isolates the probe sound).
+	 * {@code ClientboundSoundPacket} stores x/y/z as <b>floats</b> — at gametest arena
+	 * magnitudes (~5.5M blocks) float granularity is 0.5, so exact {@code ==} against the
+	 * double position can never match. A 1.0-per-axis tolerance covers the quantization
+	 * and still isolates the probe: the control packet sits at 9999.
+	 */
 	private static List<net.minecraft.network.protocol.game.ClientboundSoundPacket> soundPacketsAt(
 			List<Object> packets, CursedSpiritEntity spirit) {
 		List<net.minecraft.network.protocol.game.ClientboundSoundPacket> at = new ArrayList<>();
 		for (Object outbound : packets) {
 			if (outbound instanceof net.minecraft.network.protocol.game.ClientboundSoundPacket packet
-					&& packet.getX() == spirit.getX() && packet.getY() == spirit.getY()
-					&& packet.getZ() == spirit.getZ()) {
+					&& Math.abs(packet.getX() - spirit.getX()) < 1.0
+					&& Math.abs(packet.getY() - spirit.getY()) < 1.0
+					&& Math.abs(packet.getZ() - spirit.getZ()) < 1.0) {
 				at.add(packet);
 			}
 		}
@@ -510,6 +523,9 @@ public final class CursedSpiritPerceptionGameTests {
 		java.util.Map<String, Integer> counts = new java.util.TreeMap<>();
 		for (Object outbound : raw) {
 			String name = outbound == null ? "null" : outbound.getClass().getName();
+			if (outbound instanceof net.minecraft.network.protocol.game.ClientboundSoundPacket p) {
+				name += "@" + p.getX() + "," + p.getY() + "," + p.getZ();
+			}
 			counts.merge(name, 1, Integer::sum);
 		}
 		return counts.toString();
