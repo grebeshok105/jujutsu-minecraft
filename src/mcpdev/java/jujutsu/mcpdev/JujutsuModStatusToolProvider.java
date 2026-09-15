@@ -25,16 +25,24 @@ public final class JujutsuModStatusToolProvider implements ToolProvider {
 	public List<Class<? extends Tool>> toolClasses() {
 		return List.of(
 				JujutsuAbilityInvokeTool.class,
+				JujutsuCombatLogTool.class,
 				JujutsuCooldownsClearTool.class,
 				JujutsuCooldownsGetTool.class,
+				JujutsuEntityAttackTool.class,
+				JujutsuEntitySetHealthTool.class,
+				JujutsuEntitySummonNearTool.class,
 				JujutsuFixtureListTool.class,
 				JujutsuFixtureResetTool.class,
+				JujutsuLookAtTool.class,
 				JujutsuModStatusTool.class,
+				JujutsuPlayerRespawnTool.class,
+				JujutsuPlayerSetGamemodeTool.class,
 				JujutsuPlayerSetRotationTool.class,
 				JujutsuStateGetTool.class,
 				JujutsuTicksWaitTool.class,
 				JujutsuVesselListTool.class,
-				JujutsuVesselSelectTool.class);
+				JujutsuVesselSelectTool.class,
+				JujutsuWaitUntilTool.class);
 	}
 
 	@Override
