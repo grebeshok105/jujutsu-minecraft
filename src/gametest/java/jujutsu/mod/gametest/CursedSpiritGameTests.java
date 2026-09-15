@@ -21,6 +21,7 @@ import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.character.todo.TodoProfile;
 import jujutsu.mod.combat.CombatStagger;
+import jujutsu.mod.cursedspirit.CursedSpiritAttackPolicy;
 import jujutsu.mod.cursedspirit.CursedSpiritEntity;
 import jujutsu.mod.cursedspirit.CursedSpiritProfile;
 import jujutsu.mod.cursedspirit.CursedSpiritTier;
@@ -787,9 +788,11 @@ public final class CursedSpiritGameTests {
 	/**
 	 * Issue #85 — a whiffed swing must not cancel the slam. The tracked victim is yanked out of
 	 * reach the moment the windup opens, and a pig parked inside the 3.5 profile radius must still
-	 * take the shockwave while the victim stays untouched (the direct hit keeps its reach rule).
-	 * Before the fix the strike-time reach re-check returned before the AoE block, so the whole
-	 * swing dealt nothing: the "empty attacks" Walking Bed report.
+	 * take the shockwave. Before the fix the strike-time reach re-check returned before the AoE
+	 * block, so the whole swing dealt nothing: the "empty attacks" Walking Bed report. Since #99
+	 * the out-of-reach victim no longer walks free inside the crater: it takes exactly the AoE
+	 * shockwave hit, never the direct strike — the oracle below pins the delta to the aoeDamage
+	 * row, which a direct hit (primaryDamage, unscaled) would overshoot.
 	 */
 	@GameTest(maxTicks = 220, skyAccess = true)
 	public void greaterSlamStillLandsWhenTheTrackedVictimLeavesReach(GameTestHelper helper) {
@@ -840,9 +843,15 @@ public final class CursedSpiritGameTests {
 						return;
 					}
 					if (pulled.get() && bystander.getHealth() < 10.0) {
-						helper.assertTrue(victim.getHealth() == victimMax,
+						// #99: inside the crater but past direct reach the victim takes the AoE
+						// hit exactly once — the same damage the bystander took — and never the
+						// full direct strike.
+						float expectedAoe = CursedSpiritAttackPolicy.aoeDamage(
+								spirit.gradeStats(), CursedSpiritProfile.of(spirit.tier()));
+						helper.assertTrue(Math.abs(victim.getHealth() - (victimMax - expectedAoe)) < 0.001,
 								CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
-										"out-of-reach victim takes no direct hit", victimMax,
+										"out-of-reach victim takes only the AoE hit, not the direct strike",
+										String.valueOf(victimMax - expectedAoe),
 										victim.getHealth()));
 						done.set(true);
 						spirit.discard();
