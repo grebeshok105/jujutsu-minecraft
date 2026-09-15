@@ -1,7 +1,11 @@
 # Known Issues and Technical Debt
 
 Status: CURRENT LIVE REGISTER
-Last code verification: 2026-09-13 (Cursed Saga branch `feat/cursed-saga` before commit:
+Last code verification: 2026-09-15 (main @ `61090fc`, post-merge of the review-fix campaign
+PRs #100–#103 + mcpdev tools #105: qualityGate green — 155/155 GameTests, JUnit, doc audit, jar
+isolation; live MCP lane verification of the perception contract both directions, fear markers,
+slam knockback, toad grip pin/release, elephant presence drain, rabbit swarm, peaceful despawn).
+Earlier: 2026-09-13 (Cursed Saga branch `feat/cursed-saga` before commit:
 qualityGate green — 142/142 GameTests, 541 JUnit; live MCP smoke 16/17 oracle checks green,
 the 17th a driver-timing artifact documented in the Cursed Saga continuation notes).
 Earlier verifications: 2026-07-29. Entries carrying a "Verified 2026-07-29" line were re-checked

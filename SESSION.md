@@ -1,3 +1,74 @@
+# Session Handoff — review campaign + MCP dev-tools — 2026-09-15
+
+## State — all merged, live-verified
+
+Full post-release review of the Cursed Saga / shikigami slices (PRs #74, #75, #87, #89) ran through
+a subagent fleet; findings became issues **#90–#99**, fixed by four goal-worker blocks and merged as
+PRs **#100–#103**. Follow-up tooling PR **#105** added eight `jujutsu_*` dev-control tools. `main` @
+`61090fc`, `qualityGate` green — **155 GameTests**, JUnit, doc audit, jar isolation.
+
+- Merge order and SHAs: #101 abilities/spawn `b1b53aa` → #102 perception `12a3445` (plus seam commit
+  `0bbe8ed` wiring `absorb(…, source)` + `loadFrom(input, grade)` — the BYPASSES_ARMOR filter and
+  grade-gate are live now) → #103 hold `5e5037e` → #100 megumi `c26fbf1` (carries de-flake `662956c`:
+  the slam-crater oracle is spirit-relative now, not absolute-arena).
+- Issues: **#91–#99** closed via `Closes`; **#90** closed manually after the owner resolved point 8 —
+  "no interaction between a non-mage and a curse" is the design, and issue **#80**'s acceptance text
+  was corrected to match. **#104** opened for the episodic GameTest flake family (toad-grab
+  deadlines, combatSilencesShelter).
+- In-game verification on the dev lane (mod 1.7.5 per `jujutsu_mod_status`): the perception contract
+  holds both directions — a non-mage's client never receives the spirit at all (server tracking
+  filter, not just render), no aggro, no damage; megumi sees it, gets acid-spit and meleed, and
+  switching back to `none` mid-combat de-aggros and un-tracks it live. Fear lands
+  (`cursed_fear`+darkness+nausea markers), slam launches the player airborne, toad grip pins the
+  victim with `gripped`+slowness and releases clean, elephant presence steadily drains a marked
+  aggressor (#91 fix confirmed live), rabbit swarm summons 10 bodies, `difficulty peaceful` despawns
+  every spirit.
+- mcpdev tools (#105): `jujutsu_entity_attack` (source-aware damage — the non-mage↔spirit damage
+  gate is verifiable now), `jujutsu_combat_log` (damage/death ring buffer with projectile-owner
+  attribution), `jujutsu_wait_until` (condition waits, any/all), `jujutsu_player_respawn`,
+  `jujutsu_player_set_gamemode`, `jujutsu_entity_set_health`, `jujutsu_look_at`,
+  `jujutsu_entity_summon_near`. Lane ops guide: `docs/MCP-LANE.md`; smoke evidence:
+  `audit/mcpdev-tools.md`.
+- The generic MCP layer is a separate codebase — the fork
+  `grebeshok105/minecraft-java-fabric-mcp-server` (local checkout
+  `D:/WorkFlow/mcp-spike-scratch/upstream`, branch `mc-1.21.8-target`, built jar wired via
+  `-PmcpUpstreamJar`). Follow-ups that can't be done in mcpdev are filed as issue **#1** there
+  (deliverable entity.damage/death events, soft-miss entity_get, command_execute output, client-side
+  sense_sounds/rendered_entities, relative positions, second headless client for MP checks).
+
+## Traps learned (full versions in `docs/MCP-LANE.md`)
+
+- The session MCP bridge can die while the game-side HTTP server stays up — bypass with
+  `.agent-runs/ingame/mc_call.py` (JSON-RPC `tools/call`/`tools/list` on `127.0.0.1:8765` world /
+  `8766` client-sense).
+- Killing the gradle shell does NOT kill the game window: find the java PID (`jps -lv`),
+  `taskkill //PID //F`, confirm port 8765 is free, then relaunch. One live client per lane, always.
+- `command_execute` drops text output (`data get`/`gamemode` report `successCount 0` on success);
+  `entity_get` throws "Entity not found" on dead bodies (use `jujutsu_wait_until entity_gone`);
+  `distance=..N` measures from the command-source origin, not the player; tag selectors
+  `@e[type=#…]` return `[]`.
+- NBT summon recipes that work: ability pool `{Abilities:"fear,dash,armor"}` (flat keys on the
+  entity), health buff `{attributes:[{id:"minecraft:max_health",base:200.0}],Health:200.0f}` —
+  the camelCase `Attributes` form silently does not apply.
+
+## If work continues here
+
+1. The fix batch is merged but **unreleased** — `mod_version` is still 1.7.5; a release cut is an
+   owner call, then the usual jar deploy into `D:/Games/instances/Jujutsu/mods/`.
+2. **#104** is the standing instability item (episodic GameTest flakes); first suspect is the toad
+   self-pick cooldown window vs the sic deadline.
+3. **#22** (shared static runtime state) stays open as systemic debt — the concrete ZONES/CARRIED
+   holes are patched, the architecture point isn't.
+4. Upstream fork issue #1 is the shopping list for the generic MCP layer; implementing it means a
+   PR on the fork, a jar rebuild, and re-pointing `-PmcpUpstreamJar`.
+5. The lane player is mortal and the dev world is hostile — `jujutsu_player_respawn` +
+   `jujutsu_entity_set_health` exist now; `doImmediateRespawn` in the mcp-spike save is intentionally
+   left `false` (death scenarios need it).
+6. `audit/` and `WATCHDOG.yml` are deliberately untracked session-local scratch (`20fe6b3`) — do not
+   commit them.
+
+---
+
 # Session Handoff — released as `v1.7.5` beta (2026-09-13)
 
 ## State — RELEASED

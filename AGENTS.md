@@ -60,9 +60,11 @@ Project-local only (`.grace-tools/`); a global install must never become a proje
 
 Prefer the lightest tool that answers. All querying is pre-authorized — on failure, say so once and continue with the repo.
 
+For code questions — structure, callers, dependencies, where something lives or what breaks if it changes — query **codegraph first** (`codegraph_explore` / `codegraph node` / `codegraph files`), before grep or blind file reads. Grep is the fallback for when the index genuinely lacks the answer, not the default.
+
 | Tool | For |
 |---|---|
-| codegraph (`.codegraph/`) | structure, callers, dependencies |
+| codegraph (`.codegraph/`) | structure, callers, dependencies — first choice for code questions; keep the index fresh: `codegraph sync` after merges, or run `codegraph daemon` to watch continuously |
 | LSP / symbol search | definitions, references, renames, diagnostics |
 | knowledge-rag (`.omp/RULES.md`), VaultMCP when connected | project knowledge; never above current code |
 | MCP dev-lane (`mc-world`/`mc-client`, `mcp-lane-launch` skill) | launching and driving the live game |
@@ -78,6 +80,8 @@ Compilation proves nothing. Relevant automated tests must pass, and `qualityGate
 ```
 
 New behavioral or architecturally significant logic gets tests; a bugfix gets a regression test where possible; mutation checks apply where meaningful — no theater tests written just to satisfy a rule. A check only ever seen green may be vacuous: prove new checks can fail.
+
+Verification defaults to the **full `qualityGate`** (server GameTest lane + JUnit + doc audit + jar isolation), never a bare `./gradlew test`: JUnit-only runs are a quick mid-work check, not a finishing gate. The GameTest lane runs headless — no live game needed.
 
 Runtime-affecting changes (gameplay, input, rendering, entities, networking, VFX, UI) require **in-game verification by the agent itself**: launch the game, drive the MCP dev-lane, check acceptance criteria plus edge cases, fix findings, repeat. A green gate alone never finishes such a task.
 

@@ -83,3 +83,5 @@ __pycache__/
 .superpowers/
 .tmp-javap*/
 .factorypath
+
+.agent-runs/
