@@ -81,7 +81,13 @@ public final class CursedSpiritDaySpawnGameTests {
 
 	/**
 	 * The day branch follows the pinned chance in a lit cell: pin 1.0 allows where vanilla
-	 * refuses, pin 0.0 refuses. Red-proof: deleting the day branch reddens the pin-1.0 assert.
+	 * refuses, pin 0.0 refuses. Probed with {@link EntitySpawnReason#NATURAL}: post-merge the
+	 * day roll (and crowd cap) apply to NATURAL/CHUNK_GENERATION only — a SPAWNER probe takes
+	 * the bare vanilla gate and never reaches the roll. The probe is hoisted 80 blocks up:
+	 * open sky at noon keeps the vanilla light half refused, while the crowd cap's 48-block
+	 * box no longer reaches sibling arenas' spirits on the shared level (observed: 23 nearby
+	 * bodies from concurrent scenarios refused the gate before the roll was ever reached).
+	 * Red-proof: deleting the day branch reddens the pin-1.0 assert.
 	 */
 	@GameTest(maxTicks = 60)
 	public void dayLitFollowsPinnedChance(GameTestHelper helper) {
@@ -98,16 +104,19 @@ public final class CursedSpiritDaySpawnGameTests {
 				CursedSpiritSpawnSchedule.pinDayChance(1.0);
 				try {
 					CursedSpiritEntity allowed = spawnProbe(helper, owned, LIT_FEET);
-					helper.assertTrue(allowed.checkSpawnRules(level, EntitySpawnReason.SPAWNER),
+					hoistAboveCrowd(helper, allowed);
+					helper.assertTrue(allowed.checkSpawnRules(level, EntitySpawnReason.NATURAL),
 							GameTestFixtures.diagnostic(fixture, helper.getTick(),
-									"day lit check with chance pinned to 1.0", "true", "see report"));
+									"day lit check with chance pinned to 1.0", "true",
+									"see report " + capDiag(level, allowed.blockPosition())));
 				} finally {
 					CursedSpiritSpawnSchedule.resetDayChance();
 				}
 				CursedSpiritSpawnSchedule.pinDayChance(0.0);
 				try {
 					CursedSpiritEntity refused = spawnProbe(helper, owned, LIT_FEET);
-					helper.assertFalse(refused.checkSpawnRules(level, EntitySpawnReason.SPAWNER),
+					hoistAboveCrowd(helper, refused);
+					helper.assertFalse(refused.checkSpawnRules(level, EntitySpawnReason.NATURAL),
 							GameTestFixtures.diagnostic(fixture, helper.getTick(),
 									"day lit check with chance pinned to 0.0", "false", "see report"));
 				} finally {
@@ -153,8 +162,10 @@ public final class CursedSpiritDaySpawnGameTests {
 
 	/**
 	 * R37: the day spawn is not limited to one tier — N = 100 gate evaluations per tier in a lit
-	 * cell by day with the chance pinned to 1.0 (SPAWNER reason isolates the light/day half from
-	 * the crowd cap, which counts foreign bodies on the shared level).
+	 * cell by day with the chance pinned to 1.0. The probe reason is NATURAL because post-merge
+	 * the day roll lives on the NATURAL/CHUNK_GENERATION branch only (a SPAWNER probe would take
+	 * the bare vanilla gate and observe nothing). The crowd cap that the natural branch adds is
+	 * far away here: arenas hold a handful of bodies against a cap of 10.
 	 */
 	@GameTest(maxTicks = 60)
 	public void daySpawnCoversAllTiers(GameTestHelper helper) {
@@ -295,11 +306,13 @@ public final class CursedSpiritDaySpawnGameTests {
 		CursedSpiritEntity probe = helper.spawn(type, LIT_FEET);
 		probe.setPersistenceRequired();
 		owned.add(probe);
+		hoistAboveCrowd(helper, probe);
 		try {
 			for (int i = 0; i < 100; i++) {
-				if (!probe.checkSpawnRules(level, EntitySpawnReason.SPAWNER)) {
+				if (!probe.checkSpawnRules(level, EntitySpawnReason.NATURAL)) {
 					helper.assertTrue(false, GameTestFixtures.diagnostic(fixture, helper.getTick(),
-							"day lit gate for " + tierName + " (N=100)", "true on all 100", "false at roll " + i));
+							"day lit gate for " + tierName + " (N=100)", "true on all 100",
+							"false at roll " + i + " " + capDiag(level, probe.blockPosition())));
 					return;
 				}
 			}
@@ -323,6 +336,28 @@ public final class CursedSpiritDaySpawnGameTests {
 			helper.setBlock(new BlockPos(1, y, 2), Blocks.STONE);
 			helper.setBlock(new BlockPos(3, y, 2), Blocks.STONE);
 		}
+	}
+
+	/**
+	 * Lifts the probe well above the shared level's spirit arenas: 80 blocks puts ground
+	 * bodies outside the crowd cap's 48-block box, while open sky at noon still refuses the
+	 * vanilla light half of {@code checkSpawnRules} — so the NATURAL gate outcome is decided
+	 * by the day roll alone, deterministically.
+	 */
+	private static void hoistAboveCrowd(GameTestHelper helper, CursedSpiritEntity probe) {
+		BlockPos abs = helper.absolutePos(LIT_FEET).above(80);
+		probe.setPos(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5);
+	}
+
+	/** Ambient-crowd diagnostic: which conjunct of the natural branch refuses, if any. */
+	private static String capDiag(ServerLevel level, BlockPos pos) {
+		int nearby = level.getEntitiesOfClass(CursedSpiritEntity.class,
+				new net.minecraft.world.phys.AABB(pos)
+						.inflate(jujutsu.mod.cursedspirit.CursedSpiritProfile.CROWD_RADIUS)).size();
+		return "[nearby=" + nearby + "/" + jujutsu.mod.cursedspirit.CursedSpiritProfile.MAX_SPIRITS_NEARBY
+				+ " belowCap=" + jujutsu.mod.cursedspirit.CursedSpiritSpawnRules.belowLocalCap(level, pos)
+				+ " day=" + CursedSpiritSpawnSchedule.isDaytime(level.dayTime())
+				+ " chance=" + CursedSpiritSpawnSchedule.dayChance() + "]";
 	}
 
 	private static CursedSpiritEntity spawnProbe(GameTestHelper helper, List<CursedSpiritEntity> live,
