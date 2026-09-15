@@ -132,6 +132,12 @@ final class MegumiRabbitsBrain {
 	/** Replaces fallen bodies at the owner's ring, capped by the batch row; pops a cue per body. */
 	private static void upkeep(ServerLevel level, ServerPlayer owner, MegumiShikigamiPack pack,
 			long gameTime) {
+		if (owner == null) {
+			// The anchor can out-tick a logout: with no owner there is no ring to spawn on and no
+			// cue receiver, so the window simply does not advance (the anchor-loss/reconcile pass
+			// owns the pack teardown instead).
+			return;
+		}
 		UUID ownerId = owner.getUUID();
 		List<MegumiShikigamiEntity> living =
 				MegumiShikigamiRuntime.livingBodies(level.getServer(), ownerId, pack);

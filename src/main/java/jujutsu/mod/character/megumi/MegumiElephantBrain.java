@@ -195,7 +195,7 @@ final class MegumiElephantBrain {
 					MegumiShikigamiProfile.ELEPHANT_PRESENCE_PUSH,
 					MegumiShikigamiProfile.ELEPHANT_PRESENCE_KNOCKBACK));
 			candidate.hurtMarked = true;
-			if (MegumiHostilityPolicy.isHostile(owner, candidate, gameTime)) {
+			if (MegumiHostilityPolicy.isHostile(owner, candidate)) {
 				DamageSource source = owner != null
 						? level.damageSources().playerAttack(owner)
 						: level.damageSources().magic();
@@ -212,8 +212,10 @@ final class MegumiElephantBrain {
 
 	/**
 	 * The footprint (issue #79): while walking, the body crushes what its feet pass over. The
-	 * trigger is movement, never a collision — the wooden floor of a room has to break even when the
-	 * body walks through open space — and the block allowlist keeps a base's storage out of it.
+	 * trigger is movement, never a collision — natural ground has to break even when the body
+	 * walks through open space. The allowlist is natural terrain only (dirt, sand, leaves and
+	 * the like), so anything a player builds a base out of — planks, glass, torches, crops —
+	 * is never touched, and the broken ground drops nothing.
 	 */
 	private static void tickFootprint(ServerLevel level, MegumiElephantEntity elephant, long gameTime) {
 		if (!MegumiElephantPresencePolicy.footprintDue(gameTime)) {

@@ -165,8 +165,9 @@ public class CursedSpiritAttackGoal extends Goal {
 		// only, no line-of-sight re-check (see canContinueToUse): a momentary sight blip must not
 		// void the swing, but distance does. A whiff still runs out the swing clock through
 		// RECOVER, and the slam below still lands — the swing is never empty (issue #85).
-		if (CursedSpiritAttackPolicy.inReach(
-				mob.distanceTo(target), mob.getBbWidth(), target.getBbWidth(), row)) {
+		boolean directHit = CursedSpiritAttackPolicy.inReach(
+				mob.distanceTo(target), mob.getBbWidth(), target.getBbWidth(), row);
+		if (directHit) {
 			double step = row.strikeStep();
 			if (step > 0.0) {
 				Vec3 forward = mob.getLookAngle().multiply(1.0, 0.0, 1.0);
@@ -197,6 +198,18 @@ public class CursedSpiritAttackGoal extends Goal {
 				splash.hurtServer(level, level.damageSources().mobAttack(mob),
 						CursedSpiritAttackPolicy.aoeDamage(mob.gradeStats(), row));
 				knock(splash, row.aoeKnockback());
+			}
+			// Issue #99 — the slam dead zone: strikeTargets excludes the primary from the
+			// splash, so a victim that escaped direct reach mid-swing but still stands inside
+			// the crater would take zero damage. "Inside the crater" is the same collection
+			// the splash uses — the inflated-box `nearby` set — so the ring between the
+			// hitbox-edge reach boundary and the crater edge stops being damage-free. When
+			// the direct hit landed (directHit) the primary is already resolved — never
+			// double-dip.
+			if (!directHit && nearby.contains(target)) {
+				target.hurtServer(level, level.damageSources().mobAttack(mob),
+						CursedSpiritAttackPolicy.aoeDamage(mob.gradeStats(), row));
+				knock(target, row.aoeKnockback());
 			}
 		}
 		// STRIKE lasts exactly one tick: the policy advances to RECOVER on the next tick.

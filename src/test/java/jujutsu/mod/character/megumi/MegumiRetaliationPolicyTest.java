@@ -32,4 +32,16 @@ class MegumiRetaliationPolicyTest {
 	void anEmptyAggressorListYieldsNothing() {
 		assertEquals(null, MegumiRetaliationPolicy.nearestAggressor(null, List.of()));
 	}
+
+	/**
+	 * Issue #96 — a self-placed mark expires the tick no aggressor answers; a manual sic is the
+	 * owner's order and never expires here.
+	 */
+	@Test
+	void onlyThePacksOwnMarkExpiresWithoutAnAggressor() {
+		assertTrue(MegumiRetaliationPolicy.markExpiresWithoutAggressor(false),
+				"a retaliation mark dies with the window");
+		assertFalse(MegumiRetaliationPolicy.markExpiresWithoutAggressor(true),
+				"a manual sic outlives the window");
+	}
 }

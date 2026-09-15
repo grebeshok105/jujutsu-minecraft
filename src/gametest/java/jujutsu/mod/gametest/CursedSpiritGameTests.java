@@ -21,6 +21,7 @@ import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.character.todo.TodoProfile;
 import jujutsu.mod.combat.CombatStagger;
+import jujutsu.mod.cursedspirit.CursedSpiritAttackPolicy;
 import jujutsu.mod.cursedspirit.CursedSpiritEntity;
 import jujutsu.mod.cursedspirit.CursedSpiritProfile;
 import jujutsu.mod.cursedspirit.CursedSpiritTier;
@@ -787,9 +788,11 @@ public final class CursedSpiritGameTests {
 	/**
 	 * Issue #85 — a whiffed swing must not cancel the slam. The tracked victim is yanked out of
 	 * reach the moment the windup opens, and a pig parked inside the 3.5 profile radius must still
-	 * take the shockwave while the victim stays untouched (the direct hit keeps its reach rule).
-	 * Before the fix the strike-time reach re-check returned before the AoE block, so the whole
-	 * swing dealt nothing: the "empty attacks" Walking Bed report.
+	 * take the shockwave. Before the fix the strike-time reach re-check returned before the AoE
+	 * block, so the whole swing dealt nothing: the "empty attacks" Walking Bed report. Since #99
+	 * the out-of-reach victim no longer walks free inside the crater: it takes exactly the AoE
+	 * shockwave hit, never the direct strike — the oracle below pins the delta to the aoeDamage
+	 * row, which a direct hit (primaryDamage, unscaled) would overshoot.
 	 */
 	@GameTest(maxTicks = 220, skyAccess = true)
 	public void greaterSlamStillLandsWhenTheTrackedVictimLeavesReach(GameTestHelper helper) {
@@ -830,19 +833,30 @@ public final class CursedSpiritGameTests {
 				try {
 					if (!pulled.get() && spirit.attackAnimationState.isStarted()
 							&& spirit.getTarget() == victim) {
-						// The windup just opened: take the victim out of reach so the strike-time
-						// re-check sees a whiff. The clip runs on to the slam either way. The pull
-						// stays INSIDE the 6x6 pad — off the pad the victim drops out of the arena
-						// and the swing would stop instead of whiffing.
-						Vec3 away = helper.absolutePos(new BlockPos(6, 1, 6)).getCenter();
+						// The windup just opened: take the victim out of direct reach so the
+						// strike-time re-check sees a whiff, but keep it inside the slam crater so
+						// the #99 path still pays out the AoE hit. The pull MUST be spirit-relative:
+						// the band between hitbox-edge reach (3.0 + 0.675 + 0.3 ≈ 3.98) and the
+						// inflated-box crater bound (3.5 + 0.675 + victim half-width ≈ 4.48 per
+						// axis) is narrow, so an absolute corner spot lands outside the crater
+						// whenever the spirit's approach position drifts — the CI flake. Diagonal
+						// 3.2/3.2 keeps both invariants: centre distance 4.53 > reach, per-axis
+						// 3.2 < box bound, and the spot stays inside the 6x6 pad.
+						Vec3 away = spirit.position().add(3.2, 0.0, 3.2);
 						victim.teleportTo(away.x, away.y, away.z);
 						pulled.set(true);
 						return;
 					}
 					if (pulled.get() && bystander.getHealth() < 10.0) {
-						helper.assertTrue(victim.getHealth() == victimMax,
+						// #99: inside the crater but past direct reach the victim takes the AoE
+						// hit exactly once — the same damage the bystander took — and never the
+						// full direct strike.
+						float expectedAoe = CursedSpiritAttackPolicy.aoeDamage(
+								spirit.gradeStats(), CursedSpiritProfile.of(spirit.tier()));
+						helper.assertTrue(Math.abs(victim.getHealth() - (victimMax - expectedAoe)) < 0.001,
 								CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
-										"out-of-reach victim takes no direct hit", victimMax,
+										"out-of-reach victim takes only the AoE hit, not the direct strike",
+										String.valueOf(victimMax - expectedAoe),
 										victim.getHealth()));
 						done.set(true);
 						spirit.discard();
@@ -872,6 +886,83 @@ public final class CursedSpiritGameTests {
 					done.set(true);
 					spirit.discard();
 					bystander.discard();
+					CursedSpiritTestFixtures.cleanupVictim(helper, victim);
+					throw failure;
+				}
+			});
+		}
+	}
+
+	/**
+	 * Issue #99 — the slam dead zone. The tracked victim is yanked mid-windup into the ring
+	 * PAST the hitbox-edge reach boundary (3.0 + halves 0.675 + 0.3 = 3.975 centre) but still
+	 * inside the crater the splash collects (mob box inflated by 3.5, edge reach ~4.175 from
+	 * centre). Pull spot (5,1,5) sits at ~4.24 centre distance: before the fix the victim took
+	 * zero damage there — out of direct reach AND excluded from the AoE by strikeTargets.
+	 * After the fix the shockwave hit lands. The in-reach double-dip is impossible by
+	 * construction: the directHit flag gates the fallback AND vanilla's 10-tick invulnerability
+	 * window would swallow a same-tick second hurt regardless.
+	 */
+	@GameTest(maxTicks = 220, skyAccess = true)
+	public void greaterSlamHitsVictimInCraterRingPastReach(GameTestHelper helper) {
+		String fixture = "greaterSlamHitsVictimInCraterRingPastReach";
+		BlockPos spiritFeet = new BlockPos(2, 1, 2);
+		BlockPos victimFeet = new BlockPos(2, 1, 3);
+		CursedSpiritTestFixtures.layStoneFloor(helper);
+		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
+		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, fixture, victimFeet);
+		// Perceiving victim (issue #80): a NONE body is never acquired, so the slam never runs.
+		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
+		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
+				JujutsuEntities.GREATER_CURSED_SPIRIT, spiritFeet);
+		double victimMax = victim.getMaxHealth();
+		AtomicBoolean pulled = new AtomicBoolean();
+		AtomicBoolean done = new AtomicBoolean();
+
+		helper.runAtTickTime(2, () -> {
+			helper.assertTrue(spirit.hasLineOfSight(victim),
+					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+							"line of sight to victim", "true", spirit.hasLineOfSight(victim)));
+		});
+		for (long tick = 3; tick <= 210; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				if (done.get()) {
+					return;
+				}
+				try {
+					if (!pulled.get() && spirit.attackAnimationState.isStarted()
+							&& spirit.getTarget() == victim) {
+						// The windup just opened: drop the victim into the dead-zone ring —
+						// outside direct reach, inside the crater the splash collects. The pull
+						// stays inside the pad so the victim remains a valid target.
+						Vec3 ring = helper.absolutePos(new BlockPos(5, 1, 5)).getCenter();
+						victim.teleportTo(ring.x, ring.y, ring.z);
+						pulled.set(true);
+						return;
+					}
+					if (pulled.get() && victim.getHealth() < victimMax) {
+						done.set(true);
+						spirit.discard();
+						CursedSpiritTestFixtures.cleanupVictim(helper, victim);
+						helper.succeed();
+						return;
+					}
+					if (pollTick == 210) {
+						Vec3 spiritPos = spirit.position();
+						Vec3 victimPos = victim.position();
+						helper.assertTrue(false, net.minecraft.network.chat.Component.literal(String.format(java.util.Locale.ROOT,
+								"dead-zone forensics: pulled=%s anim=%s target=%s spirit=(%.2f,%.2f,%.2f) "
+										+ "victim=(%.2f,%.2f,%.2f) dist=%.2f victimHp=%.1f/%.1f spiritAlive=%s",
+								pulled.get(), spirit.attackAnimationState.isStarted(),
+								spirit.getTarget() == victim ? "victim" : String.valueOf(spirit.getTarget()),
+								spiritPos.x, spiritPos.y, spiritPos.z,
+								victimPos.x, victimPos.y, victimPos.z, spirit.distanceTo(victim),
+								victim.getHealth(), victimMax, spirit.isAlive())));
+					}
+				} catch (RuntimeException | AssertionError failure) {
+					done.set(true);
+					spirit.discard();
 					CursedSpiritTestFixtures.cleanupVictim(helper, victim);
 					throw failure;
 				}

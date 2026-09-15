@@ -364,6 +364,15 @@ public final class MegumiShikigamiRuntime {
 		}
 		LivingEntity aggressor = MegumiSummonRuntime.retaliationTarget(owner);
 		if (aggressor == null) {
+			// Issue #96: the mark was never meant to outlive the answer. With no aggressor in reach,
+			// every mark the pack gave itself expires; a manual sic is the owner's order and stands.
+			for (MegumiShikigamiEntity body : living) {
+				if (body.sicTargetUuid() != null
+						&& MegumiRetaliationPolicy.markExpiresWithoutAggressor(body.hasManualSicTarget())) {
+					body.clearSicCommand();
+					body.setTarget(null);
+				}
+			}
 			return;
 		}
 		for (MegumiShikigamiEntity body : living) {

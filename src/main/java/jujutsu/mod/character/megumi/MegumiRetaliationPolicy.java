@@ -59,4 +59,22 @@ final class MegumiRetaliationPolicy {
 	static boolean isUsable(LivingEntity candidate) {
 		return candidate != null && candidate.isAlive() && !candidate.isRemoved();
 	}
+
+	/**
+	 * The reach bound every signal answers to (issue #96): an aggressor past {@code radius} cannot
+	 * be the pack's answer, however fresh the hit that named it. Applied to the picked aggressor so
+	 * the owner's last attacker obeys the same line the aggro scan already draws.
+	 */
+	static boolean withinRadius(LivingEntity owner, LivingEntity candidate, double radius) {
+		return candidate != null && candidate.distanceToSqr(owner) <= radius * radius;
+	}
+
+	/**
+	 * Issue #96: a mark the pack placed for itself exists only while an aggressor answers for the
+	 * owner — the tick none does, it expires. A manual sic is the owner's own order, not a
+	 * retaliation mark, and outlives the window.
+	 */
+	static boolean markExpiresWithoutAggressor(boolean manualSic) {
+		return !manualSic;
+	}
 }

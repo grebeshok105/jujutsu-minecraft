@@ -10,14 +10,7 @@
     "minecraft:sand",
     "minecraft:red_sand",
     "minecraft:soul_sand",
-    "minecraft:glass",
-    "minecraft:glass_pane",
-    "minecraft:torch",
-    "minecraft:wall_torch",
     "#minecraft:leaves",
-    "#minecraft:planks",
-    "#minecraft:fences",
-    "#minecraft:flowers",
-    "#minecraft:crops"
+    "#minecraft:flowers"
   ]
 }

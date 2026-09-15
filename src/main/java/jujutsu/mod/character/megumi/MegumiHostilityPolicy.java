@@ -20,8 +20,17 @@ public final class MegumiHostilityPolicy {
 		return enemyArchetype || aimedAtOwner || freshAggressor;
 	}
 
-	/** Reads the three signals off live entities. */
-	public static boolean isHostile(LivingEntity owner, LivingEntity candidate, long gameTime) {
+	/**
+	 * Reads the three signals off live entities.
+	 *
+	 * <p>The freshness window is measured on the OWNER's own clock: vanilla stamps
+	 * {@code lastHurtByMobTimestamp} with the victim's {@code tickCount}, so comparing it against
+	 * {@code level().getGameTime()} silently expires every hit in a world that has been ticking for
+	 * longer than the player has existed — which is every world after a rejoin (issue #91, the
+	 * same trap {@link MegumiSummonRuntime#retaliationTarget} documents). The overload therefore
+	 * takes no clock at all: a caller-passed time is exactly how the wrong one crept in.
+	 */
+	public static boolean isHostile(LivingEntity owner, LivingEntity candidate) {
 		if (candidate == null || candidate == owner) {
 			return false;
 		}
@@ -29,13 +38,16 @@ public final class MegumiHostilityPolicy {
 		boolean aimed = owner != null && candidate instanceof Mob mob && mob.getTarget() == owner;
 		boolean fresh = owner != null
 				&& candidate == owner.getLastHurtByMob()
-				&& aggressorFresh(gameTime, owner.getLastHurtByMobTimestamp());
+				&& aggressorFresh(owner.tickCount, owner.getLastHurtByMobTimestamp());
 		return isHostile(enemy, aimed, fresh);
 	}
 
-	/** An attacker stays worth answering for the window after the hit that named it. */
-	public static boolean aggressorFresh(long gameTime, long lastHurtTimestamp) {
-		return gameTime - lastHurtTimestamp
+	/**
+	 * An attacker stays worth answering for the window after the hit that named it.
+	 * {@code nowOnOwnerClock} must be the owner's {@code tickCount} — never the level's game time.
+	 */
+	public static boolean aggressorFresh(long nowOnOwnerClock, long lastHurtTimestamp) {
+		return nowOnOwnerClock - lastHurtTimestamp
 				<= MegumiShikigamiProfile.ELEPHANT_PRESENCE_AGGRESSION_WINDOW_TICKS;
 	}
 }
