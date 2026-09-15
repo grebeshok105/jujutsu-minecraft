@@ -1,5 +1,6 @@
 package jujutsu.mod.gametest;
 
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -8,6 +9,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
@@ -88,11 +90,12 @@ public final class CursedSpiritSpawnGameTests {
 				// bodies, and the light oracles below call the gate with SPAWNER so the cap
 				// conjunct cannot see them.
 				//
-				// PEACEFUL refuses even in the dark room. The gate is asserted on the pure predicate,
-				// NOT by flipping the level's difficulty: this level is shared with every other
-				// structure, and a global PEACEFUL window makes Mob.checkDespawn discard their
-				// Monster bodies for as long as it is open (observed as cross-scenario flake).
-				// The entity calls exactly this predicate, so the end-to-end refusal is one line.
+				// PEACEFUL refuses even in the dark room. The pure predicate is asserted here
+				// and the end-to-end chain in peacefulRefusesEndToEndThroughCheckSpawnRules —
+				// never by flipping the level's difficulty: this level is shared with every
+				// other structure, and a global PEACEFUL window makes Mob.checkDespawn discard
+				// their Monster bodies for as long as it is open (observed as cross-scenario
+				// flake).
 				helper.assertFalse(CursedSpiritSpawnRules.difficultyAllows(Difficulty.PEACEFUL),
 						GameTestFixtures.diagnostic(fixture, helper.getTick(),
 								"peaceful gate predicate", "false", "see report"));
@@ -101,12 +104,25 @@ public final class CursedSpiritSpawnGameTests {
 			// light half alone — at day with the BALANCE default the roll would allow 60% of
 			// the time on the shared level clock and flake.
 			CursedSpiritSpawnSchedule.pinDayChance(0.0);
+			CursedSpiritEntity litProbe = spawnProbe(helper, live, LIT_FEET);
 			try {
-				CursedSpiritEntity litProbe = spawnProbe(helper, live, LIT_FEET);
 				helper.assertFalse(litProbe.checkSpawnRules(level, EntitySpawnReason.SPAWNER),
 						GameTestFixtures.diagnostic(fixture, helper.getTick(),
 								"light check in the lit cell " + gateDiagnostic(level, helper.absolutePos(LIT_FEET)),
 								"false", "see report"));
+
+				// NATURAL branch end-to-end (#94): the day scenarios all ride SPAWNER, which
+				// bypasses belowLocalCap. The lit cell must refuse under NATURAL too — the
+				// light half is branch-independent — so a mutant that short-circuits the light
+				// half for NATURAL goes red. This assert lives inside the pin: outside it the
+				// BALANCE day roll (0.6) could allow the spawn through the day branch and the
+				// oracle would flake by ~60%. A positive below-cap NATURAL assert is not
+				// possible on this shared level — sibling arenas' bodies legitimately sit
+				// inside CROWD_RADIUS (population-racy; the reason the light oracles ride
+				// SPAWNER). The cap refusal under NATURAL is pinned by the at-cap assert below.
+				helper.assertFalse(litProbe.checkSpawnRules(level, EntitySpawnReason.NATURAL),
+						GameTestFixtures.diagnostic(fixture, helper.getTick(),
+								"natural check in the lit cell", "false", "see report"));
 			} finally {
 				CursedSpiritSpawnSchedule.resetDayChance();
 			}
@@ -149,6 +165,47 @@ public final class CursedSpiritSpawnGameTests {
 	}
 
 	/**
+	 * PEACEFUL end-to-end (#94): the entity override is called with a {@link LevelAccessor}
+	 * proxy that reports PEACEFUL and throws on <em>any other</em> method. If the
+	 * difficulty conjunct is dropped from {@code checkSpawnRules}, the very next level
+	 * access hits the throw and the test goes red — the refusal can no longer pass
+	 * vacuously on the bare predicate. The shared level's real difficulty stays hostile.
+	 */
+	@GameTest(maxTicks = 40)
+	public void peacefulRefusesEndToEndThroughCheckSpawnRules(GameTestHelper helper) {
+		String fixture = "peacefulRefusesEndToEndThroughCheckSpawnRules";
+		buildDarkRoom(helper);
+		helper.runAtTickTime(ORACLE_TICK, () -> {
+			LevelAccessor peacefulWorld = (LevelAccessor) Proxy.newProxyInstance(
+					LevelAccessor.class.getClassLoader(),
+					new Class<?>[] { LevelAccessor.class },
+					(proxy, method, args) -> {
+						if (method.getName().equals("getDifficulty")) {
+							return Difficulty.PEACEFUL;
+						}
+						throw new AssertionError("peaceful proxy reached " + method.getName()
+								+ " — the difficulty conjunct no longer gates checkSpawnRules");
+					});
+			owned.clear();
+			CursedSpiritEntity probe = spawnProbe(helper, owned, DARK_FEET);
+			try {
+				helper.assertFalse(probe.checkSpawnRules(peacefulWorld, EntitySpawnReason.SPAWNER),
+						GameTestFixtures.diagnostic(fixture, helper.getTick(),
+								"checkSpawnRules under PEACEFUL (SPAWNER)", "false", "true"));
+				helper.assertFalse(probe.checkSpawnRules(peacefulWorld, EntitySpawnReason.NATURAL),
+						GameTestFixtures.diagnostic(fixture, helper.getTick(),
+								"checkSpawnRules under PEACEFUL (NATURAL)", "false", "true"));
+			} finally {
+				for (CursedSpiritEntity spirit : owned) {
+					spirit.discard();
+				}
+				owned.clear();
+			}
+			helper.succeed();
+		});
+	}
+
+	/**
 	 * Compact world-state probe for the spawn-gate assertions: how many cursed spirits the
 	 * production cap counts around {@code absoluteCenter}, the block light there (the light
 	 * half of {@code super.checkSpawnRules}) and whether the cheap pure cap predicate agrees.
@@ -181,8 +238,14 @@ public final class CursedSpiritSpawnGameTests {
 		}
 	}
 
+	/**
+	 * Crowd-fill spot inside the arena interior. The z-band wraps ({@code % 2}) so the layout
+	 * stays inside the barrier walls (rel z ≤ 6) however high
+	 * {@code CursedSpiritProfile.MAX_SPIRITS_NEARBY} grows — overlapping fillers still count
+	 * toward the cap, so reusing a spot is harmless.
+	 */
 	private static BlockPos crowdSpot(int index) {
-		return new BlockPos(3 + (index % 5), 1, 5 + (index / 5));
+		return new BlockPos(3 + (index % 5), 1, 5 + ((index / 5) % 2));
 	}
 
 	private static CursedSpiritEntity spawnProbe(GameTestHelper helper, List<CursedSpiritEntity> live,
