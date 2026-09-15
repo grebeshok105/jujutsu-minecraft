@@ -65,14 +65,17 @@ final class MegumiToadBrain {
 			// Mid-windup: the intent is already recorded and re-checked on the commit tick.
 			return;
 		}
+		// Owner LoS gates only the owner's own ORDER (an owner cannot sic what it cannot see).
+		// A self-picked target answers to the body's own senses instead: nearestGrabbable already
+		// required the toad's LoS, and the commit below re-checks it — an owner standing in a
+		// cellar must not blind its toad (issue #90).
+		boolean ownerOrdered = toad.sicTargetUuid() != null
+				&& toad.sicTargetUuid().equals(target.getUUID());
 		if (owner == null || !toad.attackReady(gameTime)
 				|| !MegumiToadPolicy.canGrab(toad.distanceTo(target))
-				|| !owner.hasLineOfSight(target)) {
+				|| (ownerOrdered && !owner.hasLineOfSight(target))) {
 			return;
 		}
-		// Owner LoS gates the ORDER here (an owner cannot sic what it cannot see — including a
-		// self-picked target, which keeps the windup owner-authored). The commit below re-checks
-		// the TOAD's own LoS, so the tongue never lands through a wall the body cannot see through.
 		toad.beginGrabIntent(target);
 		toad.beginAction(MegumiShikigamiProfile.TOAD_GRAB_WINDUP_TICKS);
 		level.playSound(null, toad.getX(), toad.getY(), toad.getZ(), SoundEvents.FROG_TONGUE,
