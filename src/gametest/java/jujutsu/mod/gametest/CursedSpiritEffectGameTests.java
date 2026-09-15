@@ -31,6 +31,7 @@ import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityId;
 import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityParams;
 import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityProfile;
 import jujutsu.mod.cursedspirit.ability.effects.AcidZoneRuntime;
+import jujutsu.mod.cursedspirit.ability.effects.ArmorEffect;
 import jujutsu.mod.cursedspirit.ability.effects.BerserkEffect;
 import jujutsu.mod.cursedspirit.ability.effects.RegenRetreatEffect;
 import jujutsu.mod.cursedspirit.ability.effects.RunnerEffect;
@@ -305,19 +306,34 @@ public final class CursedSpiritEffectGameTests {
 			spirit.setHealth(spirit.getMaxHealth());
 			float full = spirit.getHealth();
 			// 1.0 sits below every grade's absorption (2.0/3.0/4.0); 10.0 above all of them.
-			boolean weakAccepted = spirit.hurtServer(level, level.damageSources().magic(), 1.0f);
+			// Attacks (mobAttack) are absorbed; hazard sources are not — see below.
+			boolean weakAccepted = spirit.hurtServer(level, level.damageSources().mobAttack(spirit),
+					1.0f);
 			helper.assertTrue(!weakAccepted, CursedSpiritTestFixtures.diagnostic(fixture,
 					helper.getTick(), "weak hit fully absorbed", "false", weakAccepted));
 			helper.assertTrue(spirit.getHealth() == full,
 					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
 							"weak hit leaves full hp", full, spirit.getHealth()));
-			boolean heavyAccepted = spirit.hurtServer(level, level.damageSources().magic(), 10.0f);
+			boolean heavyAccepted = spirit.hurtServer(level, level.damageSources().mobAttack(spirit),
+					10.0f);
 			helper.assertTrue(heavyAccepted, CursedSpiritTestFixtures.diagnostic(fixture,
 					helper.getTick(), "heavy hit passes", "true", "false"));
 			float drop = full - spirit.getHealth();
 			helper.assertTrue(drop > 0.0f && drop < 10.0f,
 					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
 							"heavy drop partial (floored, not negated)", "(0, 10)", drop));
+			// BYPASSES_ARMOR sources ignore the shell (review #90: armor absorbs attacks, not
+			// hazards). Pinned at the source-aware seam — a mutant that absorbs every source
+			// fails both sides. The hurtServer callsite switches to this overload with the
+			// entity-side edit tracked in the same review fix.
+			float hazardLeft = ArmorEffect.absorb(spirit.grade(), spirit.abilityBrain().pool(),
+					1.0f, level.damageSources().magic());
+			helper.assertTrue(hazardLeft == 1.0f, CursedSpiritTestFixtures.diagnostic(fixture,
+					helper.getTick(), "hazard source bypasses armor", 1.0f, hazardLeft));
+			float attackLeft = ArmorEffect.absorb(spirit.grade(), spirit.abilityBrain().pool(),
+					1.0f, level.damageSources().mobAttack(spirit));
+			helper.assertTrue(attackLeft == 0.0f, CursedSpiritTestFixtures.diagnostic(fixture,
+					helper.getTick(), "attack source still absorbed", 0.0f, attackLeft));
 			spirit.discard();
 			helper.succeed();
 		});
