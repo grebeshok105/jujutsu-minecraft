@@ -4,6 +4,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import jujutsu.mod.cursedspirit.CursedSpiritEntity;
 import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityBrain;
 import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityId;
@@ -31,6 +32,11 @@ public final class FearEffect {
 	public static boolean applyTo(CursedSpiritEntity spirit, LivingEntity target, long now,
 			CursedSpiritAbilityParams params, CursedSpiritAbilityBrain brain) {
 		if (!(spirit.level() instanceof ServerLevel level)) {
+			return false;
+		}
+		// DARKNESS/NAUSEA/CURSED_FEAR are inert on non-players: casting on a mob
+		// attacker spends the window for nothing (same gate shape as GRAB_RUNNER).
+		if (!(target instanceof Player)) {
 			return false;
 		}
 		// Issue #80: fear is control — never lands on a non-perceiving player.
