@@ -3,6 +3,7 @@ package jujutsu.mod.cursedspirit.ability;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,6 +46,9 @@ import jujutsu.mod.cursedspirit.ability.effects.SlamEffect;
  * start outside the two rules above. Retreat (regen) yields to the whole movement group.
  */
 public final class CursedSpiritAbilityBrain {
+	private static final org.slf4j.Logger LOGGER =
+			com.mojang.logging.LogUtils.getLogger();
+
 	/** Frozen NBT schema (C3): pool, per-id cooldowns. Windows are transient, never stored. */
 	public static final String ABILITIES_TAG = "Abilities";
 	public static final String READY_AT_PREFIX = "AbilityReadyAt_";
@@ -76,6 +80,9 @@ public final class CursedSpiritAbilityBrain {
 		if (forced.size() != CursedSpiritAbilityPolicy.POOL_SIZE) {
 			throw new IllegalArgumentException("forced pool must hold exactly "
 					+ CursedSpiritAbilityPolicy.POOL_SIZE + " ids");
+		}
+		if (new HashSet<>(forced).size() != forced.size()) {
+			throw new IllegalArgumentException("forced pool must hold distinct ids: " + forced);
 		}
 		pool = List.copyOf(forced);
 	}
@@ -193,9 +200,15 @@ public final class CursedSpiritAbilityBrain {
 			EffectState state) {
 		if (id == CursedSpiritAbilityId.GRAB_RUNNER) {
 			RunnerEffect.end(spirit, state == null ? null : state.targetUuid(), this);
-			return;
+		} else {
+			active.remove(id);
 		}
-		active.remove(id);
+		// A window that dies by timeout must still close the client attack clip: every
+		// clip player broadcasts WINDUP on start, but only dash/slam broadcast RELEASE
+		// on a hit — without this the pose hangs until the next melee swing.
+		if (id.occupiesAttackClip() && spirit.level() instanceof ServerLevel level) {
+			level.broadcastEntityEvent(spirit, CursedSpiritEntity.ABILITY_RELEASE);
+		}
 	}
 	private void tickWindow(CursedSpiritAbilityId id, CursedSpiritEntity spirit, ServerLevel level,
 			EffectState state, long now) {
@@ -274,8 +287,10 @@ public final class CursedSpiritAbilityBrain {
 			case GRAB_RUNNER -> target instanceof ServerPlayer
 					&& distance >= CursedSpiritAbilityProfile.RUNNER_MIN_RANGE
 					&& distance <= CursedSpiritAbilityProfile.RUNNER_MAX_RANGE;
-			// FEAR reads its profile cast range like ACID; REGEN is a self-buff, always in range.
-			case FEAR -> distance <= CursedSpiritAbilityProfile.of(id, grade).radius();
+			// FEAR reads its profile cast range like ACID and, like GRAB_RUNNER, is a
+			// player-only cast — its debuffs are inert on mobs; REGEN always in range.
+			case FEAR -> target instanceof net.minecraft.world.entity.player.Player
+					&& distance <= CursedSpiritAbilityProfile.of(id, grade).radius();
 			case REGEN -> true;
 			case ARMOR, BERSERK -> false;
 		};
@@ -338,11 +353,39 @@ public final class CursedSpiritAbilityBrain {
 				readyAt.put(id, ready);
 			}
 		}
-		if (loaded.size() == CursedSpiritAbilityPolicy.POOL_SIZE) {
+		// "dash,dash,dash" is not a trio: the pool invariant is three DISTINCT ids, so a
+		// full-length list with repeats is rejected (and re-rolled) like a short one.
+		if (loaded.size() == CursedSpiritAbilityPolicy.POOL_SIZE
+				&& new HashSet<>(loaded).size() == CursedSpiritAbilityPolicy.POOL_SIZE) {
 			pool = List.copyOf(loaded);
 			return true;
 		}
+		if (loaded.size() == CursedSpiritAbilityPolicy.POOL_SIZE) {
+			LOGGER.warn("Stored cursed-spirit ability pool has duplicate ids ({}); re-rolling",
+					stored);
+		}
 		pool = List.of();
 		return false;
+	}
+
+	/**
+	 * Loads and additionally enforces the power-rank gate against the spirit's grade
+	 * ({@link CursedSpiritAbilityPolicy#eligible}). A stored id the grade may not roll —
+	 * pool written before a demotion, or hand-edited NBT — invalidates the pool: the
+	 * caller re-rolls, and the re-roll is eligible by construction.
+	 */
+	public boolean loadFrom(ValueInput input, CursedSpiritGrade grade) {
+		if (!loadFrom(input)) {
+			return false;
+		}
+		for (CursedSpiritAbilityId id : pool) {
+			if (!CursedSpiritAbilityPolicy.eligible(id, grade)) {
+				LOGGER.warn("Stored cursed-spirit ability pool holds {} which grade {} cannot "
+						+ "roll; re-rolling", id.id(), grade);
+				pool = List.of();
+				return false;
+			}
+		}
+		return true;
 	}
 }

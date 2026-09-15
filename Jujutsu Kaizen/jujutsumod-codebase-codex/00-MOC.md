@@ -36,7 +36,7 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 
 | Metric | Value |
 |---|---:|
-| Main Java files | 200 |
+| Main Java files | 199 |
 | Client Java files | 235 |
 | Test Java files | 142 |
 | Verification programs | 29 |

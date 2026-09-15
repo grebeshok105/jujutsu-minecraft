@@ -82,6 +82,10 @@ public final class SlamEffect {
 			} else {
 				victim.push(0.0, 0.4, 0.0);
 			}
+			// hurtMarked marks the velocity for sync: a ServerPlayer's movement is
+			// client-authoritative, so a bare push() silently no-ops on the exact
+			// victims the slam is aimed at (mobs were fine; players were not).
+			victim.hurtMarked = true;
 		}
 		level.broadcastEntityEvent(spirit, CursedSpiritEntity.ABILITY_RELEASE);
 		JujutsuNetworking.broadcastVfxCue(level, spirit.position(),

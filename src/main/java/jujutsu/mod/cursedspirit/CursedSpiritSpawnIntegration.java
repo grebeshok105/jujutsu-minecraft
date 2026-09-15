@@ -1,10 +1,14 @@
 package jujutsu.mod.cursedspirit;
 
 import java.util.List;
+import java.util.function.Predicate;
 import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
+import net.fabricmc.fabric.api.biome.v1.BiomeSelectionContext;
 import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
+import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.level.biome.Biomes;
 import jujutsu.mod.registry.JujutsuEntities;
 
 /**
@@ -51,8 +55,21 @@ public final class CursedSpiritSpawnIntegration {
 	 */
 	public static void register() {
 		for (SpawnRow row : spawnRows()) {
-			BiomeModifications.addSpawn(BiomeSelectors.foundInOverworld(), MobCategory.MONSTER,
+			BiomeModifications.addSpawn(spiritBiomeSelector(), MobCategory.MONSTER,
 					row.type(), row.weight(), row.minGroupSize(), row.maxGroupSize());
 		}
+	}
+
+	/**
+	 * Narrower than {@code foundInOverworld()} (#93): the vanilla monster set never lands in
+	 * mushroom fields or the deep dark (both ship empty spawn lists), and a {@code NO_RESTRICTIONS}
+	 * spirit on an ocean/river floor spawns underwater and floats up — so those biomes are out.
+	 * Kept as a method so a single seam documents the whole exclusion set.
+	 */
+	static Predicate<BiomeSelectionContext> spiritBiomeSelector() {
+		return BiomeSelectors.foundInOverworld()
+				.and(BiomeSelectors.excludeByKey(Biomes.MUSHROOM_FIELDS, Biomes.DEEP_DARK))
+				.and(context -> !context.hasTag(BiomeTags.IS_OCEAN)
+						&& !context.hasTag(BiomeTags.IS_RIVER));
 	}
 }
