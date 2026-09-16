@@ -92,11 +92,8 @@ float shockwave(vec3 p) {
     float ringScale = max(CenterRadius.w, 4.0);
     float phase = abs(fract(2.0 * dist / ringScale - lt * speed) - 0.5);
     // Reference ring term, with the singular phase guarded so it saturates instead of going inf.
-    // Clamped: unclamped it reaches ~100 at the crest and washes the whole interior to flat cyan.
-    float ring = min(0.05 / max(phase, 1.0E-3) * 2.0, 2.0);
-    // Cap the total: the reference lets the light run away, but inside the shell it must dim the
-    // world, not wash it out — anything past ~1.5 reads as flat cyan, not as a domain interior.
-    return min(light + ring * (1.0 - lt), 1.5);
+    float ring = 0.05 / max(phase, 1.0E-3) * 2.0;
+    return light + ring * (1.0 - lt);
 }
 
 void main() {
