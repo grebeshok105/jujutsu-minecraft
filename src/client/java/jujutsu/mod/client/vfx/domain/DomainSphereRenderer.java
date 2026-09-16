@@ -322,6 +322,16 @@ public final class DomainSphereRenderer implements AutoCloseable {
 		copyHeight = -1;
 	}
 
+	/**
+	 * Re-enables the effect after a session-level disable (disconnect/world change resets the
+	 * session). Also re-arms the first-frame depth-copy probe so the next session logs its own
+	 * {@code [DomainSphere] depth copy OK/FAILED} marker.
+	 */
+	public void resetSession() {
+		disabledForSession = false;
+		copyProbeLogged = false;
+	}
+
 	/** Safe with no render() call ever made, so a headless channel can always close. */
 	@Override
 	public void close() {
