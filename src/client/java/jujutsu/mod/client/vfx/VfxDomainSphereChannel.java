@@ -74,6 +74,7 @@ public final class VfxDomainSphereChannel implements AutoCloseable {
 	void resetSession() {
 		clear();
 		disabledForSession = false;
+		renderer.resetSession();
 	}
 
 	/** Test hook: spheres retained right now. Expiry is applied by {@link #render(WorldRenderContext)}, not here. */
