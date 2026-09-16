@@ -1,6 +1,6 @@
-# Session Handoff — domain-sphere SDF PoC (rule-of-four in flight) — 2026-10-05
+# Session Handoff — domain-sphere SDF PoC — MERGED 2026-09-16
 
-## State — planned & reviewed, NO code yet
+## State — DONE: PR #112 merged to main (merge commit on main, branch feat/domain-sphere-vfx)
 
 Branch `feat/domain-sphere-vfx` (pushed? — check `git status`/`git log origin/` before assuming).
 Goal: first world-space SDF sphere for the future Domain Expansion — ONE large cyan/neon spherical
