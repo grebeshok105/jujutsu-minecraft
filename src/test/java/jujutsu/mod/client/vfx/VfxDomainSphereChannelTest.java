@@ -9,6 +9,7 @@ import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
+import jujutsu.mod.client.vfx.domain.DomainSphereRenderer;
 import jujutsu.mod.client.vfx.domain.DomainSphereTiming;
 import jujutsu.mod.vfx.VfxCue;
 
@@ -65,6 +66,29 @@ class VfxDomainSphereChannelTest {
 		channel.triggerSphere(cue(0L), TIMING);
 		assertDoesNotThrow(channel::close);
 		assertEquals(0, channel.activeCount(), "close must not leave spheres to be rendered after shutdown");
+	}
+
+	/**
+	 * World anchoring is only correct if the sphere centre is made camera-relative exactly once: the
+	 * shader rebuilds camera-relative world positions from the view matrix and has no camera uniform.
+	 * A missing subtraction leaves the sphere nailed to the camera, a double subtraction drags it
+	 * behind at twice the camera delta — both show up here as a difference that is not exactly the
+	 * camera delta.
+	 */
+	@Test
+	void cameraRelativeCenterShiftsByExactlyTheCameraDelta() {
+		Vec3 centerWorld = new Vec3(120.5, 64.0, -300.25);
+		Vec3 firstCamera = new Vec3(100.0, 70.0, -290.0);
+		Vec3 secondCamera = firstCamera.add(12.5, -8.0, 40.25);
+
+		Vec3 firstRelative = DomainSphereRenderer.toCameraRelative(centerWorld, firstCamera);
+		Vec3 secondRelative = DomainSphereRenderer.toCameraRelative(centerWorld, secondCamera);
+		Vec3 cameraDelta = secondCamera.subtract(firstCamera);
+
+		assertEquals(cameraDelta.x, firstRelative.x - secondRelative.x, 1.0e-9);
+		assertEquals(cameraDelta.y, firstRelative.y - secondRelative.y, 1.0e-9);
+		assertEquals(cameraDelta.z, firstRelative.z - secondRelative.z, 1.0e-9);
+		assertEquals(Vec3.ZERO, DomainSphereRenderer.toCameraRelative(firstCamera, firstCamera));
 	}
 
 	private static List<Long> retainedStartGameTimes(VfxDomainSphereChannel channel) {
