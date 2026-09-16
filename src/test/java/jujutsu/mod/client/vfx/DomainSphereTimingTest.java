@@ -62,6 +62,19 @@ class DomainSphereTimingTest {
 		}
 	}
 
+	/**
+	 * R6 guard: the radius is a runtime parameter, never baked into the math. A mutant that ignores
+	 * {@code maxRadius} and hardcodes the scale passes every single-radius assertion above — this
+	 * second radius is the only cheap check that catches it.
+	 */
+	@Test
+	void radiusScalesWithTheRuntimeParameter() {
+		DomainSphereTiming timing = DomainSphereTiming.defaults(64.0);
+		assertEquals(64.0, timing.radiusAt(timing.expandTicks()), EPSILON);
+		assertEquals(0.9375 * 64.0, timing.radiusAt(timing.expandTicks() * 0.5f), EPSILON,
+				"easeOutQuart midpoint must scale with the runtime radius");
+	}
+
 	@Test
 	void radiusStaysConstantThroughTheHold() {
 		DomainSphereTiming timing = DomainSphereTiming.defaults(MAX_RADIUS);

@@ -46,7 +46,7 @@ may refuse gitignored paths — `edit` on existing files works fine).
   directly (documented, changes occlusion semantics — last resort).
 - Timing in Java (`DomainSphereTiming`: easeOutQuart expand 20t / hold 220t / fade 20t); shader
   gets final radius/fade/progress. Tests must catch a linear ramp (`radiusAt(half) ≥ 0.9·max`).
-- Triggers: client command `/jujutsu domain_sphere [radius]` + mcpdev `jujutsu_domain_sphere` tool
+- Triggers: client command `/jujutsu_debug domain_sphere [radius]` + mcpdev `jujutsu_domain_sphere` tool
   (routes through `JujutsuNetworking.sendVfxCue` — server authority preserved).
 - Known accepted limit: Fabulous-mode translucents never write main depth → sphere occludes only
   vs opaque geometry (same as the reference).

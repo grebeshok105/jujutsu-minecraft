@@ -617,7 +617,7 @@ public final class ProjectSanityTest {
 		assert director.contains("SOUND.tick(client)") : "VfxDirector tick must retain sound-duck lifecycle work";
 		assert Pattern.compile("instance\\.start\\(").matcher(director).results().count() == 1
 			: "Accepted VFX instances must have one production start call";
-		for (String channel : new String[] {"WORLD", "HUD", "CAMERA", "FIRST_PERSON", "PARTICLES", "SOUND", "POST_PROCESS"}) {
+		for (String channel : new String[] {"WORLD", "HUD", "CAMERA", "FIRST_PERSON", "PARTICLES", "SOUND", "POST_PROCESS", "DOMAIN_SPHERE"}) {
 			assert director.contains(channel + ".clear()") : "VfxDirector must clear real channel " + channel;
 		}
 		assert director.contains("private static ClientLevel activeLevel") : "VfxDirector must track the active client world identity";
@@ -667,6 +667,21 @@ public final class ProjectSanityTest {
 				: "Global DeltaTracker mixin must not exist - it corrupts game time for all consumers";
 		String mixins = Files.readString(ROOT.resolve("src/client/resources/jujutsumod.client.mixins.json"));
 		assert !mixins.contains("VfxDeltaTrackerMixin") : "Client mixin config must not wire a global time-scaling mixin";
+		String domainSphere = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxDomainSphereChannel.java"));
+		assert domainSphere.contains("triggerSphere") && domainSphere.contains("MAX_ACTIVE_SPHERES")
+				: "Domain-sphere channel must expose a bounded debug trigger";
+		assert !domainSphere.contains("WorldRenderEvents") && !domainSphere.contains("ClientLifecycleEvents")
+				: "Domain-sphere channel must not register its own callbacks - VfxDirector owns lifecycle";
+		String directorSource = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxDirector.java"));
+		assert directorSource.contains("VfxDomainSphereChannel DOMAIN_SPHERE") : "Director must own the domain-sphere channel";
+		assert directorSource.contains("DOMAIN_SPHERE.render") && directorSource.contains("DOMAIN_SPHERE.clear()")
+				&& directorSource.contains("DOMAIN_SPHERE.resetSession()")
+				: "Director must render, clear and session-reset the domain-sphere channel";
+		assert directorSource.contains("WorldRenderEvents.LAST")
+				: "Domain sphere must render on the LAST world hook, after translucency";
+		String contextSource = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxContext.java"));
+		assert contextSource.contains("VfxDomainSphereChannel domainSphere") && contextSource.contains("domainSphere()")
+				: "Recipes must reach the domain-sphere channel only through VfxContext";
 	}
 
 	private static void assertNobaraUsesVfxCoreRecipes() throws IOException {

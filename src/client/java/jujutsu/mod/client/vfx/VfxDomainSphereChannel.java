@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.client.Minecraft;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.client.vfx.domain.DomainSphereRenderer;
@@ -26,6 +27,11 @@ public final class VfxDomainSphereChannel implements AutoCloseable {
 
 	public void triggerSphere(VfxCue cue, DomainSphereTiming timing) {
 		if (disabledForSession) {
+			return;
+		}
+		Vec3 origin = cue.origin();
+		if (!Double.isFinite(origin.x) || !Double.isFinite(origin.y) || !Double.isFinite(origin.z)) {
+			JujutsuMod.LOGGER.warn("Dropping domain sphere cue with non-finite origin {}", origin);
 			return;
 		}
 		activeSpheres.add(new ActiveSphere(cue, timing));

@@ -60,6 +60,25 @@ class VfxDomainSphereChannelTest {
 		assertEquals(1, channel.activeCount(), "resetSession must re-enable the session");
 	}
 
+	/**
+	 * The session latch is the only state {@code resetSession} must clear beyond the list: a render
+	 * failure sets {@code disabledForSession}, and a trigger arriving while disabled must be dropped,
+	 * not queued. The flag is private and only settable from {@code render()}'s catch, so the test
+	 * drives it through reflection — the alternative (a live WorldRenderContext) does not exist here.
+	 */
+	@Test
+	void disabledSessionDropsTriggersUntilReset() {
+		VfxDomainSphereChannel channel = new VfxDomainSphereChannel();
+		setDisabledForSession(channel, true);
+
+		channel.triggerSphere(cue(0L), TIMING);
+		assertEquals(0, channel.activeCount(), "a disabled session must drop triggers, not queue them");
+
+		channel.resetSession();
+		channel.triggerSphere(cue(1L), TIMING);
+		assertEquals(1, channel.activeCount(), "resetSession must re-arm the channel after a render failure");
+	}
+
 	@Test
 	void constructorAndCloseAreGlFreeAndSafeWithoutRender() {
 		VfxDomainSphereChannel channel = new VfxDomainSphereChannel();
@@ -106,6 +125,16 @@ class VfxDomainSphereChannelTest {
 			return List.copyOf((List<?>) field.get(channel));
 		} catch (ReflectiveOperationException error) {
 			throw new AssertionError("cannot read VfxDomainSphereChannel.activeSpheres", error);
+		}
+	}
+
+	private static void setDisabledForSession(VfxDomainSphereChannel channel, boolean value) {
+		try {
+			Field field = VfxDomainSphereChannel.class.getDeclaredField("disabledForSession");
+			field.setAccessible(true);
+			field.setBoolean(channel, value);
+		} catch (ReflectiveOperationException error) {
+			throw new AssertionError("cannot set VfxDomainSphereChannel.disabledForSession", error);
 		}
 	}
 

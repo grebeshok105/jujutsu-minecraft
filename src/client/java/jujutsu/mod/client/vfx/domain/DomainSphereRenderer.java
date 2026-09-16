@@ -255,6 +255,9 @@ public final class DomainSphereRenderer implements AutoCloseable {
 
 	private void writeSphereData(CommandEncoder encoder, Vec3 cameraPos, List<Sphere> spheres, int count) {
 		ByteBuffer data = sphereDataBytes;
+		// The limit is shrunk to the written range below; restore it first or a frame with more
+		// spheres than the previous one overflows on position(i*stride) and kills the session.
+		data.clear();
 		for (int i = 0; i < count; i++) {
 			Sphere sphere = spheres.get(i);
 			Vec3 center = toCameraRelative(sphere.centerWorld(), cameraPos);
