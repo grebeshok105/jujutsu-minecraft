@@ -1,6 +1,6 @@
 // Ported from the Orbital Railgun "strike" fragment shader.
 //
-//   Orbital Railgun - https://github.com/Mishkis/orbital_railgun
+//   Orbital Railgun - https://github.com/Mishkis/orbital-railgun
 //   Copyright (c) Mishkis
 //   MIT License - https://opensource.org/licenses/MIT
 //
