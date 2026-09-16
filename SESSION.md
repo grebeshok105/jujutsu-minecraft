@@ -1,3 +1,81 @@
+# Session Handoff — domain-sphere SDF PoC (rule-of-four in flight) — 2026-10-05
+
+## State — planned & reviewed, NO code yet
+
+Branch `feat/domain-sphere-vfx` (pushed? — check `git status`/`git log origin/` before assuming).
+Goal: first world-space SDF sphere for the future Domain Expansion — ONE large cyan/neon spherical
+shell expanding ~0 → configurable radius around a fixed world point, depth-aware fullscreen
+raymarch post-effect. Orbital Railgun `strike.fsh` central-sphere technique ported to the project's
+own MC 1.21.8 stack. **No Satin, no beams/outer-spheres/columns/explosion/chromatic aberration, no
+gameplay mechanics, no VFX-pipeline refactor.** Separate PR at the end (Russian title, «Для игрока»
+body per AGENTS §12).
+
+## Pipeline state (rule-of-four)
+
+Work dir: `.superpowers/rule-of-four/domain-sphere/` (gitignored; write via `exec`, the write-tool
+may refuse gitignored paths — `edit` on existing files works fine).
+
+- **Phase 0 DONE** — 4 scouts ran; only `scout-2-report.md` survived on disk (the rest lived in
+  session context — key facts are baked into the plan's "Verified API facts" section). Ref clone:
+  `ref/orbital-railgun` (MC 1.20.1 + Satin — port is NOT mechanical).
+- **Phase 1 DONE** — `implementation-plan.md` (257 lines, 5 tasks, R1–R21 traceability, pinned
+  contracts between workers).
+- **Phase 1.5 DONE** — 3 independent reviews: buildability=correct (all API claims javap-verified,
+  no P0/P1), architecture=correct-after-fixes (P1: lifecycle ownership inverted — FIXED in plan),
+  acceptance=incorrect-as-written (R12 reload/resize unexercised, easing shape testable-on-linear —
+  FIXED in plan). Dispositions in `plan-review.md`.
+- **NEXT: Phase 2** — dispatch 4 workers per the plan's Tasks 1–4; main takes Task 5
+  (integration + qualityGate + in-game MCP-lane verification). Then barrier → Phase 3 review wave →
+  Phase 4 adjudication/in-game → PR.
+
+## Key decisions (do not re-derive)
+
+- New `VfxDomainSphereChannel` (state) + `DomainSphereRenderer` (GPU: color+depth scene copies,
+  fullscreen `RenderPass`, 160B std140 `SphereData` UBO, ≤4 spheres one draw each). Hook:
+  `WorldRenderEvents.LAST` via `VfxDirector::renderLast`. Lifecycle registration lives in
+  `VfxDirector.initialize()` — channel ctor registers NOTHING and does NO GL (JUnit-safe).
+- Effect id `jujutsumod:domain_sphere` in `src/main` `DebugVfxIds` — referenced ONLY from
+  client/mcpdev code (else `VfxCompletenessTest.compiledProductionEmittersCoverEveryLiveId` reds).
+  Debug recipe registers outside the four vessel packs (the test counts exactly 69 ids).
+- Camera-relative math: center passed as `centerWorld - camPos`; shader rebuilds camera-relative
+  world pos via `InvProjMat`/`InvViewMat` — fp32 precision at large coords. Vertex shader does NOT
+  Y-flip texCoord (blur.vsh's flip is GUI-only).
+- Depth: copy main target depth into a DEPTH32 texture, sample `.r` — vanilla
+  `RenderTarget.copyDepthFrom` proves `copyTextureToTexture` works on DEPTH32. First frame logs a
+  distinct `[DomainSphere] depth copy OK/FAILED` marker. Fallback = bind `getDepthTextureView()`
+  directly (documented, changes occlusion semantics — last resort).
+- Timing in Java (`DomainSphereTiming`: easeOutQuart expand 20t / hold 220t / fade 20t); shader
+  gets final radius/fade/progress. Tests must catch a linear ramp (`radiusAt(half) ≥ 0.9·max`).
+- Triggers: client command `/jujutsu_debug domain_sphere [radius]` + mcpdev `jujutsu_domain_sphere` tool
+  (routes through `JujutsuNetworking.sendVfxCue` — server authority preserved).
+- Known accepted limit: Fabulous-mode translucents never write main depth → sphere occludes only
+  vs opaque geometry (same as the reference).
+
+## Environment notes
+
+- Java 21 required: `JAVA_HOME=/c/Users/KOMP1/scoop/apps/temurin21-jdk/current` (PATH java is 1.8,
+  JAVA_HOME was 17 — Gradle toolchain resolves 21 when pointed right).
+- `./gradlew qualityGate` is the finishing gate; JUnit-only is a mid-work check.
+- In-game verification via MCP dev lane — see `docs/MCP-LANE.md` + `.claude/skills/mcp-lane-launch`.
+- Untracked scratch in worktree (`audit/`, `WATCHDOG.yml`, `nul`) — deliberately not committed.
+
+## Next-session prompt
+
+See bottom of this section. Handoff prompt:
+
+```
+@conversation: Продолжи domain-sphere пайплайн. Прочитай SESSION.md (верхний блок),
+.superpowers/rule-of-four/domain-sphere/{progress.md, implementation-plan.md, plan-review.md}.
+Статус: Phase 1.5 закрыта, план отревьюлен и исправлен. Следующий шаг — Phase 2:
+диспатч 4 воркеров по Tasks 1–4 плана (timing+channel / renderer+shaders /
+integration+recipe+command / mcpdev tool+attribution), main берёт Task 5 (integration,
+qualityGate, in-game проверка через MCP lane). Контракты между блоками зафиксированы
+в секции "Pinned contracts" — не менять без адъюдикации. Дальше по пайплайну:
+barrier → Phase 3 ревью-волна → Phase 4 адъюдикация+in-game → PR на русском.
+```
+
+---
+
 # Session Handoff — review campaign + MCP dev-tools — 2026-09-15
 
 ## State — all merged, live-verified

@@ -85,3 +85,48 @@ The Sons of Sins author has personally given the jujutsumod developer permission
 and adapt these assets (project owner statement, recorded 2026-09-12). The permission
 evidence is not bundled in this repository. Do not expand the imported set; preserve the
 permission scope or replace the assets before a public release.
+
+## Orbital Railgun — domain-sphere shader (ported, MIT)
+
+`src/client/resources/assets/jujutsumod/shaders/core/domain_sphere.fsh` is a port of the central-sphere
+shader from Orbital Railgun (MIT). Upstream: `https://github.com/Mishkis/orbital-railgun`, inspected at
+commit `241a1c9c`, source file
+`src/client/resources/assets/orbital_railgun/shaders/program/strike.fsh`.
+
+Ported: the sphere-shell distance function (`abs(length(p) - radius)` reduced to the shell alone), the
+sphere-trace loop, and the `shockwave()` light term that draws the neon rim rings. Everything else is
+this project's own: the shader is rewritten as a self-contained `#version 150` program for the vanilla
+`RenderPipeline` stack, takes its radius/fade/progress as per-frame uniforms instead of computing them
+from `iTime`, and works in camera-relative world coordinates. Deliberately **not** ported (and not
+present in the shipped file): the six outer spheres, the beams/columns, the ground-shockwave geometry,
+the explosion cylinder and the chromatic-aberration pass. No Orbital Railgun Java code, models,
+textures, sounds, recipes or data files are bundled or referenced — the ported material is shader math
+in one `.fsh` file, carrying its own MIT header.
+
+Upstream notice retained. The copyright holder field is blank in the upstream `LICENSE.txt`; the
+repository owner is the `Mishkis` GitHub account.
+
+> The MIT License (MIT)
+>
+> Copyright (c) 2025
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy
+> of this software and associated documentation files (the "Software"), to deal
+> in the Software without restriction, including without limitation the rights
+> to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+> copies of the Software, and to permit persons to whom the Software is
+> furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in
+> all copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+> THE SOFTWARE.
+
+Do not add further shaders or assets from this mod without extending this entry; the port stays one
+file until a deliberate decision says otherwise.
