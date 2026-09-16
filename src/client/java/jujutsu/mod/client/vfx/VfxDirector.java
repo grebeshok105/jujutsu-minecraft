@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
@@ -29,6 +30,7 @@ public final class VfxDirector {
 	private static final VfxParticleChannel PARTICLES = new VfxParticleChannel();
 	private static final VfxSoundChannel SOUND = new VfxSoundChannel();
 	private static final VfxPostProcessChannel POST_PROCESS = new VfxPostProcessChannel();
+	private static final VfxDomainSphereChannel DOMAIN_SPHERE = new VfxDomainSphereChannel();
 	private static ClientLevel activeLevel;
 	private static boolean initialized;
 
@@ -40,9 +42,13 @@ public final class VfxDirector {
 		}
 		initialized = true;
 		WorldRenderEvents.AFTER_ENTITIES.register(VfxDirector::renderWorld);
+		WorldRenderEvents.LAST.register(VfxDirector::renderLast);
 		HudElementRegistry.attachElementAfter(VanillaHudElements.MISC_OVERLAYS, JujutsuMod.id("vfx_overlay"), VfxDirector::renderHud);
 		ClientTickEvents.END_CLIENT_TICK.register(VfxDirector::tick);
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> reset());
+		// The director owns lifecycle wiring, the channel owns state and GL objects: the channel's own
+		// constructor registers nothing, which is what keeps it constructible from JUnit.
+		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> DOMAIN_SPHERE.close());
 	}
 
 	public static void register(ResourceLocation effectId, VfxRecipe recipe) {
@@ -148,6 +154,14 @@ public final class VfxDirector {
 		POST_PROCESS.render(Minecraft.getInstance());
 	}
 
+	/**
+	 * Last world hook of the frame: translucency and weather are already in the frame buffer and the
+	 * hand is not drawn yet, which is what a fullscreen pass compositing on scene color/depth needs.
+	 */
+	private static void renderLast(WorldRenderContext context) {
+		DOMAIN_SPHERE.render(context);
+	}
+
 	private static void renderHud(GuiGraphics graphics, DeltaTracker tickCounter) {
 		HUD.render(graphics, tickCounter);
 	}
@@ -164,7 +178,7 @@ public final class VfxDirector {
 	}
 
 	private static VfxContext context(Minecraft client) {
-		return new VfxContext(client, VfxQuality.from(client.options.particles().get()), WORLD, HUD, CAMERA, FIRST_PERSON, PARTICLES, SOUND, POST_PROCESS);
+		return new VfxContext(client, VfxQuality.from(client.options.particles().get()), WORLD, HUD, CAMERA, FIRST_PERSON, PARTICLES, SOUND, POST_PROCESS, DOMAIN_SPHERE);
 	}
 
 	private static void bindLevel(Minecraft client) {
@@ -177,6 +191,7 @@ public final class VfxDirector {
 	private static void reset() {
 		clear();
 		POST_PROCESS.resetSession();
+		DOMAIN_SPHERE.resetSession();
 		activeLevel = null;
 	}
 
@@ -188,5 +203,6 @@ public final class VfxDirector {
 		PARTICLES.clear();
 		SOUND.clear();
 		POST_PROCESS.clear();
+		DOMAIN_SPHERE.clear();
 	}
 }
