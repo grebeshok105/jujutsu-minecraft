@@ -24,7 +24,7 @@ import jujutsu.mod.vfx.VfxCues;
 /**
  * Fires the debug domain-sphere VFX once, ahead of the target player (issue #43 dev lane).
  *
- * <p>This is the dev-lane twin of {@code /jujutsu domain_sphere}: it emits the same
+ * <p>This is the dev-lane twin of {@code /jujutsu_debug domain_sphere}: it emits the same
  * {@code jujutsumod:domain_sphere} cue through the production transport
  * ({@link JujutsuNetworking#sendVfxCue}), four blocks down the player's look vector, so an
  * OMP-driven run can trigger and re-trigger the effect without typing a command in the

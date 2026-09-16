@@ -458,7 +458,7 @@ Both allowlist entries went with it. `VesselBoundaryTest#theOneKnownNetworkLeakD
 - Crafting recipes and broader datapack content are intentionally absent.
 - Publication automation for Modrinth/CurseForge should wait until release provenance is clean.
 - Some generic Rich ClickGui modules/components are unused and can be removed after confirming the final UI scope.
-- The debug domain-sphere effect (`jujutsumod:domain_sphere`) is a proof of concept, not gameplay: it is a client-only world-space shell rendered on top of the scene, it exists only to be triggered by hand — `/jujutsu domain_sphere [radius]` in-game or the dev-lane MCP tool `jujutsu_domain_sphere` — and it is registered outside the vessel recipe packs, so no ability, no vessel and no server runtime can reach it yet. Treat the shader, the cue id and the timing constants as a prototype to be reworked by the real Domain Expansion work rather than as a stable seam.
+- The debug domain-sphere effect (`jujutsumod:domain_sphere`) is a proof of concept, not gameplay: it is a client-only world-space shell rendered on top of the scene, it exists only to be triggered by hand — `/jujutsu_debug domain_sphere [radius]` in-game or the dev-lane MCP tool `jujutsu_domain_sphere` — and it is registered outside the vessel recipe packs, so no ability, no vessel and no server runtime can reach it yet. Treat the shader, the cue id and the timing constants as a prototype to be reworked by the real Domain Expansion work rather than as a stable seam.
 
 ## Archived and recoverable
 
