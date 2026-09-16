@@ -28,6 +28,7 @@ public final class JujutsuModStatusToolProvider implements ToolProvider {
 				JujutsuCombatLogTool.class,
 				JujutsuCooldownsClearTool.class,
 				JujutsuCooldownsGetTool.class,
+				JujutsuDomainSphereTool.class,
 				JujutsuEntityAttackTool.class,
 				JujutsuEntitySetHealthTool.class,
 				JujutsuEntitySummonNearTool.class,
