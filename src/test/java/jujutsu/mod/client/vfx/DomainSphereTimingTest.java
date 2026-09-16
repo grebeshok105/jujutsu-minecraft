@@ -85,6 +85,27 @@ class DomainSphereTimingTest {
 		}
 	}
 
+	/**
+	 * The fade is a collapse, not a dissolve: the radius shrinks to zero over the fade window so the
+	 * shell, the interior darkening and the ring all converge on the centre point together.
+	 */
+	@Test
+	void radiusCollapsesToZeroOverTheFade() {
+		DomainSphereTiming timing = DomainSphereTiming.defaults(MAX_RADIUS);
+		int fadeStart = timing.expandTicks() + timing.holdTicks();
+		assertEquals(MAX_RADIUS, timing.radiusAt(fadeStart), EPSILON,
+				"radius must still be max at the fade boundary");
+
+		double previous = timing.radiusAt(fadeStart);
+		for (int tick = fadeStart + 1; tick <= timing.totalTicks(); tick++) {
+			double current = timing.radiusAt(tick);
+			assertTrue(current < previous, "radius must shrink every fade tick, tick=" + tick);
+			previous = current;
+		}
+		assertEquals(0.0, timing.radiusAt(timing.totalTicks()), EPSILON,
+				"radius must reach zero exactly at expiry");
+	}
+
 	@Test
 	void fadeRunsFromOneToZeroOverTheFadeWindow() {
 		DomainSphereTiming timing = DomainSphereTiming.defaults(MAX_RADIUS);

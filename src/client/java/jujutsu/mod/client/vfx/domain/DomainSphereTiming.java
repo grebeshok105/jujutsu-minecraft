@@ -37,14 +37,21 @@ public record DomainSphereTiming(int expandTicks, int holdTicks, int fadeTicks, 
 	}
 
 	/**
-	 * Radius at {@code ageTicks}: easeOutQuart, i.e. {@code maxRadius * (1 - (1 - t)^4)} with
-	 * {@code t} the clamped expansion progress. Fast start, smoothly decelerating, flat at the top —
-	 * {@code 0.9375 * maxRadius} already at the midpoint of the expansion.
+	 * Radius at {@code ageTicks}: easeOutQuart up, flat through the hold, then an ease-in collapse
+	 * to zero over the fade window — the shell shrinks into a point while it fades, so the sphere
+	 * disappears as a collapse, not a dissolve.
 	 */
 	public double radiusAt(float ageTicks) {
 		double progress = expansionProgress(ageTicks);
 		double remaining = 1.0 - progress;
-		return maxRadius * (1.0 - remaining * remaining * remaining * remaining);
+		double expanded = maxRadius * (1.0 - remaining * remaining * remaining * remaining);
+		float fadeStartTicks = expandTicks + holdTicks;
+		if (ageTicks <= fadeStartTicks) {
+			return expanded;
+		}
+		float fadeProgress = clamp01((ageTicks - fadeStartTicks) / fadeTicks);
+		double collapse = 1.0 - fadeProgress * fadeProgress;
+		return expanded * collapse;
 	}
 
 	public float expansionProgress(float ageTicks) {
