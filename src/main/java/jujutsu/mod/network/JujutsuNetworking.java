@@ -28,6 +28,7 @@ public final class JujutsuNetworking {
 		PayloadTypeRegistry.playS2C().register(CurseLinkOptionsPayload.TYPE, CurseLinkOptionsPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(SelectCurseLinkPayload.TYPE, SelectCurseLinkPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(BlackFlashFocusPayload.TYPE, BlackFlashFocusPayload.STREAM_CODEC);
+		PayloadTypeRegistry.playS2C().register(MegumiTongueStatePayload.TYPE, MegumiTongueStatePayload.STREAM_CODEC);
 		registerServerReceivers();
 	}
 
@@ -108,6 +109,22 @@ public final class JujutsuNetworking {
 			return false;
 		}
 		ServerPlayNetworking.send(player, new VfxCuePayload(cue));
+		return true;
+	}
+
+	/**
+	 * Pushes Toad's partial-tongue state to its owner (issue #108). The client owns the pull physics;
+	 * this channel only tells it whether the tongue is anchored and where. Connection-null safe like
+	 * {@link #sendAbilityCooldown}: a headless GameTest player has no channel to mirror to.
+	 */
+	public static boolean sendTongueState(ServerPlayer player, MegumiTongueStatePayload payload) {
+		if (player.connection == null) {
+			return false;
+		}
+		if (!ServerPlayNetworking.canSend(player, MegumiTongueStatePayload.TYPE)) {
+			return false;
+		}
+		ServerPlayNetworking.send(player, payload);
 		return true;
 	}
 

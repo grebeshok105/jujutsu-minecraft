@@ -648,6 +648,12 @@ public final class MegumiSummonRuntime {
 				.toList();
 	}
 
+	/** Every living dog of this owner (coordinator + sic fan-out, issue #107). */
+	public static List<MegumiDivineDogEntity> livingDogs(MinecraftServer server, UUID ownerId) {
+		MegumiDivineDogPack pack = PACKS.get(ownerId);
+		return pack == null ? List.of() : livingDogs(server, ownerId, pack);
+	}
+
 	static void startCooldownIfLonger(ServerPlayer player, CharacterAbility ability, int durationTicks) {
 		if (player == null) {
 			return;

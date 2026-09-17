@@ -263,6 +263,34 @@ public final class MegumiShikigamiRuntime {
 		return PACKS.get(ownerId);
 	}
 
+	/**
+	 * The owner's pack of exactly this type, or null (issue #107 coexistence: several types may be
+	 * out at once, so lookups are keyed per type). Delegates to the single-pack map until the
+	 * coexistence refactor lands — the signature is the contract.
+	 */
+	static MegumiShikigamiPack pack(UUID ownerId, MegumiShikigami type) {
+		MegumiShikigamiPack pack = PACKS.get(ownerId);
+		return pack != null && pack.type() == type ? pack : null;
+	}
+
+	/** Every live pack of this owner, one per type. Never null. */
+	static java.util.List<MegumiShikigamiPack> packs(UUID ownerId) {
+		MegumiShikigamiPack pack = PACKS.get(ownerId);
+		return pack == null ? java.util.List.of() : java.util.List.of(pack);
+	}
+
+	/** Every living summoned body of this owner across all types (coordinator + sic fan-out). */
+	public static java.util.List<MegumiShikigamiEntity> livingBodiesAll(
+			MinecraftServer server, UUID ownerId) {
+		MegumiShikigamiPack pack = PACKS.get(ownerId);
+		return pack == null ? java.util.List.of() : livingBodies(server, ownerId, pack);
+	}
+
+	/** Live snapshots of every pack the owner holds, one per type (issue #107 coexistence). */
+	public static List<PackView> packViews(MinecraftServer server, UUID ownerId) {
+		return packView(server, ownerId).map(List::of).orElse(List.of());
+	}
+
 	/** Live snapshot of the owner's pack, if one exists. Exists for the dev control surface + gametests. */
 	public static Optional<PackView> packView(MinecraftServer server, UUID ownerId) {
 		if (server == null) {
