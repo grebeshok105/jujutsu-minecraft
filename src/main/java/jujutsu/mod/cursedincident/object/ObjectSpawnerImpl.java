@@ -27,7 +27,7 @@ public final class ObjectSpawnerImpl implements ObjectSpawner {
         CursedObjectType type = typeId == null || typeId.isBlank()
                 ? CursedObjectRegistry.randomType(random, grade)
                 : CursedObjectRegistry.byId(typeId);
-        if (type == null || type == CursedObjectRegistry.QA_PROBE || !CursedObjectRegistry.canMint(type)) {
+        if (type == null || !CursedObjectRegistry.canMint(type)) {
             return null;
         }
         int appliedGrade = normalizeGrade(type, grade);
@@ -57,7 +57,7 @@ public final class ObjectSpawnerImpl implements ObjectSpawner {
         CursedObjectType type = typeId == null || typeId.isBlank()
                 ? CursedObjectRegistry.randomType(random, grade)
                 : CursedObjectRegistry.byId(typeId);
-        if (type == null || type == CursedObjectRegistry.QA_PROBE || !CursedObjectRegistry.canMint(type)) {
+        if (type == null || !CursedObjectRegistry.canMint(type)) {
             return ItemStack.EMPTY;
         }
         int appliedGrade = normalizeGrade(type, grade);
