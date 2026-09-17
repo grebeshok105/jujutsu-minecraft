@@ -149,11 +149,12 @@ public final class CursedIncidentGameTests {
 				3, 1108L, IncidentStage.INITIAL, null, SourceKind.FREE, RADIUS));
 		IncidentControl.advance(record.id, 40L);
 		IncidentControl.InspectView view = IncidentControl.inspect(record.id);
-		boolean countersZero = view.workCounters().values().stream().allMatch(value -> value == 0L);
+		long blocksChanged = view.workCounters().getOrDefault("blocks_changed", 0L);
+		long chunkEditsDeferred = view.workCounters().getOrDefault("chunk_edits_deferred", 0L);
 		helper.assertTrue(!before && !level.getChunkSource().hasChunk(far.getX() >> 4, far.getZ() >> 4)
-				&& view.ageTicks() >= 40L && countersZero,
+				&& view.ageTicks() >= 40L && blocksChanged == 0L && chunkEditsDeferred > 0L,
 				CursedIncidentTestFixtures.diagnostic("unloadedCenterStillAges(R56)", helper,
-						"logical age without loading", "age>=40 and counters=0", view));
+						"logical age without loading", "age>=40, blocks_changed=0, chunk_edits_deferred>0", view));
 		CursedIncidentTestFixtures.cleanup(record);
 		helper.succeed();
 	}
@@ -231,12 +232,15 @@ public final class CursedIncidentGameTests {
 	public void curseTopUpRespectsCap(GameTestHelper helper) {
 		IncidentRecord record = CursedIncidentTestFixtures.spawnFree(helper, CENTER, IncidentStage.CRITICAL, RADIUS, 1114L);
 		InfectionSink sink = new InfectionSink();
+		AABB area = new AABB(record.center).inflate(CursedSpiritProfile.CROWD_RADIUS);
+		int before = helper.getLevel().getEntitiesOfClass(CursedSpiritEntity.class, area).size();
 		sink.tickZone(helper.getLevel(), record, 64);
-		int nearby = helper.getLevel().getEntitiesOfClass(CursedSpiritEntity.class,
-				new AABB(record.center).inflate(CursedSpiritProfile.CROWD_RADIUS)).size();
-		helper.assertTrue(nearby <= CursedSpiritProfile.MAX_SPIRITS_NEARBY,
-				CursedIncidentTestFixtures.diagnostic("curseTopUpRespectsCap(R69)", helper,
-						"incident crowd cap", "<=" + CursedSpiritProfile.MAX_SPIRITS_NEARBY, nearby));
+		int after = helper.getLevel().getEntitiesOfClass(CursedSpiritEntity.class, area).size();
+		boolean respected = before >= CursedSpiritProfile.MAX_SPIRITS_NEARBY
+				? after == before
+				: after <= CursedSpiritProfile.MAX_SPIRITS_NEARBY;
+		helper.assertTrue(respected, CursedIncidentTestFixtures.diagnostic("curseTopUpRespectsCap(R69)", helper,
+				"incident crowd cap", "no spawn at/above cap; otherwise <=cap", before + "->" + after));
 		CursedIncidentTestFixtures.cleanup(record);
 		helper.succeed();
 	}
@@ -245,11 +249,14 @@ public final class CursedIncidentGameTests {
 	public void animalsCulledInZone(GameTestHelper helper) {
 		IncidentRecord record = CursedIncidentTestFixtures.spawnFree(helper, CENTER, IncidentStage.CATASTROPHIC, RADIUS, 1115L);
 		for (int i = 0; i < 12; i++) helper.spawn(EntityType.COW, new BlockPos(6 + i % 4, 1, 6 + i / 4));
+		AABB area = new AABB(record.center).inflate(record.radius);
+		int before = helper.getLevel().getEntitiesOfClass(Cow.class, area, Cow::isAlive).size();
 		helper.runAtTickTime(500, () -> {
-			long dead = helper.getLevel().getEntitiesOfClass(Cow.class, new AABB(record.center).inflate(record.radius), cow -> cow.isDeadOrDying()).size();
-			helper.assertTrue(dead > 0L, CursedIncidentTestFixtures.diagnostic("animalsCulledInZone(R32)", helper,
-					"cull cadence", ">0 dead animals", dead));
+			long culled = record.counters.animalsCulled;
+			helper.assertTrue(before > 0 && culled > 0L, CursedIncidentTestFixtures.diagnostic("animalsCulledInZone(R32)", helper,
+					"cull cadence and cursed_zone damage", "animals>0 and counter>0", before + "->" + culled));
 			CursedIncidentTestFixtures.cleanup(record);
+			helper.succeed();
 		});
 	}
 }

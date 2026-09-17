@@ -179,6 +179,19 @@ public final class IncidentControl {
 		return List.copyOf(data().incidents().values());
 	}
 
+	/** The incident whose source is this object instance, or null (R43/R44 dwell lookup). */
+	public static IncidentRecord recordForObject(UUID objectInstanceId) {
+		if (objectInstanceId == null) {
+			return null;
+		}
+		for (IncidentRecord record : data().incidents().values()) {
+			if (objectInstanceId.equals(record.objectInstanceId)) {
+				return record;
+			}
+		}
+		return null;
+	}
+
 	public static IncidentStage setStage(UUID id, IncidentStage target) {
 		IncidentRecord record = require(id);
 		if (target == null || target.ordinal() <= record.stage.ordinal()) {

@@ -107,33 +107,55 @@ public final class CursedObjectGameTests {
 
 	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
 	public void carriedObjectMovesDwellCenter(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
 		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, "carriedObjectMovesDwellCenter(R43)", CENTER);
 		UUID id = UUID.randomUUID();
-		ItemStack stack = CursedObjectItem.stack(CursedObjectState.fresh(id, "cursed_nail", 3, helper.getLevel().getGameTime()));
+		BlockPos center = victim.blockPosition();
+		IncidentRecord record = IncidentControl.spawn(new IncidentControl.SpawnRequest(center, level.dimension(), "blight",
+				3, 1176L, IncidentStage.INITIAL, "cursed_nail", jujutsu.mod.cursedincident.SourceKind.OBJECT,
+				3.0, 40L));
+		record.objectInstanceId = id;
+		ItemStack stack = CursedObjectItem.stack(CursedObjectState.fresh(id, "cursed_nail", 3, level.getGameTime()));
 		ObjectDwellTracker.noteCarried(stack, victim);
-		BlockPos tracked = new ObjectDwellTracker().dwellCenterOf(id);
-		helper.assertTrue(tracked != null && tracked.equals(victim.blockPosition()),
-				CursedIncidentTestFixtures.diagnostic("carriedObjectMovesDwellCenter(R43)", helper,
-					"dwell center", victim.blockPosition(), tracked));
-		CursedSpiritTestFixtures.cleanupVictim(helper, victim);
-		helper.succeed();
+		helper.runAtTickTime(50, () -> {
+			ObjectDwellTracker.noteCarried(stack, victim);
+			IncidentControl.advance(record.id, 50L);
+			BlockPos tracked = new ObjectDwellTracker().dwellCenterOf(id);
+			helper.assertTrue(tracked != null && tracked.equals(victim.blockPosition()),
+					CursedIncidentTestFixtures.diagnostic("carriedObjectMovesDwellCenter(R43)", helper,
+						"dwell center", victim.blockPosition(), tracked));
+			CursedIncidentTestFixtures.cleanup(record);
+			CursedSpiritTestFixtures.cleanupVictim(helper, victim);
+			helper.succeed();
+		});
 	}
 
 	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
 	public void stationaryObjectCreatesNewCenter(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
 		UUID id = UUID.randomUUID();
-		BlockPos pos = helper.absolutePos(CENTER);
+		BlockPos relative = new BlockPos(CENTER.getX(), 1, CENTER.getZ());
+		BlockPos pos = helper.absolutePos(relative);
+		IncidentRecord record = IncidentControl.spawn(new IncidentControl.SpawnRequest(pos, level.dimension(), "blight",
+				3, 1177L, IncidentStage.INITIAL, "cursed_nail", jujutsu.mod.cursedincident.SourceKind.OBJECT,
+				3.0, 40L));
+		record.objectInstanceId = id;
 		ItemEntity item = new ItemEntity(level, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5,
 				CursedObjectItem.stack(CursedObjectState.fresh(id, "cursed_nail", 3, level.getGameTime())));
+		item.setNoGravity(true);
 		level.addFreshEntity(item);
 		ObjectDwellTracker.noteWorldItem(item);
-		BlockPos tracked = new ObjectDwellTracker().dwellCenterOf(id);
-		helper.assertTrue(pos.equals(tracked),
-				CursedIncidentTestFixtures.diagnostic("stationaryObjectCreatesNewCenter(R44)", helper,
+		helper.runAtTickTime(50, () -> {
+			ObjectDwellTracker.noteWorldItem(item);
+			IncidentControl.advance(record.id, 50L);
+			BlockPos tracked = new ObjectDwellTracker().dwellCenterOf(id);
+			helper.assertTrue(pos.equals(tracked),
+					CursedIncidentTestFixtures.diagnostic("stationaryObjectCreatesNewCenter(R44)", helper,
 						"stationary dwell center", pos, tracked));
-		item.discard();
-		helper.succeed();
+			item.discard();
+			CursedIncidentTestFixtures.cleanup(record);
+			helper.succeed();
+		});
 	}
 
 	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 80)
