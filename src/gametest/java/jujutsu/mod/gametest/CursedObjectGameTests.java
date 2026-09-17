@@ -146,6 +146,7 @@ public final class CursedObjectGameTests {
 		level.addFreshEntity(item);
 		ObjectDwellTracker.noteWorldItem(item);
 		helper.runAtTickTime(50, () -> {
+			item.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
 			ObjectDwellTracker.noteWorldItem(item);
 			IncidentControl.advance(record.id, 50L);
 			BlockPos tracked = new ObjectDwellTracker().dwellCenterOf(id);

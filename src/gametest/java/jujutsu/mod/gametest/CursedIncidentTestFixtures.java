@@ -47,9 +47,17 @@ public final class CursedIncidentTestFixtures {
 			if (objectId == null) {
 				return null;
 			}
-			return IncidentControl.recordsForRuntime().stream()
-					.filter(record -> objectId.equals(record.objectInstanceId))
+			IncidentRecord record = IncidentControl.recordsForRuntime().stream()
+					.filter(candidate -> objectId.equals(candidate.objectInstanceId))
 					.findFirst().orElse(null);
+			if (record != null && Double.isFinite(radius) && radius >= 0.0 && record.params != null) {
+				var params = record.params;
+				record.radius = radius;
+				record.params = new jujutsu.mod.cursedincident.IncidentParams(params.zoneShape(), radius,
+						params.curseWeights(), params.atmosphereId(), params.localGoals(), params.escalationSpeedMul(),
+						params.ignoreShelter(), params.secondaryAtCritical(), params.dwellTicksRequired());
+			}
+			return record;
 		}
 		return IncidentControl.spawn(new IncidentControl.SpawnRequest(center, level.dimension(), "blight",
 				3, seed, stage, objectType, sourceKind, radius));
