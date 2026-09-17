@@ -116,7 +116,7 @@ public final class IncidentControl {
 		IncidentRecord record = new IncidentRecord();
 		record.id = UUID.randomUUID();
 		record.seed = seed;
-		record.createdGameTime = currentGameTime();
+		record.createdGameTime = currentGameTime(null);
 		record.lastUpdateGameTime = record.createdGameTime;
 		record.dimension = request.dimension() == null ? Level.OVERWORLD : request.dimension();
 		record.center = request.center().immutable();
@@ -172,7 +172,7 @@ public final class IncidentControl {
 		if (target == null || target.ordinal() <= record.stage.ordinal()) {
 			return record.stage;
 		}
-		long now = currentGameTime();
+		long now = currentGameTime(record);
 		IncidentStage previous = record.stage;
 		while (record.stage.ordinal() < target.ordinal()) {
 			IncidentStage next = record.stage.next();
@@ -201,7 +201,7 @@ public final class IncidentControl {
 			return;
 		}
 		syncDwellCenter(record);
-		long now = currentGameTime();
+		long now = currentGameTime(record);
 		long before = record.ageTicks(now);
 		long target = Math.max(before, targetAgeTicks);
 		long naturalAge = Math.max(0L, safeSubtract(now, record.createdGameTime));
@@ -311,7 +311,7 @@ public final class IncidentControl {
 		}
 		BlockPos center = pos == null ? record.center : pos.immutable();
 		SecondaryNode node = new SecondaryNode(UUID.randomUUID(), center, Math.max(1.0, record.radius * 0.60),
-				currentGameTime(), true);
+				currentGameTime(record), true);
 		record.secondaries.add(node);
 		data().setDirty();
 		return node;
@@ -426,7 +426,7 @@ public final class IncidentControl {
 		record.dwellAnchor = dwell.immutable();
 		record.dwellTicks = 0L;
 		record.secondaries.removeIf(node -> !node.selfSustaining());
-		worldSink.onRelocated(activeLevel, record, oldCenter);
+		worldSink.onRelocated(levelFor(record), record, oldCenter);
 		data().setDirty();
 	}
 
@@ -450,7 +450,7 @@ public final class IncidentControl {
 				.map(value -> value.from().wireName() + "->" + value.to().wireName() + "@" + value.gameTime())
 				.toList();
 		return new InspectView(record.id, record.seed, record.templateId, record.stage, record.scarred,
-				record.ageTicks(currentGameTime()), record.createdGameTime, record.lastUpdateGameTime,
+				record.ageTicks(currentGameTime(record)), record.createdGameTime, record.lastUpdateGameTime,
 				record.center, record.radius, params.zoneShape(), record.sourceKind, record.objectInstanceId,
 				record.objectTypeId, record.objectGrade, record.sourcePos, record.sourceContainer,
 				Map.copyOf(params.curseWeights()), params.atmosphereId(), List.copyOf(params.localGoals()),
