@@ -1,6 +1,7 @@
 package jujutsu.mod.client.character;
 
 import java.util.List;
+import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.JujutsuCharacter;
@@ -75,6 +76,21 @@ public interface CharacterClientDefinition {
 
 	/** Registers this vessel's client-only listeners — entity renderers, VFX recipes — once at client init. */
 	default void registerClientHooks() {}
+
+	/**
+	 * Whether this vessel has a quick selector for the shared selector key to drive. False means the key
+	 * does nothing at all for this vessel — it neither cycles nor opens anything, so the input layer needs
+	 * no idea which vessel it is talking to.
+	 */
+	default boolean hasQuickSelector() {
+		return false;
+	}
+
+	/**
+	 * Opens this vessel's quick selector. A vessel may render it however it likes — the key's gesture and
+	 * the input layer's part end at this call. Only ever called when {@link #hasQuickSelector()} is true.
+	 */
+	default void openQuickSelector(Minecraft client) {}
 
 	/** Label and blurb for this vessel's row in the Characters tab. */
 	String moduleName();
