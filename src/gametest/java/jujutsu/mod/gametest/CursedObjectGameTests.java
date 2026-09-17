@@ -1,0 +1,169 @@
+package jujutsu.mod.gametest;
+
+import java.util.UUID;
+
+import net.fabricmc.fabric.api.gametest.v1.GameTest;
+import net.minecraft.core.BlockPos;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.phys.AABB;
+import jujutsu.mod.cursedincident.IncidentControl;
+import jujutsu.mod.cursedincident.IncidentRecord;
+import jujutsu.mod.cursedincident.IncidentStage;
+import jujutsu.mod.cursedincident.object.CursedObjectItem;
+import jujutsu.mod.cursedincident.object.CursedObjectRegistry;
+import jujutsu.mod.cursedincident.object.CursedObjectState;
+import jujutsu.mod.cursedincident.runtime.ObjectDwellTracker;
+
+/** Object-verb world oracles required by Block 3 (R2/R3/R4/R9/R37/R42/R43/R44/R46/R78). */
+public final class CursedObjectGameTests {
+	private static final BlockPos CENTER = new BlockPos(8, 4, 8);
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 120)
+	public void objectPickupDropChestKeepsInstance(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		UUID id = UUID.randomUUID();
+		ItemStack original = CursedObjectItem.stack(CursedObjectState.fresh(id, "cursed_nail", 3, level.getGameTime()));
+		ItemEntity dropped = new ItemEntity(level, helper.absolutePos(CENTER).getX() + 0.5,
+				helper.absolutePos(CENTER).getY(), helper.absolutePos(CENTER).getZ() + 0.5, original);
+		level.addFreshEntity(dropped);
+		ObjectDwellTracker.noteWorldItem(dropped);
+		ItemStack picked = dropped.getItem().copy();
+		dropped.discard();
+		BlockPos chestPos = helper.absolutePos(new BlockPos(9, 4, 8));
+		helper.setBlock(new BlockPos(9, 4, 8), Blocks.CHEST);
+		ChestBlockEntity chest = (ChestBlockEntity) level.getBlockEntity(chestPos);
+		chest.setItem(0, picked);
+		CursedObjectState stored = CursedObjectItem.state(chest.getItem(0));
+		helper.assertTrue(stored != null && id.equals(stored.instanceId()), CursedIncidentTestFixtures.diagnostic(
+				"objectPickupDropChestKeepsInstance(R2,R3,R46)", helper, "instance id through hops", id,
+				stored == null ? null : stored.instanceId()));
+		helper.succeed();
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 120)
+	public void uniqueLimitRefusesInWorld(GameTestHelper helper) {
+		CursedObjectRegistry.clearInstances();
+		int accepted = 0;
+		for (int i = 0; i < 20; i++) {
+			if (CursedObjectRegistry.registerInstance(CursedObjectState.fresh(UUID.randomUUID(), "sukuna_finger", 1,
+					helper.getLevel().getGameTime()))) accepted++;
+		}
+		boolean refused = !CursedObjectRegistry.registerInstance(CursedObjectState.fresh(UUID.randomUUID(),
+				"sukuna_finger", 1, helper.getLevel().getGameTime()));
+		helper.assertTrue(accepted == 20 && refused, CursedIncidentTestFixtures.diagnostic(
+				"uniqueLimitRefusesInWorld(R4)", helper, "20 accepted then refusal", true, accepted + "/" + refused));
+		CursedObjectRegistry.clearInstances();
+		helper.succeed();
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
+	public void pickupGrantsNoProtection(GameTestHelper helper) {
+		ServerPlayer player = CursedSpiritTestFixtures.setupVictim(helper, "pickupGrantsNoProtection(R9)", CENTER);
+		ItemStack stack = CursedObjectItem.stack(CursedObjectState.fresh(UUID.randomUUID(), "cursed_nail", 3,
+				helper.getLevel().getGameTime()));
+		player.getInventory().add(stack);
+		helper.assertTrue(!player.getAbilities().invulnerable && !player.isInvulnerable(),
+				CursedIncidentTestFixtures.diagnostic("pickupGrantsNoProtection(R9)", helper,
+					"inventory gives no protection", false, player.getAbilities().invulnerable));
+		CursedSpiritTestFixtures.cleanupVictim(helper, player);
+		helper.succeed();
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 120)
+	public void sealReachesPhysicalObject(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		UUID id = UUID.randomUUID();
+		ItemStack stack = CursedObjectItem.stack(CursedObjectState.fresh(id, "cursed_nail", 3, level.getGameTime()));
+		CursedObjectItem.SealResult result = CursedObjectItem.trySeal(stack, 2);
+		helper.assertTrue(result.ok() && CursedObjectItem.state(stack).sealed()
+				&& CursedObjectItem.state(stack).sealTier() == 2,
+				CursedIncidentTestFixtures.diagnostic("sealReachesPhysicalObject(R37)", helper,
+					"component seal", "sealed tier 2", result));
+		helper.succeed();
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
+	public void brokenSealKeepsHistory(GameTestHelper helper) {
+		ItemStack stack = CursedObjectItem.stack(CursedObjectState.fresh(UUID.randomUUID(), "cursed_nail", 3,
+				helper.getLevel().getGameTime()));
+		CursedObjectItem.trySeal(stack, 3);
+		UUID id = CursedObjectItem.state(stack).instanceId();
+		CursedObjectItem.damageSeal(stack, Integer.MAX_VALUE);
+		CursedObjectState state = CursedObjectItem.state(stack);
+		helper.assertTrue(id.equals(state.instanceId()) && !state.sealed() && state.sealIntegrity() == 0,
+				CursedIncidentTestFixtures.diagnostic("brokenSealKeepsHistory(R42)", helper,
+					"id and accumulated history", id, state));
+		helper.succeed();
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
+	public void carriedObjectMovesDwellCenter(GameTestHelper helper) {
+		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, "carriedObjectMovesDwellCenter(R43)", CENTER);
+		UUID id = UUID.randomUUID();
+		ItemStack stack = CursedObjectItem.stack(CursedObjectState.fresh(id, "cursed_nail", 3, helper.getLevel().getGameTime()));
+		ObjectDwellTracker.noteCarried(stack, victim);
+		BlockPos tracked = new ObjectDwellTracker().dwellCenterOf(id);
+		helper.assertTrue(tracked != null && tracked.equals(victim.blockPosition()),
+				CursedIncidentTestFixtures.diagnostic("carriedObjectMovesDwellCenter(R43)", helper,
+					"dwell center", victim.blockPosition(), tracked));
+		CursedSpiritTestFixtures.cleanupVictim(helper, victim);
+		helper.succeed();
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
+	public void stationaryObjectCreatesNewCenter(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		UUID id = UUID.randomUUID();
+		BlockPos pos = helper.absolutePos(CENTER);
+		ItemEntity item = new ItemEntity(level, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5,
+				CursedObjectItem.stack(CursedObjectState.fresh(id, "cursed_nail", 3, level.getGameTime())));
+		level.addFreshEntity(item);
+		ObjectDwellTracker.noteWorldItem(item);
+		BlockPos tracked = new ObjectDwellTracker().dwellCenterOf(id);
+		helper.assertTrue(pos.equals(tracked),
+				CursedIncidentTestFixtures.diagnostic("stationaryObjectCreatesNewCenter(R44)", helper,
+						"stationary dwell center", pos, tracked));
+		item.discard();
+		helper.succeed();
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 80)
+	public void sealSurvivesSaveLoad(GameTestHelper helper) {
+		CursedObjectState state = CursedObjectState.fresh(UUID.randomUUID(), "cursed_nail", 3, helper.getLevel().getGameTime())
+				.withSeal(true, 2, 75);
+		ItemStack stack = CursedObjectItem.stack(state);
+		CursedObjectState roundTrip = CursedObjectItem.state(stack.copy());
+		helper.assertTrue(roundTrip.sealed() && roundTrip.sealTier() == 2 && roundTrip.sealIntegrity() == 75,
+				CursedIncidentTestFixtures.diagnostic("sealSurvivesSaveLoad(R46)", helper,
+					"sealed component fields", state, roundTrip));
+		helper.succeed();
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 140)
+	public void incidentDropsPhysicalLoot(GameTestHelper helper) {
+		IncidentRecord record = CursedIncidentTestFixtures.spawnObject(helper, CENTER, IncidentStage.INITIAL, 3.0,
+				1178L,  "cursed_nail");
+		ServerLevel level = helper.getLevel();
+		BlockPos chestPos = helper.absolutePos(CENTER);
+		helper.setBlock(CENTER, Blocks.CHEST);
+		ChestBlockEntity chest = (ChestBlockEntity) level.getBlockEntity(chestPos);
+		ItemStack object = CursedObjectItem.stack(CursedObjectState.fresh(UUID.randomUUID(), "cursed_nail", 3,
+				level.getGameTime()));
+		chest.setItem(0, object.copy());
+		IncidentControl.setStage(record.id, IncidentStage.CRITICAL);
+		helper.runAtTickTime(40, () -> {
+			boolean found = level.getEntitiesOfClass(ItemEntity.class, new AABB(chestPos).inflate(4), entity ->
+					CursedObjectItem.state(entity.getItem()) != null).size() > 0;
+			helper.assertTrue(found, CursedIncidentTestFixtures.diagnostic("incidentDropsPhysicalLoot(R78)", helper,
+					"cursed object loot dropped", true, found));
+			CursedIncidentTestFixtures.cleanup(record);
+		});
+	}
+}

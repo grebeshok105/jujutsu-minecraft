@@ -14,6 +14,7 @@ import jujutsu.mod.cursedincident.policy.SpawnRollPolicy;
 import jujutsu.mod.cursedincident.policy.StagePolicy;
 import jujutsu.mod.cursedincident.policy.TemplateRollPolicy;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
@@ -57,6 +58,11 @@ public final class IncidentControl {
 	private static DwellProvider dwellProvider = DwellProvider.NONE;
 	private static ObjectSpawner objectSpawner;
 	private static ServerLevel activeLevel;
+	private static MinecraftServer server;
+	public static void bindServer(MinecraftServer value) {
+		server = value;
+	}
+
 	public static void bindStore(Supplier<IncidentSavedData> store) {
 		IncidentSavedData resolved = store == null ? null : store.get();
 		boundStore = resolved == null ? new IncidentSavedData() : resolved;
@@ -124,7 +130,7 @@ public final class IncidentControl {
 		record.params = params;
 		data().put(record);
 		// The INITIAL delta is emitted even for a no-op sink so production and tests share one path.
-		worldSink.applyStageDelta(activeLevel, record, IncidentStage.INITIAL, record.stage);
+		worldSink.applyStageDelta(levelFor(record), record, IncidentStage.INITIAL, record.stage);
 		return record;
 	}
 
@@ -170,7 +176,7 @@ public final class IncidentControl {
 		IncidentStage previous = record.stage;
 		while (record.stage.ordinal() < target.ordinal()) {
 			IncidentStage next = record.stage.next();
-			worldSink.applyStageDelta(activeLevel, record, record.stage, next);
+			worldSink.applyStageDelta(levelFor(record), record, record.stage, next);
 			record.transitions.add(new IncidentRecord.Transition(record.stage, next, now));
 			record.stage = next;
 		}
@@ -182,7 +188,7 @@ public final class IncidentControl {
 	/** Adds logical age then executes the same transition engine used by catch-up. */
 	public static long advance(UUID id, long ticks) {
 		IncidentRecord record = require(id);
-		long before = record.ageTicks(currentGameTime());
+		long before = record.ageTicks(currentGameTime(record));
 		long safeTicks = Math.max(0L, ticks);
 		long target = Long.MAX_VALUE - before < safeTicks ? Long.MAX_VALUE : before + safeTicks;
 		advanceTo(record, target);
@@ -203,7 +209,7 @@ public final class IncidentControl {
 		double speed = record.params == null ? 1.0 : record.params.escalationSpeedMul();
 		for (IncidentStage next : StagePolicy.transitionsBetween(record.stage, before, target, speed)) {
 			IncidentStage previous = record.stage;
-			worldSink.applyStageDelta(activeLevel, record, previous, next);
+			worldSink.applyStageDelta(levelFor(record), record, previous, next);
 			record.stage = next;
 			record.transitions.add(new IncidentRecord.Transition(previous, next, now));
 		}
@@ -242,7 +248,7 @@ public final class IncidentControl {
 		record.sealIntegrity = SealPolicy.integrityMax(tier);
 		applySealState(record);
 		data().setDirty();
-		worldSink.onSealed(activeLevel, record);
+		worldSink.onSealed(levelFor(record), record);
 		return new SealAttempt(true, required, "sealed");
 	}
 
@@ -254,7 +260,7 @@ public final class IncidentControl {
 		record.sealed = false;
 		applySealState(record);
 		data().setDirty();
-		worldSink.onUnsealed(activeLevel, record);
+		worldSink.onUnsealed(levelFor(record), record);
 		return true;
 	}
 
@@ -270,7 +276,7 @@ public final class IncidentControl {
 		if (catastrophic || record.sealIntegrity == 0) {
 			record.sealed = false;
 			record.sealFailures++;
-			worldSink.onSealBroken(activeLevel, record);
+			worldSink.onSealBroken(levelFor(record), record);
 		}
 		applySealState(record);
 		data().setDirty();
@@ -293,7 +299,7 @@ public final class IncidentControl {
 		// Dependent centres stop at the old site; self-sustaining nodes survive.
 		record.secondaries.removeIf(node -> !node.selfSustaining());
 		data().setDirty();
-		worldSink.onRelocated(activeLevel, record, oldCenter);
+		worldSink.onRelocated(levelFor(record), record, oldCenter);
 	}
 
 	public static SecondaryNode forceSecondary(UUID id, BlockPos pos) {
@@ -356,11 +362,12 @@ public final class IncidentControl {
 
 	/** Clears runtime bindings at SERVER_STOPPING; durable state remains in SavedData. */
 	public static void clearRuntimeState() {
-		activeLevel = null;
+		server = null;
 		worldSink = IncidentWorldSink.NOOP;
 		dwellProvider = DwellProvider.NONE;
 		objectSpawner = null;
 		boundStore = new IncidentSavedData();
+		activeLevel = null;
 		storeSupplier = () -> boundStore;
 	}
 
@@ -377,8 +384,20 @@ public final class IncidentControl {
 		return record;
 	}
 
+	private static long currentGameTime(IncidentRecord record) {
+		ServerLevel level = levelFor(record);
+		return level == null ? DEFAULT_GAME_TIME : level.getGameTime();
+	}
+
 	private static long currentGameTime() {
-		return activeLevel == null ? DEFAULT_GAME_TIME : activeLevel.getGameTime();
+		return currentGameTime(null);
+	}
+
+	private static ServerLevel levelFor(IncidentRecord record) {
+		if (server != null) {
+			return server.getLevel(record == null || record.dimension == null ? Level.OVERWORLD : record.dimension);
+		}
+		return activeLevel;
 	}
 
 	private static void applySealState(IncidentRecord record) {

@@ -1,6 +1,7 @@
 package jujutsu.mod.cursedincident;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import jujutsu.mod.cursedincident.persist.IncidentSavedData;
 
@@ -18,6 +19,7 @@ public final class CursedIncidents {
 		registered = true;
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			ServerLevel overworld = server.overworld();
+			IncidentControl.bindServer(server);
 			IncidentControl.bindStore(() -> IncidentSavedData.get(overworld));
 			IncidentControl.catchUp(overworld);
 		});

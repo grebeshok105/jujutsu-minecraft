@@ -74,6 +74,10 @@ public final class JujutsuSounds {
 	public static final SoundEvent CURSED_WISTIVER_HURT = create("cursed.wistiver_hurt");
 	public static final SoundEvent CURSED_WISTIVER_DEATH = create("cursed.wistiver_death");
 	public static final SoundEvent CURSED_WISTIVER_SCREAM = create("cursed.wistiver_scream");
+	public static final SoundEvent INCIDENT_DRONE = create("incident_drone");
+	public static final SoundEvent SEAL_CRACK = create("seal_crack");
+	public static final SoundEvent SEAL_BREAK = create("seal_break");
+	public static final SoundEvent SECONDARY_BIRTH = create("secondary_birth");
 
 	public static void register() {
 		register("hairpin.prep", HAIRPIN_PREP);
@@ -136,6 +140,10 @@ public final class JujutsuSounds {
 		register("cursed.wistiver_hurt", CURSED_WISTIVER_HURT);
 		register("cursed.wistiver_death", CURSED_WISTIVER_DEATH);
 		register("cursed.wistiver_scream", CURSED_WISTIVER_SCREAM);
+		register("incident_drone", INCIDENT_DRONE);
+		register("seal_crack", SEAL_CRACK);
+		register("seal_break", SEAL_BREAK);
+		register("secondary_birth", SECONDARY_BIRTH);
 	}
 
 	private static SoundEvent create(String path) {
