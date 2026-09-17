@@ -131,7 +131,12 @@ class VesselBoundaryTest {
 			"jujutsu.mod.network.AbilityCooldownPayload",
 			"jujutsu.mod.network.CurseLinkOptionsPayload",
 			"jujutsu.mod.network.VfxCuePayload",
-			"jujutsu.mod.network.BlackFlashFocusPayload");
+			"jujutsu.mod.network.BlackFlashFocusPayload",
+			// The shikigami selector's pair: a click up and a roster snapshot down. Vessel-neutral by
+			// name and by payload, which is why they may live in the shared package — a payload is
+			// banned from a vessel package outright, so this is their only legal home.
+			"jujutsu.mod.network.ShikigamiSelectPayload",
+			"jujutsu.mod.network.ShikigamiStatePayload");
 
 	/** Vessel-named classes that sit outside their vessel's packages today. Four are deliberate, two are debt. */
 	private static final Set<String> VESSEL_NAMED_CLASSES_OUTSIDE_VESSEL_PACKAGES = Set.of(

@@ -163,6 +163,8 @@ public final class MegumiSummonRuntime {
 		broadcastCue(level, player, MegumiVfxIds.DOGS_SUMMON_BODY, player.position(), player.getId(), Vec3.ZERO);
 		broadcastDogCue(level, player, MegumiVfxIds.DOGS_SUMMON, white);
 		broadcastDogCue(level, player, MegumiVfxIds.DOGS_SUMMON, black);
+		// The pack is live: the owner's snapshot marks DOGS as out without implying any despawn.
+		MegumiShikigamiSync.push(player);
 		return true;
 	}
 
@@ -330,8 +332,13 @@ public final class MegumiSummonRuntime {
 			return;
 		}
 		if (PACKS.remove(ownerId, pack)) {
+			int deathCooldown = MegumiCooldownPolicy.duration(MegumiCooldownPolicy.Cause.FINAL_LOSS);
+			// The dogs share the roster ledger: their loss makes DOGS the cooling entry in the selector,
+			// exactly as it makes PRIMARY the cooling slot in the shared ledger.
+			MegumiShikigamiCooldowns.start(ownerId, MegumiShikigami.DOGS, deathCooldown);
 			startCooldownIfLonger(server.getPlayerList().getPlayer(ownerId), CharacterAbility.PRIMARY,
-					MegumiCooldownPolicy.duration(MegumiCooldownPolicy.Cause.FINAL_LOSS));
+					deathCooldown);
+			MegumiShikigamiSync.push(server.getPlayerList().getPlayer(ownerId));
 		}
 	}
 
@@ -376,7 +383,13 @@ public final class MegumiSummonRuntime {
 			TEARDOWN_IN_PROGRESS.remove(ownerId);
 		}
 		if (MegumiLifecyclePolicy.shouldApplyTeardownCooldown(pack != null, foundCooldownOwningDog)) {
-			startCooldownIfLonger(server.getPlayerList().getPlayer(ownerId), CharacterAbility.PRIMARY, reason.cooldownTicks());
+			int ticks = reason.cooldownTicks();
+			if (ticks > 0) {
+				MegumiShikigamiCooldowns.start(ownerId, MegumiShikigami.DOGS, ticks);
+				startCooldownIfLonger(server.getPlayerList().getPlayer(ownerId), CharacterAbility.PRIMARY, ticks);
+			}
+			// The pack record is gone whichever way this went, so the DOGS marker must go with it.
+			MegumiShikigamiSync.push(server.getPlayerList().getPlayer(ownerId));
 		}
 	}
 

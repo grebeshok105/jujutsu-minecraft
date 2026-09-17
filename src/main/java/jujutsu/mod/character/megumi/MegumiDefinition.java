@@ -56,6 +56,34 @@ public final class MegumiDefinition implements CharacterDefinition {
 	}
 
 	@Override
+	public boolean selectShikigami(ServerPlayer player, String shikigamiId) {
+		MegumiShikigami type;
+		try {
+			type = MegumiShikigami.byId(shikigamiId);
+		} catch (IllegalArgumentException unknown) {
+			// The client sent an id this roster does not have. Refuse rather than guess: the strip's
+			// optimistic marker is corrected by the next snapshot.
+			return false;
+		}
+		// A cooling type is not selectable. Refusing here — and not by ignoring the packet — is what
+		// keeps the server the only authority on availability; the client's own click gate is a mirror.
+		if (MegumiShikigamiCooldowns.isCooling(player.getUUID(), type, player.level().getGameTime())) {
+			return false;
+		}
+		// Selection is free and non-destructive: it never starts a cooldown and never sweeps a pack,
+		// which is exactly why an already-summoned type stays selectable (design spec: "summoned" is a
+		// marker, not a block, and the summoned set is a separate concept from the active one).
+		MegumiShikigamiSelection.set(player.getUUID(), type);
+		MegumiShikigamiSync.push(player);
+		return true;
+	}
+
+	@Override
+	public void onSelected(ServerPlayer player) {
+		MegumiShikigamiSync.push(player);
+	}
+
+	@Override
 	public void onDeselected(ServerPlayer player) {
 		MegumiSummonRuntime.teardown(player.getServer(), player.getUUID(),
 				MegumiSummonRuntime.TeardownReason.DESELECTED);
@@ -64,5 +92,10 @@ public final class MegumiDefinition implements CharacterDefinition {
 		MegumiShadowTrapRuntime.clear(player.getServer(), player.getUUID(), true);
 		MegumiShadowDropRuntime.clear(player.getServer(), player.getUUID(), true);
 		MegumiShadowMoveRuntime.teardown(player.getServer(), player.getUUID());
+		// The teardown above charges the swept type its own cooldown; the roster ledger is still dropped,
+		// because a vessel change is the roster's clean slate and returning to Megumi must not greet the
+		// player with a selector full of grey. This is deliberately asymmetric with the shared slot
+		// ledger, whose charge survives the switch (issue #84).
+		MegumiShikigamiCooldowns.clear(player.getUUID());
 	}
 }
