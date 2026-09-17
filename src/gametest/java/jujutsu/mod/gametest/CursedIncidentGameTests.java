@@ -53,8 +53,7 @@ public final class CursedIncidentGameTests {
 	public void stageAdvanceChangesBlocks(GameTestHelper helper) {
 		IncidentRecord record = CursedIncidentTestFixtures.spawnFree(helper, CENTER, IncidentStage.INITIAL, RADIUS, 1102L);
 		ServerLevel level = helper.getLevel();
-		List<BlockPos> samples = ZoneGeometry.sampleBlocks(ZoneGeometry.shapeOf(record.params), record.center, record.radius,
-				net.minecraft.util.RandomSource.create(record.seed ^ IncidentStage.GROWING.ordinal()), 400);
+		List<BlockPos> samples = CursedIncidentTestFixtures.sampledPositions(record, IncidentStage.GROWING);
 		for (BlockPos sample : samples) {
 			helper.setBlock(CursedIncidentTestFixtures.relative(helper, sample), Blocks.GRASS_BLOCK);
 		}
@@ -64,6 +63,7 @@ public final class CursedIncidentGameTests {
 			helper.assertTrue(changed > 0, CursedIncidentTestFixtures.diagnostic("stageAdvanceChangesBlocks(R36)", helper,
 					"seeded sample changed", ">0", changed));
 			CursedIncidentTestFixtures.cleanup(record);
+			helper.succeed();
 		});
 	}
 
@@ -71,24 +71,27 @@ public final class CursedIncidentGameTests {
 	public void infectionDestroysPlayerBlocks(GameTestHelper helper) {
 		IncidentRecord record = CursedIncidentTestFixtures.spawnFree(helper, CENTER, IncidentStage.INITIAL, RADIUS, 1103L);
 		ServerLevel level = helper.getLevel();
-		List<BlockPos> samples = ZoneGeometry.sampleBlocks(ZoneGeometry.shapeOf(record.params), record.center, record.radius,
-				net.minecraft.util.RandomSource.create(record.seed ^ IncidentStage.CRITICAL.ordinal()), 400);
-		for (BlockPos sample : samples) helper.setBlock(CursedIncidentTestFixtures.relative(helper, sample), Blocks.OAK_PLANKS);
+		List<BlockPos> samples = CursedIncidentTestFixtures.sampledPositions(record, IncidentStage.CRITICAL);
+		for (int i = 0; i < samples.size(); i++) {
+			BlockPos relative = CursedIncidentTestFixtures.relative(helper, samples.get(i));
+			helper.setBlock(relative, i == 0 ? Blocks.OAK_PLANKS : i == 1 ? Blocks.CHEST : Blocks.BEACON);
+		}
 		IncidentControl.setStage(record.id, IncidentStage.CRITICAL);
 		helper.runAtTickTime(20, () -> {
 			long air = samples.stream().filter(pos -> level.getBlockState(pos).isAir()).count();
 			helper.assertTrue(air > 0, CursedIncidentTestFixtures.diagnostic("infectionDestroysPlayerBlocks(R26,R30)", helper,
 					"player blocks destroyed", ">0", air));
+			helper.succeed();
 			CursedIncidentTestFixtures.cleanup(record);
 		});
 	}
-
 	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 160)
 	public void containerDropsContents(GameTestHelper helper) {
 		IncidentRecord record = CursedIncidentTestFixtures.spawnFree(helper, CENTER, IncidentStage.INITIAL, RADIUS, 1104L);
 		ServerLevel level = helper.getLevel();
-		BlockPos chestPos = helper.absolutePos(CENTER);
-		helper.setBlock(CENTER, Blocks.CHEST);
+		List<BlockPos> samples = CursedIncidentTestFixtures.sampledPositions(record, IncidentStage.CRITICAL);
+		BlockPos chestPos = samples.getFirst();
+		helper.setBlock(CursedIncidentTestFixtures.relative(helper, chestPos), Blocks.CHEST);
 		ChestBlockEntity chest = (ChestBlockEntity) level.getBlockEntity(chestPos);
 		ItemStack expected = new ItemStack(Items.DIAMOND, 3);
 		chest.setItem(0, expected.copy());
@@ -98,6 +101,7 @@ public final class CursedIncidentGameTests {
 					item.getItem().is(Items.DIAMOND) && item.getItem().getCount() == expected.getCount()).size() > 0;
 			helper.assertTrue(dropped, CursedIncidentTestFixtures.diagnostic("containerDropsContents(R31)", helper,
 					"container contents preserved", expected, dropped));
+			helper.succeed();
 			CursedIncidentTestFixtures.cleanup(record);
 		});
 	}

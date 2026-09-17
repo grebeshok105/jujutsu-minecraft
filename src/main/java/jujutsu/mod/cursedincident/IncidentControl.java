@@ -28,7 +28,14 @@ import net.minecraft.world.level.Level;
 public final class IncidentControl {
 	public record SpawnRequest(BlockPos center, ResourceKey<Level> dimension, String templateId,
 			Integer grade, Long seed, IncidentStage startStage, String objectTypeId, SourceKind sourceKind,
-			Double radius) {
+			Double radius, Long dwellTicksRequired) {
+		/** Backward-compatible form without the dwell override. */
+		public SpawnRequest(BlockPos center, ResourceKey<Level> dimension, String templateId,
+				Integer grade, Long seed, IncidentStage startStage, String objectTypeId,
+				SourceKind sourceKind, Double radius) {
+			this(center, dimension, templateId, grade, seed, startStage, objectTypeId, sourceKind,
+					radius, null);
+		}
 	}
 
 	public record SealAttempt(boolean ok, int requiredTier, String reason) {
@@ -112,6 +119,11 @@ public final class IncidentControl {
 			params = new IncidentParams(params.zoneShape(), request.radius(), params.curseWeights(), params.atmosphereId(),
 					params.localGoals(), params.escalationSpeedMul(), params.ignoreShelter(), params.secondaryAtCritical(),
 					params.dwellTicksRequired());
+		}
+		if (request.dwellTicksRequired() != null && request.dwellTicksRequired() >= 0L) {
+			params = new IncidentParams(params.zoneShape(), params.baseRadius(), params.curseWeights(), params.atmosphereId(),
+					params.localGoals(), params.escalationSpeedMul(), params.ignoreShelter(), params.secondaryAtCritical(),
+					request.dwellTicksRequired());
 		}
 		IncidentRecord record = new IncidentRecord();
 		record.id = UUID.randomUUID();

@@ -1,5 +1,7 @@
 package jujutsu.mod.gametest;
 
+import java.util.List;
+
 import java.util.UUID;
 
 import net.minecraft.core.BlockPos;
@@ -21,6 +23,17 @@ import jujutsu.mod.cursedincident.object.CursedObjectState;
 /** Shared issue #110 fixture helpers; all positions are structure-relative at call sites. */
 public final class CursedIncidentTestFixtures {
 	private CursedIncidentTestFixtures() {
+	}
+
+	public static List<BlockPos> sampledPositions(IncidentRecord record, IncidentStage stage) {
+		if (record == null || record.center == null || stage == null) {
+			return List.of();
+		}
+		int count = (int) Math.min(400L,
+				Math.max(1L, (long) Math.floor(record.radius * record.radius * record.radius / 8.0)));
+		return jujutsu.mod.cursedincident.infection.ZoneGeometry.sampleBlocks(
+				jujutsu.mod.cursedincident.infection.ZoneGeometry.shapeOf(record.params),
+				record.center, record.radius, net.minecraft.util.RandomSource.create(record.seed ^ stage.ordinal()), count);
 	}
 
 	public static IncidentRecord spawn(GameTestHelper helper, BlockPos relativeCenter, IncidentStage stage,

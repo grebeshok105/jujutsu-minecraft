@@ -1,5 +1,7 @@
 package jujutsu.mod.gametest;
 
+import java.util.List;
+
 import java.util.UUID;
 
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -151,18 +153,22 @@ public final class CursedObjectGameTests {
 		IncidentRecord record = CursedIncidentTestFixtures.spawnObject(helper, CENTER, IncidentStage.INITIAL, 3.0,
 				1178L,  "cursed_nail");
 		ServerLevel level = helper.getLevel();
-		BlockPos chestPos = helper.absolutePos(CENTER);
-		helper.setBlock(CENTER, Blocks.CHEST);
+		List<BlockPos> samples = CursedIncidentTestFixtures.sampledPositions(record, IncidentStage.CRITICAL);
+		BlockPos chestPos = samples.getFirst();
+		helper.setBlock(CursedIncidentTestFixtures.relative(helper, chestPos), Blocks.CHEST);
 		ChestBlockEntity chest = (ChestBlockEntity) level.getBlockEntity(chestPos);
-		ItemStack object = CursedObjectItem.stack(CursedObjectState.fresh(UUID.randomUUID(), "cursed_nail", 3,
+		UUID objectId = UUID.randomUUID();
+		ItemStack object = CursedObjectItem.stack(CursedObjectState.fresh(objectId, "cursed_nail", 3,
 				level.getGameTime()));
+		CursedObjectState expectedState = CursedObjectItem.state(object);
 		chest.setItem(0, object.copy());
 		IncidentControl.setStage(record.id, IncidentStage.CRITICAL);
 		helper.runAtTickTime(40, () -> {
 			boolean found = level.getEntitiesOfClass(ItemEntity.class, new AABB(chestPos).inflate(4), entity ->
-					CursedObjectItem.state(entity.getItem()) != null).size() > 0;
+					expectedState.equals(CursedObjectItem.state(entity.getItem()))).size() > 0;
 			helper.assertTrue(found, CursedIncidentTestFixtures.diagnostic("incidentDropsPhysicalLoot(R78)", helper,
-					"cursed object loot dropped", true, found));
+					"cursed object loot dropped", expectedState, found));
+			helper.succeed();
 			CursedIncidentTestFixtures.cleanup(record);
 		});
 	}

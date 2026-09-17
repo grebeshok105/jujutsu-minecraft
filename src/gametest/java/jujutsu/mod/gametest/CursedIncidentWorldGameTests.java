@@ -81,7 +81,9 @@ public final class CursedIncidentWorldGameTests {
 		String fixture = "fullCycleScarsWorld";
 		helper.runAtTickTime(5, () -> {
 			var rec = IncidentControl.spawn(req(helper, 99L));
-			IncidentControl.advance(rec.id, 288_000);
+			// 400_000 ticks guarantees CATASTROPHIC at every multiplier (worst 1.82 →
+			// threshold 349_440); grade is rolled, so the bound must cover it.
+			IncidentControl.advance(rec.id, 400_000);
 			InspectView v = IncidentControl.inspect(rec.id);
 			helper.assertTrue(v.stage() == IncidentStage.CATASTROPHIC,
 					GameTestFixtures.diagnostic(fixture, helper.getTick(),
@@ -102,19 +104,22 @@ public final class CursedIncidentWorldGameTests {
 		helper.runAtTickTime(5, () -> {
 			var a = IncidentControl.spawn(req(helper, 1L));
 			var b = IncidentControl.spawn(req(helper, 2L));
-			IncidentControl.advance(a.id, 48_000);
+			// 96_000 ticks guarantees ≥GROWING even at the slowest multiplier (1.82 →
+			// threshold 87_360); the oracle is that A moved while B stayed put.
+			IncidentControl.advance(a.id, 96_000);
 			InspectView va = IncidentControl.inspect(a.id);
 			InspectView vb = IncidentControl.inspect(b.id);
-			helper.assertTrue(va.stage() == IncidentStage.GROWING
+			helper.assertTrue(va.stage().ordinal() > IncidentStage.INITIAL.ordinal()
 					&& vb.stage() == IncidentStage.INITIAL,
 					GameTestFixtures.diagnostic(fixture, helper.getTick(),
-							"independent stages", "GROWING vs INITIAL",
+							"independent stages", "a advanced, b INITIAL",
 							va.stage() + " vs " + vb.stage()));
 			IncidentControl.cleanup(a.id);
 			IncidentControl.cleanup(b.id);
 		});
 		helper.runAtTickTime(100, helper::succeed);
 	}
+
 
 	/** R59 GT half — ids stay unique across a save/load round-trip of the store. */
 	@GameTest(maxTicks = 120)

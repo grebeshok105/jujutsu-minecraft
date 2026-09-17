@@ -371,7 +371,7 @@ final class VfxCompletenessTest {
 	private static Map<String, ResourceLocation> idFields() {
 		Map<String, ResourceLocation> fields = new HashMap<>();
 		for (Class<?> owner : List.of(NobaraVfxIds.class, TodoVfxIds.class, MegumiVfxIds.class,
-				CursedSpiritVfxIds.class)) {
+				CursedSpiritVfxIds.class, CursedIncidentVfxIds.class)) {
 			for (Field field : owner.getDeclaredFields()) {
 				if (field.getType() == ResourceLocation.class && Modifier.isStatic(field.getModifiers())
 						&& Modifier.isPublic(field.getModifiers())) {
