@@ -25,6 +25,7 @@ public final class JujutsuKeybinds {
 	private static KeyMapping techniqueKey;
 	private static KeyMapping secondTechniqueKey;
 	private static KeyMapping thirdTechniqueKey;
+	private static KeyMapping partialKey;
 	private static boolean attackWasDown;
 	private static boolean modernMenuWasDown;
 	private static boolean useWasDown;
@@ -33,6 +34,8 @@ public final class JujutsuKeybinds {
 	private static int sneakSecondHeldTicks = -1;
 	private static boolean sneakSecondHoldSent;
 	private static boolean secondWasDown;
+	/** Whether the partial key was down last tick; the press and release edges are what it sends. */
+	private static boolean partialWasDown;
 
 	/**
 	 * How long a second right click has to arrive to count as a pair. Six ticks is comfortably inside a
@@ -85,7 +88,16 @@ public final class JujutsuKeybinds {
 				InputConstants.KEY_V,
 				"key.categories.jujutsumod"
 		));
-		LOG.info("Registered keybinds: menu default=N (ClickGui), combat R/B/V");
+		// The partial key (#108) is the second new shared key and the first with real release semantics:
+		// the press edge toggles or starts a partial manifestation, the release edge ends the one that
+		// has to be held (Toad's tongue). Default G, one key for whichever vessel claims the slot.
+		partialKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+				"key.jujutsumod.partial",
+				InputConstants.Type.KEYSYM,
+				InputConstants.KEY_G,
+				"key.categories.jujutsumod"
+		));
+		LOG.info("Registered keybinds: menu default=N (ClickGui), combat R/B/V, partial G");
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (client.player == null) {
@@ -96,6 +108,7 @@ public final class JujutsuKeybinds {
 				sneakSecondHeldTicks = -1;
 				sneakSecondHoldSent = false;
 				secondWasDown = false;
+				partialWasDown = false;
 				return;
 			}
 
@@ -119,6 +132,17 @@ public final class JujutsuKeybinds {
 				sendCharacterAbility(client, slot(client, CharacterAbility.TERTIARY, CharacterAbility.TERTIARY_SNEAK));
 			}
 			tickSecondTechnique(client);
+
+			// Both edges of the partial key are sent, with no hold threshold and no buffer: one edge brings
+			// the partial out and the other is the only thing that ends the tongue, so delaying either
+			// would leave the player holding a key for an action the server has not been asked for yet.
+			// Which vessel does what with the slot stays the server router's business.
+			boolean partialDown = partialKey.isDown();
+			if (partialDown != partialWasDown) {
+				sendCharacterAbility(client, partialDown
+						? CharacterAbility.PARTIAL : CharacterAbility.PARTIAL_RELEASE);
+				partialWasDown = partialDown;
+			}
 
 			boolean attackDown = client.options.keyAttack.isDown();
 			// The weapon check is the last vessel-specific thing left in this file. It stays until the
