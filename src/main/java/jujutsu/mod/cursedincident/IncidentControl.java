@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import jujutsu.mod.cursedincident.persist.IncidentSavedData;
@@ -59,8 +60,8 @@ public final class IncidentControl {
 	private static final long DEFAULT_GAME_TIME = 0L;
 	public static final int MAX_DEPENDENT_CENTERS = TemplateRollPolicy.MAX_DEPENDENT_CENTERS;
 
-	private static Supplier<IncidentSavedData> storeSupplier = IncidentSavedData::new;
 	private static IncidentSavedData boundStore = new IncidentSavedData();
+	private static final Map<UUID, UUID> INCIDENT_BY_OBJECT = new ConcurrentHashMap<>();
 	private static IncidentWorldSink worldSink = IncidentWorldSink.NOOP;
 	private static DwellProvider dwellProvider = DwellProvider.NONE;
 	private static ObjectSpawner objectSpawner;
@@ -73,7 +74,7 @@ public final class IncidentControl {
 	public static void bindStore(Supplier<IncidentSavedData> store) {
 		IncidentSavedData resolved = store == null ? null : store.get();
 		boundStore = resolved == null ? new IncidentSavedData() : resolved;
-		storeSupplier = () -> boundStore;
+		rebuildObjectIndex();
 	}
 
 	private IncidentControl() {
@@ -128,19 +129,31 @@ public final class IncidentControl {
 		IncidentRecord record = new IncidentRecord();
 		record.id = UUID.randomUUID();
 		record.seed = seed;
-		record.createdGameTime = currentGameTime(null);
-		record.lastUpdateGameTime = record.createdGameTime;
 		record.dimension = request.dimension() == null ? Level.OVERWORLD : request.dimension();
+		record.createdGameTime = currentGameTime(record);
+		record.lastUpdateGameTime = record.createdGameTime;
 		record.center = request.center().immutable();
 		record.radius = params.baseRadius();
 		record.stage = request.startStage() == null ? IncidentStage.INITIAL : request.startStage();
 		record.sourceKind = sourceKind;
-		record.objectTypeId = sourceKind == SourceKind.OBJECT ? request.objectTypeId() : null;
+		record.objectTypeId = sourceKind == SourceKind.OBJECT
+				&& request.objectTypeId() != null && !request.objectTypeId().isBlank()
+						? request.objectTypeId()
+						: null;
 		record.objectGrade = sourceKind == SourceKind.OBJECT ? grade : null;
 		record.sourcePos = sourceKind == SourceKind.OBJECT ? record.center : null;
 		record.templateId = template.id();
 		record.params = params;
+		if (sourceKind == SourceKind.OBJECT && objectSpawner != null) {
+			ServerLevel level = levelFor(record);
+			if (level != null) {
+				record.objectInstanceId = objectSpawner.spawn(level, record.center, record.objectTypeId, grade, seed);
+			}
+		}
 		data().put(record);
+		if (record.objectInstanceId != null) {
+			INCIDENT_BY_OBJECT.put(record.objectInstanceId, record.id);
+		}
 		// The INITIAL delta is emitted even for a no-op sink so production and tests share one path.
 		worldSink.applyStageDelta(levelFor(record), record, IncidentStage.INITIAL, record.stage);
 		return record;
@@ -151,16 +164,13 @@ public final class IncidentControl {
 			return null;
 		}
 		activeLevel = level;
-		UUID objectId = objectSpawner.spawn(level, pos, typeId, TemplateRollPolicy.clampGrade(grade), seed);
-		if (objectId == null) {
-			return null;
-		}
 		IncidentRecord record = spawn(new SpawnRequest(pos, level.dimension(), null, grade, seed,
 				IncidentStage.INITIAL, typeId, SourceKind.OBJECT, null));
-		record.objectInstanceId = objectId;
-		record.sourcePos = pos.immutable();
-		data().setDirty();
-		return objectId;
+		if (record.objectInstanceId == null) {
+			data().remove(record.id);
+			return null;
+		}
+		return record.objectInstanceId;
 	}
 
 	public static InspectView inspect(UUID incidentId) {
@@ -184,12 +194,8 @@ public final class IncidentControl {
 		if (objectInstanceId == null) {
 			return null;
 		}
-		for (IncidentRecord record : data().incidents().values()) {
-			if (objectInstanceId.equals(record.objectInstanceId)) {
-				return record;
-			}
-		}
-		return null;
+		UUID incidentId = INCIDENT_BY_OBJECT.get(objectInstanceId);
+		return incidentId == null ? null : data().get(incidentId);
 	}
 
 	public static IncidentStage setStage(UUID id, IncidentStage target) {
@@ -198,12 +204,8 @@ public final class IncidentControl {
 			return record.stage;
 		}
 		long now = currentGameTime(record);
-		IncidentStage previous = record.stage;
 		while (record.stage.ordinal() < target.ordinal()) {
-			IncidentStage next = record.stage.next();
-			worldSink.applyStageDelta(levelFor(record), record, record.stage, next);
-			record.transitions.add(new IncidentRecord.Transition(record.stage, next, now));
-			record.stage = next;
+			applyTransition(record, record.stage.next(), now);
 		}
 		record.lastUpdateGameTime = now;
 		data().setDirty();
@@ -233,13 +235,24 @@ public final class IncidentControl {
 		record.bonusAgeTicks = Math.max(0L, safeSubtract(target, naturalAge));
 		double speed = record.params == null ? 1.0 : record.params.escalationSpeedMul();
 		for (IncidentStage next : StagePolicy.transitionsBetween(record.stage, before, target, speed)) {
-			IncidentStage previous = record.stage;
-			worldSink.applyStageDelta(levelFor(record), record, previous, next);
-			record.stage = next;
-			record.transitions.add(new IncidentRecord.Transition(previous, next, now));
+			applyTransition(record, next, now);
 		}
 		record.lastUpdateGameTime = now;
 		data().setDirty();
+	}
+
+	private static void applyTransition(IncidentRecord record, IncidentStage next, long now) {
+		IncidentStage previous = record.stage;
+		worldSink.applyStageDelta(levelFor(record), record, previous, next);
+		record.stage = next;
+		record.transitions.add(new IncidentRecord.Transition(previous, next, now));
+		if (next == IncidentStage.CRITICAL && record.params != null
+				&& record.params.secondaryAtCritical()
+				&& record.dependentCenterCount() < MAX_DEPENDENT_CENTERS) {
+			record.secondaries.add(new SecondaryNode(UUID.randomUUID(),
+					record.center == null ? BlockPos.ZERO : record.center,
+					Math.max(1.0, record.radius * 0.60), now, true));
+		}
 	}
 
 	public static void escalate(UUID id, double multiplier) {
@@ -308,6 +321,36 @@ public final class IncidentControl {
 		return record.sealIntegrity;
 	}
 
+	/** Reconciles the durable record with the authoritative physical-object component. */
+	public static void syncSealFromComponent(UUID objectInstanceId) {
+		if (objectInstanceId == null || dwellProvider == DwellProvider.NONE) {
+			return;
+		}
+		IncidentRecord record = recordForObject(objectInstanceId);
+		if (record == null || record.sourceKind != SourceKind.OBJECT) {
+			return;
+		}
+		boolean componentSealed = dwellProvider.isSealed(objectInstanceId);
+		if (record.sealed == componentSealed) {
+			return;
+		}
+		record.sealed = componentSealed;
+		data().setDirty();
+		if (componentSealed) {
+			worldSink.onSealed(levelFor(record), record);
+		} else {
+			worldSink.onSealBroken(levelFor(record), record);
+		}
+	}
+
+	/** Marks the incident scarred when its destructible physical source disappears. */
+	public static void onSourceDestroyed(UUID objectInstanceId) {
+		IncidentRecord record = recordForObject(objectInstanceId);
+		if (record != null) {
+			cleanup(record.id);
+		}
+	}
+
 	public static void relocate(UUID id, BlockPos newCenter) {
 		if (newCenter == null) {
 			throw new IllegalArgumentException("new center is required");
@@ -352,6 +395,10 @@ public final class IncidentControl {
 	public static void cleanup(UUID id) {
 		IncidentRecord record = require(id);
 		record.scarred = true;
+		if (record.objectInstanceId != null) {
+			INCIDENT_BY_OBJECT.remove(record.objectInstanceId, record.id);
+		}
+		worldSink.onCleanup(levelFor(record), record);
 		data().setDirty();
 	}
 
@@ -389,11 +436,20 @@ public final class IncidentControl {
 	public static void clearRuntimeState() {
 		server = null;
 		worldSink = IncidentWorldSink.NOOP;
-		dwellProvider = DwellProvider.NONE;
-		objectSpawner = null;
+		// The object spawner and dwell tracker are process-wide seams; their own lifecycle hook
+		// clears per-world state, so retaining the bindings keeps a second server start functional.
+		INCIDENT_BY_OBJECT.clear();
 		boundStore = new IncidentSavedData();
 		activeLevel = null;
-		storeSupplier = () -> boundStore;
+	}
+
+	private static void rebuildObjectIndex() {
+		INCIDENT_BY_OBJECT.clear();
+		for (IncidentRecord record : boundStore.incidents().values()) {
+			if (record != null && record.id != null && record.objectInstanceId != null) {
+				INCIDENT_BY_OBJECT.put(record.objectInstanceId, record.id);
+			}
+		}
 	}
 
 	private static IncidentSavedData data() {
@@ -439,7 +495,16 @@ public final class IncidentControl {
 			return;
 		}
 		BlockPos dwell = dwellProvider.dwellCenterOf(record.objectInstanceId);
+		BlockPos container = dwellProvider.containerOf(record.objectInstanceId);
+		BlockPos nextContainer = container == null ? null : container.immutable();
+		boolean containerChanged = record.sourceContainer == null
+				? nextContainer != null
+				: !record.sourceContainer.equals(nextContainer);
+		record.sourceContainer = nextContainer;
 		if (dwell == null || dwell.equals(record.center)) {
+			if (containerChanged) {
+				data().setDirty();
+			}
 			return;
 		}
 		BlockPos oldCenter = record.center;

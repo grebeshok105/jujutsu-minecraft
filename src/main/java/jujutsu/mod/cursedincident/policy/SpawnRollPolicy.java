@@ -104,17 +104,19 @@ public final class SpawnRollPolicy {
 			return Map.of();
 		}
 		double bias = TemplateRollPolicy.curseTierBias(grade);
+		List<String> keys = new ArrayList<>(source.keySet());
+		keys.sort(String::compareTo);
 		Map<String, Integer> result = new LinkedHashMap<>();
-		for (Map.Entry<String, Integer> entry : source.entrySet()) {
-			int base = Math.max(0, entry.getValue());
-			double tierBias = switch (entry.getKey().toLowerCase()) {
+		for (String key : keys) {
+			int base = Math.max(0, source.getOrDefault(key, 0));
+			double tierBias = switch (key.toLowerCase()) {
 				case "greater", "grade_1", "high" -> bias;
 				case "common", "grade_2", "medium" -> 1.0 + (bias - 1.0) * 0.35;
 				default -> 1.0;
 			};
 			int variance = random.nextInt(11) - 5;
 			int rolled = (int) Math.round(base * tierBias) + variance;
-			result.put(entry.getKey(), Math.max(0, rolled));
+			result.put(key, Math.max(0, rolled));
 		}
 		return Map.copyOf(result);
 	}

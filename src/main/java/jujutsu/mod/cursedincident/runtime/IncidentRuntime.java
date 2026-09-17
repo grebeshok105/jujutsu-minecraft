@@ -5,10 +5,12 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import jujutsu.mod.cursedincident.IncidentControl;
 import jujutsu.mod.cursedincident.IncidentRecord;
 import jujutsu.mod.cursedincident.IncidentWorldSink;
 import jujutsu.mod.cursedincident.infection.InfectionQueue;
+import jujutsu.mod.cursedincident.infection.InfectionSink;
 
 /** Bounded world work driver; logical age advances even while an incident's chunk is unloaded. */
 public final class IncidentRuntime {
@@ -23,9 +25,6 @@ public final class IncidentRuntime {
 		sink = value == null ? IncidentWorldSink.NOOP : value;
 	}
 
-	public static IncidentWorldSink worldSinkForTest() {
-		return sink;
-	}
 
 	public static void register() {
 		if (registered) {
@@ -42,25 +41,31 @@ public final class IncidentRuntime {
 	}
 
 	public static void tick(MinecraftServer server) {
-		ServerLevel overworld = server.overworld();
+		if (server == null || server.overworld() == null) {
+			return;
+		}
 		var records = IncidentControl.recordsForRuntime();
 		int active = 0;
 		for (IncidentRecord record : records) {
-			if (isActive(overworld, record)) {
+			if (isActive(levelFor(server, record), record)) {
 				active++;
 			}
 		}
 		int share = active <= 0 ? 0 : Math.max(1, 64 / active);
-		long now = overworld.getGameTime();
 		for (IncidentRecord record : records) {
-			if (record == null || record.scarred || record.dimension != null && record.dimension != overworld.dimension()) {
+			if (record == null || record.scarred) {
 				continue;
 			}
+			ServerLevel level = levelFor(server, record);
+			if (level == null) {
+				continue;
+			}
+			long now = level.getGameTime();
 			IncidentControl.advanceTo(record, record.ageTicks(now));
-			if (!isLoaded(overworld, record) || record.sealed) {
+			if (!isLoaded(level, record) || record.sealed) {
 				continue;
 			}
-			sink.tickZone(overworld, record, share);
+			sink.tickZone(level, record, share);
 		}
 		PerceptionOverrideRuntime.tick(server);
 		flushPendingDrains();
@@ -79,7 +84,8 @@ public final class IncidentRuntime {
 		for (ServerLevel level : PENDING_DRAIN) {
 			PENDING_DRAIN.remove(level);
 			for (IncidentRecord record : IncidentControl.recordsForRuntime()) {
-				if (record == null || record.center == null || record.dimension != null && record.dimension != level.dimension()) {
+				if (record == null || record.center == null || record.scarred || record.sealed
+						|| record.dimension != null && record.dimension != level.dimension()) {
 					continue;
 				}
 				if (isLoaded(level, record)) {
@@ -90,17 +96,22 @@ public final class IncidentRuntime {
 	}
 
 	private static boolean isActive(ServerLevel level, IncidentRecord record) {
-		return record != null && !record.scarred && !record.sealed
+		return level != null && record != null && !record.scarred && !record.sealed
 				&& (record.dimension == null || record.dimension == level.dimension());
 	}
 
+	private static ServerLevel levelFor(MinecraftServer server, IncidentRecord record) {
+		return server.getLevel(record == null || record.dimension == null ? Level.OVERWORLD : record.dimension);
+	}
+
 	private static boolean isLoaded(ServerLevel level, IncidentRecord record) {
-		return record != null && record.center != null
+		return level != null && record != null && record.center != null
 				&& level.getChunkSource().hasChunk(record.center.getX() >> 4, record.center.getZ() >> 4);
 	}
 
 	public static void clear() {
 		sink = IncidentWorldSink.NOOP;
+		InfectionSink.clearRuntimeState();
 		InfectionQueue.clearRuntimeState();
 		PerceptionOverrideRuntime.clear();
 		PENDING_DRAIN.clear();

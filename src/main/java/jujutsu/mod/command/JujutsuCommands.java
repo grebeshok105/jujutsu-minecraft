@@ -273,8 +273,11 @@ public final class JujutsuCommands {
 		String type = optionalString(context, "type");
 		int grade = optionalInteger(context, "grade", 3);
 		long seed = optionalLong(context, "seed", source.getLevel().getGameTime());
-		UUID objectId = IncidentControl.spawnObject(source.getLevel(), pos, type == null ? "" : type, grade, seed);
-		String result = objectId == null ? "object spawn refused" : "object spawned: " + objectId;
+		UUID objectId = IncidentControl.spawnObject(source.getLevel(), pos, type, grade, seed);
+		var record = objectId == null ? null : IncidentControl.recordForObject(objectId);
+		String mintedType = record == null ? null : record.objectTypeId;
+		String result = objectId == null ? "object spawn refused"
+				: "object spawned: " + objectId + " type=" + mintedType;
 		source.sendSuccess(() -> Component.literal(result), false);
 		return objectId == null ? 0 : 1;
 	}
@@ -417,10 +420,10 @@ public final class JujutsuCommands {
 		CommandSourceStack source = context.getSource();
 		UUID id = parseIncidentId(source, StringArgumentType.getString(context, "id"));
 		if (id == null) return 0;
-		BlockPos pos = hasArgument(context, "pos")
-				? BlockPosArgument.getBlockPos(context, "pos")
-				: IncidentControl.inspect(id).center();
 		try {
+			BlockPos pos = hasArgument(context, "pos")
+					? BlockPosArgument.getBlockPos(context, "pos")
+					: IncidentControl.inspect(id).center();
 			var secondary = IncidentControl.forceSecondary(id, pos);
 			source.sendSuccess(() -> Component.literal("secondary=" + secondary + " "
 					+ renderIncident(IncidentControl.inspect(id))), false);

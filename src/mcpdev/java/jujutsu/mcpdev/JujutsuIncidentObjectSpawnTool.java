@@ -29,7 +29,7 @@ public final class JujutsuIncidentObjectSpawnTool extends BaseTool {
 			.required("pos", Schemas.position3d("Overworld block position"))
 			.optional("type", Schemas.string("Object type id; omit to roll a natural type"))
 			.optional("grade", Schemas.integerBetween("Object grade 5 (weak) .. 1 (strong)", 1, 5))
-			.optional("seed", Schemas.number("Deterministic seed; omit for the current game time"))
+			.optional("seed", Schemas.integer("Deterministic seed; omit for the current game time"))
 			.build();
 
 	public JujutsuIncidentObjectSpawnTool() {
@@ -54,11 +54,13 @@ public final class JujutsuIncidentObjectSpawnTool extends BaseTool {
 					ServerLevel level = server.overworld();
 					long seed = r.has("seed") ? r.requireLong("seed") : level.getGameTime();
 					UUID objectUuid = IncidentControl.spawnObject(level, pos, type, grade, seed);
+					var record = objectUuid == null ? null : IncidentControl.recordForObject(objectUuid);
 					ObjectNode node = context.mapper().createObjectNode();
 					if (objectUuid == null) node.putNull("object_uuid");
 					else node.put("object_uuid", objectUuid.toString());
-					node.put("type", type);
-					node.put("grade", grade);
+					if (record == null || record.objectTypeId == null) node.putNull("type");
+					else node.put("type", record.objectTypeId);
+					node.put("grade", record == null || record.objectGrade == null ? grade : record.objectGrade);
 					node.put("seed", seed);
 					JujutsuIncidentInspectTool.putPosition(node, "pos", pos);
 					return ToolResult.ofToon(node);

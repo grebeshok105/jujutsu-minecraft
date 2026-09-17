@@ -20,6 +20,11 @@ public interface DwellProvider {
 		return null;
 	}
 
+	/** Current container position observed for the object, or null when not container-bound. */
+	default BlockPos containerOf(UUID objectInstanceId) {
+		return null;
+	}
+
 	/** Whether the object instance is currently sealed. */
 	default boolean isSealed(UUID objectInstanceId) {
 		return false;

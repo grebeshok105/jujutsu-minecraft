@@ -39,4 +39,8 @@ public interface IncidentWorldSink {
 	/** The seal broke (integrity zero or catastrophic failure) — escalation resumes. */
 	default void onSealBroken(ServerLevel level, IncidentRecord rec) {
 	}
+
+	/** Remove runtime entities and source bindings while retaining the incident scar. */
+	default void onCleanup(ServerLevel level, IncidentRecord record) {
+	}
 }

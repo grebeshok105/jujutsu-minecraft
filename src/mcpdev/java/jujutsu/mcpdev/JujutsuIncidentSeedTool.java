@@ -23,7 +23,7 @@ public final class JujutsuIncidentSeedTool extends BaseTool {
 
 	private static final JsonNode SCHEMA = Schemas.object()
 			.required("incident_id", Schemas.string("Incident UUID"))
-			.required("value", Schemas.number("New deterministic seed"))
+			.required("value", Schemas.integer("New deterministic seed"))
 			.build();
 
 	public JujutsuIncidentSeedTool() {

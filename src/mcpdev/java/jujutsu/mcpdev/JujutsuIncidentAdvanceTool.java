@@ -25,8 +25,8 @@ public final class JujutsuIncidentAdvanceTool extends BaseTool {
 
 	private static final JsonNode SCHEMA = Schemas.object()
 			.required("incident_id", Schemas.string("Incident UUID"))
-			.optional("ticks", Schemas.number("Logical age to add in ticks; mutually exclusive with days"))
-			.optional("days", Schemas.number("Logical age to add in in-game days (24000 ticks); mutually exclusive with ticks"))
+			.optional("ticks", Schemas.integer("Logical age to add in ticks; mutually exclusive with days"))
+			.optional("days", Schemas.integer("Logical age to add in in-game days (24000 ticks); mutually exclusive with ticks"))
 			.build();
 
 	public JujutsuIncidentAdvanceTool() {

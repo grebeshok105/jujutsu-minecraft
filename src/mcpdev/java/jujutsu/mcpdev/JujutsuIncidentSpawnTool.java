@@ -37,7 +37,7 @@ public final class JujutsuIncidentSpawnTool extends BaseTool {
 			.optional("pos", Schemas.position3d("Explicit overworld block position; mutually exclusive with player_uuid"))
 			.optional("template", Schemas.string("Template id; omit to roll"))
 			.optional("grade", Schemas.integerBetween("Object grade 5 (weak) .. 1 (strong)", 1, 5))
-			.optional("seed", Schemas.number("Deterministic seed; omit to roll"))
+			.optional("seed", Schemas.integer("Deterministic seed; omit to roll"))
 			.optional("stage", Schemas.enumOf("Start stage", "initial", "growing", "infested", "critical", "catastrophic"))
 			.optional("object_type", Schemas.string("Cursed object type; omit for a rolled source"))
 			.optional("source_kind", Schemas.enumOf("Source kind", "object", "free"))

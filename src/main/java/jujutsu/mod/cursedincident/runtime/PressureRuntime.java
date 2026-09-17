@@ -53,9 +53,9 @@ public final class PressureRuntime {
 		if (elapsed < TICK_PERIOD) {
 			return;
 		}
-		lastTickGameTime = now;
-
-		long pressure = IncidentControl.addPressure(PressurePolicy.accumulate(elapsed));
+		long accrued = PressurePolicy.accumulate(elapsed);
+		lastTickGameTime += accrued * PressurePolicy.TICKS_PER_DAY;
+		long pressure = IncidentControl.addPressure(accrued);
 		int active = IncidentControl.list().size();
 		if (!PressurePolicy.shouldSpawn(
 				net.minecraft.util.RandomSource.create(overworld.getRandom().nextLong()),

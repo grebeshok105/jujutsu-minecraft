@@ -21,6 +21,7 @@ public final class CursedIncidents {
 			ServerLevel overworld = server.overworld();
 			IncidentControl.bindServer(server);
 			IncidentControl.bindStore(() -> IncidentSavedData.get(overworld));
+			IncidentWiring.rebind();
 			IncidentControl.catchUp(overworld);
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> IncidentControl.clearRuntimeState());
