@@ -199,7 +199,7 @@ public final class ShikigamiSlotView {
 		}
 		// PACKED_LIGHT is normally injected by GeckoLib's EntityRenderDispatcher mixin, which only
 		// wraps the entity-taking render overload. The PiP path submits a prebuilt state, so the
-		// ticket never arrives and GeoRenderer.defaultRender NPEs on it (crash on first open).
+		// ticket never arrives and GeoRenderer.defaultRender throws IllegalArgumentException on it.
 		if (state instanceof GeoRenderState geo && !geo.hasGeckolibData(DataTickets.PACKED_LIGHT)) {
 			geo.addGeckolibData(DataTickets.PACKED_LIGHT, net.minecraft.client.renderer.LightTexture.FULL_BRIGHT);
 		}

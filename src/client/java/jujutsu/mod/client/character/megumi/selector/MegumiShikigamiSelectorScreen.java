@@ -265,11 +265,13 @@ public final class MegumiShikigamiSelectorScreen extends Screen implements Quick
 			Set<String> flags = ShikigamiSelectorState.flags(type == selected, slotHovered, state);
 			graphics.pose().pushMatrix();
 			float offsetX = motion.shakeOffset(index);
-			float offsetY = (1.0f - stagger) * SLOT_RISE_PX + (1.0f - strip) * STRIP_RISE_PX;
-			graphics.pose().translate(offsetX, offsetY);
+			float slotRise = (1.0f - stagger) * SLOT_RISE_PX;
+			// 2D elements already carry the strip rise via the outer translate in render();
+			// the PiP box ignores the pose stack, so Motion gets the full offset.
+			graphics.pose().translate(offsetX, slotRise);
 			ShikigamiSlotView.render(graphics, this.font, slot, state, flags,
 					new ShikigamiSlotView.Motion(stagger, motion.hoverScale(index, slotHovered), motion.pulseT(index),
-							offsetX, offsetY));
+							offsetX, slotRise + (1.0f - strip) * STRIP_RISE_PX));
 			graphics.pose().popMatrix();
 		}
 	}
