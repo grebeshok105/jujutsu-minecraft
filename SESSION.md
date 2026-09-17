@@ -1,6 +1,6 @@
 # Session Handoff — domain-sphere SDF PoC — MERGED 2026-09-16
 
-## State — DONE: PR #112 merged to main (merge commit on main, branch feat/domain-sphere-vfx)
+## State — DONE: PR #112 merged to main (merge commit bc71af4, branch feat/domain-sphere-vfx). Ring fix 190e467 is INSIDE the merge — final shader = unclamped first-PR brightness + fade-sync kept. main == origin/main, tree clean.
 
 Branch `feat/domain-sphere-vfx` (pushed? — check `git status`/`git log origin/` before assuming).
 Goal: first world-space SDF sphere for the future Domain Expansion — ONE large cyan/neon spherical
@@ -24,9 +24,8 @@ may refuse gitignored paths — `edit` on existing files works fine).
   no P0/P1), architecture=correct-after-fixes (P1: lifecycle ownership inverted — FIXED in plan),
   acceptance=incorrect-as-written (R12 reload/resize unexercised, easing shape testable-on-linear —
   FIXED in plan). Dispositions in `plan-review.md`.
-- **NEXT: Phase 2** — dispatch 4 workers per the plan's Tasks 1–4; main takes Task 5
-  (integration + qualityGate + in-game MCP-lane verification). Then barrier → Phase 3 review wave →
-  Phase 4 adjudication/in-game → PR.
+- **ALL PHASES DONE** — Phase 2 workers landed, barrier green (qualityGate 310/0), Phase 3 review wave + QA done, Phase 4 judge VERIFIED + in-game done, user-feedback fixes 2bb3d6e + 190e467 committed and merged.
+- **Remaining: manual-only checks for the user** — F3+T mid-effect, rim quality by eye, world change/disconnect mid-effect (synthetic input never reaches the game window).
 
 ## Key decisions (do not re-derive)
 
@@ -61,18 +60,7 @@ may refuse gitignored paths — `edit` on existing files works fine).
 
 ## Next-session prompt
 
-See bottom of this section. Handoff prompt:
-
-```
-@conversation: Продолжи domain-sphere пайплайн. Прочитай SESSION.md (верхний блок),
-.superpowers/rule-of-four/domain-sphere/{progress.md, implementation-plan.md, plan-review.md}.
-Статус: Phase 1.5 закрыта, план отревьюлен и исправлен. Следующий шаг — Phase 2:
-диспатч 4 воркеров по Tasks 1–4 плана (timing+channel / renderer+shaders /
-integration+recipe+command / mcpdev tool+attribution), main берёт Task 5 (integration,
-qualityGate, in-game проверка через MCP lane). Контракты между блоками зафиксированы
-в секции "Pinned contracts" — не менять без адъюдикации. Дальше по пайплайну:
-barrier → Phase 3 ревью-волна → Phase 4 адъюдикация+in-game → PR на русском.
-```
+Domain-sphere is fully closed — no continuation prompt needed. Open backlog: #104 (GameTest flake family), #22 (shared static runtime state), #83 (cursed tools, needs DESIGN SPEC), upstream MCP fork issue #1.
 
 ---
 
