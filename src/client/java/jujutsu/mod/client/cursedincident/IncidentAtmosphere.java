@@ -48,8 +48,12 @@ public final class IncidentAtmosphere {
 	}
 
 	private static VfxInstance sealDegrade(VfxCue cue) {
-		return VfxInstance.of(24, (context, age) -> context.ring(SEAL_SPARK, context.resolveOrigin(cue), 16,
-				0.8, 0.5, 0.04, RandomSource.create(cue.seed())));
+		return VfxInstance.of(24, (context, age) -> {
+			Vec3 origin = context.resolveOrigin(cue);
+			RandomSource random = RandomSource.create(cue.seed());
+			context.ring(SEAL_SPARK, origin, 16, 0.8, 0.5, 0.04, random);
+			context.playNoFalloff(JujutsuSounds.SEAL_CRACK, 0.55f, 0.9f, origin, random);
+		});
 	}
 
 	private static VfxInstance sealBreak(VfxCue cue) {

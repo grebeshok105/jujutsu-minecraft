@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import jujutsu.mod.cursedincident.DwellProvider;
+import jujutsu.mod.cursedincident.IncidentControl;
 import jujutsu.mod.cursedincident.object.CursedObjectItem;
 import jujutsu.mod.cursedincident.object.CursedObjectRegistry;
 import jujutsu.mod.cursedincident.object.CursedObjectState;
@@ -18,9 +19,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Container;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
 
 /**
  * Tracks where unsealed cursed-object instances dwell.  The map is deliberately runtime-only;
@@ -42,12 +45,15 @@ public final class ObjectDwellTracker implements DwellProvider {
         BlockPos anchor;
         BlockPos lastPosition;
         BlockPos dwellCenter;
+        BlockPos containerPos;
+        BlockPos dwellContainer;
         long accumulatedTicks;
         long lastGameTime;
         long lastDecayGameTime;
         ItemStack stack;
         ItemEntity entity;
         ServerLevel level;
+        Entity.RemovalReason removalReason;
         boolean awaitingReload;
         boolean dead;
 
@@ -84,8 +90,12 @@ public final class ObjectDwellTracker implements DwellProvider {
             CursedObjectState state = state(stack);
             if (state != null) {
                 lastObservedGameTime = Math.max(lastObservedGameTime, level.getGameTime());
-                TrackedObject tracked = observe(state, stack, level, player.blockPosition(), level.getGameTime(), null);
+                TrackedObject tracked = observe(state, stack, level, player.blockPosition(), level.getGameTime(),
+                        null, null);
                 tracked.entity = null;
+                tracked.containerPos = null;
+                tracked.dwellContainer = null;
+                tracked.removalReason = null;
                 tracked.awaitingReload = true;
                 tracked.dead = false;
             }
@@ -103,8 +113,12 @@ public final class ObjectDwellTracker implements DwellProvider {
         item.setUnlimitedLifetime();
         item.setNoPickUpDelay();
         lastObservedGameTime = Math.max(lastObservedGameTime, level.getGameTime());
-        TrackedObject tracked = observe(state, item.getItem(), level, item.blockPosition(), level.getGameTime(), item);
+        TrackedObject tracked = observe(state, item.getItem(), level, item.blockPosition(), level.getGameTime(),
+                item, null);
         tracked.entity = item;
+        tracked.containerPos = null;
+        tracked.dwellContainer = null;
+        tracked.removalReason = null;
         tracked.awaitingReload = false;
         tracked.dead = false;
     }
@@ -119,8 +133,10 @@ public final class ObjectDwellTracker implements DwellProvider {
         TrackedObject prior = TRACKED.get(state.instanceId());
         long now = Math.max(lastObservedGameTime, prior == null ? 0L : prior.lastGameTime + 1L);
         TrackedObject tracked = observe(state, stack, prior == null ? null : prior.level,
-                containerPos, now, null);
+                containerPos, now, null, containerPos);
         tracked.entity = null;
+        tracked.stack = resolveLiveStack(tracked);
+        tracked.removalReason = null;
         tracked.awaitingReload = true;
         tracked.dead = false;
     }
@@ -128,16 +144,26 @@ public final class ObjectDwellTracker implements DwellProvider {
     @Override
     public BlockPos dwellCenterOf(UUID objectInstanceId) {
         TrackedObject tracked = objectInstanceId == null ? null : TRACKED.get(objectInstanceId);
-        if (tracked == null || tracked.dead || tracked.state.sealed()) {
+        if (tracked == null || tracked.dead || tracked.state == null || tracked.state.sealed()) {
             return null;
         }
         return tracked.dwellCenter;
     }
 
     @Override
+    public BlockPos containerOf(UUID objectInstanceId) {
+        TrackedObject tracked = objectInstanceId == null ? null : TRACKED.get(objectInstanceId);
+        if (tracked == null || tracked.dead || tracked.state == null || tracked.state.sealed()
+                || tracked.dwellCenter == null || tracked.dwellContainer == null) {
+            return null;
+        }
+        return tracked.dwellContainer;
+    }
+
+    @Override
     public boolean isSealed(UUID objectInstanceId) {
         TrackedObject tracked = objectInstanceId == null ? null : TRACKED.get(objectInstanceId);
-        return tracked != null && tracked.state.sealed();
+        return tracked != null && tracked.state != null && tracked.state.sealed();
     }
 
     public static BlockPos lastPosition(UUID objectInstanceId) {
@@ -155,10 +181,14 @@ public final class ObjectDwellTracker implements DwellProvider {
     }
 
     public static void forget(UUID objectInstanceId) {
-        if (objectInstanceId != null) {
-            TRACKED.remove(objectInstanceId);
-            CursedObjectRegistry.unregisterInstance(objectInstanceId);
+        if (objectInstanceId == null) {
+            return;
         }
+        TrackedObject tracked = TRACKED.remove(objectInstanceId);
+        if (tracked != null && tracked.entity != null && !tracked.entity.isRemoved()) {
+            tracked.entity.discard();
+        }
+        CursedObjectRegistry.unregisterInstance(objectInstanceId);
     }
 
     public static void clear() {
@@ -166,6 +196,7 @@ public final class ObjectDwellTracker implements DwellProvider {
         CursedObjectRegistry.clearInstances();
         lastObservedGameTime = 0L;
     }
+
     /** Refreshes the runtime view immediately after a stack component mutation. */
     @Override
     public void applySealState(UUID objectInstanceId, boolean sealed, int sealTier, int sealIntegrity,
@@ -181,8 +212,13 @@ public final class ObjectDwellTracker implements DwellProvider {
         CursedObjectState updated = new CursedObjectState(current.instanceId(), current.typeId(), current.grade(),
                 current.mintedGameTime(), sealed, Math.max(0, sealTier), Math.max(0, sealIntegrity),
                 knowledge == null ? current.knowledge() : knowledge, current.accumulatedTicks());
-        if (tracked.stack != null && !tracked.stack.isEmpty()) {
-            tracked.stack.set(JujutsuDataComponents.CURSED_OBJECT_STATE, updated);
+        ItemStack liveStack = resolveLiveStack(tracked);
+        if (liveStack != null && !liveStack.isEmpty()) {
+            CursedObjectState liveState = state(liveStack);
+            if (liveState != null && objectInstanceId.equals(liveState.instanceId())) {
+                liveStack.set(JujutsuDataComponents.CURSED_OBJECT_STATE, updated);
+                tracked.stack = liveStack;
+            }
         }
         tracked.state = updated;
         tracked.accumulatedTicks = Math.max(0L, updated.accumulatedTicks());
@@ -191,6 +227,7 @@ public final class ObjectDwellTracker implements DwellProvider {
                 : tracked.level.getGameTime();
         if (sealed) {
             tracked.dwellCenter = null;
+            tracked.dwellContainer = null;
         }
     }
 
@@ -204,21 +241,23 @@ public final class ObjectDwellTracker implements DwellProvider {
             return;
         }
         tracked.state = state;
-        tracked.stack = stack;
+        tracked.stack = tracked.containerPos == null ? stack : resolveLiveStack(tracked);
         tracked.accumulatedTicks = Math.max(0L, state.accumulatedTicks());
         if (state.sealed()) {
             tracked.dwellCenter = null;
+            tracked.dwellContainer = null;
         }
     }
-
 
     private static CursedObjectState state(ItemStack stack) {
         return stack == null || stack.isEmpty() ? null : stack.get(JujutsuDataComponents.CURSED_OBJECT_STATE);
     }
 
     private static TrackedObject observe(CursedObjectState state, ItemStack stack, ServerLevel level,
-            BlockPos position, long now, ItemEntity entity) {
+            BlockPos position, long now, ItemEntity entity, BlockPos containerPos) {
         TrackedObject tracked = TRACKED.computeIfAbsent(state.instanceId(), ignored -> new TrackedObject(state));
+        boolean fromContainer = containerPos != null;
+        tracked.containerPos = fromContainer ? containerPos.immutable() : null;
         CursedObjectType type = CursedObjectRegistry.byId(state.typeId());
         tracked.type = type;
         tracked.state = state;
@@ -237,7 +276,7 @@ public final class ObjectDwellTracker implements DwellProvider {
             // an incident source (SpawnRequest.dwellTicksRequired override, R43/R44).
             long required = DEFAULT_DWELL_TICKS;
             jujutsu.mod.cursedincident.IncidentRecord owner =
-                    jujutsu.mod.cursedincident.IncidentControl.recordForObject(state.instanceId());
+                    IncidentControl.recordForObject(state.instanceId());
             if (owner != null && owner.params != null && owner.params.dwellTicksRequired() >= 0L) {
                 required = owner.params.dwellTicksRequired();
             }
@@ -246,9 +285,15 @@ public final class ObjectDwellTracker implements DwellProvider {
                     required, type.dwellRadius());
             if (!result.anchor().equals(tracked.anchor)) {
                 tracked.dwellCenter = null;
+                tracked.dwellContainer = null;
             }
             if (result.dwellCenter() != null) {
                 tracked.dwellCenter = result.dwellCenter();
+                tracked.dwellContainer = fromContainer && tracked.dwellCenter.equals(tracked.containerPos)
+                        ? tracked.containerPos
+                        : null;
+            } else if (!fromContainer) {
+                tracked.dwellContainer = null;
             }
             tracked.anchor = result.anchor();
             tracked.accumulatedTicks = result.accumulatedTicks();
@@ -262,6 +307,7 @@ public final class ObjectDwellTracker implements DwellProvider {
             tracked.lastGameTime = Math.max(tracked.lastGameTime, now);
             tracked.accumulatedTicks = Math.max(0L, state.accumulatedTicks());
             tracked.dwellCenter = null;
+            tracked.dwellContainer = null;
         }
         applySealDecay(tracked, now);
         if (entity != null) {
@@ -271,11 +317,48 @@ public final class ObjectDwellTracker implements DwellProvider {
         return tracked;
     }
 
+    private static ItemStack resolveLiveStack(TrackedObject tracked) {
+        if (tracked.containerPos != null) {
+            if (tracked.level == null) {
+                // noteContainer's seam predates a level argument; when this is the
+                // first observation, its supplied stack is the live container entry.
+                return tracked.stack;
+            }
+            BlockEntity blockEntity = tracked.level.getBlockEntity(tracked.containerPos);
+            if (!(blockEntity instanceof Container container)) {
+                return null;
+            }
+            for (int slot = 0; slot < container.getContainerSize(); slot++) {
+                ItemStack candidate = container.getItem(slot);
+                CursedObjectState candidateState = state(candidate);
+                if (candidateState != null && tracked.instanceId.equals(candidateState.instanceId())) {
+                    return candidate;
+                }
+            }
+            return null;
+        }
+        if (tracked.entity != null && !tracked.entity.isRemoved()) {
+            return tracked.entity.getItem();
+        }
+        return tracked.stack;
+    }
+
     private static void applySealDecay(TrackedObject tracked, long now) {
         CursedObjectState state = tracked.state;
-        if (!state.sealed() || state.sealTier() <= 0 || now <= tracked.lastDecayGameTime) {
+        if (state == null || !state.sealed() || state.sealTier() <= 0 || now <= tracked.lastDecayGameTime) {
             return;
         }
+        ItemStack liveStack = resolveLiveStack(tracked);
+        if (liveStack == null || liveStack.isEmpty()) {
+            return;
+        }
+        CursedObjectState liveState = state(liveStack);
+        if (liveState == null || !tracked.instanceId.equals(liveState.instanceId())) {
+            return;
+        }
+        state = liveState;
+        tracked.state = state;
+        tracked.stack = liveStack;
         long days = (now - tracked.lastDecayGameTime) / DEFAULT_DWELL_TICKS;
         if (days <= 0L) {
             return;
@@ -283,9 +366,11 @@ public final class ObjectDwellTracker implements DwellProvider {
         int decay = SealState.decayPerDay(state.sealTier());
         int integrity = Math.max(0, state.sealIntegrity() - (int) Math.min(Integer.MAX_VALUE, days * decay));
         CursedObjectState updated = state.withSeal(integrity > 0, state.sealTier(), integrity);
-        tracked.stack.set(JujutsuDataComponents.CURSED_OBJECT_STATE, updated);
+        liveStack.set(JujutsuDataComponents.CURSED_OBJECT_STATE, updated);
+        tracked.stack = liveStack;
         tracked.state = updated;
         tracked.lastDecayGameTime += days * DEFAULT_DWELL_TICKS;
+        IncidentControl.syncSealFromComponent(updated.instanceId());
     }
 
     private static void onUnload(ItemEntity item) {
@@ -300,7 +385,10 @@ public final class ObjectDwellTracker implements DwellProvider {
         tracked.lastPosition = item.blockPosition();
         tracked.stack = item.getItem();
         Entity.RemovalReason reason = item.getRemovalReason();
+        tracked.removalReason = reason;
         tracked.entity = null;
+        tracked.containerPos = null;
+        tracked.dwellContainer = null;
         tracked.awaitingReload = reason == Entity.RemovalReason.UNLOADED_TO_CHUNK
                 || reason == Entity.RemovalReason.UNLOADED_WITH_PLAYER
                 || reason == Entity.RemovalReason.CHANGED_DIMENSION;
@@ -332,10 +420,12 @@ public final class ObjectDwellTracker implements DwellProvider {
             }
             return;
         }
-        if (tracked.awaitingReload || tracked.dead && (tracked.type == null || tracked.type.destructible())) {
-            if (tracked.dead && (tracked.type == null || tracked.type.destructible())) {
-                forget(tracked.instanceId);
-            }
+        if (tracked.dead && (tracked.type == null || tracked.type.destructible())) {
+            IncidentControl.onSourceDestroyed(tracked.instanceId);
+            forget(tracked.instanceId);
+            return;
+        }
+        if (tracked.awaitingReload || tracked.removalReason == Entity.RemovalReason.DISCARDED) {
             return;
         }
         if (tracked.type != null && tracked.type.indestructible() && tracked.lastPosition != null && tracked.stack != null) {
@@ -345,6 +435,7 @@ public final class ObjectDwellTracker implements DwellProvider {
             respawned.setNoPickUpDelay();
             if (level.addFreshEntity(respawned)) {
                 tracked.entity = respawned;
+                tracked.removalReason = null;
                 tracked.dead = false;
                 tracked.awaitingReload = false;
                 noteWorldItem(respawned);

@@ -1,27 +1,26 @@
 package jujutsu.mod.cursedincident.infection;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.AABB;
 import jujutsu.mod.cursedincident.CursedIncidentVfxIds;
 import jujutsu.mod.cursedincident.DwellProvider;
 import jujutsu.mod.cursedincident.IncidentRecord;
 import jujutsu.mod.cursedincident.IncidentStage;
-import jujutsu.mod.cursedincident.IncidentTemplate;
-import jujutsu.mod.cursedincident.IncidentTemplates;
 import jujutsu.mod.cursedincident.IncidentWorldSink;
 import jujutsu.mod.cursedincident.runtime.IncidentSpawnRuntime;
-import jujutsu.mod.cursedincident.runtime.IncidentRuntime;
+import jujutsu.mod.cursedincident.runtime.ObjectDwellTracker;
 import jujutsu.mod.cursedspirit.perception.CursePerception;
 import jujutsu.mod.combat.JujutsuDamageSources;
 import jujutsu.mod.network.JujutsuNetworking;
@@ -49,7 +48,7 @@ public final class InfectionSink implements IncidentWorldSink {
 
 	@Override
 	public void applyStageDelta(ServerLevel level, IncidentRecord record, IncidentStage from, IncidentStage to) {
-		if (level == null || record == null || record.center == null || to == null || record.scarred) {
+		if (level == null || record == null || record.center == null || to == null || record.scarred || record.sealed) {
 			return;
 		}
 		InfectionQueue queue = InfectionQueue.forIncident(record);
@@ -57,17 +56,9 @@ public final class InfectionSink implements IncidentWorldSink {
 		ZoneGeometry.Shape shape = ZoneGeometry.shapeOf(record.params);
 		for (BlockPos pos : ZoneGeometry.sampleBlocks(shape, record.center, Math.max(0.0, record.radius),
 				RandomSource.create(record.seed ^ to.ordinal()), sampleCount)) {
-			if (!level.getChunkSource().hasChunk(pos.getX() >> 4, pos.getZ() >> 4)) {
-				record.counters.chunkEditsDeferred++;
-				continue;
-			}
-			BlockState current = level.getBlockState(pos);
-			if (InfectionPolicy.isContainer(current)) {
-				queue.enqueue(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), true);
-				continue;
-			}
-			InfectionPolicy.mapBlock(current, to, RandomSource.create(record.seed ^ pos.asLong()))
-					.ifPresent(mapped -> queue.enqueue(pos, mapped));
+			// Keep the stage with the position. Both chunk availability and the live block
+			// state are resolved by InfectionQueue.drain, so unloaded edits are not lost.
+			queue.enqueue(pos, to, true);
 		}
 		Cadence cadence = CADENCE.computeIfAbsent(record.id, ignored -> new Cadence());
 		cadence.lastStage = level.getGameTime();
@@ -78,7 +69,7 @@ public final class InfectionSink implements IncidentWorldSink {
 
 	@Override
 	public void tickZone(ServerLevel level, IncidentRecord record, int tickBudget) {
-		if (level == null || record == null || record.center == null || record.scarred) {
+		if (level == null || record == null || record.center == null || record.scarred || record.sealed) {
 			return;
 		}
 		long now = level.getGameTime();
@@ -90,9 +81,6 @@ public final class InfectionSink implements IncidentWorldSink {
 		int allowance = Math.min(Math.max(0, tickBudget), available);
 		InfectionQueue queue = InfectionQueue.forIncident(record);
 		budgetUsed += queue.drain(level, allowance);
-		if (record.sealed) {
-			return;
-		}
 		Cadence cadence = CADENCE.computeIfAbsent(record.id, ignored -> new Cadence());
 		if (due(now, cadence.lastTopup, CURSE_TOPUP_TICKS)) {
 			cadence.lastTopup = now;
@@ -106,8 +94,12 @@ public final class InfectionSink implements IncidentWorldSink {
 			cadence.lastContainerScan = now;
 			scanContainers(level, record);
 		}
-		if (!record.secondaries.isEmpty() && now % CURSE_TOPUP_TICKS == 0L) {
-			emitCue(level, record, CursedIncidentVfxIds.SECONDARY_BIRTH, true, 2);
+		if (now % CURSE_TOPUP_TICKS == 0L) {
+			for (var node : record.secondaries) {
+				if (node != null && cadence.announcedSecondaryBirths.add(node.id())) {
+					emitCue(level, record, CursedIncidentVfxIds.SECONDARY_BIRTH, true, 2, node.center());
+				}
+			}
 		}
 	}
 
@@ -115,15 +107,23 @@ public final class InfectionSink implements IncidentWorldSink {
 	public void onRelocated(ServerLevel level, IncidentRecord record, BlockPos oldCenter) {
 		if (record != null) {
 			InfectionQueue queue = InfectionQueue.forIncident(record);
-			queue.clear();
-			CADENCE.remove(record.id);
+			if (queue != null) {
+				queue.clear();
+			}
+			Cadence cadence = CADENCE.get(record.id);
+			if (cadence != null) {
+				cadence.resetForRelocation();
+			}
 		}
 	}
 
 	@Override
 	public void onSealed(ServerLevel level, IncidentRecord record) {
 		if (record != null) {
-			InfectionQueue.forIncident(record).clear();
+			InfectionQueue queue = InfectionQueue.forIncident(record);
+			if (queue != null) {
+				queue.clear();
+			}
 			if (level != null) {
 				emitCue(level, record, CursedIncidentVfxIds.SEAL_DEGRADE, false, 1);
 			}
@@ -141,6 +141,26 @@ public final class InfectionSink implements IncidentWorldSink {
 	public void onSealBroken(ServerLevel level, IncidentRecord record) {
 		if (level != null && record != null) {
 			emitCue(level, record, CursedIncidentVfxIds.SEAL_BREAK, true, 3);
+		}
+	}
+
+	@Override
+	public void onCleanup(ServerLevel level, IncidentRecord record) {
+		if (record == null) {
+			return;
+		}
+		if (level != null && record.id != null) {
+			IncidentSpawnRuntime.cleanup(level, record.id);
+		}
+		InfectionQueue queue = InfectionQueue.forIncident(record);
+		if (queue != null) {
+			queue.clear();
+		}
+		if (record.id != null) {
+			CADENCE.remove(record.id);
+		}
+		if (record.objectInstanceId != null) {
+			ObjectDwellTracker.forget(record.objectInstanceId);
 		}
 	}
 
@@ -178,19 +198,34 @@ public final class InfectionSink implements IncidentWorldSink {
 	}
 
 	private void scanContainers(ServerLevel level, IncidentRecord record) {
-		int bound = Math.max(1, (int) Math.ceil(record.radius));
-		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
-		for (int dx = -bound; dx <= bound; dx++) {
-			for (int dy = -bound; dy <= bound; dy++) {
-				for (int dz = -bound; dz <= bound; dz++) {
-					BlockPos pos = record.center.offset(dx, dy, dz);
-					if (!ZoneGeometry.contains(ZoneGeometry.shapeOf(record.params), record.center, record.radius, pos)
-							|| !level.getChunkSource().hasChunk(pos.getX() >> 4, pos.getZ() >> 4)) continue;
-					BlockEntity blockEntity = level.getBlockEntity(pos);
-					if (!(blockEntity instanceof Container container)) continue;
+		int minX = (int) Math.floor(record.center.getX() - record.radius);
+		int maxX = (int) Math.ceil(record.center.getX() + record.radius);
+		int minZ = (int) Math.floor(record.center.getZ() - record.radius);
+		int maxZ = (int) Math.ceil(record.center.getZ() + record.radius);
+		int minChunkX = minX >> 4;
+		int maxChunkX = maxX >> 4;
+		int minChunkZ = minZ >> 4;
+		int maxChunkZ = maxZ >> 4;
+		ZoneGeometry.Shape shape = ZoneGeometry.shapeOf(record.params);
+		for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+			for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+				LevelChunk chunk = level.getChunkSource().getChunkNow(chunkX, chunkZ);
+				if (chunk == null) {
+					continue;
+				}
+				for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+					BlockPos pos = blockEntity.getBlockPos();
+					if (!ZoneGeometry.contains(shape, record.center, record.radius, pos)
+							|| !(blockEntity instanceof Container container)) {
+						continue;
+					}
 					for (int slot = 0; slot < container.getContainerSize(); slot++) {
 						var stack = container.getItem(slot);
-						if (!stack.isEmpty()) dwellProvider.noteContainer(pos, stack.copy());
+						if (!stack.isEmpty()) {
+							// Keep the live stack reference; ObjectDwellTracker resolves it
+							// again from this container before every write-through.
+							dwellProvider.noteContainer(pos, stack);
+						}
 					}
 				}
 			}
@@ -203,12 +238,21 @@ public final class InfectionSink implements IncidentWorldSink {
 
 	private static void emitCue(ServerLevel level, IncidentRecord record, net.minecraft.resources.ResourceLocation id,
 			boolean physical, int intensity) {
-		var cue = VfxCues.worldFixed(id, record.center.getCenter(), intensity, level.getGameTime(), record.seed ^ id.hashCode());
+		emitCue(level, record, id, physical, intensity, record.center);
+	}
+
+	private static void emitCue(ServerLevel level, IncidentRecord record, net.minecraft.resources.ResourceLocation id,
+			boolean physical, int intensity, BlockPos center) {
+		if (center == null) {
+			return;
+		}
+		var origin = center.getCenter();
+		var cue = VfxCues.worldFixed(id, origin, intensity, level.getGameTime(), record.seed ^ id.hashCode());
 		if (physical) {
-			JujutsuNetworking.broadcastVfxCue(level, record.center.getCenter(), CursedIncidentVfxIds.VFX_DELIVERY_RADIUS, cue,
+			JujutsuNetworking.broadcastVfxCue(level, origin, CursedIncidentVfxIds.VFX_DELIVERY_RADIUS, cue,
 					player -> true);
 		} else {
-			JujutsuNetworking.broadcastVfxCue(level, record.center.getCenter(), CursedIncidentVfxIds.VFX_DELIVERY_RADIUS, cue,
+			JujutsuNetworking.broadcastVfxCue(level, origin, CursedIncidentVfxIds.VFX_DELIVERY_RADIUS, cue,
 					CursePerception::perceives);
 		}
 	}
@@ -221,6 +265,14 @@ public final class InfectionSink implements IncidentWorldSink {
 		long lastTopup = Long.MIN_VALUE;
 		long lastContainerScan = Long.MIN_VALUE;
 		long lastCull = Long.MIN_VALUE;
+		final Set<UUID> announcedSecondaryBirths = new HashSet<>();
+
+		void resetForRelocation() {
+			lastStage = Long.MIN_VALUE;
+			lastTopup = Long.MIN_VALUE;
+			lastContainerScan = Long.MIN_VALUE;
+			lastCull = Long.MIN_VALUE;
+		}
 
 		CadenceProbe snapshot() {
 			return new CadenceProbe(lastStage, lastTopup, lastContainerScan, lastCull);

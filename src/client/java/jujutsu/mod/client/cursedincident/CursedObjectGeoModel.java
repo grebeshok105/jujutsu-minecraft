@@ -20,14 +20,14 @@ public final class CursedObjectGeoModel extends GeoModel<CursedObjectItem> {
 
     @Override
     public ResourceLocation getModelResource(GeoRenderState renderState) {
-        CursedObjectType type = typeFrom(renderState);
+        CursedObjectType type = renderableType(typeFrom(renderState));
         return JujutsuMod.id(type == null ? FALLBACK_MODEL : type.geoModel());
     }
 
     @Override
     public ResourceLocation getTextureResource(GeoRenderState renderState) {
         CursedObjectState state = stateFrom(renderState);
-        CursedObjectType type = state == null ? null : CursedObjectRegistry.byId(state.typeId());
+        CursedObjectType type = renderableType(state == null ? null : CursedObjectRegistry.byId(state.typeId()));
         if (type == null) {
             return JujutsuMod.id("textures/item/cursed_object_cursed_doll_0.png");
         }
@@ -48,5 +48,9 @@ public final class CursedObjectGeoModel extends GeoModel<CursedObjectItem> {
     private static CursedObjectState stateFrom(GeoRenderState renderState) {
         ItemStack stack = renderState.getOrDefaultGeckolibData(ITEM_STACK, ItemStack.EMPTY);
         return stack.isEmpty() ? null : stack.get(JujutsuDataComponents.CURSED_OBJECT_STATE);
+    }
+
+    private static CursedObjectType renderableType(CursedObjectType type) {
+        return type == null || type == CursedObjectRegistry.QA_PROBE ? null : type;
     }
 }

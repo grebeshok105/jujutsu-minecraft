@@ -5,6 +5,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import jujutsu.mod.cursedincident.KnowledgeLevel;
+import jujutsu.mod.cursedincident.IncidentControl;
 import jujutsu.mod.cursedincident.policy.SealPolicy;
 import jujutsu.mod.cursedincident.runtime.ObjectDwellTracker;
 import jujutsu.mod.registry.JujutsuDataComponents;
@@ -97,6 +98,7 @@ public final class CursedObjectItem extends Item implements GeoItem {
         int appliedTier = Math.max(1, Math.min(3, tier));
         CursedObjectState sealed = current.withSeal(true, appliedTier, SealState.integrityMax(appliedTier));
         setState(stack, sealed);
+        IncidentControl.syncSealFromComponent(sealed.instanceId());
         return new SealResult(true, required, "sealed", sealed);
     }
 
@@ -113,7 +115,9 @@ public final class CursedObjectItem extends Item implements GeoItem {
         if (current == null || !current.sealed()) {
             return false;
         }
-        setState(stack, current.withSeal(false, current.sealTier(), current.sealIntegrity()));
+        CursedObjectState unsealed = current.withSeal(false, current.sealTier(), current.sealIntegrity());
+        setState(stack, unsealed);
+        IncidentControl.syncSealFromComponent(unsealed.instanceId());
         return true;
     }
 
@@ -125,6 +129,7 @@ public final class CursedObjectItem extends Item implements GeoItem {
         int integrity = Math.max(0, current.sealIntegrity() - Math.max(0, amount));
         CursedObjectState damaged = current.withSeal(integrity > 0, current.sealTier(), integrity);
         setState(stack, damaged);
+        IncidentControl.syncSealFromComponent(damaged.instanceId());
         return damaged;
     }
 
