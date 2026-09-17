@@ -76,7 +76,7 @@ final class MegumiRabbitsBrain {
 	static int dropUpkeepWithoutPack() {
 		List<UUID> stale = new ArrayList<>();
 		for (UUID ownerId : LAST_UPKEEP.keySet()) {
-			if (ownerId == null || MegumiShikigamiRuntime.pack(ownerId) == null) {
+			if (ownerId == null || MegumiShikigamiRuntime.packs(ownerId).isEmpty()) {
 				stale.add(ownerId);
 			}
 		}
