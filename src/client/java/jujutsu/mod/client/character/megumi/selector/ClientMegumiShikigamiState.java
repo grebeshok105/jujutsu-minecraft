@@ -39,7 +39,17 @@ public final class ClientMegumiShikigamiState {
 	public static void apply(ShikigamiStatePayload payload) {
 		selected = byIdOrDefault(payload.selectedId());
 		stateCodes = payload.stateCodes().clone();
-		cooldownUntilGameTimes = payload.cooldownUntilGameTimes().clone();
+		// The deadlines arrive on the server's game clock; the strip counts them down on the
+		// client's. Rebase once here — server deadline minus the server timestamp, added to the
+		// client clock — so the wipe carries remaining time, never the clock skew between them.
+		Level level = Minecraft.getInstance().level;
+		long clientNow = level != null ? level.getGameTime() : payload.gameTime();
+		long[] until = payload.cooldownUntilGameTimes();
+		long[] rebased = new long[until.length];
+		for (int i = 0; i < until.length; i++) {
+			rebased[i] = until[i] <= 0L ? 0L : clientNow + Math.max(0L, until[i] - payload.gameTime());
+		}
+		cooldownUntilGameTimes = rebased;
 	}
 
 	/** Optimistic edit for a click the client just sent; the next push is authoritative. */
@@ -61,7 +71,14 @@ public final class ClientMegumiShikigamiState {
 		}
 		int code = codes[index];
 		MegumiShikigamiSlotState[] states = MegumiShikigamiSlotState.values();
-		return code >= 0 && code < states.length ? states[code] : MegumiShikigamiSlotState.READY;
+		MegumiShikigamiSlotState state = code >= 0 && code < states.length ? states[code] : MegumiShikigamiSlotState.READY;
+		// A cooldown ending is the one state change the server never pushes, so the marker derives
+		// its own expiry from the deadline — otherwise the slot would reject clicks forever after
+		// the wipe ran out.
+		if (state == MegumiShikigamiSlotState.COOLDOWN && cooldownRemainingTicks(type) <= 0) {
+			return MegumiShikigamiSlotState.READY;
+		}
+		return state;
 	}
 
 	/** Ticks left before this type is selectable again, against the client's own game clock. */

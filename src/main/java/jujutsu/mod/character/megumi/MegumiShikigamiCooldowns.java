@@ -82,5 +82,8 @@ public final class MegumiShikigamiCooldowns {
 
 	public static void clearAll() {
 		READY_AT.clear();
+		// The clock shares the rows' lifetime: a new world counts game time from its own epoch, and
+		// a stale high-water mark would stamp the next recall hours into the future.
+		nowTicks = 0L;
 	}
 }

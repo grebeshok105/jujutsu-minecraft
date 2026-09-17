@@ -39,7 +39,7 @@ public final class JujutsuKeybinds {
 	private static int sneakSecondHeldTicks = -1;
 	private static boolean sneakSecondHoldSent;
 	private static boolean secondWasDown;
-	private static final SelectorGesture selectorGesture = new SelectorGesture();
+	public static final SelectorGesture selectorGesture = new SelectorGesture();
 	private static boolean selectorWasDown;
 
 	/**
@@ -223,11 +223,26 @@ public final class JujutsuKeybinds {
 	 */
 	private static void tickQuickSelector(Minecraft client) {
 		boolean down = isActive(client, quickSelectorKey, InputConstants.KEY_G);
+		// Drained every tick, not only when needed: a normal press also increments clickCount, and a
+		// stale click left in the queue would re-fire as a phantom tap on a later tick.
+		boolean clicked = drainClicks(quickSelectorKey);
 		if (down && !selectorWasDown) {
+			selectorGesture.press();
+		} else if (clicked && !down && !selectorWasDown && !selectorGesture.isOpen()) {
+			// Press and release both landed inside one tick: vanilla counted the click, the
+			// once-per-tick sample missed it. Re-arm so the release below resolves it as a tap.
+			// The guards keep a hold's ACTION_REPEAT clicks from re-arming a completed gesture.
 			selectorGesture.press();
 		}
 		selectorWasDown = down;
 		if (!down) {
+			if (client.screen != null) {
+				// A screen opening mid-press releases every mapping, which reads exactly like the
+				// player letting go. That is not a release: the press is cancelled, never a tap —
+				// otherwise opening any screen inside the hold window would silently cycle.
+				selectorGesture.reset();
+				return;
+			}
 			if (selectorGesture.release() == SelectorGesture.Action.CYCLE
 					&& JujutsuCharacterClients.definition(selectedCharacter(client)).hasQuickSelector()) {
 				sendCharacterAbility(client, CharacterAbility.TERTIARY_SNEAK);

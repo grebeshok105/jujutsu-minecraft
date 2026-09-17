@@ -25,8 +25,12 @@ public final class ShikigamiSelectorLayout {
 	public static final int SLOT_H = 56;
 	/** Space between neighbouring slots at full size. Must stay non-zero: the gaps are dead zones. */
 	public static final int GAP = 6;
-	/** The strip's bottom edge never crosses this line above the screen bottom, clearing the hotbar. */
-	public static final int BOTTOM_CLEARANCE = 32;
+	/**
+	 * The strip's bottom edge never crosses this line above the screen bottom. 22 px clears the
+	 * hotbar band; the rest clears the status rows above it — hearts/hunger sit at guiH-39..-30 and
+	 * armor a row higher — so choosing in combat never hides the player's own vitals.
+	 */
+	public static final int BOTTOM_CLEARANCE = 56;
 	/** The strip never crosses this many pixels from either side edge before it starts shrinking. */
 	public static final int SIDE_MARGIN = 8;
 	/** Shrinking stops here; below this a slot would no longer read as a slot. */

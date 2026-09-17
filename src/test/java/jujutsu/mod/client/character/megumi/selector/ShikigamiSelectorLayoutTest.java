@@ -53,8 +53,8 @@ class ShikigamiSelectorLayoutTest {
 			for (ShikigamiSelectorLayout.Slot slot : slots) {
 				assertEquals(WIDE_H - ShikigamiSelectorLayout.BOTTOM_CLEARANCE, slot.y() + slot.h(),
 						"the strip's bottom edge sits on the clearance line");
-				assertTrue(slot.y() + slot.h() <= WIDE_H - 22,
-						"the strip never touches the 22-pixel hotbar band");
+				assertTrue(slot.y() + slot.h() <= WIDE_H - 49,
+						"the strip clears the status rows too: hearts/hunger occupy guiH-39..-30, armor above");
 			}
 			assertEquals(ShikigamiSelectorLayout.SLOT_W, first.w(), "a wide window uses the full slot width");
 			assertEquals(ShikigamiSelectorLayout.SLOT_H, first.h(), "a wide window uses the full slot height");

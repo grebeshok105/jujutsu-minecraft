@@ -41,7 +41,7 @@ public final class SelectorTheme {
 	public static final float CLOSE_MS = 100f;
 	/** Hover approach, milliseconds. */
 	public static final float HOVER_MS = 80f;
-	/** Select pulse, milliseconds; also the reject shake's window. */
+	/** Select pulse, milliseconds. The reject shake's window is {@code SelectorMotion.SHAKE_MS}. */
 	public static final float SELECT_MS = 140f;
 
 	private SelectorTheme() {}

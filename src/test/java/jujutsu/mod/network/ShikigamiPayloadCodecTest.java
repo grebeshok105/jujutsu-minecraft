@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.nio.charset.StandardCharsets;
 import io.netty.buffer.Unpooled;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.RegistryAccess;
@@ -47,6 +48,18 @@ class ShikigamiPayloadCodecTest {
 		assertThrows(RuntimeException.class,
 				() -> encode(ShikigamiSelectPayload.STREAM_CODEC, new ShikigamiSelectPayload("a".repeat(17))),
 				"a 17-character shikigami id must be refused by the 16-character cap");
+	}
+
+	@Test
+	void selectRequestRefusesAnOverlongIdOnTheDecodeSideToo() {
+		// The cap must hold against a client that skips the encoder: the length prefix and the bytes are
+		// written by hand, exactly as a hand-rolled packet would arrive.
+		RegistryFriendlyByteBuf buffer = buffer();
+		buffer.writeVarInt(17);
+		buffer.writeBytes("a".repeat(17).getBytes(StandardCharsets.UTF_8));
+		assertThrows(RuntimeException.class,
+				() -> ShikigamiSelectPayload.STREAM_CODEC.decode(buffer),
+				"the decode side must refuse an id past the cap, not truncate it");
 	}
 
 	@Test
@@ -98,6 +111,18 @@ class ShikigamiPayloadCodecTest {
 		assertThrows(IllegalArgumentException.class,
 				() -> ShikigamiStatePayload.STREAM_CODEC.decode(buffer),
 				"a slot count no roster can produce must be refused");
+	}
+
+	@Test
+	void aNegativeSlotCountIsRefusedInsteadOfAllocated() {
+		// The other half of the same guard: a negative count would allocate a negative-length array and
+		// crash the client, so it is refused with the same distrust as an oversized one.
+		RegistryFriendlyByteBuf buffer = buffer();
+		buffer.writeUtf("dogs", 16);
+		buffer.writeVarInt(-1);
+		assertThrows(IllegalArgumentException.class,
+				() -> ShikigamiStatePayload.STREAM_CODEC.decode(buffer),
+				"a negative slot count is a corrupt buffer, not an empty snapshot");
 	}
 
 	@Test

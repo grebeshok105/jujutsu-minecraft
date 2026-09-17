@@ -25,6 +25,8 @@ import jujutsu.mod.character.megumi.MegumiShikigamiSlotState;
 import jujutsu.mod.character.megumi.MegumiToadEntity;
 import jujutsu.mod.client.render.megumi.MegumiDivineDogRenderState;
 import jujutsu.mod.client.render.megumi.MegumiShikigamiRenderState;
+import software.bernie.geckolib.constant.DataTickets;
+import software.bernie.geckolib.renderer.base.GeoRenderState;
 import jujutsu.mod.registry.JujutsuEntities;
 
 /**
@@ -76,7 +78,7 @@ public final class ShikigamiSlotView {
 	}
 
 	/** The per-slot presentation values the screen reads off its motion channel. */
-	record Motion(float alpha, float hoverScale, float pulseT) {
+	record Motion(float alpha, float hoverScale, float pulseT, float offsetX, float offsetY) {
 	}
 
 	/** Drops the cached preview bodies. Called when the client leaves the level they were built on. */
@@ -109,7 +111,11 @@ public final class ShikigamiSlotView {
 		int boxW = w - 2 * Math.max(2, w / 12);
 		int boxH = Math.round(h * 0.60f);
 		well(graphics, boxX, boxY, boxW, boxH, SelectorTheme.withAlpha(SelectorTheme.PANEL_FILL, alpha * 0.85f));
-		renderModel(graphics, slot.type(), boxX, boxY, boxW, boxH, motion.hoverScale(), alpha);
+		// The PiP element ignores the pose stack (its pose is IDENTITY), so the slot's animated
+		// rise/shake offset is folded into the body's box by hand — otherwise the plate slides
+		// under a body that is already at rest.
+		renderModel(graphics, slot.type(), boxX + Math.round(motion.offsetX()), boxY + Math.round(motion.offsetY()),
+				boxW, boxH, motion.hoverScale(), alpha);
 
 		if (!selectable) {
 			graphics.fill(x + 1, y + 1, x + w - 1, y + h - 1,
@@ -188,6 +194,14 @@ public final class ShikigamiSlotView {
 			dog.phase = MegumiDogPresentationPolicy.Phase.ACTIVE;
 			dog.progress = 1.0f;
 			dog.verticalOffset = 0.0f;
+			// The slot stands for the summoned pair; the black Dire Wolf is the iconic silhouette.
+			dog.blackVariant = true;
+		}
+		// PACKED_LIGHT is normally injected by GeckoLib's EntityRenderDispatcher mixin, which only
+		// wraps the entity-taking render overload. The PiP path submits a prebuilt state, so the
+		// ticket never arrives and GeoRenderer.defaultRender NPEs on it (crash on first open).
+		if (state instanceof GeoRenderState geo && !geo.hasGeckolibData(DataTickets.PACKED_LIGHT)) {
+			geo.addGeckolibData(DataTickets.PACKED_LIGHT, net.minecraft.client.renderer.LightTexture.FULL_BRIGHT);
 		}
 		return state;
 	}

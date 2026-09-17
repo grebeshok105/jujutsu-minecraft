@@ -73,6 +73,11 @@ public final class MegumiDefinition implements CharacterDefinition {
 		// Selection is free and non-destructive: it never starts a cooldown and never sweeps a pack,
 		// which is exactly why an already-summoned type stays selectable (design spec: "summoned" is a
 		// marker, not a block, and the summoned set is a separate concept from the active one).
+		// A repeat of the current selection is a no-op for the client: skipping the push keeps a
+		// spammed click from echoing a full snapshot back for nothing.
+		if (MegumiShikigamiSelection.selected(player.getUUID()) == type) {
+			return true;
+		}
 		MegumiShikigamiSelection.set(player.getUUID(), type);
 		MegumiShikigamiSync.push(player);
 		return true;

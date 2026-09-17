@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.client.gui.screens.ChatScreen;
 import jujutsu.mod.client.character.QuickSelectorScreen;
 import jujutsu.mod.client.character.ClientCharacterSelectionManager;
 import jujutsu.mod.client.character.JujutsuCharacterClients;
@@ -36,8 +37,11 @@ public final class ShikigamiSelectorDebug {
 			source.sendError(Component.literal("shikigami_selector needs a loaded player"));
 			return 0;
 		}
-		if (client.screen != null) {
-			// Only the selector toggles; any other open screen is left alone.
+		if (client.screen != null && !(client.screen instanceof ChatScreen)) {
+			// Only the selector toggles; any other open screen is left alone. The ChatScreen is the
+			// exception: client commands execute before the chat screen closes itself, so the
+			// invoking screen is always the chat screen — without the pass-through the open half
+			// would be unreachable.
 			if (client.screen instanceof QuickSelectorScreen) {
 				client.screen.onClose();
 				source.sendFeedback(Component.literal("shikigami_selector: closed"));
@@ -52,7 +56,13 @@ public final class ShikigamiSelectorDebug {
 			source.sendError(Component.literal("selected vessel has no quick selector"));
 			return 0;
 		}
-		definition.openQuickSelector(client);
+		// Deferred one tick: the ChatScreen closes itself right after this command returns, and a
+		// screen set now would be discarded with it. execute() runs after the chat screen is gone.
+		client.execute(() -> {
+			if (client.screen == null) {
+				definition.openQuickSelector(client);
+			}
+		});
 		source.sendFeedback(Component.literal("shikigami_selector: opened"));
 		return 1;
 	}

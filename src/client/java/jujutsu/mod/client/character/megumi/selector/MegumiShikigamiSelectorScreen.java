@@ -75,6 +75,10 @@ public final class MegumiShikigamiSelectorScreen extends Screen implements Quick
 			entered = true;
 			motion.open();
 			feedback.open();
+			// A key-driven open means the gesture is still armed and waiting for its release —
+			// latch the watchdog now. Without this, a release landing before the first tick that
+			// samples the key down would leave the strip open forever.
+			selectorKeyWasDown = JujutsuKeybinds.selectorGesture.isOpen();
 		}
 		super.init();
 	}
@@ -211,8 +215,12 @@ public final class MegumiShikigamiSelectorScreen extends Screen implements Quick
 		if (mapping.isDown()) {
 			return true;
 		}
-		// Same physical fallback the input layer uses for this key, for the case where the event is lost.
-		return InputConstants.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), InputConstants.KEY_G);
+		// Same physical fallback the input layer uses for this key, for the case where the event is
+		// lost — and only for the default/unbound key, since a rebound key's events always reach it.
+		if (mapping.isUnbound() || mapping.isDefault()) {
+			return InputConstants.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), InputConstants.KEY_G);
+		}
+		return false;
 	}
 
 	private void requestClose() {
@@ -243,6 +251,7 @@ public final class MegumiShikigamiSelectorScreen extends Screen implements Quick
 	}
 
 	private void drawSlots(GuiGraphics graphics) {
+		float strip = motion.stripProgress();
 		MegumiShikigami selected = ClientMegumiShikigamiState.selected();
 		for (int index = 0; index < slots.size(); index++) {
 			float stagger = motion.slotStagger(index);
@@ -255,9 +264,12 @@ public final class MegumiShikigamiSelectorScreen extends Screen implements Quick
 			boolean slotHovered = !closing && type == hovered;
 			Set<String> flags = ShikigamiSelectorState.flags(type == selected, slotHovered, state);
 			graphics.pose().pushMatrix();
-			graphics.pose().translate(motion.shakeOffset(index), (1.0f - stagger) * SLOT_RISE_PX);
+			float offsetX = motion.shakeOffset(index);
+			float offsetY = (1.0f - stagger) * SLOT_RISE_PX + (1.0f - strip) * STRIP_RISE_PX;
+			graphics.pose().translate(offsetX, offsetY);
 			ShikigamiSlotView.render(graphics, this.font, slot, state, flags,
-					new ShikigamiSlotView.Motion(stagger, motion.hoverScale(index, slotHovered), motion.pulseT(index)));
+					new ShikigamiSlotView.Motion(stagger, motion.hoverScale(index, slotHovered), motion.pulseT(index),
+							offsetX, offsetY));
 			graphics.pose().popMatrix();
 		}
 	}

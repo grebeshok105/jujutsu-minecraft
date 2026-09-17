@@ -46,6 +46,8 @@ public final class SelectorMotion {
 	private boolean[] hoverTarget = new boolean[0];
 	private long[] pulseStartMs = new long[0];
 	private long[] shakeStartMs = new long[0];
+	/** Each slot's progress at the start of the current phase; see {@link #beginPhase}. */
+	private float[] slotFrom = new float[0];
 
 	/** Starts (or restarts) the entrance, continuing from wherever a half-faded strip stood. */
 	public void open() {
@@ -73,10 +75,12 @@ public final class SelectorMotion {
 		if (index < 0) {
 			return stripProgress();
 		}
-		float delay = stripFrom < stripTo ? index * SLOT_STAGGER_MS : 0f;
+		ensureSlot(index);
+		float from = slotFrom[index];
+		float delay = from < stripTo ? index * SLOT_STAGGER_MS : 0f;
 		float window = Math.max(stripMs - delay, stripMs * MIN_SLOT_WINDOW_SHARE);
 		float eased = UiEase.outCubic((elapsedSince(stripStartMs) - delay) / window);
-		return stripFrom + (stripTo - stripFrom) * eased;
+		return from + (stripTo - from) * eased;
 	}
 
 	/**
@@ -140,6 +144,12 @@ public final class SelectorMotion {
 	}
 
 	private void beginPhase(float to, float durationMs) {
+		// Snapshot every known slot's own progress before the strip's endpoints move: on close the
+		// stagger delay drops to 0, and without per-slot starts a trailing slot would snap to the
+		// strip's (higher) value for one frame — a pop instead of a fade.
+		for (int i = 0; i < slotFrom.length; i++) {
+			slotFrom[i] = slotStagger(i);
+		}
 		float from = stripProgress();
 		stripFrom = from;
 		stripTo = to;
@@ -168,6 +178,9 @@ public final class SelectorMotion {
 		hoverTarget = Arrays.copyOf(hoverTarget, size);
 		pulseStartMs = Arrays.copyOf(pulseStartMs, size);
 		shakeStartMs = Arrays.copyOf(shakeStartMs, size);
+		slotFrom = Arrays.copyOf(slotFrom, size);
 		Arrays.fill(hoverScale, old, size, HOVER_SCALE_MIN);
+		// A slot first seen mid-phase starts wherever the strip currently is, not at 0.
+		Arrays.fill(slotFrom, old, size, stripProgress());
 	}
 }

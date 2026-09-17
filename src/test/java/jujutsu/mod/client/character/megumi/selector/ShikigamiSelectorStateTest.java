@@ -102,6 +102,31 @@ class ShikigamiSelectorStateTest {
 		}
 	}
 
+	@Test
+	void everyShikigamiNameIsPinnedInBothLocales() {
+		// The slot draws its name from the roster id, so a renamed id silently turns into a raw
+		// translation key on screen. The five literal keys are the contract; the derived set makes a
+		// sixth shikigami without its two lang rows fail here instead of in game.
+		Set<String> contracted = Set.of(
+				"jujutsumod.megumi.shikigami.dogs",
+				"jujutsumod.megumi.shikigami.nue",
+				"jujutsumod.megumi.shikigami.toad",
+				"jujutsumod.megumi.shikigami.rabbits",
+				"jujutsumod.megumi.shikigami.elephant");
+		for (Path lang : LANG_FILES) {
+			String json = read(lang);
+			for (String key : contracted) {
+				assertTrue(json.contains("\"" + key + "\""), () -> lang.getFileName() + " is missing " + key);
+			}
+		}
+		Set<String> derived = new TreeSet<>();
+		for (MegumiShikigami type : MegumiShikigami.values()) {
+			derived.add("jujutsumod.megumi.shikigami." + type.id());
+		}
+		assertEquals(new TreeSet<>(contracted), derived,
+				"the roster and the shipped name keys must cover each other");
+	}
+
 	/**
 	 * Several selections inside one hold. The sequence mirrors the screen's click path exactly:
 	 * {@link ShikigamiSelectorLayout#slotAt} for the hit, then
