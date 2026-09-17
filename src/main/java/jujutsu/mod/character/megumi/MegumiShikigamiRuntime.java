@@ -73,6 +73,11 @@ public final class MegumiShikigamiRuntime {
 			teardown(server, playerId, TeardownReason.DISCONNECT);
 			onPlayerDisconnect(playerId);
 		});
+		// A fresh connection starts from the default selection, so the client's cache must be told what
+		// that is instead of keeping whatever the previous world left in it (the client also clears on
+		// disconnect, but the two ends are independent and only this one is authoritative).
+		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
+				MegumiShikigamiSync.push(handler.player));
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			Set<UUID> ownerIds = new HashSet<>(PACKS.keySet());
 			for (ServerLevel level : server.getAllLevels()) {
@@ -89,6 +94,7 @@ public final class MegumiShikigamiRuntime {
 			PACKS.clear();
 			TEARDOWN_IN_PROGRESS.clear();
 			MegumiShikigamiSelection.clearAll();
+			MegumiShikigamiCooldowns.clearAll();
 		});
 	}
 
@@ -154,13 +160,17 @@ public final class MegumiShikigamiRuntime {
 		return false;
 	}
 
-	/** The sneaking technique key: advance the selection; never costs anything. */
+	/** The sneaking technique key: advance the selection to the next usable shikigami; never costs anything. */
 	public static boolean tryCycle(ServerPlayer player, boolean notify) {
-		MegumiShikigami next = MegumiShikigamiSelection.cycle(player.getUUID());
+		UUID ownerId = player.getUUID();
+		long now = player.level().getGameTime();
+		MegumiShikigami next = MegumiShikigamiSelection.cycleAvailable(ownerId,
+				type -> !MegumiShikigamiCooldowns.isCooling(ownerId, type, now));
 		if (notify) {
 			player.displayClientMessage(Component.translatable("message.jujutsumod.megumi.shikigami.selected",
 					Component.translatable(nameKey(next))), true);
 		}
+		MegumiShikigamiSync.push(player);
 		return true;
 	}
 
@@ -217,6 +227,7 @@ public final class MegumiShikigamiRuntime {
 	/** Clears the player's saved selection; wired to disconnect (unit-testable seam). */
 	static void onPlayerDisconnect(UUID playerId) {
 		MegumiShikigamiSelection.clear(playerId);
+		MegumiShikigamiCooldowns.clear(playerId);
 	}
 
 	/** The single destructive entry point: removes the pack record and sweeps every owned body. */
@@ -253,9 +264,15 @@ public final class MegumiShikigamiRuntime {
 					: reason.appliesExpiryCooldown() ? MegumiShikigamiProfile.expiryCooldownTicks(pack.type())
 					: 0;
 			if (ticks > 0) {
+				// The ledger mirrors the shared slot cooldown at the same site and with the same
+				// non-shortening rule; the selector's availability is a separate question from whether the
+				// PRIMARY slot may fire, and it is asked per type.
+				MegumiShikigamiCooldowns.start(ownerId, pack.type(), ticks);
 				MegumiSummonRuntime.startCooldownIfLonger(server.getPlayerList().getPlayer(ownerId),
 						CharacterAbility.PRIMARY, ticks);
 			}
+			// The pack record is gone whether or not it cost anything, so the SUMMONED marker must go too.
+			MegumiShikigamiSync.push(server.getPlayerList().getPlayer(ownerId));
 		}
 	}
 
@@ -341,6 +358,13 @@ public final class MegumiShikigamiRuntime {
 	}
 
 	private static void tick(MinecraftServer server) {
+		// The roster ledger stamps deadlines from the server clock, and this runtime owns that feed so the
+		// ledger needs no server handle of its own. Game time is one counter per server: it is the same
+		// number every level reports, which is the assumption the shared slot ledger already makes.
+		ServerLevel overworld = server.overworld();
+		if (overworld != null) {
+			MegumiShikigamiCooldowns.observe(overworld.getGameTime());
+		}
 		for (UUID ownerId : Set.copyOf(PACKS.keySet())) {
 			reconcile(server, ownerId, RemovalCause.TICK);
 			retaliate(server, ownerId);
@@ -393,8 +417,12 @@ public final class MegumiShikigamiRuntime {
 		List<MegumiShikigamiEntity> living = livingBodies(server, ownerId, pack);
 		if (living.isEmpty()) {
 			if (PACKS.remove(ownerId, pack)) {
+				// Losing the last body is the pack's death: the type pays its death row in both ledgers.
+				MegumiShikigamiCooldowns.start(ownerId, pack.type(),
+						MegumiShikigamiProfile.deathCooldownTicks(pack.type()));
 				MegumiSummonRuntime.startCooldownIfLonger(server.getPlayerList().getPlayer(ownerId),
 						CharacterAbility.PRIMARY, MegumiShikigamiProfile.deathCooldownTicks(pack.type()));
+				MegumiShikigamiSync.push(server.getPlayerList().getPlayer(ownerId));
 			}
 			return;
 		}
@@ -462,6 +490,8 @@ public final class MegumiShikigamiRuntime {
 				case DOGS -> throw new IllegalStateException("dogs do not use the shikigami runtime");
 			}
 		}
+		// The pack is live: the owner's snapshot marks this type as out without implying any despawn.
+		MegumiShikigamiSync.push(player);
 		return true;
 	}
 

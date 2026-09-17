@@ -356,5 +356,29 @@
       "jujutsumod:cursed/cursed_wistiver_scream"
     ],
     "subtitle": "subtitles.jujutsumod.cursed.wistiver_scream"
+  },
+  "megumi.selector_open": {
+    "sounds": [
+      "jujutsumod:megumi/selector_open"
+    ],
+    "subtitle": "subtitles.jujutsumod.megumi.selector_open"
+  },
+  "megumi.selector_hover": {
+    "sounds": [
+      "jujutsumod:megumi/selector_hover"
+    ],
+    "subtitle": "subtitles.jujutsumod.megumi.selector_hover"
+  },
+  "megumi.selector_select": {
+    "sounds": [
+      "jujutsumod:megumi/selector_select"
+    ],
+    "subtitle": "subtitles.jujutsumod.megumi.selector_select"
+  },
+  "megumi.selector_reject": {
+    "sounds": [
+      "jujutsumod:megumi/selector_reject"
+    ],
+    "subtitle": "subtitles.jujutsumod.megumi.selector_reject"
   }
 }

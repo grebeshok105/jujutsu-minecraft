@@ -1,3 +1,42 @@
+# Session Handoff — Megumi shikigami quick selector (issue #109) — 2026-09-17
+
+## State — implemented, verified in game, at branch
+
+Branch `feat/megumi-shikigami-selector` in worktree `D:/WorkFlow/jujutsu-selector-wt` (main
+checkout `D:/WorkFlow/jujutsu-minecraft` belongs to another agent — never touch it). Commits:
+B1 `26f1753` … B5 `713015a`, review-fix commit `c68aa0c`. `qualityGate` green (160 GameTest,
+624 JUnit, doc audit, jar isolation). **Not pushed, no PR — waiting for the user's order.**
+
+Feature: hold G opens a bottom-center strip of five shikigami slots (no pause); click selects,
+cooling slots reject, summoned shows a marker; tap G cycles like `S+V`. Wire: S2C snapshot +
+C2S select. New mcpdev tool `jujutsu_input` injects tap/press/release/hold/click — the upstream
+client tools are read-only, so the gesture is now scriptable end to end.
+
+In-game verified on lane `selector-lane` (ports 8775/8776): tap cycles, hold opens/closes,
+click selects ready and rejects cooling, SUMMONED marker shows, world ticks while open, no crash.
+
+## Traps learned this session
+
+- **PiP render crash**: `submitEntityRenderState` (picture-in-picture) bypasses the GeckoLib
+  dispatcher mixin — inject `PACKED_LIGHT` into the preview render state or it NPEs on hold.
+- **`KeyMapping.set`/`click` via `InputConstants.getKey(saveString)` silently no-ops** (the
+  key map misses); only instance `setDown` works — `jujutsu_input` drives that on the client
+  thread via `Minecraft.execute` + an `END_CLIENT_TICK` re-assert (survives `setAll`).
+- Fast hold-release can strand the strip: the screen's watchdog must latch
+  `selectorKeyWasDown` in `init()` from `selectorGesture.isOpen()`, not from the physical key.
+- GameTest flake `megumi_toad_game_tests_already_held_victim_refuses_second_holder` fired once
+  (cooldown oracle), re-ran green — same family as issue #104.
+
+## If work continues here
+
+1. Push + PR (Russian title, «Для игрока» body per §12) — only on the user's order.
+2. Manual-only leftovers: sound check on real ears (open/hover/select/reject), GUI-scale edge
+   cases, rebinding the key off G (watchdog fallback is hardcoded to KEY_G — QA P3-3).
+3. Pipeline artifacts: `.superpowers/rule-of-four/megumi-selector/` (plan, scout/review/QA
+   reports, progress.md).
+
+---
+
 # Session Handoff — domain-sphere SDF PoC — MERGED 2026-09-16
 
 ## State — DONE: PR #112 merged to main (merge commit bc71af4, branch feat/domain-sphere-vfx). Ring fix 190e467 is INSIDE the merge — final shader = unclamped first-PR brightness + fade-sync kept. main == origin/main, tree clean.

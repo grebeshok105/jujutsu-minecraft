@@ -93,14 +93,32 @@ public interface CharacterDefinition {
 		return false;
 	}
 
+	/**
+	 * Sets this vessel's active roster entry by the id the client sent, or answers {@code false} when
+	 * this vessel has no such entry or will not take it right now.
+	 *
+	 * <p>The id is a plain string on the wire for the same reason the curse link is a neutral intent:
+	 * the shared network layer hands the choice to whichever vessel the player is, and only the vessel
+	 * knows what its ids mean. The default refusal is the point — a vessel with no roster, or one whose
+	 * entry cannot be selected at this moment, answers rather than accepting silently.
+	 *
+	 * @param shikigamiId the entry the client chose; unvalidated, so an implementation must check it
+	 */
+	default boolean selectShikigami(ServerPlayer player, String shikigamiId) {
+		return false;
+	}
+
 	/** Runs after the player becomes this vessel, once the selection is already stored. */
 	default void onSelected(ServerPlayer player) {}
 
 	/**
 	 * Runs before the player stops being this vessel. Anything half-finished that a later cast could
 	 * consume, or anything left in the world that only this vessel could have used, is dropped here.
+	 * {@code incoming} is the vessel being switched to — it equals this definition's vessel on a
+	 * re-confirm, which is NOT a clean slate: state that only a real switch should reset (cooldown
+	 * ledgers, selection memory) must check it.
 	 */
-	default void onDeselected(ServerPlayer player) {}
+	default void onDeselected(ServerPlayer player, JujutsuCharacter incoming) {}
 
 	// No display strings here yet, deliberately. The plan called for name, role and technique keys, but
 	// the keys as written are not a set: the roster's three card slots hold different things for each
