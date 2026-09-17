@@ -92,6 +92,85 @@ public final class CursedObjectGameTests {
 	}
 
 	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
+	public void talismanSealHaltsIncident(GameTestHelper helper) {
+		IncidentRecord record = CursedIncidentTestFixtures.spawnObject(
+				helper, CENTER, IncidentStage.INITIAL, 3.0, 1179L, "cursed_nail");
+		ItemEntity source = CursedIncidentTestFixtures.findCursedObject(helper, CENTER, record.objectInstanceId);
+		helper.assertTrue(source != null,
+				CursedIncidentTestFixtures.diagnostic("talismanSealHaltsIncident(F3)", helper,
+						"physical source", "present", source));
+		CursedObjectItem.SealResult result = CursedObjectItem.trySeal(source.getItem(), 3);
+		IncidentControl.InspectView view = IncidentControl.inspect(record.id);
+		helper.assertTrue(result.ok() && view.sealed(),
+				CursedIncidentTestFixtures.diagnostic("talismanSealHaltsIncident(F3)", helper,
+						"record seal mirror", true, result.ok() + " / " + view.sealed()));
+		CursedIncidentTestFixtures.cleanup(record);
+		helper.succeed();
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 120)
+	public void destroyedSourceCeases(GameTestHelper helper) {
+		IncidentRecord record = CursedIncidentTestFixtures.spawnObject(
+				helper, CENTER, IncidentStage.INITIAL, 3.0, 1180L, "cursed_nail");
+		ItemEntity source = CursedIncidentTestFixtures.findCursedObject(helper, CENTER, record.objectInstanceId);
+		helper.assertTrue(source != null,
+				CursedIncidentTestFixtures.diagnostic("destroyedSourceCeases(F9)", helper,
+						"destructible physical source", "present", source));
+		source.discard();
+		helper.assertTrue(source.isRemoved(),
+				CursedIncidentTestFixtures.diagnostic("destroyedSourceCeases(F9)", helper,
+						"source removal observed", true, source.isRemoved()));
+		helper.runAtTickTime(10, () -> {
+			IncidentControl.InspectView view = IncidentControl.inspect(record.id);
+			helper.assertTrue(view.scarred(),
+					CursedIncidentTestFixtures.diagnostic("destroyedSourceCeases(F9)", helper,
+							"incident after source death", "scarred=true", view.scarred()));
+			CursedIncidentTestFixtures.cleanup(record);
+			helper.succeed();
+		});
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
+	public void pickupDoesNotDuplicate(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		ServerPlayer player = CursedSpiritTestFixtures.setupVictim(helper, "pickupDoesNotDuplicate(F6)", CENTER);
+		UUID id = UUID.randomUUID();
+		ItemEntity dropped = new ItemEntity(level, helper.absolutePos(CENTER).getX() + 0.5,
+				helper.absolutePos(CENTER).getY(), helper.absolutePos(CENTER).getZ() + 0.5,
+				CursedObjectItem.stack(CursedObjectState.fresh(id, "sukuna_finger", 1, level.getGameTime())));
+		level.addFreshEntity(dropped);
+		ObjectDwellTracker.noteWorldItem(dropped);
+		ItemStack carried = dropped.getItem().copy();
+		dropped.discard();
+		boolean added = player.getInventory().add(carried);
+		ObjectDwellTracker.noteCarried(carried, player);
+		helper.assertTrue(added,
+				CursedIncidentTestFixtures.diagnostic("pickupDoesNotDuplicate(F6)", helper,
+						"simulated pickup inserted stack", true, added));
+		helper.runAtTickTime(1, () -> {
+			int inventoryStacks = 0;
+			for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+				CursedObjectState state = CursedObjectItem.state(player.getInventory().getItem(slot));
+				if (state != null && id.equals(state.instanceId())) {
+					inventoryStacks++;
+				}
+			}
+			int entityStacks = level.getEntitiesOfClass(ItemEntity.class,
+					new AABB(dropped.blockPosition()).inflate(16.0), entity -> {
+						CursedObjectState state = CursedObjectItem.state(entity.getItem());
+						return entity.isAlive() && state != null && id.equals(state.instanceId());
+					}).size();
+			helper.assertTrue(inventoryStacks + entityStacks == 1,
+					CursedIncidentTestFixtures.diagnostic("pickupDoesNotDuplicate(F6)", helper,
+							"exactly one physical stack after pickup", 1,
+							inventoryStacks + " inventory / " + entityStacks + " entities"));
+			ObjectDwellTracker.forget(id);
+			CursedSpiritTestFixtures.cleanupVictim(helper, player);
+			helper.succeed();
+		});
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
 	public void brokenSealKeepsHistory(GameTestHelper helper) {
 		ItemStack stack = CursedObjectItem.stack(CursedObjectState.fresh(UUID.randomUUID(), "cursed_nail", 3,
 				helper.getLevel().getGameTime()));

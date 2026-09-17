@@ -1,7 +1,5 @@
 package jujutsu.mod.gametest;
 
-import com.google.gson.JsonObject;
-import com.mojang.serialization.JsonOps;
 import java.util.List;
 import java.util.Set;
 
@@ -24,9 +22,6 @@ import jujutsu.mod.cursedincident.IncidentStage;
 import jujutsu.mod.cursedincident.SourceKind;
 import jujutsu.mod.cursedincident.infection.InfectionQueue;
 import jujutsu.mod.cursedincident.infection.InfectionSink;
-import jujutsu.mod.cursedincident.infection.ZoneGeometry;
-import jujutsu.mod.cursedincident.persist.IncidentNbt;
-import jujutsu.mod.cursedincident.persist.IncidentSavedData;
 import jujutsu.mod.cursedincident.runtime.PerceptionOverrideRuntime;
 import jujutsu.mod.cursedspirit.CursedSpiritEntity;
 import jujutsu.mod.cursedspirit.CursedSpiritProfile;
@@ -245,9 +240,87 @@ public final class CursedIncidentGameTests {
 
 	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
 	public void noMapMarkerTripwire(GameTestHelper helper) {
-		helper.assertTrue(CursedIncidentVfxIds.LIVE.size() == 5,
+		Set<?> expectedLive = Set.of(
+				CursedIncidentVfxIds.ZONE_AMBIENT,
+				CursedIncidentVfxIds.STAGE_PULSE,
+				CursedIncidentVfxIds.SEAL_DEGRADE,
+				CursedIncidentVfxIds.SEAL_BREAK,
+				CursedIncidentVfxIds.SECONDARY_BIRTH);
+		Set<?> expectedPhysical = Set.of(
+				CursedIncidentVfxIds.STAGE_PULSE,
+				CursedIncidentVfxIds.SEAL_BREAK,
+				CursedIncidentVfxIds.SECONDARY_BIRTH);
+		Set<?> expectedCurse = Set.of(
+				CursedIncidentVfxIds.ZONE_AMBIENT,
+				CursedIncidentVfxIds.SEAL_DEGRADE);
+		helper.assertTrue(CursedIncidentVfxIds.LIVE.equals(expectedLive),
 				CursedIncidentTestFixtures.diagnostic("noMapMarkerTripwire(R47)", helper,
-					"incident presentation has no map marker", 5, CursedIncidentVfxIds.LIVE.size()));
+						"live incident cues", expectedLive, CursedIncidentVfxIds.LIVE));
+		helper.assertTrue(CursedIncidentVfxIds.PHYSICAL.equals(expectedPhysical)
+				&& CursedIncidentVfxIds.CURSE.equals(expectedCurse)
+				&& CursedIncidentVfxIds.LIVE.containsAll(CursedIncidentVfxIds.PHYSICAL)
+				&& CursedIncidentVfxIds.LIVE.containsAll(CursedIncidentVfxIds.CURSE),
+				CursedIncidentTestFixtures.diagnostic("noMapMarkerTripwire(R47)", helper,
+						"cue classification without map marker", expectedPhysical + " / " + expectedCurse,
+						CursedIncidentVfxIds.PHYSICAL + " / " + CursedIncidentVfxIds.CURSE));
+		helper.succeed();
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
+	public void cleanupRemovesTaggedSpirits(GameTestHelper helper) {
+		IncidentRecord record = CursedIncidentTestFixtures.spawnFree(
+				helper, CENTER, IncidentStage.CRITICAL, RADIUS, 1116L);
+		String tag = "jujutsumod:incident/" + record.id;
+		CursedSpiritEntity spirit = helper.spawn(
+				JujutsuEntities.LESSER_CURSED_SPIRIT, CursedIncidentTestFixtures.relative(helper, record.center));
+		spirit.addTag(tag);
+		int before = helper.getLevel().getEntitiesOfClass(CursedSpiritEntity.class,
+				new AABB(record.center).inflate(32.0), entity -> entity.getTags().contains(tag)).size();
+		helper.assertTrue(before > 0,
+				CursedIncidentTestFixtures.diagnostic("cleanupRemovesTaggedSpirits(F2)", helper,
+						"tagged spirit before cleanup", ">0", before));
+		IncidentControl.cleanup(record.id);
+		helper.runAtTickTime(2, () -> {
+			int remaining = helper.getLevel().getEntitiesOfClass(CursedSpiritEntity.class,
+					new AABB(record.center).inflate(32.0), entity -> entity.getTags().contains(tag)).size();
+			IncidentControl.InspectView view = IncidentControl.inspect(record.id);
+			helper.assertTrue(remaining == 0 && view.scarred(),
+					CursedIncidentTestFixtures.diagnostic("cleanupRemovesTaggedSpirits(F2)", helper,
+							"tagged spirits and scar flag after cleanup", "0 / true",
+							remaining + " / " + view.scarred()));
+			helper.succeed();
+		});
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
+	public void sealedIncidentAppliesNoEdits(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		IncidentRecord record = CursedIncidentTestFixtures.spawnObject(
+				helper, CENTER, IncidentStage.INITIAL, 6.0, 1117L, "cursed_nail");
+		ItemEntity source = CursedIncidentTestFixtures.findCursedObject(helper, CENTER, record.objectInstanceId);
+		helper.assertTrue(source != null,
+				CursedIncidentTestFixtures.diagnostic("sealedIncidentAppliesNoEdits(F7)", helper,
+						"physical source", "present", source));
+		List<BlockPos> samples = CursedIncidentTestFixtures.sampledPositions(record, IncidentStage.GROWING);
+		for (BlockPos sample : samples) {
+			helper.setBlock(CursedIncidentTestFixtures.relative(helper, sample), Blocks.GRASS_BLOCK);
+		}
+		long before = record.counters.blocksChanged;
+		CursedObjectItem.SealResult result = CursedObjectItem.trySeal(source.getItem(), 3);
+		IncidentControl.InspectView sealed = IncidentControl.inspect(record.id);
+		helper.assertTrue(result.ok() && sealed.sealed(),
+				CursedIncidentTestFixtures.diagnostic("sealedIncidentAppliesNoEdits(F3,F7)", helper,
+						"record mirrors physical seal", true, result.ok() + " / " + sealed.sealed()));
+		IncidentControl.advance(record.id, 96_000L);
+		new InfectionSink().tickZone(level, record, InfectionSink.PER_TICK_BLOCK_BUDGET);
+		long changedBlocks = samples.stream()
+				.filter(pos -> !level.getBlockState(pos).is(Blocks.GRASS_BLOCK)).count();
+		long applied = record.counters.blocksChanged - before;
+		helper.assertTrue(applied == 0L && changedBlocks == 0L,
+				CursedIncidentTestFixtures.diagnostic("sealedIncidentAppliesNoEdits(F7)", helper,
+						"sealed zone remains unchanged after advance and drain", "0 / 0",
+						applied + " / " + changedBlocks));
+		CursedIncidentTestFixtures.cleanup(record);
 		helper.succeed();
 	}
 

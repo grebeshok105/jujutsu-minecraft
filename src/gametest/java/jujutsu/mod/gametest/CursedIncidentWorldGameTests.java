@@ -1,12 +1,12 @@
 package jujutsu.mod.gametest;
 
+import com.google.gson.JsonObject;
+import com.mojang.serialization.JsonOps;
 import java.util.List;
-import java.util.UUID;
-
+import java.util.Map;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 
 import jujutsu.mod.cursedincident.IncidentControl;
@@ -14,6 +14,8 @@ import jujutsu.mod.cursedincident.IncidentControl.InspectView;
 import jujutsu.mod.cursedincident.IncidentControl.SpawnRequest;
 import jujutsu.mod.cursedincident.IncidentStage;
 import jujutsu.mod.cursedincident.SourceKind;
+import jujutsu.mod.cursedincident.persist.IncidentNbt;
+import jujutsu.mod.cursedincident.persist.IncidentSavedData;
 
 /**
  * Integration oracles for the cursed-incident subsystem (issue #110, Block 5):
@@ -121,7 +123,7 @@ public final class CursedIncidentWorldGameTests {
 	}
 
 
-	/** R59 GT half — ids stay unique across a save/load round-trip of the store. */
+	/** R59 GT half — ids stay unique across an explicit SavedData codec round-trip. */
 	@GameTest(maxTicks = 120)
 	public void idCollisionFreeAcrossSaveLoad(GameTestHelper helper) {
 		String fixture = "idCollisionFreeAcrossSaveLoad";
@@ -131,35 +133,54 @@ public final class CursedIncidentWorldGameTests {
 			helper.assertTrue(!a.id.equals(b.id),
 					GameTestFixtures.diagnostic(fixture, helper.getTick(),
 							"distinct ids", "a!=b", a.id + " vs " + b.id));
-			List<UUID> ids = IncidentControl.list().stream().map(InspectView::id).toList();
-			helper.assertTrue(ids.stream().distinct().count() == ids.size(),
+			IncidentSavedData before = new IncidentSavedData(Map.of(a.id, a, b.id, b), 0L);
+			JsonObject encoded = IncidentSavedData.CODEC.encodeStart(JsonOps.INSTANCE, before)
+					.result().orElseThrow().getAsJsonObject();
+			IncidentSavedData after = IncidentSavedData.CODEC.parse(JsonOps.INSTANCE, encoded)
+					.result().orElseThrow();
+			helper.assertTrue(after.incidents().size() == 2
+					&& after.incidents().containsKey(a.id)
+					&& after.incidents().containsKey(b.id),
 					GameTestFixtures.diagnostic(fixture, helper.getTick(),
-							"no id collisions", "all distinct", ids.size()));
+							"ids survive SavedData round-trip", "both ids", after.incidents().keySet()));
 			IncidentControl.cleanup(a.id);
 			IncidentControl.cleanup(b.id);
 		});
 		helper.runAtTickTime(100, helper::succeed);
 	}
 
-	/** R60 GT half — a corrupt record drops on load; the rest survive. */
+	/** R60 GT half — codec fallback drops only the corrupt entry and preserves siblings. */
 	@GameTest(maxTicks = 120)
 	public void corruptSavedDataFallsBack(GameTestHelper helper) {
 		String fixture = "corruptSavedDataFallsBack";
 		helper.runAtTickTime(5, () -> {
-			ServerLevel level = helper.getLevel();
-			var rec = IncidentControl.spawn(req(helper, 33L));
-			int before = IncidentControl.list().size();
-			// Corrupt the persisted stage string directly in the store's view, then
-			// force the codec path: the record must decode to a safe default, not throw.
-			InspectView v = IncidentControl.inspect(rec.id);
-			helper.assertTrue(v.stage() != null,
+			var healthy = IncidentControl.spawn(req(helper, 33L));
+			var sibling = IncidentControl.spawn(req(helper, 44L));
+			IncidentControl.setStage(healthy.id, IncidentStage.GROWING);
+			JsonObject root = IncidentSavedData.CODEC.encodeStart(JsonOps.INSTANCE,
+					new IncidentSavedData(Map.of(healthy.id, healthy, sibling.id, sibling), 0L))
+					.result().orElseThrow().getAsJsonObject();
+			JsonObject incidents = root.getAsJsonObject(IncidentNbt.INCIDENTS);
+			JsonObject corruptStage = incidents.getAsJsonObject(healthy.id.toString()).deepCopy();
+			corruptStage.addProperty(IncidentNbt.STAGE, "not_a_stage");
+			incidents.add(healthy.id.toString(), corruptStage);
+			incidents.add("dddddddd-dddd-dddd-dddd-dddddddddddd", new JsonObject());
+			IncidentSavedData decoded = IncidentSavedData.CODEC.parse(JsonOps.INSTANCE, root)
+					.result().orElseThrow();
+			helper.assertTrue(decoded.incidents().size() == 2
+					&& decoded.get(healthy.id) != null
+					&& decoded.get(sibling.id) != null,
 					GameTestFixtures.diagnostic(fixture, helper.getTick(),
-							"record readable", "non-null stage", v.stage()));
-			helper.assertTrue(IncidentControl.list().size() == before,
+							"corrupt record isolation", "two healthy records", decoded.incidents().keySet()));
+			helper.assertTrue(decoded.get(healthy.id).stage == IncidentStage.INITIAL
+					&& decoded.get(sibling.id).stage == sibling.stage,
 					GameTestFixtures.diagnostic(fixture, helper.getTick(),
-							"store intact", before, IncidentControl.list().size()));
-			IncidentControl.cleanup(rec.id);
+							"corrupt stage fallback", "healthy=INITIAL, sibling preserved",
+							decoded.get(healthy.id).stage + " / " + decoded.get(sibling.id).stage));
+			IncidentControl.cleanup(healthy.id);
+			IncidentControl.cleanup(sibling.id);
 		});
 		helper.runAtTickTime(100, helper::succeed);
 	}
+
 }
