@@ -4,7 +4,6 @@ import java.util.UUID;
 
 import jujutsu.mod.cursedincident.ObjectSpawner;
 import jujutsu.mod.cursedincident.runtime.ObjectDwellTracker;
-import jujutsu.mod.registry.JujutsuDataComponents;
 import jujutsu.mod.registry.JujutsuItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -37,8 +36,7 @@ public final class ObjectSpawnerImpl implements ObjectSpawner {
         if (!CursedObjectRegistry.registerInstance(state)) {
             return null;
         }
-        ItemStack stack = new ItemStack(JujutsuItems.CURSED_OBJECT);
-        stack.set(JujutsuDataComponents.CURSED_OBJECT_STATE, state);
+        ItemStack stack = CursedObjectItem.stack(state);
         ItemEntity entity = new ItemEntity(level, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, stack);
         entity.setUnlimitedLifetime();
         entity.setNoPickUpDelay();
@@ -67,8 +65,7 @@ public final class ObjectSpawnerImpl implements ObjectSpawner {
         if (!CursedObjectRegistry.registerInstance(state)) {
             return ItemStack.EMPTY;
         }
-        ItemStack stack = new ItemStack(JujutsuItems.CURSED_OBJECT);
-        stack.set(JujutsuDataComponents.CURSED_OBJECT_STATE, state);
+        ItemStack stack = CursedObjectItem.stack(state);
         return stack;
     }
 

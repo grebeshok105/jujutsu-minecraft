@@ -29,7 +29,7 @@ public final class JujutsuItems {
 	public static final Item RESONANCE_REMNANT = createProjectJjkRemnant("resonance_remnant", new Item.Properties().stacksTo(1));
 	public static final Item STRAW_DOLL = createProjectJjkStrawDoll("straw_doll", strawDollProperties());
 	public static final Item CURSED_OBJECT = createCursedObject("cursed_object",
-			new Item.Properties().stacksTo(1).fireResistant());
+			new Item.Properties().stacksTo(1));
 	public static final Item SEALING_TALISMAN = createTalisman("sealing_talisman", SealTier.TALISMAN);
 	public static final Item INSCRIBED_TALISMAN = createTalisman("inscribed_talisman", SealTier.INSCRIBED);
 	public static final Item PRISMATIC_TALISMAN = createTalisman("prismatic_talisman", SealTier.PRISMATIC);

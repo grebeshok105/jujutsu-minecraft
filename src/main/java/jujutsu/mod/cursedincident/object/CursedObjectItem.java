@@ -8,14 +8,17 @@ import jujutsu.mod.cursedincident.KnowledgeLevel;
 import jujutsu.mod.cursedincident.policy.SealPolicy;
 import jujutsu.mod.cursedincident.runtime.ObjectDwellTracker;
 import jujutsu.mod.registry.JujutsuDataComponents;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.DamageResistant;
 import net.minecraft.world.item.component.TooltipDisplay;
 import software.bernie.geckolib.animatable.GeoItem;
 import software.bernie.geckolib.animatable.client.GeoRenderProvider;
@@ -66,7 +69,19 @@ public final class CursedObjectItem extends Item implements GeoItem {
     public static ItemStack stack(CursedObjectState state) {
         ItemStack stack = new ItemStack(jujutsu.mod.registry.JujutsuItems.CURSED_OBJECT);
         stack.set(JujutsuDataComponents.CURSED_OBJECT_STATE, state);
+        applyTypeComponents(stack);
         return stack;
+    }
+
+    /** Adds per-instance components whose values depend on the data-driven object type. */
+    public static void applyTypeComponents(ItemStack stack) {
+        CursedObjectState state = state(stack);
+        CursedObjectType type = state == null ? null : CursedObjectRegistry.byId(state.typeId());
+        if (type != null && type.indestructible()) {
+            stack.set(DataComponents.DAMAGE_RESISTANT, new DamageResistant(DamageTypeTags.IS_FIRE));
+        } else if (stack != null && !stack.isEmpty()) {
+            stack.remove(DataComponents.DAMAGE_RESISTANT);
+        }
     }
 
     /** Applies a physical talisman directly to the authoritative stack component. */

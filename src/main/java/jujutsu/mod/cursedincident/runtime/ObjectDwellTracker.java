@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import jujutsu.mod.cursedincident.DwellProvider;
+import jujutsu.mod.cursedincident.object.CursedObjectItem;
 import jujutsu.mod.cursedincident.object.CursedObjectRegistry;
 import jujutsu.mod.cursedincident.object.CursedObjectState;
 import jujutsu.mod.cursedincident.object.CursedObjectType;
@@ -220,8 +221,10 @@ public final class ObjectDwellTracker implements DwellProvider {
         tracked.type = type;
         tracked.state = state;
         tracked.stack = stack;
+        if (stack != null) {
+            CursedObjectItem.applyTypeComponents(stack);
+        }
         tracked.level = level == null ? tracked.level : level;
-        tracked.lastPosition = position;
         if (tracked.lastGameTime == 0L && tracked.anchor == null) {
             tracked.lastGameTime = now;
             tracked.lastDecayGameTime = Math.max(state.mintedGameTime(), now);
