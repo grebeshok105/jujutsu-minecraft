@@ -59,6 +59,9 @@ public final class InfectionSink implements IncidentWorldSink {
 			// Keep the stage with the position. Both chunk availability and the live block
 			// state are resolved by InfectionQueue.drain, so unloaded edits are not lost.
 			queue.enqueue(pos, to, true);
+			if (!level.getChunkSource().hasChunk(pos.getX() >> 4, pos.getZ() >> 4)) {
+				record.counters.chunkEditsDeferred++;
+			}
 		}
 		Cadence cadence = CADENCE.computeIfAbsent(record.id, ignored -> new Cadence());
 		cadence.lastStage = level.getGameTime();

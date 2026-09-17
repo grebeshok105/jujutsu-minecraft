@@ -195,7 +195,18 @@ public final class IncidentControl {
 			return null;
 		}
 		UUID incidentId = INCIDENT_BY_OBJECT.get(objectInstanceId);
-		return incidentId == null ? null : data().get(incidentId);
+		if (incidentId != null) {
+			return data().get(incidentId);
+		}
+		// Records whose objectInstanceId was assigned post-spawn (tests, legacy loads)
+		// bypass the index — fall back to a scan and heal the index.
+		for (IncidentRecord record : data().incidents().values()) {
+			if (objectInstanceId.equals(record.objectInstanceId)) {
+				INCIDENT_BY_OBJECT.put(objectInstanceId, record.id);
+				return record;
+			}
+		}
+		return null;
 	}
 
 	public static IncidentStage setStage(UUID id, IncidentStage target) {

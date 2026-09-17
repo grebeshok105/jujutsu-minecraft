@@ -1,6 +1,9 @@
 package jujutsu.mod.gametest;
 
+import com.google.gson.JsonObject;
+import com.mojang.serialization.JsonOps;
 import java.util.List;
+import java.util.Set;
 
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
@@ -19,8 +22,11 @@ import jujutsu.mod.cursedincident.IncidentControl;
 import jujutsu.mod.cursedincident.IncidentRecord;
 import jujutsu.mod.cursedincident.IncidentStage;
 import jujutsu.mod.cursedincident.SourceKind;
+import jujutsu.mod.cursedincident.infection.InfectionQueue;
 import jujutsu.mod.cursedincident.infection.InfectionSink;
 import jujutsu.mod.cursedincident.infection.ZoneGeometry;
+import jujutsu.mod.cursedincident.persist.IncidentNbt;
+import jujutsu.mod.cursedincident.persist.IncidentSavedData;
 import jujutsu.mod.cursedincident.runtime.PerceptionOverrideRuntime;
 import jujutsu.mod.cursedspirit.CursedSpiritEntity;
 import jujutsu.mod.cursedspirit.CursedSpiritProfile;
@@ -28,6 +34,7 @@ import jujutsu.mod.cursedspirit.perception.CursePerception;
 import jujutsu.mod.combat.JujutsuDamageSources;
 import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.cursedincident.object.CursedObjectItem;
+
 
 /** Issue #110 world oracles. Every method names the requirements it defends. */
 public final class CursedIncidentGameTests {
@@ -202,21 +209,37 @@ public final class CursedIncidentGameTests {
 	public void perTickBudgetBounded(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
 		InfectionSink sink = new InfectionSink();
+		IncidentStage from = IncidentStage.GROWING;
+		IncidentStage next = from.next();
 		IncidentRecord[] records = new IncidentRecord[3];
 		for (int i = 0; i < records.length; i++) {
-			records[i] = CursedIncidentTestFixtures.spawnFree(helper, new BlockPos(4 + i * 4, 4, 8), IncidentStage.CATASTROPHIC,
-					RADIUS, 1113L + i);
-			sink.applyStageDelta(level, records[i], IncidentStage.INFESTED, IncidentStage.CATASTROPHIC);
+			records[i] = CursedIncidentTestFixtures.spawnFree(
+					helper, new BlockPos(3 + i * 5, 4, 8), from, 6.0, 1113L + i);
+			for (BlockPos sample : CursedIncidentTestFixtures.sampledPositions(records[i], next)) {
+				helper.setBlock(CursedIncidentTestFixtures.relative(helper, sample), Blocks.GRASS_BLOCK);
+			}
+			// The fixture's INITIAL -> GROWING delta is not the pass under test.
+			InfectionQueue.forIncident(records[i]).clear();
+			sink.applyStageDelta(level, records[i], from, next);
 		}
 		long before = 0L;
-		for (IncidentRecord record : records) before += record.counters.blocksChanged;
-		for (IncidentRecord record : records) sink.tickZone(level, record, 64);
+		for (IncidentRecord record : records) {
+			before += record.counters.blocksChanged;
+		}
+		for (IncidentRecord record : records) {
+			sink.tickZone(level, record, InfectionSink.PER_TICK_BLOCK_BUDGET);
+		}
 		long after = 0L;
-		for (IncidentRecord record : records) after += record.counters.blocksChanged;
-		helper.assertTrue(after - before <= InfectionSink.PER_TICK_BLOCK_BUDGET,
+		for (IncidentRecord record : records) {
+			after += record.counters.blocksChanged;
+		}
+		long applied = after - before;
+		helper.assertTrue(applied > 0 && applied <= InfectionSink.PER_TICK_BLOCK_BUDGET,
 				CursedIncidentTestFixtures.diagnostic("perTickBudgetBounded(R70,R71)", helper,
-					"shared block budget", "<=64", after - before));
-		for (IncidentRecord record : records) CursedIncidentTestFixtures.cleanup(record);
+						"mappable edits in one shared drain pass", "1..64", applied));
+		for (IncidentRecord record : records) {
+			CursedIncidentTestFixtures.cleanup(record);
+		}
 		helper.succeed();
 	}
 

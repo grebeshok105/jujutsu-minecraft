@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
  */
 public final class IncidentSavedData extends SavedData {
 	private static final Logger LOGGER = LoggerFactory.getLogger("jujutsumod/incidents");
-	private static final Codec<UUID> MAP_KEY_CODEC = Codec.STRING.xmap(UUID::fromString, UUID::toString);
 
 	public static final Codec<IncidentSavedData> CODEC = Codec.of(
 			IncidentSavedData::encode,
