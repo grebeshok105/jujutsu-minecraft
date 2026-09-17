@@ -19,7 +19,7 @@ public final class CharacterSelectionManager {
 		// The old vessel packs up before the new one is stored, so its hook still sees itself selected.
 		// Every switch runs it, including re-selecting the same vessel, which is what the unconditional
 		// Todo cleanup this replaced did.
-		JujutsuCharacters.definition(previous).onDeselected(player);
+		JujutsuCharacters.definition(previous).onDeselected(player, character);
 		// A real vessel change is a clean slate (issue #84): the deadlines belonged to the vessel that
 		// is leaving, so they go with it. Two deliberate details — this runs AFTER onDeselected (whose
 		// teardown may arm one) and BEFORE the new selection is stored, while both the store and the

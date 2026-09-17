@@ -3,6 +3,7 @@ package jujutsu.mod.client.character.megumi.selector;
 import java.util.List;
 import java.util.Set;
 import com.mojang.blaze3d.platform.InputConstants;
+import org.lwjgl.glfw.GLFW;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -146,7 +147,7 @@ public final class MegumiShikigamiSelectorScreen extends Screen implements Quick
 		if (button != InputConstants.MOUSE_BUTTON_LEFT || closing) {
 			return true;
 		}
-		ShikigamiSelectorLayout.Slot hit = ShikigamiSelectorLayout.slotAt(slots, mouseX, mouseY);
+		ShikigamiSelectorLayout.Slot hit = slotAtRendered(mouseX, mouseY);
 		if (hit == null) {
 			return true;
 		}
@@ -215,10 +216,17 @@ public final class MegumiShikigamiSelectorScreen extends Screen implements Quick
 		if (mapping.isDown()) {
 			return true;
 		}
-		// Same physical fallback the input layer uses for this key, for the case where the event is
-		// lost — and only for the default/unbound key, since a rebound key's events always reach it.
-		if (mapping.isUnbound() || mapping.isDefault()) {
-			return InputConstants.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), InputConstants.KEY_G);
+		// Physical fallback for a lost event: poll the bound key directly. This must read the real
+		// binding — not a hardcoded default — and must cover mouse buttons: opening a screen runs
+		// KeyMapping.setAll(), which re-polls keyboard keys only, so a mouse-bound selector reports
+		// isDown()==false while physically held and the watchdog would close the strip instantly.
+		InputConstants.Key bound = InputConstants.getKey(mapping.saveString());
+		long window = Minecraft.getInstance().getWindow().getWindow();
+		if (bound.getType() == InputConstants.Type.MOUSE) {
+			return GLFW.glfwGetMouseButton(window, bound.getValue()) == GLFW.GLFW_PRESS;
+		}
+		if (bound.getType() == InputConstants.Type.KEYSYM) {
+			return InputConstants.isKeyDown(window, bound.getValue());
 		}
 		return false;
 	}
@@ -233,13 +241,31 @@ public final class MegumiShikigamiSelectorScreen extends Screen implements Quick
 		motion.close();
 	}
 
+	/**
+	 * Hit-test against where the slot is actually drawn: the layout stores settled rectangles, but
+	 * during the entrance each slot renders shifted down by its stagger rise plus the strip rise (the
+	 * strip rise reaches 2D content through the outer pose translate). Testing the settled rect would
+	 * miss clicks near a visible slot's lower edge until the animation finishes.
+	 */
+	private ShikigamiSelectorLayout.Slot slotAtRendered(double mouseX, double mouseY) {
+		float stripRise = (1.0f - motion.stripProgress()) * STRIP_RISE_PX;
+		for (int index = 0; index < slots.size(); index++) {
+			ShikigamiSelectorLayout.Slot slot = slots.get(index);
+			float offsetY = (1.0f - motion.slotStagger(index)) * SLOT_RISE_PX + stripRise;
+			if (slot.contains(mouseX - motion.shakeOffset(index), mouseY - offsetY)) {
+				return slot;
+			}
+		}
+		return null;
+	}
+
 	/** Hover feedback fires on change only — once per entry entered, never per frame. */
 	private void updateHover(double mouseX, double mouseY) {
 		MegumiShikigami now;
 		if (closing) {
 			now = null;
 		} else {
-			ShikigamiSelectorLayout.Slot hit = ShikigamiSelectorLayout.slotAt(slots, mouseX, mouseY);
+			ShikigamiSelectorLayout.Slot hit = slotAtRendered(mouseX, mouseY);
 			now = hit == null ? null : hit.type();
 		}
 		if (now != hovered) {

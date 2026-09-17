@@ -114,8 +114,11 @@ public interface CharacterDefinition {
 	/**
 	 * Runs before the player stops being this vessel. Anything half-finished that a later cast could
 	 * consume, or anything left in the world that only this vessel could have used, is dropped here.
+	 * {@code incoming} is the vessel being switched to — it equals this definition's vessel on a
+	 * re-confirm, which is NOT a clean slate: state that only a real switch should reset (cooldown
+	 * ledgers, selection memory) must check it.
 	 */
-	default void onDeselected(ServerPlayer player) {}
+	default void onDeselected(ServerPlayer player, JujutsuCharacter incoming) {}
 
 	// No display strings here yet, deliberately. The plan called for name, role and technique keys, but
 	// the keys as written are not a set: the roster's three card slots hold different things for each

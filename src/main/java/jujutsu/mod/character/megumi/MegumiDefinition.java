@@ -89,7 +89,7 @@ public final class MegumiDefinition implements CharacterDefinition {
 	}
 
 	@Override
-	public void onDeselected(ServerPlayer player) {
+	public void onDeselected(ServerPlayer player, JujutsuCharacter incoming) {
 		MegumiSummonRuntime.teardown(player.getServer(), player.getUUID(),
 				MegumiSummonRuntime.TeardownReason.DESELECTED);
 		MegumiShikigamiRuntime.teardown(player.getServer(), player.getUUID(),
@@ -97,10 +97,12 @@ public final class MegumiDefinition implements CharacterDefinition {
 		MegumiShadowTrapRuntime.clear(player.getServer(), player.getUUID(), true);
 		MegumiShadowDropRuntime.clear(player.getServer(), player.getUUID(), true);
 		MegumiShadowMoveRuntime.teardown(player.getServer(), player.getUUID());
-		// The teardown above charges the swept type its own cooldown; the roster ledger is still dropped,
-		// because a vessel change is the roster's clean slate and returning to Megumi must not greet the
-		// player with a selector full of grey. This is deliberately asymmetric with the shared slot
-		// ledger, whose charge survives the switch (issue #84).
-		MegumiShikigamiCooldowns.clear(player.getUUID());
+		// The teardown above charges the swept type its own cooldown. The roster ledger is dropped only
+		// on a real vessel change — the roster's clean slate. Re-confirming Megumi keeps it, so the
+		// selector still shows the teardown-armed cooldowns instead of lying READY while the shared
+		// PRIMARY (which survives a re-confirm, issue #84) would refuse the summon anyway.
+		if (incoming != JujutsuCharacter.MEGUMI) {
+			MegumiShikigamiCooldowns.clear(player.getUUID());
+		}
 	}
 }
