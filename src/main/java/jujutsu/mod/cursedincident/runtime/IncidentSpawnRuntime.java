@@ -66,8 +66,14 @@ public final class IncidentSpawnRuntime {
 			return 0;
 		}
 		String tag = "jujutsumod:incident/" + incidentId;
-		List<CursedSpiritEntity> spirits = new ArrayList<>(level.getEntitiesOfClass(
-				CursedSpiritEntity.class, level.getWorldBorder().getCollisionShape().bounds(), entity -> entity.getTags().contains(tag)));
+		// getAllEntities covers the whole level regardless of world-border shape —
+		// GameTest levels run at far coordinates where border bounds may not reach.
+		List<CursedSpiritEntity> spirits = new ArrayList<>();
+		for (var entity : level.getAllEntities()) {
+			if (entity instanceof CursedSpiritEntity spirit && entity.getTags().contains(tag)) {
+				spirits.add(spirit);
+			}
+		}
 		int removed = 0;
 		for (CursedSpiritEntity spirit : spirits) {
 			spirit.discard();
