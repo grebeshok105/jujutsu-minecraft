@@ -87,6 +87,7 @@ public final class ObjectDwellTracker implements DwellProvider {
                 TrackedObject tracked = observe(state, stack, level, player.blockPosition(), level.getGameTime(), null);
                 tracked.entity = null;
                 tracked.awaitingReload = true;
+                tracked.dead = false;
             }
         }
     }
@@ -121,6 +122,7 @@ public final class ObjectDwellTracker implements DwellProvider {
                 containerPos, now, null);
         tracked.entity = null;
         tracked.awaitingReload = true;
+        tracked.dead = false;
     }
 
     @Override
@@ -231,9 +233,17 @@ public final class ObjectDwellTracker implements DwellProvider {
             tracked.anchor = position;
             tracked.accumulatedTicks = Math.max(0L, state.accumulatedTicks());
         } else if (position != null && type != null && !state.sealed()) {
+            // Per-incident dwell requirement wins over the default when this object is
+            // an incident source (SpawnRequest.dwellTicksRequired override, R43/R44).
+            long required = DEFAULT_DWELL_TICKS;
+            jujutsu.mod.cursedincident.IncidentRecord owner =
+                    jujutsu.mod.cursedincident.IncidentControl.recordForObject(state.instanceId());
+            if (owner != null && owner.params != null && owner.params.dwellTicksRequired() >= 0L) {
+                required = owner.params.dwellTicksRequired();
+            }
             DwellAccumulator.Result result = DwellAccumulator.update(
                     tracked.anchor, position, tracked.lastGameTime, tracked.accumulatedTicks, now,
-                    DEFAULT_DWELL_TICKS, type.dwellRadius());
+                    required, type.dwellRadius());
             if (!result.anchor().equals(tracked.anchor)) {
                 tracked.dwellCenter = null;
             }
