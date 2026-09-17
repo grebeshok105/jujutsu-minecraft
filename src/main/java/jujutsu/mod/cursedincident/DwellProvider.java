@@ -26,6 +26,16 @@ public interface DwellProvider {
 	}
 
 	/**
+	 * Write-through for seal/knowledge state onto the physical stack's
+	 * {@code CURSED_OBJECT_STATE} component (the authoritative store — plan review F9).
+	 * {@code IncidentControl}'s seal/unseal/damageSeal/identify call this after mutating
+	 * the incident record when the source is an object.
+	 */
+	default void applySealState(UUID objectInstanceId, boolean sealed, int sealTier,
+			int sealIntegrity, jujutsu.mod.cursedincident.KnowledgeLevel knowledge) {
+	}
+
+	/**
 	 * Called by the zone container scan (Block 3's {@code InfectionSink.tickZone}): a
 	 * block-entity container at {@code containerPos} holds {@code stack}. Lets the dwell
 	 * tracker pin the object to the container's position (spec §8.1 — a chest is not

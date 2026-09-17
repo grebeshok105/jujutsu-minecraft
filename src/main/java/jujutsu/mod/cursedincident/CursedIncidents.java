@@ -1,22 +1,26 @@
 package jujutsu.mod.cursedincident;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.minecraft.server.level.ServerLevel;
+import jujutsu.mod.cursedincident.persist.IncidentSavedData;
 
-/**
- * Single server-registration seam for the cursed-incident subsystem (issue #110) —
- * same shape as {@code CursedSpirits.registerServerHooks()}. Called once from
- * {@code JujutsuMod.onInitialize()}.
- *
- * <p>Init order inside: persistence load + catch-up first, then the world sink and
- * dwell/object wiring (bound by the object/infection wiring classes), then the
- * SERVER_STOPPING clear.
- */
+/** Single server-registration seam for the incident subsystem. */
 public final class CursedIncidents {
+	private static boolean registered;
 
 	private CursedIncidents() {
 	}
 
-	public static void registerServerHooks() {
+	public static synchronized void registerServerHooks() {
+		if (registered) {
+			return;
+		}
+		registered = true;
+		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+			ServerLevel overworld = server.overworld();
+			IncidentControl.bindStore(() -> IncidentSavedData.get(overworld));
+			IncidentControl.catchUp(overworld);
+		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> IncidentControl.clearRuntimeState());
 	}
 }

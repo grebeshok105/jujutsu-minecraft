@@ -3,9 +3,8 @@ package jujutsu.mod.cursedincident;
 import java.util.Locale;
 
 /**
- * Per-player-facing identification ladder for a cursed object (issue #110 spec §13).
- * Ships as data only: the learning/research subsystem is a future consumer; #110 stores
- * the level and gates display text on it, nothing else.
+ * The data-only object-identification ladder. Behavioural learning is deliberately
+ * outside issue #110; the level is persisted and consumed by presentation code.
  */
 public enum KnowledgeLevel {
 	UNKNOWN,
@@ -18,18 +17,27 @@ public enum KnowledgeLevel {
 	RESTRICTIONS;
 
 	public boolean atLeast(KnowledgeLevel other) {
-		return ordinal() >= other.ordinal();
+		return other != null && ordinal() >= other.ordinal();
+	}
+
+	public static boolean isKnown(String name) {
+		return byName(name) != null;
 	}
 
 	public static KnowledgeLevel byName(String name) {
-		if (name == null) {
+		if (name == null || name.isBlank()) {
 			return null;
 		}
 		try {
 			return valueOf(name.toUpperCase(Locale.ROOT));
-		} catch (IllegalArgumentException e) {
+		} catch (IllegalArgumentException ignored) {
 			return null;
 		}
+	}
+
+	public static KnowledgeLevel byNameOrDefault(String name) {
+		KnowledgeLevel level = byName(name);
+		return level == null ? UNKNOWN : level;
 	}
 
 	public String wireName() {

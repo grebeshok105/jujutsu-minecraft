@@ -3,13 +3,8 @@ package jujutsu.mod.cursedincident;
 import java.util.List;
 import java.util.Map;
 
-/**
- * The five mechanical incident templates (issue #110 spec §5). A template is a
- * structure + weight table, never a script — per-incident variance comes from the
- * seeded param roll.
- */
+/** Static data registry for the five v1 incident templates. */
 public final class IncidentTemplates {
-
 	public static final IncidentTemplate BLIGHT = new IncidentTemplate(
 			"blight", 30, 24.0,
 			Map.of("lesser", 60, "common", 30, "greater", 10),
@@ -23,7 +18,7 @@ public final class IncidentTemplates {
 	public static final IncidentTemplate CORRUPTION = new IncidentTemplate(
 			"corruption", 20, 28.0,
 			Map.of("lesser", 50, "common", 35, "greater", 15),
-			List.of("ash_fall", "ground_rott"), 0.9, true);
+			List.of("ash_fall", "ground_rot"), 0.9, true);
 
 	public static final IncidentTemplate HAUNTING = new IncidentTemplate(
 			"haunting", 15, 32.0,
@@ -45,9 +40,9 @@ public final class IncidentTemplates {
 		if (id == null) {
 			return null;
 		}
-		for (IncidentTemplate t : ALL) {
-			if (t.id().equals(id)) {
-				return t;
+		for (IncidentTemplate template : ALL) {
+			if (template.id().equalsIgnoreCase(id)) {
+				return template;
 			}
 		}
 		return null;

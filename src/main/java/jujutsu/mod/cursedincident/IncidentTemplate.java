@@ -3,18 +3,7 @@ package jujutsu.mod.cursedincident;
 import java.util.List;
 import java.util.Map;
 
-/**
- * One mechanical incident template (issue #110 spec §5): the structure of an event, not
- * its script. Concrete variance comes from {@link IncidentParams} rolled per incident.
- *
- * @param id             registry id ("blight", "nest", ...)
- * @param weight         selection weight in the template roll
- * @param baseRadius     default zone radius before grade/stage scaling
- * @param curseWeights   default spirit tier weights (params may re-roll)
- * @param atmospherePool atmosphere ids the param roll picks from
- * @param escalationMul  template-level escalation multiplier
- * @param allowSecondary whether this template may mint secondary nodes at all
- */
+/** A mechanical incident template: structure and weights, never a script. */
 public record IncidentTemplate(
 		String id,
 		int weight,
@@ -25,7 +14,11 @@ public record IncidentTemplate(
 		boolean allowSecondary) {
 
 	public IncidentTemplate {
-		curseWeights = Map.copyOf(curseWeights);
-		atmospherePool = List.copyOf(atmospherePool);
+		id = id == null ? "" : id;
+		weight = Math.max(0, weight);
+		baseRadius = Double.isFinite(baseRadius) && baseRadius >= 0.0 ? baseRadius : 0.0;
+		curseWeights = curseWeights == null ? Map.of() : Map.copyOf(curseWeights);
+		atmospherePool = atmospherePool == null ? List.of() : List.copyOf(atmospherePool);
+		escalationMul = Double.isFinite(escalationMul) && escalationMul > 0.0 ? escalationMul : 1.0;
 	}
 }

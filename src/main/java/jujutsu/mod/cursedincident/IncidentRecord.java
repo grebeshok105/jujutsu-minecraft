@@ -4,85 +4,106 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import jujutsu.mod.cursedincident.policy.SpawnRollPolicy;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 
-/**
- * The full logical state of one incident (issue #110 spec §15). Persisted inside
- * {@code IncidentSavedData}; lives independently of chunk loading — the world half is
- * applied lazily through {@link IncidentWorldSink}.
- *
- * <p>All time fields use {@code level.getGameTime()} — never {@code tickCount} (the
- * per-entity clock resets on rejoin; documented trap in MegumiHostilityPolicy).
- *
- * <p>Seal state authority: the object component ({@code CursedObjectState}) is the
- * authoritative store when the source is an object; this record mirrors it for queries.
- * Every seal op writes the component first, then mirrors here (plan review F9).
- */
+/** Full durable logical state for one incident. */
 public final class IncidentRecord {
-
-	/** One executed stage transition, kept for inspect/debuggability (spec §15). */
+	/** One executed stage transition, retained for inspect/debuggability. */
 	public record Transition(IncidentStage from, IncidentStage to, long gameTime) {
+		public Transition {
+			from = from == null ? IncidentStage.INITIAL : from;
+			to = to == null ? from : to;
+			gameTime = Math.max(0L, gameTime);
+		}
 	}
 
-	/** Work counters — the perf oracle (spec §21): asserted bounded per tick. */
+	/** Work counters used by the world budget oracle. */
 	public static final class WorkCounters {
 		public long blocksChanged;
 		public long cursesSpawned;
 		public long animalsCulled;
 		public long chunkEditsDeferred;
 
+		public WorkCounters() {
+		}
+
+		public WorkCounters(long blocksChanged, long cursesSpawned, long animalsCulled, long chunkEditsDeferred) {
+			this.blocksChanged = Math.max(0L, blocksChanged);
+			this.cursesSpawned = Math.max(0L, cursesSpawned);
+			this.animalsCulled = Math.max(0L, animalsCulled);
+			this.chunkEditsDeferred = Math.max(0L, chunkEditsDeferred);
+		}
+
 		public WorkCounters copy() {
-			WorkCounters c = new WorkCounters();
-			c.blocksChanged = blocksChanged;
-			c.cursesSpawned = cursesSpawned;
-			c.animalsCulled = animalsCulled;
-			c.chunkEditsDeferred = chunkEditsDeferred;
-			return c;
+			return new WorkCounters(blocksChanged, cursesSpawned, animalsCulled, chunkEditsDeferred);
 		}
 	}
 
-	public UUID id;
+	public UUID id() {
+		return id;
+	}
+	public UUID id = UUID.randomUUID();
 	public long seed;
 	public long createdGameTime;
 	public long lastUpdateGameTime;
-	/** Logical age added by dev ops (advance age) on top of wall game-time. */
+	/** Logical age added by dev operations on top of world game time. */
 	public long bonusAgeTicks;
-	public ResourceKey<Level> dimension;
-	public BlockPos center;
+	public ResourceKey<Level> dimension = Level.OVERWORLD;
+	public BlockPos center = BlockPos.ZERO;
 	public double radius;
 	public IncidentStage stage = IncidentStage.INITIAL;
-	/** Terminal flag set by cleanup(): the record persists as a SCAR — stage ladder untouched. */
+	/** Terminal cleanup flag; this is not an additional stage. */
 	public boolean scarred;
 	public SourceKind sourceKind = SourceKind.FREE;
-	/** Instance id of the cursed object when sourceKind == OBJECT. */
 	public UUID objectInstanceId;
 	public String objectTypeId;
 	public Integer objectGrade;
-	/** Last known world position of the source object (dwell or drop point). */
 	public BlockPos sourcePos;
-	/** Last known container position holding the source object, if any. */
 	public BlockPos sourceContainer;
-	public String templateId = "";
-	public IncidentParams params;
+	public String templateId = "blight";
+	public IncidentParams params = new IncidentParams(
+			"sphere", 0.0, java.util.Map.of(), "", java.util.List.of(), 1.0, false, false,
+			SpawnRollPolicy.DEFAULT_DWELL_TICKS);
 	public final List<SecondaryNode> secondaries = new ArrayList<>();
 	public final List<Transition> transitions = new ArrayList<>();
-	/** Previous centres whose physical damage stays forever (spec §8.3). */
+	/** Previous centres whose physical damage remains permanently. */
 	public final List<BlockPos> scars = new ArrayList<>();
 	public boolean sealed;
 	public int sealIntegrity;
 	public int sealTier;
-	/** Count of refused/failed seal attempts and seal breaks (inspect field seal.failures). */
 	public int sealFailures;
 	public KnowledgeLevel knowledge = KnowledgeLevel.UNKNOWN;
-	/** Dwell accumulation for the mobile-source rule (spec §8.2). */
 	public long dwellTicks;
 	public BlockPos dwellAnchor;
 	public final WorkCounters counters = new WorkCounters();
 
 	/** Logical age in ticks: world time elapsed since creation plus dev-added age. */
 	public long ageTicks(long nowGameTime) {
-		return Math.max(0L, nowGameTime - createdGameTime) + bonusAgeTicks;
+		long elapsed;
+		try {
+			elapsed = Math.subtractExact(nowGameTime, createdGameTime);
+		} catch (ArithmeticException overflow) {
+			elapsed = nowGameTime >= createdGameTime ? Long.MAX_VALUE : Long.MIN_VALUE;
+		}
+		if (elapsed < 0L) {
+			elapsed = 0L;
+		}
+		if (Long.MAX_VALUE - elapsed < Math.max(0L, bonusAgeTicks)) {
+			return Long.MAX_VALUE;
+		}
+		return elapsed + Math.max(0L, bonusAgeTicks);
+	}
+
+	public int dependentCenterCount() {
+		int count = 0;
+		for (SecondaryNode node : secondaries) {
+			if (!node.selfSustaining()) {
+				count++;
+			}
+		}
+		return count;
 	}
 }
