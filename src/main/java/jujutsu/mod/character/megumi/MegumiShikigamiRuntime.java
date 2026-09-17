@@ -173,7 +173,11 @@ public final class MegumiShikigamiRuntime {
 			reconcile(player.getServer(), ownerId, RemovalCause.TICK);
 			MegumiSummonRuntime.reconcile(player.getServer(), ownerId, MegumiSummonRuntime.RemovalCause.TICK);
 			if (notify) {
-				player.displayClientMessage(Component.translatable("message.jujutsumod.megumi.shikigami.none"), true);
+				// The dog family keeps its own wording when the dogs are what the player is commanding.
+				player.displayClientMessage(Component.translatable(
+						MegumiShikigamiSelection.selected(ownerId) == MegumiShikigami.DOGS
+								? "message.jujutsumod.megumi.dogs.none_out"
+								: "message.jujutsumod.megumi.shikigami.none"), true);
 			}
 			return false;
 		}
