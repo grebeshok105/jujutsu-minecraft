@@ -15,6 +15,10 @@ import net.minecraft.world.level.Level;
  *
  * <p>All time fields use {@code level.getGameTime()} — never {@code tickCount} (the
  * per-entity clock resets on rejoin; documented trap in MegumiHostilityPolicy).
+ *
+ * <p>Seal state authority: the object component ({@code CursedObjectState}) is the
+ * authoritative store when the source is an object; this record mirrors it for queries.
+ * Every seal op writes the component first, then mirrors here (plan review F9).
  */
 public final class IncidentRecord {
 
@@ -49,11 +53,17 @@ public final class IncidentRecord {
 	public BlockPos center;
 	public double radius;
 	public IncidentStage stage = IncidentStage.INITIAL;
+	/** Terminal flag set by cleanup(): the record persists as a SCAR — stage ladder untouched. */
+	public boolean scarred;
 	public SourceKind sourceKind = SourceKind.FREE;
 	/** Instance id of the cursed object when sourceKind == OBJECT. */
 	public UUID objectInstanceId;
 	public String objectTypeId;
 	public Integer objectGrade;
+	/** Last known world position of the source object (dwell or drop point). */
+	public BlockPos sourcePos;
+	/** Last known container position holding the source object, if any. */
+	public BlockPos sourceContainer;
 	public String templateId = "";
 	public IncidentParams params;
 	public final List<SecondaryNode> secondaries = new ArrayList<>();
@@ -63,6 +73,8 @@ public final class IncidentRecord {
 	public boolean sealed;
 	public int sealIntegrity;
 	public int sealTier;
+	/** Count of refused/failed seal attempts and seal breaks (inspect field seal.failures). */
+	public int sealFailures;
 	public KnowledgeLevel knowledge = KnowledgeLevel.UNKNOWN;
 	/** Dwell accumulation for the mobile-source rule (spec §8.2). */
 	public long dwellTicks;

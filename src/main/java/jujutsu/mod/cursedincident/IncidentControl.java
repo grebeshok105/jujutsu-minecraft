@@ -3,6 +3,7 @@ package jujutsu.mod.cursedincident;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
@@ -14,22 +15,31 @@ import net.minecraft.world.level.Level;
  * {@code /jujutsu incident} commands and the MCP dev bridge all enter through here —
  * there is no second implementation of the mechanics.
  *
- * <p>All state lives in {@code IncidentSavedData} on the overworld; all world effects
- * go through the bound {@link IncidentWorldSink}. Server-side only.
+ * <p>All state lives in {@code IncidentSavedData} on the overworld, reached through the
+ * bound store supplier — production binds {@code () -> IncidentSavedData.get(overworld)}
+ * on SERVER_STARTED; plain JUnit binds {@code IncidentSavedData::new} (review F3). All
+ * world effects go through the bound {@link IncidentWorldSink}. Server-side only.
  */
 public final class IncidentControl {
 
 	/** Everything needed to mint an incident; nulls mean "roll it". */
 	public record SpawnRequest(BlockPos center, ResourceKey<Level> dimension, String templateId,
-			Integer grade, Long seed, IncidentStage startStage, String objectTypeId, SourceKind sourceKind) {
+			Integer grade, Long seed, IncidentStage startStage, String objectTypeId, SourceKind sourceKind,
+			Double radius) {
 	}
 
-	/** The machine-readable snapshot returned by inspect/list (spec §17). */
-	public record InspectView(UUID id, long seed, String templateId, IncidentStage stage, long ageTicks,
-			long createdGameTime, long lastUpdateGameTime, BlockPos center, double radius, String zoneShape,
-			SourceKind sourceKind, UUID objectInstanceId, String objectTypeId, Integer objectGrade,
-			boolean sealed, int sealIntegrity, int sealTier, String knowledge,
-			List<SecondaryNode> secondaries, int dependentCenters, List<BlockPos> scars,
+	/** Machine-readable seal outcome (R38): refusal carries the required tier + reason. */
+	public record SealAttempt(boolean ok, int requiredTier, String reason) {
+	}
+
+	/** The machine-readable snapshot returned by inspect/list (spec §17, scout-4 field list). */
+	public record InspectView(UUID id, long seed, String templateId, IncidentStage stage, boolean scarred,
+			long ageTicks, long createdGameTime, long lastUpdateGameTime, BlockPos center, double radius,
+			String zoneShape, SourceKind sourceKind, UUID objectInstanceId, String objectTypeId,
+			Integer objectGrade, BlockPos sourcePos, BlockPos sourceContainer,
+			Map<String, Integer> curseSet, String atmosphereId, List<String> localGoals,
+			boolean ignoreShelter, boolean sealed, int sealIntegrity, int sealTier, int sealFailures,
+			String knowledge, List<SecondaryNode> secondaries, int dependentCenters, List<BlockPos> scars,
 			Map<String, Long> workCounters, List<String> transitionLog) {
 	}
 
@@ -43,6 +53,11 @@ public final class IncidentControl {
 	}
 
 	// ---- wiring (bound once from CursedIncidents.registerServerHooks via *Wiring) ----
+
+	/** Binds the store. Production: overworld SavedData; tests: a fresh instance. */
+	public static void bindStore(Supplier<?> store) {
+		throw new UnsupportedOperationException("block-1 pending");
+	}
 
 	public static void bindWorldSink(IncidentWorldSink sink) {
 		throw new UnsupportedOperationException("block-1 pending");
@@ -92,7 +107,7 @@ public final class IncidentControl {
 		throw new UnsupportedOperationException("block-1 pending");
 	}
 
-	public static boolean seal(UUID id, int sealTier) {
+	public static SealAttempt seal(UUID id, int sealTier) {
 		throw new UnsupportedOperationException("block-1 pending");
 	}
 
@@ -125,6 +140,20 @@ public final class IncidentControl {
 	}
 
 	public static void catchUp(ServerLevel overworld) {
+		throw new UnsupportedOperationException("block-1 pending");
+	}
+
+	// ---- cursed pressure (spec §4.2; storage owned by B1's IncidentSavedData) ----
+
+	public static long cursedPressure() {
+		throw new UnsupportedOperationException("block-1 pending");
+	}
+
+	public static long addPressure(long delta) {
+		throw new UnsupportedOperationException("block-1 pending");
+	}
+
+	public static void resetPressure() {
 		throw new UnsupportedOperationException("block-1 pending");
 	}
 
