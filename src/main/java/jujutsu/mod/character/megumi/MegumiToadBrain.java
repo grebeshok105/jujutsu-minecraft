@@ -69,8 +69,11 @@ final class MegumiToadBrain {
 		// Owner LoS gates only the owner's own ORDER (an owner cannot sic what it cannot see).
 		// A self-picked target answers to the body's own senses instead: nearestGrabbable already
 		// required the toad's LoS, and the commit below re-checks it — an owner standing in a
-		// cellar must not blind its toad (issue #90).
-		boolean ownerOrdered = toad.sicTargetUuid() != null
+		// cellar must not blind its toad (issue #90). The same holds for an AUTONOMOUS mark the
+		// coordinator wrote: it is the pack's pick, not the owner's sighted order — treating it
+		// as owner-ordered let a blind owner veto the body's own mark (CI flake 35362569362).
+		boolean ownerOrdered = toad.hasManualSicTarget()
+				&& toad.sicTargetUuid() != null
 				&& toad.sicTargetUuid().equals(target.getUUID());
 		if (owner == null || !toad.attackReady(gameTime)
 				|| !MegumiToadPolicy.canGrab(toad.distanceTo(target))

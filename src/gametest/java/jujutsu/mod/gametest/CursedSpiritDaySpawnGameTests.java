@@ -343,9 +343,18 @@ public final class CursedSpiritDaySpawnGameTests {
 	 * bodies outside the crowd cap's 48-block box, while open sky at noon still refuses the
 	 * vanilla light half of {@code checkSpawnRules} — so the NATURAL gate outcome is decided
 	 * by the day roll alone, deterministically.
+	 *
+	 * <p>The +80 column is only a starting guess: sibling arenas can roof it over, and a shaded
+	 * cell passes the vanilla light half on its own — which reads exactly like a day-roll pass
+	 * and flaked CI (run 35344640232). The hoist therefore climbs until the cell genuinely sees
+	 * the sky, keeping the vanilla half refused no matter what the neighbors built.
 	 */
 	private static void hoistAboveCrowd(GameTestHelper helper, CursedSpiritEntity probe) {
+		ServerLevel level = helper.getLevel();
 		BlockPos abs = helper.absolutePos(LIT_FEET).above(80);
+		while (!level.canSeeSky(abs) && abs.getY() < level.getHeight() - 2) {
+			abs = abs.above(8);
+		}
 		probe.setPos(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5);
 	}
 
