@@ -116,7 +116,9 @@ public final class CursedObjectGameTests {
 		helper.assertTrue(source != null,
 				CursedIncidentTestFixtures.diagnostic("destroyedSourceCeases(F9)", helper,
 						"destructible physical source", "present", source));
-		source.discard();
+		// kill() produces RemovalReason.KILLED — genuine destruction (C10); discard()
+		// would be a pickup, which must NOT cease the incident.
+		source.kill(helper.getLevel());
 		helper.assertTrue(source.isRemoved(),
 				CursedIncidentTestFixtures.diagnostic("destroyedSourceCeases(F9)", helper,
 						"source removal observed", true, source.isRemoved()));

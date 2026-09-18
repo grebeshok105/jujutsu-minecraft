@@ -420,7 +420,10 @@ public final class ObjectDwellTracker implements DwellProvider {
             }
             return;
         }
-        if (tracked.dead && (tracked.type == null || tracked.type.destructible())) {
+        // DISCARDED means a player picked the object up — it is carried, not destroyed;
+        // only genuine destruction (kill/void/lava → KILLED/other reasons) ceases the incident.
+        if (tracked.dead && tracked.removalReason != Entity.RemovalReason.DISCARDED
+                && (tracked.type == null || tracked.type.destructible())) {
             IncidentControl.onSourceDestroyed(tracked.instanceId);
             forget(tracked.instanceId);
             return;

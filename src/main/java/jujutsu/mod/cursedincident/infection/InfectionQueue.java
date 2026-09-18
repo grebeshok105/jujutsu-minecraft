@@ -85,8 +85,9 @@ public final class InfectionQueue {
 		while (applied < budget && !edits.isEmpty() && inspected++ < maxInspected) {
 			Edit edit = edits.removeFirst();
 			if (!level.getChunkSource().hasChunk(edit.pos.getX() >> 4, edit.pos.getZ() >> 4)) {
+				// Deferred is counted once at enqueue (InfectionSink.applyStageDelta);
+				// requeueing must not inflate the counter on every drain pass.
 				edits.addLast(edit);
-				record.counters.chunkEditsDeferred++;
 				continue;
 			}
 			BlockState current = level.getBlockState(edit.pos);

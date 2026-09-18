@@ -149,6 +149,11 @@ public final class IncidentControl {
 			if (level != null) {
 				record.objectInstanceId = objectSpawner.spawn(level, record.center, record.objectTypeId, grade, seed);
 			}
+			// A refused mint (unknown type / instance cap) must not leave a record that
+			// claims an object source — drop it before the store put and the INITIAL delta.
+			if (record.objectInstanceId == null) {
+				return record;
+			}
 		}
 		data().put(record);
 		if (record.objectInstanceId != null) {
