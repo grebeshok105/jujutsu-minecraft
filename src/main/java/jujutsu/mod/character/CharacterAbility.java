@@ -51,7 +51,24 @@ public enum CharacterAbility {
 	/** The third technique key. */
 	TERTIARY(8),
 	/** The third technique key while sneaking. */
-	TERTIARY_SNEAK(9);
+	TERTIARY_SNEAK(9),
+	/**
+	 * The partial-manifestation key, pressed.
+	 *
+	 * <p>Its own key rather than a modifier of an existing one: a partial manifestation is not a
+	 * technique cast, and the key carries a second edge — see {@link #PARTIAL_RELEASE}. Sneaking names
+	 * no second slot here; the gesture is the same whether the player is sneaking or not.
+	 */
+	PARTIAL(10),
+	/**
+	 * The partial-manifestation key, released.
+	 *
+	 * <p>Deliberately never carries a cooldown, for the same reason as
+	 * {@link #SECONDARY_SNEAK_RELEASE}: the edge that ends a gesture has to reach the vessel's router
+	 * even while something else is cooling down, or the player could not end what is still out. A
+	 * release with no matching server state is refused by the router.
+	 */
+	PARTIAL_RELEASE(11);
 
 	private final int networkId;
 

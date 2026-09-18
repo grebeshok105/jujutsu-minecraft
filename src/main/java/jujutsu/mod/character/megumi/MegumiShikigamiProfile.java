@@ -182,4 +182,41 @@ public final class MegumiShikigamiProfile {
 	public static final double ELEPHANT_PRESENCE_PUSH = 0.7;
 	/** How long a hit on the owner (or the pack) keeps marking its author hostile. */
 	public static final int ELEPHANT_PRESENCE_AGGRESSION_WINDOW_TICKS = 100;
+
+	// --- coordination (issue #107): the shared combat context and the soft target-assignment weights ---
+	/** One shared combat-context scan per owner per this many ticks — the scale answer for crowds. */
+	public static final int COORDINATION_SCAN_TICKS = 5;
+	/** Spec §16: full autonomy inside this radius of the owner. */
+	public static final double AUTONOMY_RADIUS = 50.0;
+	/** Past this distance a body drops its self-placed mark and walks home; manual marks are exempt. */
+	public static final double RETURN_RADIUS = 60.0;
+	/** Per-block distance cost: nearer candidates are preferred, all else equal. */
+	public static final double COORD_DISTANCE_WEIGHT = 0.02;
+	/** Danger weight: a tougher candidate scores higher, capped so it never pulls the whole pack. */
+	public static final double COORD_DANGER_WEIGHT = 0.5;
+	/** State-match bonuses: a soaked or held victim is the opening another body created (§8). */
+	public static final double COORD_SOAKED_BONUS = 0.8;
+	public static final double COORD_HELD_BONUS = 0.6;
+	/** An ally's committed action on a target raises its worth — the pile-on signal of §11. */
+	public static final double COORD_INTENT_BONUS = 1.5;
+	/** A body under attack boosts its aggressor's worth for the whole pack (§14). The owner's own
+	 * threat needs no factor: the retaliation pass marks it on every body before the coordinator
+	 * runs, so a weight term could never decide a pick. */
+	public static final double COORD_ALLY_THREAT_FACTOR = 1.2;
+	/** A candidate another body already marks keeps this fraction of its score (soft, never a veto). */
+	public static final double COORD_OCCUPANCY_FACTOR = 0.25;
+	/** A challenger must beat the current mark by this factor — no per-scan thrash (§10). */
+	public static final double COORD_HYSTERESIS = 1.25;
+	/** Bounded randomness so equal situations can resolve differently (§10, R19). */
+	public static final double COORD_JITTER = 0.15;
+
+	// --- failure memory (issue #107 §15) ---
+	/** How long a failed action stays de-weighted. */
+	public static final long FAILURE_WINDOW_TICKS = 100;
+	/** Weight never drops below this — a failed action is de-preferred, never banned. */
+	public static final double FAILURE_FLOOR = 0.3;
+	/** One fresh failure costs this much weight; two inside the window sit at the floor. */
+	public static final double FAILURE_PENALTY = 0.6;
+	/** Below this weight the pounce launch skips the attempt entirely this tick (R16). Production
+	 * reads {@link MegumiProfile#POUNCE_RETRY_MIN_WEIGHT} — same gate, one constant. */
 }

@@ -30,6 +30,8 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 	private static final String SUMMON_ANIM = "summon_divine_dogs";
 	private static final String SHADOW_DIVE_ANIM = "shadow_dive";
 	private static final String SHADOW_EMERGE_ANIM = "shadow_emerge";
+	/** Independent trigger name for the partial wings, so the wing clip can replace its raw animation alone. */
+	private static final String NUE_WINGS_ANIM = "nue_wings";
 	private static final float WALK_ANIMATION_THRESHOLD = 0.035f;
 	private static final double WALK_VELOCITY_THRESHOLD_SQR = 0.0016;
 	private static final double RUN_VELOCITY_THRESHOLD_SQR = 0.018;
@@ -45,6 +47,13 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 	private static final RawAnimation SUMMON = play("animation.megumi_fushiguro.summon_divine_dogs");
 	private static final RawAnimation SHADOW_DIVE = play("animation.megumi_fushiguro.shadow_dive");
 	private static final RawAnimation SHADOW_EMERGE = play("animation.megumi_fushiguro.shadow_emerge");
+	/**
+	 * The wings unfold reuses the summon flourish's arms-out sweep: the rig carries no wing clip
+	 * yet, and the beat only reads while Megumi is not already gliding (vanilla's fall-flying pose
+	 * takes the rig over and bypasses GeckoLib). Swapping in a dedicated wing clip is a one-line
+	 * change here.
+	 */
+	private static final RawAnimation NUE_WINGS = SUMMON;
 	private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
 	private MegumiPlayerGeoAnimatable() {
@@ -61,6 +70,11 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 
 	public void triggerShadowEmerge(Entity player) {
 		triggerAnim(player, CharacterSkinAnimationAdapter.playerTriggerInstanceId(player), ACTION_CONTROLLER, SHADOW_EMERGE_ANIM);
+	}
+
+	/** Nue's partial manifestation snaps open: the unfold beat on the owner. */
+	public void triggerNueWings(Entity player) {
+		triggerAnim(player, CharacterSkinAnimationAdapter.playerTriggerInstanceId(player), ACTION_CONTROLLER, NUE_WINGS_ANIM);
 	}
 
 	public void restartMeleeTrigger(Entity player, String triggerName) {
@@ -89,7 +103,8 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 				.triggerableAnim("kick", MELEE[2])
 				.triggerableAnim(SUMMON_ANIM, SUMMON)
 				.triggerableAnim(SHADOW_DIVE_ANIM, SHADOW_DIVE)
-				.triggerableAnim(SHADOW_EMERGE_ANIM, SHADOW_EMERGE));
+				.triggerableAnim(SHADOW_EMERGE_ANIM, SHADOW_EMERGE)
+				.triggerableAnim(NUE_WINGS_ANIM, NUE_WINGS));
 	}
 
 	@Override

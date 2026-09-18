@@ -1,6 +1,7 @@
 package jujutsu.mod.character.megumi;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -119,16 +120,27 @@ final class MegumiToadBrain {
 						&& MegumiSummonRuntime.isEligibleTarget(owner, candidate)
 						&& MegumiToadPolicy.canGrab(toad.distanceTo(candidate))
 						&& toad.hasLineOfSight(candidate));
+		// Soft coordination (issue #107 §3): a target no ally already marks or works is preferred —
+		// the toad spreads the pack across the crowd instead of doubling up. Falls back to the
+		// nearest overall when everything in reach is claimed.
+		Set<UUID> claimed = owner == null ? Set.of()
+				: MegumiPackCoordinator.contextFor(owner, level).occupiedOrClaimed();
 		LivingEntity nearest = null;
+		LivingEntity nearestFree = null;
 		double best = Double.MAX_VALUE;
+		double bestFree = Double.MAX_VALUE;
 		for (LivingEntity candidate : candidates) {
 			double distance = toad.distanceToSqr(candidate);
 			if (distance < best) {
 				best = distance;
 				nearest = candidate;
 			}
+			if (!claimed.contains(candidate.getUUID()) && distance < bestFree) {
+				bestFree = distance;
+				nearestFree = candidate;
+			}
 		}
-		return nearest;
+		return nearestFree != null ? nearestFree : nearest;
 	}
 
 	/** The tongue has landed: nothing is damaged, the hold starts (R1). */

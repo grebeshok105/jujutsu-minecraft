@@ -40,6 +40,12 @@ public final class MegumiAbilityRouter {
 					? AbilityResult.SUCCESS : AbilityResult.UNHANDLED_FAILURE;
 			case TERTIARY_SNEAK -> MegumiShikigamiRuntime.tryCycle(player, notify)
 					? AbilityResult.SUCCESS : AbilityResult.UNHANDLED_FAILURE;
+			// #108: the partial key's two edges. Neither ever carries a cooldown, so both reach this
+			// router on the same tick they are pressed and released.
+			case PARTIAL -> MegumiPartialRuntime.tryPartial(player, notify)
+					? AbilityResult.SUCCESS : AbilityResult.UNHANDLED_FAILURE;
+			case PARTIAL_RELEASE -> MegumiPartialRuntime.tryPartialRelease(player)
+					? AbilityResult.SUCCESS : AbilityResult.UNHANDLED_FAILURE;
 			case ATTACK_CONTEXT, USE_CONTEXT -> AbilityResult.UNHANDLED_FAILURE;
 		};
 	}

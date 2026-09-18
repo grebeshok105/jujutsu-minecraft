@@ -20,6 +20,7 @@ import jujutsu.mod.character.megumi.MegumiNueEntity;
 import jujutsu.mod.character.megumi.MegumiShikigami;
 import jujutsu.mod.character.megumi.MegumiShikigamiRuntime;
 import jujutsu.mod.character.megumi.MegumiShikigamiSelection;
+import jujutsu.mod.character.megumi.MegumiSummonCooldowns;
 import jujutsu.mod.character.megumi.MegumiSummonRuntime;
 
 /**
@@ -117,6 +118,7 @@ public final class MegumiShikigamiTestFixtures {
 				MegumiSummonRuntime.TeardownReason.FIXTURE_RESET));
 		safe(() -> CharacterAbilityCooldowns.clear(caster, CharacterAbility.PRIMARY));
 		safe(() -> CharacterAbilityCooldowns.clear(caster, CharacterAbility.PRIMARY_SNEAK));
+		safe(() -> MegumiSummonCooldowns.clear(ownerId));
 		safe(() -> MegumiShikigamiSelection.clear(ownerId));
 		safe(() -> server.getPlayerList().remove(caster));
 	}
@@ -140,12 +142,25 @@ public final class MegumiShikigamiTestFixtures {
 	public static void assertNoPack(GameTestHelper helper, String fixture, String phase, ServerPlayer caster) {
 		long tick = helper.getTick();
 		MinecraftServer server = helper.getLevel().getServer();
-		boolean nueGone = MegumiShikigamiRuntime.packView(server, caster.getUUID()).isEmpty();
-		helper.assertTrue(nueGone, diagnostic(fixture, phase, tick, caster.getUUID(),
-				"shikigami pack record gone", "empty", nueGone ? "empty" : "present"));
+		// Issue #107: one record per type, so "no pack" is an empty per-type row — not a single read.
+		int shikigamiPacks = MegumiShikigamiRuntime.packViews(server, caster.getUUID()).size();
+		helper.assertTrue(shikigamiPacks == 0, diagnostic(fixture, phase, tick, caster.getUUID(),
+				"shikigami pack records gone", "0", shikigamiPacks));
 		boolean dogsGone = MegumiSummonRuntime.packView(server, caster.getUUID()).isEmpty();
 		helper.assertTrue(dogsGone, diagnostic(fixture, phase, tick, caster.getUUID(),
 				"divine dog pack record gone", "empty", dogsGone ? "empty" : "present"));
+	}
+
+	/** The owner's live shikigami pack types, in enum order — the coexistence reading (issue #107). */
+	public static List<String> shikigamiPackTypes(MinecraftServer server, UUID ownerId) {
+		return MegumiShikigamiRuntime.packViews(server, ownerId).stream()
+				.map(MegumiShikigamiRuntime.PackView::type)
+				.toList();
+	}
+
+	/** Whether the owner's row holds the pack of exactly this type. */
+	public static boolean hasPack(MinecraftServer server, UUID ownerId, MegumiShikigami type) {
+		return shikigamiPackTypes(server, ownerId).contains(type.id());
 	}
 
 	private static void safe(Runnable step) {

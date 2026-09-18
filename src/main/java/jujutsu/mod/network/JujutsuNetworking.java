@@ -28,6 +28,7 @@ public final class JujutsuNetworking {
 		PayloadTypeRegistry.playS2C().register(CurseLinkOptionsPayload.TYPE, CurseLinkOptionsPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(SelectCurseLinkPayload.TYPE, SelectCurseLinkPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(BlackFlashFocusPayload.TYPE, BlackFlashFocusPayload.STREAM_CODEC);
+		PayloadTypeRegistry.playS2C().register(MegumiTongueStatePayload.TYPE, MegumiTongueStatePayload.STREAM_CODEC);
 		registerServerReceivers();
 	}
 

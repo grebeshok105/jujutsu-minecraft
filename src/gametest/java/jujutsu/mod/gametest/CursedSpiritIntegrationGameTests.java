@@ -863,10 +863,12 @@ public void todoForcedBlackFlashOutDamagesTheSameUnforcedMelee(GameTestHelper he
 		ServerLevel level = helper.getLevel();
 		CursedSpiritEntity centred = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
 				JujutsuEntities.LESSER_CURSED_SPIRIT, new BlockPos(6, 1, 1));
-		CursedSpiritEntity graze = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
-				JujutsuEntities.LESSER_CURSED_SPIRIT, new BlockPos(4, 1, 1));
 		double centredMax = centred.getMaxHealth();
-		double grazeMax = graze.getMaxHealth();
+		// The graze spawns inside the sic callback, not at setup: left in the arena from tick 0, the
+		// dogs' autonomy pass marks it and a pounce lands before the sic ever fires — the "edge-graze
+		// takes nothing" oracle then reads spec-correct autonomy damage as a sic leak.
+		AtomicReference<CursedSpiritEntity> grazeRef = new AtomicReference<>();
+		AtomicReference<Double> grazeMaxRef = new AtomicReference<>();
 		AtomicBoolean summoned = new AtomicBoolean();
 		AtomicBoolean sicced = new AtomicBoolean();
 		AtomicBoolean resolved = new AtomicBoolean();
@@ -874,6 +876,30 @@ public void todoForcedBlackFlashOutDamagesTheSameUnforcedMelee(GameTestHelper he
 
 		helper.runAtTickTime(2, () -> {
 			try {
+				CursedSpiritTestFixtures.freezeGround(centred);
+				helper.assertTrue(centred.isAlive(),
+						CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(), caster.getUUID(),
+								null, "premise: centred spirit alive", "true", centred.isAlive()));
+				boolean dogs = MegumiShikigamiRuntime.tryPrimary(caster, false);
+				helper.assertTrue(dogs, CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+						caster.getUUID(), null, "divine dogs summon", "true", dogs));
+				summoned.set(true);
+			} catch (RuntimeException | AssertionError failure) {
+				cleanupSic(helper, caster, centred, grazeRef.get());
+				throw failure;
+			}
+		});
+
+		helper.runAtTickTime(24, () -> {
+			try {
+				helper.assertTrue(summoned.get(), CursedSpiritTestFixtures.diagnostic(fixture,
+						helper.getTick(), caster.getUUID(), null, "dogs were summoned", "true",
+						summoned.get()));
+				// Spawn and pin the graze now: the dogs have had no tick to mark it autonomously.
+				CursedSpiritEntity graze = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
+						JujutsuEntities.LESSER_CURSED_SPIRIT, new BlockPos(4, 1, 1));
+				grazeRef.set(graze);
+				grazeMaxRef.set((double) graze.getMaxHealth());
 				Vec3 eye = caster.getEyePosition();
 				Vec3 chest = centred.position().add(0.0, centred.getBbHeight() / 2.0, 0.0);
 				Vec3 direction = chest.subtract(eye).normalize();
@@ -881,7 +907,6 @@ public void todoForcedBlackFlashOutDamagesTheSameUnforcedMelee(GameTestHelper he
 				Vec3 relative = graze.position().subtract(eye);
 				Vec3 grazePoint = eye.add(direction.scale(relative.dot(direction))).add(across.scale(0.6));
 				graze.setPos(grazePoint.x, graze.position().y, grazePoint.z);
-				CursedSpiritTestFixtures.freezeGround(centred);
 				CursedSpiritTestFixtures.freezeGround(graze);
 				helper.assertTrue(centred.isAlive() && graze.isAlive(),
 						CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(), caster.getUUID(),
@@ -896,21 +921,6 @@ public void todoForcedBlackFlashOutDamagesTheSameUnforcedMelee(GameTestHelper he
 						CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(), caster.getUUID(),
 								null, "premise: line of sight to both spirits", "true",
 								caster.hasLineOfSight(centred) + " / " + caster.hasLineOfSight(graze)));
-				boolean dogs = MegumiShikigamiRuntime.tryPrimary(caster, false);
-				helper.assertTrue(dogs, CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
-						caster.getUUID(), null, "divine dogs summon", "true", dogs));
-				summoned.set(true);
-			} catch (RuntimeException | AssertionError failure) {
-				cleanupSic(helper, caster, centred, graze);
-				throw failure;
-			}
-		});
-
-		helper.runAtTickTime(24, () -> {
-			try {
-				helper.assertTrue(summoned.get(), CursedSpiritTestFixtures.diagnostic(fixture,
-						helper.getTick(), caster.getUUID(), null, "dogs were summoned", "true",
-						summoned.get()));
 				TodoSwapTestFixtures.aimAt(caster,
 						centred.position().add(0.0, centred.getBbHeight() / 2.0, 0.0));
 				AbilityResult result =
@@ -920,7 +930,7 @@ public void todoForcedBlackFlashOutDamagesTheSameUnforcedMelee(GameTestHelper he
 						AbilityResult.SUCCESS, result));
 				sicced.set(true);
 			} catch (RuntimeException | AssertionError failure) {
-				cleanupSic(helper, caster, centred, graze);
+				cleanupSic(helper, caster, centred, grazeRef.get());
 				throw failure;
 			}
 		});
@@ -931,6 +941,10 @@ public void todoForcedBlackFlashOutDamagesTheSameUnforcedMelee(GameTestHelper he
 					return;
 				}
 				try {
+					CursedSpiritEntity graze = grazeRef.get();
+					if (graze == null) {
+						return;
+					}
 					List<? extends MegumiDivineDogEntity> dogs = level.getEntities(
 							EntityTypeTest.forClass(MegumiDivineDogEntity.class),
 							dog -> caster.getUUID().equals(dog.ownerUuid()));
@@ -945,16 +959,24 @@ public void todoForcedBlackFlashOutDamagesTheSameUnforcedMelee(GameTestHelper he
 										"sic never resolves the edge-graze", "centred:<uuid>",
 										dog.getTarget() == null ? "null" : dog.getTarget().getUUID()));
 					}
+					// The graze-health oracle lives inside the resolution window only: once the sic
+					// resolves, the dogs are freed and the autonomy pass may legitimately re-mark the
+					// graze — post-resolution damage is spec-correct, not a leak.
+					helper.assertTrue(graze.getHealth() == grazeMaxRef.get(), CursedSpiritTestFixtures.diagnostic(
+							fixture, helper.getTick(), caster.getUUID(), graze.getUUID(),
+							"the edge-graze takes nothing before resolution", grazeMaxRef.get(),
+							graze.getHealth()));
 					if (dogs.stream().allMatch(dog -> dog.getTarget() != null
 							&& dog.getTarget().getUUID().equals(centred.getUUID()))) {
 						resolved.set(true);
 					}
 				} catch (RuntimeException | AssertionError failure) {
-					cleanupSic(helper, caster, centred, graze);
+					cleanupSic(helper, caster, centred, grazeRef.get());
 					throw failure;
 				}
 			});
 		}
+
 
 		for (int tick = 25; tick <= 150; tick++) {
 			helper.runAtTickTime(tick, () -> {
@@ -976,10 +998,9 @@ public void todoForcedBlackFlashOutDamagesTheSameUnforcedMelee(GameTestHelper he
 			helper.assertTrue(impacted.get(), CursedSpiritTestFixtures.diagnostic(fixture,
 					helper.getTick(), caster.getUUID(), centred.getUUID(),
 					"the dogs damaged the centred spirit", "< " + centredMax, centred.getHealth()));
-			helper.assertTrue(graze.getHealth() == grazeMax, CursedSpiritTestFixtures.diagnostic(
-					fixture, helper.getTick(), caster.getUUID(), graze.getUUID(),
-					"the edge-graze takes nothing", grazeMax, graze.getHealth()));
-			cleanupSic(helper, caster, centred, graze);
+			// Post-resolution the graze is a legal autonomy target, so its health is not re-asserted
+			cleanupSic(helper, caster, centred, grazeRef.get());
+
 			helper.succeed();
 		});
 	}

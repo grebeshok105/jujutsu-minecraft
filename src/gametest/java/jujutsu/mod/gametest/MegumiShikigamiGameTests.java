@@ -23,24 +23,28 @@ import jujutsu.mod.character.megumi.MegumiShikigamiProfile;
 import jujutsu.mod.character.megumi.MegumiShikigamiRuntime;
 import jujutsu.mod.character.megumi.MegumiShikigamiRuntime.PackView;
 import jujutsu.mod.character.megumi.MegumiShikigamiSelection;
+import jujutsu.mod.character.megumi.MegumiSummonCooldowns;
 import jujutsu.mod.character.megumi.MegumiSummonRuntime;
 import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.registry.JujutsuEffects;
 
 /**
- * Nue (Ten Shadows selection layer) server scenarios, block B5 — summon (S1), recall (S2), swap
- * from dogs (S3), death (S4), dive on a plain target (S5) and the soaked-target escalation (S6) —
- * exercised through the production runtime calls {@code MegumiShikigamiRuntime.tryPrimary} /
- * {@code trySic}, the same hop the vessel router reaches for the PRIMARY / PRIMARY_SNEAK slots.
+ * Nue (Ten Shadows selection layer) server scenarios, block B5 — summon (S1), recall (S2),
+ * coexistence beside the dogs (S3), death (S4), dive on a plain target (S5) and the soaked-target
+ * escalation (S6) — exercised through the production runtime calls
+ * {@code MegumiShikigamiRuntime.tryPrimary} / {@code trySic}, the same hop the vessel router
+ * reaches for the PRIMARY / PRIMARY_SNEAK slots.
  *
  * <p><b>Pinned literals.</b> S2/S4 assert the literal 240/400 ticks rather than the profile
  * constants ON PURPOSE: the red-proof mutates the profile row (240-&gt;241, 400-&gt;401) and the
  * assert must follow the balance contract, not the constant. Every other number (recall window,
- * dive timeout, slow durations) references {@link MegumiShikigamiProfile} directly.
+ * dive timeout, slow durations) references {@link MegumiShikigamiProfile} directly. Since issue
+ * #107 the price is armed on the per-type summon map, so the same reads also prove the shared
+ * PRIMARY slot was left alone.
  *
  * <p><b>Traps avoided.</b> World offset is random per run, so nothing asserts absolute positions:
  * bodies are found by owner-UUID scan ({@link MegumiShikigamiTestFixtures#nueOwnedBy}), never by
- * bounds. The summon/recall/swap/kill steps sit on different ticks — the runtime drops same-tick
+ * bounds. The summon/recall/kill steps sit on different ticks — the runtime drops same-tick
  * duplicate technique presses. {@code hurtServer} on the body is gated on the ACTIVE phase, so S4
  * kills only after the 16-tick materialization (with an explicit ACTIVE premise assert). The dive
  * target is a NoAI zombie with a stone roof one block above its head: the roof kills sky-burn
@@ -157,10 +161,16 @@ public final class MegumiShikigamiGameTests {
 						"recall", helper.getTick(), ownerId, "second tryPrimary result", "true", recalled));
 
 				// Same-tick read: the cooldown was just armed, so the remaining time is exact.
-				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				long gameTime = level.getGameTime();
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.NUE, gameTime);
 				helper.assertTrue(remaining == EXPECTED_RECALL_COOLDOWN_TICKS,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "recall", helper.getTick(), ownerId,
-								"PRIMARY recall cooldown", EXPECTED_RECALL_COOLDOWN_TICKS, remaining));
+								"Nue summon cooldown", EXPECTED_RECALL_COOLDOWN_TICKS, remaining));
+				// Issue #107: the recall price is per type now, so the shared PRIMARY slot stays free.
+				int primary = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				helper.assertTrue(primary == 0,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "recall", helper.getTick(), ownerId,
+								"PRIMARY slot (the per-type map owns the deadline now)", "0", primary));
 
 				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "recall", caster);
 			} finally {
@@ -180,16 +190,18 @@ public final class MegumiShikigamiGameTests {
 	}
 
 	/**
-	 * S3 — with the Divine Dogs out (old system), selecting NUE and pressing the key swaps for
-	 * free: the dog pack record is gone, Nue is out with one anchored body, and PRIMARY stays 0
-	 * (both teardowns use the cooldown-free SWAPPED reason).
+	 * S3 — coexistence (issue #107 D1): with the Divine Dogs already out, selecting NUE and pressing
+	 * the technique key summons Nue *beside* them — both pack records live, one anchored Nue body
+	 * sits in the level, and PRIMARY stays 0 (a summon is free, and nothing was torn down for it).
 	 */
 	@GameTest(maxTicks = 60)
-	public void swappingDogsForNueIsFreeAndClearsDogPack(GameTestHelper helper) {
-		String fixture = "swappingDogsForNueIsFreeAndClearsDogPack";
+	public void summoningNueBesideDogsKeepsBothPacks(GameTestHelper helper) {
+		String fixture = "summoningNueBesideDogsKeepsBothPacks";
 		BlockPos casterFeet = new BlockPos(2, 1, 2);
-		for (int dx = 1; dx <= 3; dx++) {
-			for (int dz = 1; dz <= 3; dz++) {
+		// A 6x6 pad, not the caster's own block: the dog pair lands on the two spots the placement
+		// search tries first (owner ± right * 1.5), so both of them need a floor to be chosen.
+		for (int dx = 1; dx <= 6; dx++) {
+			for (int dz = 1; dz <= 6; dz++) {
 				helper.setBlock(new BlockPos(dx, 0, dz), Blocks.STONE);
 			}
 		}
@@ -211,28 +223,29 @@ public final class MegumiShikigamiGameTests {
 			try {
 				UUID ownerId = caster.getUUID();
 				MegumiShikigamiSelection.set(ownerId, MegumiShikigami.NUE);
-				boolean swapped = MegumiShikigamiRuntime.tryPrimary(caster, false);
-				helper.assertTrue(swapped, MegumiShikigamiTestFixtures.diagnostic(fixture,
-						"swap", helper.getTick(), ownerId, "tryPrimary result", "true", swapped));
+				boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
+				helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"coexist", helper.getTick(), ownerId, "tryPrimary result", "true", summoned));
 
-				boolean dogsGone = MegumiSummonRuntime.packView(level.getServer(), ownerId).isEmpty();
-				helper.assertTrue(dogsGone, MegumiShikigamiTestFixtures.diagnostic(fixture,
-						"swap", helper.getTick(), ownerId, "dog pack record gone", "empty", "present"));
+				// The dogs keep their own record: the same key used to swap them off the field.
+				boolean dogsStillOut = MegumiSummonRuntime.packView(level.getServer(), ownerId).isPresent();
+				helper.assertTrue(dogsStillOut, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"coexist", helper.getTick(), ownerId, "dog pack record kept", "present", "absent"));
 
 				Optional<PackView> view = MegumiShikigamiRuntime.packView(level.getServer(), ownerId);
 				helper.assertTrue(view.isPresent(), MegumiShikigamiTestFixtures.diagnostic(fixture,
-						"swap", helper.getTick(), ownerId, "nue pack present", "present", "absent"));
+						"coexist", helper.getTick(), ownerId, "nue pack present", "present", "absent"));
 				helper.assertTrue(MegumiShikigami.NUE.id().equals(view.get().type()),
-						MegumiShikigamiTestFixtures.diagnostic(fixture, "swap", helper.getTick(), ownerId,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "coexist", helper.getTick(), ownerId,
 								"pack type", MegumiShikigami.NUE.id(), view.get().type()));
 				helper.assertTrue(view.get().aliveBodies() == 1,
-						MegumiShikigamiTestFixtures.diagnostic(fixture, "swap", helper.getTick(), ownerId,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "coexist", helper.getTick(), ownerId,
 								"alive bodies", "1", view.get().aliveBodies()));
 
 				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
 				helper.assertTrue(remaining == 0,
-						MegumiShikigamiTestFixtures.diagnostic(fixture, "swap", helper.getTick(), ownerId,
-								"PRIMARY cooldown (swap is free)", "0", remaining));
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "coexist", helper.getTick(), ownerId,
+								"PRIMARY cooldown (nothing was recalled)", "0", remaining));
 			} finally {
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 			}
@@ -280,10 +293,16 @@ public final class MegumiShikigamiGameTests {
 						"kill", helper.getTick(), ownerId, "lethal damage applied", "true", damaged));
 
 				// AFTER_DEATH reconciles synchronously inside hurtServer, so the same-tick read is exact.
-				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				long gameTime = level.getGameTime();
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.NUE, gameTime);
 				helper.assertTrue(remaining == EXPECTED_DEATH_COOLDOWN_TICKS,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "kill", helper.getTick(), ownerId,
-								"PRIMARY death cooldown", EXPECTED_DEATH_COOLDOWN_TICKS, remaining));
+								"Nue death cooldown", EXPECTED_DEATH_COOLDOWN_TICKS, remaining));
+				// Issue #107: the death price is per type now, so the shared PRIMARY slot stays free.
+				int primary = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				helper.assertTrue(primary == 0,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "kill", helper.getTick(), ownerId,
+								"PRIMARY slot (the per-type map owns the deadline now)", "0", primary));
 
 				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "kill", caster);
 			} finally {

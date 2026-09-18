@@ -11,7 +11,8 @@
     "HoldInputMixin",
     "PlayerRenderContextMixin",
     "FearMouseMixin",
-    "FearKeyboardMixin"
+    "FearKeyboardMixin",
+    "TonguePhysicsMixin"
   ],
   "injectors": {
     "defaultRequire": 1

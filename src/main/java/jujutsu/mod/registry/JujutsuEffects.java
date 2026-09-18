@@ -88,6 +88,25 @@ public final class JujutsuEffects {
 			JujutsuMod.id("cursed_fear"),
 			new CursedFearEffect());
 
+	/**
+	 * Nue's partial manifestation (issue #108): while the owner carries it, the wings are out —
+	 * {@code EntityElytraEvents} grant fall-flying and fall damage is cancelled. Pure marker, no
+	 * attribute work.
+	 */
+	public static final Holder<MobEffect> MEGUMI_NUE_WINGS = Registry.registerForHolder(
+			BuiltInRegistries.MOB_EFFECT,
+			JujutsuMod.id("megumi_nue_wings"),
+			new MegumiNueWingsEffect());
+
+	/**
+	 * Toad's partial manifestation (issue #108): marks that the tongue grapple is anchored. The
+	 * anchor itself travels in {@code MegumiTongueStatePayload}; this flag is the both-sides gate.
+	 */
+	public static final Holder<MobEffect> MEGUMI_TOAD_TONGUE = Registry.registerForHolder(
+			BuiltInRegistries.MOB_EFFECT,
+			JujutsuMod.id("megumi_toad_tongue"),
+			new MegumiToadTongueEffect());
+
 	private JujutsuEffects() {}
 
 	public static void register() {
@@ -126,6 +145,18 @@ public final class JujutsuEffects {
 	private static final class CursedFearEffect extends MobEffect {
 		private CursedFearEffect() {
 			super(MobEffectCategory.HARMFUL, 0x1A0B2E);
+		}
+	}
+
+	private static final class MegumiNueWingsEffect extends MobEffect {
+		private MegumiNueWingsEffect() {
+			super(MobEffectCategory.BENEFICIAL, 0x3B2E5A);
+		}
+	}
+
+	private static final class MegumiToadTongueEffect extends MobEffect {
+		private MegumiToadTongueEffect() {
+			super(MobEffectCategory.BENEFICIAL, 0x2E5A3B);
 		}
 	}
 }
