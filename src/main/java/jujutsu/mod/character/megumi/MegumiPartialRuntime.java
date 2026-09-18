@@ -87,6 +87,11 @@ public final class MegumiPartialRuntime {
 				teardown(player.getServer(), player.getUUID()));
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
 				teardown(server, handler.player.getUUID()));
+		// The marker effect persists with the player; the PARTIALS map does not. A restart leaves a
+		// serialized marker with no runtime state behind it — the wings would keep granting flight and
+		// the tongue's client would never hear the stand-down. JOIN reconciles by marker, not by map.
+		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
+				reconcileOrphanMarkers(handler.player));
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			for (UUID ownerId : Set.copyOf(PARTIALS.keySet())) {
 				teardown(server, ownerId);
@@ -233,8 +238,11 @@ public final class MegumiPartialRuntime {
 		}
 		ServerLevel level = player.level();
 		// Anchor destroyed (R32) and line blocked (R31) are the two ways the tongue lets go by itself.
-		// Both are one cheap read/clip per active tongue.
-		if (!level.getBlockState(state.anchorBlock).isSolid() || !lineToAnchorIsClear(level, player, state.anchor)) {
+		// The anchor check asks the same question the attach clip asked: does this cell still present a
+		// collision surface? `isSolid()` is the wrong predicate — fences, panes and slabs collide
+		// without being solid, and the resolver's COLLIDER clip happily anchors to them.
+		if (level.getBlockState(state.anchorBlock).getCollisionShape(level, state.anchorBlock).isEmpty()
+				|| !lineToAnchorIsClear(level, player, state.anchor)) {
 			endPartial(player, state);
 		}
 	}
@@ -283,6 +291,26 @@ public final class MegumiPartialRuntime {
 		player.removeEffect(markerFor(state.kind));
 		if (state.kind == MegumiPartialProfile.PartialKind.TONGUE) {
 			sendTongueState(player, false, Vec3.ZERO);
+		}
+	}
+
+	/**
+	 * Fail-safe for the one gap teardown cannot cover: a JVM restart serializes the marker effects but
+	 * not {@link #PARTIALS}. Any marker found on a joining player without a live state is an orphan —
+	 * remove it, and stand the tongue's client down so it does not resume pulling on a dead anchor.
+	 */
+	private static void reconcileOrphanMarkers(ServerPlayer player) {
+		PartialState live = PARTIALS.get(player.getUUID());
+		for (MegumiPartialProfile.PartialKind kind : MegumiPartialProfile.PartialKind.values()) {
+			if (live != null && live.kind == kind) {
+				continue;
+			}
+			if (player.hasEffect(markerFor(kind))) {
+				player.removeEffect(markerFor(kind));
+				if (kind == MegumiPartialProfile.PartialKind.TONGUE) {
+					sendTongueState(player, false, Vec3.ZERO);
+				}
+			}
 		}
 	}
 
