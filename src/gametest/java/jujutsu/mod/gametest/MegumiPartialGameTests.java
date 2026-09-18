@@ -715,10 +715,56 @@ public final class MegumiPartialGameTests {
 	}
 
 	/**
-	 * Cleanup for success AND failure paths. The partial teardown runs first and by name: the shared
-	 * fixtures predate #108 and are used by every Megumi scenario, so they must not learn about it, and
-	 * a state record whose player was already removed would have to be reaped by the upkeep instead.
+	 * R7 (integration) — a marker that outlived the runtime is an orphan, not a partial: the JOIN
+	 * reconcile strips a persisted {@code MEGUMI_NUE_WINGS}/{@code MEGUMI_TOAD_TONGUE} effect that has
+	 * no live state behind it, so a restart cannot leave eternal flight or a phantom tongue pull.
+	 * The marker is applied directly (that's exactly what a serialized player effect looks like to a
+	 * fresh JVM) and the real JOIN event is fired through its invoker.
 	 */
+	@GameTest(maxTicks = 60)
+	public void joinReconcileStripsOrphanMarkers(GameTestHelper helper) {
+		String fixture = "joinReconcileStripsOrphanMarkers";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		layStoneFloor(helper);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+
+		helper.runAtTickTime(PRESS_TICK, () -> {
+			try {
+				UUID ownerId = caster.getUUID();
+				// Persisted-marker simulation: the effect is on the player while PARTIALS is empty —
+				// the exact state a restart leaves behind.
+				caster.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+						JujutsuEffects.MEGUMI_NUE_WINGS, net.minecraft.world.effect.MobEffectInstance.INFINITE_DURATION,
+						0, false, false, false));
+				caster.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+						JujutsuEffects.MEGUMI_TOAD_TONGUE, net.minecraft.world.effect.MobEffectInstance.INFINITE_DURATION,
+						0, false, false, false));
+				helper.assertTrue(caster.hasEffect(JujutsuEffects.MEGUMI_NUE_WINGS)
+								&& caster.hasEffect(JujutsuEffects.MEGUMI_TOAD_TONGUE),
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "join", helper.getTick(), ownerId,
+								"orphan markers applied", "both", "applied"));
+				helper.assertTrue(!MegumiPartialRuntime.isAnyActive(ownerId),
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "join", helper.getTick(), ownerId,
+								"no live partial state", "false", true));
+
+				net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.invoker()
+						.onPlayReady(caster.connection,
+								net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.getSender(caster),
+								helper.getLevel().getServer());
+
+				helper.assertTrue(!caster.hasEffect(JujutsuEffects.MEGUMI_NUE_WINGS)
+								&& !caster.hasEffect(JujutsuEffects.MEGUMI_TOAD_TONGUE),
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "join", helper.getTick(), ownerId,
+								"orphan markers after JOIN reconcile", "neither", "one or both"));
+				assertNoPartial(helper, fixture, "join", caster);
+			} finally {
+				cleanup(helper, caster);
+			}
+		});
+		helper.runAtTickTime(20, () -> helper.succeed());
+	}
+
 	private static void cleanup(GameTestHelper helper, ServerPlayer caster) {
 		MinecraftServer server = helper.getLevel().getServer();
 		safe(() -> MegumiPartialRuntime.teardown(server, caster.getUUID()));
