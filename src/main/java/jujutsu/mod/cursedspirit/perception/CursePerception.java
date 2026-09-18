@@ -55,7 +55,8 @@ public final class CursePerception {
 	public static boolean perceives(Entity entity) {
 		if (entity instanceof Player player) {
 			return JujutsuCharacters.definition(CharacterSelectionView.of(player))
-					.cursePerception().perceiveCurses();
+					.cursePerception().perceiveCurses()
+					|| jujutsu.mod.cursedincident.IncidentPerceptionBridge.perceivesOverride(player);
 		}
 		return true;
 	}

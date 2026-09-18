@@ -30,6 +30,33 @@ Close the autonomous dev loop: an agent launches the modded client, lands in a w
 | `jujutsu_fixture_reset` | write | `player_uuid` | per-step outcomes |
 | `jujutsu_state_get` | read | `player_uuid` | vessel, position, stagger, cooldowns, mod effects, Todo pair/stone, Megumi pack/trap/move/drop, Nobara nails (current dimension only; the reset sweeps all levels) /marks |
 
+## Cursed incident tools (issue #110)
+
+These tools are thin, server-authoritative wrappers over `IncidentControl`. They are intended for
+deterministic scenario setup and observation; they do not expose arbitrary code execution.
+
+| Tool | Kind | Args | Result |
+|---|---|---|---|
+| `jujutsu_incident_spawn` | write | `player_uuid` or `pos`, `template?`, `grade?`, `seed?`, `stage?`, `object_type?`, `source_kind?`, `radius?` | spawned incident + full inspect snapshot |
+| `jujutsu_incident_object_spawn` | write | `pos`, `type?`, `grade?`, `seed?` | object instance UUID and placement |
+| `jujutsu_incident_inspect` | read | `incident_id?` | one full snapshot, or all snapshots |
+| `jujutsu_incident_list` | read | — | all full incident snapshots, including scars |
+| `jujutsu_incident_set_stage` | write | `incident_id`, `stage` | updated full snapshot |
+| `jujutsu_incident_advance` | write | `incident_id`, exactly one of `ticks`/`days` | logical age delta + snapshot |
+| `jujutsu_incident_escalate` | write | `incident_id`, `multiplier?` | updated snapshot |
+| `jujutsu_incident_seal` | write | `incident_id`, `tier` | `ok`, `required_tier`, `reason`, snapshot |
+| `jujutsu_incident_unseal` | write | `incident_id` | changed flag + snapshot |
+| `jujutsu_incident_damage_seal` | write | `incident_id`, `amount` | new integrity + snapshot |
+| `jujutsu_incident_relocate` | write | `incident_id`, `pos` | relocated snapshot |
+| `jujutsu_incident_secondary` | write | `incident_id`, `pos?` | secondary node + snapshot |
+| `jujutsu_incident_identify` | write | `incident_id`, `level` | updated knowledge + snapshot |
+| `jujutsu_incident_cleanup` | write | `incident_id` | scarred snapshot; world damage remains |
+| `jujutsu_incident_seed` | write | `incident_id`, `value` | updated seed + snapshot |
+
+`jujutsu_fixture_reset` now includes an `incidents` step that cleans every known incident through the
+same facade before resetting player combat state.
+
+
 Names are snake_case in the established `jujutsu` tool domain (registered by the existing provider; the upstream category map already accepts it).
 
 ## Non-goals

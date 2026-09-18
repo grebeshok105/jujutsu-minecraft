@@ -3,14 +3,14 @@ package jujutsu.mod.client.vfx.world;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.world.phys.Vec3;
 
-final class VfxWorldGeometry {
-	static final Vec3 UP = new Vec3(0.0, 1.0, 0.0);
-	static final Vec3 EAST = new Vec3(1.0, 0.0, 0.0);
-	static final Vec3 NORTH = new Vec3(0.0, 0.0, -1.0);
+public final class VfxWorldGeometry {
+	public static final Vec3 UP = new Vec3(0.0, 1.0, 0.0);
+	public static final Vec3 EAST = new Vec3(1.0, 0.0, 0.0);
+	public static final Vec3 NORTH = new Vec3(0.0, 0.0, -1.0);
 
 	private VfxWorldGeometry() {}
 
-	static void renderDirectionalRing(VertexConsumer consumer, Vec3 center, Vec3 right, Vec3 up,
+	public static void renderDirectionalRing(VertexConsumer consumer, Vec3 center, Vec3 right, Vec3 up,
 			float radius, float depthScale, int alpha, float phase,
 			int darkR, int darkG, int darkB, int edgeR, int edgeG, int edgeB) {
 		if (alpha <= 0) {
@@ -28,7 +28,7 @@ final class VfxWorldGeometry {
 		}
 	}
 
-	static Vec3[] directionalBasis(Vec3 forward) {
+	public static Vec3[] directionalBasis(Vec3 forward) {
 		if (forward.lengthSqr() < 1e-6) {
 			return new Vec3[]{EAST, UP};
 		}
@@ -38,7 +38,7 @@ final class VfxWorldGeometry {
 		return new Vec3[]{right, realUp};
 	}
 
-	static Vec3 sideVector(Vec3 direction, Vec3 cameraRelativeMidpoint, float width) {
+	public static Vec3 sideVector(Vec3 direction, Vec3 cameraRelativeMidpoint, float width) {
 		Vec3 line = direction.lengthSqr() < 1.0E-5 ? UP : direction.normalize();
 		Vec3 view = cameraRelativeMidpoint.lengthSqr() < 1.0E-5 ? EAST : cameraRelativeMidpoint.normalize();
 		Vec3 side = line.cross(view);
@@ -51,7 +51,7 @@ final class VfxWorldGeometry {
 		return side.normalize().scale(width);
 	}
 
-	static void addRibbon(VertexConsumer consumer, Vec3 start, Vec3 end, Vec3 side, int red, int green, int blue, int alpha) {
+	public static void addRibbon(VertexConsumer consumer, Vec3 start, Vec3 end, Vec3 side, int red, int green, int blue, int alpha) {
 		consumer.addVertex((float) (start.x - side.x), (float) (start.y - side.y), (float) (start.z - side.z)).setColor(red, green, blue, alpha);
 		consumer.addVertex((float) (end.x - side.x), (float) (end.y - side.y), (float) (end.z - side.z)).setColor(red, green, blue, alpha);
 		consumer.addVertex((float) (end.x + side.x), (float) (end.y + side.y), (float) (end.z + side.z)).setColor(red, green, blue, alpha);

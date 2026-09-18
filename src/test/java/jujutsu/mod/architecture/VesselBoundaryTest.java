@@ -139,8 +139,8 @@ class VesselBoundaryTest {
 			// name and by payload, which is why they may live in the shared package — a payload is
 			// banned from a vessel package outright, so this is their only legal home.
 			"jujutsu.mod.network.ShikigamiSelectPayload",
-			"jujutsu.mod.network.ShikigamiStatePayload");
-
+			"jujutsu.mod.network.ShikigamiStatePayload",
+			"jujutsu.mod.network.IncidentPerceptionPayload");
 	/** Vessel-named classes that sit outside their vessel's packages today. Five are deliberate, two are debt. */
 	private static final Set<String> VESSEL_NAMED_CLASSES_OUTSIDE_VESSEL_PACKAGES = Set.of(
 			"jujutsu.mod.vfx.NobaraVfxIds",

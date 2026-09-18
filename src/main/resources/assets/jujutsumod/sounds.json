@@ -380,5 +380,29 @@
       "jujutsumod:megumi/selector_reject"
     ],
     "subtitle": "subtitles.jujutsumod.megumi.selector_reject"
+  },
+  "incident_drone": {
+    "sounds": [
+      "jujutsumod:incident_drone"
+    ],
+    "subtitle": "subtitles.jujutsumod.incident_drone"
+  },
+  "seal_crack": {
+    "sounds": [
+      "jujutsumod:seal_crack"
+    ],
+    "subtitle": "subtitles.jujutsumod.seal_crack"
+  },
+  "seal_break": {
+    "sounds": [
+      "jujutsumod:seal_break"
+    ],
+    "subtitle": "subtitles.jujutsumod.seal_break"
+  },
+  "secondary_birth": {
+    "sounds": [
+      "jujutsumod:secondary_birth"
+    ],
+    "subtitle": "subtitles.jujutsumod.secondary_birth"
   }
 }

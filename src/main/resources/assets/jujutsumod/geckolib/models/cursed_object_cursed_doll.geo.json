@@ -1,0 +1,127 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.jujutsumod.cursed_object_cursed_doll",
+        "texture_width": 64,
+        "texture_height": 64,
+        "visible_bounds_width": 3,
+        "visible_bounds_height": 3,
+        "visible_bounds_offset": [
+          0,
+          0.75,
+          0
+        ]
+      },
+      "bones": [
+        {
+          "name": "root",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -4,
+                0,
+                -2
+              ],
+              "size": [
+                8,
+                9,
+                4
+              ],
+              "uv": [
+                0,
+                0
+              ]
+            },
+            {
+              "origin": [
+                -3,
+                9,
+                -3
+              ],
+              "size": [
+                6,
+                6,
+                6
+              ],
+              "uv": [
+                20,
+                0
+              ]
+            },
+            {
+              "origin": [
+                -7,
+                1,
+                -1
+              ],
+              "size": [
+                3,
+                7,
+                3
+              ],
+              "uv": [
+                36,
+                0
+              ]
+            },
+            {
+              "origin": [
+                4,
+                1,
+                -1
+              ],
+              "size": [
+                3,
+                7,
+                3
+              ],
+              "uv": [
+                44,
+                0
+              ]
+            },
+            {
+              "origin": [
+                -3,
+                -6,
+                -1
+              ],
+              "size": [
+                3,
+                6,
+                3
+              ],
+              "uv": [
+                52,
+                0
+              ]
+            },
+            {
+              "origin": [
+                1,
+                -6,
+                -1
+              ],
+              "size": [
+                3,
+                6,
+                3
+              ],
+              "uv": [
+                56,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
