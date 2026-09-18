@@ -19,6 +19,7 @@
 			"jujutsu.mod.gametest.MegumiShikigamiCrossTests",
 			"jujutsu.mod.gametest.MegumiShikigamiRetaliationGameTests",
 			"jujutsu.mod.gametest.MegumiCoordinationGameTests",
+			"jujutsu.mod.gametest.MegumiShikigamiSelectorGameTests",
 			"jujutsu.mod.gametest.CursedSpiritGameTests",
 			"jujutsu.mod.gametest.CursedSpiritGradeGameTests",
 			"jujutsu.mod.gametest.CursedSpiritAbilityGameTests",

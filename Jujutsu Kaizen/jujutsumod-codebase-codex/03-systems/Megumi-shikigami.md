@@ -100,11 +100,11 @@ state map re-syncs from the effect every tick, and every teardown path (deselect
 disconnect, dimension change, server stop, fixture reset, a shadow move) removes marker AND tells
 the tongue's client to stop pulling.
 
-**Wings** (`G` press toggles): the fall-flying flag's only setter is `startFallFlying()`, so the
+**Wings** (`X` press toggles): the fall-flying flag's only setter is `startFallFlying()`, so the
 upkeep re-asserts it while the marker lives — the player glides with zero fall damage, and the
 partial ends on landing (D2) or when the marker lifts.
 
-**Tongue** (`G` press anchors, release detaches): `TargetResolver` must name a BLOCK within
+**Tongue** (`X` press anchors, release detaches): `TargetResolver` must name a BLOCK within
 `TONGUE_RANGE = 10` or the cast refuses (`partial.no_anchor`). While anchored, the client pulls
 the player toward the point (`TonguePullPolicy` + `TonguePhysicsMixin`, client-authoritative
 movement with the server holding the anchor); the tongue lets go by itself when the anchor block
@@ -113,6 +113,33 @@ the §19 exclusion refuses the partial while that type's full body is materializ
 the summon while the partial is out.
 
 The roster card lists the partial row; HUD answers 0 for both partial slots (no cooldowns).
+
+## Quick selector (G)
+
+The strip is the second selection path beside `S+V` cycling: a hold of `key.jujutsumod.quick_selector`
+(default G) opens a bottom-center strip of five slots — one per shikigami — without pausing the
+world; releasing the key closes it. A tap under `TAP_MAX_TICKS` cycles instead, so the key covers
+both gestures. While open, left-click on an available slot selects it immediately and the strip
+stays open; a cooling slot rejects with a shake; hover never selects. A hold released without a
+click restores nothing — the pre-open selection stands.
+
+Client side lives under `jujutsu.mod.client.character.megumi.selector`: `JujutsuKeybinds` owns the
+gesture state machine (tap vs hold, screen-open mid-hold cancels rather than phantom-cycling,
+sub-tick taps re-arm via `clickCount`), `MegumiShikigamiSelectorScreen` renders the strip through
+`SelectorMotion` (entrance/exit phases, per-slot snapshots so a mid-entrance close doesn't snap
+trailing slots), `ShikigamiSelectorLayout` places it above the hotbar **and** the status rows,
+and `ShikigamiSlotView` draws each slot's GeckoLib body through a picture-in-picture render state
+that injects `PACKED_LIGHT` itself — the dispatcher mixin only covers the entity render path, not
+`submitEntityRenderState`, so a naive PiP crashes with an NPE.
+
+State arrives over the wire as a `MegumiShikigamiSync` snapshot (slot states + cooldown deadlines
+rebased onto the client clock by `ClientMegumiShikigamiState.apply`); selection goes back as a C2S
+`select` request that `MegumiDefinition.selectShikigami` validates (`MegumiShikigami.byId` rejects
+unknown ids) and deduplicates — an unchanged selection never echoes a snapshot. `LOCKED`,
+`DESTROYED` and `TEMPORARY` render but have no producer yet (accepted narrowing, see
+`docs/KNOWN_ISSUES.md`). Dev-lane hooks: `/jujutsu_debug shikigami_selector` toggles the strip
+without the key, and the mcpdev `jujutsu_input` tool injects tap/press/release/hold/click so the
+gesture is scriptable end to end.
 
 ## Per-type mechanics and tuning pointers
 

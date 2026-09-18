@@ -13,6 +13,7 @@ import jujutsu.mod.client.rich.Initialization;
 import jujutsu.mod.client.rich.screens.clickgui.ClickGui;
 import jujutsu.mod.client.character.ClientAbilityCooldowns;
 import jujutsu.mod.client.character.ClientCharacterSelectionManager;
+import jujutsu.mod.client.character.JujutsuCharacterClients;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.network.CharacterAbilityPayload;
@@ -26,6 +27,11 @@ public final class JujutsuKeybinds {
 	private static KeyMapping secondTechniqueKey;
 	private static KeyMapping thirdTechniqueKey;
 	private static KeyMapping partialKey;
+	/**
+	 * The quick-selector key. Public because the strip it opens is a screen, and a screen only ever sees
+	 * the raw key event — matching it against this mapping is how release closes the strip.
+	 */
+	public static KeyMapping quickSelectorKey;
 	private static boolean attackWasDown;
 	private static boolean modernMenuWasDown;
 	private static boolean useWasDown;
@@ -36,6 +42,8 @@ public final class JujutsuKeybinds {
 	private static boolean secondWasDown;
 	/** Whether the partial key was down last tick; the press and release edges are what it sends. */
 	private static boolean partialWasDown;
+	public static final SelectorGesture selectorGesture = new SelectorGesture();
+	private static boolean selectorWasDown;
 
 	/**
 	 * How long a second right click has to arrive to count as a pair. Six ticks is comfortably inside a
@@ -90,14 +98,24 @@ public final class JujutsuKeybinds {
 		));
 		// The partial key (#108) is the second new shared key and the first with real release semantics:
 		// the press edge toggles or starts a partial manifestation, the release edge ends the one that
-		// has to be held (Toad's tongue). Default G, one key for whichever vessel claims the slot.
+		// has to be held (Toad's tongue). Default X — G belongs to the quick selector (#109): the two
+		// gestures are incompatible on one physical key (partial needs instant press/release edges,
+		// the selector needs a tap/hold deadline), so they get separate defaults.
 		partialKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
 				"key.jujutsumod.partial",
+				InputConstants.Type.KEYSYM,
+				InputConstants.KEY_X,
+				"key.categories.jujutsumod"
+		));
+		// The selector key is shared by every vessel too; a vessel without a selector simply ignores it
+		// (hasQuickSelector). Tap cycles the vessel's list, hold opens its strip — the gesture below.
+		quickSelectorKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+				"key.jujutsumod.quick_selector",
 				InputConstants.Type.KEYSYM,
 				InputConstants.KEY_G,
 				"key.categories.jujutsumod"
 		));
-		LOG.info("Registered keybinds: menu default=N (ClickGui), combat R/B/V, partial G");
+		LOG.info("Registered keybinds: menu default=N (ClickGui), combat R/B/V, partial default=X, selector default=G");
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (client.player == null) {
@@ -109,6 +127,8 @@ public final class JujutsuKeybinds {
 				sneakSecondHoldSent = false;
 				secondWasDown = false;
 				partialWasDown = false;
+				selectorWasDown = false;
+				selectorGesture.reset();
 				return;
 			}
 
@@ -132,6 +152,7 @@ public final class JujutsuKeybinds {
 				sendCharacterAbility(client, slot(client, CharacterAbility.TERTIARY, CharacterAbility.TERTIARY_SNEAK));
 			}
 			tickSecondTechnique(client);
+			tickQuickSelector(client);
 
 			// Both edges of the partial key are sent, with no hold threshold and no buffer: one edge brings
 			// the partial out and the other is the only thing that ends the tongue, so delaying either
@@ -221,6 +242,55 @@ public final class JujutsuKeybinds {
 				: CharacterAbility.SECONDARY_SNEAK);
 		sneakSecondHeldTicks = -1;
 		sneakSecondHoldSent = false;
+	}
+
+	/**
+	 * The selector key carries the one gesture in this kit that changes meaning over time: a tap cycles the
+	 * selected vessel's shikigami on release, a hold of {@link SelectorGesture#HOLD_THRESHOLD_TICKS} opens
+	 * its strip instead and that press never also cycles. The timing lives in {@link SelectorGesture}, which
+	 * is pure so it can be tested tick by tick; what this method adds is the key edge, the vessel question
+	 * and the one screen interaction the strip needs.
+	 *
+	 * <p>{@code client.screen == null} before opening is not politeness: it is what stops the open action
+	 * being spent while another screen owns the input, and what stops the strip re-opening under itself.
+	 * Opening a screen makes vanilla release every mapping, so physically held keys are re-asserted right
+	 * after — movement must not stop, and the selector key has to keep reading as held for its release to
+	 * reach the strip's own {@code keyReleased}.
+	 */
+	private static void tickQuickSelector(Minecraft client) {
+		boolean down = isActive(client, quickSelectorKey, InputConstants.KEY_G);
+		// Drained every tick, not only when needed: a normal press also increments clickCount, and a
+		// stale click left in the queue would re-fire as a phantom tap on a later tick.
+		boolean clicked = drainClicks(quickSelectorKey);
+		if (down && !selectorWasDown) {
+			selectorGesture.press();
+		} else if (clicked && !down && !selectorWasDown && !selectorGesture.isOpen()) {
+			// Press and release both landed inside one tick: vanilla counted the click, the
+			// once-per-tick sample missed it. Re-arm so the release below resolves it as a tap.
+			// The guards keep a hold's ACTION_REPEAT clicks from re-arming a completed gesture.
+			selectorGesture.press();
+		}
+		selectorWasDown = down;
+		if (!down) {
+			if (client.screen != null) {
+				// A screen opening mid-press releases every mapping, which reads exactly like the
+				// player letting go. That is not a release: the press is cancelled, never a tap —
+				// otherwise opening any screen inside the hold window would silently cycle.
+				selectorGesture.reset();
+				return;
+			}
+			if (selectorGesture.release() == SelectorGesture.Action.CYCLE
+					&& JujutsuCharacterClients.definition(selectedCharacter(client)).hasQuickSelector()) {
+				sendCharacterAbility(client, CharacterAbility.TERTIARY_SNEAK);
+			}
+			return;
+		}
+		if (selectorGesture.tickHeld() == SelectorGesture.Action.OPEN
+				&& client.screen == null
+				&& JujutsuCharacterClients.definition(selectedCharacter(client)).hasQuickSelector()) {
+			JujutsuCharacterClients.definition(selectedCharacter(client)).openQuickSelector(client);
+			KeyMapping.setAll(); // re-assert physically held keys after setScreen's releaseAll
+		}
 	}
 
 	private static boolean drainClicks(KeyMapping mapping) {

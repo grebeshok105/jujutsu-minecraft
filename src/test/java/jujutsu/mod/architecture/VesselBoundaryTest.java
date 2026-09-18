@@ -134,7 +134,12 @@ class VesselBoundaryTest {
 			"jujutsu.mod.network.BlackFlashFocusPayload",
 			// #108: the Toad tongue anchor is client-authoritative physics, so the server has to
 			// publish the anchor state; it is a state sync, not an ability input path.
-			"jujutsu.mod.network.MegumiTongueStatePayload");
+			"jujutsu.mod.network.MegumiTongueStatePayload",
+			// The shikigami selector's pair: a click up and a roster snapshot down. Vessel-neutral by
+			// name and by payload, which is why they may live in the shared package — a payload is
+			// banned from a vessel package outright, so this is their only legal home.
+			"jujutsu.mod.network.ShikigamiSelectPayload",
+			"jujutsu.mod.network.ShikigamiStatePayload");
 
 	/** Vessel-named classes that sit outside their vessel's packages today. Five are deliberate, two are debt. */
 	private static final Set<String> VESSEL_NAMED_CLASSES_OUTSIDE_VESSEL_PACKAGES = Set.of(

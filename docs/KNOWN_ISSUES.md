@@ -475,6 +475,7 @@ Both are pinned by `MegumiCoexistenceGameTests` (`emptyAimCancelsManualOrders`,
 - Publication automation for Modrinth/CurseForge should wait until release provenance is clean.
 - Some generic Rich ClickGui modules/components are unused and can be removed after confirming the final UI scope.
 - The debug domain-sphere effect (`jujutsumod:domain_sphere`) is a proof of concept, not gameplay: it is a client-only world-space shell rendered on top of the scene, it exists only to be triggered by hand — `/jujutsu_debug domain_sphere [radius]` in-game or the dev-lane MCP tool `jujutsu_domain_sphere` — and it is registered outside the vessel recipe packs, so no ability, no vessel and no server runtime can reach it yet. Treat the shader, the cue id and the timing constants as a prototype to be reworked by the real Domain Expansion work rather than as a stable seam.
+- Megumi's shikigami quick selector (G) ships deliberately narrowed: `MegumiShikigamiSlotState` declares `LOCKED`/`DESTROYED`/`TEMPORARY` and the wire + strip render them, but nothing in `src/main` produces them — they exist so a future design (quest locks, destroyed shikigami, temporary summons) lands without a protocol change. The strip also models exactly one pack per shikigami: multi-summon does not exist as a class, and `SUMMONED` is set by a single live pack (dogs count as one). Selection is free and never despawns anything.
 
 ## Archived and recoverable
 

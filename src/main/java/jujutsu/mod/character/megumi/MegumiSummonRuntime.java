@@ -178,6 +178,8 @@ public final class MegumiSummonRuntime {
 		broadcastCue(level, player, MegumiVfxIds.DOGS_SUMMON_BODY, player.position(), player.getId(), Vec3.ZERO);
 		broadcastDogCue(level, player, MegumiVfxIds.DOGS_SUMMON, white);
 		broadcastDogCue(level, player, MegumiVfxIds.DOGS_SUMMON, black);
+		// The pack is live: the owner's snapshot marks DOGS as out without implying any despawn.
+		MegumiShikigamiSync.push(player);
 		return true;
 	}
 
@@ -313,6 +315,8 @@ public final class MegumiSummonRuntime {
 		if (PACKS.remove(ownerId, pack)) {
 			startSummonCooldown(server, ownerId, MegumiShikigami.DOGS,
 					MegumiCooldownPolicy.duration(MegumiCooldownPolicy.Cause.FINAL_LOSS));
+			// The pack record is gone, so the selector's DOGS marker must go with it.
+			MegumiShikigamiSync.push(server.getPlayerList().getPlayer(ownerId));
 		}
 	}
 
@@ -358,6 +362,8 @@ public final class MegumiSummonRuntime {
 		}
 		if (MegumiLifecyclePolicy.shouldApplyTeardownCooldown(pack != null, foundCooldownOwningDog)) {
 			startSummonCooldown(server, ownerId, MegumiShikigami.DOGS, reason.cooldownTicks());
+			// The pack record is gone whichever way this went, so the DOGS marker must go with it.
+			MegumiShikigamiSync.push(server.getPlayerList().getPlayer(ownerId));
 		}
 	}
 

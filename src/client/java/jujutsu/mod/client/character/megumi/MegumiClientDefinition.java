@@ -1,8 +1,11 @@
 package jujutsu.mod.client.character.megumi;
 
 import java.util.List;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.CharacterAbility;
@@ -13,7 +16,11 @@ import jujutsu.mod.client.character.CharacterClientDefinition;
 import jujutsu.mod.client.character.CharacterRosterEntry;
 import jujutsu.mod.client.character.HudSlot;
 import jujutsu.mod.client.character.JujutsuCharacterIcons;
+import jujutsu.mod.client.character.megumi.selector.ClientMegumiShikigamiState;
+import jujutsu.mod.client.character.megumi.selector.MegumiShikigamiSelectorScreen;
+import jujutsu.mod.client.character.megumi.selector.ShikigamiSlotView;
 import jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes;
+import jujutsu.mod.network.ShikigamiStatePayload;
 import jujutsu.mod.client.character.megumi.particle.MegumiShadowMoteParticle;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.render.CharacterSkinAnimation;
@@ -155,6 +162,23 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 		MegumiVfxRecipes.register();
 		VfxDirector.registerHudContribution(JujutsuMod.id("megumi_divine_dogs_cooldown"), MegumiCooldownHud::render);
 		VfxDirector.registerHudContribution(JujutsuMod.id("megumi_shadow_dive_veil"), MegumiShadowDiveHud::render);
+		// The server owns every shikigami state; this is the only way the strip learns them.
+		ClientPlayNetworking.registerGlobalReceiver(ShikigamiStatePayload.TYPE, (payload, context) ->
+				context.client().execute(() -> ClientMegumiShikigamiState.apply(payload)));
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+			ClientMegumiShikigamiState.clear();
+			ShikigamiSlotView.clearModels();
+		});
+	}
+
+	@Override
+	public boolean hasQuickSelector() {
+		return true;
+	}
+
+	@Override
+	public void openQuickSelector(Minecraft client) {
+		client.setScreen(new MegumiShikigamiSelectorScreen());
 	}
 
 	@Override

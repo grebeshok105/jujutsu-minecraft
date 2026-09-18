@@ -83,6 +83,11 @@ public final class MegumiShikigamiRuntime {
 			teardown(server, playerId, TeardownReason.DISCONNECT);
 			onPlayerDisconnect(playerId);
 		});
+		// A fresh connection starts from the default selection, so the client's cache must be told what
+		// that is instead of keeping whatever the previous world left in it (the client also clears on
+		// disconnect, but the two ends are independent and only this one is authoritative).
+		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
+				MegumiShikigamiSync.push(handler.player));
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			Set<UUID> ownerIds = new HashSet<>(PACKS.keySet());
 			for (ServerLevel level : server.getAllLevels()) {
@@ -99,6 +104,7 @@ public final class MegumiShikigamiRuntime {
 			PACKS.clear();
 			TEARDOWN_IN_PROGRESS.clear();
 			MegumiShikigamiSelection.clearAll();
+			MegumiShikigamiCooldowns.clearAll();
 		});
 	}
 
@@ -138,7 +144,7 @@ public final class MegumiShikigamiRuntime {
 		return summon(player, selection, notify);
 	}
 
-	/** The sneaking technique key: advance the selection; never costs anything. */
+	/** The sneaking technique key: advance the selection to the next usable shikigami; never costs anything. */
 	public static boolean tryCycle(ServerPlayer player, boolean notify) {
 		UUID ownerId = player.getUUID();
 		if (MegumiPartialRuntime.isAnyActive(ownerId)) {
@@ -150,11 +156,14 @@ public final class MegumiShikigamiRuntime {
 			}
 			return false;
 		}
-		MegumiShikigami next = MegumiShikigamiSelection.cycle(ownerId);
+		long now = player.level().getGameTime();
+		MegumiShikigami next = MegumiShikigamiSelection.cycleAvailable(ownerId,
+				type -> !MegumiSummonCooldowns.onCooldown(ownerId, type, now));
 		if (notify) {
 			player.displayClientMessage(Component.translatable("message.jujutsumod.megumi.shikigami.selected",
 					Component.translatable(nameKey(next))), true);
 		}
+		MegumiShikigamiSync.push(player);
 		return true;
 	}
 
@@ -266,6 +275,7 @@ public final class MegumiShikigamiRuntime {
 	/** Clears the player's saved selection; wired to disconnect (unit-testable seam). */
 	static void onPlayerDisconnect(UUID playerId) {
 		MegumiShikigamiSelection.clear(playerId);
+		MegumiShikigamiCooldowns.clear(playerId);
 	}
 
 	/**
@@ -329,6 +339,10 @@ public final class MegumiShikigamiRuntime {
 		// took down. The coordinator's retainOnly sweep is the backstop for anything missed.
 		for (UUID bodyId : sweptBodyIds) {
 			MegumiFailureMemory.clear(bodyId);
+		}
+		// The pack records are gone whether or not they cost anything, so the selector's SUMMONED
+		// markers and cooldown rows must be republished — one push per sweep, not per pack.
+		MegumiShikigamiSync.push(server.getPlayerList().getPlayer(ownerId));
 		}
 	}
 
@@ -498,6 +512,13 @@ public final class MegumiShikigamiRuntime {
 	}
 
 	private static void tick(MinecraftServer server) {
+		// The roster ledger stamps deadlines from the server clock, and this runtime owns that feed so the
+		// ledger needs no server handle of its own. Game time is one counter per server: it is the same
+		// number every level reports, which is the assumption the shared slot ledger already makes.
+		ServerLevel overworld = server.overworld();
+		if (overworld != null) {
+			MegumiShikigamiCooldowns.observe(overworld.getGameTime());
+		}
 		for (UUID ownerId : Set.copyOf(PACKS.keySet())) {
 			reconcile(server, ownerId, RemovalCause.TICK);
 			retaliate(server, ownerId);
@@ -552,6 +573,7 @@ public final class MegumiShikigamiRuntime {
 				if (!removePack(ownerId, pack.type()).isEmpty()) {
 					MegumiSummonRuntime.startSummonCooldown(server, ownerId, pack.type(),
 							MegumiShikigamiProfile.deathCooldownTicks(pack.type()));
+					MegumiShikigamiSync.push(server.getPlayerList().getPlayer(ownerId));
 				}
 				continue;
 			}
@@ -620,6 +642,8 @@ public final class MegumiShikigamiRuntime {
 				case DOGS -> throw new IllegalStateException("dogs do not use the shikigami runtime");
 			}
 		}
+		// The pack is live: the owner's snapshot marks this type as out without implying any despawn.
+		MegumiShikigamiSync.push(player);
 		return true;
 	}
 

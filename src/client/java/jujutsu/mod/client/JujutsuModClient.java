@@ -6,6 +6,7 @@ import jujutsu.mod.client.character.ClientCharacterSelectionManager;
 import jujutsu.mod.client.character.JujutsuCharacterClients;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.vfx.domain.DomainSphereDebug;
+import jujutsu.mod.client.vfx.domain.ShikigamiSelectorDebug;
 import jujutsu.mod.client.input.JujutsuKeybinds;
 import jujutsu.mod.client.render.cursedspirit.CursedSpiritAura;
 import jujutsu.mod.client.render.cursedspirit.CursedSpiritClient;
@@ -30,6 +31,7 @@ public class JujutsuModClient implements ClientModInitializer {
 		// Debug-only effects are not vessel content: they register here so the vessel packs stay the
 		// single owner of gameplay VFX (see the marker on DomainSphereDebug).
 		DomainSphereDebug.register();
+		ShikigamiSelectorDebug.register();
 		CursedSpiritClient.register();
 		CursedSpiritAura.register();
 		JujutsuClientNetworking.registerReceivers();
