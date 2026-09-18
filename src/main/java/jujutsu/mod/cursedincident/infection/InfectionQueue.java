@@ -1,6 +1,7 @@
 package jujutsu.mod.cursedincident.infection;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -46,31 +47,49 @@ public final class InfectionQueue {
 
 	/** Queues a position for stage-time mapping; the block is resolved when drained. */
 	public void enqueue(BlockPos pos, IncidentStage stage) {
-		enqueue(pos, stage, false);
+		enqueue(pos, stage, false, null);
 	}
 
 	/** Queues a position for stage-time mapping for legacy callers. */
 	public void enqueue(BlockPos pos, IncidentStage stage, boolean destroyWithDrops) {
+		enqueue(pos, stage, destroyWithDrops, null);
+	}
+
+	public void enqueue(BlockPos pos, IncidentStage stage, boolean destroyWithDrops, UUID nodeId) {
 		if (pos == null || stage == null) {
 			return;
 		}
-		record.pendingEdits.add(new IncidentRecord.PendingEdit(pos, null, destroyWithDrops, null, stage));
+		record.pendingEdits.add(new IncidentRecord.PendingEdit(pos, null, destroyWithDrops, nodeId, stage));
 	}
 
 	/** Queues an already-selected target state for callers that own the mapping. */
 	public void enqueue(BlockPos pos, BlockState state) {
-		enqueue(pos, state, false);
+		enqueue(pos, state, false, null);
 	}
 
 	public void enqueue(BlockPos pos, BlockState state, boolean destroyWithDrops) {
+		enqueue(pos, state, destroyWithDrops, null);
+	}
+
+	/** Queues an edit for a specific secondary work centre when {@code nodeId} is non-null. */
+	public void enqueue(BlockPos pos, BlockState state, boolean destroyWithDrops, UUID nodeId) {
 		if (pos == null || (state == null && !destroyWithDrops)) {
 			return;
 		}
-		record.pendingEdits.add(new IncidentRecord.PendingEdit(pos, state, destroyWithDrops));
+		record.pendingEdits.add(new IncidentRecord.PendingEdit(pos, state, destroyWithDrops, nodeId, null));
 	}
 
-	/** Applies at most {@code budget} edits and leaves unloaded entries queued. */
+	/** Applies at most {@code budget} edits from all work centres. */
 	public int drain(ServerLevel level, int budget) {
+		return drainInternal(level, budget, null, false);
+	}
+
+	/** Applies at most {@code budget} edits belonging to one work centre. */
+	public int drain(ServerLevel level, int budget, UUID nodeId) {
+		return drainInternal(level, budget, nodeId, true);
+	}
+
+	private int drainInternal(ServerLevel level, int budget, UUID nodeId, boolean filterNode) {
 		int bounded = boundedBudget(budget);
 		if (level == null || bounded <= 0 || record.sealed) {
 			return 0;
@@ -80,6 +99,10 @@ public final class InfectionQueue {
 		int maxInspected = Math.max(record.pendingEdits.size(), bounded) + 8;
 		while (applied < bounded && !record.pendingEdits.isEmpty() && inspected++ < maxInspected) {
 			IncidentRecord.PendingEdit edit = record.pendingEdits.remove(0);
+			if (filterNode && !Objects.equals(nodeId, edit.nodeId())) {
+				record.pendingEdits.add(edit);
+				continue;
+			}
 			BlockPos pos = edit.pos();
 			if (!level.getChunkSource().hasChunk(pos.getX() >> 4, pos.getZ() >> 4)) {
 				// Deferred is counted once at enqueue (InfectionSink.applyStageDelta);

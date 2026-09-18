@@ -5,15 +5,16 @@ import java.util.List;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import jujutsu.mod.cursedincident.IncidentControl;
+import jujutsu.mod.cursedincident.IncidentControl.WorkCenter;
 import jujutsu.mod.cursedincident.IncidentRecord;
 import jujutsu.mod.cursedincident.IncidentWorldSink;
 import jujutsu.mod.cursedincident.infection.InfectionQueue;
 import jujutsu.mod.cursedincident.infection.InfectionSink;
-
 /** Bounded world work driver; logical age advances even while an incident's chunk is unloaded. */
 public final class IncidentRuntime {
 	private static final int PERIOD_TICKS = 20;
@@ -52,35 +53,52 @@ public final class IncidentRuntime {
 		int loadedUnits = loadedWorkUnits(records);
 		int share = 64 / Math.max(1, loadedUnits);
 		for (IncidentRecord record : records) {
-			if (record == null || record.scarred) {
+			if (record == null || record.sealed) {
 				continue;
 			}
 			ServerLevel level = levelFor(server, record);
 			if (level == null) {
 				continue;
 			}
-			long now = level.getGameTime();
-			IncidentControl.advanceTo(record, record.ageTicks(now));
-			if (!isLoaded(level, record) || record.sealed) {
-				continue;
+			if (!record.scarred) {
+				long now = level.getGameTime();
+				IncidentControl.advanceTo(record, record.ageTicks(now));
 			}
-			replayPendingDeltas(level, record);
-			sink.tickZone(level, record, share);
+			for (WorkCenter workCenter : IncidentControl.workCenters(record)) {
+				if (workCenter.isParent() && record.scarred) {
+					continue;
+				}
+				if (!isLoaded(level, workCenter.center())) {
+					continue;
+				}
+				if (workCenter.isParent()) {
+					replayPendingDeltas(level, record);
+				}
+				sink.tickZone(level, record, workCenter.center(), workCenter.nodeId(), share);
+			}
 		}
 		PerceptionOverrideRuntime.tick(server);
 		flushPendingDrains();
 	}
 
-	/** Single budget-denominator seam; Wave B replaces its internals for secondary centres. */
+	/** Counts loaded work centres, including self-sustaining nodes on scarred parents. */
 	public static int loadedWorkUnits(List<IncidentRecord> records) {
 		if (activeServer == null || records == null) {
 			return 0;
 		}
 		int loaded = 0;
 		for (IncidentRecord record : records) {
+			if (record == null || record.sealed) {
+				continue;
+			}
 			ServerLevel level = levelFor(activeServer, record);
-			if (isActive(level, record) && isLoaded(level, record)) {
-				loaded++;
+			for (WorkCenter workCenter : IncidentControl.workCenters(record)) {
+				if (workCenter.isParent() && record.scarred) {
+					continue;
+				}
+				if (isLoaded(level, workCenter.center())) {
+					loaded++;
+				}
 			}
 		}
 		return loaded;
@@ -99,13 +117,19 @@ public final class IncidentRuntime {
 		for (ServerLevel level : PENDING_DRAIN) {
 			PENDING_DRAIN.remove(level);
 			for (IncidentRecord record : IncidentControl.recordsForRuntime()) {
-				if (record == null || record.center == null || record.scarred || record.sealed
+				if (record == null || record.sealed
 						|| record.dimension != null && record.dimension != level.dimension()) {
 					continue;
 				}
-				if (isLoaded(level, record)) {
-					replayPendingDeltas(level, record);
-					sink.tickZone(level, record, 64);
+				for (WorkCenter workCenter : IncidentControl.workCenters(record)) {
+					if (workCenter.isParent() && record.scarred
+							|| !isLoaded(level, workCenter.center())) {
+						continue;
+					}
+					if (workCenter.isParent()) {
+						replayPendingDeltas(level, record);
+					}
+					sink.tickZone(level, record, workCenter.center(), workCenter.nodeId(), 64);
 				}
 			}
 		}
@@ -122,7 +146,7 @@ public final class IncidentRuntime {
 	}
 
 	private static boolean isActive(ServerLevel level, IncidentRecord record) {
-		return level != null && record != null && !record.scarred && !record.sealed
+		return level != null && record != null && !record.sealed
 				&& (record.dimension == null || record.dimension == level.dimension());
 	}
 
@@ -130,9 +154,9 @@ public final class IncidentRuntime {
 		return server.getLevel(record == null || record.dimension == null ? Level.OVERWORLD : record.dimension);
 	}
 
-	private static boolean isLoaded(ServerLevel level, IncidentRecord record) {
-		return level != null && record != null && record.center != null
-				&& level.getChunkSource().hasChunk(record.center.getX() >> 4, record.center.getZ() >> 4);
+	private static boolean isLoaded(ServerLevel level, BlockPos center) {
+		return level != null && center != null
+				&& level.getChunkSource().hasChunk(center.getX() >> 4, center.getZ() >> 4);
 	}
 
 	public static void clear() {

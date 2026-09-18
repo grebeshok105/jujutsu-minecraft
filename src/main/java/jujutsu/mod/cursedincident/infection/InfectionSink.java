@@ -36,6 +36,7 @@ public final class InfectionSink implements IncidentWorldSink {
 	public static final long CULL_TICKS = 400L;
 
 	private static final Map<UUID, Set<UUID>> ANNOUNCED_SECONDARY_BIRTHS = new HashMap<>();
+	private static final Map<UUID, Map<UUID, CenterCadence>> CENTER_CADENCE = new HashMap<>();
 	private static long budgetTick = Long.MIN_VALUE;
 	private static int budgetUsed;
 	private final DwellProvider dwellProvider;
@@ -54,7 +55,8 @@ public final class InfectionSink implements IncidentWorldSink {
 			return;
 		}
 		InfectionQueue queue = InfectionQueue.forIncident(record);
-		int sampleCount = (int) Math.min(400L, Math.max(1L, (long) Math.floor(record.radius * record.radius * record.radius / 8.0)));
+		int sampleCount = (int) Math.min(400L,
+				Math.max(1L, (long) Math.floor(record.radius * record.radius * record.radius / 8.0)));
 		ZoneGeometry.Shape shape = ZoneGeometry.shapeOf(record.params);
 		for (BlockPos pos : ZoneGeometry.sampleBlocks(shape, record.center, Math.max(0.0, record.radius),
 				RandomSource.create(record.seed ^ to.ordinal()), sampleCount)) {
@@ -64,7 +66,7 @@ public final class InfectionSink implements IncidentWorldSink {
 			boolean destroy = InfectionPolicy.isContainer(current);
 			if (target != null || destroy) {
 				// The concrete state is durable; drain never needs to re-run a stage mapping.
-				queue.enqueue(pos, target, destroy);
+				queue.enqueue(pos, target, destroy, null);
 			}
 			if (!level.getChunkSource().hasChunk(pos.getX() >> 4, pos.getZ() >> 4)) {
 				record.counters.chunkEditsDeferred++;
@@ -73,12 +75,13 @@ public final class InfectionSink implements IncidentWorldSink {
 		record.lastAmbientGameTime = level.getGameTime();
 		emitCue(level, record, CursedIncidentVfxIds.STAGE_PULSE, true, to.ordinal() + 1);
 		emitCue(level, record, CursedIncidentVfxIds.ZONE_AMBIENT, false, Math.max(1, to.ordinal()));
-		IncidentSpawnRuntime.spawnWave(level, record, to == IncidentStage.INITIAL ? 1 : 2);
+		IncidentSpawnRuntime.spawnWave(level, record, record.center, null, to == IncidentStage.INITIAL ? 1 : 2);
 	}
 
 	@Override
-	public void tickZone(ServerLevel level, IncidentRecord record, int tickBudget) {
-		if (level == null || record == null || record.center == null || record.scarred || record.sealed) {
+	public void tickZone(ServerLevel level, IncidentRecord record, BlockPos center, UUID nodeId, int tickBudget) {
+		if (level == null || record == null || center == null || record.sealed
+				|| workUnitScarred(record, nodeId)) {
 			return;
 		}
 		long now = level.getGameTime();
@@ -89,23 +92,37 @@ public final class InfectionSink implements IncidentWorldSink {
 		int available = Math.max(0, PER_TICK_BLOCK_BUDGET - budgetUsed);
 		int allowance = Math.min(Math.max(0, tickBudget), available);
 		InfectionQueue queue = InfectionQueue.forIncident(record);
-		budgetUsed += queue.drain(level, allowance);
-		if (due(now, record.lastTopUpGameTime, CURSE_TOPUP_TICKS)) {
-			record.lastTopUpGameTime = now;
-			IncidentSpawnRuntime.trySpawnWave(level, record);
+		budgetUsed += queue.drain(level, allowance, nodeId);
+		CenterCadence cadence = nodeId == null ? null : cadenceFor(record, nodeId);
+		if (due(now, nodeId == null ? record.lastTopUpGameTime : cadence.lastTopUp, CURSE_TOPUP_TICKS)) {
+			if (nodeId == null) {
+				record.lastTopUpGameTime = now;
+			} else {
+				cadence.lastTopUp = now;
+			}
+			IncidentSpawnRuntime.trySpawnWave(level, record, center, nodeId);
 		}
-		if (due(now, record.lastCullGameTime, CULL_TICKS)) {
-			record.lastCullGameTime = now;
-			cullAnimals(level, record);
+		if (due(now, nodeId == null ? record.lastCullGameTime : cadence.lastCull, CULL_TICKS)) {
+			if (nodeId == null) {
+				record.lastCullGameTime = now;
+			} else {
+				cadence.lastCull = now;
+			}
+			cullAnimals(level, record, center, radiusFor(record, nodeId));
 		}
-		if (due(now, record.lastContainerScanGameTime, CONTAINER_SCAN_TICKS)) {
-			record.lastContainerScanGameTime = now;
-			scanContainers(level, record);
+		if (due(now, nodeId == null ? record.lastContainerScanGameTime : cadence.lastContainerScan,
+				CONTAINER_SCAN_TICKS)) {
+			if (nodeId == null) {
+				record.lastContainerScanGameTime = now;
+			} else {
+				cadence.lastContainerScan = now;
+			}
+			scanContainers(level, record, center, nodeId, radiusFor(record, nodeId));
 		}
 		if (now % CURSE_TOPUP_TICKS == 0L) {
 			Set<UUID> announced = ANNOUNCED_SECONDARY_BIRTHS.computeIfAbsent(record.id, ignored -> new HashSet<>());
 			for (var node : record.secondaries) {
-				if (node != null && announced.add(node.id())) {
+				if (node != null && announced.add(node.nodeId())) {
 					emitCue(level, record, CursedIncidentVfxIds.SECONDARY_BIRTH, true, 2, node.center());
 				}
 			}
@@ -121,6 +138,7 @@ public final class InfectionSink implements IncidentWorldSink {
 			record.lastCullGameTime = Long.MIN_VALUE;
 			record.lastAmbientGameTime = Long.MIN_VALUE;
 			ANNOUNCED_SECONDARY_BIRTHS.remove(record.id);
+			CENTER_CADENCE.remove(record.id);
 		}
 	}
 
@@ -150,14 +168,27 @@ public final class InfectionSink implements IncidentWorldSink {
 			return;
 		}
 		if (level != null && record.id != null) {
-			IncidentSpawnRuntime.cleanup(level, record.id);
+			IncidentSpawnRuntime.cleanup(level, record.id, null);
+			for (var node : record.secondaries) {
+				if (node != null && !node.selfSustaining()) {
+					IncidentSpawnRuntime.cleanup(level, record.id, node.nodeId());
+				}
+			}
 		}
-		record.pendingEdits.clear();
+		Set<UUID> survivingNodes = new HashSet<>();
+		for (var node : record.secondaries) {
+			if (node != null && node.selfSustaining() && !node.scarred()) {
+				survivingNodes.add(node.nodeId());
+			}
+		}
+		record.pendingEdits.removeIf(edit -> edit == null || edit.nodeId() == null
+				|| !survivingNodes.contains(edit.nodeId()));
 		if (record.id != null) {
 			ANNOUNCED_SECONDARY_BIRTHS.remove(record.id);
+			CENTER_CADENCE.remove(record.id);
 		}
 		if (record.objectInstanceId != null) {
-			ObjectDwellTracker.forget(record.objectInstanceId);
+			ObjectDwellTracker.forgetEverywhere(record.objectInstanceId);
 		}
 	}
 
@@ -189,15 +220,16 @@ public final class InfectionSink implements IncidentWorldSink {
 
 	public static void clearRuntimeState() {
 		ANNOUNCED_SECONDARY_BIRTHS.clear();
+		CENTER_CADENCE.clear();
 		budgetTick = Long.MIN_VALUE;
 		budgetUsed = 0;
 	}
 
-	private void cullAnimals(ServerLevel level, IncidentRecord record) {
+	private void cullAnimals(ServerLevel level, IncidentRecord record, BlockPos center, double radius) {
 		float chance = InfectionPolicy.cullAnimalChance(record.stage);
-		if (chance <= 0.0f) return;
-		RandomSource random = RandomSource.create(record.seed ^ level.getGameTime());
-		AABB area = new AABB(record.center).inflate(record.radius);
+		if (chance <= 0.0f || center == null || radius < 0.0) return;
+		RandomSource random = RandomSource.create(record.seed ^ level.getGameTime() ^ center.asLong());
+		AABB area = new AABB(center).inflate(radius);
 		for (Animal animal : level.getEntitiesOfClass(Animal.class, area, entity -> !entity.isDeadOrDying())) {
 			if (random.nextFloat() < chance) {
 				boolean wasAlive = animal.isAlive();
@@ -209,11 +241,12 @@ public final class InfectionSink implements IncidentWorldSink {
 		}
 	}
 
-	private void scanContainers(ServerLevel level, IncidentRecord record) {
-		int minX = (int) Math.floor(record.center.getX() - record.radius);
-		int maxX = (int) Math.ceil(record.center.getX() + record.radius);
-		int minZ = (int) Math.floor(record.center.getZ() - record.radius);
-		int maxZ = (int) Math.ceil(record.center.getZ() + record.radius);
+	private void scanContainers(ServerLevel level, IncidentRecord record, BlockPos center,
+			UUID nodeId, double radius) {
+		int minX = (int) Math.floor(center.getX() - radius);
+		int maxX = (int) Math.ceil(center.getX() + radius);
+		int minZ = (int) Math.floor(center.getZ() - radius);
+		int maxZ = (int) Math.ceil(center.getZ() + radius);
 		int minChunkX = minX >> 4;
 		int maxChunkX = maxX >> 4;
 		int minChunkZ = minZ >> 4;
@@ -227,7 +260,7 @@ public final class InfectionSink implements IncidentWorldSink {
 				}
 				for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
 					BlockPos pos = blockEntity.getBlockPos();
-					if (!ZoneGeometry.contains(shape, record.center, record.radius, pos)
+					if (!ZoneGeometry.contains(shape, center, radius, pos)
 							|| !(blockEntity instanceof Container container)) {
 						continue;
 					}
@@ -242,6 +275,43 @@ public final class InfectionSink implements IncidentWorldSink {
 				}
 			}
 		}
+	}
+
+
+	private static CenterCadence cadenceFor(IncidentRecord record, UUID nodeId) {
+		return CENTER_CADENCE
+				.computeIfAbsent(record.id, ignored -> new HashMap<>())
+				.computeIfAbsent(nodeId, ignored -> new CenterCadence());
+	}
+
+	private static boolean workUnitScarred(IncidentRecord record, UUID nodeId) {
+		if (nodeId == null) {
+			return record.scarred;
+		}
+		for (var node : record.secondaries) {
+			if (node != null && nodeId.equals(node.nodeId())) {
+				return node.scarred();
+			}
+		}
+		return true;
+	}
+
+	private static double radiusFor(IncidentRecord record, UUID nodeId) {
+		if (nodeId == null) {
+			return Math.max(0.0, record.radius);
+		}
+		for (var node : record.secondaries) {
+			if (node != null && nodeId.equals(node.nodeId())) {
+				return Math.max(0.0, node.radius());
+			}
+		}
+		return -1.0;
+	}
+
+	private static final class CenterCadence {
+		long lastTopUp = Long.MIN_VALUE;
+		long lastContainerScan = Long.MIN_VALUE;
+		long lastCull = Long.MIN_VALUE;
 	}
 
 	private static boolean due(long now, long last, long cadence) {

@@ -2,9 +2,11 @@ package jujutsu.mod.cursedincident;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -51,6 +53,16 @@ public final class IncidentControl {
 	}
 
 	public record SealAttempt(boolean ok, int requiredTier, String reason) {
+	}
+
+	public record WorkCenter(UUID nodeId, BlockPos center, boolean selfSustaining) {
+		public WorkCenter {
+			center = center == null ? BlockPos.ZERO : center.immutable();
+		}
+
+		public boolean isParent() {
+			return nodeId == null;
+		}
 	}
 
 	public record InspectView(UUID id, long seed, String templateId, IncidentStage stage, boolean scarred,
@@ -162,10 +174,12 @@ public final class IncidentControl {
 			if (level == null) {
 				return new SpawnOutcome.Refused("object_spawner_unavailable");
 			}
-			record.objectInstanceId = objectSpawner.spawn(level, record.center, record.objectTypeId, grade, seed);
-			if (record.objectInstanceId == null) {
+			ObjectSpawner.Spawned spawned = objectSpawner.spawn(level, record.center, record.objectTypeId, grade, seed);
+			if (spawned == null || spawned.uuid() == null) {
 				return new SpawnOutcome.Refused("object_spawn_refused");
 			}
+			record.objectInstanceId = spawned.uuid();
+			record.objectTypeId = spawned.typeId();
 		}
 
 		data().put(record);
@@ -228,6 +242,23 @@ public final class IncidentControl {
 	/** Runtime seam: returns stable record references while keeping storage ownership in B1. */
 	public static List<IncidentRecord> recordsForRuntime() {
 		return List.copyOf(data().incidents().values());
+	}
+
+	/** Returns the parent centre and every non-scarred secondary work centre. */
+	public static List<WorkCenter> workCenters(IncidentRecord record) {
+		if (record == null) {
+			return List.of();
+		}
+		List<WorkCenter> centers = new ArrayList<>(1 + record.secondaries.size());
+		if (record.center != null) {
+			centers.add(new WorkCenter(null, record.center, false));
+		}
+		for (SecondaryNode node : record.secondaries) {
+			if (node != null && !node.scarred() && node.center() != null) {
+				centers.add(new WorkCenter(node.nodeId(), node.center(), node.selfSustaining()));
+			}
+		}
+		return List.copyOf(centers);
 	}
 
 	/** The incident whose source is this object instance, or null (R43/R44 dwell lookup). */
@@ -311,8 +342,10 @@ public final class IncidentControl {
 		if (next == IncidentStage.CRITICAL && record.params != null
 				&& record.params.secondaryAtCritical()
 				&& record.dependentCenterCount() < MAX_DEPENDENT_CENTERS) {
-			record.secondaries.add(new SecondaryNode(UUID.randomUUID(),
-					record.center == null ? BlockPos.ZERO : record.center,
+			ServerLevel level = levelFor(record);
+			BlockPos center = jujutsu.mod.cursedincident.infection.ZoneGeometry.secondaryCenter(
+					level, record, record.secondaries.size());
+			record.secondaries.add(new SecondaryNode(UUID.randomUUID(), center,
 					Math.max(1.0, record.radius * 0.60), now, true));
 		}
 	}
@@ -379,10 +412,14 @@ public final class IncidentControl {
 		if (!record.sealed || amount <= 0) {
 			return Math.max(0, record.sealIntegrity);
 		}
-		int before = record.sealIntegrity;
+		int before = Math.max(0, record.sealIntegrity);
+		int tier = Math.max(SealPolicy.MIN_TIER, Math.min(SealPolicy.MAX_TIER, record.sealTier));
 		long rollSeed = record.seed ^ ((long) record.sealFailures << 32) ^ before;
-		boolean catastrophic = SealPolicy.maybeCatastrophicFail(RandomSource.create(rollSeed), before);
+		boolean catastrophic = SealPolicy.maybeCatastrophicFail(RandomSource.create(rollSeed), tier, before);
 		record.sealIntegrity = catastrophic ? 0 : Math.max(0, before - amount);
+		if (!catastrophic && record.sealIntegrity > 0) {
+			notifySealBands(record, before, record.sealIntegrity);
+		}
 		if (catastrophic || record.sealIntegrity == 0) {
 			record.sealed = false;
 			record.sealFailures++;
@@ -393,7 +430,7 @@ public final class IncidentControl {
 		return record.sealIntegrity;
 	}
 
-	/** Reconciles the durable record with the authoritative physical-object component. */
+	/** Reconciles every durable seal field with the authoritative physical component. */
 	public static void syncSealFromComponent(UUID objectInstanceId) {
 		if (objectInstanceId == null || dwellProvider == DwellProvider.NONE) {
 			return;
@@ -402,16 +439,43 @@ public final class IncidentControl {
 		if (record == null || record.sourceKind != SourceKind.OBJECT) {
 			return;
 		}
-		boolean componentSealed = dwellProvider.isSealed(objectInstanceId);
-		if (record.sealed == componentSealed) {
+		DwellProvider.SealSnapshot snapshot = dwellProvider.sealSnapshot(objectInstanceId);
+		boolean wasSealed = record.sealed;
+		boolean changed = record.sealed != snapshot.sealed()
+				|| record.sealTier != snapshot.tier()
+				|| record.sealIntegrity != snapshot.integrity()
+				|| record.knowledge != snapshot.knowledge();
+		if (!changed) {
 			return;
 		}
-		record.sealed = componentSealed;
+		int before = record.sealIntegrity;
+		record.sealed = snapshot.sealed();
+		record.sealTier = snapshot.tier();
+		record.sealIntegrity = snapshot.integrity();
+		record.knowledge = snapshot.knowledge();
+		if (record.sealed) {
+			notifySealBands(record, before, record.sealIntegrity);
+		}
 		data().setDirty();
-		if (componentSealed) {
+		if (!wasSealed && record.sealed) {
 			worldSink.onSealed(levelFor(record), record);
-		} else {
+		} else if (wasSealed && !record.sealed) {
 			worldSink.onSealBroken(levelFor(record), record);
+		}
+	}
+
+	/** Tracker-facing callback seam for crossing a physical seal degradation band. */
+	public static void onSealDegraded(UUID objectInstanceId, int bandIndex) {
+		IncidentRecord record = recordForObject(objectInstanceId);
+		if (record != null && record.sourceKind == SourceKind.OBJECT) {
+			worldSink.onSealDegraded(levelFor(record), record, objectInstanceId, bandIndex);
+		}
+	}
+
+	/** Marks a physical object id as permanently voided after cleanup. */
+	public static void voidObject(UUID objectInstanceId) {
+		if (objectInstanceId != null) {
+			data().voidObject(objectInstanceId);
 		}
 	}
 
@@ -445,12 +509,16 @@ public final class IncidentControl {
 	public static SecondaryNode forceSecondary(UUID id, BlockPos pos) {
 		IncidentRecord record = require(id);
 		for (SecondaryNode existing : record.secondaries) {
-			if (!existing.selfSustaining()) {
+			if (existing != null && existing.selfSustaining() && !existing.scarred()) {
 				return existing;
 			}
 		}
-		BlockPos center = pos == null ? record.center : pos.immutable();
-		SecondaryNode node = new SecondaryNode(UUID.randomUUID(), center, Math.max(1.0, record.radius * 0.60),
+		BlockPos center = pos == null
+				? jujutsu.mod.cursedincident.infection.ZoneGeometry.secondaryCenter(
+						levelFor(record), record, record.secondaries.size())
+				: pos.immutable();
+		SecondaryNode node = new SecondaryNode(UUID.randomUUID(),
+				center == null ? BlockPos.ZERO : center, Math.max(1.0, record.radius * 0.60),
 				currentGameTime(record), true);
 		record.secondaries.add(node);
 		data().setDirty();
@@ -470,7 +538,18 @@ public final class IncidentControl {
 		if (record.objectInstanceId != null) {
 			INCIDENT_BY_OBJECT.remove(record.objectInstanceId, record.id);
 		}
+		// Keep self-sustaining nodes and their durable edits alive; parent/dependent
+		// work is removed after the sink has cleaned its matching entity tags.
 		worldSink.onCleanup(levelFor(record), record);
+		Set<UUID> survivingNodes = new HashSet<>();
+		for (SecondaryNode node : record.secondaries) {
+			if (node != null && node.selfSustaining() && !node.scarred()) {
+				survivingNodes.add(node.nodeId());
+			}
+		}
+		record.pendingEdits.removeIf(edit -> edit == null || edit.nodeId() == null
+				|| !survivingNodes.contains(edit.nodeId()));
+		record.secondaries.removeIf(node -> node == null || !node.selfSustaining());
 		data().setDirty();
 	}
 
@@ -551,6 +630,33 @@ public final class IncidentControl {
 			return server.getLevel(record == null || record.dimension == null ? Level.OVERWORLD : record.dimension);
 		}
 		return activeLevel;
+	}
+
+	private static void notifySealBands(IncidentRecord record, int beforeIntegrity, int afterIntegrity) {
+		int tier = Math.max(SealPolicy.MIN_TIER, Math.min(SealPolicy.MAX_TIER, record.sealTier));
+		int beforeBand = degradationBand(tier, beforeIntegrity);
+		int afterBand = degradationBand(tier, afterIntegrity);
+		if (afterBand <= beforeBand || afterBand >= 4) {
+			return;
+		}
+		for (int band = Math.max(1, beforeBand + 1); band <= Math.min(3, afterBand); band++) {
+			onSealDegraded(record.objectInstanceId, band);
+		}
+	}
+
+	private static int degradationBand(int tier, int integrity) {
+		int maximum = SealPolicy.integrityMax(tier);
+		int clamped = Math.max(0, Math.min(maximum, integrity));
+		if (clamped * 4 >= maximum * 3) {
+			return 0;
+		}
+		if (clamped * 2 >= maximum) {
+			return 1;
+		}
+		if (clamped * 4 >= maximum) {
+			return 2;
+		}
+		return clamped == 0 ? 4 : 3;
 	}
 
 	private static void applySealState(IncidentRecord record) {

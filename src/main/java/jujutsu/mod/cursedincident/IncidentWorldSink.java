@@ -1,5 +1,7 @@
 package jujutsu.mod.cursedincident;
 
+import java.util.UUID;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 
@@ -20,8 +22,8 @@ public interface IncidentWorldSink {
 	default void applyStageDelta(ServerLevel level, IncidentRecord rec, IncidentStage from, IncidentStage to) {
 	}
 
-	/** Per-tick world work for one active incident, bounded by {@code tickBudget}. */
-	default void tickZone(ServerLevel level, IncidentRecord rec, int tickBudget) {
+	/** Per-tick world work for one active work centre, bounded by {@code tickBudget}. */
+	default void tickZone(ServerLevel level, IncidentRecord rec, BlockPos center, UUID nodeId, int tickBudget) {
 	}
 
 	/** The source moved: stop dependent work at the old centre (scar stays). */
@@ -38,6 +40,10 @@ public interface IncidentWorldSink {
 
 	/** The seal broke (integrity zero or catastrophic failure) — escalation resumes. */
 	default void onSealBroken(ServerLevel level, IncidentRecord rec) {
+	}
+
+	/** A physical seal crossed a degradation band; T4 supplies the cue implementation. */
+	default void onSealDegraded(ServerLevel level, IncidentRecord record, java.util.UUID objectId, int bandIndex) {
 	}
 
 	/** Remove runtime entities and source bindings while retaining the incident scar. */

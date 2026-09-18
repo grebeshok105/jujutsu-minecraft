@@ -48,11 +48,12 @@ public final class IncidentCodec {
 	).apply(instance, IncidentParams::new));
 
 	private static final Codec<SecondaryNode> SECONDARY_CODEC = RecordCodecBuilder.create(instance -> instance.group(
-			UUIDUtil.STRING_CODEC.fieldOf(IncidentNbt.ID).forGetter(SecondaryNode::id),
+			UUIDUtil.STRING_CODEC.fieldOf(IncidentNbt.ID).forGetter(SecondaryNode::nodeId),
 			BlockPos.CODEC.fieldOf(IncidentNbt.CENTER).forGetter(SecondaryNode::center),
 			Codec.DOUBLE.fieldOf(IncidentNbt.RADIUS).forGetter(SecondaryNode::radius),
 			Codec.LONG.fieldOf(IncidentNbt.CREATED).forGetter(SecondaryNode::createdGameTime),
-			Codec.BOOL.fieldOf("self_sustaining").forGetter(SecondaryNode::selfSustaining)
+			Codec.BOOL.fieldOf("self_sustaining").forGetter(SecondaryNode::selfSustaining),
+			Codec.BOOL.optionalFieldOf(IncidentNbt.SCARRED, false).forGetter(SecondaryNode::scarred)
 	).apply(instance, SecondaryNode::new));
 	private static final Codec<IncidentRecord.PendingDelta> PENDING_DELTA_CODEC =
 			RecordCodecBuilder.create(instance -> instance.group(

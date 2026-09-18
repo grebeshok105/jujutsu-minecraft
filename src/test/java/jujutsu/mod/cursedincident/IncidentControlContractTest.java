@@ -12,8 +12,8 @@ import java.util.UUID;
 
 import jujutsu.mod.cursedincident.policy.TemplateRollPolicy;
 import jujutsu.mod.cursedincident.policy.StagePolicy;
+import jujutsu.mod.cursedincident.infection.ZoneGeometry;
 import jujutsu.mod.cursedincident.persist.IncidentSavedData;
-import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import org.junit.jupiter.api.AfterEach;
@@ -148,6 +148,45 @@ class IncidentControlContractTest {
 	}
 
 	@Test
+	void secondaryPlacementIsDeterministicDistinctAndBounded() {
+		IncidentRecord record = created(IncidentControl.spawn(request(42L, 3, IncidentStage.INITIAL)));
+		record.radius = 8.0;
+		BlockPos first = ZoneGeometry.secondaryCenter(null, record, 0);
+		BlockPos repeat = ZoneGeometry.secondaryCenter(null, record, 0);
+		assertEquals(first, repeat);
+		assertFalse(first.equals(record.center));
+		assertTrue(first.distSqr(record.center) <= record.radius * record.radius * 4.0);
+	}
+
+	@Test
+	void workCentersIncludeParentAndOnlyNonScarredSecondaries() {
+		IncidentRecord record = created(IncidentControl.spawn(request(42L, 3, IncidentStage.INITIAL)));
+		SecondaryNode dependent = new SecondaryNode(UUID.randomUUID(), new BlockPos(8, 3, 4), 4, 1, false);
+		SecondaryNode selfSustaining = new SecondaryNode(UUID.randomUUID(), new BlockPos(10, 3, 4), 4, 1, true);
+		SecondaryNode scarred = new SecondaryNode(UUID.randomUUID(), new BlockPos(12, 3, 4), 4, 1, true, true);
+		record.secondaries.add(dependent);
+		record.secondaries.add(selfSustaining);
+		record.secondaries.add(scarred);
+		var centers = IncidentControl.workCenters(record);
+		assertEquals(3, centers.size());
+		assertTrue(centers.get(0).isParent() && centers.get(0).center().equals(record.center));
+		assertTrue(centers.stream().anyMatch(center -> dependent.nodeId().equals(center.nodeId())));
+		assertTrue(centers.stream().anyMatch(center -> selfSustaining.nodeId().equals(center.nodeId())));
+		assertFalse(centers.stream().anyMatch(center -> scarred.nodeId().equals(center.nodeId())));
+	}
+
+	@Test
+	void forceSecondaryDoesNotReturnDependentNode() {
+		IncidentRecord record = created(IncidentControl.spawn(request(42L, 3, IncidentStage.INITIAL)));
+		SecondaryNode dependent = new SecondaryNode(UUID.randomUUID(), new BlockPos(2, 3, 4), 4, 1, false);
+		record.secondaries.add(dependent);
+		SecondaryNode result = IncidentControl.forceSecondary(record.id, new BlockPos(9, 3, 4));
+		assertTrue(result.selfSustaining());
+		assertFalse(result.nodeId().equals(dependent.nodeId()));
+		assertEquals(2, record.secondaries.size());
+	}
+
+	@Test
 	void relocateLeavesScarAndStopsDependentNode() {
 		IncidentRecord record = created(IncidentControl.spawn(request(42L, 3, IncidentStage.INITIAL)));
 		SecondaryNode selfSustaining = IncidentControl.forceSecondary(record.id, new BlockPos(8, 3, 4));
@@ -168,6 +207,8 @@ class IncidentControlContractTest {
 		IncidentControl.cleanup(record.id);
 		assertTrue(record.scarred);
 		assertEquals(IncidentStage.INITIAL, record.stage);
+		assertTrue(record.secondaries.contains(node));
+		assertEquals(1, IncidentControl.workCenters(record).size());
 	}
 
 	@Test
@@ -227,11 +268,18 @@ class IncidentControlContractTest {
 
 	private static final class RecordingSink implements IncidentWorldSink {
 		int stageDeltas;
+		int tickZones;
 
 		@Override
 		public void applyStageDelta(net.minecraft.server.level.ServerLevel level, IncidentRecord record,
 				IncidentStage from, IncidentStage to) {
 			stageDeltas++;
+		}
+
+		@Override
+		public void tickZone(net.minecraft.server.level.ServerLevel level, IncidentRecord record,
+				BlockPos center, UUID nodeId, int tickBudget) {
+			tickZones++;
 		}
 	}
 

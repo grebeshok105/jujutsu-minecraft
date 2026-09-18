@@ -223,7 +223,7 @@ public final class CursedIncidentGameTests {
 			before += record.counters.blocksChanged;
 		}
 		for (IncidentRecord record : records) {
-			sink.tickZone(level, record, InfectionSink.PER_TICK_BLOCK_BUDGET);
+			sink.tickZone(level, record, record.center, null, InfectionSink.PER_TICK_BLOCK_BUDGET);
 		}
 		long after = 0L;
 		for (IncidentRecord record : records) {
@@ -313,7 +313,7 @@ public final class CursedIncidentGameTests {
 				CursedIncidentTestFixtures.diagnostic("sealedIncidentAppliesNoEdits(F3,F7)", helper,
 						"record mirrors physical seal", true, result.ok() + " / " + sealed.sealed()));
 		IncidentControl.advance(record.id, 96_000L);
-		new InfectionSink().tickZone(level, record, InfectionSink.PER_TICK_BLOCK_BUDGET);
+		new InfectionSink().tickZone(level, record, record.center, null, InfectionSink.PER_TICK_BLOCK_BUDGET);
 		long changedBlocks = samples.stream()
 				.filter(pos -> !level.getBlockState(pos).is(Blocks.GRASS_BLOCK)).count();
 		long applied = record.counters.blocksChanged - before;
@@ -331,7 +331,7 @@ public final class CursedIncidentGameTests {
 		InfectionSink sink = new InfectionSink();
 		AABB area = new AABB(record.center).inflate(CursedSpiritProfile.CROWD_RADIUS);
 		int before = helper.getLevel().getEntitiesOfClass(CursedSpiritEntity.class, area).size();
-		sink.tickZone(helper.getLevel(), record, 64);
+		sink.tickZone(helper.getLevel(), record, record.center, null, 64);
 		int after = helper.getLevel().getEntitiesOfClass(CursedSpiritEntity.class, area).size();
 		boolean respected = before >= CursedSpiritProfile.MAX_SPIRITS_NEARBY
 				? after == before

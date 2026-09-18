@@ -116,7 +116,7 @@ class IncidentCodecTest {
 		record.templateId = "cataclysm";
 		record.params = new IncidentParams("column", 17.5, Map.of("lesser", 4, "greater", 9),
 				"ash_fall", List.of("investigate", "seal"), 0.85, true, true, 9876);
-		record.secondaries.add(new SecondaryNode(NODE_ID, new BlockPos(20, 64, 20), 5.5, 44, true));
+		record.secondaries.add(new SecondaryNode(NODE_ID, new BlockPos(20, 64, 20), 5.5, 44, true, true));
 		record.transitions.add(new IncidentRecord.Transition(IncidentStage.INITIAL, IncidentStage.GROWING, 55));
 		record.lastProcessedAgeTicks = 66;
 		record.pendingDeltas.add(new IncidentRecord.PendingDelta(IncidentStage.GROWING, IncidentStage.INFESTED));

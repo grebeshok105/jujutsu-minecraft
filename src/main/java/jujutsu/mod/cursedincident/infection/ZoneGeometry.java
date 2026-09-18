@@ -6,9 +6,11 @@ import java.util.List;
 import java.util.Set;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.levelgen.Heightmap;
 import jujutsu.mod.cursedincident.IncidentParams;
-
+import jujutsu.mod.cursedincident.IncidentRecord;
 /** Pure geometry operations shared by world infection and client-facing proximity logic. */
 public final class ZoneGeometry {
 	public enum Shape {
@@ -32,6 +34,46 @@ public final class ZoneGeometry {
 
 	public static Shape shapeOf(IncidentParams params) {
 		return params == null ? Shape.SPHERE : Shape.fromId(params.zoneShape());
+	}
+
+	/**
+	 * Computes the deterministic surface centre for a secondary work centre.
+	 *
+	 * <p>The horizontal offset is derived only from the durable seed, node index and
+	 * radius.  A real server level is used to clamp the result to the world border
+	 * and to resolve the surface height; the null-level branch keeps pure control
+	 * tests deterministic.
+	 */
+	public static BlockPos secondaryCenter(ServerLevel level, IncidentRecord record, int index) {
+		if (record == null || record.center == null) {
+			return BlockPos.ZERO;
+		}
+		long ordinal = Math.max(0L, (long) index) + 1L;
+		long angleDegrees = Math.floorMod(record.seed * ordinal, 360L);
+		double angle = Math.toRadians(angleDegrees);
+		double distance = Math.max(1.0, Math.max(0.0, record.radius) * 1.5);
+		double offsetX = Math.cos(angle) * distance;
+		double offsetZ = Math.sin(angle) * distance;
+		BlockPos parent = record.center;
+		int x = (int) Math.round(parent.getX() + offsetX);
+		int z = (int) Math.round(parent.getZ() + offsetZ);
+		if (x == parent.getX() && z == parent.getZ()) {
+			x += Math.cos(angle) >= 0.0 ? 1 : -1;
+		}
+		BlockPos candidate = new BlockPos(x, parent.getY(), z);
+		if (level != null) {
+			var border = level.getWorldBorder();
+			int minX = (int) Math.ceil(border.getMinX());
+			int maxX = (int) Math.floor(border.getMaxX());
+			int minZ = (int) Math.ceil(border.getMinZ());
+			int maxZ = (int) Math.floor(border.getMaxZ());
+			candidate = new BlockPos(
+					Math.max(minX, Math.min(maxX, candidate.getX())),
+					candidate.getY(),
+					Math.max(minZ, Math.min(maxZ, candidate.getZ())));
+			candidate = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, candidate);
+		}
+		return candidate.immutable();
 	}
 
 	/** Returns whether the block centre lies inside the zone. */
