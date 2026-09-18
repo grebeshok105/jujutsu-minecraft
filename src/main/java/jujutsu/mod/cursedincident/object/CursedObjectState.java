@@ -58,18 +58,30 @@ public record CursedObjectState(
     ).apply(instance, CursedObjectState::new));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, CursedObjectState> STREAM_CODEC =
-            StreamCodec.composite(
-                    UUIDUtil.STREAM_CODEC, CursedObjectState::instanceId,
-                    ByteBufCodecs.STRING_UTF8, CursedObjectState::typeId,
-                    ByteBufCodecs.VAR_INT, CursedObjectState::grade,
-                    ByteBufCodecs.VAR_LONG, CursedObjectState::mintedGameTime,
-                    ByteBufCodecs.BOOL, CursedObjectState::sealed,
-                    ByteBufCodecs.VAR_INT, CursedObjectState::sealTier,
-                    ByteBufCodecs.VAR_INT, CursedObjectState::sealIntegrity,
-                    KNOWLEDGE_STREAM_CODEC, CursedObjectState::knowledge,
-                    ByteBufCodecs.VAR_LONG, CursedObjectState::accumulatedTicks,
-                    ByteBufCodecs.VAR_LONG, CursedObjectState::lastDecayGameTime,
-                    CursedObjectState::new);
+            StreamCodec.of(
+                    (buf, state) -> {
+                        UUIDUtil.STREAM_CODEC.encode(buf, state.instanceId());
+                        ByteBufCodecs.STRING_UTF8.encode(buf, state.typeId());
+                        ByteBufCodecs.VAR_INT.encode(buf, state.grade());
+                        ByteBufCodecs.VAR_LONG.encode(buf, state.mintedGameTime());
+                        ByteBufCodecs.BOOL.encode(buf, state.sealed());
+                        ByteBufCodecs.VAR_INT.encode(buf, state.sealTier());
+                        ByteBufCodecs.VAR_INT.encode(buf, state.sealIntegrity());
+                        KNOWLEDGE_STREAM_CODEC.encode(buf, state.knowledge());
+                        ByteBufCodecs.VAR_LONG.encode(buf, state.accumulatedTicks());
+                        ByteBufCodecs.VAR_LONG.encode(buf, state.lastDecayGameTime());
+                    },
+                    buf -> new CursedObjectState(
+                            UUIDUtil.STREAM_CODEC.decode(buf),
+                            ByteBufCodecs.STRING_UTF8.decode(buf),
+                            ByteBufCodecs.VAR_INT.decode(buf),
+                            ByteBufCodecs.VAR_LONG.decode(buf),
+                            ByteBufCodecs.BOOL.decode(buf),
+                            ByteBufCodecs.VAR_INT.decode(buf),
+                            ByteBufCodecs.VAR_INT.decode(buf),
+                            KNOWLEDGE_STREAM_CODEC.decode(buf),
+                            ByteBufCodecs.VAR_LONG.decode(buf),
+                            ByteBufCodecs.VAR_LONG.decode(buf)));
 
     /** Compatibility constructor for stacks written before the decay anchor was added. */
     public CursedObjectState(UUID instanceId, String typeId, int grade, long mintedGameTime,

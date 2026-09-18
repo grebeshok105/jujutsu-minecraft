@@ -14,6 +14,7 @@ import jujutsu.mod.cursedincident.policy.TemplateRollPolicy;
 import jujutsu.mod.cursedincident.policy.StagePolicy;
 import jujutsu.mod.cursedincident.infection.ZoneGeometry;
 import jujutsu.mod.cursedincident.persist.IncidentSavedData;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import org.junit.jupiter.api.AfterEach;

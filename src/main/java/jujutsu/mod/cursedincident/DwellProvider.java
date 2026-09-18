@@ -69,4 +69,13 @@ public interface DwellProvider {
 	default void noteContainer(BlockPos containerPos, ItemStack stack) {
 		noteContainer(null, containerPos, stack);
 	}
+
+	/**
+	 * Last-known container positions of tracked objects, independent of any incident zone.
+	 * The infection sink re-scans these blocks so an object carried far away and stored in
+	 * a chest keeps being observed (issue #110 C6).
+	 */
+	default java.util.Set<BlockPos> knownContainerPositions() {
+		return java.util.Set.of();
+	}
 }

@@ -46,7 +46,30 @@ class IncidentSavedDataTest {
 		data.setDirty(false);
 		data.setPressure(3);
 		assertTrue(data.isDirty());
-	}
+    }
+
+    @Test
+    void voidedAndKnownObjectsRoundTrip() {
+        UUID voided = UUID.fromString("33333333-3333-3333-3333-333333333333");
+        UUID known = UUID.fromString("44444444-4444-4444-4444-444444444444");
+        IncidentSavedData before = new IncidentSavedData();
+        before.voidObject(voided);
+        before.rememberObject(known, "sukuna_finger");
+        var encoded = IncidentSavedData.CODEC.encodeStart(JsonOps.INSTANCE, before).result().orElseThrow();
+        IncidentSavedData after = IncidentSavedData.CODEC.parse(JsonOps.INSTANCE, encoded).result().orElseThrow();
+        assertTrue(after.isVoided(voided));
+        assertEquals("sukuna_finger", after.knownObjectType(known));
+    }
+
+    @Test
+    void voidedIdsAreNotRememberedAsKnownObjects() {
+        UUID id = UUID.fromString("55555555-5555-5555-5555-555555555555");
+        IncidentSavedData data = new IncidentSavedData();
+        data.voidObject(id);
+        data.rememberObject(id, "cursed_nail");
+        assertEquals(null, data.knownObjectType(id),
+                "a voided object must never re-enter the durable index");
+    }
 
 	@Test
 	void corruptEntryIsDroppedWithoutDroppingHealthyEntries() {

@@ -118,6 +118,9 @@ public final class InfectionSink implements IncidentWorldSink {
 				cadence.lastContainerScan = now;
 			}
 			scanContainers(level, record, center, nodeId, radiusFor(record, nodeId));
+			if (nodeId == null) {
+				scanKnownContainers(level);
+			}
 		}
 		if (now % CURSE_TOPUP_TICKS == 0L) {
 			Set<UUID> announced = ANNOUNCED_SECONDARY_BIRTHS.computeIfAbsent(record.id, ignored -> new HashSet<>());
@@ -269,9 +272,32 @@ public final class InfectionSink implements IncidentWorldSink {
 						if (!stack.isEmpty()) {
 							// Keep the live stack reference; ObjectDwellTracker resolves it
 							// again from this container before every write-through.
-							dwellProvider.noteContainer(pos, stack);
+							dwellProvider.noteContainer(level, pos, stack);
 						}
 					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Re-scans the last-known container block of every tracked object, wherever it sits —
+	 * an object carried beyond the incident radius and stored in a chest keeps being
+	 * observed through this zone-independent heartbeat (issue #110 C6).
+	 */
+	private void scanKnownContainers(ServerLevel level) {
+		for (BlockPos pos : dwellProvider.knownContainerPositions()) {
+			if (pos == null) {
+				continue;
+			}
+			BlockEntity blockEntity = level.getBlockEntity(pos);
+			if (!(blockEntity instanceof Container container)) {
+				continue;
+			}
+			for (int slot = 0; slot < container.getContainerSize(); slot++) {
+				var stack = container.getItem(slot);
+				if (!stack.isEmpty()) {
+					dwellProvider.noteContainer(level, pos, stack);
 				}
 			}
 		}

@@ -1,6 +1,7 @@
 package jujutsu.mod.cursedincident.object;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,8 +52,18 @@ public final class CursedObjectRegistry {
             SUKUNA_FINGER, CURSED_NAIL, CURSED_DOLL, CURSED_EYE,
             CURSED_COIN, CURSED_IDOL, CURSED_MASK, CURSED_CHAIN, QA_PROBE);
     private static final Map<UUID, String> LIVE_INSTANCES = new ConcurrentHashMap<>();
+    private static volatile jujutsu.mod.cursedincident.persist.IncidentSavedData boundData;
 
     private CursedObjectRegistry() {
+    }
+
+    /**
+     * Binds the durable object index so caps survive a registry restart: every minted stack
+     * is remembered in {@code IncidentSavedData.knownObjects}, and {@link #canMint} counts
+     * live instances plus persisted object-source records plus that index.
+     */
+    public static void bind(jujutsu.mod.cursedincident.persist.IncidentSavedData data) {
+        boundData = data;
     }
 
     public static List<CursedObjectType> naturalTypes() {
@@ -119,21 +130,45 @@ public final class CursedObjectRegistry {
         }
         return count;
     }
-
-    public static int instanceCount(CursedObjectType type) {
-        return type == null ? 0 : instanceCount(type.id());
-    }
-
     public static boolean canMint(String typeId) {
         CursedObjectType type = byId(typeId);
         return type != null && canMint(type);
     }
 
     public static boolean canMint(CursedObjectType type) {
-        return type != null && (type.unlimited() || instanceCount(type) < type.maxInstances());
+        return type != null && (type.unlimited() || durableInstanceCount(type) < type.maxInstances());
     }
 
-    /** Atomically reserves one instance id, enforcing the type's cap. */
+    /**
+     * Counts every physical copy the world can still contain: live registrations plus the
+     * durable index (minted stacks not yet re-observed after a restart) plus persisted
+     * object-source incident records of the type.
+     */
+    private static int durableInstanceCount(CursedObjectType type) {
+        Set<UUID> ids = new HashSet<>();
+        for (Map.Entry<UUID, String> entry : LIVE_INSTANCES.entrySet()) {
+            if (type.id().equals(entry.getValue())) {
+                ids.add(entry.getKey());
+            }
+        }
+        jujutsu.mod.cursedincident.persist.IncidentSavedData data = boundData;
+        if (data != null) {
+            for (Map.Entry<UUID, String> entry : data.knownObjects().entrySet()) {
+                if (type.id().equals(entry.getValue()) && !data.isVoided(entry.getKey())) {
+                    ids.add(entry.getKey());
+                }
+            }
+            for (jujutsu.mod.cursedincident.IncidentRecord record : data.incidents().values()) {
+                if (record != null && !record.scarred && record.objectInstanceId != null
+                        && type.id().equals(record.objectTypeId) && !data.isVoided(record.objectInstanceId)) {
+                    ids.add(record.objectInstanceId);
+                }
+            }
+        }
+        return ids.size();
+    }
+
+    /** Atomically reserves one instance id, enforcing the type's durable cap. */
     public static boolean registerInstance(CursedObjectState state) {
         if (state == null) {
             return false;
@@ -146,10 +181,14 @@ public final class CursedObjectRegistry {
             if (LIVE_INSTANCES.containsKey(state.instanceId())) {
                 return true;
             }
-            if (!type.unlimited() && instanceCount(type) >= type.maxInstances()) {
+            if (!type.unlimited() && durableInstanceCount(type) >= type.maxInstances()) {
                 return false;
             }
             LIVE_INSTANCES.put(state.instanceId(), type.id());
+            jujutsu.mod.cursedincident.persist.IncidentSavedData data = boundData;
+            if (data != null) {
+                data.rememberObject(state.instanceId(), type.id());
+            }
             return true;
         }
     }
@@ -162,6 +201,10 @@ public final class CursedObjectRegistry {
     public static void unregisterInstance(UUID instanceId) {
         if (instanceId != null) {
             LIVE_INSTANCES.remove(instanceId);
+            jujutsu.mod.cursedincident.persist.IncidentSavedData data = boundData;
+            if (data != null) {
+                data.forgetKnownObject(instanceId);
+            }
         }
     }
 

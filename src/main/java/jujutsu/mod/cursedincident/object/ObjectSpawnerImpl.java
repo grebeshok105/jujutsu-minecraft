@@ -19,7 +19,7 @@ public final class ObjectSpawnerImpl implements ObjectSpawner {
     }
 
     @Override
-    public UUID spawn(ServerLevel level, BlockPos pos, String typeId, int grade, long seed) {
+    public Spawned spawn(ServerLevel level, BlockPos pos, String typeId, int grade, long seed) {
         if (level == null || pos == null) {
             return null;
         }
@@ -45,10 +45,10 @@ public final class ObjectSpawnerImpl implements ObjectSpawner {
             return null;
         }
         ObjectDwellTracker.noteWorldItem(entity);
-        return instanceId;
+        return new Spawned(instanceId, type.id());
     }
 
-    public UUID spawn(ServerLevel level, BlockPos pos, CursedObjectType type, int grade, long seed) {
+    public Spawned spawn(ServerLevel level, BlockPos pos, CursedObjectType type, int grade, long seed) {
         return spawn(level, pos, type == null ? null : type.id(), grade, seed);
     }
 

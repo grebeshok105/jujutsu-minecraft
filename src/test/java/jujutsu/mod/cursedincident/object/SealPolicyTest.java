@@ -28,6 +28,23 @@ final class SealPolicyTest {
     }
 
     @Test
+    void catastrophicChanceIsNormalizedPerTierNotAgainstTierThree() {
+        // A full tier-1 seal (100/100) must read as undamaged, not as 25% of tier-3's 400.
+        assertEquals(SealPolicy.catastrophicFailureChance(1, 100),
+                SealPolicy.catastrophicFailureChance(3, 400));
+        assertEquals(SealPolicy.catastrophicFailureChance(2, 200),
+                SealPolicy.catastrophicFailureChance(3, 400));
+        // Half integrity means the same damage fraction on every tier.
+        assertEquals(SealPolicy.catastrophicFailureChance(1, 50),
+                SealPolicy.catastrophicFailureChance(3, 200));
+        assertTrue(SealPolicy.catastrophicFailureChance(1, 0)
+                > SealPolicy.catastrophicFailureChance(1, 100));
+        // The legacy single-argument overload keeps the tier-3 scale.
+        assertEquals(SealPolicy.catastrophicFailureChance(3, 200),
+                SealPolicy.catastrophicFailureChance(200));
+    }
+
+    @Test
     void sealIntegrityCurvesAndSignalsHaveStableBoundaries() {
         assertEquals(100, SealState.integrityMax(SealTier.TALISMAN));
         assertEquals(200, SealState.integrityMax(SealTier.INSCRIBED));

@@ -98,6 +98,7 @@ public final class IncidentControl {
 		IncidentSavedData resolved = store == null ? null : store.get();
 		boundStore = resolved == null ? new IncidentSavedData() : resolved;
 		rebuildObjectIndex();
+		jujutsu.mod.cursedincident.object.CursedObjectRegistry.bind(boundStore);
 	}
 
 	private IncidentControl() {
@@ -250,7 +251,7 @@ public final class IncidentControl {
 			return List.of();
 		}
 		List<WorkCenter> centers = new ArrayList<>(1 + record.secondaries.size());
-		if (record.center != null) {
+		if (record.center != null && !record.scarred) {
 			centers.add(new WorkCenter(null, record.center, false));
 		}
 		for (SecondaryNode node : record.secondaries) {
@@ -476,7 +477,13 @@ public final class IncidentControl {
 	public static void voidObject(UUID objectInstanceId) {
 		if (objectInstanceId != null) {
 			data().voidObject(objectInstanceId);
+			data().forgetKnownObject(objectInstanceId);
 		}
+	}
+
+	/** Whether the physical object id was voided by cleanup and must never re-register. */
+	public static boolean isVoided(UUID objectInstanceId) {
+		return objectInstanceId != null && data().isVoided(objectInstanceId);
 	}
 
 	/** Marks the incident scarred when its destructible physical source disappears. */

@@ -1,6 +1,8 @@
 package jujutsu.mod.cursedincident.runtime;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -62,7 +64,9 @@ public final class ObjectDwellTracker implements DwellProvider {
             this.state = state;
             this.type = CursedObjectRegistry.byId(state.typeId());
             this.accumulatedTicks = Math.max(0L, state.accumulatedTicks());
-            this.lastDecayGameTime = state.mintedGameTime();
+            // The durable decay anchor survives restarts; stacks minted before the field
+            // existed fall back to mint time via the record's compact constructor.
+            this.lastDecayGameTime = state.lastDecayGameTime();
         }
     }
 
@@ -83,6 +87,39 @@ public final class ObjectDwellTracker implements DwellProvider {
         });
         ServerTickEvents.END_SERVER_TICK.register(ObjectDwellTracker::serverTick);
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> clear());
+        // Gameplay seal damage: attacking a sealed cursed-object item entity damages the
+        // seal through the single authoritative contract instead of the item (C16).
+        net.fabricmc.fabric.api.event.player.AttackEntityCallback.EVENT.register(
+                (player, level, hand, entity, hitResult) -> {
+                    if (level instanceof ServerLevel && entity instanceof ItemEntity item) {
+                        CursedObjectState state = state(item.getItem());
+                        if (state != null && state.sealed()) {
+                            int amount = Math.max(1, (int) Math.ceil(player.getAttributeValue(
+                                    net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE)));
+                            CursedObjectItem.damageSeal(item.getItem(), amount);
+                            return net.minecraft.world.InteractionResult.FAIL;
+                        }
+                    }
+                    return net.minecraft.world.InteractionResult.PASS;
+                });
+        // Opening a container anywhere scans it for tracked/voided objects — discovery is
+        // not limited to the incident zone (C6).
+        net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register(
+                (player, level, hand, hitResult) -> {
+                    if (level instanceof ServerLevel serverLevel && hitResult != null) {
+                        BlockEntity blockEntity = serverLevel.getBlockEntity(hitResult.getBlockPos());
+                        if (blockEntity instanceof Container container) {
+                            for (int slot = 0; slot < container.getContainerSize(); slot++) {
+                                ItemStack stack = container.getItem(slot);
+                                if (!stack.isEmpty()) {
+                                    jujutsu.mod.cursedincident.object.ObjectWiring.tracker()
+                                            .noteContainer(serverLevel, hitResult.getBlockPos(), stack);
+                                }
+                            }
+                        }
+                    }
+                    return net.minecraft.world.InteractionResult.PASS;
+                });
     }
 
     public static void noteCarried(ItemStack stack, ServerPlayer player) {
@@ -92,6 +129,9 @@ public final class ObjectDwellTracker implements DwellProvider {
                 lastObservedGameTime = Math.max(lastObservedGameTime, level.getGameTime());
                 TrackedObject tracked = observe(state, stack, level, player.blockPosition(), level.getGameTime(),
                         null, null);
+                if (tracked == null) {
+                    return;
+                }
                 tracked.entity = null;
                 tracked.containerPos = null;
                 tracked.dwellContainer = null;
@@ -115,6 +155,9 @@ public final class ObjectDwellTracker implements DwellProvider {
         lastObservedGameTime = Math.max(lastObservedGameTime, level.getGameTime());
         TrackedObject tracked = observe(state, item.getItem(), level, item.blockPosition(), level.getGameTime(),
                 item, null);
+        if (tracked == null) {
+            return;
+        }
         tracked.entity = item;
         tracked.containerPos = null;
         tracked.dwellContainer = null;
@@ -122,23 +165,38 @@ public final class ObjectDwellTracker implements DwellProvider {
         tracked.awaitingReload = false;
         tracked.dead = false;
     }
-
-    /** Called by the infection sink for a physical block-entity container. */
+    /** Called by the infection sink and the container-open hook for a physical container. */
     @Override
-    public void noteContainer(BlockPos containerPos, ItemStack stack) {
+    public void noteContainer(ServerLevel level, BlockPos containerPos, ItemStack stack) {
         CursedObjectState state = state(stack);
         if (state == null || containerPos == null) {
             return;
         }
         TrackedObject prior = TRACKED.get(state.instanceId());
-        long now = Math.max(lastObservedGameTime, prior == null ? 0L : prior.lastGameTime + 1L);
-        TrackedObject tracked = observe(state, stack, prior == null ? null : prior.level,
+        long now = level != null
+                ? level.getGameTime()
+                : Math.max(lastObservedGameTime, prior == null ? 0L : prior.lastGameTime + 1L);
+        TrackedObject tracked = observe(state, stack, level == null ? (prior == null ? null : prior.level) : level,
                 containerPos, now, null, containerPos);
+        if (tracked == null) {
+            return;
+        }
         tracked.entity = null;
         tracked.stack = resolveLiveStack(tracked);
         tracked.removalReason = null;
         tracked.awaitingReload = true;
         tracked.dead = false;
+    }
+
+    @Override
+    public Set<BlockPos> knownContainerPositions() {
+        Set<BlockPos> positions = new HashSet<>();
+        for (TrackedObject tracked : TRACKED.values()) {
+            if (tracked != null && !tracked.dead && tracked.containerPos != null) {
+                positions.add(tracked.containerPos);
+            }
+        }
+        return positions;
     }
 
     @Override
@@ -162,8 +220,17 @@ public final class ObjectDwellTracker implements DwellProvider {
 
     @Override
     public boolean isSealed(UUID objectInstanceId) {
+        return sealSnapshot(objectInstanceId).sealed();
+    }
+
+    @Override
+    public SealSnapshot sealSnapshot(UUID objectInstanceId) {
         TrackedObject tracked = objectInstanceId == null ? null : TRACKED.get(objectInstanceId);
-        return tracked != null && tracked.state != null && tracked.state.sealed();
+        if (tracked == null || tracked.state == null) {
+            return EMPTY_SEAL;
+        }
+        CursedObjectState state = tracked.state;
+        return new SealSnapshot(state.sealed(), state.sealTier(), state.sealIntegrity(), state.knowledge());
     }
 
     public static BlockPos lastPosition(UUID objectInstanceId) {
@@ -189,6 +256,63 @@ public final class ObjectDwellTracker implements DwellProvider {
             tracked.entity.discard();
         }
         CursedObjectRegistry.unregisterInstance(objectInstanceId);
+    }
+
+    /**
+     * Removes every reachable physical copy of the object — the live item entity, stacks in
+     * online players' inventories and the tracked container — and marks the id voided so a
+     * late-observed leftover stack is destroyed on sight instead of resurrecting the source.
+     */
+    public static void forgetEverywhere(UUID objectInstanceId) {
+        if (objectInstanceId == null) {
+            return;
+        }
+        TrackedObject tracked = TRACKED.get(objectInstanceId);
+        if (tracked != null) {
+            if (tracked.entity != null && !tracked.entity.isRemoved()) {
+                tracked.entity.discard();
+            }
+            if (tracked.level != null) {
+                removeFromOnlineInventories(tracked.level.getServer(), objectInstanceId);
+                removeFromContainer(tracked.level, tracked, objectInstanceId);
+            }
+        }
+        forget(objectInstanceId);
+        IncidentControl.voidObject(objectInstanceId);
+    }
+
+    private static void removeFromOnlineInventories(MinecraftServer server, UUID objectInstanceId) {
+        if (server == null) {
+            return;
+        }
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            Container inventory = player.getInventory();
+            for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+                ItemStack candidate = inventory.getItem(slot);
+                CursedObjectState candidateState = state(candidate);
+                if (candidateState != null && objectInstanceId.equals(candidateState.instanceId())) {
+                    inventory.setItem(slot, ItemStack.EMPTY);
+                }
+            }
+        }
+    }
+
+    private static void removeFromContainer(ServerLevel level, TrackedObject tracked, UUID objectInstanceId) {
+        if (level == null || tracked == null || tracked.containerPos == null) {
+            return;
+        }
+        BlockEntity blockEntity = level.getBlockEntity(tracked.containerPos);
+        if (!(blockEntity instanceof Container container)) {
+            return;
+        }
+        for (int slot = 0; slot < container.getContainerSize(); slot++) {
+            ItemStack candidate = container.getItem(slot);
+            CursedObjectState candidateState = state(candidate);
+            if (candidateState != null && objectInstanceId.equals(candidateState.instanceId())) {
+                container.setItem(slot, ItemStack.EMPTY);
+            }
+        }
+        blockEntity.setChanged();
     }
 
     public static void clear() {
@@ -255,6 +379,11 @@ public final class ObjectDwellTracker implements DwellProvider {
 
     private static TrackedObject observe(CursedObjectState state, ItemStack stack, ServerLevel level,
             BlockPos position, long now, ItemEntity entity, BlockPos containerPos) {
+        // A voided id must never resurrect: destroy the observed stack/entity on sight.
+        if (IncidentControl.isVoided(state.instanceId())) {
+            destroyObserved(stack, entity, level);
+            return null;
+        }
         TrackedObject tracked = TRACKED.computeIfAbsent(state.instanceId(), ignored -> new TrackedObject(state));
         boolean fromContainer = containerPos != null;
         tracked.containerPos = fromContainer ? containerPos.immutable() : null;
@@ -268,7 +397,7 @@ public final class ObjectDwellTracker implements DwellProvider {
         tracked.level = level == null ? tracked.level : level;
         if (tracked.lastGameTime == 0L && tracked.anchor == null) {
             tracked.lastGameTime = now;
-            tracked.lastDecayGameTime = Math.max(state.mintedGameTime(), now);
+            tracked.lastDecayGameTime = Math.max(state.lastDecayGameTime(), now);
             tracked.anchor = position;
             tracked.accumulatedTicks = Math.max(0L, state.accumulatedTicks());
         } else if (position != null && type != null && !state.sealed()) {
@@ -313,8 +442,24 @@ public final class ObjectDwellTracker implements DwellProvider {
         if (entity != null) {
             tracked.entity = entity;
         }
-        CursedObjectRegistry.registerInstance(tracked.state);
+        // A late-observed stack that violates the durable cap is destroyed, not silently
+        // registered — the world must not keep an over-cap physical copy (issue #110 C10).
+        if (!CursedObjectRegistry.registerInstance(tracked.state)) {
+            TRACKED.remove(tracked.instanceId);
+            destroyObserved(stack, entity, level);
+            return null;
+        }
         return tracked;
+    }
+
+    private static void destroyObserved(ItemStack stack, ItemEntity entity, ServerLevel level) {
+        if (entity != null && !entity.isRemoved()) {
+            entity.discard();
+            return;
+        }
+        if (stack != null && !stack.isEmpty()) {
+            stack.setCount(0);
+        }
     }
 
     private static ItemStack resolveLiveStack(TrackedObject tracked) {
@@ -365,11 +510,14 @@ public final class ObjectDwellTracker implements DwellProvider {
         }
         int decay = SealState.decayPerDay(state.sealTier());
         int integrity = Math.max(0, state.sealIntegrity() - (int) Math.min(Integer.MAX_VALUE, days * decay));
-        CursedObjectState updated = state.withSeal(integrity > 0, state.sealTier(), integrity);
+        long anchor = tracked.lastDecayGameTime + days * DEFAULT_DWELL_TICKS;
+        CursedObjectState updated = state
+                .withSeal(integrity > 0, state.sealTier(), integrity)
+                .withLastDecayGameTime(anchor);
         liveStack.set(JujutsuDataComponents.CURSED_OBJECT_STATE, updated);
         tracked.stack = liveStack;
         tracked.state = updated;
-        tracked.lastDecayGameTime += days * DEFAULT_DWELL_TICKS;
+        tracked.lastDecayGameTime = anchor;
         IncidentControl.syncSealFromComponent(updated.instanceId());
     }
 
@@ -420,6 +568,10 @@ public final class ObjectDwellTracker implements DwellProvider {
             }
             return;
         }
+        // Seal decay is a physical lifecycle, not zone work: it keeps running while the
+        // object sits in a container, is carried, or waits for its chunk to reload — a
+        // sealed record never reaches tickZone, so this is the only decay driver (C8).
+        applySealDecay(tracked, now);
         // DISCARDED means a player picked the object up — it is carried, not destroyed;
         // only genuine destruction (kill/void/lava → KILLED/other reasons) ceases the incident.
         if (tracked.dead && tracked.removalReason != Entity.RemovalReason.DISCARDED

@@ -121,12 +121,27 @@ public final class CursedObjectItem extends Item implements GeoItem {
         return true;
     }
 
+    /**
+     * Single authoritative seal-damage contract: when the stack is an incident source the
+     * damage routes through {@link IncidentControl#damageSeal} (record + write-back +
+     * catastrophic roll); standalone stacks apply the same SealPolicy math locally.
+     */
     public static CursedObjectState damageSeal(ItemStack stack, int amount) {
         CursedObjectState current = state(stack);
-        if (current == null || !current.sealed()) {
+        if (current == null || !current.sealed() || amount <= 0) {
             return current;
         }
-        int integrity = Math.max(0, current.sealIntegrity() - Math.max(0, amount));
+        jujutsu.mod.cursedincident.IncidentRecord owner = IncidentControl.recordForObject(current.instanceId());
+        if (owner != null) {
+            IncidentControl.damageSeal(owner.id, amount);
+            CursedObjectState synced = state(stack);
+            return synced == null ? current : synced;
+        }
+        int tier = Math.max(SealPolicy.MIN_TIER, Math.min(SealPolicy.MAX_TIER, current.sealTier()));
+        long rollSeed = current.instanceId().getMostSignificantBits() ^ current.sealIntegrity();
+        boolean catastrophic = SealPolicy.maybeCatastrophicFail(
+                net.minecraft.util.RandomSource.create(rollSeed), tier, current.sealIntegrity());
+        int integrity = catastrophic ? 0 : Math.max(0, current.sealIntegrity() - amount);
         CursedObjectState damaged = current.withSeal(integrity > 0, current.sealTier(), integrity);
         setState(stack, damaged);
         IncidentControl.syncSealFromComponent(damaged.instanceId());

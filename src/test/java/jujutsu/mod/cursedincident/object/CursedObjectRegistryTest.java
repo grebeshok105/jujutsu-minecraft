@@ -54,4 +54,61 @@ final class CursedObjectRegistryTest {
         assertEquals(20, CursedObjectRegistry.instanceCount("sukuna_finger"));
         assertTrue(CursedObjectRegistry.canMint("cursed_nail"));
     }
+
+    @Test
+    void durableIndexCountsTowardTheCapAfterRegistryRestart() {
+        // Simulates a restart: the live index is empty, but twenty minted fingers survive
+        // in the durable knownObjects index — minting a twenty-first must be refused.
+        jujutsu.mod.cursedincident.persist.IncidentSavedData data =
+                new jujutsu.mod.cursedincident.persist.IncidentSavedData();
+        for (int index = 0; index < 20; index++) {
+            data.rememberObject(UUID.nameUUIDFromBytes(("known-" + index).getBytes(StandardCharsets.UTF_8)),
+                    "sukuna_finger");
+        }
+        CursedObjectRegistry.bind(data);
+        try {
+            assertFalse(CursedObjectRegistry.canMint(CursedObjectRegistry.SUKUNA_FINGER));
+            assertFalse(CursedObjectRegistry.registerInstance(new CursedObjectState(UUID.randomUUID(),
+                    "sukuna_finger", 1, 0L, false, 0, 0, KnowledgeLevel.UNKNOWN, 0L)));
+            assertTrue(CursedObjectRegistry.canMint("cursed_nail"));
+        } finally {
+            CursedObjectRegistry.bind(null);
+        }
+    }
+
+    @Test
+    void persistedObjectSourceRecordsCountTowardTheCap() {
+        jujutsu.mod.cursedincident.persist.IncidentSavedData data =
+                new jujutsu.mod.cursedincident.persist.IncidentSavedData();
+        for (int index = 0; index < 20; index++) {
+            jujutsu.mod.cursedincident.IncidentRecord record = new jujutsu.mod.cursedincident.IncidentRecord();
+            record.id = UUID.nameUUIDFromBytes(("incident-" + index).getBytes(StandardCharsets.UTF_8));
+            record.objectInstanceId = UUID.nameUUIDFromBytes(("object-" + index).getBytes(StandardCharsets.UTF_8));
+            record.objectTypeId = "sukuna_finger";
+            data.put(record);
+        }
+        CursedObjectRegistry.bind(data);
+        try {
+            assertFalse(CursedObjectRegistry.canMint(CursedObjectRegistry.SUKUNA_FINGER));
+        } finally {
+            CursedObjectRegistry.bind(null);
+        }
+    }
+
+    @Test
+    void mintedInstancesEnterTheDurableIndex() {
+        jujutsu.mod.cursedincident.persist.IncidentSavedData data =
+                new jujutsu.mod.cursedincident.persist.IncidentSavedData();
+        CursedObjectRegistry.bind(data);
+        try {
+            UUID id = UUID.randomUUID();
+            assertTrue(CursedObjectRegistry.registerInstance(new CursedObjectState(id,
+                    "cursed_nail", 1, 0L, false, 0, 0, KnowledgeLevel.UNKNOWN, 0L)));
+            assertEquals("cursed_nail", data.knownObjectType(id));
+            CursedObjectRegistry.unregisterInstance(id);
+            assertEquals(null, data.knownObjectType(id));
+        } finally {
+            CursedObjectRegistry.bind(null);
+        }
+    }
 }
