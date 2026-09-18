@@ -492,7 +492,7 @@ Landed 2026-09-18 with the full subsystem green. Deliberate leftovers, not bugs:
 - Rolled (non-explicit) object types report `type: null` on spawn surfaces — `ObjectSpawner` returns only the instance UUID, no type-readback seam exists. Explicit-type spawns report correctly.
 - `PressureRuntime.tick` has no fake-clock seam; pressure accumulation is covered indirectly (the remainder math is pinned in code review), not by a dedicated unit test.
 - `cadenceProbeForTest` is a live but unused test seam in `InfectionSink`.
-- GameTest drain-timing is inherently racy: `IncidentRuntime.tick` runs on `gameTime % 20`, while `runAtTickTime` counts test ticks — block-edit assertions can flake one drain window. Observed flakes (all pre-existing, unrelated to this branch): `toadSelfPickIgnoresOwnerLineOfSight`, `heldVictimDeathReleasesTheGrab`, dead-zone forensics, `stageAdvanceChangesBlocks`/`infectionDestroysPlayerBlocks` timing.
+- GameTest drain-timing is inherently racy: `IncidentRuntime.tick` runs on `gameTime % 20`, while `runAtTickTime` counts test ticks — block-edit assertions can flake one drain window. Observed flakes (all pre-existing, unrelated to this branch): `heldVictimDeathReleasesTheGrab`, dead-zone forensics, `stageAdvanceChangesBlocks`/`infectionDestroysPlayerBlocks` timing. Resolved on the integration branch: `toadSelfPickIgnoresOwnerLineOfSight` (autonomous marks counted as owner-ordered for the LoS grab gate — real defect, fixed), `dayLitFollowsPinnedChance` (hoist could land in a roofed cell, passing the vanilla light half — fixed with a canSeeSky climb), `commonStrikeCarriesStepBurst` (spirit walked into the victim during windup, collision ate the lunge impulse — fixed by freezing the approach).
 
 ## Resolved and now in main
 
