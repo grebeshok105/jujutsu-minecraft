@@ -52,6 +52,9 @@ public final class CursedObjectGameTests {
 	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 120)
 	public void uniqueLimitRefusesInWorld(GameTestHelper helper) {
 		CursedObjectRegistry.clearInstances();
+		// The durable index counts toward the cap since C10; isolate this oracle from
+		// earlier tests' minted entries by binding a fresh store for the duration.
+		CursedObjectRegistry.bind(new jujutsu.mod.cursedincident.persist.IncidentSavedData());
 		int accepted = 0;
 		for (int i = 0; i < 20; i++) {
 			if (CursedObjectRegistry.registerInstance(CursedObjectState.fresh(UUID.randomUUID(), "sukuna_finger", 1,
@@ -62,6 +65,8 @@ public final class CursedObjectGameTests {
 		helper.assertTrue(accepted == 20 && refused, CursedIncidentTestFixtures.diagnostic(
 				"uniqueLimitRefusesInWorld(R4)", helper, "20 accepted then refusal", true, accepted + "/" + refused));
 		CursedObjectRegistry.clearInstances();
+		CursedObjectRegistry.bind(jujutsu.mod.cursedincident.persist.IncidentSavedData.get(
+				helper.getLevel().getServer().overworld()));
 		helper.succeed();
 	}
 
@@ -276,6 +281,142 @@ public final class CursedObjectGameTests {
 					"cursed object loot dropped", expectedState, found));
 			helper.succeed();
 			CursedIncidentTestFixtures.cleanup(record);
+		});
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
+	public void sealDamageBreaksSealThroughContract(GameTestHelper helper) {
+		// C16: the single damage contract — stack damage routes through IncidentControl and
+		// writes the broken seal back onto the physical stack.
+		IncidentRecord record = CursedIncidentTestFixtures.spawnObject(
+				helper, CENTER, IncidentStage.INITIAL, 3.0, 1181L, "cursed_nail");
+		ItemEntity source = CursedIncidentTestFixtures.findCursedObject(helper, CENTER, record.objectInstanceId);
+		helper.assertTrue(source != null,
+				CursedIncidentTestFixtures.diagnostic("sealDamageBreaksSealThroughContract(C16)", helper,
+						"physical source", "present", source));
+		CursedObjectItem.trySeal(source.getItem(), 3);
+		CursedObjectItem.damageSeal(source.getItem(), Integer.MAX_VALUE);
+		IncidentControl.InspectView view = IncidentControl.inspect(record.id);
+		CursedObjectState stackState = CursedObjectItem.state(source.getItem());
+		helper.assertTrue(!view.sealed() && stackState != null && !stackState.sealed()
+						&& stackState.sealIntegrity() == 0,
+				CursedIncidentTestFixtures.diagnostic("sealDamageBreaksSealThroughContract(C16)", helper,
+						"record and stack unsealed", "false/false/0",
+						view.sealed() + "/" + (stackState == null ? null : stackState.sealed())
+								+ "/" + (stackState == null ? null : stackState.sealIntegrity())));
+		CursedIncidentTestFixtures.cleanup(record);
+		helper.succeed();
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
+	public void sealedObjectInContainerDecaysFromDurableAnchor(GameTestHelper helper) {
+		// C8/C9: a sealed object in a chest decays by its durable anchor — no zone tick and
+		// no fresh observation timestamp forgives the elapsed interval.
+		ServerLevel level = helper.getLevel();
+		long now = level.getGameTime();
+		UUID id = UUID.randomUUID();
+		CursedObjectState state = CursedObjectState.fresh(id, "cursed_nail", 3, now)
+				.withSeal(true, 1, 100)
+				.withLastDecayGameTime(now - 2 * ObjectDwellTracker.DEFAULT_DWELL_TICKS);
+		BlockPos chestPos = helper.absolutePos(new BlockPos(9, 4, 8));
+		helper.setBlock(new BlockPos(9, 4, 8), Blocks.CHEST);
+		ChestBlockEntity chest = (ChestBlockEntity) level.getBlockEntity(chestPos);
+		chest.setItem(0, CursedObjectItem.stack(state));
+		new ObjectDwellTracker().noteContainer(level, chestPos, chest.getItem(0));
+		CursedObjectState after = CursedObjectItem.state(chest.getItem(0));
+		// Tier-1 decay is 8 integrity per day; two elapsed days leave 84 of 100.
+		helper.assertTrue(after != null && after.sealed() && after.sealIntegrity() == 84
+						&& after.lastDecayGameTime() == now,
+				CursedIncidentTestFixtures.diagnostic("sealedObjectInContainerDecaysFromDurableAnchor(C8,C9)", helper,
+						"integrity 84 anchor now", "84/" + now,
+						after == null ? null : after.sealIntegrity() + "/" + after.lastDecayGameTime()));
+		ObjectDwellTracker.forget(id);
+		helper.succeed();
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
+	public void forgetEverywhereRemovesInventoryStackAndVoids(GameTestHelper helper) {
+		// C15: cleanup removes the physical source from a player inventory and marks the id
+		// voided so a leftover stack can never resurrect the incident.
+		ServerPlayer player = CursedSpiritTestFixtures.setupVictim(helper, "forgetEverywhere(C15)", CENTER);
+		UUID id = UUID.randomUUID();
+		ItemStack stack = CursedObjectItem.stack(CursedObjectState.fresh(id, "cursed_nail", 3,
+				helper.getLevel().getGameTime()));
+		player.getInventory().add(stack);
+		// Inventory.add stores a copy and empties the passed stack — observe the stored one,
+		// the same reference inventoryTick sees in production.
+		ItemStack carried = null;
+		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+			if (CursedObjectItem.state(player.getInventory().getItem(slot)) != null) {
+				carried = player.getInventory().getItem(slot);
+				break;
+			}
+		}
+		ObjectDwellTracker.noteCarried(carried, player);
+		ObjectDwellTracker.forgetEverywhere(id);
+		boolean stillCarried = false;
+		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+			CursedObjectState slotState = CursedObjectItem.state(player.getInventory().getItem(slot));
+			if (slotState != null && id.equals(slotState.instanceId())) {
+				stillCarried = true;
+			}
+		}
+		helper.assertTrue(!stillCarried && IncidentControl.isVoided(id),
+				CursedIncidentTestFixtures.diagnostic("forgetEverywhere(C15)", helper,
+						"stack gone and id voided", "false/true",
+						stillCarried + "/" + IncidentControl.isVoided(id)));
+		CursedSpiritTestFixtures.cleanupVictim(helper, player);
+		helper.succeed();
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
+	public void voidedStackIsDestroyedOnObservation(GameTestHelper helper) {
+		// C15: a stack whose id was voided is destroyed on sight instead of re-registering.
+		ServerLevel level = helper.getLevel();
+		UUID id = UUID.randomUUID();
+		IncidentControl.voidObject(id);
+		ItemEntity dropped = new ItemEntity(level, helper.absolutePos(CENTER).getX() + 0.5,
+				helper.absolutePos(CENTER).getY(), helper.absolutePos(CENTER).getZ() + 0.5,
+				CursedObjectItem.stack(CursedObjectState.fresh(id, "cursed_nail", 3, level.getGameTime())));
+		level.addFreshEntity(dropped);
+		ObjectDwellTracker.noteWorldItem(dropped);
+		helper.assertTrue(dropped.isRemoved(),
+				CursedIncidentTestFixtures.diagnostic("voidedStackIsDestroyedOnObservation(C15)", helper,
+						"voided entity discarded", true, dropped.isRemoved()));
+		helper.succeed();
+	}
+
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 140)
+	public void distantChestRelocatesIncident(GameTestHelper helper) {
+		// C6: an object carried beyond the zone and stored in a chest keeps being observed;
+		// once its dwell completes the incident relocates to the new position.
+		ServerLevel level = helper.getLevel();
+		BlockPos center = helper.absolutePos(CENTER);
+		IncidentRecord record = CursedIncidentTestFixtures.created(IncidentControl.spawn(
+				new IncidentControl.SpawnRequest(center, level.dimension(), "blight",
+						3, 1182L, IncidentStage.INITIAL, "cursed_nail",
+						jujutsu.mod.cursedincident.SourceKind.OBJECT, 3.0, 40L)));
+		UUID id = record.objectInstanceId;
+		ItemEntity source = CursedIncidentTestFixtures.findCursedObject(helper, CENTER, id);
+		helper.assertTrue(source != null,
+				CursedIncidentTestFixtures.diagnostic("distantChestRelocatesIncident(C6)", helper,
+						"physical source", "present", source));
+		ItemStack stack = source.getItem().copy();
+		source.discard();
+		BlockPos chestPos = helper.absolutePos(new BlockPos(15, 4, 15));
+		helper.setBlock(new BlockPos(15, 4, 15), Blocks.CHEST);
+		ChestBlockEntity chest = (ChestBlockEntity) level.getBlockEntity(chestPos);
+		chest.setItem(0, stack);
+		ObjectDwellTracker tracker = new ObjectDwellTracker();
+		tracker.noteContainer(level, chestPos, chest.getItem(0));
+		helper.runAtTickTime(50, () -> {
+			tracker.noteContainer(level, chestPos, chest.getItem(0));
+			IncidentControl.advance(record.id, 50L);
+			helper.assertTrue(chestPos.equals(record.center),
+					CursedIncidentTestFixtures.diagnostic("distantChestRelocatesIncident(C6)", helper,
+							"incident center relocated to chest", chestPos, record.center));
+			CursedIncidentTestFixtures.cleanup(record);
+			helper.succeed();
 		});
 	}
 }

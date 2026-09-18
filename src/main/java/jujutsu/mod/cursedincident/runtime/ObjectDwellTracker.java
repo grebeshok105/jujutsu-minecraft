@@ -397,7 +397,10 @@ public final class ObjectDwellTracker implements DwellProvider {
         tracked.level = level == null ? tracked.level : level;
         if (tracked.lastGameTime == 0L && tracked.anchor == null) {
             tracked.lastGameTime = now;
-            tracked.lastDecayGameTime = Math.max(state.lastDecayGameTime(), now);
+            // The durable anchor decides the owed decay — including time the object spent
+            // unobserved (offline inventory, unloaded chunk, restart). Clamping to `now`
+            // here would forgive the whole interval on first sight (issue #110 C9).
+            tracked.lastDecayGameTime = state.lastDecayGameTime();
             tracked.anchor = position;
             tracked.accumulatedTicks = Math.max(0L, state.accumulatedTicks());
         } else if (position != null && type != null && !state.sealed()) {
