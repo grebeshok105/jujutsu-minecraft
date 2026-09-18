@@ -104,7 +104,7 @@ public final class MegumiShikigamiRuntime {
 			PACKS.clear();
 			TEARDOWN_IN_PROGRESS.clear();
 			MegumiShikigamiSelection.clearAll();
-			MegumiShikigamiCooldowns.clearAll();
+			MegumiSummonCooldowns.clearAll();
 		});
 	}
 
@@ -275,7 +275,7 @@ public final class MegumiShikigamiRuntime {
 	/** Clears the player's saved selection; wired to disconnect (unit-testable seam). */
 	static void onPlayerDisconnect(UUID playerId) {
 		MegumiShikigamiSelection.clear(playerId);
-		MegumiShikigamiCooldowns.clear(playerId);
+		MegumiSummonCooldowns.clear(playerId);
 	}
 
 	/**
@@ -343,7 +343,6 @@ public final class MegumiShikigamiRuntime {
 		// The pack records are gone whether or not they cost anything, so the selector's SUMMONED
 		// markers and cooldown rows must be republished — one push per sweep, not per pack.
 		MegumiShikigamiSync.push(server.getPlayerList().getPlayer(ownerId));
-		}
 	}
 
 	/** The reason table is unchanged — only the storage moved off the shared PRIMARY slot per type. */
@@ -512,13 +511,8 @@ public final class MegumiShikigamiRuntime {
 	}
 
 	private static void tick(MinecraftServer server) {
-		// The roster ledger stamps deadlines from the server clock, and this runtime owns that feed so the
-		// ledger needs no server handle of its own. Game time is one counter per server: it is the same
-		// number every level reports, which is the assumption the shared slot ledger already makes.
-		ServerLevel overworld = server.overworld();
-		if (overworld != null) {
-			MegumiShikigamiCooldowns.observe(overworld.getGameTime());
-		}
+		// The per-type summon ledger reads the level clock at each call site, so this runtime needs
+		// no clock feed of its own — reconcile and retaliate are the only per-tick work left.
 		for (UUID ownerId : Set.copyOf(PACKS.keySet())) {
 			reconcile(server, ownerId, RemovalCause.TICK);
 			retaliate(server, ownerId);

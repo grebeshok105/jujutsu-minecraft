@@ -27,8 +27,10 @@ public final class MegumiSummonCooldowns {
 	}
 
 	public static void start(UUID ownerId, MegumiShikigami type, long untilGameTime) {
+		// Non-shortening: a second arm for the same (owner, type) may only push the deadline out,
+		// never pull it in — the same rule the shared slot ledger keeps.
 		UNTIL_GAME_TIME.computeIfAbsent(ownerId, key -> new EnumMap<>(MegumiShikigami.class))
-				.put(type, untilGameTime);
+				.merge(type, untilGameTime, Math::max);
 	}
 
 	/** Remaining ticks for the dev control surface; zero when the type is summonable. */

@@ -11,7 +11,7 @@ import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.character.JujutsuCharacters;
 import jujutsu.mod.character.megumi.MegumiShikigami;
-import jujutsu.mod.character.megumi.MegumiShikigamiCooldowns;
+import jujutsu.mod.character.megumi.MegumiSummonCooldowns;
 import jujutsu.mod.character.megumi.MegumiShikigamiProfile;
 import jujutsu.mod.character.megumi.MegumiShikigamiRuntime;
 import jujutsu.mod.character.megumi.MegumiShikigamiRuntime.PackView;
@@ -119,8 +119,7 @@ public final class MegumiShikigamiSelectorGameTests {
 				UUID ownerId = caster.getUUID();
 				// Somewhere other than the default, so "unchanged" is a real assertion.
 				MegumiShikigamiSelection.set(ownerId, MegumiShikigami.TOAD);
-				MegumiShikigamiCooldowns.start(ownerId, MegumiShikigami.RABBITS,
-						MegumiShikigamiProfile.RABBITS_RECALL_COOLDOWN_TICKS);
+				MegumiSummonCooldowns.start(ownerId, MegumiShikigami.RABBITS, helper.getLevel().getGameTime() + MegumiShikigamiProfile.RABBITS_RECALL_COOLDOWN_TICKS);
 
 				boolean refused = JujutsuCharacters.of(caster).selectShikigami(caster, MegumiShikigami.RABBITS.id());
 				helper.assertFalse(refused, MegumiShikigamiTestFixtures.diagnostic(fixture,
@@ -189,8 +188,7 @@ public final class MegumiShikigamiSelectorGameTests {
 				UUID ownerId = caster.getUUID();
 				// The selection is DOGS, so the canonical next entry is NUE; cooling NUE must make the cycle
 				// land one step further along instead of on the entry the player cannot use.
-				MegumiShikigamiCooldowns.start(ownerId, MegumiShikigami.NUE,
-						MegumiShikigamiProfile.NUE_RECALL_COOLDOWN_TICKS);
+				MegumiSummonCooldowns.start(ownerId, MegumiShikigami.NUE, helper.getLevel().getGameTime() + MegumiShikigamiProfile.NUE_RECALL_COOLDOWN_TICKS);
 				boolean cycled = MegumiShikigamiRuntime.tryCycle(caster, false);
 				helper.assertTrue(cycled, MegumiShikigamiTestFixtures.diagnostic(fixture,
 						"cycle", helper.getTick(), ownerId, "tryCycle result", "true", cycled));
@@ -271,6 +269,6 @@ public final class MegumiShikigamiSelectorGameTests {
 	 * here — never the whole map, which would wipe a scenario running beside it.
 	 */
 	private static void clearLedger(ServerPlayer caster) {
-		MegumiShikigamiCooldowns.clear(caster.getUUID());
+		MegumiSummonCooldowns.clear(caster.getUUID());
 	}
 }

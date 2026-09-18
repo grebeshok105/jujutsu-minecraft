@@ -29,77 +29,72 @@ class MegumiShikigamiAvailabilityTest {
 
 	@AfterEach
 	void clearStaticState() {
-		MegumiShikigamiCooldowns.clearAll();
+		MegumiSummonCooldowns.clearAll();
 		MegumiShikigamiSelection.clearAll();
 	}
 
 	@Test
 	void aTypeWithNoLedgerEntryIsReady() {
-		assertFalse(MegumiShikigamiCooldowns.isCooling(ALICE, MegumiShikigami.NUE, NOW),
+		assertFalse(MegumiSummonCooldowns.onCooldown(ALICE, MegumiShikigami.NUE, NOW),
 				"a type nobody charged must be selectable");
-		assertEquals(0, MegumiShikigamiCooldowns.remainingTicks(ALICE, MegumiShikigami.NUE, NOW));
+		assertEquals(0, MegumiSummonCooldowns.remainingTicks(ALICE, MegumiShikigami.NUE, NOW));
 	}
 
 	@Test
 	void aStartedCooldownCoolsExactlyItsDurationAndThenExpires() {
-		MegumiShikigamiCooldowns.observe(NOW);
-		MegumiShikigamiCooldowns.start(ALICE, MegumiShikigami.NUE, 40);
+		MegumiSummonCooldowns.start(ALICE, MegumiShikigami.NUE, NOW + 40);
 
-		assertTrue(MegumiShikigamiCooldowns.isCooling(ALICE, MegumiShikigami.NUE, NOW),
+		assertTrue(MegumiSummonCooldowns.onCooldown(ALICE, MegumiShikigami.NUE, NOW),
 				"the tick that charged it is still cooling");
-		assertEquals(40, MegumiShikigamiCooldowns.remainingTicks(ALICE, MegumiShikigami.NUE, NOW));
-		assertTrue(MegumiShikigamiCooldowns.isCooling(ALICE, MegumiShikigami.NUE, NOW + 39),
+		assertEquals(40, MegumiSummonCooldowns.remainingTicks(ALICE, MegumiShikigami.NUE, NOW));
+		assertTrue(MegumiSummonCooldowns.onCooldown(ALICE, MegumiShikigami.NUE, NOW + 39),
 				"one tick short of the deadline is still cooling");
-		assertFalse(MegumiShikigamiCooldowns.isCooling(ALICE, MegumiShikigami.NUE, NOW + 40),
+		assertFalse(MegumiSummonCooldowns.onCooldown(ALICE, MegumiShikigami.NUE, NOW + 40),
 				"the deadline itself is ready — the ledger's ready time is exclusive");
-		assertEquals(0, MegumiShikigamiCooldowns.remainingTicks(ALICE, MegumiShikigami.NUE, NOW + 40));
+		assertEquals(0, MegumiSummonCooldowns.remainingTicks(ALICE, MegumiShikigami.NUE, NOW + 40));
 	}
 
 	@Test
 	void chargingWhileCoolingKeepsTheLongerDeadline() {
-		MegumiShikigamiCooldowns.observe(NOW);
-		MegumiShikigamiCooldowns.start(ALICE, MegumiShikigami.NUE, 240);
-		MegumiShikigamiCooldowns.start(ALICE, MegumiShikigami.NUE, 40);
+		MegumiSummonCooldowns.start(ALICE, MegumiShikigami.NUE, NOW + 240);
+		MegumiSummonCooldowns.start(ALICE, MegumiShikigami.NUE, NOW + 40);
 
-		assertEquals(240, MegumiShikigamiCooldowns.remainingTicks(ALICE, MegumiShikigami.NUE, NOW),
+		assertEquals(240, MegumiSummonCooldowns.remainingTicks(ALICE, MegumiShikigami.NUE, NOW),
 				"a shorter charge must not cut a cooldown the player is still paying");
 	}
 
 	@Test
 	void theLedgerIsPerOwnerAndPerType() {
-		MegumiShikigamiCooldowns.observe(NOW);
-		MegumiShikigamiCooldowns.start(ALICE, MegumiShikigami.RABBITS, 100);
+		MegumiSummonCooldowns.start(ALICE, MegumiShikigami.RABBITS, NOW + 100);
 
-		assertTrue(MegumiShikigamiCooldowns.isCooling(ALICE, MegumiShikigami.RABBITS, NOW));
-		assertFalse(MegumiShikigamiCooldowns.isCooling(BOB, MegumiShikigami.RABBITS, NOW),
+		assertTrue(MegumiSummonCooldowns.onCooldown(ALICE, MegumiShikigami.RABBITS, NOW));
+		assertFalse(MegumiSummonCooldowns.onCooldown(BOB, MegumiShikigami.RABBITS, NOW),
 				"one owner's recall must not cool another owner's type");
-		assertFalse(MegumiShikigamiCooldowns.isCooling(ALICE, MegumiShikigami.ELEPHANT, NOW),
+		assertFalse(MegumiSummonCooldowns.onCooldown(ALICE, MegumiShikigami.ELEPHANT, NOW),
 				"one type's recall must not cool the rest of the roster");
 
-		MegumiShikigamiCooldowns.clear(ALICE);
-		assertFalse(MegumiShikigamiCooldowns.isCooling(ALICE, MegumiShikigami.RABBITS, NOW),
+		MegumiSummonCooldowns.clear(ALICE);
+		assertFalse(MegumiSummonCooldowns.onCooldown(ALICE, MegumiShikigami.RABBITS, NOW),
 				"a disconnect or vessel change drops the whole ledger for that owner");
 	}
 
 	@Test
 	void clearAllEmptiesEveryOwner() {
-		MegumiShikigamiCooldowns.observe(NOW);
-		MegumiShikigamiCooldowns.start(ALICE, MegumiShikigami.DOGS, 100);
-		MegumiShikigamiCooldowns.start(BOB, MegumiShikigami.TOAD, 100);
-		MegumiShikigamiCooldowns.clearAll();
+		MegumiSummonCooldowns.start(ALICE, MegumiShikigami.DOGS, NOW + 100);
+		MegumiSummonCooldowns.start(BOB, MegumiShikigami.TOAD, NOW + 100);
+		MegumiSummonCooldowns.clearAll();
 
-		assertFalse(MegumiShikigamiCooldowns.isCooling(ALICE, MegumiShikigami.DOGS, NOW));
-		assertFalse(MegumiShikigamiCooldowns.isCooling(BOB, MegumiShikigami.TOAD, NOW));
+		assertFalse(MegumiSummonCooldowns.onCooldown(ALICE, MegumiShikigami.DOGS, NOW));
+		assertFalse(MegumiSummonCooldowns.onCooldown(BOB, MegumiShikigami.TOAD, NOW));
 	}
 
 	@Test
 	void cyclingSkipsACoolingTypeAndLandsOnTheNextUsableOne() {
-		MegumiShikigamiCooldowns.observe(NOW);
 		MegumiShikigamiSelection.set(ALICE, MegumiShikigami.DOGS);
-		MegumiShikigamiCooldowns.start(ALICE, MegumiShikigami.NUE, 100);
+		MegumiSummonCooldowns.start(ALICE, MegumiShikigami.NUE, NOW + 100);
 
 		MegumiShikigami landed = MegumiShikigamiSelection.cycleAvailable(ALICE,
-				type -> !MegumiShikigamiCooldowns.isCooling(ALICE, type, NOW));
+				type -> !MegumiSummonCooldowns.onCooldown(ALICE, type, NOW));
 
 		assertEquals(MegumiShikigami.TOAD, landed, "a cooling entry must be stepped over, not selected");
 		assertEquals(MegumiShikigami.TOAD, MegumiShikigamiSelection.selected(ALICE),
@@ -108,14 +103,13 @@ class MegumiShikigamiAvailabilityTest {
 
 	@Test
 	void cyclingKeepsEverythingWhenNothingIsUsable() {
-		MegumiShikigamiCooldowns.observe(NOW);
 		MegumiShikigamiSelection.set(ALICE, MegumiShikigami.ELEPHANT);
 		for (MegumiShikigami type : MegumiShikigami.values()) {
-			MegumiShikigamiCooldowns.start(ALICE, type, 100);
+			MegumiSummonCooldowns.start(ALICE, type, NOW + 100);
 		}
 
 		MegumiShikigami landed = MegumiShikigamiSelection.cycleAvailable(ALICE,
-				type -> !MegumiShikigamiCooldowns.isCooling(ALICE, type, NOW));
+				type -> !MegumiSummonCooldowns.onCooldown(ALICE, type, NOW));
 
 		assertEquals(MegumiShikigami.ELEPHANT, landed,
 				"with the whole roster recovering the selection stays where it was");

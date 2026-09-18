@@ -1,5 +1,7 @@
 package jujutsu.mod.character.megumi;
 
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.UUID;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerPlayer;
@@ -30,18 +32,22 @@ public final class MegumiShikigamiSync {
 		}
 		UUID ownerId = player.getUUID();
 		long now = player.level().getGameTime();
-		MegumiShikigamiPack pack = MegumiShikigamiRuntime.pack(ownerId);
-		MegumiShikigami packType = pack == null ? null : pack.type();
-		boolean dogsOut = MegumiSummonRuntime.pack(ownerId) != null;
+		Set<MegumiShikigami> activeTypes = EnumSet.noneOf(MegumiShikigami.class);
+		for (MegumiShikigamiPack pack : MegumiShikigamiRuntime.packs(ownerId)) {
+			activeTypes.add(pack.type());
+		}
+		if (MegumiSummonRuntime.pack(ownerId) != null) {
+			activeTypes.add(MegumiShikigami.DOGS);
+		}
 		MegumiShikigami[] roster = MegumiShikigami.values();
 		byte[] stateCodes = new byte[roster.length];
 		long[] cooldownUntil = new long[roster.length];
 		for (int i = 0; i < roster.length; i++) {
 			MegumiShikigami type = roster[i];
-			int remaining = MegumiShikigamiCooldowns.remainingTicks(ownerId, type, now);
-			boolean summoned = type == packType || (dogsOut && type == MegumiShikigami.DOGS);
+			long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, type, now);
+			boolean summoned = activeTypes.contains(type);
 			cooldownUntil[i] = remaining > 0 ? now + remaining : 0L;
-			stateCodes[i] = (byte) MegumiShikigamiSlotState.derive(summoned, remaining).ordinal();
+			stateCodes[i] = (byte) MegumiShikigamiSlotState.derive(summoned, (int) Math.min(remaining, Integer.MAX_VALUE)).ordinal();
 		}
 		ServerPlayNetworking.send(player, new ShikigamiStatePayload(
 				MegumiShikigamiSelection.selected(ownerId).id(), stateCodes, cooldownUntil, now));

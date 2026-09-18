@@ -12,7 +12,7 @@ one **global sic** to every living body across both families, and an empty aim c
 orders. The `DOGS` selection delegates to the dog runtime (`MegumiSummonRuntime`), whose pack
 coexists with the shikigami packs; the dogs themselves are owned by
 [Megumi Divine Dogs](Megumi-Divine-Dogs.md) and the unchanged shadow kit by
-[Megumi shadow kit](Megumi-shadow-kit.md). Issue #108 adds the partial-manifestation key (`G`,
+[Megumi shadow kit](Megumi-shadow-kit.md). Issue #108 adds the partial-manifestation key (`X`,
 press/release edges): Nue's wings and Toad's tongue, one partial at a time, refused while that
 type's full body is materialized.
 
@@ -31,7 +31,7 @@ the review-wave fixes landing on top.
 | `R` | technique key (`PRIMARY`) | `MegumiShikigamiRuntime.tryPrimary` — summon the selection, or recall exactly that type when it is already out (`MegumiShikigamiSwapPolicy`: `RECALL_SELF` / `SUMMON`, plus `DELEGATE_DOGS`); additive, never a swap |
 | `S+R` | sic (`PRIMARY_SNEAK`) | `MegumiShikigamiRuntime.trySic` — one global order: the aimed target is assigned to every combat-enabled body in BOTH families; an aim that names nothing clears every MANUAL mark (`sic_cleared`, D5). Costs the `PRIMARY_SNEAK` cooldown on success. Bodies also answer **by themselves**: every tick the per-owner pass in `MegumiShikigamiRuntime.retaliate` / `MegumiSummonRuntime.retaliate` marks the owner's aggressor (`MegumiRetaliationPolicy.pickAggressor` — the owner's last attacker for `RETALIATION_WINDOW_TICKS = 100`, else the nearest mob already targeting the owner inside `RETALIATION_RADIUS = 16`). A sic set by hand outranks it (`hasManualSicTarget`), and `MegumiTargetPolicy.Facts.ownSummonBody` keeps the pack off its own bodies (issue #76). The window is measured on the owner's own `tickCount` — vanilla stamps `lastHurtByMobTimestamp` with it |
 | `S+V` | select (`TERTIARY_SNEAK`) | `MegumiShikigamiRuntime.tryCycle` — advance the selection, action-bar feedback, never a cooldown; refused while a partial manifestation is out |
-| `G` (press/release) | partial (`PARTIAL` / `PARTIAL_RELEASE`) | `MegumiPartialRuntime.tryPartial` / `tryPartialRelease` — Nue selection toggles the wings, Toad selection anchors the tongue at the aimed surface (release detaches); other selections refuse, and so does a partial whose type's full body is out |
+| `X` (press/release) | partial (`PARTIAL` / `PARTIAL_RELEASE`) | `MegumiPartialRuntime.tryPartial` / `tryPartialRelease` — Nue selection toggles the wings, Toad selection anchors the tongue at the aimed surface (release detaches); other selections refuse, and so does a partial whose type's full body is out |
 | `B` / `S+B` (+hold) / `V` | shadow kit | unchanged: trap / step / deep submerge / drop (`MegumiAbilityRouter`) |
 
 The roster card (`MegumiClientDefinition.rosterEntry`) lists seven rows in input order — Divine

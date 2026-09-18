@@ -308,7 +308,10 @@ public final class JujutsuKeybinds {
 		if (client.screen != null || client.getWindow() == null) {
 			return false;
 		}
-		if (mapping.isUnbound() || mapping.isDefault()) {
+		// The physical fallback exists for one case only: a screen opening released every mapping, so a
+		// still-default key must be re-polled by hand. An unbound mapping is NOT a default — the player
+		// deliberately removed the bind, and the physical key must not keep working as a hidden one.
+		if (mapping.isDefault()) {
 			return InputConstants.isKeyDown(client.getWindow().getWindow(), physicalFallback);
 		}
 		return false;

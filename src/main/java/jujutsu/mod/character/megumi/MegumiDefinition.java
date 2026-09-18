@@ -1,6 +1,7 @@
 package jujutsu.mod.character.megumi;
 
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -70,9 +71,16 @@ public final class MegumiDefinition implements CharacterDefinition {
 			// optimistic marker is corrected by the next snapshot.
 			return false;
 		}
+		// Issue #108 D11/§20: selection is frozen while a partial is materialized — the direct
+		// selector click rides the same gate as the cycle key, or the strip would be a bypass.
+		if (MegumiPartialRuntime.isAnyActive(player.getUUID())) {
+			player.displayClientMessage(Component.translatable(
+					"message.jujutsumod.megumi.shikigami.selection_locked"), true);
+			return false;
+		}
 		// A cooling type is not selectable. Refusing here — and not by ignoring the packet — is what
 		// keeps the server the only authority on availability; the client's own click gate is a mirror.
-		if (MegumiShikigamiCooldowns.isCooling(player.getUUID(), type, player.level().getGameTime())) {
+		if (MegumiSummonCooldowns.onCooldown(player.getUUID(), type, player.level().getGameTime())) {
 			return false;
 		}
 		// Selection is free and non-destructive: it never starts a cooldown and never sweeps a pack,
@@ -109,7 +117,6 @@ public final class MegumiDefinition implements CharacterDefinition {
 		// PRIMARY (which survives a re-confirm, issue #84) would refuse the summon anyway.
 		if (incoming != JujutsuCharacter.MEGUMI) {
 			MegumiSummonCooldowns.clear(player.getUUID());
-			MegumiShikigamiCooldowns.clear(player.getUUID());
 		}
 	}
 }
