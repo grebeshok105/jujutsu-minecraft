@@ -147,16 +147,17 @@ public final class CursedIncidentGameTests {
 		ServerLevel level = helper.getLevel();
 		BlockPos far = helper.absolutePos(new BlockPos(160, 4, 160));
 		boolean before = level.getChunkSource().hasChunk(far.getX() >> 4, far.getZ() >> 4);
-		IncidentRecord record = IncidentControl.spawn(new IncidentControl.SpawnRequest(far, level.dimension(), "blight",
-				3, 1108L, IncidentStage.INITIAL, null, SourceKind.FREE, RADIUS));
+		IncidentRecord record = CursedIncidentTestFixtures.created(IncidentControl.spawn(
+				new IncidentControl.SpawnRequest(far, level.dimension(), "blight",
+						3, 1108L, IncidentStage.INITIAL, null, SourceKind.FREE, RADIUS)));
 		IncidentControl.advance(record.id, 40L);
 		IncidentControl.InspectView view = IncidentControl.inspect(record.id);
 		long blocksChanged = view.workCounters().getOrDefault("blocks_changed", 0L);
-		long chunkEditsDeferred = view.workCounters().getOrDefault("chunk_edits_deferred", 0L);
+		boolean pendingTransition = !record.pendingDeltas.isEmpty();
 		helper.assertTrue(!before && !level.getChunkSource().hasChunk(far.getX() >> 4, far.getZ() >> 4)
-				&& view.ageTicks() >= 40L && blocksChanged == 0L && chunkEditsDeferred > 0L,
+				&& view.ageTicks() >= 40L && blocksChanged == 0L && pendingTransition,
 				CursedIncidentTestFixtures.diagnostic("unloadedCenterStillAges(R56)", helper,
-						"logical age without loading", "age>=40, blocks_changed=0, chunk_edits_deferred>0", view));
+						"logical age without loading", "age>=40, blocks_changed=0, pending_deltas>0", view));
 		CursedIncidentTestFixtures.cleanup(record);
 		helper.succeed();
 	}

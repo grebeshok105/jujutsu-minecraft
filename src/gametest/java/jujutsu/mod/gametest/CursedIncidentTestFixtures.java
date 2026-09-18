@@ -59,9 +59,14 @@ public final class CursedIncidentTestFixtures {
 			}
 			return record;
 		}
-		return IncidentControl.spawn(new IncidentControl.SpawnRequest(center, level.dimension(), "blight",
-				3, seed, stage, objectType, sourceKind, radius));
-	}
+			IncidentControl.SpawnOutcome outcome = IncidentControl.spawn(new IncidentControl.SpawnRequest(
+					center, level.dimension(), "blight", 3, seed, stage, objectType, sourceKind, radius));
+			return outcome instanceof IncidentControl.SpawnOutcome.Created created ? created.record() : null;
+		}
+		public static IncidentRecord created(IncidentControl.SpawnOutcome outcome) {
+			return outcome instanceof IncidentControl.SpawnOutcome.Created created ? created.record() : null;
+		}
+
 
 	public static IncidentRecord spawnFree(GameTestHelper helper, BlockPos relativeCenter, IncidentStage stage,
 			double radius, long seed) {

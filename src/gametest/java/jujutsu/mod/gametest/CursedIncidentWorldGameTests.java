@@ -46,7 +46,7 @@ public final class CursedIncidentWorldGameTests {
 							"pressure pinned", ">=1e6", IncidentControl.cursedPressure()));
 			// The runtime's own roll decides; the API-level oracle is that pressure
 			// accumulation + spawn path are reachable end-to-end.
-			var rec = IncidentControl.spawn(req(helper, 7777L));
+			var rec = CursedIncidentTestFixtures.created(IncidentControl.spawn(req(helper, 7777L)));
 			helper.assertTrue(IncidentControl.list().size() == before + 1,
 					GameTestFixtures.diagnostic(fixture, helper.getTick(),
 							"incident registered", before + 1, IncidentControl.list().size()));
@@ -60,7 +60,7 @@ public final class CursedIncidentWorldGameTests {
 	public void repeatedRelocationRespectsBound(GameTestHelper helper) {
 		String fixture = "repeatedRelocationRespectsBound";
 		helper.runAtTickTime(5, () -> {
-			var rec = IncidentControl.spawn(req(helper, 42L));
+			var rec = CursedIncidentTestFixtures.created(IncidentControl.spawn(req(helper, 42L)));
 			for (int i = 0; i < 5; i++) {
 				IncidentControl.relocate(rec.id,
 						helper.absolutePos(new BlockPos(2 + i, 1, 2 + i)));
@@ -82,7 +82,7 @@ public final class CursedIncidentWorldGameTests {
 	public void fullCycleScarsWorld(GameTestHelper helper) {
 		String fixture = "fullCycleScarsWorld";
 		helper.runAtTickTime(5, () -> {
-			var rec = IncidentControl.spawn(req(helper, 99L));
+			var rec = CursedIncidentTestFixtures.created(IncidentControl.spawn(req(helper, 99L)));
 			// 400_000 ticks guarantees CATASTROPHIC at every multiplier (worst 1.82 →
 			// threshold 349_440); grade is rolled, so the bound must cover it.
 			IncidentControl.advance(rec.id, 400_000);
@@ -104,8 +104,8 @@ public final class CursedIncidentWorldGameTests {
 	public void secondLaneIndependent(GameTestHelper helper) {
 		String fixture = "secondLaneIndependent";
 		helper.runAtTickTime(5, () -> {
-			var a = IncidentControl.spawn(req(helper, 1L));
-			var b = IncidentControl.spawn(req(helper, 2L));
+			var a = CursedIncidentTestFixtures.created(IncidentControl.spawn(req(helper, 1L)));
+			var b = CursedIncidentTestFixtures.created(IncidentControl.spawn(req(helper, 2L)));
 			// 96_000 ticks guarantees ≥GROWING even at the slowest multiplier (1.82 →
 			// threshold 87_360); the oracle is that A moved while B stayed put.
 			IncidentControl.advance(a.id, 96_000);
@@ -128,8 +128,8 @@ public final class CursedIncidentWorldGameTests {
 	public void idCollisionFreeAcrossSaveLoad(GameTestHelper helper) {
 		String fixture = "idCollisionFreeAcrossSaveLoad";
 		helper.runAtTickTime(5, () -> {
-			var a = IncidentControl.spawn(req(helper, 11L));
-			var b = IncidentControl.spawn(req(helper, 22L));
+			var a = CursedIncidentTestFixtures.created(IncidentControl.spawn(req(helper, 11L)));
+			var b = CursedIncidentTestFixtures.created(IncidentControl.spawn(req(helper, 22L)));
 			helper.assertTrue(!a.id.equals(b.id),
 					GameTestFixtures.diagnostic(fixture, helper.getTick(),
 							"distinct ids", "a!=b", a.id + " vs " + b.id));
@@ -154,8 +154,8 @@ public final class CursedIncidentWorldGameTests {
 	public void corruptSavedDataFallsBack(GameTestHelper helper) {
 		String fixture = "corruptSavedDataFallsBack";
 		helper.runAtTickTime(5, () -> {
-			var healthy = IncidentControl.spawn(req(helper, 33L));
-			var sibling = IncidentControl.spawn(req(helper, 44L));
+			var healthy = CursedIncidentTestFixtures.created(IncidentControl.spawn(req(helper, 33L)));
+			var sibling = CursedIncidentTestFixtures.created(IncidentControl.spawn(req(helper, 44L)));
 			IncidentControl.setStage(healthy.id, IncidentStage.GROWING);
 			JsonObject root = IncidentSavedData.CODEC.encodeStart(JsonOps.INSTANCE,
 					new IncidentSavedData(Map.of(healthy.id, healthy, sibling.id, sibling), 0L))

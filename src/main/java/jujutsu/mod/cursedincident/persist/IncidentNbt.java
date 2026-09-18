@@ -13,6 +13,14 @@ public final class IncidentNbt {
 	public static final String CREATED = "created";
 	public static final String LAST_UPDATE = "last_update";
 	public static final String BONUS_AGE = "bonus_age";
+	public static final String LAST_PROCESSED_AGE = "last_processed_age_ticks";
+	public static final String PENDING_DELTAS = "pending_deltas";
+	public static final String PENDING_EDITS = "pending_edits";
+	public static final String LAST_TOP_UP_GAME_TIME = "last_top_up_game_time";
+	public static final String LAST_CONTAINER_SCAN_GAME_TIME = "last_container_scan_game_time";
+	public static final String LAST_CULL_GAME_TIME = "last_cull_game_time";
+	public static final String LAST_AMBIENT_GAME_TIME = "last_ambient_game_time";
+
 	public static final String DIM = "dim";
 	public static final String CENTER = "center";
 	public static final String RADIUS = "radius";
@@ -32,6 +40,12 @@ public final class IncidentNbt {
 	public static final String SEAL = "seal";
 	public static final String KNOWLEDGE = "knowledge";
 	public static final String DWELL = "dwell";
+	public static final String POS = "pos";
+	public static final String BLOCK_STATE = "block_state";
+	public static final String DESTROY = "destroy";
+	public static final String NODE_ID = "node_id";
+	public static final String PENDING_STAGE = "pending_stage";
+
 	public static final String COUNTERS = "counters";
 	public static final String INCIDENTS = "incidents";
 	public static final String PRESSURE = "pressure";

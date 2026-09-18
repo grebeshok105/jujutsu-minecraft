@@ -56,7 +56,7 @@ public final class PressureRuntime {
 		long accrued = PressurePolicy.accumulate(elapsed);
 		lastTickGameTime += accrued * PressurePolicy.TICKS_PER_DAY;
 		long pressure = IncidentControl.addPressure(accrued);
-		int active = IncidentControl.list().size();
+		int active = IncidentControl.activeZones();
 		if (!PressurePolicy.shouldSpawn(
 				net.minecraft.util.RandomSource.create(overworld.getRandom().nextLong()),
 				pressure, active)) {
@@ -71,9 +71,11 @@ public final class PressureRuntime {
 		int dist = MIN_OFFSET + ThreadLocalRandom.current().nextInt(MAX_OFFSET - MIN_OFFSET);
 		BlockPos center = anchor.blockPosition().offset(
 				(int) (Math.cos(angle) * dist), 0, (int) (Math.sin(angle) * dist));
-		IncidentControl.spawn(new IncidentControl.SpawnRequest(
+		IncidentControl.SpawnOutcome outcome = IncidentControl.spawn(new IncidentControl.SpawnRequest(
 				center, anchor.level().dimension(), null, null,
 				overworld.getRandom().nextLong(), null, null, null, null));
-		IncidentControl.resetPressure();
+		if (outcome instanceof IncidentControl.SpawnOutcome.Created) {
+			IncidentControl.resetPressure();
+		}
 	}
 }

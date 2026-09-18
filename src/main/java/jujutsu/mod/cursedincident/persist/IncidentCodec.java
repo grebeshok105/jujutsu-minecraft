@@ -9,6 +9,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.mojang.datafixers.util.Pair;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import jujutsu.mod.cursedincident.IncidentParams;
@@ -24,6 +25,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+
 
 /** Codec for the complete mutable incident record. Unknown enum strings use safe defaults. */
 public final class IncidentCodec {
@@ -51,6 +54,30 @@ public final class IncidentCodec {
 			Codec.LONG.fieldOf(IncidentNbt.CREATED).forGetter(SecondaryNode::createdGameTime),
 			Codec.BOOL.fieldOf("self_sustaining").forGetter(SecondaryNode::selfSustaining)
 	).apply(instance, SecondaryNode::new));
+	private static final Codec<IncidentRecord.PendingDelta> PENDING_DELTA_CODEC =
+			RecordCodecBuilder.create(instance -> instance.group(
+					Codec.STRING.optionalFieldOf(IncidentNbt.FROM, "initial")
+							.forGetter(value -> value.from().wireName()),
+					Codec.STRING.optionalFieldOf(IncidentNbt.TO, "initial")
+							.forGetter(value -> value.to().wireName())
+			).apply(instance, (from, to) -> new IncidentRecord.PendingDelta(
+					IncidentStage.byNameOrDefault(from), IncidentStage.byNameOrDefault(to))));
+
+	private static final Codec<IncidentRecord.PendingEdit> PENDING_EDIT_CODEC =
+			RecordCodecBuilder.create(instance -> instance.group(
+					BlockPos.CODEC.fieldOf(IncidentNbt.POS).forGetter(IncidentRecord.PendingEdit::pos),
+					BlockState.CODEC.optionalFieldOf(IncidentNbt.BLOCK_STATE)
+							.forGetter(value -> Optional.ofNullable(value.blockState())),
+					Codec.BOOL.optionalFieldOf(IncidentNbt.DESTROY, false)
+							.forGetter(IncidentRecord.PendingEdit::destroy),
+					UUIDUtil.STRING_CODEC.optionalFieldOf(IncidentNbt.NODE_ID)
+							.forGetter(value -> Optional.ofNullable(value.nodeId())),
+					Codec.STRING.optionalFieldOf(IncidentNbt.PENDING_STAGE)
+							.forGetter(value -> Optional.ofNullable(value.stage()).map(IncidentStage::wireName))
+			).apply(instance, (pos, state, destroy, nodeId, stage) -> new IncidentRecord.PendingEdit(
+					pos, state.orElse(null), destroy, nodeId.orElse(null),
+					stage.map(IncidentStage::byNameOrDefault).orElse(null))));
+
 
 	private static final Codec<IncidentRecord.Transition> TRANSITION_CODEC = RecordCodecBuilder.create(instance -> instance.group(
 			Codec.STRING.optionalFieldOf(IncidentNbt.FROM, "initial").forGetter(value -> value.from().wireName()),
@@ -102,6 +129,8 @@ public final class IncidentCodec {
 		builder.add(IncidentNbt.SEED, record.seed, Codec.LONG);
 		builder.add(IncidentNbt.CREATED, record.createdGameTime, Codec.LONG);
 		builder.add(IncidentNbt.LAST_UPDATE, record.lastUpdateGameTime, Codec.LONG);
+			builder.add(IncidentNbt.LAST_PROCESSED_AGE, Math.max(0L, record.lastProcessedAgeTicks), Codec.LONG);
+
 		builder.add(IncidentNbt.BONUS_AGE, record.bonusAgeTicks, Codec.LONG);
 		builder.add(IncidentNbt.DIM, record.dimension == null ? Level.OVERWORLD : record.dimension, DIMENSION_CODEC);
 		builder.add(IncidentNbt.CENTER, record.center == null ? BlockPos.ZERO : record.center, BlockPos.CODEC);
@@ -117,6 +146,9 @@ public final class IncidentCodec {
 		addOptional(builder, ops, IncidentNbt.SOURCE_CONTAINER, record.sourceContainer, BlockPos.CODEC);
 		builder.add(IncidentNbt.TEMPLATE, record.templateId == null ? "" : record.templateId, Codec.STRING);
 		builder.add(IncidentNbt.PARAMS, record.params == null ? defaultParams() : record.params, PARAMS_CODEC);
+			builder.add(IncidentNbt.PENDING_DELTAS, List.copyOf(record.pendingDeltas), PENDING_DELTA_CODEC.listOf());
+			builder.add(IncidentNbt.PENDING_EDITS, List.copyOf(record.pendingEdits), PENDING_EDIT_CODEC.listOf());
+
 		builder.add(IncidentNbt.SECONDARIES, List.copyOf(record.secondaries), SECONDARY_CODEC.listOf());
 		builder.add(IncidentNbt.TRANSITIONS, List.copyOf(record.transitions), TRANSITION_CODEC.listOf());
 		builder.add(IncidentNbt.SCARS, List.copyOf(record.scars), BlockPos.CODEC.listOf());
@@ -130,6 +162,11 @@ public final class IncidentCodec {
 		builder.add(IncidentNbt.COUNTERS,
 				new CounterValues(record.counters.blocksChanged, record.counters.cursesSpawned,
 						record.counters.animalsCulled, record.counters.chunkEditsDeferred), CounterValues.CODEC);
+			builder.add(IncidentNbt.LAST_TOP_UP_GAME_TIME, record.lastTopUpGameTime, Codec.LONG);
+			builder.add(IncidentNbt.LAST_CONTAINER_SCAN_GAME_TIME, record.lastContainerScanGameTime, Codec.LONG);
+			builder.add(IncidentNbt.LAST_CULL_GAME_TIME, record.lastCullGameTime, Codec.LONG);
+			builder.add(IncidentNbt.LAST_AMBIENT_GAME_TIME, record.lastAmbientGameTime, Codec.LONG);
+
 		return builder.build(prefix);
 	}
 
@@ -161,6 +198,9 @@ public final class IncidentCodec {
 		record.createdGameTime = read(ops, map, IncidentNbt.CREATED, Codec.LONG, 0L);
 		record.lastUpdateGameTime = read(ops, map, IncidentNbt.LAST_UPDATE, Codec.LONG, record.createdGameTime);
 		record.bonusAgeTicks = Math.max(0L, read(ops, map, IncidentNbt.BONUS_AGE, Codec.LONG, 0L));
+		record.lastProcessedAgeTicks = Math.max(0L,
+				read(ops, map, IncidentNbt.LAST_PROCESSED_AGE, Codec.LONG, 0L));
+
 		record.dimension = read(ops, map, IncidentNbt.DIM, DIMENSION_CODEC, Level.OVERWORLD);
 		record.center = read(ops, map, IncidentNbt.CENTER, BlockPos.CODEC, BlockPos.ZERO);
 		record.radius = Math.max(0.0, read(ops, map, IncidentNbt.RADIUS, Codec.DOUBLE, 0.0));
@@ -177,6 +217,9 @@ public final class IncidentCodec {
 		record.params = read(ops, map, IncidentNbt.PARAMS, PARAMS_CODEC, defaultParams());
 		record.secondaries.addAll(readList(ops, map, IncidentNbt.SECONDARIES, SECONDARY_CODEC));
 		record.transitions.addAll(readList(ops, map, IncidentNbt.TRANSITIONS, TRANSITION_CODEC));
+		record.pendingDeltas.addAll(readList(ops, map, IncidentNbt.PENDING_DELTAS, PENDING_DELTA_CODEC));
+		record.pendingEdits.addAll(readList(ops, map, IncidentNbt.PENDING_EDITS, PENDING_EDIT_CODEC));
+
 		record.scars.addAll(readList(ops, map, IncidentNbt.SCARS, BlockPos.CODEC));
 		SealValues seal = read(ops, map, IncidentNbt.SEAL, SealValues.CODEC, new SealValues(false, 0, 0, 0));
 		record.sealed = seal.sealed();
@@ -192,6 +235,11 @@ public final class IncidentCodec {
 		record.counters.cursesSpawned = Math.max(0L, counters.cursesSpawned());
 		record.counters.animalsCulled = Math.max(0L, counters.animalsCulled());
 		record.counters.chunkEditsDeferred = Math.max(0L, counters.chunkEditsDeferred());
+		record.lastTopUpGameTime = read(ops, map, IncidentNbt.LAST_TOP_UP_GAME_TIME, Codec.LONG, Long.MIN_VALUE);
+		record.lastContainerScanGameTime = read(ops, map, IncidentNbt.LAST_CONTAINER_SCAN_GAME_TIME, Codec.LONG, Long.MIN_VALUE);
+		record.lastCullGameTime = read(ops, map, IncidentNbt.LAST_CULL_GAME_TIME, Codec.LONG, Long.MIN_VALUE);
+		record.lastAmbientGameTime = read(ops, map, IncidentNbt.LAST_AMBIENT_GAME_TIME, Codec.LONG, Long.MIN_VALUE);
+
 		return DataResult.success(record);
 	}
 

@@ -257,9 +257,14 @@ public final class JujutsuCommands {
 			}
 		}
 		try {
-			var record = IncidentControl.spawn(new IncidentControl.SpawnRequest(
+			IncidentControl.SpawnOutcome outcome = IncidentControl.spawn(new IncidentControl.SpawnRequest(
 					center, source.getLevel().dimension(), template, grade, seed, stage, objectType, sourceKind, null));
-			IncidentControl.InspectView view = IncidentControl.inspect(record.id);
+			if (outcome instanceof IncidentControl.SpawnOutcome.Refused refused) {
+				source.sendFailure(Component.literal("incident spawn refused: " + refused.reason()));
+				return 0;
+			}
+			IncidentControl.InspectView view = IncidentControl.inspect(
+					((IncidentControl.SpawnOutcome.Created) outcome).record().id);
 			source.sendSuccess(() -> Component.literal("incident spawned: " + renderIncident(view)), false);
 			return 1;
 		} catch (IncidentControl.IncidentNotFoundException e) {

@@ -1,5 +1,7 @@
 package jujutsu.mod.cursedincident.runtime;
 
+import java.util.List;
+
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -15,7 +17,9 @@ import jujutsu.mod.cursedincident.infection.InfectionSink;
 /** Bounded world work driver; logical age advances even while an incident's chunk is unloaded. */
 public final class IncidentRuntime {
 	private static final int PERIOD_TICKS = 20;
+	private static final int MAX_PENDING_DELTAS_PER_TICK = 8;
 	private static IncidentWorldSink sink = IncidentWorldSink.NOOP;
+	private static MinecraftServer activeServer;
 	private static boolean registered;
 
 	private IncidentRuntime() {
@@ -24,7 +28,6 @@ public final class IncidentRuntime {
 	public static void bindWorldSink(IncidentWorldSink value) {
 		sink = value == null ? IncidentWorldSink.NOOP : value;
 	}
-
 
 	public static void register() {
 		if (registered) {
@@ -44,14 +47,10 @@ public final class IncidentRuntime {
 		if (server == null || server.overworld() == null) {
 			return;
 		}
-		var records = IncidentControl.recordsForRuntime();
-		int active = 0;
-		for (IncidentRecord record : records) {
-			if (isActive(levelFor(server, record), record)) {
-				active++;
-			}
-		}
-		int share = active <= 0 ? 0 : Math.max(1, 64 / active);
+		activeServer = server;
+		List<IncidentRecord> records = IncidentControl.recordsForRuntime();
+		int loadedUnits = loadedWorkUnits(records);
+		int share = 64 / Math.max(1, loadedUnits);
 		for (IncidentRecord record : records) {
 			if (record == null || record.scarred) {
 				continue;
@@ -65,10 +64,26 @@ public final class IncidentRuntime {
 			if (!isLoaded(level, record) || record.sealed) {
 				continue;
 			}
+			replayPendingDeltas(level, record);
 			sink.tickZone(level, record, share);
 		}
 		PerceptionOverrideRuntime.tick(server);
 		flushPendingDrains();
+	}
+
+	/** Single budget-denominator seam; Wave B replaces its internals for secondary centres. */
+	public static int loadedWorkUnits(List<IncidentRecord> records) {
+		if (activeServer == null || records == null) {
+			return 0;
+		}
+		int loaded = 0;
+		for (IncidentRecord record : records) {
+			ServerLevel level = levelFor(activeServer, record);
+			if (isActive(level, record) && isLoaded(level, record)) {
+				loaded++;
+			}
+		}
+		return loaded;
 	}
 
 	private static void drainLoaded(ServerLevel level) {
@@ -89,9 +104,20 @@ public final class IncidentRuntime {
 					continue;
 				}
 				if (isLoaded(level, record)) {
+					replayPendingDeltas(level, record);
 					sink.tickZone(level, record, 64);
 				}
 			}
+		}
+	}
+
+	private static void replayPendingDeltas(ServerLevel level, IncidentRecord record) {
+		int replayed = 0;
+		while (replayed++ < MAX_PENDING_DELTAS_PER_TICK && !record.pendingDeltas.isEmpty()) {
+			IncidentRecord.PendingDelta delta = record.pendingDeltas.remove(0);
+			// Replay the committed pair directly; never re-run transitionsBetween.
+			record.stage = delta.to();
+			sink.applyStageDelta(level, record, delta.from(), delta.to());
 		}
 	}
 
@@ -111,6 +137,7 @@ public final class IncidentRuntime {
 
 	public static void clear() {
 		sink = IncidentWorldSink.NOOP;
+		activeServer = null;
 		InfectionSink.clearRuntimeState();
 		InfectionQueue.clearRuntimeState();
 		PerceptionOverrideRuntime.clear();

@@ -13,6 +13,7 @@ import jujutsu.mod.cursedincident.persist.IncidentCodec;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.Level;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,7 @@ class IncidentCodecTest {
 		assertEquals(before.seed, after.seed);
 		assertEquals(before.createdGameTime, after.createdGameTime);
 		assertEquals(before.lastUpdateGameTime, after.lastUpdateGameTime);
+		assertEquals(before.lastProcessedAgeTicks, after.lastProcessedAgeTicks);
 		assertEquals(before.bonusAgeTicks, after.bonusAgeTicks);
 		assertEquals(before.dimension, after.dimension);
 		assertEquals(before.center, after.center);
@@ -53,6 +55,8 @@ class IncidentCodecTest {
 		assertEquals(before.templateId, after.templateId);
 		assertEquals(before.params, after.params);
 		assertEquals(before.secondaries, after.secondaries);
+		assertEquals(before.pendingDeltas, after.pendingDeltas);
+		assertEquals(before.pendingEdits, after.pendingEdits);
 		assertEquals(before.transitions, after.transitions);
 		assertEquals(before.scars, after.scars);
 		assertEquals(before.sealed, after.sealed);
@@ -61,6 +65,10 @@ class IncidentCodecTest {
 		assertEquals(before.sealFailures, after.sealFailures);
 		assertEquals(before.knowledge, after.knowledge);
 		assertEquals(before.dwellTicks, after.dwellTicks);
+		assertEquals(before.lastTopUpGameTime, after.lastTopUpGameTime);
+		assertEquals(before.lastContainerScanGameTime, after.lastContainerScanGameTime);
+		assertEquals(before.lastCullGameTime, after.lastCullGameTime);
+		assertEquals(before.lastAmbientGameTime, after.lastAmbientGameTime);
 		assertEquals(before.dwellAnchor, after.dwellAnchor);
 		assertEquals(before.counters.blocksChanged, after.counters.blocksChanged);
 		assertEquals(before.counters.cursesSpawned, after.counters.cursesSpawned);
@@ -110,6 +118,14 @@ class IncidentCodecTest {
 				"ash_fall", List.of("investigate", "seal"), 0.85, true, true, 9876);
 		record.secondaries.add(new SecondaryNode(NODE_ID, new BlockPos(20, 64, 20), 5.5, 44, true));
 		record.transitions.add(new IncidentRecord.Transition(IncidentStage.INITIAL, IncidentStage.GROWING, 55));
+		record.lastProcessedAgeTicks = 66;
+		record.pendingDeltas.add(new IncidentRecord.PendingDelta(IncidentStage.GROWING, IncidentStage.INFESTED));
+		record.pendingEdits.add(new IncidentRecord.PendingEdit(
+				new BlockPos(14, 67, 0), Blocks.COARSE_DIRT.defaultBlockState(), true, null));
+		record.lastTopUpGameTime = 77;
+		record.lastContainerScanGameTime = 88;
+		record.lastCullGameTime = 99;
+		record.lastAmbientGameTime = 111;
 		record.scars.add(new BlockPos(1, 2, 3));
 		record.sealed = true;
 		record.sealIntegrity = 199;

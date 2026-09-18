@@ -12,10 +12,12 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.AABB;
 import jujutsu.mod.cursedincident.CursedIncidentVfxIds;
 import jujutsu.mod.cursedincident.DwellProvider;
+import jujutsu.mod.cursedincident.IncidentControl;
 import jujutsu.mod.cursedincident.IncidentRecord;
 import jujutsu.mod.cursedincident.IncidentStage;
 import jujutsu.mod.cursedincident.IncidentWorldSink;
@@ -33,7 +35,7 @@ public final class InfectionSink implements IncidentWorldSink {
 	public static final long CONTAINER_SCAN_TICKS = 300L;
 	public static final long CULL_TICKS = 400L;
 
-	private static final Map<UUID, Cadence> CADENCE = new HashMap<>();
+	private static final Map<UUID, Set<UUID>> ANNOUNCED_SECONDARY_BIRTHS = new HashMap<>();
 	private static long budgetTick = Long.MIN_VALUE;
 	private static int budgetUsed;
 	private final DwellProvider dwellProvider;
@@ -56,15 +58,19 @@ public final class InfectionSink implements IncidentWorldSink {
 		ZoneGeometry.Shape shape = ZoneGeometry.shapeOf(record.params);
 		for (BlockPos pos : ZoneGeometry.sampleBlocks(shape, record.center, Math.max(0.0, record.radius),
 				RandomSource.create(record.seed ^ to.ordinal()), sampleCount)) {
-			// Keep the stage with the position. Both chunk availability and the live block
-			// state are resolved by InfectionQueue.drain, so unloaded edits are not lost.
-			queue.enqueue(pos, to, true);
+			BlockState current = level.getBlockState(pos);
+			BlockState target = InfectionPolicy.mapBlock(current, to,
+					RandomSource.create(record.seed ^ pos.asLong())).orElse(null);
+			boolean destroy = InfectionPolicy.isContainer(current);
+			if (target != null || destroy) {
+				// The concrete state is durable; drain never needs to re-run a stage mapping.
+				queue.enqueue(pos, target, destroy);
+			}
 			if (!level.getChunkSource().hasChunk(pos.getX() >> 4, pos.getZ() >> 4)) {
 				record.counters.chunkEditsDeferred++;
 			}
 		}
-		Cadence cadence = CADENCE.computeIfAbsent(record.id, ignored -> new Cadence());
-		cadence.lastStage = level.getGameTime();
+		record.lastAmbientGameTime = level.getGameTime();
 		emitCue(level, record, CursedIncidentVfxIds.STAGE_PULSE, true, to.ordinal() + 1);
 		emitCue(level, record, CursedIncidentVfxIds.ZONE_AMBIENT, false, Math.max(1, to.ordinal()));
 		IncidentSpawnRuntime.spawnWave(level, record, to == IncidentStage.INITIAL ? 1 : 2);
@@ -84,22 +90,22 @@ public final class InfectionSink implements IncidentWorldSink {
 		int allowance = Math.min(Math.max(0, tickBudget), available);
 		InfectionQueue queue = InfectionQueue.forIncident(record);
 		budgetUsed += queue.drain(level, allowance);
-		Cadence cadence = CADENCE.computeIfAbsent(record.id, ignored -> new Cadence());
-		if (due(now, cadence.lastTopup, CURSE_TOPUP_TICKS)) {
-			cadence.lastTopup = now;
+		if (due(now, record.lastTopUpGameTime, CURSE_TOPUP_TICKS)) {
+			record.lastTopUpGameTime = now;
 			IncidentSpawnRuntime.trySpawnWave(level, record);
 		}
-		if (due(now, cadence.lastCull, CULL_TICKS)) {
-			cadence.lastCull = now;
+		if (due(now, record.lastCullGameTime, CULL_TICKS)) {
+			record.lastCullGameTime = now;
 			cullAnimals(level, record);
 		}
-		if (due(now, cadence.lastContainerScan, CONTAINER_SCAN_TICKS)) {
-			cadence.lastContainerScan = now;
+		if (due(now, record.lastContainerScanGameTime, CONTAINER_SCAN_TICKS)) {
+			record.lastContainerScanGameTime = now;
 			scanContainers(level, record);
 		}
 		if (now % CURSE_TOPUP_TICKS == 0L) {
+			Set<UUID> announced = ANNOUNCED_SECONDARY_BIRTHS.computeIfAbsent(record.id, ignored -> new HashSet<>());
 			for (var node : record.secondaries) {
-				if (node != null && cadence.announcedSecondaryBirths.add(node.id())) {
+				if (node != null && announced.add(node.id())) {
 					emitCue(level, record, CursedIncidentVfxIds.SECONDARY_BIRTH, true, 2, node.center());
 				}
 			}
@@ -109,35 +115,26 @@ public final class InfectionSink implements IncidentWorldSink {
 	@Override
 	public void onRelocated(ServerLevel level, IncidentRecord record, BlockPos oldCenter) {
 		if (record != null) {
-			InfectionQueue queue = InfectionQueue.forIncident(record);
-			if (queue != null) {
-				queue.clear();
-			}
-			Cadence cadence = CADENCE.get(record.id);
-			if (cadence != null) {
-				cadence.resetForRelocation();
-			}
+			record.pendingEdits.clear();
+			record.lastTopUpGameTime = Long.MIN_VALUE;
+			record.lastContainerScanGameTime = Long.MIN_VALUE;
+			record.lastCullGameTime = Long.MIN_VALUE;
+			record.lastAmbientGameTime = Long.MIN_VALUE;
+			ANNOUNCED_SECONDARY_BIRTHS.remove(record.id);
 		}
 	}
 
 	@Override
 	public void onSealed(ServerLevel level, IncidentRecord record) {
-		if (record != null) {
-			InfectionQueue queue = InfectionQueue.forIncident(record);
-			if (queue != null) {
-				queue.clear();
-			}
-			if (level != null) {
-				emitCue(level, record, CursedIncidentVfxIds.SEAL_DEGRADE, false, 1);
-			}
+		if (record != null && level != null) {
+			// Sealing freezes progression but does not discard committed durable edits.
+			emitCue(level, record, CursedIncidentVfxIds.SEAL_DEGRADE, false, 1);
 		}
 	}
 
 	@Override
 	public void onUnsealed(ServerLevel level, IncidentRecord record) {
-		if (record != null) {
-			CADENCE.computeIfAbsent(record.id, ignored -> new Cadence());
-		}
+		// Durable cadence anchors intentionally remain unchanged across a seal.
 	}
 
 	@Override
@@ -155,12 +152,9 @@ public final class InfectionSink implements IncidentWorldSink {
 		if (level != null && record.id != null) {
 			IncidentSpawnRuntime.cleanup(level, record.id);
 		}
-		InfectionQueue queue = InfectionQueue.forIncident(record);
-		if (queue != null) {
-			queue.clear();
-		}
+		record.pendingEdits.clear();
 		if (record.id != null) {
-			CADENCE.remove(record.id);
+			ANNOUNCED_SECONDARY_BIRTHS.remove(record.id);
 		}
 		if (record.objectInstanceId != null) {
 			ObjectDwellTracker.forget(record.objectInstanceId);
@@ -169,17 +163,32 @@ public final class InfectionSink implements IncidentWorldSink {
 
 	public static Map<UUID, CadenceProbe> cadenceProbeForTest() {
 		Map<UUID, CadenceProbe> out = new HashMap<>();
-		CADENCE.forEach((id, cadence) -> out.put(id, cadence.snapshot()));
+		for (IncidentRecord record : IncidentControl.recordsForRuntime()) {
+			if (record != null && record.id != null) {
+				out.put(record.id, cadenceProbeForTest(record));
+			}
+		}
 		return Map.copyOf(out);
 	}
 
 	public static CadenceProbe cadenceProbeForTest(UUID id) {
-		Cadence cadence = CADENCE.get(id);
-		return cadence == null ? new CadenceProbe(Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE) : cadence.snapshot();
+		if (id != null) {
+			for (IncidentRecord record : IncidentControl.recordsForRuntime()) {
+				if (record != null && id.equals(record.id)) {
+					return cadenceProbeForTest(record);
+				}
+			}
+		}
+		return new CadenceProbe(Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE);
+	}
+
+	private static CadenceProbe cadenceProbeForTest(IncidentRecord record) {
+		return new CadenceProbe(record.lastUpdateGameTime, record.lastTopUpGameTime,
+				record.lastContainerScanGameTime, record.lastCullGameTime);
 	}
 
 	public static void clearRuntimeState() {
-		CADENCE.clear();
+		ANNOUNCED_SECONDARY_BIRTHS.clear();
 		budgetTick = Long.MIN_VALUE;
 		budgetUsed = 0;
 	}
@@ -261,24 +270,5 @@ public final class InfectionSink implements IncidentWorldSink {
 	}
 
 	public record CadenceProbe(long lastStage, long lastTopup, long lastContainerScan, long lastCull) {
-	}
-
-	private static final class Cadence {
-		long lastStage = Long.MIN_VALUE;
-		long lastTopup = Long.MIN_VALUE;
-		long lastContainerScan = Long.MIN_VALUE;
-		long lastCull = Long.MIN_VALUE;
-		final Set<UUID> announcedSecondaryBirths = new HashSet<>();
-
-		void resetForRelocation() {
-			lastStage = Long.MIN_VALUE;
-			lastTopup = Long.MIN_VALUE;
-			lastContainerScan = Long.MIN_VALUE;
-			lastCull = Long.MIN_VALUE;
-		}
-
-		CadenceProbe snapshot() {
-			return new CadenceProbe(lastStage, lastTopup, lastContainerScan, lastCull);
-		}
 	}
 }

@@ -39,6 +39,17 @@ public final class IncidentControl {
 		}
 	}
 
+	public sealed interface SpawnOutcome permits SpawnOutcome.Created, SpawnOutcome.Refused {
+		record Created(IncidentRecord record) implements SpawnOutcome {
+		}
+
+		record Refused(String reason) implements SpawnOutcome {
+			public Refused {
+				reason = reason == null || reason.isBlank() ? "spawn_refused" : reason;
+			}
+		}
+	}
+
 	public record SealAttempt(boolean ok, int requiredTier, String reason) {
 	}
 
@@ -86,7 +97,6 @@ public final class IncidentControl {
 	public static void bindWorldSink(IncidentWorldSink sink) {
 		worldSink = sink == null ? IncidentWorldSink.NOOP : sink;
 	}
-
 	public static void bindDwellProvider(DwellProvider provider) {
 		dwellProvider = provider == null ? DwellProvider.NONE : provider;
 	}
@@ -95,9 +105,7 @@ public final class IncidentControl {
 		objectSpawner = spawner;
 	}
 
-	// ---- lifecycle ----
-
-	public static IncidentRecord spawn(SpawnRequest request) {
+	public static SpawnOutcome spawn(SpawnRequest request) {
 		if (request == null || request.center() == null) {
 			throw new IllegalArgumentException("spawn request and center are required");
 		}
@@ -130,11 +138,9 @@ public final class IncidentControl {
 		record.id = UUID.randomUUID();
 		record.seed = seed;
 		record.dimension = request.dimension() == null ? Level.OVERWORLD : request.dimension();
-		record.createdGameTime = currentGameTime(record);
-		record.lastUpdateGameTime = record.createdGameTime;
 		record.center = request.center().immutable();
 		record.radius = params.baseRadius();
-		record.stage = request.startStage() == null ? IncidentStage.INITIAL : request.startStage();
+		record.stage = IncidentStage.INITIAL;
 		record.sourceKind = sourceKind;
 		record.objectTypeId = sourceKind == SourceKind.OBJECT
 				&& request.objectTypeId() != null && !request.objectTypeId().isBlank()
@@ -144,24 +150,44 @@ public final class IncidentControl {
 		record.sourcePos = sourceKind == SourceKind.OBJECT ? record.center : null;
 		record.templateId = template.id();
 		record.params = params;
-		if (sourceKind == SourceKind.OBJECT && objectSpawner != null) {
-			ServerLevel level = levelFor(record);
-			if (level != null) {
-				record.objectInstanceId = objectSpawner.spawn(level, record.center, record.objectTypeId, grade, seed);
+		long now = currentGameTime(record);
+		record.createdGameTime = now;
+		record.lastUpdateGameTime = now;
+
+		if (sourceKind == SourceKind.OBJECT) {
+			if (objectSpawner == null) {
+				return new SpawnOutcome.Refused("object_spawner_unavailable");
 			}
-			// A refused mint (unknown type / instance cap) must not leave a record that
-			// claims an object source — drop it before the store put and the INITIAL delta.
+			ServerLevel level = levelFor(record);
+			if (level == null) {
+				return new SpawnOutcome.Refused("object_spawner_unavailable");
+			}
+			record.objectInstanceId = objectSpawner.spawn(level, record.center, record.objectTypeId, grade, seed);
 			if (record.objectInstanceId == null) {
-				return record;
+				return new SpawnOutcome.Refused("object_spawn_refused");
 			}
 		}
+
 		data().put(record);
 		if (record.objectInstanceId != null) {
 			INCIDENT_BY_OBJECT.put(record.objectInstanceId, record.id);
 		}
-		// The INITIAL delta is emitted even for a no-op sink so production and tests share one path.
-		worldSink.applyStageDelta(levelFor(record), record, IncidentStage.INITIAL, record.stage);
-		return record;
+		// INITIAL work is a real spawn effect; use the same loaded gate as later deltas.
+		applyStageDelta(record, IncidentStage.INITIAL, IncidentStage.INITIAL);
+
+		IncidentStage requestedStage = request.startStage() == null ? IncidentStage.INITIAL : request.startStage();
+		double speed = record.params == null ? 1.0 : record.params.escalationSpeedMul();
+		long requestedAge = StagePolicy.thresholdFor(requestedStage, speed);
+		for (IncidentStage next : StagePolicy.transitionsBetween(
+				IncidentStage.INITIAL, 0L, requestedAge, speed)) {
+			applyTransition(record, next, now);
+		}
+		record.createdGameTime = safeSubtract(now, requestedAge);
+		record.bonusAgeTicks = 0L;
+		record.lastProcessedAgeTicks = requestedAge;
+		record.lastUpdateGameTime = now;
+		data().setDirty();
+		return new SpawnOutcome.Created(record);
 	}
 
 	public static UUID spawnObject(ServerLevel level, BlockPos pos, String typeId, int grade, long seed) {
@@ -169,13 +195,12 @@ public final class IncidentControl {
 			return null;
 		}
 		activeLevel = level;
-		IncidentRecord record = spawn(new SpawnRequest(pos, level.dimension(), null, grade, seed,
+		SpawnOutcome outcome = spawn(new SpawnRequest(pos, level.dimension(), null, grade, seed,
 				IncidentStage.INITIAL, typeId, SourceKind.OBJECT, null));
-		if (record.objectInstanceId == null) {
-			data().remove(record.id);
+		if (!(outcome instanceof SpawnOutcome.Created created)) {
 			return null;
 		}
-		return record.objectInstanceId;
+		return created.record().objectInstanceId;
 	}
 
 	public static InspectView inspect(UUID incidentId) {
@@ -188,6 +213,17 @@ public final class IncidentControl {
 				.map(IncidentControl::toView)
 				.toList();
 	}
+	/** Number of non-scarred, unsealed incidents that consume active-zone budget. */
+	public static int activeZones() {
+		int active = 0;
+		for (IncidentRecord record : data().incidents().values()) {
+			if (record != null && !record.scarred && !record.sealed) {
+				active++;
+			}
+		}
+		return active;
+	}
+
 
 	/** Runtime seam: returns stable record references while keeping storage ownership in B1. */
 	public static List<IncidentRecord> recordsForRuntime() {
@@ -216,13 +252,18 @@ public final class IncidentControl {
 
 	public static IncidentStage setStage(UUID id, IncidentStage target) {
 		IncidentRecord record = require(id);
-		if (target == null || target.ordinal() <= record.stage.ordinal()) {
+		if (record.sealed || target == null || target.ordinal() <= record.stage.ordinal()) {
 			return record.stage;
 		}
 		long now = currentGameTime(record);
 		while (record.stage.ordinal() < target.ordinal()) {
 			applyTransition(record, record.stage.next(), now);
 		}
+		double speed = record.params == null ? 1.0 : record.params.escalationSpeedMul();
+		long frontier = StagePolicy.thresholdFor(target, speed);
+		record.lastProcessedAgeTicks = Math.max(record.lastProcessedAgeTicks, frontier);
+		record.bonusAgeTicks = Math.max(0L, safeSubtract(frontier,
+				Math.max(0L, safeSubtract(now, record.createdGameTime))));
 		record.lastUpdateGameTime = now;
 		data().setDirty();
 		return record.stage;
@@ -231,43 +272,58 @@ public final class IncidentControl {
 	/** Adds logical age then executes the same transition engine used by catch-up. */
 	public static long advance(UUID id, long ticks) {
 		IncidentRecord record = require(id);
-		long before = record.ageTicks(currentGameTime(record));
+		long before = Math.max(0L, record.lastProcessedAgeTicks);
 		long safeTicks = Math.max(0L, ticks);
-		long target = Long.MAX_VALUE - before < safeTicks ? Long.MAX_VALUE : before + safeTicks;
+		long target = safeAdd(before, safeTicks);
 		advanceTo(record, target);
 		return target;
 	}
 
 	/** One transition engine for live ticking, explicit advance and offline catch-up. */
 	public static void advanceTo(IncidentRecord record, long targetAgeTicks) {
-		if (record == null) {
+		if (record == null || record.sealed) {
 			return;
 		}
 		syncDwellCenter(record);
 		long now = currentGameTime(record);
-		long before = record.ageTicks(now);
+		long before = Math.max(0L, record.lastProcessedAgeTicks);
 		long target = Math.max(before, targetAgeTicks);
+		if (target <= before) {
+			return;
+		}
 		long naturalAge = Math.max(0L, safeSubtract(now, record.createdGameTime));
 		record.bonusAgeTicks = Math.max(0L, safeSubtract(target, naturalAge));
 		double speed = record.params == null ? 1.0 : record.params.escalationSpeedMul();
 		for (IncidentStage next : StagePolicy.transitionsBetween(record.stage, before, target, speed)) {
 			applyTransition(record, next, now);
 		}
+		record.lastProcessedAgeTicks = target;
 		record.lastUpdateGameTime = now;
 		data().setDirty();
 	}
 
 	private static void applyTransition(IncidentRecord record, IncidentStage next, long now) {
-		IncidentStage previous = record.stage;
-		worldSink.applyStageDelta(levelFor(record), record, previous, next);
+		IncidentStage previous = record.stage == null ? IncidentStage.INITIAL : record.stage;
+		// Commit before effects: chooseTier and every sink consumer see the destination stage.
 		record.stage = next;
 		record.transitions.add(new IncidentRecord.Transition(previous, next, now));
+		applyStageDelta(record, previous, next);
 		if (next == IncidentStage.CRITICAL && record.params != null
 				&& record.params.secondaryAtCritical()
 				&& record.dependentCenterCount() < MAX_DEPENDENT_CENTERS) {
 			record.secondaries.add(new SecondaryNode(UUID.randomUUID(),
 					record.center == null ? BlockPos.ZERO : record.center,
 					Math.max(1.0, record.radius * 0.60), now, true));
+		}
+	}
+
+	/** Shared loaded-zone gate for every transition entry point, including spawn. */
+	private static void applyStageDelta(IncidentRecord record, IncidentStage from, IncidentStage to) {
+		ServerLevel level = levelFor(record);
+		if (isLoaded(level, record)) {
+			worldSink.applyStageDelta(level, record, from, to);
+		} else {
+			record.pendingDeltas.add(new IncidentRecord.PendingDelta(from, to));
 		}
 	}
 
@@ -534,6 +590,20 @@ public final class IncidentControl {
 		record.secondaries.removeIf(node -> !node.selfSustaining());
 		worldSink.onRelocated(levelFor(record), record, oldCenter);
 		data().setDirty();
+	}
+
+	private static boolean isLoaded(ServerLevel level, IncidentRecord record) {
+		// A missing level is the no-world unit-test seam; production always resolves one.
+		return level == null || record == null || record.center == null
+				|| level.getChunkSource().hasChunk(record.center.getX() >> 4, record.center.getZ() >> 4);
+	}
+
+	private static long safeAdd(long left, long right) {
+		try {
+			return Math.addExact(left, right);
+		} catch (ArithmeticException overflow) {
+			return Long.MAX_VALUE;
+		}
 	}
 
 	private static long safeSubtract(long left, long right) {

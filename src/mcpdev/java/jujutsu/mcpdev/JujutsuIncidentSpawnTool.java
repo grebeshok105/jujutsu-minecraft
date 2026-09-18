@@ -19,6 +19,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
 import jujutsu.mod.cursedincident.IncidentControl;
+import jujutsu.mod.cursedincident.IncidentRecord;
 import jujutsu.mod.cursedincident.IncidentStage;
 import jujutsu.mod.cursedincident.SourceKind;
 
@@ -93,9 +94,15 @@ public final class JujutsuIncidentSpawnTool extends BaseTool {
 						level = server.overworld();
 						center = JujutsuIncidentInspectTool.position(positionNode, "pos");
 					}
-					var record = IncidentControl.spawn(new IncidentControl.SpawnRequest(
+					IncidentControl.SpawnOutcome outcome = IncidentControl.spawn(new IncidentControl.SpawnRequest(
 							center, level.dimension(), template, grade, seed, stage, objectType, finalSourceKind, radius));
 					ObjectNode node = context.mapper().createObjectNode();
+					if (outcome instanceof IncidentControl.SpawnOutcome.Refused refused) {
+						node.put("spawned", false);
+						node.put("reason", refused.reason());
+						return ToolResult.ofToon(node);
+					}
+					IncidentRecord record = ((IncidentControl.SpawnOutcome.Created) outcome).record();
 					node.put("spawned", true);
 					node.set("incident", JujutsuIncidentInspectTool.viewNode(
 							context, IncidentControl.inspect(record.id)));

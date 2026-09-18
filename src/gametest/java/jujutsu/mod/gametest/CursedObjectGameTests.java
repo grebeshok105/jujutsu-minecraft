@@ -192,9 +192,10 @@ public final class CursedObjectGameTests {
 		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, "carriedObjectMovesDwellCenter(R43)", CENTER);
 		UUID id = UUID.randomUUID();
 		BlockPos center = victim.blockPosition();
-		IncidentRecord record = IncidentControl.spawn(new IncidentControl.SpawnRequest(center, level.dimension(), "blight",
-				3, 1176L, IncidentStage.INITIAL, "cursed_nail", jujutsu.mod.cursedincident.SourceKind.OBJECT,
-				3.0, 40L));
+		IncidentRecord record = CursedIncidentTestFixtures.created(IncidentControl.spawn(
+				new IncidentControl.SpawnRequest(center, level.dimension(), "blight",
+						3, 1176L, IncidentStage.INITIAL, "cursed_nail", jujutsu.mod.cursedincident.SourceKind.OBJECT,
+						3.0, 40L)));
 		record.objectInstanceId = id;
 		ItemStack stack = CursedObjectItem.stack(CursedObjectState.fresh(id, "cursed_nail", 3, level.getGameTime()));
 		ObjectDwellTracker.noteCarried(stack, victim);
@@ -217,9 +218,10 @@ public final class CursedObjectGameTests {
 		UUID id = UUID.randomUUID();
 		BlockPos relative = new BlockPos(CENTER.getX(), 1, CENTER.getZ());
 		BlockPos pos = helper.absolutePos(relative);
-		IncidentRecord record = IncidentControl.spawn(new IncidentControl.SpawnRequest(pos, level.dimension(), "blight",
-				3, 1177L, IncidentStage.INITIAL, "cursed_nail", jujutsu.mod.cursedincident.SourceKind.OBJECT,
-				3.0, 40L));
+		IncidentRecord record = CursedIncidentTestFixtures.created(IncidentControl.spawn(
+				new IncidentControl.SpawnRequest(pos, level.dimension(), "blight",
+						3, 1177L, IncidentStage.INITIAL, "cursed_nail", jujutsu.mod.cursedincident.SourceKind.OBJECT,
+						3.0, 40L)));
 		record.objectInstanceId = id;
 		ItemEntity item = new ItemEntity(level, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5,
 				CursedObjectItem.stack(CursedObjectState.fresh(id, "cursed_nail", 3, level.getGameTime())));

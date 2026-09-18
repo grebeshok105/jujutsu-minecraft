@@ -1,6 +1,5 @@
 package jujutsu.mod.cursedincident.infection;
 
-import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,7 +16,6 @@ import jujutsu.mod.cursedincident.IncidentStage;
 public final class InfectionQueue {
 	private static final Map<UUID, InfectionQueue> QUEUES = new ConcurrentHashMap<>();
 	private final IncidentRecord record;
-	private final ArrayDeque<Edit> edits = new ArrayDeque<>();
 
 	public InfectionQueue(IncidentRecord record) {
 		if (record == null || record.id == null) {
@@ -31,15 +29,15 @@ public final class InfectionQueue {
 	}
 
 	public int size() {
-		return edits.size();
+		return record.pendingEdits.size();
 	}
 
 	public boolean isEmpty() {
-		return edits.isEmpty();
+		return record.pendingEdits.isEmpty();
 	}
 
 	public void clear() {
-		edits.clear();
+		record.pendingEdits.clear();
 	}
 
 	public static int boundedBudget(int requested) {
@@ -51,15 +49,12 @@ public final class InfectionQueue {
 		enqueue(pos, stage, false);
 	}
 
-	/**
-	 * Queues a position for stage-time mapping. When {@code destroyWithDrops} is true,
-	 * a container found at drain time is destroyed with its contents.
-	 */
+	/** Queues a position for stage-time mapping for legacy callers. */
 	public void enqueue(BlockPos pos, IncidentStage stage, boolean destroyWithDrops) {
 		if (pos == null || stage == null) {
 			return;
 		}
-		edits.addLast(new Edit(pos.immutable(), stage, null, destroyWithDrops));
+		record.pendingEdits.add(new IncidentRecord.PendingEdit(pos, null, destroyWithDrops, null, stage));
 	}
 
 	/** Queues an already-selected target state for callers that own the mapping. */
@@ -68,45 +63,48 @@ public final class InfectionQueue {
 	}
 
 	public void enqueue(BlockPos pos, BlockState state, boolean destroyWithDrops) {
-		if (pos == null || state == null) {
+		if (pos == null || (state == null && !destroyWithDrops)) {
 			return;
 		}
-		edits.addLast(new Edit(pos.immutable(), null, state, destroyWithDrops));
+		record.pendingEdits.add(new IncidentRecord.PendingEdit(pos, state, destroyWithDrops));
 	}
 
 	/** Applies at most {@code budget} edits and leaves unloaded entries queued. */
 	public int drain(ServerLevel level, int budget) {
-		if (level == null || budget <= 0 || record.sealed) {
+		int bounded = boundedBudget(budget);
+		if (level == null || bounded <= 0 || record.sealed) {
 			return 0;
 		}
 		int applied = 0;
 		int inspected = 0;
-		int maxInspected = Math.max(edits.size(), budget) + 8;
-		while (applied < budget && !edits.isEmpty() && inspected++ < maxInspected) {
-			Edit edit = edits.removeFirst();
-			if (!level.getChunkSource().hasChunk(edit.pos.getX() >> 4, edit.pos.getZ() >> 4)) {
+		int maxInspected = Math.max(record.pendingEdits.size(), bounded) + 8;
+		while (applied < bounded && !record.pendingEdits.isEmpty() && inspected++ < maxInspected) {
+			IncidentRecord.PendingEdit edit = record.pendingEdits.remove(0);
+			BlockPos pos = edit.pos();
+			if (!level.getChunkSource().hasChunk(pos.getX() >> 4, pos.getZ() >> 4)) {
 				// Deferred is counted once at enqueue (InfectionSink.applyStageDelta);
 				// requeueing must not inflate the counter on every drain pass.
-				edits.addLast(edit);
+				record.pendingEdits.add(edit);
 				continue;
 			}
-			BlockState current = level.getBlockState(edit.pos);
-			if (edit.destroyWithDrops && InfectionPolicy.isContainer(current)) {
-				if (level.destroyBlock(edit.pos, true)) {
+			BlockState current = level.getBlockState(pos);
+			if (edit.destroy() && InfectionPolicy.isContainer(current)) {
+				if (level.destroyBlock(pos, true)) {
 					applied++;
 					record.counters.blocksChanged++;
 				}
 				continue;
 			}
-			BlockState target = edit.state;
-			if (target == null && edit.stage != null) {
-				target = InfectionPolicy.mapBlock(current, edit.stage,
-						RandomSource.create(record.seed ^ edit.pos.asLong())).orElse(null);
+			BlockState target = edit.blockState();
+			if (target == null) {
+				IncidentStage stage = edit.stage() == null ? record.stage : edit.stage();
+				target = InfectionPolicy.mapBlock(current, stage,
+						RandomSource.create(record.seed ^ pos.asLong())).orElse(null);
 			}
 			if (target == null || current.equals(target)) {
 				continue;
 			}
-			if (level.setBlock(edit.pos, target, Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE)) {
+			if (level.setBlock(pos, target, Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE)) {
 				applied++;
 				record.counters.blocksChanged++;
 			}
@@ -118,13 +116,11 @@ public final class InfectionQueue {
 		if (record == null || record.id == null) {
 			return null;
 		}
-		return QUEUES.computeIfAbsent(record.id, ignored -> new InfectionQueue(record));
+		return QUEUES.compute(record.id, (ignored, existing) ->
+				existing == null || existing.record != record ? new InfectionQueue(record) : existing);
 	}
 
 	public static void clearRuntimeState() {
 		QUEUES.clear();
-	}
-
-	private record Edit(BlockPos pos, IncidentStage stage, BlockState state, boolean destroyWithDrops) {
 	}
 }
