@@ -28,7 +28,10 @@ public record CursedObjectState(
         int sealTier,
         int sealIntegrity,
         KnowledgeLevel knowledge,
-        long accumulatedTicks) {
+        long accumulatedTicks,
+        long lastDecayGameTime) {
+
+    private static final long MISSING_DECAY_ANCHOR = Long.MIN_VALUE;
 
     private static final Codec<KnowledgeLevel> KNOWLEDGE_CODEC = Codec.STRING.xmap(
             value -> Objects.requireNonNullElse(KnowledgeLevel.byName(value), KnowledgeLevel.UNKNOWN),
@@ -48,7 +51,10 @@ public record CursedObjectState(
             Codec.INT.fieldOf("seal_tier").forGetter(CursedObjectState::sealTier),
             Codec.INT.fieldOf("seal_integrity").forGetter(CursedObjectState::sealIntegrity),
             KNOWLEDGE_CODEC.fieldOf("knowledge").forGetter(CursedObjectState::knowledge),
-            Codec.LONG.fieldOf("accumulated_ticks").forGetter(CursedObjectState::accumulatedTicks)
+            Codec.LONG.fieldOf("accumulated_ticks").forGetter(CursedObjectState::accumulatedTicks),
+            // Stacks created before the durable decay cursor existed resume from mint time.
+            Codec.LONG.optionalFieldOf("last_decay_game_time", MISSING_DECAY_ANCHOR)
+                    .forGetter(CursedObjectState::lastDecayGameTime)
     ).apply(instance, CursedObjectState::new));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, CursedObjectState> STREAM_CODEC =
@@ -62,31 +68,48 @@ public record CursedObjectState(
                     ByteBufCodecs.VAR_INT, CursedObjectState::sealIntegrity,
                     KNOWLEDGE_STREAM_CODEC, CursedObjectState::knowledge,
                     ByteBufCodecs.VAR_LONG, CursedObjectState::accumulatedTicks,
+                    ByteBufCodecs.VAR_LONG, CursedObjectState::lastDecayGameTime,
                     CursedObjectState::new);
+
+    /** Compatibility constructor for stacks written before the decay anchor was added. */
+    public CursedObjectState(UUID instanceId, String typeId, int grade, long mintedGameTime,
+            boolean sealed, int sealTier, int sealIntegrity, KnowledgeLevel knowledge, long accumulatedTicks) {
+        this(instanceId, typeId, grade, mintedGameTime, sealed, sealTier, sealIntegrity, knowledge,
+                accumulatedTicks, mintedGameTime);
+    }
 
     public CursedObjectState {
         instanceId = Objects.requireNonNull(instanceId, "instanceId");
         typeId = Objects.requireNonNull(typeId, "typeId");
         knowledge = Objects.requireNonNullElse(knowledge, KnowledgeLevel.UNKNOWN);
+        if (lastDecayGameTime == MISSING_DECAY_ANCHOR) {
+            lastDecayGameTime = mintedGameTime;
+        }
     }
 
     public static CursedObjectState fresh(UUID instanceId, String typeId, int grade, long mintedGameTime) {
         return new CursedObjectState(instanceId, typeId, grade, mintedGameTime,
-                false, 0, 0, KnowledgeLevel.UNKNOWN, 0L);
+                false, 0, 0, KnowledgeLevel.UNKNOWN, 0L, mintedGameTime);
     }
 
     public CursedObjectState withSeal(boolean sealed, int sealTier, int sealIntegrity) {
         return new CursedObjectState(instanceId, typeId, grade, mintedGameTime, sealed,
-                Math.max(0, sealTier), Math.max(0, sealIntegrity), knowledge, accumulatedTicks);
+                Math.max(0, sealTier), Math.max(0, sealIntegrity), knowledge, accumulatedTicks,
+                lastDecayGameTime);
     }
 
     public CursedObjectState withKnowledge(KnowledgeLevel next) {
         return new CursedObjectState(instanceId, typeId, grade, mintedGameTime, sealed,
-                sealTier, sealIntegrity, next, accumulatedTicks);
+                sealTier, sealIntegrity, next, accumulatedTicks, lastDecayGameTime);
     }
 
     public CursedObjectState withAccumulatedTicks(long ticks) {
         return new CursedObjectState(instanceId, typeId, grade, mintedGameTime, sealed,
-                sealTier, sealIntegrity, knowledge, Math.max(0L, ticks));
+                sealTier, sealIntegrity, knowledge, Math.max(0L, ticks), lastDecayGameTime);
+    }
+
+    public CursedObjectState withLastDecayGameTime(long gameTime) {
+        return new CursedObjectState(instanceId, typeId, grade, mintedGameTime, sealed,
+                sealTier, sealIntegrity, knowledge, accumulatedTicks, gameTime);
     }
 }

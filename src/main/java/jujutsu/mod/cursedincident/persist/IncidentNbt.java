@@ -49,7 +49,8 @@ public final class IncidentNbt {
 	public static final String COUNTERS = "counters";
 	public static final String INCIDENTS = "incidents";
 	public static final String PRESSURE = "pressure";
-
+	public static final String VOIDED_OBJECTS = "voided_objects";
+	public static final String KNOWN_OBJECTS = "known_objects";
 	// Nested parameter keys.
 	public static final String ZONE_SHAPE = "zone_shape";
 	public static final String BASE_RADIUS = "base_radius";

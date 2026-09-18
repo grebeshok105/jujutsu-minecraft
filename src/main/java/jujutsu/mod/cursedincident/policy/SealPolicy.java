@@ -36,16 +36,24 @@ public final class SealPolicy {
 	 * Returns true on a rare seeded failure. Probability is non-zero at full integrity,
 	 * bounded at five percent, and rises monotonically as integrity approaches zero.
 	 */
-	public static boolean maybeCatastrophicFail(RandomSource random, int integrity) {
-		int clamped = Math.max(0, Math.min(TIER_3_INTEGRITY, integrity));
-		double damageFraction = 1.0 - clamped / (double) TIER_3_INTEGRITY;
-		double chance = MIN_FAILURE_CHANCE + damageFraction * (MAX_FAILURE_CHANCE - MIN_FAILURE_CHANCE);
-		return random.nextDouble() < chance;
+	public static boolean maybeCatastrophicFail(RandomSource random, int tier, int integrity) {
+		return random != null && random.nextDouble() < catastrophicFailureChance(tier, integrity);
 	}
 
-	public static double catastrophicFailureChance(int integrity) {
-		int clamped = Math.max(0, Math.min(TIER_3_INTEGRITY, integrity));
-		double damageFraction = 1.0 - clamped / (double) TIER_3_INTEGRITY;
+	/** Compatibility overload: callers without tier use the legacy tier-3 scale. */
+	public static boolean maybeCatastrophicFail(RandomSource random, int integrity) {
+		return maybeCatastrophicFail(random, MAX_TIER, integrity);
+	}
+
+	public static double catastrophicFailureChance(int tier, int integrity) {
+		int maximum = integrityMax(tier);
+		int clamped = Math.max(0, Math.min(maximum, integrity));
+		double damageFraction = 1.0 - clamped / (double) maximum;
 		return MIN_FAILURE_CHANCE + damageFraction * (MAX_FAILURE_CHANCE - MIN_FAILURE_CHANCE);
+	}
+
+	/** Compatibility overload: probability on the tier-3 scale. */
+	public static double catastrophicFailureChance(int integrity) {
+		return catastrophicFailureChance(MAX_TIER, integrity);
 	}
 }

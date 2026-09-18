@@ -3,6 +3,7 @@ package jujutsu.mod.cursedincident;
 import java.util.UUID;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -11,6 +12,17 @@ import net.minecraft.world.item.ItemStack;
  * this interface so the dependency points inward.
  */
 public interface DwellProvider {
+
+	/** Complete physical seal/tier/integrity/knowledge state. */
+	record SealSnapshot(boolean sealed, int tier, int integrity, KnowledgeLevel knowledge) {
+		public SealSnapshot {
+			knowledge = knowledge == null ? KnowledgeLevel.UNKNOWN : knowledge;
+			tier = Math.max(0, tier);
+			integrity = Math.max(0, integrity);
+		}
+	}
+
+	SealSnapshot EMPTY_SEAL = new SealSnapshot(false, 0, 0, KnowledgeLevel.UNKNOWN);
 
 	DwellProvider NONE = new DwellProvider() {
 	};
@@ -25,9 +37,14 @@ public interface DwellProvider {
 		return null;
 	}
 
+	/** Complete physical seal state for the object, or {@link #EMPTY_SEAL}. */
+	default SealSnapshot sealSnapshot(UUID objectInstanceId) {
+		return EMPTY_SEAL;
+	}
+
 	/** Whether the object instance is currently sealed. */
 	default boolean isSealed(UUID objectInstanceId) {
-		return false;
+		return sealSnapshot(objectInstanceId).sealed();
 	}
 
 	/**
@@ -37,15 +54,19 @@ public interface DwellProvider {
 	 * the incident record when the source is an object.
 	 */
 	default void applySealState(UUID objectInstanceId, boolean sealed, int sealTier,
-			int sealIntegrity, jujutsu.mod.cursedincident.KnowledgeLevel knowledge) {
+			int sealIntegrity, KnowledgeLevel knowledge) {
 	}
 
 	/**
-	 * Called by the zone container scan (Block 3's {@code InfectionSink.tickZone}): a
-	 * block-entity container at {@code containerPos} holds {@code stack}. Lets the dwell
-	 * tracker pin the object to the container's position (spec §8.1 — a chest is not
-	 * protection).
+	 * Called by the zone/container scanners for a physical block-entity container.
+	 * {@code level} is the authoritative world used for write-through and decay.
 	 */
+	default void noteContainer(ServerLevel level, BlockPos containerPos, ItemStack stack) {
+	}
+
+	/** Compatibility seam for old callers; production callers must provide the level. */
+	@Deprecated
 	default void noteContainer(BlockPos containerPos, ItemStack stack) {
+		noteContainer(null, containerPos, stack);
 	}
 }
