@@ -244,6 +244,9 @@ public final class MegumiDivineDogEntity extends Wolf {
 		sicTargetUuid = null;
 		markKind = null;
 		finishPounce();
+		// The vanilla target must drop with the mark: a stale getTarget() survives the clear and
+		// reads as a live sic to any observer (and to the coordinator's own mark checks).
+		setTarget(null);
 	}
 
 	private void playEmergenceSounds() {

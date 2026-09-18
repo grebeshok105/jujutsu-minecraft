@@ -23,6 +23,7 @@ import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
+import jujutsu.mod.character.megumi.MegumiSummonCooldowns;
 import jujutsu.mod.character.CharacterSelectionManager;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.character.megumi.MegumiShikigami;
@@ -156,10 +157,11 @@ public final class MegumiToadGameTests {
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "summon", helper.getTick(), ownerId,
 								"owned Toad bodies in level", "1", bodies.size()));
 
-				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.TOAD,
+						level.getGameTime());
 				helper.assertTrue(remaining == 0,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "summon", helper.getTick(), ownerId,
-								"PRIMARY cooldown (summon is free)", "0", remaining));
+								"summon cooldown (summon is free)", "0", remaining));
 			} finally {
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 			}
@@ -967,10 +969,11 @@ public final class MegumiToadGameTests {
 						"recall", helper.getTick(), ownerId, "second tryPrimary result", "true", recalled));
 
 				// Same-tick read: the cooldown was just armed, so the remaining time is exact.
-				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.TOAD,
+						level.getGameTime());
 				helper.assertTrue(remaining == EXPECTED_RECALL_COOLDOWN_TICKS,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "recall", helper.getTick(), ownerId,
-								"PRIMARY recall cooldown", EXPECTED_RECALL_COOLDOWN_TICKS, remaining));
+								"summon recall cooldown", EXPECTED_RECALL_COOLDOWN_TICKS, remaining));
 
 				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "recall", caster);
 			} finally {
@@ -1028,10 +1031,11 @@ public final class MegumiToadGameTests {
 						"kill", helper.getTick(), ownerId, "lethal damage applied", "true", damaged));
 
 				// AFTER_DEATH reconciles synchronously inside hurtServer, so the same-tick read is exact.
-				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.TOAD,
+						level.getGameTime());
 				helper.assertTrue(remaining == EXPECTED_DEATH_COOLDOWN_TICKS,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "kill", helper.getTick(), ownerId,
-								"PRIMARY death cooldown", EXPECTED_DEATH_COOLDOWN_TICKS, remaining));
+								"summon death cooldown", EXPECTED_DEATH_COOLDOWN_TICKS, remaining));
 
 				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "kill", caster);
 			} finally {

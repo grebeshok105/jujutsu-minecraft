@@ -73,7 +73,7 @@ public final class MegumiWingsGameTests {
 	 * effect is applied before the drop and the velocity is zeroed at the flap, so the start is
 	 * pinned instead of inherited.
 	 */
-	@GameTest(maxTicks = 100)
+	@GameTest(maxTicks = 100, skyAccess = true)
 	public void wingsGlideNeverAddsUpwardThrust(GameTestHelper helper) {
 		String fixture = "wingsGlideNeverAddsUpwardThrust";
 		MegumiNueWings.register();
@@ -98,6 +98,10 @@ public final class MegumiWingsGameTests {
 
 		for (int tick = ACTIVATE_TICK + 1; tick <= LAST_SAMPLE_TICK; tick++) {
 			helper.runAtTickTime(tick, () -> MegumiShikigamiTestFixtures.runGuarded(helper, glider, () -> {
+				// A mock ServerPlayer's physics never ticks on its own: ServerPlayer.doTick is only
+				// invoked from ServerGamePacketListenerImpl.tick(), and the loopback connection is
+				// never pumped. Drive one real tick per sample so gravity and the elytra glide run.
+				glider.doTick();
 				velocities.add(glider.getDeltaMovement().y);
 				heights.add(glider.getY());
 			}));
@@ -144,7 +148,7 @@ public final class MegumiWingsGameTests {
 	 * than the free-falling control, and the control is on the pad (so the comparison cannot pass
 	 * because nothing moved).
 	 */
-	@GameTest(maxTicks = 100)
+	@GameTest(maxTicks = 100, skyAccess = true)
 	public void wingsReduceSinkVersusFreeFall(GameTestHelper helper) {
 		String fixture = "wingsReduceSinkVersusFreeFall";
 		MegumiNueWings.register();
@@ -156,6 +160,7 @@ public final class MegumiWingsGameTests {
 
 		ServerPlayer glider = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, PAD_BLOCK.above(), 0.0f, 0.0f);
 		ServerPlayer control = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, PAD_BLOCK.above(), 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
 
 		helper.runAtTickTime(ACTIVATE_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, glider, () -> {
 			dropInto(helper, glider, GLIDER_FEET);
@@ -169,6 +174,15 @@ public final class MegumiWingsGameTests {
 			helper.assertTrue(!control.tryToStartFallFlying(), diagnostic(fixture, "activate", helper, control,
 					"control tryToStartFallFlying result (no wings)", "false", "true"));
 		}));
+
+		// Both mock players need one real tick per server tick: ServerPlayer.doTick is only invoked
+		// from ServerGamePacketListenerImpl.tick(), and the loopback connection is never pumped.
+		for (int tick = ACTIVATE_TICK + 1; tick <= LAST_SAMPLE_TICK; tick++) {
+			helper.runAtTickTime(tick, () -> {
+				glider.doTick();
+				control.doTick();
+			});
+		}
 
 		helper.runAtTickTime(LAST_SAMPLE_TICK, () -> {
 			try {

@@ -89,6 +89,13 @@ public final class MegumiTongueGameTests {
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "release", helper.getTick(), ownerId,
 								"tongue active after the release edge (R30: same tick)", "false", "true"));
 
+				// The first wall must come down before the refuse step: left standing, its face at
+				// 9.5 blocks is still in range and the ray hits it instead of reaching the far wall.
+				for (int offset = -1; offset <= 1; offset++) {
+					helper.setBlock(new BlockPos(12, 1, 2 + offset), Blocks.AIR);
+					helper.setBlock(new BlockPos(12, 2, 2 + offset), Blocks.AIR);
+				}
+
 				// Same geometry, one cell further out: the face is now 10.5 blocks away, past the limit.
 				layWall(helper, new BlockPos(13, 1, 2));
 				MegumiShikigamiSelection.set(ownerId, MegumiShikigami.TOAD);

@@ -21,8 +21,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.entity.EntityTypeTest;
-import jujutsu.mod.character.CharacterAbility;
-import jujutsu.mod.character.CharacterAbilityCooldowns;
+import jujutsu.mod.character.megumi.MegumiSummonCooldowns;
 import jujutsu.mod.character.megumi.MegumiRabbitEntity;
 import jujutsu.mod.character.megumi.MegumiShikigami;
 import jujutsu.mod.character.megumi.MegumiShikigamiProfile;
@@ -183,10 +182,11 @@ public final class MegumiRabbitsGameTests {
 						"kill", helper.getTick(), ownerId, "lethal damage applied", "true", damaged));
 
 				// AFTER_DEATH reconciles synchronously inside hurtServer, so the same-tick read is exact.
-				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.RABBITS,
+						level.getGameTime());
 				helper.assertTrue(remaining == EXPECTED_DEATH_COOLDOWN_TICKS,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "kill", helper.getTick(), ownerId,
-								"PRIMARY death cooldown", EXPECTED_DEATH_COOLDOWN_TICKS, remaining));
+								"summon death cooldown", EXPECTED_DEATH_COOLDOWN_TICKS, remaining));
 
 				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "kill", caster);
 			} finally {
@@ -294,8 +294,8 @@ public final class MegumiRabbitsGameTests {
 					try {
 						UUID ownerId = caster.getUUID();
 						MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "expired", caster);
-						int remaining =
-								CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+						long remaining = MegumiSummonCooldowns.remainingTicks(ownerId,
+								MegumiShikigami.RABBITS, level.getGameTime());
 						long elapsed = level.getGameTime()
 								- (summonedAt.get() + MegumiShikigamiProfile.RABBITS_LIFETIME_TICKS);
 						helper.assertTrue(elapsed >= 0 && elapsed <= EXPECTED_EXPIRY_COOLDOWN_TICKS,
@@ -304,7 +304,7 @@ public final class MegumiRabbitsGameTests {
 										"[0, " + EXPECTED_EXPIRY_COOLDOWN_TICKS + "]", elapsed));
 						helper.assertTrue(remaining + elapsed == EXPECTED_EXPIRY_COOLDOWN_TICKS,
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "expired", helper.getTick(), ownerId,
-										"PRIMARY expiry cooldown (elapsed-corrected)",
+										"summon expiry cooldown (elapsed-corrected)",
 										EXPECTED_EXPIRY_COOLDOWN_TICKS, remaining + elapsed));
 					} finally {
 						MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
@@ -343,10 +343,11 @@ public final class MegumiRabbitsGameTests {
 						"recall", helper.getTick(), ownerId, "second tryPrimary result", "true", recalled));
 
 				// Same-tick read: the cooldown was just armed, so the remaining time is exact.
-				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.RABBITS,
+						level.getGameTime());
 				helper.assertTrue(remaining == EXPECTED_RECALL_COOLDOWN_TICKS,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "recall", helper.getTick(), ownerId,
-								"PRIMARY recall cooldown", EXPECTED_RECALL_COOLDOWN_TICKS, remaining));
+								"summon recall cooldown", EXPECTED_RECALL_COOLDOWN_TICKS, remaining));
 
 				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "recall", caster);
 			} finally {
@@ -404,6 +405,9 @@ public final class MegumiRabbitsGameTests {
 				boolean recalled = MegumiShikigamiRuntime.tryPrimary(caster, false);
 				helper.assertTrue(recalled, MegumiShikigamiTestFixtures.diagnostic(fixture,
 						"recall", helper.getTick(), ownerId, "second tryPrimary result", "true", recalled));
+				// The recall arms the per-type summon cooldown; the oracle under test is the upkeep
+				// clock, not the cooldown, so the resummon step clears it explicitly.
+				MegumiSummonCooldowns.clear(ownerId);
 				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "recall", caster);
 			} catch (RuntimeException | AssertionError failure) {
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);

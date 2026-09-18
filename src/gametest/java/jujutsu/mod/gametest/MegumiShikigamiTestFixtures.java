@@ -20,6 +20,7 @@ import jujutsu.mod.character.megumi.MegumiNueEntity;
 import jujutsu.mod.character.megumi.MegumiShikigami;
 import jujutsu.mod.character.megumi.MegumiShikigamiRuntime;
 import jujutsu.mod.character.megumi.MegumiShikigamiSelection;
+import jujutsu.mod.character.megumi.MegumiSummonCooldowns;
 import jujutsu.mod.character.megumi.MegumiSummonRuntime;
 
 /**
@@ -117,6 +118,7 @@ public final class MegumiShikigamiTestFixtures {
 				MegumiSummonRuntime.TeardownReason.FIXTURE_RESET));
 		safe(() -> CharacterAbilityCooldowns.clear(caster, CharacterAbility.PRIMARY));
 		safe(() -> CharacterAbilityCooldowns.clear(caster, CharacterAbility.PRIMARY_SNEAK));
+		safe(() -> MegumiSummonCooldowns.clear(ownerId));
 		safe(() -> MegumiShikigamiSelection.clear(ownerId));
 		safe(() -> server.getPlayerList().remove(caster));
 	}

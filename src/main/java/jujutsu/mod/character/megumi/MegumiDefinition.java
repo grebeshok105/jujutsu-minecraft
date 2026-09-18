@@ -43,6 +43,11 @@ public final class MegumiDefinition implements CharacterDefinition {
 				MegumiRabbitEntity.createAttributes());
 		MegumiSummonRuntime.register();
 		MegumiShikigamiRuntime.register();
+		// The coordinator runs after both pack runtimes: it reads the marks their reconcile and
+		// retaliation passes settled this tick, so registration order is load-bearing.
+		MegumiPackCoordinator.register();
+		MegumiPartialRuntime.register();
+		MegumiNueWings.register();
 		MegumiShadowTrapRuntime.register();
 		MegumiShadowMoveRuntime.register();
 		MegumiShadowDropRuntime.register();
@@ -64,5 +69,6 @@ public final class MegumiDefinition implements CharacterDefinition {
 		MegumiShadowTrapRuntime.clear(player.getServer(), player.getUUID(), true);
 		MegumiShadowDropRuntime.clear(player.getServer(), player.getUUID(), true);
 		MegumiShadowMoveRuntime.teardown(player.getServer(), player.getUUID());
+		MegumiPartialRuntime.teardown(player.getServer(), player.getUUID());
 	}
 }

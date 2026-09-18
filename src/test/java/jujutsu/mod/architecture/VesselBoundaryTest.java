@@ -131,14 +131,19 @@ class VesselBoundaryTest {
 			"jujutsu.mod.network.AbilityCooldownPayload",
 			"jujutsu.mod.network.CurseLinkOptionsPayload",
 			"jujutsu.mod.network.VfxCuePayload",
-			"jujutsu.mod.network.BlackFlashFocusPayload");
+			"jujutsu.mod.network.BlackFlashFocusPayload",
+			// #108: the Toad tongue anchor is client-authoritative physics, so the server has to
+			// publish the anchor state; it is a state sync, not an ability input path.
+			"jujutsu.mod.network.MegumiTongueStatePayload");
 
-	/** Vessel-named classes that sit outside their vessel's packages today. Four are deliberate, two are debt. */
+	/** Vessel-named classes that sit outside their vessel's packages today. Five are deliberate, two are debt. */
 	private static final Set<String> VESSEL_NAMED_CLASSES_OUTSIDE_VESSEL_PACKAGES = Set.of(
 			"jujutsu.mod.vfx.NobaraVfxIds",
 			"jujutsu.mod.vfx.TodoVfxIds",
 			"jujutsu.mod.vfx.MegumiVfxIds",
 			"jujutsu.mod.vfx.TodoSwapArrivalPayload",
+			// #108: payloads live in the shared network package by rule; the name still names the vessel.
+			"jujutsu.mod.network.MegumiTongueStatePayload",
 			"jujutsu.mod.client.fx.NobaraHudState",
 			MISPLACED_NAIL_RENDERER);
 
@@ -256,9 +261,10 @@ class VesselBoundaryTest {
 			}
 		}
 		assertEquals(new TreeSet<>(VESSEL_NAMED_CLASSES_OUTSIDE_VESSEL_PACKAGES), found,
-				"a vessel-named class moved into or out of shared packages. Four entries are deliberate "
-						+ "(the three *VfxIds classes and the shared Todo VFX read model are intentional); two are "
-						+ "debt tracked as E14. Anything new here is a vessel escaping its package.");
+				"a vessel-named class moved into or out of shared packages. Five entries are deliberate "
+						+ "(the three *VfxIds classes, the shared Todo VFX read model and the tongue state "
+						+ "payload are intentional); two are debt tracked as E14. Anything new here is a "
+						+ "vessel escaping its package.");
 	}
 
 	@Test
