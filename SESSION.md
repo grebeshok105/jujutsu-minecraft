@@ -1,4 +1,17 @@
-# Session Handoff — domain-sphere SDF PoC — MERGED 2026-09-16
+# Session Handoff — cursed incidents (issue #110) — READY FOR PR 2026-09-18
+
+## State — implementation + verification DONE on `feat/cursed-incidents` (worktree `D:/WorkFlow/jujutsu-incidents-wt`)
+
+Full rule-of-four pipeline completed: scouts → plan → plan-review → 4 workers + main → barrier →
+5 reviewers (all FIX-FIRST, F1-F29 in `.superpowers/rule-of-four/cursed-incidents/review-wave.md`)
+→ fix wave (303a3f2, 7f56316, FixC, integration) → fable-judge VERIFIED WITH CAVEATS →
+qualityGate BUILD SUCCESSFUL → in-game MCP verification (13 steps + save/load persistence).
+
+Remaining: push branch, open PR (RU title, «Для игрока» body, refs #110), findings → research.db.
+Docs synced: `03-systems/Cursed-incidents.md` (new), MOC link + metrics, CURRENT_STATE.md.
+
+## Previous session (domain-sphere PoC — MERGED 2026-09-16)
+
 
 ## State — DONE: PR #112 merged to main (merge commit bc71af4, branch feat/domain-sphere-vfx). Ring fix 190e467 is INSIDE the merge — final shader = unclamped first-PR brightness + fade-sync kept. main == origin/main, tree clean.
 
