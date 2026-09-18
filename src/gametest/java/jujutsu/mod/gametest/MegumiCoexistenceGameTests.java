@@ -18,6 +18,9 @@ import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.character.CharacterSelectionManager;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.character.megumi.MegumiDivineDogEntity;
+import jujutsu.mod.character.megumi.MegumiFailureMemory;
+import jujutsu.mod.character.megumi.MegumiNueEntity;
+import jujutsu.mod.character.megumi.MegumiRabbitEntity;
 import jujutsu.mod.character.megumi.MegumiShikigami;
 import jujutsu.mod.character.megumi.MegumiShikigamiEntity;
 import jujutsu.mod.character.megumi.MegumiShikigamiRuntime;
@@ -574,6 +577,94 @@ public final class MegumiCoexistenceGameTests {
 		CharacterAbilityCooldowns.clear(owner, CharacterAbility.PRIMARY_SNEAK);
 		MegumiShikigamiSelection.clear(owner.getUUID());
 		return owner;
+	}
+
+	/**
+	 * R8/R9 (integration #115+#117) — a Rabbit anchor kill is type-scoped twice over: the Nue pack
+	 * keeps flying with no cooldown armed, and the failure memory dies with the swept rabbit body,
+	 * not with the owner's row. Before the type-scoped teardown the anchor loss nuked every pack
+	 * and the owner-keyed memory wiped a sibling's history with it.
+	 */
+	@GameTest(maxTicks = 80)
+	public void rabbitAnchorLossLeavesNuePackAndItsMemoryAlone(GameTestHelper helper) {
+		String fixture = "rabbitAnchorLossLeavesNuePackAndItsMemoryAlone";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		layPad(helper);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+
+		helper.runAtTickTime(FIRST_SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			UUID ownerId = caster.getUUID();
+			MegumiShikigamiSelection.set(ownerId, MegumiShikigami.NUE);
+			boolean nue = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(nue, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"nue", helper.getTick(), ownerId, "nue tryPrimary result", "true", nue));
+		}));
+
+		helper.runAtTickTime(SECOND_SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			UUID ownerId = caster.getUUID();
+			MegumiShikigamiSelection.set(ownerId, MegumiShikigami.RABBITS);
+			boolean rabbits = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(rabbits, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"rabbits", helper.getTick(), ownerId, "rabbits tryPrimary result", "true", rabbits));
+		}));
+
+		helper.runAtTickTime(RECALL_TICK, () -> {
+			try {
+				UUID ownerId = caster.getUUID();
+				long gameTime = level.getGameTime();
+
+				// Seed one remembered failure on a rabbit body and one on the Nue body: after the
+				// anchor kill the rabbit's memory must be swept while the Nue's survives (R9).
+				MegumiShikigamiRuntime.PackView rabbitsView = MegumiShikigamiRuntime
+						.packViews(level.getServer(), ownerId).stream()
+						.filter(view -> view.type().equals(MegumiShikigami.RABBITS.id()))
+						.findFirst().orElse(null);
+				helper.assertTrue(rabbitsView != null, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"kill", helper.getTick(), ownerId, "rabbits pack present", "present", "absent"));
+				UUID anchorId = UUID.fromString(rabbitsView.anchorId());
+				List<MegumiNueEntity> nueBodies = MegumiShikigamiTestFixtures.nueOwnedBy(level, ownerId);
+				helper.assertTrue(nueBodies.size() == 1, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"kill", helper.getTick(), ownerId, "nue body present", "1", nueBodies.size()));
+				UUID nueBodyId = nueBodies.get(0).getUUID();
+				MegumiFailureMemory.recordFailure(anchorId, "grab", gameTime);
+				MegumiFailureMemory.recordFailure(nueBodyId, "grab", gameTime);
+
+				if (!(level.getEntity(anchorId) instanceof MegumiRabbitEntity anchor)) {
+					helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
+							"kill", helper.getTick(), ownerId, "anchor body present", "present", "absent"));
+					return;
+				}
+				// The real damage pipeline: AFTER_DEATH reconciles synchronously inside hurtServer.
+				boolean damaged = anchor.hurtServer(level, level.damageSources().genericKill(), Float.MAX_VALUE);
+				helper.assertTrue(damaged, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"kill", helper.getTick(), ownerId, "lethal damage applied", "true", damaged));
+
+				// R8: only RABBITS tears down — the Nue pack and its zero cooldown survive.
+				List<String> types = MegumiShikigamiTestFixtures.shikigamiPackTypes(level.getServer(), ownerId);
+				helper.assertTrue(types.equals(List.of(MegumiShikigami.NUE.id())),
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "kill", helper.getTick(), ownerId,
+								"packs after the anchor kill", List.of("nue"), types));
+				helper.assertTrue(MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.RABBITS, gameTime) > 0,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "kill", helper.getTick(), ownerId,
+								"rabbits death cooldown", "> 0", "armed"));
+				helper.assertTrue(MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.NUE, gameTime) == 0,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "kill", helper.getTick(), ownerId,
+								"nue summon cooldown", "0", "armed"));
+
+				// R9: the swept rabbit body's memory is gone; the Nue body's is untouched.
+				helper.assertTrue(MegumiFailureMemory.weight(anchorId, "grab", gameTime) == 1.0,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "kill", helper.getTick(), ownerId,
+								"swept rabbit failure memory", "1.0 (cleared)", "retained"));
+				helper.assertTrue(MegumiFailureMemory.weight(nueBodyId, "grab", gameTime) < 1.0,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "kill", helper.getTick(), ownerId,
+								"nue failure memory survives", "< 1.0", "cleared"));
+			} finally {
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+			}
+		});
+		helper.runAtTickTime(50, () -> helper.succeed());
 	}
 
 	/**
