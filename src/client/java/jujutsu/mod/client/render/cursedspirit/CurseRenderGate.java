@@ -3,8 +3,8 @@ package jujutsu.mod.client.render.cursedspirit;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import jujutsu.mod.client.cursedincident.ClientPerceptionState;
 import jujutsu.mod.cursedspirit.perception.CursePerception;
-
 /**
  * Issue #80, client render gate (Step 10): a curse subject renders for perceivers only.
  *
@@ -50,6 +50,6 @@ public final class CurseRenderGate {
 		if (!isCurseSubject) {
 			return true;
 		}
-		return viewer == null || CursePerception.perceives(viewer);
+		return viewer == null || CursePerception.perceives(viewer) || ClientPerceptionState.inCriticalZone();
 	}
 }

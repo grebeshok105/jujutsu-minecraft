@@ -131,7 +131,8 @@ class VesselBoundaryTest {
 			"jujutsu.mod.network.AbilityCooldownPayload",
 			"jujutsu.mod.network.CurseLinkOptionsPayload",
 			"jujutsu.mod.network.VfxCuePayload",
-			"jujutsu.mod.network.BlackFlashFocusPayload");
+			"jujutsu.mod.network.BlackFlashFocusPayload",
+			"jujutsu.mod.network.IncidentPerceptionPayload");
 
 	/** Vessel-named classes that sit outside their vessel's packages today. Four are deliberate, two are debt. */
 	private static final Set<String> VESSEL_NAMED_CLASSES_OUTSIDE_VESSEL_PACKAGES = Set.of(
