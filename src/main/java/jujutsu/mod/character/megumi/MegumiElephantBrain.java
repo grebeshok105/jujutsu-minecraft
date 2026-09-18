@@ -41,6 +41,14 @@ final class MegumiElephantBrain {
 		if (target == null) {
 			return;
 		}
+		// Soft coordination (issue #107 §12): a jet would shove and soak a victim an ally is already
+		// committed to — a toad's windup or hold, a dive in flight. The jet is not forbidden, only
+		// de-preferred: while the shared context names the target as an ally's work, the elephant
+		// keeps melee-approaching instead of firing through the setup.
+		if (owner != null && MegumiPackCoordinator.contextFor(owner, level)
+				.intentTargets().contains(target.getUUID())) {
+			return;
+		}
 		if (!canStartJet(elephant, target, gameTime)) {
 			return;
 		}

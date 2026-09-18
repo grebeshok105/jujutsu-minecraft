@@ -78,8 +78,8 @@ class MegumiLifecyclePolicyTest {
 		String teardown = source.substring(
 				source.indexOf("public static void teardown"),
 				source.indexOf("static void broadcastCue"));
-		assertEquals(1, occurrences(teardown, "startCooldownIfLonger("),
-				"teardown must apply its reason-selected cooldown once after the discard sweep");
+		assertEquals(1, occurrences(teardown, "startSummonCooldown("),
+				"teardown must arm its reason-selected cooldown once after the discard sweep");
 	}
 
 	@Test

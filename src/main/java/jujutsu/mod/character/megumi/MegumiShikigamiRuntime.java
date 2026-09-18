@@ -1,6 +1,7 @@
 package jujutsu.mod.character.megumi;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -39,12 +40,21 @@ import jujutsu.mod.vfx.MegumiVfxIds;
 import jujutsu.mod.vfx.VfxCues;
 
 /**
- * Owns every non-dog shikigami pack: the summon/recall/swap technique key, the sic command, the
- * owner-keyed pack map and the single authoritative teardown. Mirrors the proven Divine Dog
- * lifecycle; the dog runtime is untouched and answers for itself whenever the selection is DOGS.
+ * Owns every non-dog shikigami pack: the summon/recall technique key, the sic command, the
+ * owner-keyed pack map (one pack per type since issue #107) and the single authoritative teardown.
+ * Mirrors the proven Divine Dog lifecycle; the dog runtime answers for itself whenever the
+ * selection is DOGS and, since coexistence, its pack stands beside the shikigami packs.
  */
 public final class MegumiShikigamiRuntime {
-	private static final Map<UUID, MegumiShikigamiPack> PACKS = new ConcurrentHashMap<>();
+	/**
+	 * One pack per type (issue #107 D1): the owner's map is keyed by shikigami type, so summoning
+	 * Nue no longer displaces the Toad. An {@link EnumMap} keeps the iteration order the enum's own
+	 * — which makes "the owner's first pack" a stable reading for the single-pack accessors — and
+	 * every mutation happens on the server thread (runtimes, hotbar hooks and the dev control
+	 * surface all dispatch there).
+	 */
+	private static final Map<UUID, Map<MegumiShikigami, MegumiShikigamiPack>> PACKS =
+			new ConcurrentHashMap<>();
 	private static final Set<UUID> TEARDOWN_IN_PROGRESS = ConcurrentHashMap.newKeySet();
 	private static final AtomicLong NEXT_SUMMON_TOKEN = new AtomicLong();
 
@@ -92,71 +102,55 @@ public final class MegumiShikigamiRuntime {
 		});
 	}
 
-	/** The technique key: summon the selection, recall it, swap it, or let the dogs answer. */
+	/**
+	 * The technique key: summon the selection, or recall it when exactly that type is already out
+	 * (issue #107 D1 — the types are additive, so there is no swap branch left to run, and the dogs
+	 * answer the dog row themselves through their own toggle).
+	 */
 	public static boolean tryPrimary(ServerPlayer player, boolean notify) {
 		UUID ownerId = player.getUUID();
-		long gameTime = player.level().getGameTime();
 		MegumiShikigami selection = MegumiShikigamiSelection.selected(ownerId);
-		MegumiShikigamiPack ours = PACKS.get(ownerId);
+		if (selection == MegumiShikigami.DOGS) {
+			// The dogs' runtime executes its own row of MegumiShikigamiSwapPolicy: its toggle is
+			// exactly recall-when-out / summon-when-not, with the dog pack's own guards.
+			return MegumiSummonRuntime.tryToggle(player, notify);
+		}
+		long gameTime = player.level().getGameTime();
+		MegumiShikigamiPack ours = pack(ownerId, selection);
 		if (ours != null && ours.summonedAtGameTime() == gameTime) {
 			// Same-tick duplicate: key repeat or a doubled packet must not summon-then-recall.
 			return true;
 		}
-		boolean dogActive = MegumiSummonRuntime.pack(ownerId) != null;
-		MegumiShikigami activeType = ours == null ? null : ours.type();
-		MegumiShikigamiSwapPolicy.Action action = MegumiShikigamiSwapPolicy.decide(selection, activeType, dogActive);
-		boolean swappedOut = false;
-		switch (action) {
-			case DELEGATE_DOGS -> {
-				// The dogs answer first: their summon can be refused (no room, other reasons) and the
-				// refusal must not cost the player the shikigami already out. Only once the dogs are
-				// committed does the shikigami pack step aside.
-				boolean dogs = MegumiSummonRuntime.tryToggle(player, notify);
-				if (dogs && ours != null) {
-					teardown(player.getServer(), ownerId, TeardownReason.SWAPPED);
-				}
-				return dogs;
-			}
-			case RECALL_SELF -> {
-				teardown(player.getServer(), ownerId, TeardownReason.RECALL);
-				return true;
-			}
-			case RECALL_OTHER_THEN_SUMMON -> {
-				// Stage the arrival before anything is torn down: a placement failure (a cave, a wall of
-				// the owner's own bodies) used to cost the previous body for a no_room message, which is
-				// the whole point of the swap being free. The staged bodies are not in the level yet, so
-				// the sweep that follows cannot see them.
-				long token = NEXT_SUMMON_TOKEN.incrementAndGet();
-				List<MegumiShikigamiEntity> staged = spawnBodies(player.level(), player, selection, token);
-				if (staged.isEmpty()) {
-					return rejectNoRoom(player, notify);
-				}
-				if (ours != null) {
-					teardown(player.getServer(), ownerId, TeardownReason.SWAPPED);
-					swappedOut = true;
-				}
-				if (dogActive) {
-					MegumiSummonRuntime.teardown(player.getServer(), ownerId, MegumiSummonRuntime.TeardownReason.SWAPPED);
-					swappedOut = true;
-				}
-				boolean summoned = commitSummon(player, selection, token, staged, notify);
-				if (summoned && swappedOut && notify) {
-					player.displayClientMessage(Component.translatable("message.jujutsumod.megumi.shikigami.swap",
-							Component.translatable(activeType != null ? nameKey(activeType) : nameKey(MegumiShikigami.DOGS)),
-							Component.translatable(nameKey(selection))), true);
-				}
-				return summoned;
-			}
-			case SUMMON -> {
-				return summon(player, selection, notify);
-			}
+		MegumiShikigamiSwapPolicy.Action action = MegumiShikigamiSwapPolicy.decide(
+				selection, activeTypes(ownerId), MegumiSummonRuntime.pack(ownerId) != null);
+		if (action == MegumiShikigamiSwapPolicy.Action.RECALL_SELF) {
+			teardownType(player.getServer(), ownerId, selection, TeardownReason.RECALL);
+			return true;
 		}
-		return false;
+		if (MegumiPartialRuntime.isActiveForType(ownerId, selection)) {
+			// Spec §19 (issue #108): the same type cannot be materialized twice, so a partial has to
+			// end before the full body may be summoned.
+			return rejectPartial(player, selection, notify);
+		}
+		if (MegumiSummonCooldowns.onCooldown(ownerId, selection, gameTime)) {
+			return MegumiSummonRuntime.rejectRecharging(player, selection, notify);
+		}
+		return summon(player, selection, notify);
 	}
 
 	/** The sneaking technique key: advance the selection; never costs anything. */
 	public static boolean tryCycle(ServerPlayer player, boolean notify) {
-		MegumiShikigami next = MegumiShikigamiSelection.cycle(player.getUUID());
+		UUID ownerId = player.getUUID();
+		if (MegumiPartialRuntime.isAnyActive(ownerId)) {
+			// Issue #108 D11/§20: the selection is frozen while a partial is materialized — the key
+			// that would swap the shikigami must not silently retarget the partial form.
+			if (notify) {
+				player.displayClientMessage(Component.translatable(
+						"message.jujutsumod.megumi.shikigami.selection_locked"), true);
+			}
+			return false;
+		}
+		MegumiShikigami next = MegumiShikigamiSelection.cycle(ownerId);
 		if (notify) {
 			player.displayClientMessage(Component.translatable("message.jujutsumod.megumi.shikigami.selected",
 					Component.translatable(nameKey(next))), true);
@@ -164,54 +158,109 @@ public final class MegumiShikigamiRuntime {
 		return true;
 	}
 
-	/** The sneaking technique key command: send every living body at the aimed target. */
+	/**
+	 * The sneaking technique key command: one aim, every body (issue #107 D1/D5). The target is
+	 * resolved once against the owner's aim and handed to every living, commandable body of both
+	 * families — dogs and shikigami alike. An aim that names nothing is the cancel order: it clears
+	 * every MANUAL mark the owner placed and lets the packs fall back to their own reads, which is
+	 * what "sic into thin air" means once a body can hold a target without being told to.
+	 */
 	public static boolean trySic(ServerPlayer player, boolean notify) {
 		UUID ownerId = player.getUUID();
-		MegumiShikigami selection = MegumiShikigamiSelection.selected(ownerId);
-		if (selection == MegumiShikigami.DOGS) {
-			return MegumiSummonRuntime.trySic(player, notify);
-		}
-		MegumiShikigamiPack pack = PACKS.get(ownerId);
-		List<MegumiShikigamiEntity> living = pack == null ? List.of() : livingBodies(player.getServer(), ownerId, pack);
-		if (living.isEmpty()) {
-			if (pack != null) {
-				reconcile(player.getServer(), ownerId, RemovalCause.TICK);
-			}
+		List<MegumiShikigamiEntity> living = livingBodiesAll(player.getServer(), ownerId);
+		List<MegumiDivineDogEntity> livingDogs = MegumiSummonRuntime.livingDogs(player.getServer(), ownerId);
+		if (living.isEmpty() && livingDogs.isEmpty()) {
+			reconcile(player.getServer(), ownerId, RemovalCause.TICK);
+			MegumiSummonRuntime.reconcile(player.getServer(), ownerId, MegumiSummonRuntime.RemovalCause.TICK);
 			if (notify) {
-				player.displayClientMessage(Component.translatable("message.jujutsumod.megumi.shikigami.none"), true);
+				// The dog family keeps its own wording when the dogs are what the player is commanding.
+				player.displayClientMessage(Component.translatable(
+						MegumiShikigamiSelection.selected(ownerId) == MegumiShikigami.DOGS
+								? "message.jujutsumod.megumi.dogs.none_out"
+								: "message.jujutsumod.megumi.shikigami.none"), true);
 			}
 			return false;
 		}
-		List<MegumiShikigamiEntity> commandable = living.stream()
-				.filter(MegumiShikigamiEntity::acceptsSicCommand)
-				.toList();
-		if (commandable.isEmpty()) {
+		List<MegumiShikigamiEntity> bodies = commandableBodies(living);
+		List<MegumiDivineDogEntity> dogs = MegumiSummonRuntime.commandableDogs(livingDogs);
+		if (bodies.isEmpty() && dogs.isEmpty()) {
+			// Every body is still materializing: the key has nobody to confirm an order to, and the
+			// silent refusal is the reading it has always had.
 			return false;
 		}
 		ServerLevel level = player.level();
+		LivingEntity target = resolveSicTarget(level, player);
+		if (target == null) {
+			int cleared = clearManualMarks(living, livingDogs);
+			if (cleared == 0) {
+				return false;
+			}
+			if (notify) {
+				player.displayClientMessage(Component.translatable(
+						"message.jujutsumod.megumi.shikigami.sic_cleared"), true);
+			}
+			return true;
+		}
+		for (MegumiShikigamiEntity body : bodies) {
+			body.assignSicTarget(target);
+		}
+		for (MegumiDivineDogEntity dog : dogs) {
+			dog.assignSicTarget(target);
+		}
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP,
+				SoundSource.PLAYERS, 0.66f, 0.88f);
+		if (!bodies.isEmpty()) {
+			bodies.getFirst().playSicSound();
+		} else {
+			dogs.getFirst().playSicSound();
+		}
+		Vec3 anchorOffset = new Vec3(0.0, target.getBbHeight() * 0.55, 0.0);
+		if (!bodies.isEmpty()) {
+			broadcastCue(level, player, MegumiVfxIds.SHIKIGAMI_SIC, target.position(), target.getId(), anchorOffset);
+		}
+		if (!dogs.isEmpty()) {
+			broadcastCue(level, player, MegumiVfxIds.DOGS_SIC, target.position(), target.getId(), anchorOffset);
+		}
+		MegumiSummonRuntime.startCooldownIfLonger(player, CharacterAbility.PRIMARY_SNEAK,
+				MegumiShikigamiProfile.SIC_COOLDOWN_TICKS);
+		return true;
+	}
+
+	/** The body the owner's aim resolves to, re-verified against the same eligibility a pack uses. */
+	private static LivingEntity resolveSicTarget(ServerLevel level, ServerPlayer player) {
 		TargetResolver.Result result = TargetResolver.resolve(
 				level, player, MegumiShikigamiProfile.SIC_RANGE,
 				target -> MegumiSummonRuntime.isEligibleTarget(player, target));
 		if (result.mode() != TargetResolver.Mode.ENTITY || result.entityId().isEmpty()) {
-			return false;
+			return null;
 		}
 		Entity resolved = level.getEntity(result.entityId().get());
-		if (!(resolved instanceof LivingEntity target)
-				|| !MegumiSummonRuntime.isEligibleTarget(player, target)
-				|| !player.hasLineOfSight(target)) {
-			return false;
+		return resolved instanceof LivingEntity target
+				&& MegumiSummonRuntime.isEligibleTarget(player, target)
+				&& player.hasLineOfSight(target) ? target : null;
+	}
+
+	/**
+	 * The cancel order (D5): only the owner's own orders are dropped. A retaliation mark expires on
+	 * its own pass and an autonomous mark belongs to the coordinator, so neither is the key's to
+	 * take away. Returns how many orders were actually cancelled.
+	 */
+	private static int clearManualMarks(
+			List<MegumiShikigamiEntity> bodies, List<MegumiDivineDogEntity> dogs) {
+		int cleared = 0;
+		for (MegumiShikigamiEntity body : bodies) {
+			if (body.markKind() == MegumiMarkKind.MANUAL) {
+				body.clearSicCommand();
+				cleared++;
+			}
 		}
-		for (MegumiShikigamiEntity body : commandable) {
-			body.assignSicTarget(target);
+		for (MegumiDivineDogEntity dog : dogs) {
+			if (dog.markKind() == MegumiMarkKind.MANUAL) {
+				dog.clearSicCommand();
+				cleared++;
+			}
 		}
-		level.playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP,
-				SoundSource.PLAYERS, 0.66f, 0.88f);
-		commandable.getFirst().playSicSound();
-		broadcastCue(level, player, MegumiVfxIds.SHIKIGAMI_SIC, target.position(), target.getId(),
-				new Vec3(0.0, target.getBbHeight() * 0.55, 0.0));
-		MegumiSummonRuntime.startCooldownIfLonger(player, CharacterAbility.PRIMARY_SNEAK,
-				MegumiShikigamiProfile.SIC_COOLDOWN_TICKS);
-		return true;
+		return cleared;
 	}
 
 	/** Clears the player's saved selection; wired to disconnect (unit-testable seam). */
@@ -219,20 +268,46 @@ public final class MegumiShikigamiRuntime {
 		MegumiShikigamiSelection.clear(playerId);
 	}
 
-	/** The single destructive entry point: removes the pack record and sweeps every owned body. */
+	/**
+	 * The single owner-wide destructive entry point: removes every pack record of the owner and
+	 * sweeps every owned body. The reasons that reach it (deselect, respawn, disconnect, dimension
+	 * change, server stop, fixture reset) are owner-scoped by nature; a recall or a death belongs to
+	 * one type and goes through {@link #teardownType}.
+	 */
 	public static void teardown(MinecraftServer server, UUID ownerId, TeardownReason reason) {
+		teardown(server, ownerId, null, reason);
+	}
+
+	/** One type's teardown (issue #107 D1): the recall of Nue must not sweep the Toad's pack. */
+	static void teardownType(
+			MinecraftServer server, UUID ownerId, MegumiShikigami type, TeardownReason reason) {
+		teardown(server, ownerId, type, reason);
+	}
+
+	/**
+	 * @param onlyType the single type to sweep, or null to sweep every pack of the owner
+	 */
+	private static void teardown(
+			MinecraftServer server, UUID ownerId, MegumiShikigami onlyType, TeardownReason reason) {
 		if (server == null || !TEARDOWN_IN_PROGRESS.add(ownerId)) {
 			return;
 		}
-		MegumiShikigamiPack pack = PACKS.remove(ownerId);
+		List<MegumiShikigamiPack> removed = onlyType == null
+				? removeAllPacks(ownerId)
+				: removePack(ownerId, onlyType);
 		ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
+		List<UUID> sweptBodyIds = new ArrayList<>();
 		try {
 			for (ServerLevel level : server.getAllLevels()) {
 				for (MegumiShikigamiEntity body : new ArrayList<>(level.getEntities(
 						EntityTypeTest.forClass(MegumiShikigamiEntity.class),
 						candidate -> ownerId.equals(candidate.ownerUuid())))) {
-					boolean belongedToRemovedPack = pack != null
-							&& pack.contains(body.getUUID(), body.summonToken(), body.level().dimension());
+					if (onlyType != null && body.shikigamiType() != onlyType) {
+						continue;
+					}
+					sweptBodyIds.add(body.getUUID());
+					boolean belongedToRemovedPack = removed.stream().anyMatch(
+							pack -> pack.contains(body.getUUID(), body.summonToken(), body.level().dimension()));
 					if (reason.recallsVisually() && belongedToRemovedPack) {
 						if (owner != null) {
 							broadcastCue(level, owner, MegumiVfxIds.SHIKIGAMI_RECALL, body.position(), body.getId(), Vec3.ZERO);
@@ -247,46 +322,131 @@ public final class MegumiShikigamiRuntime {
 		} finally {
 			TEARDOWN_IN_PROGRESS.remove(ownerId);
 		}
-		if (pack != null) {
-			int ticks = reason.appliesRecallCooldown() ? MegumiShikigamiProfile.recallCooldownTicks(pack.type())
-					: reason.appliesDeathCooldown() ? MegumiShikigamiProfile.deathCooldownTicks(pack.type())
-					: reason.appliesExpiryCooldown() ? MegumiShikigamiProfile.expiryCooldownTicks(pack.type())
-					: 0;
-			if (ticks > 0) {
-				MegumiSummonRuntime.startCooldownIfLonger(server.getPlayerList().getPlayer(ownerId),
-						CharacterAbility.PRIMARY, ticks);
-			}
+		for (MegumiShikigamiPack pack : removed) {
+			startTeardownCooldown(server, ownerId, pack.type(), reason);
+		}
+		// Failure memory is keyed by body id, not owner id: clear exactly the bodies this sweep
+		// took down. The coordinator's retainOnly sweep is the backstop for anything missed.
+		for (UUID bodyId : sweptBodyIds) {
+			MegumiFailureMemory.clear(bodyId);
 		}
 	}
 
-	static MegumiShikigamiPack pack(UUID ownerId) {
-		return PACKS.get(ownerId);
+	/** The reason table is unchanged — only the storage moved off the shared PRIMARY slot per type. */
+	private static void startTeardownCooldown(
+			MinecraftServer server, UUID ownerId, MegumiShikigami type, TeardownReason reason) {
+		int ticks = reason.appliesRecallCooldown() ? MegumiShikigamiProfile.recallCooldownTicks(type)
+				: reason.appliesDeathCooldown() ? MegumiShikigamiProfile.deathCooldownTicks(type)
+				: reason.appliesExpiryCooldown() ? MegumiShikigamiProfile.expiryCooldownTicks(type)
+				: 0;
+		MegumiSummonRuntime.startSummonCooldown(server, ownerId, type, ticks);
 	}
 
-	/** Live snapshot of the owner's pack, if one exists. Exists for the dev control surface + gametests. */
+	/** The owner's pack of exactly this type, or null (issue #107: several types may be out at once). */
+	static MegumiShikigamiPack pack(UUID ownerId, MegumiShikigami type) {
+		Map<MegumiShikigami, MegumiShikigamiPack> perType = PACKS.get(ownerId);
+		return perType == null ? null : perType.get(type);
+	}
+
+	/** Every live pack of this owner, one per type, in enum order. Never null. */
+	static List<MegumiShikigamiPack> packs(UUID ownerId) {
+		Map<MegumiShikigami, MegumiShikigamiPack> perType = PACKS.get(ownerId);
+		return perType == null ? List.of() : List.copyOf(perType.values());
+	}
+
+	/** The types the owner has out; the reading {@link MegumiShikigamiSwapPolicy} decides on. */
+	private static Set<MegumiShikigami> activeTypes(UUID ownerId) {
+		Map<MegumiShikigami, MegumiShikigamiPack> perType = PACKS.get(ownerId);
+		return perType == null ? Set.of() : Set.copyOf(perType.keySet());
+	}
+
+	private static void putPack(UUID ownerId, MegumiShikigamiPack pack) {
+		PACKS.computeIfAbsent(ownerId, key -> new EnumMap<>(MegumiShikigami.class))
+				.put(pack.type(), pack);
+	}
+
+	/** Removes one type's record and collapses the owner's row when it was the last one. */
+	private static List<MegumiShikigamiPack> removePack(UUID ownerId, MegumiShikigami type) {
+		Map<MegumiShikigami, MegumiShikigamiPack> perType = PACKS.get(ownerId);
+		if (perType == null) {
+			return List.of();
+		}
+		MegumiShikigamiPack removed = perType.remove(type);
+		if (perType.isEmpty()) {
+			PACKS.remove(ownerId, perType);
+		}
+		return removed == null ? List.of() : List.of(removed);
+	}
+
+	/** Removes every type's record of this owner and returns them for the cooldown pass. */
+	private static List<MegumiShikigamiPack> removeAllPacks(UUID ownerId) {
+		Map<MegumiShikigami, MegumiShikigamiPack> perType = PACKS.remove(ownerId);
+		return perType == null ? List.of() : List.copyOf(perType.values());
+	}
+
+	/** Every living summoned body of this owner across all types (coordinator + sic fan-out). */
+	public static List<MegumiShikigamiEntity> livingBodiesAll(
+			MinecraftServer server, UUID ownerId) {
+		List<MegumiShikigamiEntity> living = new ArrayList<>();
+		for (MegumiShikigamiPack pack : packs(ownerId)) {
+			living.addAll(livingBodies(server, ownerId, pack));
+		}
+		return List.copyOf(living);
+	}
+
+	/** The bodies of {@code living} that can answer the sic command right now (issue #107). */
+	private static List<MegumiShikigamiEntity> commandableBodies(List<MegumiShikigamiEntity> living) {
+		return living.stream()
+				.filter(MegumiShikigamiEntity::acceptsSicCommand)
+				.toList();
+	}
+
+	/** Live snapshots of every pack the owner holds, one per type (issue #107 coexistence). */
+	public static List<PackView> packViews(MinecraftServer server, UUID ownerId) {
+		if (server == null) {
+			return List.of();
+		}
+		List<PackView> views = new ArrayList<>();
+		for (MegumiShikigamiPack pack : packs(ownerId)) {
+			views.add(packView(server, ownerId, pack));
+		}
+		return List.copyOf(views);
+	}
+
+	/**
+	 * Live snapshot of the owner's first pack, if one exists — the lowest-ordinal type that is out,
+	 * so a scenario that summoned exactly one type reads back exactly that pack. Exists for the dev
+	 * control surface + gametests; {@link #packViews} is the coexistence-aware reading.
+	 */
 	public static Optional<PackView> packView(MinecraftServer server, UUID ownerId) {
 		if (server == null) {
 			return Optional.empty();
 		}
-		MegumiShikigamiPack pack = PACKS.get(ownerId);
-		if (pack == null) {
-			return Optional.empty();
+		for (MegumiShikigamiPack pack : packs(ownerId)) {
+			return Optional.of(packView(server, ownerId, pack));
 		}
+		return Optional.empty();
+	}
+
+	private static PackView packView(MinecraftServer server, UUID ownerId, MegumiShikigamiPack pack) {
 		List<MegumiShikigamiEntity> living = livingBodies(server, ownerId, pack);
 		boolean anchorAlive = living.stream().anyMatch(body -> body.getUUID().equals(pack.anchorId()));
-		return Optional.of(new PackView(pack.type().id(), pack.dimension().location().toString(),
-				anchorAlive, living.size(), pack.summonedAtGameTime(), pack.anchorId().toString()));
+		return new PackView(pack.type().id(), pack.dimension().location().toString(),
+				anchorAlive, living.size(), pack.summonedAtGameTime(), pack.anchorId().toString());
 	}
 
 	/** Read-only identity of one owner's live pack for observation. Exists for the dev control surface + gametests. */
 	public record PackView(String type, String dimension, boolean anchorAlive, int aliveBodies,
 			long summonedAtGameTime, String anchorId) {}
 
-	/** Registers a body spawned after the initial summon (Rabbit Escape upkeep) into the pack record. */
+	/** Registers a body spawned after the initial summon (Rabbit Escape upkeep) into its type's record. */
 	static void registerExtraBody(UUID ownerId, MegumiShikigamiEntity body) {
-		PACKS.computeIfPresent(ownerId, (key, pack) -> {
-			if (pack.type() != body.shikigamiType()
-					|| !pack.dimension().equals(body.level().dimension())
+		Map<MegumiShikigami, MegumiShikigamiPack> perType = PACKS.get(ownerId);
+		if (perType == null) {
+			return;
+		}
+		perType.computeIfPresent(body.shikigamiType(), (key, pack) -> {
+			if (!pack.dimension().equals(body.level().dimension())
 					|| pack.summonToken() != body.summonToken()
 					|| pack.bodyIds().contains(body.getUUID())) {
 				return pack;
@@ -307,7 +467,7 @@ public final class MegumiShikigamiRuntime {
 		if (server == null) {
 			return;
 		}
-		MegumiShikigamiPack pack = PACKS.get(body.ownerUuid());
+		MegumiShikigamiPack pack = pack(body.ownerUuid(), body.shikigamiType());
 		if (pack == null) {
 			return;
 		}
@@ -327,14 +487,11 @@ public final class MegumiShikigamiRuntime {
 		if (ownerId == null) {
 			return true;
 		}
-		MegumiShikigamiPack pack = PACKS.get(ownerId);
+		MegumiShikigamiPack pack = pack(ownerId, body.shikigamiType());
 		if (pack == null) {
-			return !body.canFinishRecallWithoutPack();
-		}
-		if (pack.type() != body.shikigamiType()) {
-			// A swap-out body: its pack record is gone because a different type arrived, but the sink it
-			// started is still playing. Discarding here cut the twelve-tick recall to one tick; the body
-			// has its own finisher, so only a body that cannot finish may be swept.
+			// A swept body (recalled, swapped out or lost with its pack): the sink it started is still
+			// playing, and discarding here cut the twelve-tick recall to one tick. The body has its own
+			// finisher, so only a body that cannot finish may be swept.
 			return !body.canFinishRecallWithoutPack();
 		}
 		return !pack.contains(body.getUUID(), body.summonToken(), body.level().dimension());
@@ -348,27 +505,28 @@ public final class MegumiShikigamiRuntime {
 	}
 
 	/**
-	 * The pack answers for its owner without a key press (issue #76): whoever just hit the owner, or
-	 * the nearest body already aggroed on the owner, becomes the mark of every body that carries
-	 * none. A body the owner sics by hand keeps its mark — ⇧R outranks this pass.
+	 * The packs answer for their owner without a key press (issue #76): whoever just hit the owner,
+	 * or the nearest body already aggroed on the owner, becomes the mark of every body that carries
+	 * none. Every type joins (issue #107 — they coexist); a body the owner sics by hand keeps its
+	 * mark — ⇧R outranks this pass.
 	 */
 	private static void retaliate(MinecraftServer server, UUID ownerId) {
-		MegumiShikigamiPack pack = PACKS.get(ownerId);
 		ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
-		if (pack == null || owner == null || TEARDOWN_IN_PROGRESS.contains(ownerId)) {
+		if (packs(ownerId).isEmpty() || owner == null || TEARDOWN_IN_PROGRESS.contains(ownerId)) {
 			return;
 		}
-		List<MegumiShikigamiEntity> living = livingBodies(server, ownerId, pack);
+		List<MegumiShikigamiEntity> living = livingBodiesAll(server, ownerId);
 		if (living.isEmpty()) {
 			return;
 		}
 		LivingEntity aggressor = MegumiSummonRuntime.retaliationTarget(owner);
 		if (aggressor == null) {
-			// Issue #96: the mark was never meant to outlive the answer. With no aggressor in reach,
-			// every mark the pack gave itself expires; a manual sic is the owner's order and stands.
+			// Issue #96/#107: the mark was never meant to outlive the answer. With no aggressor in
+			// reach, every mark this pass placed expires; the owner's manual sic and the coordinator's
+			// autonomous mark both answer to other owners and stand.
 			for (MegumiShikigamiEntity body : living) {
 				if (body.sicTargetUuid() != null
-						&& MegumiRetaliationPolicy.markExpiresWithoutAggressor(body.hasManualSicTarget())) {
+						&& MegumiRetaliationPolicy.markExpiresWithoutAggressor(body.markKind())) {
 					body.clearSicCommand();
 					body.setTarget(null);
 				}
@@ -386,30 +544,30 @@ public final class MegumiShikigamiRuntime {
 		if (server == null || TEARDOWN_IN_PROGRESS.contains(ownerId)) {
 			return;
 		}
-		MegumiShikigamiPack pack = PACKS.get(ownerId);
-		if (pack == null) {
-			return;
-		}
-		List<MegumiShikigamiEntity> living = livingBodies(server, ownerId, pack);
-		if (living.isEmpty()) {
-			if (PACKS.remove(ownerId, pack)) {
-				MegumiSummonRuntime.startCooldownIfLonger(server.getPlayerList().getPlayer(ownerId),
-						CharacterAbility.PRIMARY, MegumiShikigamiProfile.deathCooldownTicks(pack.type()));
+		for (MegumiShikigamiPack pack : packs(ownerId)) {
+			List<MegumiShikigamiEntity> living = livingBodies(server, ownerId, pack);
+			if (living.isEmpty()) {
+				// The pack record outlived its bodies: the whole type is charged the final-loss price
+				// and its own entry is dropped — the other types keep fighting (issue #107 D1).
+				if (!removePack(ownerId, pack.type()).isEmpty()) {
+					MegumiSummonRuntime.startSummonCooldown(server, ownerId, pack.type(),
+							MegumiShikigamiProfile.deathCooldownTicks(pack.type()));
+				}
+				continue;
 			}
-			return;
-		}
-		boolean anchorAlive = living.stream().anyMatch(body -> body.getUUID().equals(pack.anchorId()));
-		if (!anchorAlive) {
-			// The keystone body is gone: the whole pack disperses (Rabbit Escape's canon rule).
-			teardown(server, ownerId, TeardownReason.DEATH);
-			return;
-		}
-		ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
-		for (MegumiShikigamiEntity body : living) {
-			LivingEntity target = body.getTarget();
-			if (target != null && (owner == null || !MegumiSummonRuntime.isEligibleTarget(owner, target))) {
-				body.clearSicCommand();
-				body.setTarget(null);
+			boolean anchorAlive = living.stream().anyMatch(body -> body.getUUID().equals(pack.anchorId()));
+			if (!anchorAlive) {
+				// The keystone body is gone: this type disperses (Rabbit Escape's canon rule).
+				teardownType(server, ownerId, pack.type(), TeardownReason.DEATH);
+				continue;
+			}
+			ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
+			for (MegumiShikigamiEntity body : living) {
+				LivingEntity target = body.getTarget();
+				if (target != null && (owner == null || !MegumiSummonRuntime.isEligibleTarget(owner, target))) {
+					body.clearSicCommand();
+					body.setTarget(null);
+				}
 			}
 		}
 	}
@@ -425,8 +583,8 @@ public final class MegumiShikigamiRuntime {
 
 	/**
 	 * Inserts an already-staged summon into the level and registers its pack. The staging half is
-	 * separate so a swap can prove the arrival has somewhere to stand before the outgoing pack is
-	 * swept — a refused swap must leave the previous body in the world.
+	 * separate so a refused summon leaves the world untouched — the cooldown and partial gates run
+	 * before anything is spawned.
 	 */
 	private static boolean commitSummon(ServerPlayer player, MegumiShikigami type, long token,
 			List<MegumiShikigamiEntity> staged, boolean notify) {
@@ -443,7 +601,7 @@ public final class MegumiShikigamiRuntime {
 		}
 		int anchor = anchorIndex(type, inserted.size(), level.getRandom());
 		List<UUID> ids = inserted.stream().map(Entity::getUUID).toList();
-		PACKS.put(player.getUUID(), new MegumiShikigamiPack(
+		putPack(player.getUUID(), new MegumiShikigamiPack(
 				type, level.dimension(), ids.get(anchor), ids, token, level.getGameTime()));
 		for (MegumiShikigamiEntity body : inserted) {
 			body.playShadowOpenSound();
@@ -553,6 +711,19 @@ public final class MegumiShikigamiRuntime {
 		return false;
 	}
 
+	/**
+	 * Spec §19 (issue #108): the same type is materialized in its partial form, and one shikigami
+	 * cannot be out twice — the partial has to end before the full body may be summoned.
+	 */
+	private static boolean rejectPartial(ServerPlayer player, MegumiShikigami type, boolean notify) {
+		if (notify) {
+			player.displayClientMessage(Component.translatable(
+					"message.jujutsumod.megumi.shikigami.partial_materialized",
+					Component.translatable(nameKey(type))), true);
+		}
+		return false;
+	}
+
 	private static String nameKey(MegumiShikigami type) {
 		return "jujutsumod.megumi.shikigami." + type.id();
 	}
@@ -601,7 +772,6 @@ public final class MegumiShikigamiRuntime {
 	public enum TeardownReason {
 		RECALL,
 		DEATH,
-		SWAPPED,
 		DISCONNECT,
 		RESPAWN,
 		DIMENSION_CHANGE,
@@ -613,12 +783,16 @@ public final class MegumiShikigamiRuntime {
 
 		/** Whether the swept bodies play their sink-out instead of vanishing on the spot. */
 		boolean recallsVisually() {
-			return this == RECALL || this == SWAPPED || this == DESELECTED
+			return this == RECALL || this == DESELECTED
 					|| this == DIMENSION_CHANGE || this == FIXTURE_RESET || this == EXPIRED;
 		}
 
 		boolean appliesRecallCooldown() {
-			return this == RECALL || this == DESELECTED || this == DIMENSION_CHANGE;
+			// DESELECTED is deliberately absent: a vessel switch is a clean slate (issue #84), and the
+			// per-type deadlines that teardown would arm have no clearing seam on the switch — the
+			// shared ability-slot store used to be the thing that got wiped, so the honest reading is
+			// that a dismissed vessel leaves no summon deadline behind at all.
+			return this == RECALL || this == DIMENSION_CHANGE;
 		}
 
 		boolean appliesDeathCooldown() {

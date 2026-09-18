@@ -38,6 +38,9 @@ public final class TodoAbilityRouter {
 			case TERTIARY, TERTIARY_SNEAK -> TodoStoneRuntime.tryCast(todo, ability, notify)
 					? AbilityResult.SUCCESS : AbilityResult.UNHANDLED_FAILURE;
 			case ATTACK_CONTEXT, SECONDARY_SNEAK_HOLD, SECONDARY_SNEAK_RELEASE -> AbilityResult.UNHANDLED_FAILURE;
+			// #108: the partial-manifestation key belongs to Megumi's kit alone. Refused in one explicit
+			// arm rather than left to a default, so the next appended slot still fails compilation here.
+			case PARTIAL, PARTIAL_RELEASE -> AbilityResult.UNHANDLED_FAILURE;
 		};
 	}
 }

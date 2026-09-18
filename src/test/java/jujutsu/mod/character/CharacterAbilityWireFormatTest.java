@@ -25,18 +25,24 @@ class CharacterAbilityWireFormatTest {
 	/**
 	 * Every id that has shipped. Adding a slot must add a line here, on purpose — that is the point.
 	 * Changing an existing line means an old client would cast the wrong ability.
+	 *
+	 * <p>Built through {@code Map.ofEntries}: the slot list passed ten entries long ago, which is
+	 * {@code Map.of}'s ceiling, so the next appended slot would have failed to compile in this file
+	 * rather than in the test's own assertion.
 	 */
-	private static final Map<CharacterAbility, Integer> SHIPPED_IDS = new EnumMap<>(Map.of(
-			CharacterAbility.PRIMARY, 0,
-			CharacterAbility.PRIMARY_SNEAK, 1,
-			CharacterAbility.SECONDARY, 2,
-			CharacterAbility.SECONDARY_SNEAK, 3,
-			CharacterAbility.ATTACK_CONTEXT, 4,
-			CharacterAbility.USE_CONTEXT, 5,
-			CharacterAbility.SECONDARY_SNEAK_HOLD, 6,
-			CharacterAbility.SECONDARY_SNEAK_RELEASE, 7,
-			CharacterAbility.TERTIARY, 8,
-			CharacterAbility.TERTIARY_SNEAK, 9));
+	private static final Map<CharacterAbility, Integer> SHIPPED_IDS = new EnumMap<>(Map.ofEntries(
+			Map.entry(CharacterAbility.PRIMARY, 0),
+			Map.entry(CharacterAbility.PRIMARY_SNEAK, 1),
+			Map.entry(CharacterAbility.SECONDARY, 2),
+			Map.entry(CharacterAbility.SECONDARY_SNEAK, 3),
+			Map.entry(CharacterAbility.ATTACK_CONTEXT, 4),
+			Map.entry(CharacterAbility.USE_CONTEXT, 5),
+			Map.entry(CharacterAbility.SECONDARY_SNEAK_HOLD, 6),
+			Map.entry(CharacterAbility.SECONDARY_SNEAK_RELEASE, 7),
+			Map.entry(CharacterAbility.TERTIARY, 8),
+			Map.entry(CharacterAbility.TERTIARY_SNEAK, 9),
+			Map.entry(CharacterAbility.PARTIAL, 10),
+			Map.entry(CharacterAbility.PARTIAL_RELEASE, 11)));
 
 	@Test
 	void everySlotIsAccountedForAndKeepsTheIdItShippedWith() {

@@ -41,4 +41,16 @@ public final class MegumiAnimationHooks {
 			MegumiPlayerGeoAnimatable.INSTANCE.triggerShadowEmerge(caster);
 		}
 	}
+
+	/** The partial wings snap open (issue #108): the owner's unfold beat. */
+	public static void triggerNueWings(VfxCue cue) {
+		Minecraft client = Minecraft.getInstance();
+		if (client.level == null || cue.anchorEntityId() == VfxCue.NO_ANCHOR) {
+			return;
+		}
+		Entity caster = client.level.getEntity(cue.anchorEntityId());
+		if (caster != null) {
+			MegumiPlayerGeoAnimatable.INSTANCE.triggerNueWings(caster);
+		}
+	}
 }

@@ -16,11 +16,13 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
 import jujutsu.mod.character.CharacterAbilityCooldowns;
+import jujutsu.mod.character.megumi.MegumiPartialRuntime;
 import jujutsu.mod.character.megumi.MegumiShadowDropRuntime;
 import jujutsu.mod.character.megumi.MegumiShadowMoveRuntime;
 import jujutsu.mod.character.megumi.MegumiShadowTrapRuntime;
 import jujutsu.mod.character.megumi.MegumiShikigamiRuntime;
 import jujutsu.mod.character.megumi.MegumiShikigamiSelection;
+import jujutsu.mod.character.megumi.MegumiSummonCooldowns;
 import jujutsu.mod.character.megumi.MegumiSummonRuntime;
 import jujutsu.mod.character.nobara.projectjjk.EmbeddedNailRegistry;
 import jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime;
@@ -103,6 +105,12 @@ public final class JujutsuFixtureResetTool extends BaseTool {
 					runStep(steps, "forced_black_flash_clear", () -> ForcedBlackFlash.set(player, false));
 					runStep(steps, "todo_swap_momentum_effect", () -> player.removeEffect(JujutsuEffects.TODO_SWAP_MOMENTUM));
 					runStep(steps, "resonant_momentum_effect", () -> player.removeEffect(JujutsuEffects.RESONANT_MOMENTUM));
+					// Appended (#107/#108), never inserted: the frozen order above is what the dev lane and
+					// the gametest fixtures mirror. The partial teardown lifts the marker effects with the
+					// state, and the per-type summon cooldowns are the ones the packs now use instead of the
+					// PRIMARY slot.
+					runStep(steps, "megumi_partial_teardown", () -> MegumiPartialRuntime.teardown(server, playerId));
+					runStep(steps, "megumi_summon_cooldowns_clear", () -> MegumiSummonCooldowns.clear(playerId));
 					return ToolResult.ofToon(node);
 				});
 	}

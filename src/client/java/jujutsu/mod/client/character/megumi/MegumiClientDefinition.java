@@ -57,7 +57,9 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOOM,
 								"screen.jujutsumod.character_select.ability.deep_submerge", "S+B+"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOOM,
-								"screen.jujutsumod.character_select.ability.shadow_drop", "V")));
+								"screen.jujutsumod.character_select.ability.shadow_drop", "V"),
+						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.LINK,
+								"screen.jujutsumod.character_select.ability.partial", "G")));
 	}
 
 	/**
@@ -84,6 +86,11 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 	 * <p>A slot's casts can share a cooldown key at different prices — recalling both dogs is cheaper
 	 * than losing the pack, and a deep submerge costs more than a tap step — so the denominator is the
 	 * largest price any cast on the slot can ask.
+	 *
+	 * <p>Every slot is named. The default arm this used to end with answered zero for anything it did
+	 * not know, which is the one answer a HUD must not guess at: a new slot would silently read "free"
+	 * instead of failing the build. The two partial edges (D3) really are free (R34) — as is the
+	 * selection cycle and the two context slots — and they say so one at a time.
 	 */
 	@Override
 	public int maxCooldownTicks(CharacterAbility ability) {
@@ -94,7 +101,13 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 			case SECONDARY -> MegumiProfile.SHADOW_TRAP_COOLDOWN_TICKS;
 			case SECONDARY_SNEAK -> Math.max(MegumiProfile.SHADOW_STEP_COOLDOWN_TICKS, MegumiProfile.SUBMERGE_COOLDOWN_TICKS);
 			case TERTIARY -> MegumiProfile.DROP_COOLDOWN_TICKS;
-			default -> 0;
+			case TERTIARY_SNEAK -> 0;
+			case PARTIAL -> 0;
+			case PARTIAL_RELEASE -> 0;
+			case ATTACK_CONTEXT -> 0;
+			case USE_CONTEXT -> 0;
+			case SECONDARY_SNEAK_HOLD -> 0;
+			case SECONDARY_SNEAK_RELEASE -> 0;
 		};
 	}
 

@@ -452,6 +452,22 @@ Both allowlist entries went with it. `VesselBoundaryTest#theOneKnownNetworkLeakD
 
 **One residue, recorded rather than hidden.** `selectCurseLink` is a shared extension point with exactly one implementer, which "Limits of the build-time gate" above lists as a thing no structural rule can tell from a genuine shared hook. `canonicalSlot` sat in the same position until the stone rework deleted it together with its only implementer — the fold that used to collapse Todo's `Shift+B` into `B`.
 
+### E17 — Megumi's sic is now a global order with a cooldown and a clear-orders edge
+
+Changed 2026-09-17 on `feat/megumi-autonomy-partial` (issues #107/#108). Two deliberate semantics
+shifts that dev-lane scripts and future designs must know:
+
+- **Empty aim clears orders (D5).** `MegumiShikigamiRuntime.trySic` resolves the aim once and, when
+  it names nothing, clears every MANUAL mark across both families and reports `sic_cleared`. A sic
+  that hits nothing is a "release the pack" command, not a no-op. Scripts that sic-then-sic to
+  re-aim must now expect the first miss to disband the order.
+- **Sic costs `PRIMARY_SNEAK`.** A successful global sic applies the PRIMARY_SNEAK cooldown, so a
+  dev-lane sequence that sic'd twice in a row now sees the second cast refused. The mcpdev
+  `jujutsu_cooldowns_clear` tool clears it; `fixture_reset` clears it too.
+
+Both are pinned by `MegumiCoexistenceGameTests` (`emptyAimCancelsManualOrders`,
+`globalSicCommandsBothFamilies`) and by `MegumiAbilitySlotsTest`.
+
 ## Low-priority product debt
 
 - Nobara's nail-cast sound is noticeably too loud during manual smoke. Expected behavior is a comfortable volume consistent with the rest of Nobara's kit. Reported 2026-07-31; tracked in [GitHub issue #48](https://github.com/grebeshok105/jujutsu-minecraft/issues/48). No audio change is included in the current pass.

@@ -395,9 +395,19 @@ public final class ProjectSanityTest {
 		assert !Pattern.compile("default\\s*->").matcher(actionRuntime).find()
 				: "The slot switch must stay exhaustive so a new slot cannot fall into an existing ability";
 		// Taken from the enum rather than spelled out, so a new slot cannot leave this loop testing five.
+		// A slot may share its arm with others (issue #108 refuses the partial key's two edges together:
+		// `case PARTIAL, PARTIAL_RELEASE ->`), so the pin reads each arm's label list and asks whether the
+		// slot is one of its labels — as a WHOLE label, so PRIMARY is still not satisfied by PRIMARY_SNEAK.
 		for (CharacterAbility slot : CharacterAbility.values()) {
-			assert actionRuntime.contains("case " + slot.name() + " ->")
-					: "Nobara's router must answer every input slot explicitly, missing: " + slot;
+			Matcher arms = Pattern.compile("case\\s+([A-Z_]+(?:\\s*,\\s*[A-Z_]+)*)\\s*->").matcher(actionRuntime);
+			boolean answered = false;
+			while (arms.find()) {
+				if (Pattern.compile("\\b" + slot.name() + "\\b").matcher(arms.group(1)).find()) {
+					answered = true;
+					break;
+				}
+			}
+			assert answered : "Nobara's router must answer every input slot explicitly, missing: " + slot;
 		}
 		String hammer = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkHammerItem.java"));
 		assert !hammer.contains("tryEnlargeMarkedTarget") : "Hammer must not hide Hairpin Enlarge as a fallback action";
