@@ -296,6 +296,7 @@ public final class MegumiShikigamiRuntime {
 				? removeAllPacks(ownerId)
 				: removePack(ownerId, onlyType);
 		ServerPlayer owner = server.getPlayerList().getPlayer(ownerId);
+		List<UUID> sweptBodyIds = new ArrayList<>();
 		try {
 			for (ServerLevel level : server.getAllLevels()) {
 				for (MegumiShikigamiEntity body : new ArrayList<>(level.getEntities(
@@ -304,6 +305,7 @@ public final class MegumiShikigamiRuntime {
 					if (onlyType != null && body.shikigamiType() != onlyType) {
 						continue;
 					}
+					sweptBodyIds.add(body.getUUID());
 					boolean belongedToRemovedPack = removed.stream().anyMatch(
 							pack -> pack.contains(body.getUUID(), body.summonToken(), body.level().dimension()));
 					if (reason.recallsVisually() && belongedToRemovedPack) {
@@ -323,9 +325,10 @@ public final class MegumiShikigamiRuntime {
 		for (MegumiShikigamiPack pack : removed) {
 			startTeardownCooldown(server, ownerId, pack.type(), reason);
 		}
-		if (onlyType == null) {
-			// Every body of the owner is gone, so nothing can carry a failure memory any more.
-			MegumiFailureMemory.clear(ownerId);
+		// Failure memory is keyed by body id, not owner id: clear exactly the bodies this sweep
+		// took down. The coordinator's retainOnly sweep is the backstop for anything missed.
+		for (UUID bodyId : sweptBodyIds) {
+			MegumiFailureMemory.clear(bodyId);
 		}
 	}
 

@@ -16,7 +16,7 @@ class MegumiFailureMemoryTest {
 		UUID body = UUID.randomUUID();
 		MegumiFailureMemory.recordFailure(body, "pounce", 1_000L);
 		double weight = MegumiFailureMemory.weight(body, "pounce", 1_000L);
-		assertTrue(weight < MegumiShikigamiProfile.FAILURE_SKIP_THRESHOLD,
+		assertTrue(weight < MegumiProfile.POUNCE_RETRY_MIN_WEIGHT,
 				"one fresh failure must stop the immediate retry (R16): " + weight);
 		assertTrue(weight >= MegumiShikigamiProfile.FAILURE_FLOOR,
 				"the floor holds: " + weight);
@@ -48,7 +48,7 @@ class MegumiFailureMemoryTest {
 				MegumiFailureMemory.weight(body, "pounce", 1_004L),
 				"five fresh failures bottom out at the floor");
 		assertTrue(MegumiFailureMemory.weight(body, "pounce", 1_004L + MegumiShikigamiProfile.FAILURE_WINDOW_TICKS / 10)
-						< MegumiShikigamiProfile.FAILURE_SKIP_THRESHOLD,
+						< MegumiProfile.POUNCE_RETRY_MIN_WEIGHT,
 				"and stay below the skip threshold well past the last failure");
 		MegumiFailureMemory.clear(body);
 	}

@@ -39,8 +39,10 @@ final class MegumiRabbitsBrain {
 			// one inert entry per past summoner cannot accumulate for a server lifetime.
 			dropUpkeepWithoutPack();
 			if (anchorLost(level, pack, body.ownerUuid())) {
-				MegumiShikigamiRuntime.teardown(level.getServer(), body.ownerUuid(),
-						MegumiShikigamiRuntime.TeardownReason.DEATH);
+				// Type-scoped teardown (issue #107 D1): losing the swarm's anchor must not sweep
+				// the owner's other packs — Nue/Toad/Elephant stand beside the rabbits.
+				MegumiShikigamiRuntime.teardownType(level.getServer(), body.ownerUuid(),
+						MegumiShikigami.RABBITS, MegumiShikigamiRuntime.TeardownReason.DEATH);
 				LAST_UPKEEP.remove(body.ownerUuid());
 				return;
 			}
@@ -124,8 +126,8 @@ final class MegumiRabbitsBrain {
 		}
 		MegumiShikigamiRuntime.broadcastCue(level, owner, MegumiVfxIds.RABBITS_POP,
 				centre, body.getId(), Vec3.ZERO);
-		MegumiShikigamiRuntime.teardown(level.getServer(), body.ownerUuid(),
-				MegumiShikigamiRuntime.TeardownReason.EXPIRED);
+		MegumiShikigamiRuntime.teardownType(level.getServer(), body.ownerUuid(),
+				MegumiShikigami.RABBITS, MegumiShikigamiRuntime.TeardownReason.EXPIRED);
 		LAST_UPKEEP.remove(body.ownerUuid());
 	}
 

@@ -199,8 +199,9 @@ public final class MegumiShikigamiProfile {
 	public static final double COORD_HELD_BONUS = 0.6;
 	/** An ally's committed action on a target raises its worth — the pile-on signal of §11. */
 	public static final double COORD_INTENT_BONUS = 1.5;
-	/** Owner threat outranks ally threat outranks everything else (§13/§14). */
-	public static final double COORD_OWNER_THREAT_FACTOR = 1.5;
+	/** A body under attack boosts its aggressor's worth for the whole pack (§14). The owner's own
+	 * threat needs no factor: the retaliation pass marks it on every body before the coordinator
+	 * runs, so a weight term could never decide a pick. */
 	public static final double COORD_ALLY_THREAT_FACTOR = 1.2;
 	/** A candidate another body already marks keeps this fraction of its score (soft, never a veto). */
 	public static final double COORD_OCCUPANCY_FACTOR = 0.25;
@@ -216,6 +217,6 @@ public final class MegumiShikigamiProfile {
 	public static final double FAILURE_FLOOR = 0.3;
 	/** One fresh failure costs this much weight; two inside the window sit at the floor. */
 	public static final double FAILURE_PENALTY = 0.6;
-	/** Below this weight the pounce launch skips the attempt entirely this tick (R16). */
-	public static final double FAILURE_SKIP_THRESHOLD = 0.5;
+	/** Below this weight the pounce launch skips the attempt entirely this tick (R16). Production
+	 * reads {@link MegumiProfile#POUNCE_RETRY_MIN_WEIGHT} — same gate, one constant. */
 }

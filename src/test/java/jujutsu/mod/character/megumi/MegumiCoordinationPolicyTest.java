@@ -18,7 +18,7 @@ class MegumiCoordinationPolicyTest {
 	private static MegumiCoordinationPolicy.CandidateFacts facts(
 			double distToOwner, double distToBody, double maxHealth) {
 		return new MegumiCoordinationPolicy.CandidateFacts(true, true, true,
-				distToOwner, distToBody, maxHealth, false, false, false, false, false, false);
+				distToOwner, distToBody, maxHealth, false, false, false, false, false);
 	}
 
 	@Test
@@ -26,17 +26,17 @@ class MegumiCoordinationPolicyTest {
 		MegumiCoordinationPolicy.CandidateFacts base = facts(10.0, 5.0, 20.0);
 		assertEquals(0.0, MegumiCoordinationPolicy.score(
 				new MegumiCoordinationPolicy.CandidateFacts(false, true, true, 10.0, 5.0, 20.0,
-						false, false, false, false, false, false), RANDOM), "dead");
+						false, false, false, false, false), RANDOM), "dead");
 		assertEquals(0.0, MegumiCoordinationPolicy.score(
 				new MegumiCoordinationPolicy.CandidateFacts(true, false, true, 10.0, 5.0, 20.0,
-						false, false, false, false, false, false), RANDOM), "ineligible");
+						false, false, false, false, false), RANDOM), "ineligible");
 		assertEquals(0.0, MegumiCoordinationPolicy.score(
 				new MegumiCoordinationPolicy.CandidateFacts(true, true, false, 10.0, 5.0, 20.0,
-						false, false, false, false, false, false), RANDOM), "no line of sight");
+						false, false, false, false, false), RANDOM), "no line of sight");
 		assertEquals(0.0, MegumiCoordinationPolicy.score(
 				new MegumiCoordinationPolicy.CandidateFacts(true, true, true,
 						MegumiShikigamiProfile.AUTONOMY_RADIUS + 0.01, 5.0, 20.0,
-						false, false, false, false, false, false), RANDOM),
+						false, false, false, false, false), RANDOM),
 				"one step past the autonomy radius");
 		assertTrue(MegumiCoordinationPolicy.score(base, RANDOM) > 0.0, "the plain candidate scores");
 	}
@@ -52,16 +52,14 @@ class MegumiCoordinationPolicyTest {
 	}
 
 	@Test
-	void ownerThreatOutranksAllyThreatAndBothBeatPlain() {
+	void allyThreatBeatsPlain() {
 		double plain = MegumiCoordinationPolicy.score(facts(10.0, 5.0, 20.0), RANDOM);
 		double ally = MegumiCoordinationPolicy.score(
 				new MegumiCoordinationPolicy.CandidateFacts(true, true, true, 10.0, 5.0, 20.0,
-						false, false, false, false, true, false), RANDOM);
-		double owner = MegumiCoordinationPolicy.score(
-				new MegumiCoordinationPolicy.CandidateFacts(true, true, true, 10.0, 5.0, 20.0,
-						false, false, false, true, false, false), RANDOM);
+						false, false, false, true, false), RANDOM);
 		assertTrue(ally > plain, "ally threat raises weight (§14)");
-		assertTrue(owner > ally, "owner threat outranks ally threat (§13/§14)");
+		// §13's owner-threat weight was removed: the retaliation pass marks the owner's aggressor
+		// on every body before the coordinator runs, so a score term could never decide a pick.
 	}
 
 	@Test
@@ -69,10 +67,10 @@ class MegumiCoordinationPolicyTest {
 		double plain = MegumiCoordinationPolicy.score(facts(10.0, 5.0, 20.0), RANDOM);
 		double soaked = MegumiCoordinationPolicy.score(
 				new MegumiCoordinationPolicy.CandidateFacts(true, true, true, 10.0, 5.0, 20.0,
-						true, false, false, false, false, false), RANDOM);
+						true, false, false, false, false), RANDOM);
 		double intent = MegumiCoordinationPolicy.score(
 				new MegumiCoordinationPolicy.CandidateFacts(true, true, true, 10.0, 5.0, 20.0,
-						false, false, true, false, false, false), RANDOM);
+						false, false, true, false, false), RANDOM);
 		assertTrue(soaked > plain, "a soaked victim is an opening (§8)");
 		assertTrue(intent > plain, "an ally's committed action invites the pile-on (§11)");
 	}
@@ -82,7 +80,7 @@ class MegumiCoordinationPolicyTest {
 		double free = MegumiCoordinationPolicy.score(facts(10.0, 5.0, 20.0), RANDOM);
 		double occupied = MegumiCoordinationPolicy.score(
 				new MegumiCoordinationPolicy.CandidateFacts(true, true, true, 10.0, 5.0, 20.0,
-						false, false, false, false, false, true), RANDOM);
+						false, false, false, false, true), RANDOM);
 		assertTrue(occupied > 0.0, "occupied is still choosable — soft coordination, no veto (R11)");
 		assertTrue(occupied < free, "occupied scores lower");
 	}

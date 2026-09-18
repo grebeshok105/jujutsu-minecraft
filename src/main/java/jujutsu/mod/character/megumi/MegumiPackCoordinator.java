@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -34,6 +35,12 @@ public final class MegumiPackCoordinator {
 
 	public static void register() {
 		ServerTickEvents.END_SERVER_TICK.register(MegumiPackCoordinator::tick);
+		// Same stop-hook every sibling owner-keyed runtime carries: a context holds live entity
+		// references, so it must not outlive the server in a shared JVM (issue #22 debt class).
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+			CONTEXTS.clear();
+			MegumiFailureMemory.clearAll();
+		});
 	}
 
 	/**
@@ -120,7 +127,7 @@ public final class MegumiPackCoordinator {
 			}
 		}
 		MegumiCombatContext context = new MegumiCombatContext(gameTime, ownerId, owner.position(),
-				candidates, marks, intents, MegumiSummonRuntime.retaliationTarget(owner), allyThreats);
+				candidates, marks, intents, allyThreats);
 		CONTEXTS.put(ownerId, context);
 		return context;
 	}
@@ -162,7 +169,6 @@ public final class MegumiPackCoordinator {
 					i -> claimed.contains(candidates.get(i).getUUID())
 							&& !candidates.get(i).getUUID().equals(currentMark),
 					i -> context.intentTargets().contains(candidates.get(i).getUUID())
-							|| candidates.get(i) == context.ownerThreat()
 							|| context.allyThreats().containsValue(candidates.get(i).getUUID()));
 			if (pick < 0) {
 				continue;
@@ -172,9 +178,7 @@ public final class MegumiPackCoordinator {
 				continue;
 			}
 			// A threat mark overrides hysteresis the same way it overrides the spread rule in pick:
-			// an ally under attack must not wait for a 25% score margin to get help.
 			boolean chosenIsThreat = context.intentTargets().contains(chosen.getUUID())
-					|| chosen == context.ownerThreat()
 					|| context.allyThreats().containsValue(chosen.getUUID());
 			if (current != null && !chosenIsThreat
 					&& !MegumiCoordinationPolicy.beatsWithHysteresis(scores[pick], currentScore)) {
@@ -210,7 +214,6 @@ public final class MegumiPackCoordinator {
 				candidate.hasEffect(JujutsuEffects.MEGUMI_SOAKED),
 				HoldSupport.isHeld(candidate),
 				context.intentTargets().contains(candidateId),
-				candidate == context.ownerThreat(),
 				context.allyThreats().containsValue(candidateId),
 				occupied), body.getRandom());
 	}

@@ -173,6 +173,7 @@ class TonguePullPolicyTest {
 		List<Path> tongueSources = List.of(
 				Path.of("src/main/java/jujutsu/mod/combat/TonguePullPolicy.java"),
 				Path.of("src/main/java/jujutsu/mod/network/MegumiTongueStatePayload.java"),
+				Path.of("src/main/java/jujutsu/mod/character/megumi/MegumiPartialRuntime.java"),
 				Path.of("src/client/java/jujutsu/mod/client/tongue/TongueClientState.java"),
 				Path.of("src/client/java/jujutsu/mod/client/tongue/TongueClientFx.java"),
 				Path.of("src/client/java/jujutsu/mod/client/mixin/TonguePhysicsMixin.java"));

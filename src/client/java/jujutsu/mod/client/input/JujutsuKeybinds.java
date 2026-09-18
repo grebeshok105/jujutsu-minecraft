@@ -143,6 +143,16 @@ public final class JujutsuKeybinds {
 						? CharacterAbility.PARTIAL : CharacterAbility.PARTIAL_RELEASE);
 				partialWasDown = partialDown;
 			}
+			// The click queue is drained every tick so it can't go stale. A click that arrives while
+			// the key already reads released is a sub-tick tap the edge sampler missed — send both
+			// edges for it, because a lone PARTIAL would anchor the tongue with no release behind it.
+			while (partialKey.consumeClick()) {
+				if (!partialDown) {
+					sendCharacterAbility(client, CharacterAbility.PARTIAL);
+					sendCharacterAbility(client, CharacterAbility.PARTIAL_RELEASE);
+				}
+			}
+
 
 			boolean attackDown = client.options.keyAttack.isDown();
 			// The weapon check is the last vessel-specific thing left in this file. It stays until the

@@ -289,11 +289,30 @@ public final class MegumiRabbitsGameTests {
 			summonedAt.set(view.get().summonedAtGameTime());
 		}));
 
+		// A second pack stands beside the swarm (issue #107 D1): the expiry teardown is
+		// type-scoped, so the toad must survive the rabbits ageing out — an owner-wide teardown
+		// would silently recall it.
+		helper.runAtTickTime(SUMMON_TICK + 2, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			UUID ownerId = caster.getUUID();
+			MegumiShikigamiSelection.set(ownerId, MegumiShikigami.TOAD);
+			boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"toad", helper.getTick(), ownerId, "toad tryPrimary result", "true", summoned));
+		}));
 		helper.runAtTickTime(
 				SUMMON_TICK + MegumiShikigamiProfile.RABBITS_LIFETIME_TICKS + 8, () -> {
 					try {
 						UUID ownerId = caster.getUUID();
-						MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "expired", caster);
+						// The rabbits row is gone; the toad's pack must still stand — the expiry
+						// teardown is type-scoped (issue #107 D1), not owner-wide.
+						helper.assertTrue(!MegumiShikigamiTestFixtures.hasPack(
+										level.getServer(), ownerId, MegumiShikigami.RABBITS),
+								MegumiShikigamiTestFixtures.diagnostic(fixture, "expired", helper.getTick(), ownerId,
+										"rabbits pack record gone", "absent", "present"));
+						helper.assertTrue(MegumiShikigamiTestFixtures.hasPack(
+										level.getServer(), ownerId, MegumiShikigami.TOAD),
+								MegumiShikigamiTestFixtures.diagnostic(fixture, "expired", helper.getTick(), ownerId,
+										"toad pack survives the rabbits expiry", "present", "absent"));
 						long remaining = MegumiSummonCooldowns.remainingTicks(ownerId,
 								MegumiShikigami.RABBITS, level.getGameTime());
 						long elapsed = level.getGameTime()

@@ -408,6 +408,13 @@ public final class MegumiPartialGameTests {
 			caster.setOnGroundWithMovement(false, Vec3.ZERO);
 		}));
 
+		// A mock ServerPlayer's physics never ticks on its own (the wings tests document the same):
+		// drive one doTick per poll tick so the caster actually falls onto the golem, or the
+		// health oracle below can never observe an impact.
+		for (long tick = ACT_TICK + 1; tick <= ACT_TICK + 10; tick++) {
+			helper.runAtTickTime(tick, () -> caster.doTick());
+		}
+
 		helper.runAtTickTime(ACT_TICK + 10, () -> guarded(helper, caster, () -> {
 			helper.assertTrue(golem.getHealth() == healthBefore,
 					MegumiShikigamiTestFixtures.diagnostic(fixture, "impact", helper.getTick(), caster.getUUID(),

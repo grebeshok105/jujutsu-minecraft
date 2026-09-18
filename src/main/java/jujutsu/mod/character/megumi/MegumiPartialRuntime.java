@@ -11,6 +11,7 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
@@ -23,9 +24,9 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.combat.TargetResolver;
-import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.network.MegumiTongueStatePayload;
 import jujutsu.mod.registry.JujutsuEffects;
+
 
 /**
  * Server-authoritative state machine of Megumi's partial manifestations (issue #108): Nue's wings
@@ -300,8 +301,14 @@ public final class MegumiPartialRuntime {
 	}
 
 	private static void sendTongueState(ServerPlayer player, boolean active, Vec3 anchor) {
-		JujutsuNetworking.sendTongueState(player,
-				new MegumiTongueStatePayload(active, anchor.x, anchor.y, anchor.z));
+		// The domain owning the payload sends it directly (house pattern: SelfResonanceRuntime,
+		// BlackFlashFocus, CharacterSelectionManager) — the shared network layer stays
+		// vessel-agnostic. Connection-null safe: a headless GameTest player has no channel.
+		if (player.connection != null
+				&& ServerPlayNetworking.canSend(player, MegumiTongueStatePayload.TYPE)) {
+			ServerPlayNetworking.send(player,
+					new MegumiTongueStatePayload(active, anchor.x, anchor.y, anchor.z));
+		}
 	}
 
 	/**

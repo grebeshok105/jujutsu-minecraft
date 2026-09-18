@@ -68,8 +68,8 @@ public final class MegumiFailureMemory {
 		FAILURES.keySet().retainAll(liveBodyIds);
 	}
 
-	/** Test/dev surface: every remembered body id. */
-	static Set<UUID> rememberedBodies() {
-		return Set.copyOf(FAILURES.keySet());
+	/** Drops every remembered failure — the server-stop hook, like every sibling runtime's clear. */
+	static void clearAll() {
+		FAILURES.clear();
 	}
 }

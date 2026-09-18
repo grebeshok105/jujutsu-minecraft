@@ -8,6 +8,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import jujutsu.mod.client.tongue.TongueClientState;
+import jujutsu.mod.registry.JujutsuEffects;
 
 /**
  * Client half of the tongue pull (issue #108): while the server says an anchor is attached, the
@@ -36,6 +37,12 @@ public abstract class TonguePhysicsMixin {
 	@Inject(method = "travel", at = @At("TAIL"))
 	private void jujutsumod$pullTowardTongueAnchor(Vec3 travelVector, CallbackInfo ci) {
 		if (!((Object) this instanceof LocalPlayer player)) {
+			return;
+		}
+		if (player.hasEffect(JujutsuEffects.GRIPPED)) {
+			// A held player's movement belongs to the hold: the server re-teleports the victim
+			// every tick, and a client-authoritative pull fighting it would rubber-band the body
+			// out of the grip — the same fight HoldInputMixin exists to prevent.
 			return;
 		}
 		Vec3 current = player.getDeltaMovement();

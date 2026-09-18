@@ -1,7 +1,9 @@
 package jujutsu.mod.gametest;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -172,8 +174,7 @@ public final class MegumiAutonomyGameTests {
 					helper.getTick(), owner.getUUID(), "summon succeeded", "true", summoned.get()));
 			zombieRef.set(spawnFrozenZombie(helper, fixture, new BlockPos(5, 1, 5)));
 		});
-
-		for (long tick = SPAWN_TICK + 1; tick <= SPAWN_TICK + 60; tick++) {
+		for (long tick = SPAWN_TICK + 1; tick <= SPAWN_TICK + 40; tick++) {
 			final long pollTick = tick;
 			helper.runAtTickTime(pollTick, () -> {
 				Zombie zombie = zombieRef.get();
@@ -187,12 +188,12 @@ public final class MegumiAutonomyGameTests {
 					helper.succeed();
 					return;
 				}
-				if (pollTick == SPAWN_TICK + 60) {
+				if (pollTick == SPAWN_TICK + 40) {
 					zombie.discard();
 					cleanup(helper, owner);
 					helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
 							"acquire", helper.getTick(), owner.getUUID(),
-							"a dog marks the zombie within 60 ticks", "target=" + zombie.getUUID(),
+							"a dog marks the zombie within 40 ticks", "target=" + zombie.getUUID(),
 							"dogTargets=" + dogs.stream().map(d -> String.valueOf(d.getTarget())).toList()));
 				}
 			});
@@ -341,8 +342,8 @@ public final class MegumiAutonomyGameTests {
 		ServerLevel level = helper.getLevel();
 		AtomicBoolean summoned = new AtomicBoolean();
 		List<Zombie> zombies = new ArrayList<>();
-		AtomicReference<Set<UUID>> lastMarks = new AtomicReference<>(Set.of());
-		AtomicInteger changes = new AtomicInteger();
+		AtomicReference<Map<UUID, UUID>> lastMarks = new AtomicReference<>(Map.of());
+		AtomicReference<Map<UUID, Integer>> changesPerBody = new AtomicReference<>(new HashMap<>());
 
 		helper.runAtTickTime(SUMMON_TICK, () -> summonDogs(helper, fixture, owner, summoned));
 		helper.runAtTickTime(SPAWN_TICK, () -> {
@@ -358,19 +359,30 @@ public final class MegumiAutonomyGameTests {
 				if (dogs.size() < 2) {
 					return;
 				}
-				Set<UUID> marks = markedTargets(dogs);
-				Set<UUID> previous = lastMarks.get();
-				if (!previous.isEmpty() && !marks.equals(previous)) {
-					changes.incrementAndGet();
+				// Per-body tracking, not the mark set: two dogs swapping targets leaves the set
+				// byte-identical while each body's pick thrashed — R4's stability is per body.
+				Map<UUID, UUID> marks = new HashMap<>();
+				for (MegumiDivineDogEntity dog : dogs) {
+					marks.put(dog.getUUID(), dog.getTarget() == null ? null : dog.getTarget().getUUID());
+				}
+				Map<UUID, UUID> previous = lastMarks.get();
+				if (!previous.isEmpty()) {
+					Map<UUID, Integer> counts = changesPerBody.get();
+					for (Map.Entry<UUID, UUID> entry : marks.entrySet()) {
+						if (!java.util.Objects.equals(entry.getValue(), previous.get(entry.getKey()))) {
+							counts.merge(entry.getKey(), 1, Integer::sum);
+						}
+					}
 				}
 				lastMarks.set(marks);
 				if (pollTick == SPAWN_TICK + 80) {
-					boolean stable = changes.get() <= 1;
+					int maxChanges = changesPerBody.get().values().stream().mapToInt(Integer::intValue).max().orElse(0);
+					boolean stable = maxChanges <= 1;
 					discardAll(zombies);
 					cleanup(helper, owner);
 					helper.assertTrue(stable, MegumiShikigamiTestFixtures.diagnostic(fixture,
 							"stability", helper.getTick(), owner.getUUID(),
-							"mark-set changes over 80 ticks", "<= 1", changes.get()));
+							"per-body mark changes over 80 ticks", "<= 1 per body", changesPerBody.get()));
 					if (stable) {
 						helper.succeed();
 					}
@@ -395,10 +407,12 @@ public final class MegumiAutonomyGameTests {
 
 		helper.runAtTickTime(SUMMON_TICK, () -> summonDogs(helper, fixture, owner, summoned));
 		helper.runAtTickTime(SPAWN_TICK, () -> {
+			// One genuinely dangerous target among plain ones: the danger term only differentiates
+			// when the pack-mates are weaker, so the boss keeps 200 HP and the others stay at 20.
 			bossRef.set(spawnToughZombie(helper, fixture, new BlockPos(4, 1, 6), 200.0));
 			zombies.add(bossRef.get());
-			zombies.add(spawnToughZombie(helper, fixture, new BlockPos(6, 1, 6), 200.0));
-			zombies.add(spawnToughZombie(helper, fixture, new BlockPos(8, 1, 6), 200.0));
+			zombies.add(spawnFrozenZombie(helper, fixture, new BlockPos(6, 1, 6)));
+			zombies.add(spawnFrozenZombie(helper, fixture, new BlockPos(8, 1, 6)));
 		});
 
 		for (long tick = SPAWN_TICK + 1; tick <= SPAWN_TICK + 80; tick++) {
@@ -410,7 +424,9 @@ public final class MegumiAutonomyGameTests {
 					return;
 				}
 				Set<UUID> marks = markedTargets(dogs);
-				if (marks.size() >= 2) {
+				// R5's two halves in one oracle: the dangerous target IS picked (the danger
+				// weight lands), and it never pulls the whole pack (the spread rule holds).
+				if (marks.contains(boss.getUUID()) && marks.size() >= 2) {
 					discardAll(zombies);
 					cleanup(helper, owner);
 					helper.succeed();
@@ -421,7 +437,8 @@ public final class MegumiAutonomyGameTests {
 					cleanup(helper, owner);
 					helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
 							"danger", helper.getTick(), owner.getUUID(),
-							"the pack is not all on one target", ">= 2 distinct marks", marks));
+							"the boss is marked but the pack is not all on it",
+							"boss in marks + >= 2 distinct marks", marks + " boss=" + boss.getUUID()));
 				}
 			});
 		}
@@ -605,8 +622,10 @@ public final class MegumiAutonomyGameTests {
 	}
 
 	/**
-	 * R13 — the owner's attacker is the highest-weight candidate: a scripted hit lands and a dog
-	 * must mark the attacker within twenty ticks, even though a decoy zombie stands closer.
+	 * R13 — the owner's attacker is answered first: a scripted hit lands and a dog must mark the
+	 * attacker within twenty ticks, even though a decoy zombie stands closer. The mechanism under
+	 * test is the retaliation pass — it marks the owner's aggressor on every body before the
+	 * coordinator runs, which is why no owner-threat score weight exists to pin here.
 	 */
 	@GameTest(maxTicks = 240, skyAccess = true)
 	public void theOwnersAttackerIsAnsweredFirst(GameTestHelper helper) {
@@ -674,6 +693,7 @@ public final class MegumiAutonomyGameTests {
 		AtomicBoolean summoned = new AtomicBoolean();
 		AtomicReference<Zombie> decoyRef = new AtomicReference<>();
 		AtomicReference<Zombie> attackerRef = new AtomicReference<>();
+		AtomicReference<MegumiDivineDogEntity> untouchedDogRef = new AtomicReference<>();
 
 		helper.runAtTickTime(SUMMON_TICK, () -> summonDogs(helper, fixture, owner, summoned));
 		helper.runAtTickTime(SPAWN_TICK, () -> {
@@ -686,6 +706,9 @@ public final class MegumiAutonomyGameTests {
 			Zombie attacker = spawnToughZombie(helper, fixture, new BlockPos(6, 1, 4), 400.0);
 			attackerRef.set(attacker);
 			dogs.getFirst().hurtServer(level, level.damageSources().mobAttack(attacker), 1.0f);
+			// The oracle must name the OTHER dog: the hurt body answering its own attacker is not
+			// sibling help — only the untouched dog switching proves the ally-threat path.
+			untouchedDogRef.set(dogs.get(1));
 			helper.assertTrue(dogs.getFirst().getLastHurtByMob() == attacker,
 					MegumiShikigamiTestFixtures.diagnostic(fixture, "attack", helper.getTick(),
 							owner.getUUID(), "the dog's hit is attributed", attacker.getUUID(),
@@ -701,7 +724,8 @@ public final class MegumiAutonomyGameTests {
 				if (attacker == null || dogs.size() < 2) {
 					return;
 				}
-				if (dogs.stream().anyMatch(dog -> dog.getTarget() == attacker)) {
+				MegumiDivineDogEntity untouched = untouchedDogRef.get();
+				if (untouched != null && untouched.getTarget() == attacker) {
 					discardAll(List.of(attacker, decoy));
 					cleanup(helper, owner);
 					helper.succeed();

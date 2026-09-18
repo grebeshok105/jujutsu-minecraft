@@ -1,7 +1,7 @@
 package jujutsu.mod.character.megumi;
 
-import java.util.List;
-import java.util.function.ToDoubleFunction;
+import java.util.function.IntPredicate;
+import java.util.function.IntToDoubleFunction;
 import net.minecraft.util.RandomSource;
 
 /**
@@ -65,9 +65,6 @@ public final class MegumiCoordinationPolicy {
 		if (facts.intentTarget()) {
 			value += MegumiShikigamiProfile.COORD_INTENT_BONUS;
 		}
-		if (facts.threatensOwner()) {
-			value *= MegumiShikigamiProfile.COORD_OWNER_THREAT_FACTOR;
-		}
 		if (facts.threatensAlly()) {
 			value *= MegumiShikigamiProfile.COORD_ALLY_THREAT_FACTOR;
 		}
@@ -92,8 +89,8 @@ public final class MegumiCoordinationPolicy {
 	 * occupied and a free candidate exists, the best free one wins instead, so a crowd is
 	 * distributed rather than mobbed.
 	 */
-	public static int pick(int count, java.util.function.IntToDoubleFunction score,
-			java.util.function.IntPredicate occupied, java.util.function.IntPredicate intentOrThreat) {
+	public static int pick(int count, IntToDoubleFunction score,
+			IntPredicate occupied, IntPredicate intentOrThreat) {
 		int best = -1;
 		int bestFree = -1;
 		double bestScore = 0.0;
@@ -136,7 +133,6 @@ public final class MegumiCoordinationPolicy {
 			boolean soaked,
 			boolean held,
 			boolean intentTarget,
-			boolean threatensOwner,
 			boolean threatensAlly,
 			boolean occupied) {}
 

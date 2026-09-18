@@ -113,22 +113,6 @@ public final class JujutsuNetworking {
 	}
 
 	/**
-	 * Pushes Toad's partial-tongue state to its owner (issue #108). The client owns the pull physics;
-	 * this channel only tells it whether the tongue is anchored and where. Connection-null safe like
-	 * {@link #sendAbilityCooldown}: a headless GameTest player has no channel to mirror to.
-	 */
-	public static boolean sendTongueState(ServerPlayer player, MegumiTongueStatePayload payload) {
-		if (player.connection == null) {
-			return false;
-		}
-		if (!ServerPlayNetworking.canSend(player, MegumiTongueStatePayload.TYPE)) {
-			return false;
-		}
-		ServerPlayNetworking.send(player, payload);
-		return true;
-	}
-
-	/**
 	 * Mirrors a started cooldown to its owner. The vessel is resolved here from the same source the
 	 * server-side cooldown key uses, rather than named by the caller: the client suppresses input on
 	 * {@code (vessel, slot)} and the server gates on it, so a caller naming the wrong vessel would
