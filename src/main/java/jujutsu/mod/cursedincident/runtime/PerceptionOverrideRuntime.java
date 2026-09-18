@@ -18,8 +18,9 @@ import jujutsu.mod.cursedincident.IncidentStage;
 import jujutsu.mod.cursedincident.infection.ZoneGeometry;
 import jujutsu.mod.network.IncidentPerceptionPayload;
 
-/** O(1) per-player server perception override, refreshed at the same 20-tick cadence as incidents. */
+/** O(1) per-player server perception override, refreshed by this scheduler only. */
 public final class PerceptionOverrideRuntime {
+	public static final long REFRESH_PERIOD_TICKS = 20L;
 	private static final Map<UUID, Boolean> OVERRIDES = new HashMap<>();
 	private static boolean registered;
 
@@ -32,7 +33,7 @@ public final class PerceptionOverrideRuntime {
 		}
 		registered = true;
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
-			if (server.overworld().getGameTime() % 20L == 0L) {
+			if (server.overworld().getGameTime() % REFRESH_PERIOD_TICKS == 0L) {
 				tick(server);
 			}
 		});

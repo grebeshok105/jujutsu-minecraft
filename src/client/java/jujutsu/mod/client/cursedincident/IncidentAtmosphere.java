@@ -11,9 +11,10 @@ import jujutsu.mod.cursedincident.CursedIncidentVfxIds;
 import jujutsu.mod.registry.JujutsuSounds;
 import jujutsu.mod.vfx.VfxCue;
 
-/** Client-only recipes for the five incident atmosphere cues. */
+/** Client-only recipes for the six incident atmosphere cues. */
 public final class IncidentAtmosphere {
 	private static final DustParticleOptions CURSE_DUST = new DustParticleOptions(packRgb(27, 10, 40), 1.2f);
+	private static final DustParticleOptions SEAL_APPLIED_DUST = new DustParticleOptions(packRgb(110, 180, 255), 0.9f);
 	private static final DustParticleOptions SEAL_SPARK = new DustParticleOptions(packRgb(220, 160, 55), 0.8f);
 	private static final DustParticleOptions BIRTH_DUST = new DustParticleOptions(packRgb(80, 20, 120), 1.5f);
 
@@ -23,6 +24,7 @@ public final class IncidentAtmosphere {
 	public static void register() {
 		VfxDirector.register(CursedIncidentVfxIds.ZONE_AMBIENT, IncidentAtmosphere::zoneAmbient);
 		VfxDirector.register(CursedIncidentVfxIds.STAGE_PULSE, IncidentAtmosphere::stagePulse);
+		VfxDirector.register(CursedIncidentVfxIds.SEAL_APPLIED, IncidentAtmosphere::sealApplied);
 		VfxDirector.register(CursedIncidentVfxIds.SEAL_DEGRADE, IncidentAtmosphere::sealDegrade);
 		VfxDirector.register(CursedIncidentVfxIds.SEAL_BREAK, IncidentAtmosphere::sealBreak);
 		VfxDirector.register(CursedIncidentVfxIds.SECONDARY_BIRTH, IncidentAtmosphere::secondaryBirth);
@@ -44,6 +46,15 @@ public final class IncidentAtmosphere {
 			context.world().triggerImpact(cue, jujutsu.mod.client.vfx.VfxWorldChannel.ImpactStyle.EXPLOSION, 20);
 			context.burst(ParticleTypes.SMOKE, context.resolveOrigin(cue), 24, 1.0, 0.12,
 					RandomSource.create(cue.seed()));
+		});
+	}
+
+	private static VfxInstance sealApplied(VfxCue cue) {
+		return VfxInstance.of(20, (context, age) -> {
+			Vec3 origin = context.resolveOrigin(cue);
+			RandomSource random = RandomSource.create(cue.seed());
+			context.ring(SEAL_APPLIED_DUST, origin, 18, 0.9, 0.6, 0.05, random);
+			context.burst(ParticleTypes.ENCHANT, origin, 12, 0.7, 0.08, random);
 		});
 	}
 

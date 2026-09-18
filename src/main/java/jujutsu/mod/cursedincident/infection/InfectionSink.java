@@ -34,6 +34,7 @@ public final class InfectionSink implements IncidentWorldSink {
 	public static final long CURSE_TOPUP_TICKS = 200L;
 	public static final long CONTAINER_SCAN_TICKS = 300L;
 	public static final long CULL_TICKS = 400L;
+	public static final long AMBIENT_INTERVAL_TICKS = 100L;
 
 	private static final Map<UUID, Set<UUID>> ANNOUNCED_SECONDARY_BIRTHS = new HashMap<>();
 	private static final Map<UUID, Map<UUID, CenterCadence>> CENTER_CADENCE = new HashMap<>();
@@ -93,6 +94,12 @@ public final class InfectionSink implements IncidentWorldSink {
 		int allowance = Math.min(Math.max(0, tickBudget), available);
 		InfectionQueue queue = InfectionQueue.forIncident(record);
 		budgetUsed += queue.drain(level, allowance, nodeId);
+		// Re-arm the short client recipe from a durable server cadence, not every zone tick.
+		if (due(now, record.lastAmbientGameTime, AMBIENT_INTERVAL_TICKS)) {
+			record.lastAmbientGameTime = now;
+			int intensity = Math.max(1, record.stage == null ? 1 : record.stage.ordinal());
+			emitCue(level, record, CursedIncidentVfxIds.ZONE_AMBIENT, false, intensity, center);
+		}
 		CenterCadence cadence = nodeId == null ? null : cadenceFor(record, nodeId);
 		if (due(now, nodeId == null ? record.lastTopUpGameTime : cadence.lastTopUp, CURSE_TOPUP_TICKS)) {
 			if (nodeId == null) {
@@ -148,8 +155,16 @@ public final class InfectionSink implements IncidentWorldSink {
 	@Override
 	public void onSealed(ServerLevel level, IncidentRecord record) {
 		if (record != null && level != null) {
-			// Sealing freezes progression but does not discard committed durable edits.
-			emitCue(level, record, CursedIncidentVfxIds.SEAL_DEGRADE, false, 1);
+			// Fresh sealing is distinct from later physical degradation bands.
+			emitCue(level, record, CursedIncidentVfxIds.SEAL_APPLIED, true, 1);
+		}
+	}
+
+	@Override
+	public void onSealDegraded(ServerLevel level, IncidentRecord record, UUID objectId, int bandIndex) {
+		if (level != null && record != null && bandIndex >= 1 && bandIndex <= 3) {
+			// IncidentControl invokes this only when a durable degradation band is crossed.
+			emitCue(level, record, CursedIncidentVfxIds.SEAL_DEGRADE, false, bandIndex);
 		}
 	}
 

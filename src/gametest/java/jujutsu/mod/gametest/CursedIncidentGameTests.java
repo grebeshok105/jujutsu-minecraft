@@ -244,11 +244,13 @@ public final class CursedIncidentGameTests {
 		Set<?> expectedLive = Set.of(
 				CursedIncidentVfxIds.ZONE_AMBIENT,
 				CursedIncidentVfxIds.STAGE_PULSE,
+				CursedIncidentVfxIds.SEAL_APPLIED,
 				CursedIncidentVfxIds.SEAL_DEGRADE,
 				CursedIncidentVfxIds.SEAL_BREAK,
 				CursedIncidentVfxIds.SECONDARY_BIRTH);
 		Set<?> expectedPhysical = Set.of(
 				CursedIncidentVfxIds.STAGE_PULSE,
+				CursedIncidentVfxIds.SEAL_APPLIED,
 				CursedIncidentVfxIds.SEAL_BREAK,
 				CursedIncidentVfxIds.SECONDARY_BIRTH);
 		Set<?> expectedCurse = Set.of(

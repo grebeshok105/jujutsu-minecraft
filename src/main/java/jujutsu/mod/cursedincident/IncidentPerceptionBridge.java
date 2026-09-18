@@ -3,33 +3,36 @@ package jujutsu.mod.cursedincident;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import jujutsu.mod.cursedincident.runtime.PerceptionOverrideRuntime;
 
-/** One replaceable perception predicate shared by server gates and the client mirror. */
+/** Server-only perception seam; client mirrors stay in the client source set. */
 public final class IncidentPerceptionBridge {
-	private static final Predicate<Player> SERVER_DEFAULT = player ->
-			player instanceof ServerPlayer serverPlayer && PerceptionOverrideRuntime.isOverridden(serverPlayer);
-	private static volatile Predicate<Player> provider = SERVER_DEFAULT;
+	private static final Predicate<ServerPlayer> SERVER_DEFAULT = PerceptionOverrideRuntime::isOverridden;
+	private static volatile Predicate<ServerPlayer> serverProvider = SERVER_DEFAULT;
 
 	private IncidentPerceptionBridge() {
 	}
 
+	/**
+	 * Evaluates the authoritative server override. A client-side {@link Player} can never
+	 * reach this provider, which keeps an integrated server independent of its local mirror.
+	 */
 	public static boolean perceivesOverride(Player player) {
-		return player != null && provider.test(player);
+		return player instanceof ServerPlayer serverPlayer && serverProvider.test(serverPlayer);
 	}
 
-	/** Installs the side-local provider; the client replaces the server default during bootstrap. */
-	public static void install(Predicate<Player> predicate) {
-		provider = Objects.requireNonNull(predicate, "perception predicate");
+	/** Installs a server-side provider for the production seam or a focused test. */
+	public static void installServer(Predicate<ServerPlayer> predicate) {
+		serverProvider = Objects.requireNonNull(predicate, "server perception predicate");
 	}
 
 	public static void reset() {
-		provider = SERVER_DEFAULT;
+		serverProvider = SERVER_DEFAULT;
 	}
 
-	public static Predicate<Player> currentProviderForTest() {
-		return provider;
+	public static Predicate<ServerPlayer> currentServerProviderForTest() {
+		return serverProvider;
 	}
 }

@@ -77,7 +77,6 @@ public final class IncidentRuntime {
 				sink.tickZone(level, record, workCenter.center(), workCenter.nodeId(), share);
 			}
 		}
-		PerceptionOverrideRuntime.tick(server);
 		flushPendingDrains();
 	}
 

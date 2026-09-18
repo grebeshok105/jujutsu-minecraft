@@ -31,3 +31,10 @@
 - Updated `IncidentWorldSink.tickZone`, InfectionSink, IncidentSpawnRuntime, IncidentRuntime, all current GameTest tickZone callers, contract recording sink, and codec/secondary regressions.
 - `ObjectDwellTracker.forgetEverywhere` call is present in `InfectionSink.onCleanup`; T3 seam implementation is still landing.
 - Compile was attempted twice; current blockers are T3 in-progress `ObjectSpawner.Spawned`, `CursedObjectState` StreamCodec arity, and the not-yet-landed `forgetEverywhere`. No further verification run per parent stop instruction.
+
+### Wave C / Task 4 — IMPLEMENTED 2026-09-18 (WorkerPerception)
+- Split incident perception to a server-only `ServerPlayer` provider; client bootstrap no longer installs the local mirror into common code, and `CursePerception` only consults the server seam for `ServerPlayer`.
+- Removed the duplicate manual perception tick from `IncidentRuntime`; `PerceptionOverrideRuntime` remains the sole 20-tick scheduler.
+- Added durable `lastAmbientGameTime` cadence emission (`AMBIENT_INTERVAL_TICKS = 100`) in loaded `InfectionSink.tickZone`.
+- Added `SEAL_APPLIED` feedback for fresh seals and band-gated `SEAL_DEGRADE` callbacks (bands 1–3); updated cue recipes, audience sets, and exact-set/count tests.
+- No Gradle, test, formatter, or linter commands run per parent instruction.
