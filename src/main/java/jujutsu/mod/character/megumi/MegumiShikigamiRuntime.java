@@ -37,6 +37,7 @@ import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.registry.JujutsuSounds;
 import jujutsu.mod.vfx.MegumiVfxIds;
+import jujutsu.mod.vfx.VfxCue;
 import jujutsu.mod.vfx.VfxCues;
 
 /**
@@ -751,10 +752,38 @@ public final class MegumiShikigamiRuntime {
 		if (owner == null) {
 			return;
 		}
-		JujutsuNetworking.broadcastVfxCue(level, origin, MegumiProfile.VFX_DELIVERY_RADIUS,
-				VfxCues.anchoredWithOffset(effectId, origin, anchorEntityId, anchorOffset, 1,
-						level.getGameTime(), owner.getRandom().nextLong()));
+		broadcastCue(level, owner, VfxCues.anchoredWithOffset(effectId, origin, anchorEntityId, anchorOffset, 1,
+				level.getGameTime(), owner.getRandom().nextLong()));
 	}
+
+	/**
+	 * Directed variant for visuals whose source and impact point are both meaningful. It intentionally
+	 * routes through the same radius broadcast as the legacy overload, so audience filtering cannot
+	 * diverge between a directed and an ordinary shikigami cue.
+	 */
+	static void broadcastCue(ServerLevel level, ServerPlayer owner, ResourceLocation effectId,
+			Vec3 origin, int anchorEntityId, Vec3 anchorPosition, Vec3 direction) {
+		if (owner == null) {
+			return;
+		}
+		broadcastCue(level, owner, directedCue(effectId, origin, anchorEntityId, anchorPosition, 1,
+				level.getGameTime(), owner.getRandom().nextLong(), direction));
+	}
+
+	/** Production/test seam: the Brain builds its directed payload through this exact factory. */
+	static VfxCue directedCue(ResourceLocation effectId, Vec3 origin, int anchorEntityId,
+			Vec3 anchorPosition, int intensity, long gameTime, long seed, Vec3 direction) {
+		return VfxCues.anchoredDirected(effectId, origin, anchorEntityId, anchorPosition, intensity,
+				gameTime, seed, direction);
+	}
+
+	static void broadcastCue(ServerLevel level, ServerPlayer owner, VfxCue cue) {
+		if (owner == null || cue == null) {
+			return;
+		}
+		JujutsuNetworking.broadcastVfxCue(level, cue.origin(), MegumiProfile.VFX_DELIVERY_RADIUS, cue);
+	}
+
 
 	private static boolean isLiveBody(ServerLevel level, UUID bodyId, UUID ownerId, long summonToken) {
 		return level.getEntity(bodyId) instanceof MegumiShikigamiEntity body

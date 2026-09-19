@@ -12,6 +12,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.vfx.MegumiVfxIds;
@@ -196,6 +197,7 @@ final class MegumiRabbitsBrain {
 			return;
 		}
 		body.postponeBump(gameTime + MegumiShikigamiProfile.RABBITS_BUMP_PERIOD_TICKS);
+		boolean hit = false;
 		for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class,
 				body.getBoundingBox().inflate(MegumiShikigamiProfile.RABBITS_BUMP_RADIUS),
 				candidate -> candidate.isAlive() && !candidate.isRemoved())) {
@@ -212,6 +214,12 @@ final class MegumiRabbitsBrain {
 					SoundSource.NEUTRAL, 0.7f, 1.15f);
 			MegumiShikigamiRuntime.broadcastCue(level, owner, MegumiVfxIds.RABBITS_POP,
 					body.position(), body.getId(), Vec3.ZERO);
+			hit = true;
+		}
+		if (hit) {
+			// The existing server-side swing state is synchronized to clients; the imported one-shot
+			// attack clip now rides the same pounce/bite-style trigger as the other bodies.
+			body.swing(InteractionHand.MAIN_HAND);
 		}
 	}
 }

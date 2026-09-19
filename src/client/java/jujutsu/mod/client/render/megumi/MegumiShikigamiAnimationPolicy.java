@@ -19,6 +19,10 @@ public final class MegumiShikigamiAnimationPolicy {
 	public static boolean isAttacking(float attackAnim) {
 		return attackAnim > ATTACK_ANIM_THRESHOLD;
 	}
+	/** Rabbit attack trigger: the server action window or the synchronized vanilla swing state. */
+	public static boolean rabbitsAction(boolean actionWindow, float attackAnim) {
+		return actionWindow || isAttacking(attackAnim);
+	}
 
 	public enum Clip {
 		/** Rising out of the shadow pool. */

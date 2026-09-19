@@ -20,6 +20,7 @@ import jujutsu.mod.client.character.megumi.selector.ClientMegumiShikigamiState;
 import jujutsu.mod.client.character.megumi.selector.MegumiShikigamiSelectorScreen;
 import jujutsu.mod.client.character.megumi.selector.ShikigamiSlotView;
 import jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes;
+import jujutsu.mod.client.vfx.megumi.NueArcRenderer;
 import jujutsu.mod.network.ShikigamiStatePayload;
 import jujutsu.mod.client.character.megumi.particle.MegumiShadowMoteParticle;
 import jujutsu.mod.client.vfx.VfxDirector;
@@ -159,6 +160,7 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 		EntityRendererRegistry.register(JujutsuEntities.MEGUMI_RABBIT, MegumiRabbitRenderer::new);
 		EntityRendererRegistry.register(JujutsuEntities.MEGUMI_MAX_ELEPHANT, MegumiElephantRenderer::new);
 		ParticleFactoryRegistry.getInstance().register(JujutsuParticles.MEGUMI_SHADOW_MOTE, MegumiShadowMoteParticle.Provider::new);
+		NueArcRenderer.register();
 		MegumiVfxRecipes.register();
 		VfxDirector.registerHudContribution(JujutsuMod.id("megumi_divine_dogs_cooldown"), MegumiCooldownHud::render);
 		VfxDirector.registerHudContribution(JujutsuMod.id("megumi_shadow_dive_veil"), MegumiShadowDiveHud::render);

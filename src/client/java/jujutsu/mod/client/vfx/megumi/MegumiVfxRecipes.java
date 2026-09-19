@@ -149,8 +149,9 @@ public final class MegumiVfxRecipes {
 			}
 			Vec3 trunk = context.resolveOrigin(cue);
 			RandomSource random = random(cue, 0x454C3102L);
-			context.burst(ParticleTypes.SPLASH, trunk, 18, 0.60, 0.30, random);
-			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, trunk, 10, 0.55, 0.02, 0.10, random);
+			NueArcRenderer.registerElephantJet(cue);
+			context.burst(ParticleTypes.SPLASH, trunk, 10, 0.35, 0.20, random);
+			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, trunk, 8, 0.55, 0.02, 0.10, random);
 		});
 	}
 
@@ -207,6 +208,12 @@ public final class MegumiVfxRecipes {
 			RandomSource random = random(cue, 0x4E554502L);
 			context.burst(SHADOW_DARK, origin, 8, 0.25, 0.20, random);
 			context.burst(ParticleTypes.ELECTRIC_SPARK, origin, 4, 0.20, 0.08, random);
+			if (cue.direction().lengthSqr() > 1.0E-8) {
+				for (int index = 1; index <= 5; index++) {
+					Vec3 alongPath = origin.add(cue.direction().scale(index * 0.45));
+					context.burst(ParticleTypes.ELECTRIC_SPARK, alongPath, 2, 0.08, 0.05, random);
+				}
+			}
 		});
 	}
 
@@ -216,17 +223,18 @@ public final class MegumiVfxRecipes {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				return;
 			}
-			Vec3 target = context.resolveOrigin(cue);
+			Vec3 target = cue.origin();
+			NueArcState.shared().registerCue(cue);
 			RandomSource random = random(cue, 0x4E554503L);
-			context.burst(ParticleTypes.ELECTRIC_SPARK, target.add(0.0, 0.4, 0.0), 26, 0.55, 0.35, random);
-			context.ring(SHADOW_DARK, target, 12, 0.50, 0.02, 0.0, random);
+			context.burst(ParticleTypes.ELECTRIC_SPARK, target.add(0.0, 0.4, 0.0), 8, 0.28, 0.16, random);
+			context.ring(SHADOW_DARK, target, 10, 0.50, 0.02, 0.0, random);
 		});
 	}
 
 	/**
 	 * The partial wings snap open (issue #108): one dark flare with an electric crackle at the
-	 * owner's shoulders, plus the unfold beat on the player rig. Deliberately no per-tick
-	 * re-emission: while the wings stay out the glide pose is vanilla's, and landing ends it.
+	 * owner's shoulders. The sustained glide pose is owned by the wings layer, so this cue stays
+	 * a one-shot garnish with no per-tick re-emission.
 	 */
 	private static VfxInstance nuePartialWings(VfxCue cue) {
 		return VfxInstance.of(NUE_PARTIAL_WINGS_DURATION_TICKS, (context, initialAgeTicks) -> {
@@ -238,9 +246,7 @@ public final class MegumiVfxRecipes {
 			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN,
 					NUE_PARTIAL_WINGS_DURATION_TICKS);
 			context.burst(JujutsuParticles.MEGUMI_SHADOW_MOTE, shoulders, 12, 0.35, 0.16, random);
-			context.burst(ParticleTypes.ELECTRIC_SPARK, shoulders, 8, 0.30, 0.06, random);
 			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, shoulders, 10, 0.55, 0.0, 0.04, random);
-			MegumiAnimationHooks.triggerNueWings(cue);
 		});
 	}
 

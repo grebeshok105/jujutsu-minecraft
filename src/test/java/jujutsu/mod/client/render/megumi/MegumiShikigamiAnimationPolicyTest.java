@@ -83,4 +83,12 @@ class MegumiShikigamiAnimationPolicyTest {
 		assertFalse(MegumiShikigamiAnimationPolicy.isAttacking(0.01f), "the threshold is exclusive");
 		assertTrue(MegumiShikigamiAnimationPolicy.isAttacking(0.5f));
 	}
+	@Test
+	void rabbitAttackUsesTheServerWindowOrSynchronizedSwingState() {
+		assertTrue(MegumiShikigamiAnimationPolicy.rabbitsAction(true, 0.0f),
+				"an explicit action window must start the imported attack clip");
+		assertTrue(MegumiShikigamiAnimationPolicy.rabbitsAction(false, 0.5f),
+				"the vanilla swing state is the client-side fallback trigger");
+		assertFalse(MegumiShikigamiAnimationPolicy.rabbitsAction(false, 0.0f));
+	}
 }

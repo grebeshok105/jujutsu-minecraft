@@ -124,7 +124,7 @@ final class MegumiElephantBrain {
 			soak(level, owner, elephant, candidate, unit);
 		}
 		MegumiShikigamiRuntime.broadcastCue(level, owner, MegumiVfxIds.ELEPHANT_JET,
-				trunk, elephant.getId(), Vec3.ZERO);
+				trunk, elephant.getId(), elephant.position(), direction);
 		level.playSound(null, trunk.x, trunk.y, trunk.z, SoundEvents.GENERIC_SPLASH,
 				SoundSource.NEUTRAL, 0.7f, 1.1f);
 	}
