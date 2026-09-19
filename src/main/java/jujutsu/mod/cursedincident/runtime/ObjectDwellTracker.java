@@ -58,7 +58,8 @@ public final class ObjectDwellTracker implements DwellProvider {
         Entity.RemovalReason removalReason;
         boolean awaitingReload;
         boolean dead;
-
+        /** Player currently carrying this stack; null when not in an inventory. */
+        UUID carrierId;
         TrackedObject(CursedObjectState state) {
             this.instanceId = state.instanceId();
             this.state = state;
@@ -86,6 +87,11 @@ public final class ObjectDwellTracker implements DwellProvider {
             }
         });
         ServerTickEvents.END_SERVER_TICK.register(ObjectDwellTracker::serverTick);
+        // A carried entry whose owner disconnects must not pin the tracker forever — the
+        // stack persists in the player's inventory NBT, so the runtime entry can go; the
+        // next observation (login scan / container open) rebuilds it (review finding).
+        net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.DISCONNECT.register(
+                (handler, server) -> forgetCarrier(handler.player.getUUID()));
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> clear());
         // Gameplay seal damage: attacking a sealed cursed-object item entity damages the
         // seal through the single authoritative contract instead of the item (C16).
@@ -138,6 +144,7 @@ public final class ObjectDwellTracker implements DwellProvider {
                 tracked.removalReason = null;
                 tracked.awaitingReload = true;
                 tracked.dead = false;
+                tracked.carrierId = player.getUUID();
             }
         }
     }
@@ -164,6 +171,7 @@ public final class ObjectDwellTracker implements DwellProvider {
         tracked.removalReason = null;
         tracked.awaitingReload = false;
         tracked.dead = false;
+        tracked.carrierId = null;
     }
     /** Called by the infection sink and the container-open hook for a physical container. */
     @Override
@@ -186,6 +194,7 @@ public final class ObjectDwellTracker implements DwellProvider {
         tracked.removalReason = null;
         tracked.awaitingReload = true;
         tracked.dead = false;
+        tracked.carrierId = null;
     }
 
     @Override
@@ -281,6 +290,18 @@ public final class ObjectDwellTracker implements DwellProvider {
         IncidentControl.voidObject(objectInstanceId);
     }
 
+    /** Drops runtime entries for stacks carried by a disconnecting player. */
+    private static void forgetCarrier(UUID playerId) {
+        if (playerId == null) {
+            return;
+        }
+        for (TrackedObject tracked : TRACKED.values()) {
+            if (tracked != null && playerId.equals(tracked.carrierId)) {
+                TRACKED.remove(tracked.instanceId, tracked);
+            }
+        }
+    }
+
     private static void removeFromOnlineInventories(MinecraftServer server, UUID objectInstanceId) {
         if (server == null) {
             return;
@@ -333,22 +354,30 @@ public final class ObjectDwellTracker implements DwellProvider {
             return;
         }
         CursedObjectState current = tracked.state;
+        // Decay anchor policy: a FRESH seal (unsealed→sealed) starts decaying from now —
+        // the seal did not exist during the pre-seal interval, so minted time must not
+        // count. Every later write-back (damage, identify, unseal) preserves the existing
+        // anchor or it would forgive elapsed decay on each damage tick (review P1, C9).
+        long decayAnchor = !current.sealed() && sealed
+                ? (tracked.level == null ? current.lastDecayGameTime() : tracked.level.getGameTime())
+                : current.lastDecayGameTime();
         CursedObjectState updated = new CursedObjectState(current.instanceId(), current.typeId(), current.grade(),
                 current.mintedGameTime(), sealed, Math.max(0, sealTier), Math.max(0, sealIntegrity),
-                knowledge == null ? current.knowledge() : knowledge, current.accumulatedTicks());
+                knowledge == null ? current.knowledge() : knowledge, current.accumulatedTicks(),
+                decayAnchor);
         ItemStack liveStack = resolveLiveStack(tracked);
         if (liveStack != null && !liveStack.isEmpty()) {
             CursedObjectState liveState = state(liveStack);
             if (liveState != null && objectInstanceId.equals(liveState.instanceId())) {
                 liveStack.set(JujutsuDataComponents.CURSED_OBJECT_STATE, updated);
-                tracked.stack = liveStack;
+                markContainerChanged(tracked);
             }
         }
         tracked.state = updated;
         tracked.accumulatedTicks = Math.max(0L, updated.accumulatedTicks());
-        tracked.lastDecayGameTime = tracked.level == null
-                ? tracked.lastDecayGameTime
-                : tracked.level.getGameTime();
+        // Runtime cursor follows the same anchor policy as the persisted component —
+        // fresh seal anchors at now, later write-backs preserve (review P1, C9).
+        tracked.lastDecayGameTime = decayAnchor;
         if (sealed) {
             tracked.dwellCenter = null;
             tracked.dwellContainer = null;
@@ -382,13 +411,34 @@ public final class ObjectDwellTracker implements DwellProvider {
         // A voided id must never resurrect: destroy the observed stack/entity on sight.
         if (IncidentControl.isVoided(state.instanceId())) {
             destroyObserved(stack, entity, level);
+            // The container owner must be marked dirty too — the voided path returns
+            // before a TrackedObject exists, so pass the observed container position
+            // directly (review finding).
+            markContainerChangedAt(level, containerPos);
             return null;
         }
-        TrackedObject tracked = TRACKED.computeIfAbsent(state.instanceId(), ignored -> new TrackedObject(state));
+        final CursedObjectState observedState = state;
+        TrackedObject tracked = TRACKED.computeIfAbsent(state.instanceId(), ignored -> new TrackedObject(observedState));
         boolean fromContainer = containerPos != null;
         tracked.containerPos = fromContainer ? containerPos.immutable() : null;
         CursedObjectType type = CursedObjectRegistry.byId(state.typeId());
         tracked.type = type;
+        // Reconcile physical↔record on observation: seal/unseal/damage/identify mutate the
+        // durable record even while the source chunk is unloaded, and applySealState is a
+        // no-op for untracked ids — without this the stale component wins forever (P1).
+        jujutsu.mod.cursedincident.IncidentRecord ownerRecord =
+                IncidentControl.recordForObject(state.instanceId());
+        if (ownerRecord != null && stack != null
+                && (ownerRecord.sealed != state.sealed() || ownerRecord.sealTier != state.sealTier()
+                        || ownerRecord.sealIntegrity != state.sealIntegrity()
+                        || ownerRecord.knowledge != state.knowledge())) {
+            state = new CursedObjectState(state.instanceId(), state.typeId(), state.grade(),
+                    state.mintedGameTime(), ownerRecord.sealed, ownerRecord.sealTier,
+                    ownerRecord.sealIntegrity, ownerRecord.knowledge, state.accumulatedTicks(),
+                    state.lastDecayGameTime());
+            stack.set(JujutsuDataComponents.CURSED_OBJECT_STATE, state);
+            markContainerChangedAt(level, containerPos);
+        }
         tracked.state = state;
         tracked.stack = stack;
         if (stack != null) {
@@ -433,6 +483,7 @@ public final class ObjectDwellTracker implements DwellProvider {
             CursedObjectState updated = state.withAccumulatedTicks(tracked.accumulatedTicks);
             if (!updated.equals(stack.get(JujutsuDataComponents.CURSED_OBJECT_STATE))) {
                 stack.set(JujutsuDataComponents.CURSED_OBJECT_STATE, updated);
+                markContainerChanged(tracked);
                 tracked.state = updated;
             }
         } else {
@@ -450,6 +501,7 @@ public final class ObjectDwellTracker implements DwellProvider {
         if (!CursedObjectRegistry.registerInstance(tracked.state)) {
             TRACKED.remove(tracked.instanceId);
             destroyObserved(stack, entity, level);
+            markContainerChanged(tracked);
             return null;
         }
         return tracked;
@@ -462,6 +514,32 @@ public final class ObjectDwellTracker implements DwellProvider {
         }
         if (stack != null && !stack.isEmpty()) {
             stack.setCount(0);
+        }
+    }
+
+    /** Marks the block entity at an observed container position dirty. */
+    private static void markContainerChangedAt(ServerLevel level, BlockPos containerPos) {
+        if (level == null || containerPos == null) {
+            return;
+        }
+        BlockEntity blockEntity = level.getBlockEntity(containerPos);
+        if (blockEntity != null) {
+            blockEntity.setChanged();
+        }
+    }
+
+    /**
+     * Mutating a stack inside a chest never marks the owning block entity dirty — without
+     * setChanged the save keeps the pre-mutation component and the change resurrects on
+     * restart (review finding). Call after every in-place container stack write.
+     */
+    private static void markContainerChanged(TrackedObject tracked) {
+        if (tracked == null || tracked.containerPos == null || tracked.level == null) {
+            return;
+        }
+        BlockEntity blockEntity = tracked.level.getBlockEntity(tracked.containerPos);
+        if (blockEntity != null) {
+            blockEntity.setChanged();
         }
     }
 
@@ -518,9 +596,12 @@ public final class ObjectDwellTracker implements DwellProvider {
                 .withSeal(integrity > 0, state.sealTier(), integrity)
                 .withLastDecayGameTime(anchor);
         liveStack.set(JujutsuDataComponents.CURSED_OBJECT_STATE, updated);
+        markContainerChanged(tracked);
         tracked.stack = liveStack;
         tracked.state = updated;
         tracked.lastDecayGameTime = anchor;
+        // Mirror the physical decay into the incident record — this is what fires
+        // onSealBroken/SEAL_BREAK and degradation bands when integrity reaches a band.
         IncidentControl.syncSealFromComponent(updated.instanceId());
     }
 

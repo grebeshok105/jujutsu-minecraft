@@ -174,7 +174,7 @@ public final class JujutsuIncidentInspectTool extends BaseTool {
 		if (view.secondaries() != null) {
 			for (var secondary : view.secondaries()) {
 				ObjectNode entry = secondaries.addObject();
-				entry.put("id", secondary.id().toString());
+				entry.put("id", secondary.nodeId().toString());
 				putPosition(entry, "center", secondary.center());
 				entry.put("radius", secondary.radius());
 				entry.put("created_at", secondary.createdGameTime());

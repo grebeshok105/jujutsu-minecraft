@@ -54,7 +54,7 @@ public final class JujutsuIncidentSecondaryTool extends BaseTool {
 			if (secondary == null) {
 				node.putNull("secondary_id");
 			} else {
-				node.put("secondary_id", secondary.id().toString());
+				node.put("secondary_id", secondary.nodeId().toString());
 				JujutsuIncidentInspectTool.putPosition(node, "pos", secondary.center());
 				node.put("radius", secondary.radius());
 				node.put("self_sustaining", secondary.selfSustaining());

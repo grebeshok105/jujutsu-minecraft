@@ -91,6 +91,12 @@ public final class CursedObjectItem extends Item implements GeoItem {
         if (current == null) {
             return new SealResult(false, 0, "not_cursed_object", null);
         }
+        // A second talisman must not refill integrity or change tier — the control path
+        // already rejects with already_sealed, and the physical path must match or players
+        // could reset decay/damage indefinitely (review P1).
+        if (current.sealed()) {
+            return new SealResult(false, 0, "already_sealed", current);
+        }
         int required = SealPolicy.requiredTier(current.grade());
         if (tier < required) {
             return new SealResult(false, required, "insufficient_tier", current);

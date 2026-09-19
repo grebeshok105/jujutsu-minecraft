@@ -115,9 +115,13 @@ public final class IncidentRuntime {
 	private static void flushPendingDrains() {
 		for (ServerLevel level : PENDING_DRAIN) {
 			PENDING_DRAIN.remove(level);
-			for (IncidentRecord record : IncidentControl.recordsForRuntime()) {
+			List<IncidentRecord> records = IncidentControl.recordsForRuntime();
+			// Same per-center share as the normal tick — a chunk-load burst must not let the
+			// first centers eat the whole 64-block budget and starve the rest (review P2).
+			int share = 64 / Math.max(1, loadedWorkUnits(records));
+			for (IncidentRecord record : records) {
 				if (record == null || record.sealed
-						|| record.dimension != null && record.dimension != level.dimension()) {
+						|| record.dimension != null && !record.dimension.equals(level.dimension())) {
 					continue;
 				}
 				for (WorkCenter workCenter : IncidentControl.workCenters(record)) {
@@ -128,7 +132,7 @@ public final class IncidentRuntime {
 					if (workCenter.isParent()) {
 						replayPendingDeltas(level, record);
 					}
-					sink.tickZone(level, record, workCenter.center(), workCenter.nodeId(), 64);
+					sink.tickZone(level, record, workCenter.center(), workCenter.nodeId(), share);
 				}
 			}
 		}
@@ -142,11 +146,14 @@ public final class IncidentRuntime {
 			record.stage = delta.to();
 			sink.applyStageDelta(level, record, delta.from(), delta.to());
 		}
+		if (replayed > 1) {
+			IncidentControl.markDirty();
+		}
 	}
 
 	private static boolean isActive(ServerLevel level, IncidentRecord record) {
 		return level != null && record != null && !record.sealed
-				&& (record.dimension == null || record.dimension == level.dimension());
+				&& (record.dimension == null || record.dimension.equals(level.dimension()));
 	}
 
 	private static ServerLevel levelFor(MinecraftServer server, IncidentRecord record) {

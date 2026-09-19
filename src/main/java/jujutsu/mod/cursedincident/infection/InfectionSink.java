@@ -21,6 +21,7 @@ import jujutsu.mod.cursedincident.IncidentControl;
 import jujutsu.mod.cursedincident.IncidentRecord;
 import jujutsu.mod.cursedincident.IncidentStage;
 import jujutsu.mod.cursedincident.IncidentWorldSink;
+import jujutsu.mod.cursedincident.SecondaryNode;
 import jujutsu.mod.cursedincident.runtime.IncidentSpawnRuntime;
 import jujutsu.mod.cursedincident.runtime.ObjectDwellTracker;
 import jujutsu.mod.cursedspirit.perception.CursePerception;
@@ -61,6 +62,12 @@ public final class InfectionSink implements IncidentWorldSink {
 		ZoneGeometry.Shape shape = ZoneGeometry.shapeOf(record.params);
 		for (BlockPos pos : ZoneGeometry.sampleBlocks(shape, record.center, Math.max(0.0, record.radius),
 				RandomSource.create(record.seed ^ to.ordinal()), sampleCount)) {
+			// hasChunk BEFORE getBlockState — reading the state first would force a chunk
+			// load for every radius sample outside the loaded center (review finding).
+			if (!level.getChunkSource().hasChunk(pos.getX() >> 4, pos.getZ() >> 4)) {
+				record.counters.chunkEditsDeferred++;
+				continue;
+			}
 			BlockState current = level.getBlockState(pos);
 			BlockState target = InfectionPolicy.mapBlock(current, to,
 					RandomSource.create(record.seed ^ pos.asLong())).orElse(null);
@@ -69,13 +76,31 @@ public final class InfectionSink implements IncidentWorldSink {
 				// The concrete state is durable; drain never needs to re-run a stage mapping.
 				queue.enqueue(pos, target, destroy, null);
 			}
-			if (!level.getChunkSource().hasChunk(pos.getX() >> 4, pos.getZ() >> 4)) {
-				record.counters.chunkEditsDeferred++;
+		}
+		// Secondary work centers get their own delta sample at their own center — a stage
+		// transition must infect every active hearth, not only the parent's (review P1).
+		for (SecondaryNode node : record.secondaries) {
+			if (node == null || node.scarred() || node.center() == null) {
+				continue;
+			}
+			for (BlockPos pos : ZoneGeometry.sampleBlocks(shape, node.center(), Math.max(0.0, node.radius()),
+					RandomSource.create(record.seed ^ to.ordinal() ^ node.nodeId().getLeastSignificantBits()),
+					sampleCount)) {
+				if (!level.getChunkSource().hasChunk(pos.getX() >> 4, pos.getZ() >> 4)) {
+					record.counters.chunkEditsDeferred++;
+					continue;
+				}
+				BlockState current = level.getBlockState(pos);
+				BlockState target = InfectionPolicy.mapBlock(current, to,
+						RandomSource.create(record.seed ^ pos.asLong())).orElse(null);
+				boolean destroy = InfectionPolicy.isContainer(current);
+				if (target != null || destroy) {
+					queue.enqueue(pos, target, destroy, node.nodeId());
+				}
 			}
 		}
 		record.lastAmbientGameTime = level.getGameTime();
 		emitCue(level, record, CursedIncidentVfxIds.STAGE_PULSE, true, to.ordinal() + 1);
-		emitCue(level, record, CursedIncidentVfxIds.ZONE_AMBIENT, false, Math.max(1, to.ordinal()));
 		IncidentSpawnRuntime.spawnWave(level, record, record.center, null, to == IncidentStage.INITIAL ? 1 : 2);
 	}
 
@@ -86,8 +111,12 @@ public final class InfectionSink implements IncidentWorldSink {
 			return;
 		}
 		long now = level.getGameTime();
-		if (budgetTick != now) {
-			budgetTick = now;
+		// The shared budget is per SERVER tick, not per level clock — dimensions keep
+		// independent gameTime offsets, so keying on now would reset the 64-block cap
+		// mid-tick whenever a second dimension's zone runs (review finding).
+		long epoch = level.getServer() == null ? now : level.getServer().getTickCount();
+		if (budgetTick != epoch) {
+			budgetTick = epoch;
 			budgetUsed = 0;
 		}
 		int available = Math.max(0, PER_TICK_BLOCK_BUDGET - budgetUsed);
@@ -130,19 +159,42 @@ public final class InfectionSink implements IncidentWorldSink {
 			}
 		}
 		if (now % CURSE_TOPUP_TICKS == 0L) {
-			Set<UUID> announced = ANNOUNCED_SECONDARY_BIRTHS.computeIfAbsent(record.id, ignored -> new HashSet<>());
+			// Seed the announcement set from durable node state on first sight of a record —
+			// the runtime map is wiped on restart, and without seeding every persisted node
+			// re-announces its birth cue once per restart (review P2).
+			Set<UUID> announced = ANNOUNCED_SECONDARY_BIRTHS.computeIfAbsent(record.id, ignored -> {
+				Set<UUID> seeded = new HashSet<>();
+				for (var node : record.secondaries) {
+					if (node != null && node.createdGameTime() < now) {
+						seeded.add(node.nodeId());
+					}
+				}
+				return seeded;
+			});
 			for (var node : record.secondaries) {
 				if (node != null && announced.add(node.nodeId())) {
 					emitCue(level, record, CursedIncidentVfxIds.SECONDARY_BIRTH, true, 2, node.center());
 				}
 			}
 		}
+		// The queue drain, counters and cadence anchors above all mutate durable record
+		// fields — mark the store dirty or a restart silently loses them (C5/d5).
+		IncidentControl.markDirty();
 	}
 
 	@Override
 	public void onRelocated(ServerLevel level, IncidentRecord record, BlockPos oldCenter) {
 		if (record != null) {
-			record.pendingEdits.clear();
+			// Only edits owed to surviving work centers live on — parent edits die with the
+			// old site, and dependent nodes were already stripped by relocate (review P1).
+			Set<UUID> survivingNodes = new HashSet<>();
+			for (var node : record.secondaries) {
+				if (node != null && node.selfSustaining() && !node.scarred()) {
+					survivingNodes.add(node.nodeId());
+				}
+			}
+			record.pendingEdits.removeIf(edit -> edit == null || edit.nodeId() == null
+					|| !survivingNodes.contains(edit.nodeId()));
 			record.lastTopUpGameTime = Long.MIN_VALUE;
 			record.lastContainerScanGameTime = Long.MIN_VALUE;
 			record.lastCullGameTime = Long.MIN_VALUE;
@@ -204,6 +256,7 @@ public final class InfectionSink implements IncidentWorldSink {
 		if (record.id != null) {
 			ANNOUNCED_SECONDARY_BIRTHS.remove(record.id);
 			CENTER_CADENCE.remove(record.id);
+			InfectionQueue.remove(record.id);
 		}
 		if (record.objectInstanceId != null) {
 			ObjectDwellTracker.forgetEverywhere(record.objectInstanceId);
@@ -295,10 +348,24 @@ public final class InfectionSink implements IncidentWorldSink {
 		}
 	}
 
+	private static CenterCadence cadenceFor(IncidentRecord record, UUID nodeId) {
+		return CENTER_CADENCE
+				.computeIfAbsent(record.id, ignored -> new HashMap<>())
+				.computeIfAbsent(nodeId, ignored -> {
+					// Fresh cadence inherits the record's durable anchors — starting at
+					// MIN_VALUE would fire every due path immediately after each restart,
+					// duplicating top-up waves and scans (review P2).
+					CenterCadence cadence = new CenterCadence();
+					cadence.lastTopUp = record.lastTopUpGameTime;
+					cadence.lastContainerScan = record.lastContainerScanGameTime;
+					cadence.lastCull = record.lastCullGameTime;
+					return cadence;
+				});
+	}
+
 	/**
-	 * Re-scans the last-known container block of every tracked object, wherever it sits —
-	 * an object carried beyond the incident radius and stored in a chest keeps being
-	 * observed through this zone-independent heartbeat (issue #110 C6).
+	 * Re-observes every known container position — the heartbeat that lets a distant chest
+	 * relocate its incident even when no zone covers it (issue #110 C6).
 	 */
 	private void scanKnownContainers(ServerLevel level) {
 		for (BlockPos pos : dwellProvider.knownContainerPositions()) {
@@ -318,12 +385,6 @@ public final class InfectionSink implements IncidentWorldSink {
 		}
 	}
 
-
-	private static CenterCadence cadenceFor(IncidentRecord record, UUID nodeId) {
-		return CENTER_CADENCE
-				.computeIfAbsent(record.id, ignored -> new HashMap<>())
-				.computeIfAbsent(nodeId, ignored -> new CenterCadence());
-	}
 
 	private static boolean workUnitScarred(IncidentRecord record, UUID nodeId) {
 		if (nodeId == null) {

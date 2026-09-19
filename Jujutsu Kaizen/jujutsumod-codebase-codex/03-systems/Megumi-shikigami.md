@@ -34,9 +34,9 @@ the review-wave fixes landing on top.
 | `X` (press/release) | partial (`PARTIAL` / `PARTIAL_RELEASE`) | `MegumiPartialRuntime.tryPartial` / `tryPartialRelease` — Nue selection toggles the wings, Toad selection anchors the tongue at the aimed surface (release detaches); other selections refuse, and so does a partial whose type's full body is out |
 | `B` / `S+B` (+hold) / `V` | shadow kit | unchanged: trap / step / deep submerge / drop (`MegumiAbilityRouter`) |
 
-The roster card (`MegumiClientDefinition.rosterEntry`) lists seven rows in input order — Divine
+The roster card (`MegumiClientDefinition.rosterEntry`) lists eight rows in input order — Divine
 Dogs `R`, Sic `S+R`, Shikigami Select `S+V`, Shadow Trap `B`, Shadow Step `S+B`, Deep Submerge
-`S+B+`, Shadow Drop `V`. The `R` row still carries the `divine_dogs` label key: with the default
+`S+B+`, Shadow Drop `V`, Partial Manifestation `X`. The `R` row still carries the `divine_dogs` label key: with the default
 `DOGS` selection it summons the dogs, and after a cycle it summons whatever is selected. Five HUD
 cells mirror the five technique slots (`PRIMARY`, `PRIMARY_SNEAK`, `SECONDARY`, `SECONDARY_SNEAK`,
 `TERTIARY`); the `S+V` row owns no cooldown and gets no cell. The `PRIMARY` denominator is

@@ -181,16 +181,32 @@ public final class CursedObjectRegistry {
             if (LIVE_INSTANCES.containsKey(state.instanceId())) {
                 return true;
             }
-            if (!type.unlimited() && durableInstanceCount(type) >= type.maxInstances()) {
+            // The durable cap counts UNIQUE instances — a stack whose id already survives in
+            // knownObjects or a live incident record is the same instance re-registering
+            // after a restart/registry clear, never a new one (review P1).
+            jujutsu.mod.cursedincident.persist.IncidentSavedData data = boundData;
+            boolean alreadyKnown = data != null
+                    && (type.id().equals(data.knownObjects().get(state.instanceId()))
+                            || isRecordObject(data, state.instanceId()))
+                    && !data.isVoided(state.instanceId());
+            if (!alreadyKnown && !type.unlimited() && durableInstanceCount(type) >= type.maxInstances()) {
                 return false;
             }
             LIVE_INSTANCES.put(state.instanceId(), type.id());
-            jujutsu.mod.cursedincident.persist.IncidentSavedData data = boundData;
             if (data != null) {
                 data.rememberObject(state.instanceId(), type.id());
             }
             return true;
         }
+    }
+
+    private static boolean isRecordObject(jujutsu.mod.cursedincident.persist.IncidentSavedData data, UUID id) {
+        for (jujutsu.mod.cursedincident.IncidentRecord record : data.incidents().values()) {
+            if (record != null && !record.scarred && id.equals(record.objectInstanceId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static boolean registerInstance(UUID instanceId, String typeId) {

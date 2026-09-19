@@ -15,7 +15,7 @@ A world-scale subsystem: a **cursed incident** is a persistent, escalating zone 
 ## World half
 
 - `IncidentRuntime` ticks every 20 server ticks: per-record `server.getLevel(record.dimension)` (non-overworld incidents age in their own level), `advanceTo` for owed stages, then `sink.tickZone` for loaded, unsealed, unscarred records. `SERVER_STOPPING` clears every static map; `SERVER_STARTED` re-binds via `IncidentWiring.rebind()` — a second world entry in one JVM is fully functional.
-- `InfectionSink` (the production `IncidentWorldSink`) owns: stage deltas (seeded sample `RandomSource.create(seed ^ stage.ordinal())`, `min(400, r³/8)` positions, queued as `(pos, stage)` pairs and mapped at drain time so unloaded edits survive), the 64/tick shared block budget, cadences (curse top-up 200t, animal cull 300t, container scan 400t), VFX cues (ZONE_AMBIENT/STAGE_PULSE/SEAL_DEGRADE/SEAL_BREAK/SECONDARY_BIRTH — the last announced once per node id), and `onCleanup` (discards `jujutsumod:incident/<uuid>`-tagged spirits via `getAllEntities`, unregisters the source object).
+- `InfectionSink` (the production `IncidentWorldSink`) owns: stage deltas (seeded sample `RandomSource.create(seed ^ stage.ordinal())`, `min(400, r³/8)` positions, queued as `(pos, stage)` pairs and mapped at drain time so unloaded edits survive), the 64/tick shared block budget, cadences (curse top-up 200t, container scan 300t, animal cull 400t), VFX cues (ZONE_AMBIENT/STAGE_PULSE/SEAL_APPLIED/SEAL_DEGRADE/SEAL_BREAK/SECONDARY_BIRTH — the last announced once per node id), and `onCleanup` (discards `jujutsumod:incident/<uuid>`-tagged spirits via `getAllEntities`, unregisters the source object).
 - `InfectionQueue.drain` maps `InfectionPolicy.mapBlock(current, stage, seeded)` at apply time; unloaded positions requeue without counting (deferred is counted once at enqueue). Sealed records are refused at every gate: applyStageDelta, tickZone, drain, flushPendingDrains.
 - `IncidentSpawnRuntime` spawns waves of `CursedSpiritEntity` tagged `jujutsumod:incident/<uuid>` — the tag is what cleanup, fixture-reset and the cull sweep read. `trySpawnWave` respects the local cap.
 
@@ -34,6 +34,5 @@ A world-scale subsystem: a **cursed incident** is a persistent, escalating zone 
 
 ## Known limits
 
-- Rolled (non-explicit) object types report `type: null` on spawn surfaces — `ObjectSpawner` returns only the UUID; no type-readback seam exists yet.
 - `PressureRuntime.tick` has no fake-clock seam; accumulation is covered indirectly, not by a dedicated unit test.
 - `cadenceProbeForTest` is a live but currently unused test seam.

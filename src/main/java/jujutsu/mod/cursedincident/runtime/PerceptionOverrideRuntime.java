@@ -37,6 +37,11 @@ public final class PerceptionOverrideRuntime {
 				tick(server);
 			}
 		});
+		// A disconnecting player keeps no client mirror — drop the remembered override so a
+		// reconnect inside a critical zone re-sends the authoritative state instead of
+		// silently inheriting the stale "unchanged" entry (review finding).
+		net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.DISCONNECT.register(
+				(handler, server) -> OVERRIDES.remove(handler.player.getUUID()));
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> clear());
 	}
 
@@ -62,7 +67,7 @@ public final class PerceptionOverrideRuntime {
 					|| !record.stage.atLeast(IncidentStage.CRITICAL)) {
 				continue;
 			}
-			if (record.dimension != null && player.level().dimension() != record.dimension) {
+			if (record.dimension != null && !player.level().dimension().equals(record.dimension)) {
 				continue;
 			}
 			if (ZoneGeometry.contains(ZoneGeometry.shapeOf(record.params), record.center, record.radius,

@@ -1,14 +1,16 @@
-# Session Handoff — cursed incidents (issue #110) — READY FOR PR 2026-09-18
+# Session Handoff — integration branch `integration/megumi-incidents-107-110` — 2026-09-19
 
-## State — implementation + verification DONE on `feat/cursed-incidents` (worktree `D:/WorkFlow/jujutsu-incidents-wt`)
+## State — Phase 3 review wave done, fixes applied; qualityGate + in-game pending
 
-Full rule-of-four pipeline completed: scouts → plan → plan-review → 4 workers + main → barrier →
-5 reviewers (all FIX-FIRST, F1-F29 in `.superpowers/rule-of-four/cursed-incidents/review-wave.md`)
-→ fix wave (303a3f2, 7f56316, FixC, integration) → fable-judge VERIFIED WITH CAVEATS →
-qualityGate BUILD SUCCESSFUL → in-game MCP verification (13 steps + save/load persistence).
+The integration branch merges PRs #115 (selector, #109), #116 (cursed incidents, #110),
+#117 (coexistence/partials, #107/#108) plus a full fix wave. Phase 3 review wave
+(4 reviewers + QA) landed ~20 fixes: durable dirty marking, seal decay anchor policy,
+container setChanged, per-dimension clocks, secondary work-center edits, cap
+re-registration, disconnect cleanups, orphan node spirits, doc corrections.
 
-Remaining: push branch, open PR (RU title, «Для игрока» body, refs #110), findings → research.db.
-Docs synced: `03-systems/Cursed-incidents.md` (new), MOC link + metrics, CURRENT_STATE.md.
+Remaining: commit review fixes, full qualityGate, in-game MCP verification per
+`.superpowers/rule-of-four/integration-107-110/ingame-checklist.md`, open the
+integration PR (RU title, «Для игрока», supersedes #115/#116/#117, refs #107-#110).
 
 ## Previous session (domain-sphere PoC — MERGED 2026-09-16)
 

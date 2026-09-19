@@ -146,4 +146,11 @@ public final class InfectionQueue {
 	public static void clearRuntimeState() {
 		QUEUES.clear();
 	}
+
+	/** Drops the wrapper for a finished incident — the map must not retain record refs. */
+	public static void remove(UUID incidentId) {
+		if (incidentId != null) {
+			QUEUES.remove(incidentId);
+		}
+	}
 }

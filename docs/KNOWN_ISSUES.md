@@ -485,7 +485,7 @@ The whole in-world combat HUD the player saw in the 2026-08-21 build was put in 
 
 Untouched: ability input (R / S+R / B / S+B / LMB …), cooldown suppression, VfxDirector + the four remaining contributions (Megumi ×2, Todo ×2), the `hudSlots()`/`maxCooldownTicks()` seam (kept for restore), shared render helpers, assets and the `esp.jujutsumod.rank.*` lang keys. The game-instance jar was rebuilt from `feat/archive-combat-hud` and redeployed on 2026-09-09 17:10.
 
-### E17 — Cursed incidents: accepted limits (issue #110, feat/cursed-incidents)
+### E18 — Cursed incidents: accepted limits (issue #110, feat/cursed-incidents)
 
 Landed 2026-09-18 with the full subsystem green. Deliberate leftovers, not bugs:
 

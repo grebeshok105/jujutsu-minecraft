@@ -1,9 +1,14 @@
 # Current State — память проекта
 
 Status: CURRENT
-Обновлено: 2026-09-18
+Обновлено: 2026-09-19
 
-## 2026-09-18 — cursed incidents subsystem (issue #110, ветка feat/cursed-incidents)
+## 2026-09-19 — integration branch `integration/megumi-incidents-107-110` (PRs #115+#116+#117 → один PR)
+
+- Три PR смержены в одну ветку: selector (#109), cursed incidents (#110), coexistence/partials (#107/#108). Phase 3 review wave (4 ревьюера + QA) нашла ~20 реальных дефектов — все зачинены в рабочем дереве: durable dirty marking (tickZone/replayPendingDeltas), decay anchor policy (fresh seal=now, потом preserve), container setChanged на всех write-путях, per-dimension clock (catchUp/budget/dimension equals), secondary work-center stage edits + node radius, cap re-registration по durable identity, disconnect cleanup (perception override + carried objects), orphan node spirits на relocate/dwell-relocate, pendingDeltas cleared on cleanup, queue map removal, birth-cue seeding, cadence inherit, trySeal already_sealed guard, rebuildObjectIndex skip scarred/voided, reconcile record→component on observe.
+- Статус: compileJava/compileGametestJava/compileTestJava/mcpdevClasses green, JUnit green. Pending: commit, full qualityGate, in-game MCP verify, PR.
+
+## 2026-09-18 — cursed incidents subsystem (issue #110, ветка feat/cursed-incidents — superseded by integration)
 
 - Крупная мировая подсистема: персистентные эскалирующие зоны (INITIAL→…→CATASTROPHIC) на FREE/OBJECT источниках, SavedData `jujutsumod_incidents`, инфекция блоков (seeded sample, 64/tick бюджет), тегнутые духи `jujutsumod:incident/<uuid>`, cull животных, dwell-объекты (world/carried/container), seal/unseal/damage с component-authoritative зеркалом, secondary nodes, pressure-driven natural spawns, 15 mcpdev тулов + `/jujutsu incident *`.
 - Rule-of-four полный: 4 скаута → план → 3 ревью плана → 4 воркера + main → барьер → 5 ревьюеров (все FIX-FIRST, F1-F29) → fix-волна (FixA/FixB/FixC + интеграция) → fable-judge VERIFIED WITH CAVEATS (3 оговорки зачинены) → qualityGate green → in-game 13-шаговый сценарий + save/load persistence.

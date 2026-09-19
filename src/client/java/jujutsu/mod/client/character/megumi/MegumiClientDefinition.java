@@ -66,7 +66,7 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOOM,
 								"screen.jujutsumod.character_select.ability.shadow_drop", "V"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.LINK,
-								"screen.jujutsumod.character_select.ability.partial", "G")));
+								"screen.jujutsumod.character_select.ability.partial", "X")));
 	}
 
 	/**

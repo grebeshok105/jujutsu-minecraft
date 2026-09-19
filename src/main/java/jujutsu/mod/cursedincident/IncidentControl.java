@@ -339,7 +339,9 @@ public final class IncidentControl {
 		// Commit before effects: chooseTier and every sink consumer see the destination stage.
 		record.stage = next;
 		record.transitions.add(new IncidentRecord.Transition(previous, next, now));
-		applyStageDelta(record, previous, next);
+		// The CRITICAL secondary must exist BEFORE the stage delta runs — the sink samples
+		// block edits per work center, and a node born after the delta misses its own
+		// CRITICAL infection pass entirely (review P1).
 		if (next == IncidentStage.CRITICAL && record.params != null
 				&& record.params.secondaryAtCritical()
 				&& record.dependentCenterCount() < MAX_DEPENDENT_CENTERS) {
@@ -349,6 +351,7 @@ public final class IncidentControl {
 			record.secondaries.add(new SecondaryNode(UUID.randomUUID(), center,
 					Math.max(1.0, record.radius * 0.60), now, true));
 		}
+		applyStageDelta(record, previous, next);
 	}
 
 	/** Shared loaded-zone gate for every transition entry point, including spawn. */
@@ -507,10 +510,22 @@ public final class IncidentControl {
 		record.sourcePos = newCenter.immutable();
 		record.dwellAnchor = newCenter.immutable();
 		record.dwellTicks = 0L;
-		// Dependent centres stop at the old site; self-sustaining nodes survive.
+		// Dependent centres stop at the old site; self-sustaining nodes survive. Capture the
+		// removed node ids first — their already-spawned spirits carry node tags and must be
+		// cleaned explicitly, or they orphan forever (review P1).
+		java.util.List<UUID> removedNodes = new java.util.ArrayList<>();
+		for (SecondaryNode node : record.secondaries) {
+			if (node != null && !node.selfSustaining()) {
+				removedNodes.add(node.nodeId());
+			}
+		}
 		record.secondaries.removeIf(node -> !node.selfSustaining());
 		data().setDirty();
-		worldSink.onRelocated(levelFor(record), record, oldCenter);
+		ServerLevel level = levelFor(record);
+		for (UUID nodeId : removedNodes) {
+			jujutsu.mod.cursedincident.runtime.IncidentSpawnRuntime.cleanup(level, record.id, nodeId);
+		}
+		worldSink.onRelocated(level, record, oldCenter);
 	}
 
 	public static SecondaryNode forceSecondary(UUID id, BlockPos pos) {
@@ -556,6 +571,9 @@ public final class IncidentControl {
 		}
 		record.pendingEdits.removeIf(edit -> edit == null || edit.nodeId() == null
 				|| !survivingNodes.contains(edit.nodeId()));
+		// Deferred parent deltas die with the parent work center — a scarred record never
+		// replays them, so keeping them would only grow dead durable state (review P2).
+		record.pendingDeltas.clear();
 		record.secondaries.removeIf(node -> node == null || !node.selfSustaining());
 		data().setDirty();
 	}
@@ -572,9 +590,15 @@ public final class IncidentControl {
 			return;
 		}
 		activeLevel = overworld;
-		long now = overworld.getGameTime();
 		for (IncidentRecord record : recordsForRuntime()) {
-			advanceTo(record, record.ageTicks(now));
+			// Age each record on ITS OWN level's clock — dimensions keep independent
+			// gameTime offsets, so feeding the overworld's now to a nether record
+			// mis-ages the whole frontier (review finding).
+			ServerLevel level = levelFor(record);
+			if (level == null) {
+				continue;
+			}
+			advanceTo(record, record.ageTicks(level.getGameTime()));
 		}
 	}
 
@@ -604,7 +628,11 @@ public final class IncidentControl {
 	private static void rebuildObjectIndex() {
 		INCIDENT_BY_OBJECT.clear();
 		for (IncidentRecord record : boundStore.incidents().values()) {
-			if (record != null && record.id != null && record.objectInstanceId != null) {
+			// Scarred records and voided objects must not re-enter the live index — a
+			// cleaned incident's object id resolving again would let recordForObject
+			// target a dead record (review finding).
+			if (record != null && record.id != null && record.objectInstanceId != null
+					&& !record.scarred && !boundStore.isVoided(record.objectInstanceId)) {
 				INCIDENT_BY_OBJECT.put(record.objectInstanceId, record.id);
 			}
 		}
@@ -612,6 +640,15 @@ public final class IncidentControl {
 
 	private static IncidentSavedData data() {
 		return boundStore;
+	}
+
+	/**
+	 * Marks the bound store dirty after a sink/runtime mutated durable record fields
+	 * (pendingEdits drain, cadence anchors, counters) outside the transition engine —
+	 * without it those mutations never reach disk (review finding, C5/d5).
+	 */
+	public static void markDirty() {
+		data().setDirty();
 	}
 
 
@@ -700,17 +737,32 @@ public final class IncidentControl {
 		record.sourcePos = dwell.immutable();
 		record.dwellAnchor = dwell.immutable();
 		record.dwellTicks = 0L;
+		java.util.List<UUID> removedNodes = new java.util.ArrayList<>();
+		for (SecondaryNode node : record.secondaries) {
+			if (node != null && !node.selfSustaining()) {
+				removedNodes.add(node.nodeId());
+			}
+		}
 		record.secondaries.removeIf(node -> !node.selfSustaining());
-		worldSink.onRelocated(levelFor(record), record, oldCenter);
+		ServerLevel level = levelFor(record);
+		for (UUID nodeId : removedNodes) {
+			jujutsu.mod.cursedincident.runtime.IncidentSpawnRuntime.cleanup(level, record.id, nodeId);
+		}
+		worldSink.onRelocated(level, record, oldCenter);
 		data().setDirty();
 	}
 
 	private static boolean isLoaded(ServerLevel level, IncidentRecord record) {
-		// A missing level is the no-world unit-test seam; production always resolves one.
-		return level == null || record == null || record.center == null
-				|| level.getChunkSource().hasChunk(record.center.getX() >> 4, record.center.getZ() >> 4);
+		if (level == null) {
+			// With no server bound this is the no-world unit-test seam — treat as loaded so
+			// contract tests observe sink deltas directly. In production a null level means
+			// the record's dimension could not be resolved: UNLOADED, defer to pendingDeltas
+			// instead of firing a sink call with a null world (review P1).
+			return server == null;
+		}
+		return record != null && record.center != null
+				&& level.getChunkSource().hasChunk(record.center.getX() >> 4, record.center.getZ() >> 4);
 	}
-
 	private static long safeAdd(long left, long right) {
 		try {
 			return Math.addExact(left, right);
