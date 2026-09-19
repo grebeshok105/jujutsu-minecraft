@@ -1,5 +1,6 @@
 package jujutsu.mod.cursedspirit.ability.effects;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,10 +20,15 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.combat.HoldSupport;
+import jujutsu.mod.cursedspirit.CursedSpiritAttackPolicy;
 import jujutsu.mod.cursedspirit.CursedSpiritEntity;
+import jujutsu.mod.cursedspirit.CursedSpiritProfile;
+import jujutsu.mod.cursedspirit.CursedSpiritTierStats;
 import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityBrain;
 import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityId;
 import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityParams;
+import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityProfile;
+import jujutsu.mod.cursedspirit.hold.HeldVictimRegistry;
 import jujutsu.mod.cursedspirit.perception.CursePerception;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.vfx.CursedSpiritVfxIds;
@@ -49,6 +55,8 @@ import jujutsu.mod.vfx.VfxCues;
 public final class RunnerEffect {
 	/** Marker refresh per carry tick: the marker must never lapse, so this stays small. */
 	public static final int HOLD_MARKER_TICKS = 10;
+	/** Contact telegraph duration after the spirit reaches the victim. */
+	public static final int WINDUP_TICKS = 2;
 	/** Course wander period. BALANCE-adjacent. */
 	public static final int STEER_PERIOD_TICKS = 15;
 	/** Look-ahead for lava and drops. BALANCE-adjacent. */
@@ -57,9 +65,24 @@ public final class RunnerEffect {
 	public static final double MAX_SAFE_DROP = 10.0;
 	/** Yaw kick on wall collision or unsafe route. */
 	public static final float TURN_DEGREES = 120.0f;
+	/** Forward hand offset in blocks. */
+	public static final double CARRY_FORWARD = 0.6;
+	/** Upward hand offset in blocks. */
+	public static final double CARRY_UP = 1.2;
+
+	public enum Phase {
+		APPROACH,
+		WINDUP,
+		CONTACT,
+		CARRY
+	}
 
 	/** Victims currently carried by any runner: the deny-predicates read exactly this. */
 	private static final Set<UUID> CARRIED = ConcurrentHashMap.newKeySet();
+	/** One runner may own the approach intent for a victim at a time. */
+	private static final Map<UUID, UUID> APPROACHING = new ConcurrentHashMap<>();
+	private static final Map<UUID, Phase> PHASES = new ConcurrentHashMap<>();
+	private static final Map<UUID, Integer> PHASE_TICKS = new ConcurrentHashMap<>();
 
 	private RunnerEffect() {
 	}
@@ -73,10 +96,14 @@ public final class RunnerEffect {
 				isRunnerVictim(player) && isBlockPlacement(player.getItemInHand(hand))
 						? InteractionResult.FAIL
 						: InteractionResult.PASS);
-		// Same convention as every static runtime in the repo: the deny-set is JVM state,
-		// so a server stop inside a carry must not leak it into the next world — a stale
-		// entry would deny attack/break/place to that UUID for the rest of the session.
-		ServerLifecycleEvents.SERVER_STOPPING.register(server -> CARRIED.clear());
+		// JVM state must not leak into a later server/world.
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+			CARRIED.clear();
+			APPROACHING.clear();
+			PHASES.clear();
+			PHASE_TICKS.clear();
+			HeldVictimRegistry.clear();
+		});
 	}
 
 	public static boolean isRunnerVictim(Player player) {
@@ -93,6 +120,28 @@ public final class RunnerEffect {
 		return CARRIED.size();
 	}
 
+	/** Current server phase, or {@code null} when no runner window owns the spirit. */
+	public static Phase phaseOf(CursedSpiritEntity spirit) {
+		return spirit == null ? null : PHASES.get(spirit.getUUID());
+	}
+
+	/**
+	 * Contact gate expressed in hitbox-edge distance. The tier reach is still consulted through the
+	 * shared attack policy (2.0/2.5/3.0); the runner's tighter 2.2-block edge cap prevents a tier's
+	 * larger melee reach from becoming a distant grab.
+	 */
+	public static boolean inContactRange(CursedSpiritEntity spirit, ServerPlayer victim) {
+		if (spirit == null || victim == null) {
+			return false;
+		}
+		double centreDistance = spirit.distanceTo(victim);
+		CursedSpiritTierStats stats = CursedSpiritProfile.of(spirit.tier());
+		boolean tierReach = CursedSpiritAttackPolicy.inReach(centreDistance,
+				spirit.getBbWidth(), victim.getBbWidth(), stats);
+		double edgeDistance = centreDistance - spirit.getBbWidth() * 0.5 - victim.getBbWidth() * 0.5;
+		return tierReach && edgeDistance <= CursedSpiritAbilityProfile.RUNNER_CONTACT_RANGE;
+	}
+
 	public static boolean start(CursedSpiritEntity spirit, ServerPlayer victim, long now,
 			CursedSpiritAbilityParams params, CursedSpiritAbilityBrain brain) {
 		// Issue #80: the grab is control — never starts on a non-perceiving player.
@@ -100,31 +149,25 @@ public final class RunnerEffect {
 			return false;
 		}
 		// One victim, one holder (issue #90): the shared GRIPPED marker is a single flag, so a
-		// second holder's release would strip the deny-state the first still owns. Refuse the
-		// start on a victim already carried by another runner or held by a toad.
-		if (isRunnerVictim(victim) || HoldSupport.isHeld(victim)) {
+		// second holder's release would strip the deny-state the first still owns. Refuse both
+		// already-held victims and duplicate approach intents.
+		if (isRunnerVictim(victim) || HoldSupport.isHeld(victim)
+				|| APPROACHING.containsKey(victim.getUUID())) {
 			return false;
 		}
 		if (!brain.tryStart(CursedSpiritAbilityId.GRAB_RUNNER, now + params.durationTicks(), params,
 				victim.getUUID(), now)) {
 			return false;
 		}
-		dropHands(victim);
-		CARRIED.add(victim.getUUID());
-		HoldSupport.applyHold(victim, carryAnchor(spirit), HOLD_MARKER_TICKS);
-		ServerLevel level = (ServerLevel) spirit.level();
-		level.broadcastEntityEvent(spirit, CursedSpiritEntity.ABILITY_WINDUP);
-		JujutsuNetworking.broadcastVfxCue(level, spirit.position(),
-				CursedSpiritVfxIds.VFX_DELIVERY_RADIUS,
-				VfxCues.anchored(CursedSpiritVfxIds.RUNNER, spirit.position(), spirit.getId(),
-						spirit.position(), 1, now, spirit.getRandom().nextLong()),
-				CursePerception::perceives);
+		APPROACHING.put(victim.getUUID(), spirit.getUUID());
+		setPhase(spirit, Phase.APPROACH);
 		return true;
 	}
 
 	/**
-	 * Carry tick: refresh the shared pin every tick (no lapsed marker, ever), steer the
-	 * run, end on timeout/victim loss. The run deals no damage on any path.
+	 * Effect tick: approach owns navigation, windup owns the attack pose, CONTACT is the only
+	 * commit point, and CARRY refreshes the authoritative pin. A victim is never teleported before
+	 * the CONTACT reach+LOS re-check succeeds.
 	 */
 	public static void tick(CursedSpiritEntity spirit, ServerLevel level,
 			CursedSpiritAbilityBrain brain, CursedSpiritAbilityBrain.EffectState state, long now) {
@@ -133,14 +176,69 @@ public final class RunnerEffect {
 			end(spirit, state.targetUuid(), brain);
 			return;
 		}
-		// Issue #80: a victim that stops perceiving mid-carry (vessel switch) is released
-		// instead of being held by a curse that no longer exists for them.
+		// Issue #80: a victim that stops perceiving mid-run is released instead of being held by a
+		// curse that no longer exists for them.
 		if (!CursePerception.mayTouch(spirit, victim)) {
 			end(spirit, state.targetUuid(), brain);
 			return;
 		}
-		HoldSupport.applyHold(victim, carryAnchor(spirit), HOLD_MARKER_TICKS);
-		steer(spirit, level, state, now);
+		Phase phase = PHASES.getOrDefault(spirit.getUUID(), Phase.APPROACH);
+		switch (phase) {
+			case APPROACH -> {
+				if (inContactRange(spirit, victim)) {
+					setPhase(spirit, Phase.WINDUP);
+					spirit.getNavigation().stop();
+					spirit.getLookControl().setLookAt(victim, 30.0f, 30.0f);
+					level.broadcastEntityEvent(spirit, CursedSpiritEntity.ABILITY_WINDUP);
+				} else {
+					approach(spirit, victim, state.params());
+				}
+			}
+			case WINDUP -> {
+				spirit.getNavigation().stop();
+				spirit.getLookControl().setLookAt(victim, 30.0f, 30.0f);
+				int elapsed = PHASE_TICKS.merge(spirit.getUUID(), 1, Integer::sum);
+				if (elapsed >= WINDUP_TICKS) {
+					setPhase(spirit, Phase.CONTACT);
+				}
+			}
+			case CONTACT -> {
+				// The victim may move or a wall may appear during the telegraph. This is the sole
+				// authoritative gate; a miss ends cleanly without CARRIED, GRIPPED, or teleport.
+				if (!inContactRange(spirit, victim) || !spirit.hasLineOfSight(victim)) {
+					end(spirit, victim.getUUID(), brain);
+				} else {
+					commitCarry(spirit, level, victim, now);
+				}
+			}
+			case CARRY -> {
+				HoldSupport.applyHold(spirit, victim, carryAnchor(spirit),
+						HoldSupport.CollisionPolicy.RUNNER, HOLD_MARKER_TICKS);
+				steer(spirit, level, state, now);
+			}
+		}
+	}
+
+	private static void approach(CursedSpiritEntity spirit, ServerPlayer victim,
+			CursedSpiritAbilityParams params) {
+		spirit.getLookControl().setLookAt(victim, 30.0f, 30.0f);
+		spirit.getNavigation().moveTo(victim, clampSpeed(params.speed()));
+	}
+
+	private static void commitCarry(CursedSpiritEntity spirit, ServerLevel level,
+			ServerPlayer victim, long now) {
+		dropHands(victim);
+		CARRIED.add(victim.getUUID());
+		APPROACHING.remove(victim.getUUID(), spirit.getUUID());
+		setPhase(spirit, Phase.CARRY);
+		Vec3 contactPoint = carryAnchor(spirit);
+		HoldSupport.applyHold(spirit, victim, contactPoint,
+				HoldSupport.CollisionPolicy.RUNNER, HOLD_MARKER_TICKS);
+		JujutsuNetworking.broadcastVfxCue(level, contactPoint,
+				CursedSpiritVfxIds.VFX_DELIVERY_RADIUS,
+				VfxCues.anchored(CursedSpiritVfxIds.RUNNER, contactPoint, spirit.getId(),
+						spirit.position(), 1, now, spirit.getRandom().nextLong()),
+				CursePerception::perceives);
 	}
 
 	/** Cancels every run owned by a removed spirit. Bodies released, markers lifted. */
@@ -156,29 +254,43 @@ public final class RunnerEffect {
 	public static void end(CursedSpiritEntity spirit, UUID victimUuid,
 			CursedSpiritAbilityBrain brain) {
 		brain.forceEnd(CursedSpiritAbilityId.GRAB_RUNNER);
+		UUID spiritUuid = spirit == null ? null : spirit.getUUID();
+		if (spiritUuid != null) {
+			PHASES.remove(spiritUuid);
+			PHASE_TICKS.remove(spiritUuid);
+		}
 		if (victimUuid == null) {
 			return;
 		}
 		CARRIED.remove(victimUuid);
+		if (spiritUuid != null) {
+			APPROACHING.remove(victimUuid, spiritUuid);
+		} else {
+			APPROACHING.remove(victimUuid);
+		}
+		HeldVictimRegistry.release(victimUuid);
 		if (spirit.level() instanceof ServerLevel level) {
 			if (level.getEntity(victimUuid) instanceof ServerPlayer victim) {
 				HoldSupport.release(victim);
 			}
-			// end() runs from tick (victim loss), cancelAllFor (removal) and expiry — none of
-			// them passes through the windup site, so the release cue is broadcast here. A
-			// repeat ABILITY_RELEASE on a client that never saw the windup is harmless
-			// (endAttackAnim is a no-op then).
+			// Close the client attack pose only when this run reached the telegraph.
 			level.broadcastEntityEvent(spirit, CursedSpiritEntity.ABILITY_RELEASE);
 		}
 	}
 
+	private static void setPhase(CursedSpiritEntity spirit, Phase phase) {
+		PHASES.put(spirit.getUUID(), phase);
+		PHASE_TICKS.put(spirit.getUUID(), 0);
+	}
+
 	private static Vec3 carryAnchor(CursedSpiritEntity spirit) {
-		return spirit.position();
+		Vec3 forward = Vec3.directionFromRotation(0.0f, spirit.getYRot());
+		return spirit.position().add(forward.scale(CARRY_FORWARD)).add(0.0, CARRY_UP, 0.0);
 	}
 
 	/**
-	 * Drops both hands at the victim's feet, inventory untouched, empty hands dropping
-	 * nothing. Main hand first, then off hand — the order the GameTest counts on.
+	 * Drops both hands at the victim's feet, inventory untouched, empty hands dropping nothing.
+	 * Main hand first, then off hand — the order the GameTest counts on.
 	 */
 	static void dropHands(ServerPlayer victim) {
 		ItemStack main = victim.getMainHandItem();
@@ -216,8 +328,8 @@ public final class RunnerEffect {
 
 	/**
 	 * Pure-geometry route probe: lava in the ahead column or a drop deeper than
-	 * {@link #MAX_SAFE_DROP} fails the course. No pathfinding, no block reads beyond the
-	 * two probe columns.
+	 * {@link #MAX_SAFE_DROP} fails the course. No pathfinding, no block reads beyond the two probe
+	 * columns.
 	 */
 	static boolean routeSafe(CursedSpiritEntity spirit, ServerLevel level, float yaw) {
 		Vec3 forward = Vec3.directionFromRotation(0.0f, yaw);

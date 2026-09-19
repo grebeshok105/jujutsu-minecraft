@@ -31,6 +31,8 @@ public final class CursedSpiritAbilityProfile {
 	public static final double ACID_MAX_RANGE = 18.0;
 	public static final double RUNNER_MIN_RANGE = 3.0;
 	public static final double RUNNER_MAX_RANGE = 12.0;
+	/** Maximum runner distance between hitbox edges at CONTACT, before the LOS gate. */
+	public static final double RUNNER_CONTACT_RANGE = 2.2;
 	private static final int VARIANT_BIAS = 2;
 	/** "Nasty" abilities (fear/berserk/runner/acid) weigh 8/10/12 across grades 5/4/3. BALANCE. */
 	private static final int NASTY_WEIGHT_GRADE_5 = 8;

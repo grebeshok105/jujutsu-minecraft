@@ -1487,7 +1487,8 @@ public final class MegumiToadGameTests {
 				victim.teleportTo(victimPad.getX() + 0.5, victimPad.getY(), victimPad.getZ() + 0.5);
 				// The toad-side victim carries the same marker directly — equivalent to a toad or
 				// runner pin, and immune to the runner window's own lifecycle inside the test.
-				HoldSupport.applyHold(victim, victim.position(), 600);
+				HoldSupport.applyHold(spiritA, victim, victim.position(),
+						HoldSupport.CollisionPolicy.TOAD, 600);
 				helper.assertTrue(HoldSupport.isHeld(victim), CursedSpiritTestFixtures.diagnostic(
 						fixture, helper.getTick(), "premise: victim carries GRIPPED", "true", "false"));
 				helper.assertTrue(!RunnerEffect.start(spiritB, victim, level.getGameTime(), params,

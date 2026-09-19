@@ -159,7 +159,7 @@ public final class CursedSpiritAbilityGameTests {
 		});
 	}
 
-	/** R54 — the run drops both hands at the start spot, holds GRIPPED every carry tick,
+	/** R54 — the run approaches before it commits, then holds GRIPPED every carry tick,
 	 * and ends on its window. */
 	@GameTest(maxTicks = 130, skyAccess = true)
 	public void runnerCarriesWithUnbrokenMarker(GameTestHelper helper) {
@@ -174,6 +174,7 @@ public final class CursedSpiritAbilityGameTests {
 		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
 				JujutsuEntities.CURSED_SPIRIT, new BlockPos(2, 1, 2));
 		AtomicBoolean gap = new AtomicBoolean();
+		AtomicBoolean carrying = new AtomicBoolean();
 		AtomicReference<Vec3> startPos = new AtomicReference<>();
 		helper.runAtTickTime(1, () -> {
 			spirit.gradeStats();
@@ -191,13 +192,17 @@ public final class CursedSpiritAbilityGameTests {
 		});
 		for (long tick = 2; tick <= 85; tick++) {
 			helper.runAtTickTime(tick, () -> {
-				if (spirit.abilityBrain().isActive(CursedSpiritAbilityId.GRAB_RUNNER,
-						level.getGameTime()) && !victim.hasEffect(JujutsuEffects.GRIPPED)) {
-					gap.set(true);
+				if (RunnerEffect.phaseOf(spirit) == RunnerEffect.Phase.CARRY) {
+					carrying.set(true);
+					if (!victim.hasEffect(JujutsuEffects.GRIPPED)) {
+						gap.set(true);
+					}
 				}
 			});
 		}
 		helper.runAtTickTime(90, () -> {
+			helper.assertTrue(carrying.get(), CursedSpiritTestFixtures.diagnostic(fixture,
+					helper.getTick(), "runner reached CARRY", "true", "false"));
 			helper.assertTrue(!gap.get(), CursedSpiritTestFixtures.diagnostic(fixture,
 					helper.getTick(), "GRIPPED every carry tick", "no gap", "gap"));
 			helper.assertTrue(victim.getMainHandItem().isEmpty() && victim.getOffhandItem().isEmpty(),
@@ -221,6 +226,74 @@ public final class CursedSpiritAbilityGameTests {
 			cleanup(helper, spirit, victim);
 			helper.succeed();
 		});
+	}
+
+	/** R12 — an eight-block target is an approach intent, never a distant grab. Moving the victim
+	 * away on CONTACT must abort without CARRIED, GRIPPED, or a teleport. */
+	@GameTest(maxTicks = 140, skyAccess = true)
+	public void runnerMustApproachBeforeGrab(GameTestHelper helper) {
+		String fixture = "runnerMustApproachBeforeGrab";
+		CursedSpiritTestFixtures.layStoneFloor(helper);
+		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
+		ServerLevel level = helper.getLevel();
+		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, fixture,
+				new BlockPos(2, 1, 10));
+		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
+		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
+				JujutsuEntities.CURSED_SPIRIT, new BlockPos(2, 1, 2));
+		AtomicBoolean movedAtContact = new AtomicBoolean();
+		AtomicBoolean observedApproach = new AtomicBoolean();
+		helper.runAtTickTime(1, () -> {
+			spirit.gradeStats();
+			spirit.rollAbilityPool();
+			spirit.abilityBrain().forcePoolForTest(List.of(CursedSpiritAbilityId.GRAB_RUNNER,
+					CursedSpiritAbilityId.REGEN, CursedSpiritAbilityId.ARMOR));
+			CursedSpiritAbilityParams params = CursedSpiritAbilityProfile.of(
+					CursedSpiritAbilityId.GRAB_RUNNER, spirit.grade());
+			helper.assertTrue(RunnerEffect.start(spirit, victim, level.getGameTime(), params,
+					spirit.abilityBrain()), CursedSpiritTestFixtures.diagnostic(fixture,
+					helper.getTick(), "approach intent started", "true", "false"));
+			helper.assertTrue(!RunnerEffect.isRunnerVictim(victim)
+					&& !victim.hasEffect(JujutsuEffects.GRIPPED),
+					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+							"far target is not carried at start", "false/false",
+							RunnerEffect.isRunnerVictim(victim) + "/" + victim.hasEffect(JujutsuEffects.GRIPPED)));
+		});
+		for (long tick = 2; tick <= 130; tick++) {
+			final long poll = tick;
+			helper.runAtTickTime(poll, () -> {
+				if (RunnerEffect.phaseOf(spirit) == RunnerEffect.Phase.APPROACH) {
+					observedApproach.set(true);
+					helper.assertTrue(!RunnerEffect.isRunnerVictim(victim)
+							&& !victim.hasEffect(JujutsuEffects.GRIPPED),
+							CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+									"approach has no held marker", "false/false",
+									RunnerEffect.isRunnerVictim(victim) + "/"
+											+ victim.hasEffect(JujutsuEffects.GRIPPED)));
+				} else if (RunnerEffect.phaseOf(spirit) == RunnerEffect.Phase.CONTACT
+						&& movedAtContact.compareAndSet(false, true)) {
+					victim.teleportTo(level, 2.5, 1.0, 14.5, Set.of(), 0.0f, 0.0f, false);
+				} else if (movedAtContact.get()
+						&& !spirit.abilityBrain().isActive(CursedSpiritAbilityId.GRAB_RUNNER,
+								level.getGameTime())) {
+					helper.assertTrue(observedApproach.get(),
+							CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+									"runner observed approach phase", "true", "false"));
+					helper.assertTrue(!RunnerEffect.isRunnerVictim(victim)
+							&& !victim.hasEffect(JujutsuEffects.GRIPPED),
+							CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+									"contact miss aborts cleanly", "false/false",
+									RunnerEffect.isRunnerVictim(victim) + "/"
+											+ victim.hasEffect(JujutsuEffects.GRIPPED)));
+					cleanup(helper, spirit, victim);
+					helper.succeed();
+				} else if (poll == 130) {
+					helper.assertTrue(false, CursedSpiritTestFixtures.diagnostic(fixture,
+							helper.getTick(), "contact miss observed by tick 130",
+							"abort", RunnerEffect.phaseOf(spirit)));
+				}
+			});
+		}
 	}
 
 	/** Fear cast range — a victim beyond the profile radius never catches

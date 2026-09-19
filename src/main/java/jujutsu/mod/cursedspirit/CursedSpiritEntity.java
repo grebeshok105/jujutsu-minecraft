@@ -531,9 +531,8 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant, Cur
 
 	void beginScreamAnim() {
 		// A fresh hit only extends the window while the clip already runs: restarting it on every hit
-		// of a combo re-entered the authored torso swing and the POSITION bob each time, which read as
-		// the model sliding off its hitbox (issue #77). A first hit still stop-then-starts, because a
-		// finished clip never restarts on its own.
+		// of a combo re-entered the authored torso swing. Scream positional root/body channels are
+		// sanitized in the shared animation pack, so this state keeps only the intended recoil.
 		if (!screamAnimationState.isStarted()) {
 			screamAnimationState.stop();
 			screamAnimationState.start(tickCount);

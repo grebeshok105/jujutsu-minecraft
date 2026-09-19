@@ -398,6 +398,61 @@ public final class CursedSpiritEffectGameTests {
 		});
 	}
 
+	/** R13 — the runner's yaw-relative hand anchor is clamped toward the holder instead of
+	 * teleporting the victim into a solid wall. */
+	@GameTest(maxTicks = 90, skyAccess = true)
+	public void runnerCarryAnchorClearsWalls(GameTestHelper helper) {
+		String fixture = "runnerCarryAnchorClearsWalls";
+		CursedSpiritTestFixtures.layStoneFloor(helper);
+		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
+		ServerLevel level = helper.getLevel();
+		// Yaw 0 faces +Z; this wall intersects the hand anchor at z≈2.6, but not the spirit's
+		// feet. A collision-safe policy must step the victim back toward the holder.
+		helper.setBlock(new BlockPos(2, 2, 3), Blocks.STONE);
+		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, fixture,
+				new BlockPos(4, 1, 2));
+		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
+		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
+				JujutsuEntities.CURSED_SPIRIT, new BlockPos(2, 1, 2));
+		CursedSpiritTestFixtures.freezeGround(spirit);
+		AtomicBoolean done = new AtomicBoolean();
+		helper.runAtTickTime(1, () -> {
+			spirit.setYRot(0.0f);
+			spirit.gradeStats();
+			spirit.rollAbilityPool();
+			spirit.abilityBrain().forcePoolForTest(List.of(CursedSpiritAbilityId.GRAB_RUNNER,
+					CursedSpiritAbilityId.REGEN, CursedSpiritAbilityId.ARMOR));
+			CursedSpiritAbilityParams params = CursedSpiritAbilityProfile.of(
+					CursedSpiritAbilityId.GRAB_RUNNER, spirit.grade());
+			helper.assertTrue(RunnerEffect.start(spirit, victim, level.getGameTime(), params,
+					spirit.abilityBrain()), CursedSpiritTestFixtures.diagnostic(fixture,
+					helper.getTick(), "run started", "true", "false"));
+		});
+		for (long tick = 2; tick <= 80; tick++) {
+			final long poll = tick;
+			helper.runAtTickTime(poll, () -> {
+				if (done.get()) {
+					return;
+				}
+				if (RunnerEffect.phaseOf(spirit) == RunnerEffect.Phase.CARRY) {
+					done.set(true);
+					helper.assertTrue(level.noCollision(victim, victim.getBoundingBox()),
+							CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+									"carried victim box is outside solids", "true", "false"));
+					helper.assertTrue(victim.getZ() < 3.0,
+							CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+									"wall-clamped anchor stays behind wall", "<3.0", victim.getZ()));
+					cleanupRunner(helper, spirit, victim);
+					helper.succeed();
+				} else if (poll == 80) {
+					helper.assertTrue(false, CursedSpiritTestFixtures.diagnostic(fixture,
+							helper.getTick(), "runner reached CARRY by tick 80", "CARRY",
+							RunnerEffect.phaseOf(spirit)));
+				}
+			});
+		}
+	}
+
 	/** R54 lava — a lava column on the course turns the run: the yaw kicks the same tick
 	 * the probe sees lava. */
 	@GameTest(maxTicks = 60, skyAccess = true)

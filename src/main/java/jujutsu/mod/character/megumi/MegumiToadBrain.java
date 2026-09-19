@@ -209,16 +209,9 @@ final class MegumiToadBrain {
 		toad.setDeltaMovement(Vec3.ZERO);
 		Vec3 anchor = MegumiToadPolicy.anchor(toad.position(), toad.getLookAngle(),
 				MegumiShikigamiProfile.TOAD_GRIP_OFFSET);
-		// Collision probe with the victim's own box: a body facing a wall or lava would bury the
-		// anchor inside solid blocks and suffocate the victim mid-hold (issue #90). Fall back to
-		// the body's feet — always in-bounds for the body itself.
-		if (!level.noCollision(victim, victim.getBoundingBox()
-				.move(anchor.subtract(victim.position())))) {
-			anchor = toad.position();
-		}
-		// One pin for both kinds of victim: the anchor is written every tick, so the victim hangs
-		// TOAD_GRIP_OFFSET in front of the body instead of freezing wherever the tongue found it.
-		HoldSupport.applyHold(victim, anchor, GRIP_MARKER_TICKS);
+		// HoldSupport keeps the historic Toad fallback to the body's feet when the hand anchor
+		// intersects a solid block; unlike the runner, this policy is intentionally one-step.
+		HoldSupport.applyHold(toad, victim, anchor, HoldSupport.CollisionPolicy.TOAD, GRIP_MARKER_TICKS);
 		if (victim instanceof Mob mob) {
 			// A mob is server-driven and its own AI keeps pushing between our ticks: stop the
 			// navigation and drain what is left of its walking speed. No setNoAi — the design keeps
