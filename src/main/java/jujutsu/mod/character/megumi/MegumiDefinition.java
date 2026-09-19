@@ -76,11 +76,16 @@ public final class MegumiDefinition implements CharacterDefinition {
 		if (MegumiPartialRuntime.isAnyActive(player.getUUID())) {
 			player.displayClientMessage(Component.translatable(
 					"message.jujutsumod.megumi.shikigami.selection_locked"), true);
+			// Rejected clicks must push the authoritative snapshot back — the client marks
+			// optimistically before the C2S lands, so a silent refusal leaves the strip
+			// showing a rejected type as selected (review P2).
+			MegumiShikigamiSync.push(player);
 			return false;
 		}
 		// A cooling type is not selectable. Refusing here — and not by ignoring the packet — is what
 		// keeps the server the only authority on availability; the client's own click gate is a mirror.
 		if (MegumiSummonCooldowns.onCooldown(player.getUUID(), type, player.level().getGameTime())) {
+			MegumiShikigamiSync.push(player);
 			return false;
 		}
 		// Selection is free and non-destructive: it never starts a cooldown and never sweeps a pack,
