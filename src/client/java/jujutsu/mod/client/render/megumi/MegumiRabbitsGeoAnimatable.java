@@ -68,13 +68,15 @@ public final class MegumiRabbitsGeoAnimatable implements GeoReplacedEntity {
 		if (!(state.renderState() instanceof MegumiShikigamiRenderState rabbits)) {
 			return PlayState.STOP;
 		}
-		if (!rabbits.actionActive) {
-			return PlayState.STOP;
-		}
-		if (state.isCurrentAnimation(ATTACK) && state.controller().hasAnimationFinished()) {
+		boolean triggerActive = rabbits.actionActive;
+		boolean clipPlaying = state.isCurrentAnimation(ATTACK);
+		boolean clipFinished = state.controller().hasAnimationFinished();
+		if (MegumiShikigamiAnimationPolicy.rabbitAttackNeedsRestart(triggerActive, clipPlaying, clipFinished)) {
 			state.resetCurrentAnimation();
 		}
-		return state.setAndContinue(ATTACK);
+		return MegumiShikigamiAnimationPolicy.rabbitAttackOwnsClip(triggerActive, clipPlaying, clipFinished)
+				? state.setAndContinue(ATTACK)
+				: PlayState.STOP;
 	}
 
 	private static RawAnimation rawAnimation(MegumiShikigamiAnimationPolicy.Clip clip) {

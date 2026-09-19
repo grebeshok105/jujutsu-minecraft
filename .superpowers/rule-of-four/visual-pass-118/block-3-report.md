@@ -7,7 +7,7 @@
 - Added `NueArcState`: immutable target endpoint, live Nue entity id, seeded arc, eight-tick expiry.
 - Added and registered `NueArcRenderer`: 2–3 seeded jagged lightning ribbons, two-tick jitter reseeding, lightning/additive buffer, six-tick expanding impact shell with four mini-arcs. The same world pass renders the directional elephant water ribbon.
 - `MegumiVfxRecipes`: `nueShock` registers the arc and leaves a small spark/ring garnish; `nueDive` samples sparks along cue direction; elephant jet registers its directional stream; removed the deleted B1 `triggerNueWings` caller while retaining unrelated shadow/dog animation hooks.
-- Rabbit audit fix: server bump calls the existing synchronized `swing` trigger once per successful bump; client render state promotes the imported one-shot attack clip from the swing state or action timer.
+- Rabbit audit fix: server bump calls the existing synchronized `swing` trigger once per successful bump; client render state promotes the imported one-shot attack clip from the swing state or action timer and lets it finish after the short swing window.
 - Elephant audit fix: jet cue carries the elephant-facing direction and the renderer draws a directional stream.
 - Dogs audit: existing real-body renderer plus `DOGS_SIC`/`DOGS_POUNCE` cue recipes remain wired; no mechanics change was needed.
 - No new live id was added to `MegumiVfxIds`; B5 does not need a completeness-count update for this block.

@@ -90,5 +90,10 @@ class MegumiShikigamiAnimationPolicyTest {
 		assertTrue(MegumiShikigamiAnimationPolicy.rabbitsAction(false, 0.5f),
 				"the vanilla swing state is the client-side fallback trigger");
 		assertFalse(MegumiShikigamiAnimationPolicy.rabbitsAction(false, 0.0f));
+		assertTrue(MegumiShikigamiAnimationPolicy.rabbitAttackOwnsClip(false, true, false),
+				"the one-shot remains visible after swing until its imported clip ends");
+		assertFalse(MegumiShikigamiAnimationPolicy.rabbitAttackOwnsClip(false, true, true));
+		assertTrue(MegumiShikigamiAnimationPolicy.rabbitAttackNeedsRestart(true, true, true));
+		assertFalse(MegumiShikigamiAnimationPolicy.rabbitAttackNeedsRestart(false, true, true));
 	}
 }
