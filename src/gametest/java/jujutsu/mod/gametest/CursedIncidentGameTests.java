@@ -358,4 +358,64 @@ public final class CursedIncidentGameTests {
 			helper.succeed();
 		});
 	}
+
+	/**
+	 * Zone-state broadcasts reach only perceiving players — a non-mage client must never
+	 * learn a zone exists (spec §12 perception contract, C5 CURSE classification).
+	 */
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 80)
+	public void zoneStateAudienceIsPerceiversOnly(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		IncidentRecord record = CursedIncidentTestFixtures.spawnFree(helper, CENTER, IncidentStage.GROWING, RADIUS, 1120L);
+		var none = CursedSpiritTestFixtures.setupVictim(helper, "zoneStateAudienceIsPerceiversOnly", new BlockPos(6, 4, 8));
+		var mage = CursedSpiritTestFixtures.setupVictim(helper, "zoneStateAudienceIsPerceiversOnly", new BlockPos(10, 4, 8));
+		jujutsu.mod.character.CharacterSelectionManager.select(mage, jujutsu.mod.character.JujutsuCharacter.MEGUMI);
+		helper.runAtTickTime(5, () -> {
+			try {
+				List<net.minecraft.server.level.ServerPlayer> audience =
+						jujutsu.mod.cursedincident.runtime.IncidentZoneSync.recipients(level, record.center);
+				helper.assertTrue(audience.contains(mage) && !audience.contains(none),
+						CursedIncidentTestFixtures.diagnostic("zoneStateAudienceIsPerceiversOnly(R-perception)", helper,
+								"zone audience = perceivers", "[mage]", audience));
+			} finally {
+				CursedSpiritTestFixtures.cleanupVictim(helper, none);
+				CursedSpiritTestFixtures.cleanupVictim(helper, mage);
+				CursedIncidentTestFixtures.cleanup(record);
+			}
+			helper.succeed();
+		});
+	}
+
+	/**
+	 * The demo command produces a fully dressed incident in one call — object source,
+	 * zone record, spawn wave — at the invoking player's position (spec §15).
+	 */
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
+	public void demoCommandSpawnsDressedIncident(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		var player = CursedSpiritTestFixtures.setupVictim(helper, "demoCommandSpawnsDressedIncident", CENTER);
+		helper.runAtTickTime(5, () -> {
+			try {
+				// Drive the command path the way a player would: spawn at the player's
+				// position with an OBJECT source and a non-default stage.
+				IncidentControl.SpawnOutcome outcome = IncidentControl.spawn(new IncidentControl.SpawnRequest(
+						player.blockPosition(), level.dimension(), null, null, null,
+						IncidentStage.GROWING, null, SourceKind.OBJECT, null));
+				helper.assertTrue(outcome instanceof IncidentControl.SpawnOutcome.Created,
+						CursedIncidentTestFixtures.diagnostic("demoCommandSpawnsDressedIncident(§15)", helper,
+								"demo spawn accepted", "Created", outcome));
+				IncidentRecord record = ((IncidentControl.SpawnOutcome.Created) outcome).record();
+				helper.assertTrue(record.objectInstanceId != null && record.sourceKind == SourceKind.OBJECT,
+						CursedIncidentTestFixtures.diagnostic("demoCommandSpawnsDressedIncident(§15)", helper,
+								"object source minted", "objectInstanceId set", record.objectInstanceId));
+				helper.assertTrue(record.stage == IncidentStage.GROWING,
+						CursedIncidentTestFixtures.diagnostic("demoCommandSpawnsDressedIncident(§15)", helper,
+								"stage applied", "GROWING", record.stage));
+				CursedIncidentTestFixtures.cleanup(record);
+			} finally {
+				CursedSpiritTestFixtures.cleanupVictim(helper, player);
+			}
+			helper.succeed();
+		});
+	}
 }

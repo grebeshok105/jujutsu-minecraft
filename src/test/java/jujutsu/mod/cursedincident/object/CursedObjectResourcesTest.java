@@ -45,6 +45,25 @@ final class CursedObjectResourcesTest {
     }
 
     @Test
+    void everyNaturalTypeHasSealOverlayTexture() throws IOException {
+        for (CursedObjectType type : CursedObjectRegistry.naturalTypes()) {
+            Path sealed = ASSETS.resolve("textures/item/" + type.texture() + "_sealed.png");
+            BufferedImage image = ImageIO.read(sealed.toFile());
+            assertNotNull(image, "missing/unreadable seal overlay " + sealed);
+            assertEquals(64, image.getWidth(), "seal overlay uses the shared 64px atlas width");
+            assertEquals(64, image.getHeight(), "seal overlay uses the shared 64px atlas height");
+        }
+    }
+
+    @Test
+    void everyNaturalTypeDeclaresPositiveRenderScale() {
+        for (CursedObjectType type : CursedObjectRegistry.naturalTypes()) {
+            assertTrue(type.renderScale() > 0.0 && type.renderScale() <= 2.0,
+                    "renderScale out of sane range for " + type.id() + ": " + type.renderScale());
+        }
+    }
+
+    @Test
     void itemDefinitionsResolveForObjectAndAllTalismanTiers() throws IOException {
         Path objectDefinition = ASSETS.resolve("items/cursed_object.json");
         assertTrue(Files.readString(objectDefinition).contains("geckolib:geckolib"));

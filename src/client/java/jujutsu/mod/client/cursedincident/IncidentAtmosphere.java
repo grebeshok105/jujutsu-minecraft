@@ -36,8 +36,15 @@ public final class IncidentAtmosphere {
 			float proximity = context.proximity(cue, CursedIncidentVfxIds.VFX_DELIVERY_RADIUS);
 			RandomSource random = RandomSource.create(cue.seed());
 			context.burst(CURSE_DUST, origin, 18 + cue.intensity() * 4, 1.5 + proximity, 0.08, random);
-			context.playNoFalloff(JujutsuSounds.INCIDENT_DRONE, 0.15f + proximity * 0.45f,
-					0.75f + random.nextFloat() * 0.1f, origin, random);
+			// Positional drone: real distance attenuation so the zone is heard before it is
+			// seen; intensity (stage ordinal) layers a second, higher-pitched voice on top
+			// from GROWING up, so escalation is audible, not just louder.
+			context.playPositional(JujutsuSounds.INCIDENT_DRONE, 0.35f + proximity * 0.45f,
+					0.7f + random.nextFloat() * 0.1f, origin, random);
+			if (cue.intensity() >= 2) {
+				context.playPositional(JujutsuSounds.INCIDENT_DRONE, 0.2f + proximity * 0.3f,
+						1.15f + cue.intensity() * 0.08f, origin, random);
+			}
 		});
 	}
 

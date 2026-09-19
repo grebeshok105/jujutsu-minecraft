@@ -23,7 +23,9 @@ import jujutsu.mod.cursedincident.IncidentStage;
 import jujutsu.mod.cursedincident.IncidentWorldSink;
 import jujutsu.mod.cursedincident.SecondaryNode;
 import jujutsu.mod.cursedincident.runtime.IncidentSpawnRuntime;
+import jujutsu.mod.cursedincident.runtime.IncidentZoneSync;
 import jujutsu.mod.cursedincident.runtime.ObjectDwellTracker;
+import jujutsu.mod.network.IncidentZoneStatePayload;
 import jujutsu.mod.cursedspirit.perception.CursePerception;
 import jujutsu.mod.combat.JujutsuDamageSources;
 import jujutsu.mod.network.JujutsuNetworking;
@@ -36,6 +38,12 @@ public final class InfectionSink implements IncidentWorldSink {
 	public static final long CONTAINER_SCAN_TICKS = 300L;
 	public static final long CULL_TICKS = 400L;
 	public static final long AMBIENT_INTERVAL_TICKS = 100L;
+
+	/** Per-stage ambient cadence: INITIAL breathes slowly, CATASTROPHIC pulses fast. */
+	public static long ambientIntervalTicks(IncidentStage stage) {
+		int ordinal = stage == null ? 0 : stage.ordinal();
+		return Math.max(40L, AMBIENT_INTERVAL_TICKS + 20L - ordinal * 20L);
+	}
 
 	private static final Map<UUID, Set<UUID>> PENDING_SECONDARY_BIRTHS = new HashMap<>();
 	private static final Map<UUID, Map<UUID, CenterCadence>> CENTER_CADENCE = new HashMap<>();
@@ -101,6 +109,14 @@ public final class InfectionSink implements IncidentWorldSink {
 		}
 		record.lastAmbientGameTime = level.getGameTime();
 		emitCue(level, record, CursedIncidentVfxIds.STAGE_PULSE, true, to.ordinal() + 1);
+		// Zone-state snapshot on every stage commit (spawn included — the INITIAL→INITIAL
+		// delta at spawn is the first broadcast a perceiving client sees).
+		IncidentZoneSync.sendZoneState(level, record);
+		for (SecondaryNode node : record.secondaries) {
+			if (node != null && !node.scarred()) {
+				IncidentZoneSync.sendZoneState(level, record, node);
+			}
+		}
 		IncidentSpawnRuntime.spawnWave(level, record, record.center, null, to == IncidentStage.INITIAL ? 1 : 2);
 	}
 
@@ -126,10 +142,8 @@ public final class InfectionSink implements IncidentWorldSink {
 		CenterCadence cadence = nodeId == null ? null : cadenceFor(record, nodeId);
 		// Re-arm the short client recipe from a durable server cadence, not every zone tick.
 		// Per work center: the parent and every secondary keep their own ambient clock —
-		// sharing record.lastAmbientGameTime starved every secondary that ticked after the
-		// parent in the same interval (review finding).
 		if (due(now, nodeId == null ? record.lastAmbientGameTime : cadence.lastAmbient,
-				AMBIENT_INTERVAL_TICKS)) {
+				ambientIntervalTicks(record.stage))) {
 			if (nodeId == null) {
 				record.lastAmbientGameTime = now;
 			} else {
@@ -137,6 +151,19 @@ public final class InfectionSink implements IncidentWorldSink {
 			}
 			int intensity = Math.max(1, record.stage == null ? 1 : record.stage.ordinal());
 			emitCue(level, record, CursedIncidentVfxIds.ZONE_AMBIENT, false, intensity, center);
+			// Heartbeat: re-send this work center's zone state on the ambient cadence so
+			// late-joining/late-tracking perceiving players learn the zone without a
+			// dedicated join-sync path.
+			if (nodeId == null) {
+				IncidentZoneSync.sendZoneState(level, record);
+			} else {
+				for (SecondaryNode node : record.secondaries) {
+					if (node != null && nodeId.equals(node.nodeId())) {
+						IncidentZoneSync.sendZoneState(level, record, node);
+						break;
+					}
+				}
+			}
 		}
 		if (due(now, nodeId == null ? record.lastTopUpGameTime : cadence.lastTopUp, CURSE_TOPUP_TICKS)) {
 			if (nodeId == null) {
@@ -178,6 +205,8 @@ public final class InfectionSink implements IncidentWorldSink {
 				if (node != null && pending.remove(node.nodeId())) {
 					emitCue(level, record, CursedIncidentVfxIds.SECONDARY_BIRTH, true, 2,
 							node.center());
+					// The new work center announces itself at its own center — R20.
+					IncidentZoneSync.sendZoneState(level, record, node);
 				}
 			}
 			if (pending.isEmpty()) {
@@ -225,6 +254,18 @@ public final class InfectionSink implements IncidentWorldSink {
 				}
 			}
 			CENTER_CADENCE.remove(record.id);
+			if (level != null && record.id != null) {
+				// The parent zone moved: deactivate the old-center key, announce the new
+				// center, and drop client entries for stripped dependent nodes.
+				IncidentZoneSync.sendInactive(level, record,
+						IncidentZoneStatePayload.PARENT_NODE, oldCenter);
+				IncidentZoneSync.sendZoneState(level, record);
+				for (var node : record.secondaries) {
+					if (node != null && !survivingNodes.contains(node.nodeId())) {
+						IncidentZoneSync.sendInactive(level, record, node.nodeId(), node.center());
+					}
+				}
+			}
 		}
 	}
 
@@ -233,6 +274,7 @@ public final class InfectionSink implements IncidentWorldSink {
 		if (record != null && level != null) {
 			// Fresh sealing is distinct from later physical degradation bands.
 			emitCue(level, record, CursedIncidentVfxIds.SEAL_APPLIED, true, 1);
+			IncidentZoneSync.sendZoneState(level, record);
 		}
 	}
 
@@ -241,18 +283,23 @@ public final class InfectionSink implements IncidentWorldSink {
 		if (level != null && record != null && bandIndex >= 1 && bandIndex <= 3) {
 			// IncidentControl invokes this only when a durable degradation band is crossed.
 			emitCue(level, record, CursedIncidentVfxIds.SEAL_DEGRADE, false, bandIndex);
+			IncidentZoneSync.sendZoneState(level, record);
 		}
 	}
 
 	@Override
 	public void onUnsealed(ServerLevel level, IncidentRecord record) {
 		// Durable cadence anchors intentionally remain unchanged across a seal.
+		if (level != null && record != null) {
+			IncidentZoneSync.sendZoneState(level, record);
+		}
 	}
 
 	@Override
 	public void onSealBroken(ServerLevel level, IncidentRecord record) {
 		if (level != null && record != null) {
 			emitCue(level, record, CursedIncidentVfxIds.SEAL_BREAK, true, 3);
+			IncidentZoneSync.sendZoneState(level, record);
 		}
 	}
 
@@ -266,6 +313,15 @@ public final class InfectionSink implements IncidentWorldSink {
 			for (var node : record.secondaries) {
 				if (node != null && !node.selfSustaining()) {
 					IncidentSpawnRuntime.cleanup(level, record.id, node.nodeId());
+				}
+			}
+			// Client zone entries: the parent key dies here; dependent nodes die with it,
+			// self-sustaining survivors keep their own keys (R20 child lifecycle).
+			IncidentZoneSync.sendInactive(level, record,
+					IncidentZoneStatePayload.PARENT_NODE, record.center);
+			for (var node : record.secondaries) {
+				if (node != null && !node.selfSustaining()) {
+					IncidentZoneSync.sendInactive(level, record, node.nodeId(), node.center());
 				}
 			}
 		}

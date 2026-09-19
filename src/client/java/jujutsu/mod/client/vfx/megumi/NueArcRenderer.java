@@ -153,7 +153,7 @@ public final class NueArcRenderer {
 		VfxWorldGeometry.renderDirectionalRing(consumer, target, basis[0], basis[1], shellRadius, 0.85f,
 				impactAlpha, impactProgress * 3.0f, ELECTRIC_DARK_R, ELECTRIC_DARK_G, ELECTRIC_DARK_B,
 				ELECTRIC_R, ELECTRIC_G, ELECTRIC_B);
-		VfxWorldGeometry.renderDirectionalRing(consumer, target, basis[1], delta.lengthSqr() < 1.0E-8 ? Vec3.UP : delta.normalize(),
+		VfxWorldGeometry.renderDirectionalRing(consumer, target, basis[1], delta.lengthSqr() < 1.0E-8 ? VfxWorldGeometry.UP : delta.normalize(),
 				shellRadius * 0.75f, 0.72f, Math.round(impactAlpha * 0.72f), -impactProgress * 2.0f,
 				ELECTRIC_DARK_R, ELECTRIC_DARK_G, ELECTRIC_DARK_B, ELECTRIC_CORE_R, ELECTRIC_CORE_G, ELECTRIC_CORE_B);
 		for (int mini = 0; mini < 4; mini++) {

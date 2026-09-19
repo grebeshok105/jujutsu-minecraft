@@ -21,6 +21,27 @@ public final class CursedObjectRenderer extends GeoItemRenderer<CursedObjectItem
         return captured;
     }
 
+    /**
+     * Per-type scale, applied uniformly in every render context (gui/ground/hand) — the
+     * type table owns the number, the renderer only applies it.
+     */
+    @Override
+    public void scaleModelForRender(GeoRenderState renderState, float widthScale, float heightScale,
+            com.mojang.blaze3d.vertex.PoseStack poseStack,
+            software.bernie.geckolib.cache.object.BakedGeoModel model, boolean isReRender) {
+        float scale = (float) scaleFor(renderState.getOrDefaultGeckolibData(
+                CursedObjectGeoModel.ITEM_STACK, net.minecraft.world.item.ItemStack.EMPTY));
+        super.scaleModelForRender(renderState, widthScale * scale, heightScale * scale, poseStack, model, isReRender);
+    }
+
+    /** Pure lookup used by the renderer and by tests. */
+    public static double scaleFor(net.minecraft.world.item.ItemStack stack) {
+        jujutsu.mod.cursedincident.object.CursedObjectState state = CursedObjectItem.state(stack);
+        jujutsu.mod.cursedincident.object.CursedObjectType type =
+                state == null ? null : jujutsu.mod.cursedincident.object.CursedObjectRegistry.byId(state.typeId());
+        return type == null ? 1.0 : type.renderScale();
+    }
+
     /** Called by the client incident bootstrap after the shared VFX director exists. */
     public static void install() {
         CursedObjectItem.setRendererFactory(CursedObjectRenderer::provider);

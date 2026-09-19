@@ -158,7 +158,10 @@ public final class ObjectDwellTracker implements DwellProvider {
             return;
         }
         item.setUnlimitedLifetime();
-        item.setNoPickUpDelay();
+        // Pickup delay is NOT touched here: tracker-spawned and respawned entities set
+        // setNoPickUpDelay() explicitly at their creation sites, while a player's Q-drop
+        // must keep its vanilla throw delay — clearing it made the item bounce straight
+        // back into the dropping player's inventory (Q-drop bug).
         lastObservedGameTime = Math.max(lastObservedGameTime, level.getGameTime());
         TrackedObject tracked = observe(state, item.getItem(), level, item.blockPosition(), level.getGameTime(),
                 item, null);

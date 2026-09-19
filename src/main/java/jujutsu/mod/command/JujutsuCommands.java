@@ -102,6 +102,7 @@ public final class JujutsuCommands {
 		root.then(incidentIdentifyCommand());
 		root.then(incidentCleanupCommand());
 		root.then(incidentSeedCommand());
+		root.then(incidentDemoCommand());
 		return root;
 	}
 
@@ -285,6 +286,47 @@ public final class JujutsuCommands {
 				: "object spawned: " + objectId + " type=" + mintedType;
 		source.sendSuccess(() -> Component.literal(result), false);
 		return objectId == null ? 0 : 1;
+	}
+
+	private static LiteralArgumentBuilder<CommandSourceStack> incidentDemoCommand() {
+		// One command → a fully dressed incident at the player's feet: object source,
+		// zone visuals, spawn wave. Stage optional, default GROWING.
+		LiteralArgumentBuilder<CommandSourceStack> command = Commands.literal("demo");
+		command.executes(ctx -> demoIncident(ctx, null));
+		command.then(Commands.argument("stage", StringArgumentType.word())
+				.executes(ctx -> demoIncident(ctx, StringArgumentType.getString(ctx, "stage"))));
+		return command;
+	}
+
+	private static int demoIncident(CommandContext<CommandSourceStack> context, String stageName) {
+		CommandSourceStack source = context.getSource();
+		IncidentStage stage = stageName == null ? IncidentStage.GROWING : IncidentStage.byName(stageName);
+		if (stage == null) {
+			source.sendFailure(Component.literal("Unknown incident stage: " + stageName));
+			return 0;
+		}
+		ServerPlayer player;
+		try {
+			player = source.getPlayerOrException();
+		} catch (Exception e) {
+			source.sendFailure(Component.literal("demo must be run by a player"));
+			return 0;
+		}
+		BlockPos center = player.blockPosition();
+		try {
+			IncidentControl.SpawnOutcome outcome = IncidentControl.spawn(new IncidentControl.SpawnRequest(
+					center, source.getLevel().dimension(), null, null, null, stage, null, SourceKind.OBJECT, null));
+			if (outcome instanceof IncidentControl.SpawnOutcome.Refused refused) {
+				source.sendFailure(Component.literal("incident demo refused: " + refused.reason()));
+				return 0;
+			}
+			IncidentControl.InspectView view = IncidentControl.inspect(
+					((IncidentControl.SpawnOutcome.Created) outcome).record().id);
+			source.sendSuccess(() -> Component.literal("incident demo spawned: " + renderIncident(view)), false);
+			return 1;
+		} catch (IncidentControl.IncidentNotFoundException e) {
+			return incidentFailure(source, e);
+		}
 	}
 
 	private static int inspectIncident(CommandContext<CommandSourceStack> context) {

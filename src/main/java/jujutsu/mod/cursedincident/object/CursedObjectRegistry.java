@@ -17,34 +17,33 @@ import net.minecraft.util.RandomSource;
 public final class CursedObjectRegistry {
     public static final CursedObjectType SUKUNA_FINGER = new CursedObjectType(
             "sukuna_finger", "cursed_object_sukuna_finger", "cursed_object_sukuna_finger",
-            1, 1, 20, false, 2.0, Set.of("elongated", "canon", "unique"), true);
+            1, 1, 20, false, 2.0, Set.of("elongated", "canon", "unique"), true, 0.9);
     public static final CursedObjectType CURSED_NAIL = new CursedObjectType(
             "cursed_nail", "cursed_object_cursed_nail", "cursed_object_cursed_nail",
-            1, 5, -1, true, 1.5, Set.of("elongated", "metal"));
+            1, 5, -1, true, 1.5, Set.of("elongated", "metal"), false, 0.8);
     public static final CursedObjectType CURSED_DOLL = new CursedObjectType(
             "cursed_doll", "cursed_object_cursed_doll", "cursed_object_cursed_doll",
-            1, 5, -1, true, 2.0, Set.of("humanoid", "wood"));
+            1, 5, -1, true, 2.0, Set.of("humanoid", "wood"), false, 1.0);
     public static final CursedObjectType CURSED_EYE = new CursedObjectType(
             "cursed_eye", "cursed_object_cursed_eye", "cursed_object_cursed_eye",
-            1, 5, -1, true, 1.25, Set.of("orbital", "organic"));
+            1, 5, -1, true, 1.25, Set.of("orbital", "organic"), false, 0.85);
     public static final CursedObjectType CURSED_COIN = new CursedObjectType(
             "cursed_coin", "cursed_object_cursed_coin", "cursed_object_cursed_coin",
-            2, 5, -1, true, 1.0, Set.of("planar", "metal"));
+            2, 5, -1, true, 1.0, Set.of("planar", "metal"), false, 0.7);
     public static final CursedObjectType CURSED_IDOL = new CursedObjectType(
             "cursed_idol", "cursed_object_cursed_idol", "cursed_object_cursed_idol",
-            1, 5, -1, true, 2.5, Set.of("humanoid", "totem", "stone"));
+            1, 5, -1, true, 2.5, Set.of("humanoid", "totem", "stone"), false, 1.15);
     public static final CursedObjectType CURSED_MASK = new CursedObjectType(
             "cursed_mask", "cursed_object_cursed_mask", "cursed_object_cursed_mask",
-            1, 5, -1, true, 1.5, Set.of("planar", "humanoid"));
+            1, 5, -1, true, 1.5, Set.of("planar", "humanoid"), false, 0.95);
     public static final CursedObjectType CURSED_CHAIN = new CursedObjectType(
             "cursed_chain", "cursed_object_cursed_chain", "cursed_object_cursed_chain",
-            2, 5, -1, true, 2.0, Set.of("elongated", "metal", "link"));
+            2, 5, -1, true, 2.0, Set.of("elongated", "metal", "link"), false, 1.0);
 
     /** Test-only profile; never returned by {@link #randomType(RandomSource, int)}. */
     public static final CursedObjectType QA_PROBE = new CursedObjectType(
             "qa_probe", "cursed_object_qa_probe", "cursed_object_qa_probe",
             1, 5, -1, true, 1.0, Set.of("qa"));
-
     private static final List<CursedObjectType> NATURAL_TYPES = List.of(
             SUKUNA_FINGER, CURSED_NAIL, CURSED_DOLL, CURSED_EYE,
             CURSED_COIN, CURSED_IDOL, CURSED_MASK, CURSED_CHAIN);

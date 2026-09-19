@@ -105,4 +105,8 @@ public final class VfxContext {
 	public void playNoFalloff(SoundEvent soundEvent, float volume, float pitch, Vec3 origin, RandomSource random) {
 		sound.playNoFalloff(client, soundEvent, volume, pitch, origin, random);
 	}
+
+	public void playPositional(SoundEvent soundEvent, float volume, float pitch, Vec3 origin, RandomSource random) {
+		sound.playPositional(client, soundEvent, volume, pitch, origin, random);
+	}
 }

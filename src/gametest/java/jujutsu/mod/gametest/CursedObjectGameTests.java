@@ -419,4 +419,42 @@ public final class CursedObjectGameTests {
 			helper.succeed();
 		});
 	}
+
+	/**
+	 * Q-drop regression (spec §14): a player-thrown cursed object must keep its vanilla
+	 * pickup delay — the tracker must never zero it, or the item bounces straight back
+	 * into the thrower's inventory. Tracker-spawned entities still get instant pickup.
+	 */
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 120)
+	public void playerDropKeepsPickupDelay(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		UUID id = UUID.randomUUID();
+		ItemStack stack = CursedObjectItem.stack(CursedObjectState.fresh(id, "cursed_nail", 3, level.getGameTime()));
+		// Simulate a Q-drop: vanilla sets a throw delay on the entity.
+		ItemEntity dropped = new ItemEntity(level, helper.absolutePos(CENTER).getX() + 0.5,
+				helper.absolutePos(CENTER).getY(), helper.absolutePos(CENTER).getZ() + 0.5, stack);
+		dropped.setDefaultPickUpDelay();
+		level.addFreshEntity(dropped);
+		ObjectDwellTracker.noteWorldItem(dropped);
+		helper.assertTrue(dropped.hasPickUpDelay(),
+				CursedIncidentTestFixtures.diagnostic("playerDropKeepsPickupDelay(Q-drop)", helper,
+						"pickup delay survives tracker observation", true, dropped.hasPickUpDelay()));
+		// The periodic re-observation path must not clear it either.
+		ObjectDwellTracker.noteWorldItem(dropped);
+		helper.assertTrue(dropped.hasPickUpDelay(),
+				CursedIncidentTestFixtures.diagnostic("playerDropKeepsPickupDelay(Q-drop)", helper,
+						"pickup delay survives re-observation", true, dropped.hasPickUpDelay()));
+		// Tracker-spawned entities still get instant pickup — spawn path sets it directly.
+		UUID spawnedId = IncidentControl.spawnObject(level, helper.absolutePos(new BlockPos(10, 4, 8)),
+				"cursed_coin", 3, 9917L);
+		helper.assertTrue(spawnedId != null,
+				CursedIncidentTestFixtures.diagnostic("playerDropKeepsPickupDelay(Q-drop)", helper,
+						"tracker spawn accepted", "non-null", spawnedId));
+		ItemEntity spawned = CursedIncidentTestFixtures.findCursedObject(helper, new BlockPos(10, 4, 8), spawnedId);
+		helper.assertTrue(spawned != null && !spawned.hasPickUpDelay(),
+				CursedIncidentTestFixtures.diagnostic("playerDropKeepsPickupDelay(Q-drop)", helper,
+						"tracker-spawned item has no pickup delay", false,
+						spawned == null ? null : spawned.hasPickUpDelay()));
+		helper.succeed();
+	}
 }

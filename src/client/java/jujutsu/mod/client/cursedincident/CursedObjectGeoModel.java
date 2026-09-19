@@ -31,6 +31,11 @@ public final class CursedObjectGeoModel extends GeoModel<CursedObjectItem> {
         if (type == null) {
             return JujutsuMod.id("textures/item/cursed_object_cursed_doll_0.png");
         }
+        // A sealed object wears its talisman band — a dedicated overlay texture per type,
+        // not a tint, so the seal reads at inventory scale.
+        if (state != null && state.sealed()) {
+            return JujutsuMod.id("textures/item/" + type.texture() + "_sealed.png");
+        }
         int variant = state.instanceId().hashCode() & 1;
         return JujutsuMod.id("textures/item/" + type.textureResourceId(variant) + ".png");
     }
