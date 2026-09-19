@@ -1,5 +1,6 @@
 package jujutsu.mod.character.megumi;
 
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -10,6 +11,7 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.BlockPos;
@@ -25,6 +27,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.network.MegumiTongueStatePayload;
+import jujutsu.mod.network.MegumiWingsStatePayload;
 import jujutsu.mod.registry.JujutsuEffects;
 
 
@@ -46,12 +49,19 @@ import jujutsu.mod.registry.JujutsuEffects;
  * the fall-flying flag's only setter is {@code startFallFlying()}, so the upkeep re-asserts
  * {@code tryToStartFallFlying()} every tick the owner is airborne with the wings out (D2). And every
  * way a partial can end — the player's own key, a shadow move, death, disconnect, respawn, a
- * dimension change, server stop, vessel deselect, the dev fixture reset — lands in one
- * {@link #teardown} that removes the marker AND tells the tongue's client to stop pulling: a client
- * left with {@code active=true} would keep gliding the body on its own authority.
+ * dimension change, server stop, vessel deselect, the dev fixture reset — lands in the hard teardown
+ * path ({@link #teardown}/{@link #endPartial}) that removes the marker AND tells the tongue's client
+ * to stop pulling: a client left with {@code active=true} would keep gliding the body on its own
+ * authority.
  */
 public final class MegumiPartialRuntime {
 	private static final Map<UUID, PartialState> PARTIALS = new ConcurrentHashMap<>();
+	private static final Map<UUID, MegumiTongueStatePayload> LAST_TONGUE_PAYLOADS = new ConcurrentHashMap<>();
+	private static final Map<UUID, WingPayloadProbe> LAST_WING_PAYLOADS = new ConcurrentHashMap<>();
+	private static final int TONGUE_SHOOT_TICKS = 4;
+	private static final int TONGUE_RETRACT_TICKS = 6;
+	private static final int WINGS_MATERIALIZE_TICKS = 8;
+	private static final int WINGS_HEARTBEAT_TICKS = 40;
 
 	private MegumiPartialRuntime() {}
 
@@ -62,17 +72,26 @@ public final class MegumiPartialRuntime {
 		/** Toad only: the point the tongue is stuck to, and the block that point belongs to. */
 		Vec3 anchor;
 		BlockPos anchorBlock;
+		/** Toad only: original shot timestamp and the soft-retract countdown. */
+		long tongueShotGameTime;
+		int tonguePhase = MegumiTongueStatePayload.SHOOTING;
+		int tonguePendingRemoval;
 		/** Nue only: whether the owner has been off the ground since the wings came out (D2 landing). */
 		boolean airborneSeen;
+		int wingPhase = MegumiWingsStatePayload.MATERIALIZING;
+		long lastWingHeartbeat;
 
 		private PartialState(MegumiPartialProfile.PartialKind kind, long startedGameTime) {
 			this.kind = kind;
 			this.startedGameTime = startedGameTime;
+			this.lastWingHeartbeat = startedGameTime;
 		}
 	}
 
 	/** Read-only snapshot of one owner's active partial, for the dev control surface. */
 	public record PartialView(String kind, long startedGameTime) {}
+	/** Test-visible snapshot of the most recent wing phase send for one owner. */
+	public record WingPayloadProbe(boolean active, int phase) {}
 
 	public static void register() {
 		ServerTickEvents.END_SERVER_TICK.register(MegumiPartialRuntime::tick);
@@ -85,8 +104,12 @@ public final class MegumiPartialRuntime {
 				teardown(newPlayer.getServer(), newPlayer.getUUID()));
 		ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) ->
 				teardown(player.getServer(), player.getUUID()));
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-				teardown(server, handler.player.getUUID()));
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+			PartialState state = PARTIALS.get(handler.player.getUUID());
+			if (state != null) {
+				endPartial(handler.player, state);
+			}
+		});
 		// The marker effect persists with the player; the PARTIALS map does not. A restart leaves a
 		// serialized marker with no runtime state behind it — the wings would keep granting flight and
 		// the tongue's client would never hear the stand-down. JOIN reconciles by marker, not by map.
@@ -97,6 +120,8 @@ public final class MegumiPartialRuntime {
 				teardown(server, ownerId);
 			}
 			PARTIALS.clear();
+			LAST_TONGUE_PAYLOADS.clear();
+			LAST_WING_PAYLOADS.clear();
 		});
 	}
 
@@ -154,7 +179,7 @@ public final class MegumiPartialRuntime {
 		};
 	}
 
-	/** Release edge of the shared partial key: detaches the tongue. Never carries a cooldown. */
+	/** Release edge of the shared partial key: starts the tongue's soft retract window. */
 	public static boolean tryPartialRelease(ServerPlayer player) {
 		PartialState state = PARTIALS.get(player.getUUID());
 		if (state == null || state.kind != MegumiPartialProfile.PartialKind.TONGUE) {
@@ -162,7 +187,7 @@ public final class MegumiPartialRuntime {
 			// to end: both are refusals, in the same way a hold release with no live hold is one.
 			return false;
 		}
-		endPartial(player, state);
+		beginTongueRetract(player, state);
 		return true;
 	}
 
@@ -213,44 +238,68 @@ public final class MegumiPartialRuntime {
 		if (!player.hasEffect(JujutsuEffects.MEGUMI_NUE_WINGS)) {
 			// The marker is what the elytra event and the fall-damage veto read, so it is the authority:
 			// a marker lifted by anything else takes the partial with it, state map included.
-			PARTIALS.remove(player.getUUID(), state);
+			endPartial(player, state);
 			return;
+		}
+		long now = player.level().getGameTime();
+		if (state.wingPhase == MegumiWingsStatePayload.MATERIALIZING
+				&& now - state.startedGameTime >= WINGS_MATERIALIZE_TICKS) {
+			setWingPhase(player, state, MegumiWingsStatePayload.GROUND_FOLDED);
 		}
 		if (player.onGround()) {
 			if (state.airborneSeen) {
+				setWingPhase(player, state, MegumiWingsStatePayload.FOLDING);
 				endPartial(player, state);
+				return;
 			}
+			heartbeatWings(player, state, now);
 			return;
 		}
 		state.airborneSeen = true;
+		if (state.wingPhase != MegumiWingsStatePayload.FLYING) {
+			setWingPhase(player, state, MegumiWingsStatePayload.FLYING);
+		}
+		heartbeatWings(player, state, now);
 		// Nothing else sets the fall-flying flag (D2) — vanilla only ever clears it — so the request is
 		// re-asserted every airborne tick. Already-flying is a no-op returning false.
 		player.tryToStartFallFlying();
 	}
 
 	private static void tickTongue(ServerPlayer player, PartialState state) {
+		if (state.tonguePendingRemoval > 0) {
+			if (--state.tonguePendingRemoval == 0) {
+				endPartial(player, state);
+			}
+			return;
+		}
 		if (!player.hasEffect(JujutsuEffects.MEGUMI_TOAD_TONGUE)) {
-			// As with the wings: the marker gates both sides, so losing it ends the grapple — and the
-			// client has to hear about it, or it would keep pulling.
-			PARTIALS.remove(player.getUUID(), state);
-			sendTongueState(player, false, Vec3.ZERO);
+			// Marker loss is a soft visual exit: leave a retracting tongue on the client for a few ticks.
+			beginTongueRetract(player, state);
 			return;
 		}
 		ServerLevel level = player.level();
+		long now = level.getGameTime();
+		if (state.tonguePhase == MegumiTongueStatePayload.SHOOTING
+				&& now - state.tongueShotGameTime >= TONGUE_SHOOT_TICKS) {
+			state.tonguePhase = MegumiTongueStatePayload.ANCHORED;
+			sendTongueState(player, state, true);
+		}
 		// Anchor destroyed (R32) and line blocked (R31) are the two ways the tongue lets go by itself.
 		// The anchor check asks the same question the attach clip asked: does this cell still present a
 		// collision surface? `isSolid()` is the wrong predicate — fences, panes and slabs collide
 		// without being solid, and the resolver's COLLIDER clip happily anchors to them.
 		if (level.getBlockState(state.anchorBlock).getCollisionShape(level, state.anchorBlock).isEmpty()
 				|| !lineToAnchorIsClear(level, player, state.anchor)) {
-			endPartial(player, state);
+			beginTongueRetract(player, state);
 		}
 	}
 
 	private static boolean startWings(ServerPlayer player, boolean notify) {
 		addMarker(player, JujutsuEffects.MEGUMI_NUE_WINGS);
-		PARTIALS.put(player.getUUID(), new PartialState(
-				MegumiPartialProfile.PartialKind.WINGS, player.level().getGameTime()));
+		long now = player.level().getGameTime();
+		PartialState state = new PartialState(MegumiPartialProfile.PartialKind.WINGS, now);
+		PARTIALS.put(player.getUUID(), state);
+		sendWingPhase(player, MegumiWingsStatePayload.MATERIALIZING);
 		// State first, cue second: the cue is presentation and may be watched by anything.
 		MegumiNueWings.playUnfoldCue(player);
 		if (notify) {
@@ -268,29 +317,34 @@ public final class MegumiPartialRuntime {
 			return reject(player, notify, "message.jujutsumod.megumi.partial.no_anchor");
 		}
 		Vec3 anchor = aimed.point();
-		PartialState state = new PartialState(
-				MegumiPartialProfile.PartialKind.TONGUE, player.level().getGameTime());
+		long now = player.level().getGameTime();
+		PartialState state = new PartialState(MegumiPartialProfile.PartialKind.TONGUE, now);
 		state.anchor = anchor;
+		state.tongueShotGameTime = now;
 		// The hit point sits ON the face, so the anchored block is found by stepping half a block along the
 		// inward normal; `containing(hitPoint)` alone would pick the air cell above a floor hit.
 		state.anchorBlock = BlockPos.containing(anchor.subtract(aimed.normal().scale(0.5)));
 		addMarker(player, JujutsuEffects.MEGUMI_TOAD_TONGUE);
 		PARTIALS.put(player.getUUID(), state);
-		sendTongueState(player, true, anchor);
+		sendTongueState(player, state, true);
 		if (notify) {
 			player.displayClientMessage(Component.translatable("message.jujutsumod.megumi.partial.tongue_out"), true);
 		}
 		return true;
 	}
 
-	/** The single exit: the marker comes off, the state goes, and the tongue's client is stood down. */
+	/** Hard teardown: no retract window is allowed for deselect, death, disconnect, or shadow lock. */
 	private static void endPartial(ServerPlayer player, PartialState state) {
 		if (!PARTIALS.remove(player.getUUID(), state)) {
 			return;
 		}
 		player.removeEffect(markerFor(state.kind));
-		if (state.kind == MegumiPartialProfile.PartialKind.TONGUE) {
-			sendTongueState(player, false, Vec3.ZERO);
+		if (state.kind == MegumiPartialProfile.PartialKind.WINGS) {
+			setWingPhase(player, state, MegumiWingsStatePayload.FOLDING);
+			sendWingInactive(player);
+		} else {
+			sendTongueState(player, state, false);
+			sendWingInactive(player);
 		}
 	}
 
@@ -301,6 +355,9 @@ public final class MegumiPartialRuntime {
 	 */
 	private static void reconcileOrphanMarkers(ServerPlayer player) {
 		PartialState live = PARTIALS.get(player.getUUID());
+		if (live == null || live.kind != MegumiPartialProfile.PartialKind.WINGS) {
+			sendWingInactive(player);
+		}
 		for (MegumiPartialProfile.PartialKind kind : MegumiPartialProfile.PartialKind.values()) {
 			if (live != null && live.kind == kind) {
 				continue;
@@ -308,7 +365,7 @@ public final class MegumiPartialRuntime {
 			if (player.hasEffect(markerFor(kind))) {
 				player.removeEffect(markerFor(kind));
 				if (kind == MegumiPartialProfile.PartialKind.TONGUE) {
-					sendTongueState(player, false, Vec3.ZERO);
+					sendTongueState(player, null, false);
 				}
 			}
 		}
@@ -328,14 +385,68 @@ public final class MegumiPartialRuntime {
 		};
 	}
 
-	private static void sendTongueState(ServerPlayer player, boolean active, Vec3 anchor) {
-		// The domain owning the payload sends it directly (house pattern: SelfResonanceRuntime,
-		// BlackFlashFocus, CharacterSelectionManager) — the shared network layer stays
-		// vessel-agnostic. Connection-null safe: a headless GameTest player has no channel.
-		if (player.connection != null
-				&& ServerPlayNetworking.canSend(player, MegumiTongueStatePayload.TYPE)) {
-			ServerPlayNetworking.send(player,
-					new MegumiTongueStatePayload(active, anchor.x, anchor.y, anchor.z));
+	private static void setWingPhase(ServerPlayer player, PartialState state, int phase) {
+		if (state.wingPhase == phase) {
+			return;
+		}
+		state.wingPhase = phase;
+		state.lastWingHeartbeat = player.level().getGameTime();
+		sendWingPhase(player, phase);
+	}
+
+	private static void heartbeatWings(ServerPlayer player, PartialState state, long now) {
+		if (now - state.lastWingHeartbeat >= WINGS_HEARTBEAT_TICKS) {
+			state.lastWingHeartbeat = now;
+			sendWingPhase(player, state.wingPhase);
+		}
+	}
+
+	private static void beginTongueRetract(ServerPlayer player, PartialState state) {
+		if (state.tonguePendingRemoval > 0) {
+			return;
+		}
+		state.tonguePhase = MegumiTongueStatePayload.RETRACTING;
+		state.tonguePendingRemoval = TONGUE_RETRACT_TICKS;
+		sendTongueState(player, state, true);
+	}
+
+	/**
+	 * Test-visible outgoing snapshot. GameTests use this to assert the production phase transition
+	 * without depending on a mock player's absent network channel.
+	 */
+	public static MegumiTongueStatePayload lastTonguePayload(UUID ownerId) {
+		return ownerId == null ? null : LAST_TONGUE_PAYLOADS.get(ownerId);
+	}
+	/** Test-visible snapshot of the last wing send, including inactive teardown. */
+	public static WingPayloadProbe lastWingPayload(UUID ownerId) {
+		return ownerId == null ? null : LAST_WING_PAYLOADS.get(ownerId);
+	}
+
+	private static void sendWingPhase(ServerPlayer player, int phase) {
+		LAST_WING_PAYLOADS.put(player.getUUID(), new WingPayloadProbe(true, phase));
+		MegumiWingsSync.send(player, phase);
+	}
+
+	private static void sendWingInactive(ServerPlayer player) {
+		LAST_WING_PAYLOADS.put(player.getUUID(),
+				new WingPayloadProbe(false, MegumiWingsStatePayload.FOLDING));
+		MegumiWingsSync.sendInactive(player);
+	}
+
+	private static void sendTongueState(ServerPlayer player, PartialState state, boolean active) {
+		Vec3 anchor = state == null || state.anchor == null ? Vec3.ZERO : state.anchor;
+		int phase = state == null ? MegumiTongueStatePayload.RETRACTING : state.tonguePhase;
+		long shotGameTime = state == null ? 0L : state.tongueShotGameTime;
+		MegumiTongueStatePayload payload = new MegumiTongueStatePayload(
+				player.getUUID(), active, phase, anchor.x, anchor.y, anchor.z, shotGameTime);
+		LAST_TONGUE_PAYLOADS.put(player.getUUID(), payload);
+		Set<ServerPlayer> recipients = new LinkedHashSet<>(PlayerLookup.tracking(player));
+		recipients.add(player);
+		for (ServerPlayer recipient : recipients) {
+			if (recipient.connection != null
+					&& ServerPlayNetworking.canSend(recipient, MegumiTongueStatePayload.TYPE)) {
+				ServerPlayNetworking.send(recipient, payload);
+			}
 		}
 	}
 

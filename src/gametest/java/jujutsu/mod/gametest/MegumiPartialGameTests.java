@@ -18,6 +18,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.network.MegumiTongueStatePayload;
+import jujutsu.mod.network.MegumiWingsStatePayload;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.character.CharacterSelectionManager;
@@ -126,6 +128,8 @@ public final class MegumiPartialGameTests {
 					caster.getUUID(), "first tryPartial result", "true", on));
 			assertPartial(helper, fixture, "press", caster, MegumiShikigami.NUE);
 			assertFreeAndFreeOfSummonCooldowns(helper, fixture, "press", caster);
+			assertWingPayload(helper, fixture, "materializing", caster,
+					true, MegumiWingsStatePayload.MATERIALIZING);
 		}));
 
 		helper.runAtTickTime(ACT_TICK, () -> guarded(helper, caster, () -> {
@@ -137,12 +141,17 @@ public final class MegumiPartialGameTests {
 			assertPartial(helper, fixture, "grounded", caster, MegumiShikigami.NUE);
 		}));
 
-		helper.runAtTickTime(ACT_TICK + 2, () -> {
+		helper.runAtTickTime(PRESS_TICK + 9, () -> guarded(helper, caster, () ->
+				assertWingPayload(helper, fixture, "ground folded", caster,
+						true, MegumiWingsStatePayload.GROUND_FOLDED)));
+		helper.runAtTickTime(PRESS_TICK + 12, () -> {
 			try {
 				boolean off = MegumiPartialRuntime.tryPartial(caster, false);
 				helper.assertTrue(off, MegumiShikigamiTestFixtures.diagnostic(fixture, "press", helper.getTick(),
 						caster.getUUID(), "second tryPartial result (toggle off)", "true", off));
 				assertNoPartial(helper, fixture, "off", caster);
+				assertWingPayload(helper, fixture, "folding teardown", caster,
+						false, MegumiWingsStatePayload.FOLDING);
 				assertFreeAndFreeOfSummonCooldowns(helper, fixture, "off", caster);
 			} finally {
 				cleanup(helper, caster);
@@ -474,6 +483,13 @@ public final class MegumiPartialGameTests {
 			// The hold survives its own upkeep (the anchor below the eye is on the line), and it still
 			// touches nothing but the owner.
 			assertPartial(helper, fixture, "hold", caster, MegumiShikigami.TOAD);
+			MegumiTongueStatePayload payload = MegumiPartialRuntime.lastTonguePayload(caster.getUUID());
+			helper.assertTrue(payload != null && payload.active()
+							&& payload.phase() == MegumiTongueStatePayload.ANCHORED,
+					MegumiShikigamiTestFixtures.diagnostic(fixture, "hold", helper.getTick(), caster.getUUID(),
+							"outgoing tongue phase after anchor confirmation",
+							MegumiTongueStatePayload.ANCHORED,
+							payload == null ? "null" : payload.phase()));
 			helper.assertTrue(bystander.getHealth() == healthBefore,
 					MegumiShikigamiTestFixtures.diagnostic(fixture, "hold", helper.getTick(), caster.getUUID(),
 							"bystander health during the hold", healthBefore, bystander.getHealth()));
@@ -485,12 +501,21 @@ public final class MegumiPartialGameTests {
 							"GRIPPED on the tongue's owner", "false", true));
 		}));
 
-		helper.runAtTickTime(ACT_TICK + 8, () -> {
+		helper.runAtTickTime(ACT_TICK + 8, () -> guarded(helper, caster, () -> {
+			boolean release = MegumiPartialRuntime.tryPartialRelease(caster);
+			helper.assertTrue(release, MegumiShikigamiTestFixtures.diagnostic(fixture, "release",
+					helper.getTick(), caster.getUUID(), "release edge on the anchored tongue", "true", release));
+			MegumiTongueStatePayload payload = MegumiPartialRuntime.lastTonguePayload(caster.getUUID());
+			helper.assertTrue(payload != null && payload.active()
+							&& payload.phase() == MegumiTongueStatePayload.RETRACTING,
+					MegumiShikigamiTestFixtures.diagnostic(fixture, "release", helper.getTick(), caster.getUUID(),
+							"outgoing tongue phase after release", MegumiTongueStatePayload.RETRACTING,
+							payload == null ? "null" : payload.phase()));
+		}));
+
+		helper.runAtTickTime(ACT_TICK + 16, () -> {
 			try {
-				boolean release = MegumiPartialRuntime.tryPartialRelease(caster);
-				helper.assertTrue(release, MegumiShikigamiTestFixtures.diagnostic(fixture, "release",
-						helper.getTick(), caster.getUUID(), "release edge on the anchored tongue", "true", release));
-				assertNoPartial(helper, fixture, "release", caster);
+				assertNoPartial(helper, fixture, "retract complete", caster);
 			} finally {
 				bystander.discard();
 				cleanup(helper, caster);
@@ -652,6 +677,16 @@ public final class MegumiPartialGameTests {
 		helper.assertTrue(pressed, MegumiShikigamiTestFixtures.diagnostic(fixture, "activate", helper.getTick(),
 				caster.getUUID(), "tryPartial on " + type, "true", pressed));
 		assertPartial(helper, fixture, "activate", caster, type);
+	}
+
+	private static void assertWingPayload(GameTestHelper helper, String fixture, String phase,
+			ServerPlayer caster, boolean active, int expectedPhase) {
+		MegumiPartialRuntime.WingPayloadProbe payload =
+				MegumiPartialRuntime.lastWingPayload(caster.getUUID());
+		helper.assertTrue(payload != null && payload.active() == active && payload.phase() == expectedPhase,
+				MegumiShikigamiTestFixtures.diagnostic(fixture, phase, helper.getTick(), caster.getUUID(),
+						"last wing payload", active + "/" + expectedPhase,
+						payload == null ? "null" : payload.active() + "/" + payload.phase()));
 	}
 
 	private static void assertPartial(GameTestHelper helper, String fixture, String phase,

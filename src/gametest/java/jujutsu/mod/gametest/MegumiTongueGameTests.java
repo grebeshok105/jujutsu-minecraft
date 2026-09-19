@@ -11,6 +11,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.character.megumi.MegumiPartialRuntime;
 import jujutsu.mod.character.megumi.MegumiShikigami;
+import jujutsu.mod.network.MegumiTongueStatePayload;
 import jujutsu.mod.character.megumi.MegumiShikigamiSelection;
 
 /**
@@ -48,13 +49,11 @@ public final class MegumiTongueGameTests {
 	private static final BlockPos CASTER_FEET = new BlockPos(2, 1, 2);
 	/** Press edge: the caster aims at the target surface and the tongue attaches. */
 	private static final int ATTACH_TICK = 2;
-	/** A second press-edge step (the release, or the out-of-range refusal) sits two ticks later. */
-	private static final int SECOND_STEP_TICK = 4;
-	/** The block is changed on this tick; the break polls start on the tick after. */
+	/** The release is a soft exit; wait for its six-tick retract marker before trying the next aim. */
+	private static final int SECOND_STEP_TICK = 12;
 	private static final int MUTATE_TICK = 4;
-	/** R31/R32: the tongue must be gone by this tick, one tick after the mutation. */
-	private static final long BREAK_DEADLINE_TICK = MUTATE_TICK + 2;
-	/** R30a: how long the holder is watched after the attach. */
+	private static final int RELEASE_TICK = 4;
+	private static final long BREAK_DEADLINE_TICK = MUTATE_TICK + 8;
 	private static final int STILLNESS_WINDOW_TICKS = 20;
 	/** R30a: a holder moved by the server would blow past both of these in a single tick. */
 	private static final double STILLNESS_PER_TICK = 0.05;
@@ -62,7 +61,7 @@ public final class MegumiTongueGameTests {
 
 	/**
 	 * R29 — the wall case: a flat wall 9.5 blocks from the eye takes the tongue, the release edge
-	 * takes it back the same tick, and a wall whose face is 10.5 blocks away is refused outright.
+	 * starts a six-tick retract window, and a wall whose face is 10.5 blocks away is refused after it.
 	 */
 	@GameTest(maxTicks = 60, structure = "jujutsumod:large_empty")
 	public void tongueHooksAWallFaceWithinTenBlocksAndRefusesPastTen(GameTestHelper helper) {
@@ -79,16 +78,22 @@ public final class MegumiTongueGameTests {
 							"tongue active", "true", "false"));
 		}));
 
+		helper.runAtTickTime(RELEASE_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			UUID ownerId = caster.getUUID();
+			helper.assertTrue(MegumiPartialRuntime.tryPartialRelease(caster),
+					MegumiShikigamiTestFixtures.diagnostic(fixture, "release", helper.getTick(), ownerId,
+							"tryPartialRelease result", "true", "false"));
+			MegumiTongueStatePayload payload = MegumiPartialRuntime.lastTonguePayload(ownerId);
+			helper.assertTrue(payload != null && payload.active()
+							&& payload.phase() == MegumiTongueStatePayload.RETRACTING,
+					MegumiShikigamiTestFixtures.diagnostic(fixture, "release", helper.getTick(), ownerId,
+							"outgoing tongue phase after release", MegumiTongueStatePayload.RETRACTING,
+							payload == null ? "null" : payload.phase()));
+		}));
+
 		helper.runAtTickTime(SECOND_STEP_TICK, () -> {
 			try {
 				UUID ownerId = caster.getUUID();
-				helper.assertTrue(MegumiPartialRuntime.tryPartialRelease(caster),
-						MegumiShikigamiTestFixtures.diagnostic(fixture, "release", helper.getTick(), ownerId,
-								"tryPartialRelease result", "true", "false"));
-				helper.assertTrue(!MegumiPartialRuntime.isActiveForType(ownerId, MegumiShikigami.TOAD),
-						MegumiShikigamiTestFixtures.diagnostic(fixture, "release", helper.getTick(), ownerId,
-								"tongue active after the release edge (R30: same tick)", "false", "true"));
-
 				// The first wall must come down before the refuse step: left standing, its face at
 				// 9.5 blocks is still in range and the ray hits it instead of reaching the far wall.
 				for (int offset = -1; offset <= 1; offset++) {
@@ -266,12 +271,17 @@ public final class MegumiTongueGameTests {
 		helper.assertTrue(MegumiPartialRuntime.tryPartial(caster, false),
 				MegumiShikigamiTestFixtures.diagnostic(fixture, "attach", helper.getTick(), ownerId,
 						"tryPartial at " + aimCell, "true", "false"));
+		MegumiTongueStatePayload payload = MegumiPartialRuntime.lastTonguePayload(ownerId);
+		helper.assertTrue(payload != null && payload.active()
+						&& payload.phase() == MegumiTongueStatePayload.SHOOTING,
+				MegumiShikigamiTestFixtures.diagnostic(fixture, "attach", helper.getTick(), ownerId,
+						"outgoing tongue phase after attach", MegumiTongueStatePayload.SHOOTING,
+						payload == null ? "null" : payload.phase()));
 	}
 
 	/**
-	 * The R31/R32 oracle: from the tick after the mutation, the first poll that reads the tongue
-	 * inactive wins; a tongue still attached one tick later fails here with the whole state in the
-	 * diagnostic (the toad-lane flake protocol: restart the lane, never widen the assert).
+	 * The R31/R32 oracle: first observe the production RETRACTING payload, then require the soft exit
+	 * to clear the runtime after its six-tick marker window.
 	 */
 	private static void pollUntilBroken(GameTestHelper helper, ServerPlayer caster, String fixture,
 			AtomicBoolean broken) {
@@ -283,6 +293,13 @@ public final class MegumiTongueGameTests {
 				}
 				UUID ownerId = caster.getUUID();
 				if (MegumiPartialRuntime.isActiveForType(ownerId, MegumiShikigami.TOAD)) {
+					MegumiTongueStatePayload payload = MegumiPartialRuntime.lastTonguePayload(ownerId);
+					helper.assertTrue(payload != null && payload.active()
+									&& payload.phase() == MegumiTongueStatePayload.RETRACTING,
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "retract", pollTick, ownerId,
+									"outgoing tongue phase after anchor/line loss",
+									MegumiTongueStatePayload.RETRACTING,
+									payload == null ? "null" : payload.phase()));
 					if (pollTick == BREAK_DEADLINE_TICK) {
 						try {
 							helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture, "break",
