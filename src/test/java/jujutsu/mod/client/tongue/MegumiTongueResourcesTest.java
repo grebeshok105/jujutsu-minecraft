@@ -26,7 +26,7 @@ final class MegumiTongueResourcesTest {
 	void tongueHasRootAndSixTaperedCubicSegments() throws Exception {
 		assertTrue(Files.isRegularFile(GEO));
 		JsonObject geometry = JsonParser.parseString(Files.readString(GEO))
-				.getAsJsonArray("minecraft:geometry").get(0).getAsJsonObject();
+				.getAsJsonObject().getAsJsonArray("minecraft:geometry").get(0).getAsJsonObject();
 		assertEquals("geometry.megumi_tongue",
 				geometry.getAsJsonObject("description").get("identifier").getAsString());
 		JsonArray bones = geometry.getAsJsonArray("bones");
