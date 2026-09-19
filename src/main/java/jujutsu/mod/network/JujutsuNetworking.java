@@ -28,7 +28,8 @@ public final class JujutsuNetworking {
 		PayloadTypeRegistry.playS2C().register(CurseLinkOptionsPayload.TYPE, CurseLinkOptionsPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(SelectCurseLinkPayload.TYPE, SelectCurseLinkPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(BlackFlashFocusPayload.TYPE, BlackFlashFocusPayload.STREAM_CODEC);
-		PayloadTypeRegistry.playS2C().register(MegumiTongueStatePayload.TYPE, MegumiTongueStatePayload.STREAM_CODEC);
+		MegumiPartialPayloads.registerAll();
+		MegumiTonguePayloads.registerAll();
 		// The selector's two packets are vessel-neutral on purpose: a click carries a roster id string and
 		// the snapshot carries bytes, so the shared network layer never names a vessel's types and any
 		// future roster travels the same two channels.

@@ -6,7 +6,8 @@
 		"CharacterPlayerDimensionsMixin",
 		"CursedSpiritTrackingMixin",
 		"CursedSpiritPushMixin",
-		"CursedSpiritProjectileMixin"
+		"CursedSpiritProjectileMixin",
+		"HeldVictimPushMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

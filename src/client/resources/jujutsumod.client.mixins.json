@@ -12,7 +12,9 @@
     "PlayerRenderContextMixin",
     "FearMouseMixin",
     "FearKeyboardMixin",
-    "TonguePhysicsMixin"
+    "TonguePhysicsMixin",
+    "HeldVictimRenderMixin",
+    "PlayerRendererWingsMixin"
   ],
   "injectors": {
     "defaultRequire": 1
