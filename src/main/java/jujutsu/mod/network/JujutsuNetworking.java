@@ -28,6 +28,13 @@ public final class JujutsuNetworking {
 		PayloadTypeRegistry.playS2C().register(CurseLinkOptionsPayload.TYPE, CurseLinkOptionsPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(SelectCurseLinkPayload.TYPE, SelectCurseLinkPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(BlackFlashFocusPayload.TYPE, BlackFlashFocusPayload.STREAM_CODEC);
+		PayloadTypeRegistry.playS2C().register(MegumiTongueStatePayload.TYPE, MegumiTongueStatePayload.STREAM_CODEC);
+		// The selector's two packets are vessel-neutral on purpose: a click carries a roster id string and
+		// the snapshot carries bytes, so the shared network layer never names a vessel's types and any
+		// future roster travels the same two channels.
+		PayloadTypeRegistry.playC2S().register(ShikigamiSelectPayload.TYPE, ShikigamiSelectPayload.STREAM_CODEC);
+		PayloadTypeRegistry.playS2C().register(ShikigamiStatePayload.TYPE, ShikigamiStatePayload.STREAM_CODEC);
+		PayloadTypeRegistry.playS2C().register(IncidentPerceptionPayload.TYPE, IncidentPerceptionPayload.STREAM_CODEC);
 		registerServerReceivers();
 	}
 
@@ -41,6 +48,11 @@ public final class JujutsuNetworking {
 		// shape that has no import line for a grep to find, and the defect tracked as E13.
 		ServerPlayNetworking.registerGlobalReceiver(SelectCurseLinkPayload.TYPE, (payload, context) ->
 				context.server().execute(() -> JujutsuCharacters.of(context.player()).selectCurseLink(context.player(), payload.linkId())));
+		// Same neutral-intent shape as the curse link above: the client says which roster entry was
+		// clicked, and the player's own vessel decides whether that is a thing it has and will take.
+		ServerPlayNetworking.registerGlobalReceiver(ShikigamiSelectPayload.TYPE, (payload, context) ->
+				context.server().execute(() -> JujutsuCharacters.of(context.player())
+						.selectShikigami(context.player(), payload.shikigamiId())));
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> { CharacterSelectionManager.syncOnJoin(handler.player); jujutsu.mod.combat.BlackFlashFocus.sync(handler.player); });
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> CharacterSelectionManager.disconnect(handler.player));
 	}

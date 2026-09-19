@@ -36,12 +36,12 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 
 | Metric | Value |
 |---|---:|
-| Main Java files | 200 |
-| Client Java files | 239 |
-| Test Java files | 145 |
+| Main Java files | 259 |
+| Client Java files | 259 |
+| Test Java files | 174 |
 | Verification programs | 29 |
-| Client mixins | 9 |
-| Network payloads | 8 |
+| Client mixins | 10 |
+| Network payloads | 9 |
 | Nobara VFX ids | 24 |
 
 Verification programs counts JavaExec main() programs only. Since the JUnit foundation landed, a test class may instead be a JUnit class run by the standard test task; those are counted under Test Java files and not by that row. Both kinds run inside ./gradlew qualityGate.
@@ -81,6 +81,7 @@ The audit runs inside ./gradlew qualityGate, so these counters are checked befor
 - [Megumi shikigami — Nue / Toad / Rabbit Escape / Max Elephant](03-systems/Megumi-shikigami.md)
 - [Megumi shadow kit](03-systems/Megumi-shadow-kit.md)
 - [Cursed spirits — three hostile tiers](03-systems/Cursed-spirits.md)
+- [Cursed incidents — persistent escalating zones](03-systems/Cursed-incidents.md)
 
 ## Client and VFX
 

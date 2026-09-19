@@ -11,7 +11,10 @@ import jujutsu.mod.client.gui.CurseLinkSelectionScreen;
 import jujutsu.mod.network.BlackFlashFocusPayload;
 import jujutsu.mod.client.character.ClientBlackFlashFocus;
 import jujutsu.mod.client.character.ClientAbilityCooldowns;
+import jujutsu.mod.client.tongue.TongueClientFx;
+import jujutsu.mod.client.tongue.TongueClientState;
 import jujutsu.mod.network.AbilityCooldownPayload;
+import jujutsu.mod.network.MegumiTongueStatePayload;
 
 public final class JujutsuClientNetworking {
 	private JujutsuClientNetworking() {}
@@ -27,10 +30,17 @@ public final class JujutsuClientNetworking {
 				context.client().execute(() -> ClientBlackFlashFocus.apply(payload.focused())));
 		ClientPlayNetworking.registerGlobalReceiver(AbilityCooldownPayload.TYPE, (payload, context) ->
 				context.client().execute(() -> ClientAbilityCooldowns.apply(payload)));
+		// The tongue is the one client-authoritative physics in the mod: this payload is the whole
+		// authoritative channel for it, and the particle line is a presentation of that same state
+		// (not a VFX cue), so both are wired here with the receiver.
+		ClientPlayNetworking.registerGlobalReceiver(MegumiTongueStatePayload.TYPE, (payload, context) ->
+				context.client().execute(() -> TongueClientState.apply(payload)));
+		TongueClientFx.register();
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 			ClientCharacterSelectionManager.clear();
 			ClientBlackFlashFocus.clear();
 			ClientAbilityCooldowns.clear();
+			TongueClientState.clear();
 		});
 	}
 }

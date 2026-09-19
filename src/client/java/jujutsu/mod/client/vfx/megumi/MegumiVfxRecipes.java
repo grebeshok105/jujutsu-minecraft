@@ -63,6 +63,9 @@ public final class MegumiVfxRecipes {
 	// Shikigami slice: dive streak outlives the dive commit by a beat; the shock owns its flash.
 	private static final int NUE_DIVE_DURATION_TICKS = 8;
 	private static final int NUE_SHOCK_DURATION_TICKS = 12;
+	// The partial wings: a short unfold snap, not a summon — the sustained glide is vanilla's own
+	// fall-flying pose, so nothing has to be re-emitted while the wings stay out.
+	private static final int NUE_PARTIAL_WINGS_DURATION_TICKS = 10;
 	private static final int TOAD_TONGUE_DURATION_TICKS = 8;
 	private static final int RABBITS_POP_DURATION_TICKS = 6;
 	private static final int ELEPHANT_JET_DURATION_TICKS = 8;
@@ -86,6 +89,7 @@ public final class MegumiVfxRecipes {
 		VfxDirector.register(MegumiVfxIds.NUE_SUMMON, MegumiVfxRecipes::nueSummon);
 		VfxDirector.register(MegumiVfxIds.NUE_DIVE, MegumiVfxRecipes::nueDive);
 		VfxDirector.register(MegumiVfxIds.NUE_SHOCK, MegumiVfxRecipes::nueShock);
+		VfxDirector.register(MegumiVfxIds.NUE_PARTIAL_WINGS, MegumiVfxRecipes::nuePartialWings);
 		VfxDirector.register(MegumiVfxIds.SHIKIGAMI_SIC, MegumiVfxRecipes::shikigamiSic);
 		VfxDirector.register(MegumiVfxIds.SHIKIGAMI_RECALL, MegumiVfxRecipes::shikigamiRecall);
 		VfxDirector.register(MegumiVfxIds.TOAD_SUMMON, MegumiVfxRecipes::toadSummon);
@@ -216,6 +220,27 @@ public final class MegumiVfxRecipes {
 			RandomSource random = random(cue, 0x4E554503L);
 			context.burst(ParticleTypes.ELECTRIC_SPARK, target.add(0.0, 0.4, 0.0), 26, 0.55, 0.35, random);
 			context.ring(SHADOW_DARK, target, 12, 0.50, 0.02, 0.0, random);
+		});
+	}
+
+	/**
+	 * The partial wings snap open (issue #108): one dark flare with an electric crackle at the
+	 * owner's shoulders, plus the unfold beat on the player rig. Deliberately no per-tick
+	 * re-emission: while the wings stay out the glide pose is vanilla's, and landing ends it.
+	 */
+	private static VfxInstance nuePartialWings(VfxCue cue) {
+		return VfxInstance.of(NUE_PARTIAL_WINGS_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 shoulders = cue.origin().add(0.0, 1.0, 0.0);
+			RandomSource random = random(cue, 0x4E554504L);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN,
+					NUE_PARTIAL_WINGS_DURATION_TICKS);
+			context.burst(JujutsuParticles.MEGUMI_SHADOW_MOTE, shoulders, 12, 0.35, 0.16, random);
+			context.burst(ParticleTypes.ELECTRIC_SPARK, shoulders, 8, 0.30, 0.06, random);
+			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, shoulders, 10, 0.55, 0.0, 0.04, random);
+			MegumiAnimationHooks.triggerNueWings(cue);
 		});
 	}
 

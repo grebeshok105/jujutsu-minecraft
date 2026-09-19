@@ -4,13 +4,17 @@ Status: CURRENT
 
 ## Slice boundary
 
-The Ten Shadows technique key (`PRIMARY`, `R`) no longer means "dogs": it summons, recalls, or
-swaps whichever shikigami the per-player selection currently names. `MegumiShikigamiSelection`
-(default `DOGS`) is advanced by `TERTIARY_SNEAK` (`Shift+V`); `PRIMARY_SNEAK` (`Shift+R`) sics the
-active pack. The `DOGS` selection delegates to the untouched dog runtime (`MegumiSummonRuntime`),
-so this note owns only the non-dog layer; the dogs themselves are owned by
+The Ten Shadows technique key (`PRIMARY`, `R`) summons or recalls whichever shikigami the
+per-player selection currently names — and since issue #107 the types are **additive**: every
+pack stands beside the others, there is no swap branch left. `MegumiShikigamiSelection`
+(default `DOGS`) is advanced by `TERTIARY_SNEAK` (`Shift+V`); `PRIMARY_SNEAK` (`Shift+R`) issues
+one **global sic** to every living body across both families, and an empty aim clears all manual
+orders. The `DOGS` selection delegates to the dog runtime (`MegumiSummonRuntime`), whose pack
+coexists with the shikigami packs; the dogs themselves are owned by
 [Megumi Divine Dogs](Megumi-Divine-Dogs.md) and the unchanged shadow kit by
-[Megumi shadow kit](Megumi-shadow-kit.md).
+[Megumi shadow kit](Megumi-shadow-kit.md). Issue #108 adds the partial-manifestation key (`X`,
+press/release edges): Nue's wings and Toad's tongue, one partial at a time, refused while that
+type's full body is materialized.
 
 Server code lives under `jujutsu.mod.character.megumi` (`MegumiShikigami*`, `MegumiNue*`,
 `MegumiToad*`, `MegumiRabbit*`/`MegumiRabbits*`, `MegumiElephant*`); client render stacks live
@@ -24,14 +28,15 @@ the review-wave fixes landing on top.
 
 | Input | Ability | Answers |
 |---|---|---|
-| `R` | technique key (`PRIMARY`) | `MegumiShikigamiRuntime.tryPrimary` — summon / recall / swap the selection, or the dogs when `DOGS` is selected |
-| `S+R` | sic (`PRIMARY_SNEAK`) | `MegumiShikigamiRuntime.trySic` — send every living ordered body at the aimed target; `SIC_COOLDOWN_TICKS = 30` on `PRIMARY_SNEAK`. Bodies also answer **by themselves**: every tick the per-owner pass in `MegumiShikigamiRuntime.retaliate` / `MegumiSummonRuntime.retaliate` marks the owner's aggressor (`MegumiRetaliationPolicy.pickAggressor` — the owner's last attacker for `RETALIATION_WINDOW_TICKS = 100`, else the nearest mob already targeting the owner inside `RETALIATION_RADIUS = 16`). A sic set by hand outranks it (`hasManualSicTarget`), and `MegumiTargetPolicy.Facts.ownSummonBody` keeps the pack off its own bodies (issue #76). The window is measured on the owner's own `tickCount` — vanilla stamps `lastHurtByMobTimestamp` with it, so any comparison against `level().getGameTime()` expires every hit. No vanilla owner goal (`OwnerHurtByTargetGoal`, `OwnerHurtTargetGoal`) is installed on the bodies: both write a target straight from the owner's fight and would steal a sic's mark |
-| `S+V` | select (`TERTIARY_SNEAK`) | `MegumiShikigamiRuntime.tryCycle` — advance the selection, action-bar feedback, never a cooldown |
+| `R` | technique key (`PRIMARY`) | `MegumiShikigamiRuntime.tryPrimary` — summon the selection, or recall exactly that type when it is already out (`MegumiShikigamiSwapPolicy`: `RECALL_SELF` / `SUMMON`, plus `DELEGATE_DOGS`); additive, never a swap |
+| `S+R` | sic (`PRIMARY_SNEAK`) | `MegumiShikigamiRuntime.trySic` — one global order: the aimed target is assigned to every combat-enabled body in BOTH families; an aim that names nothing clears every MANUAL mark (`sic_cleared`, D5). Costs the `PRIMARY_SNEAK` cooldown on success. Bodies also answer **by themselves**: every tick the per-owner pass in `MegumiShikigamiRuntime.retaliate` / `MegumiSummonRuntime.retaliate` marks the owner's aggressor (`MegumiRetaliationPolicy.pickAggressor` — the owner's last attacker for `RETALIATION_WINDOW_TICKS = 100`, else the nearest mob already targeting the owner inside `RETALIATION_RADIUS = 16`). A sic set by hand outranks it (`hasManualSicTarget`), and `MegumiTargetPolicy.Facts.ownSummonBody` keeps the pack off its own bodies (issue #76). The window is measured on the owner's own `tickCount` — vanilla stamps `lastHurtByMobTimestamp` with it |
+| `S+V` | select (`TERTIARY_SNEAK`) | `MegumiShikigamiRuntime.tryCycle` — advance the selection, action-bar feedback, never a cooldown; refused while a partial manifestation is out |
+| `X` (press/release) | partial (`PARTIAL` / `PARTIAL_RELEASE`) | `MegumiPartialRuntime.tryPartial` / `tryPartialRelease` — Nue selection toggles the wings, Toad selection anchors the tongue at the aimed surface (release detaches); other selections refuse, and so does a partial whose type's full body is out |
 | `B` / `S+B` (+hold) / `V` | shadow kit | unchanged: trap / step / deep submerge / drop (`MegumiAbilityRouter`) |
 
-The roster card (`MegumiClientDefinition.rosterEntry`) lists seven rows in input order — Divine
+The roster card (`MegumiClientDefinition.rosterEntry`) lists eight rows in input order — Divine
 Dogs `R`, Sic `S+R`, Shikigami Select `S+V`, Shadow Trap `B`, Shadow Step `S+B`, Deep Submerge
-`S+B+`, Shadow Drop `V`. The `R` row still carries the `divine_dogs` label key: with the default
+`S+B+`, Shadow Drop `V`, Partial Manifestation `X`. The `R` row still carries the `divine_dogs` label key: with the default
 `DOGS` selection it summons the dogs, and after a cycle it summons whatever is selected. Five HUD
 cells mirror the five technique slots (`PRIMARY`, `PRIMARY_SNEAK`, `SECONDARY`, `SECONDARY_SNEAK`,
 `TERTIARY`); the `S+V` row owns no cooldown and gets no cell. The `PRIMARY` denominator is
@@ -46,25 +51,96 @@ cells mirror the five technique slots (`PRIMARY`, `PRIMARY_SNEAK`, `SECONDARY`, 
 `DISCONNECT` and `SERVER_STOPPING` clear it in production. The dev/MCP fixture-reset tool step deliberately restores the DOGS default (verified in game: clean-slate semantics for tests, not keeps-selection).
 
 `tryPrimary` decides through the pure `MegumiShikigamiSwapPolicy` (`DELEGATE_DOGS` /
-`RECALL_SELF` / `RECALL_OTHER_THEN_SUMMON` / `SUMMON`):
+`RECALL_SELF` / `SUMMON` — the swap branch died with coexistence, issue #107 D1):
 
-1. Selection `DOGS` → the dog runtime answers (`tryToggle`); a live non-dog pack is swapped out
-   first with `TeardownReason.SWAPPED`.
+1. Selection `DOGS` → the dog runtime answers (`tryToggle`); other packs stay out untouched.
 2. A live pack of the selected type → manual recall (`RECALL`), which costs that type's recall
    cooldown.
-3. A live pack of another type, or live dogs under a non-dog selection → swap: tear the old side
-   down with `SWAPPED` (visual recall, **no cooldown**) and summon the selection, with the
-   `shikigami.swap` action-bar message (`%s return — %s takes the field`).
-4. Nothing live → summon the selection: air-spot preflight for Nue, ground/ring preflight for the
-   rest; failure answers `shikigami.no_room` and returns false; success plays the shadow-open
-   sound plus the type's summon cue and starts no cooldown.
-5. A second `PRIMARY` in the same game tick is a no-op `true` (key-repeat guard on
+3. Nothing of that type live → summon it beside whatever else is out: air-spot preflight for
+   Nue, ground/ring preflight for the rest; failure answers `shikigami.no_room` and returns
+   false; success plays the shadow-open sound plus the type's summon cue and starts no cooldown.
+4. A second `PRIMARY` in the same game tick is a no-op `true` (key-repeat guard on
    `summonedAtGameTime`).
 
 `trySic` resolves through the unchanged `TargetResolver` within `SIC_RANGE = 20.0` plus owner line
-of sight and `MegumiSummonRuntime.isEligibleTarget`, assigns every combat-enabled body
-(`acceptsSicCommand`), and plays the snap plus the generic `megumi/shikigami_sic` marker. With no
-living bodies it answers `shikigami.none`.
+of sight and `MegumiSummonRuntime.isEligibleTarget`. Since #107 it is one **global** order: every
+combat-enabled body in both families (`acceptsSicCommand`) takes the mark, the snap plus the
+generic `megumi/shikigami_sic` marker plays, and the `PRIMARY_SNEAK` cooldown applies. An aim that
+names nothing is the release-the-pack edge: every MANUAL mark is cleared and the answer is
+`sic_cleared`. With no living bodies it answers `shikigami.none`.
+
+## Autonomous coordination (issue #107)
+
+`MegumiPackCoordinator` is the autonomous half of Ten Shadows: every `COORDINATION_SCAN_TICKS = 5`
+ticks it rebuilds one `MegumiCombatContext` per owner — a single entity scan shared by the whole
+pack — then lets the pure `MegumiCoordinationPolicy` pick each mark-holding body's target. Bodies
+keep acting on their `sicTargetUuid` exactly as before; the coordinator only writes the mark. It
+registers AFTER the two pack runtimes so its END_SERVER_TICK reads the marks their reconcile and
+retaliation passes already settled. A MANUAL sic is never reassigned; a RETALIATION mark is left
+to the retaliation pass; Rabbit Escape carries no marks at all (D13 — the swarm's chaos is its
+contribution).
+
+Scoring is weights only — no veto path: distance, danger (max health), soaked/held/intent
+bonuses, owner/ally threat factors, an occupancy penalty, and jitter. Three rules sit beside the
+score: hysteresis (`COORD_HYSTERESIS = 1.25`, a challenger must beat the standing mark by the
+factor — skipped for threat picks), the spread rule (a merely-occupied best yields to the best
+free candidate unless it is claimed by an ally's intent or threatening the pack), and the
+autonomy band (`AUTONOMY_RADIUS = 50` assignable, `RETURN_RADIUS = 60` drops a self-placed mark so
+the body walks home; manual marks exempt). `MegumiFailureMemory` makes a failed pounce cost the
+body: weight `max(0.3, 1.0 − 0.6·count)` recovering linearly over a 100-tick window, re-stamped on
+every wall-abort. Brains read `contextFor` for soft coordination — an elephant holds its jet off
+a target an ally is already working.
+
+## Partial manifestations (issue #108)
+
+`MegumiPartialRuntime` is the server-authoritative state machine for Nue's wings and Toad's
+tongue — one partial at a time, keyed by owner. The marker effect is the authority on both sides:
+`JujutsuEffects.MEGUMI_NUE_WINGS` / `MEGUMI_TOAD_TONGUE` gate the glide grant and the grapple, the
+state map re-syncs from the effect every tick, and every teardown path (deselect, respawn,
+disconnect, dimension change, server stop, fixture reset, a shadow move) removes marker AND tells
+the tongue's client to stop pulling.
+
+**Wings** (`X` press toggles): the fall-flying flag's only setter is `startFallFlying()`, so the
+upkeep re-asserts it while the marker lives — the player glides with zero fall damage, and the
+partial ends on landing (D2) or when the marker lifts.
+
+**Tongue** (`X` press anchors, release detaches): `TargetResolver` must name a BLOCK within
+`TONGUE_RANGE = 10` or the cast refuses (`partial.no_anchor`). While anchored, the client pulls
+the player toward the point (`TonguePullPolicy` + `TonguePhysicsMixin`, client-authoritative
+movement with the server holding the anchor); the tongue lets go by itself when the anchor block
+stops being solid or the line to it blocks (R31/R32). A repeated press while out is a no-op, and
+the §19 exclusion refuses the partial while that type's full body is materialized — and refuses
+the summon while the partial is out.
+
+The roster card lists the partial row; HUD answers 0 for both partial slots (no cooldowns).
+
+## Quick selector (G)
+
+The strip is the second selection path beside `S+V` cycling: a hold of `key.jujutsumod.quick_selector`
+(default G) opens a bottom-center strip of five slots — one per shikigami — without pausing the
+world; releasing the key closes it. A tap under `TAP_MAX_TICKS` cycles instead, so the key covers
+both gestures. While open, left-click on an available slot selects it immediately and the strip
+stays open; a cooling slot rejects with a shake; hover never selects. A hold released without a
+click restores nothing — the pre-open selection stands.
+
+Client side lives under `jujutsu.mod.client.character.megumi.selector`: `JujutsuKeybinds` owns the
+gesture state machine (tap vs hold, screen-open mid-hold cancels rather than phantom-cycling,
+sub-tick taps re-arm via `clickCount`), `MegumiShikigamiSelectorScreen` renders the strip through
+`SelectorMotion` (entrance/exit phases, per-slot snapshots so a mid-entrance close doesn't snap
+trailing slots), `ShikigamiSelectorLayout` places it above the hotbar **and** the status rows,
+and `ShikigamiSlotView` draws each slot's GeckoLib body through a picture-in-picture render state
+that injects `PACKED_LIGHT` itself — the dispatcher mixin only covers the entity render path, not
+`submitEntityRenderState`, so a naive PiP crashes with an NPE.
+
+State arrives over the wire as a `MegumiShikigamiSync` snapshot (slot states + cooldown deadlines
+rebased onto the client clock by `ClientMegumiShikigamiState.apply`); selection goes back as a C2S
+`select` request that `MegumiDefinition.selectShikigami` validates (`MegumiShikigami.byId` rejects
+unknown ids) and deduplicates — an unchanged selection never echoes a snapshot. `LOCKED`,
+`DESTROYED` and `TEMPORARY` render but have no producer yet (accepted narrowing, see
+`docs/KNOWN_ISSUES.md`). Dev-lane hooks: `/jujutsu_debug shikigami_selector` toggles the strip
+without the key, and the mcpdev `jujutsu_input` tool injects tap/press/release/hold/click so the
+gesture is scriptable end to end.
+
 ## Per-type mechanics and tuning pointers
 
 Every number lives in `MegumiShikigamiProfile`; brains contain no magic constants. Cooldown table
@@ -155,16 +231,18 @@ idle. The off-origin `body` pivot is upstream data; only renderer scale/offset m
 
 ## Lifecycle and cleanup
 
-`MegumiShikigamiRuntime` keeps one owner-keyed `MegumiShikigamiPack` (type, dimension, anchor id,
-body ids, summon token, summon game time) plus the `TEARDOWN_IN_PROGRESS` guard. `teardown` is
-the single destructive entry point: drop the record, cross-level sweep of owned bodies,
-`beginRecall` for the RECALL family and `discard` otherwise, then the reason's cooldown via
-`startCooldownIfLonger` (a longer active deadline is never shortened).
+`MegumiShikigamiRuntime` keeps one owner-keyed `MegumiShikigamiPack` **per type** (type,
+dimension, anchor id, body ids, summon token, summon game time) plus the `TEARDOWN_IN_PROGRESS`
+guard — coexistence means the map is keyed (owner, type), and `teardownType` sweeps exactly one
+type's pack so recalling Nue never touches the Toad. `teardown` is the single destructive entry
+point: drop the record, cross-level sweep of owned bodies, `beginRecall` for the RECALL family
+and `discard` otherwise, then the reason's cooldown via `startCooldownIfLonger` (a longer active
+deadline is never shortened). Summon cooldowns are per-(owner, type) deadlines in
+`MegumiSummonCooldowns` — a recalled Nue cannot lock the dogs.
 
 | Trigger | Reason | Bodies | PRIMARY cooldown |
 |---|---|---|---|
 | `R` on the active selected type | `RECALL` | sink-out | recall row |
-| `R` with another side live | `SWAPPED` (old side) | sink-out | none (swap is free) |
 | Anchor dead, or zero living bodies (tick/death/unload reconcile) | `DEATH` | vanish | death row |
 | Owner death | `DEATH` | vanish | death row |
 | Vessel deselect (`onDeselected`) | `DESELECTED` | sink-out | recall row; selection kept |
@@ -211,19 +289,26 @@ placeholders. VFX ids (`MegumiVfxIds`, all in `LIVE` with recipes in `MegumiVfxR
 
 ## Evidence boundary
 
-JUnit plus architecture checks cover selection order/defaults, the swap-decision table,
-teardown-reason → cooldown mapping (`SWAPPED` = 0), presentation transitions and combat gates,
+JUnit plus architecture checks cover selection order/defaults, the summon/recall decision table,
+teardown-reason → cooldown mapping, presentation transitions and combat gates,
 spawn-placement offset math, friendly-fire membership, per-type pure policies (dive velocity,
 impact predicate, soaked escalation; grab reach/hold/anchor/throw/bind-break/strike; rabbit respawn/expiry/bump;
-elephant corridor/presence/footprint/hostility), resource contracts (geo identifiers, clip keys, one-shot attack/tongue,
+elephant corridor/presence/footprint/hostility), the coordination policy (band action, score
+weights, hysteresis, spread pick, failure-memory decay), the tongue pull law, resource contracts
+(geo identifiers, clip keys, one-shot attack/tongue,
 texture paths, `geckolib_format_version`), router-arm and roster/HUD pins, and the lang key sets.
 
 GameTests (`MegumiShikigamiGameTests`, `MegumiToadGameTests`, `MegumiRabbitsGameTests`,
-`MegumiElephantGameTests`, `MegumiShikigamiCrossTests`) cover summon → pack shape, recall and
-death cooldowns per type, the zero-cooldown swap, sic-driven abilities end to end (dive damage +
+`MegumiElephantGameTests`, `MegumiShikigamiCrossTests`, `MegumiCoexistenceGameTests`,
+`MegumiAutonomyGameTests`, `MegumiPartialGameTests`, `MegumiWingsGameTests`,
+`MegumiTongueGameTests`) cover summon → pack shape, recall and
+death cooldowns per type, additive coexistence (two types out at once, per-type recall,
+per-type summon deadlines), the global sic (both families marked, empty aim clears orders),
+autonomous marking and the failure-memory retry gate, sic-driven abilities end to end (dive damage +
 slow, toad hold without damage + throw, bump knockback + slow, jet damage + soak), the swarm upkeep/expiry/anchor
-rules, friendly fire inside the jet corridor, and the cross-type guarantees (one-active,
-fixture-reset teardown with the selection back to DOGS, deselect teardown with the selection kept).
+rules, friendly fire inside the jet corridor, the partial state machine (wings toggle + zero fall
+damage + landing end, tongue anchor/pull/release/refusals), and the cross-type guarantees
+(fixture-reset teardown with the selection back to DOGS, deselect teardown with the selection kept).
 
 Oracle trap, measured in game 2026-09-11: a `NoAI:1b` mob is FULLY FROZEN — external velocity is stored but the position never integrates, not even gravity. Displacement-based oracles ("distance decreased", knockback travel) must use an AI mob with zeroed speed (Slowness amplifier 100) or assert velocity/effect state instead (`getDeltaMovement`, effects). The hold/throw scenarios pin the grip through the anchor position and the throw through the velocity vector for exactly this reason.
 +

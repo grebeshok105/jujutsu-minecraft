@@ -87,6 +87,8 @@ Runtime-affecting changes (gameplay, input, rendering, entities, networking, VFX
 
 Large or risky changes require **independent review through subagents** — at minimum architecture and implementation reviews where applicable. Reviewers hunt real problems (spec violations, structural damage, regressions, missing tests), they do not rubber-stamp. Findings are fixed or explicitly rejected with reasons.
 
+**Subagents never run test suites.** Delegated workers (task/scout/reviewer/tester and any spawned agent) are forbidden from running `test`, `runGameTest`, `qualityGate`, or any `--tests` filter — those runs are slow, serialize on the Gradle daemon, and duplicate work the orchestrator already owns. A worker's verification ceiling is compilation (`compileJava`, `compileClientJava`, `compileGametestJava`) plus, at most, a single focused JUnit class when it directly proves the worker's own change. Every suite run — JUnit, GameTest, qualityGate, in-game verification — is executed by the main agent only.
+
 ## 11. Definition of Done
 
 DONE only when every relevant item holds: DESIGN SPEC fully implemented; implementation plan executed; no known open items; tests written or updated; all relevant tests green; `qualityGate` green; mutation checks green where applicable; launch/runtime check green; in-game verification green where applicable; acceptance criteria checked; independent reviews done; findings fixed; docs and project context updated where the change outdated them; final self-review done; git state clean and complete.

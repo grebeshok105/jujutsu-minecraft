@@ -137,6 +137,19 @@ public final class NobaraAbilitySlotsTest {
 		}
 		assert !Pattern.compile("default\\s*->").matcher(router).find()
 				: "The slot switch must stay exhaustive so a new slot cannot fall into an existing ability";
+		// Issue #108 appended the partial key's two edges. She refuses both, and the refusal is named
+		// here rather than left to the loop above, so the next reader can tell a decision from an
+		// oversight. They share one arm, which is why armOf takes label lists.
+		for (CharacterAbility partial : new CharacterAbility[] {
+				CharacterAbility.PARTIAL, CharacterAbility.PARTIAL_RELEASE}) {
+			assert armOf(router, partial).contains("UNHANDLED_FAILURE")
+					: partial + " must be refused explicitly by Nobara's router";
+		}
+		// Her refusal is SILENT: the partial key is not one of her casts, so it must be turned away
+		// before the fallback line — otherwise pressing Megumi's key while she is selected answers
+		// "no target", which is the wrong explanation for a key that was never hers.
+		assert router.contains("ability == CharacterAbility.PARTIAL")
+				: "the partial key must be refused before the no-target fallback, not through it";
 		// Both Hairpin slots share one precondition, and it has to be in both arms rather than twice in one.
 		String precondition = "ProjectJjkNobaraRuntime.canCastMarkedHairpin(nobara)";
 		for (CharacterAbility hairpin : new CharacterAbility[] {CharacterAbility.PRIMARY, CharacterAbility.SECONDARY}) {
@@ -148,16 +161,23 @@ public final class NobaraAbilitySlotsTest {
 	/**
 	 * The text of one switch arm, from its {@code ->} to the next {@code case} or the closing brace.
 	 *
-	 * <p>Label matching requires the arrow immediately after the name, so {@code PRIMARY} cannot match
-	 * {@code PRIMARY_SNEAK}. Anything that binds a slot to a call has to be measured within one arm; a
-	 * whole-file substring search proves only that the call exists somewhere.
+	 * <p>An arm may carry a list of labels ({@code case A, B ->}) since the partial key's two edges are
+	 * refused together, so the lookup scans every arm and takes the one whose labels contain the slot as
+	 * a WHOLE label — {@code PRIMARY} still cannot match {@code PRIMARY_SNEAK}, because the underscore
+	 * keeps the shorter name from ending where the label must end. Anything that binds a slot to a call
+	 * has to be measured within one arm; a whole-file substring search proves only that the call exists
+	 * somewhere.
 	 */
 	private static String armOf(String source, CharacterAbility slot) {
-		Matcher label = Pattern.compile("case\\s+" + slot.name() + "\\s*->").matcher(source);
-		assert label.find() : "Nobara's router must answer " + slot + " in an arm of its own";
-		int from = label.end();
-		Matcher end = Pattern.compile("\\n\\s*(case\\s|\\};)").matcher(source);
-		return source.substring(from, end.find(from) ? end.start() : source.length());
+		Matcher arm = Pattern.compile("case\\s+([A-Z_]+(?:\\s*,\\s*[A-Z_]+)*)\\s*->").matcher(source);
+		while (arm.find()) {
+			if (Pattern.compile("\\b" + slot.name() + "\\b").matcher(arm.group(1)).find()) {
+				int from = arm.end();
+				Matcher end = Pattern.compile("\\n\\s*(case\\s|\\};)").matcher(source);
+				return source.substring(from, end.find(from) ? end.start() : source.length());
+			}
+		}
+		throw new AssertionError("Nobara's router must answer " + slot + " in an arm of its own");
 	}
 
 	private static void assertStaggerGuardsTheWholeSwitch() throws Exception {

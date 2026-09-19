@@ -128,6 +128,13 @@ public final class CursedSpiritGameTests {
 		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
 		CursedSpiritEntity spirit =
 				CursedSpiritTestFixtures.spawnSpirit(helper, fixture, JujutsuEntities.CURSED_SPIRIT, spiritFeet);
+		// The burst oracle assumes the body stands where it spawned: reach is borderline at two
+		// blocks, so a spirit that closes the gap during windup fires the lunge point-blank into
+		// the victim's hitbox and the collision eats the impulse before any poll samples it
+		// (CI run 35270185513: peak 0.066). Slowness-100 freezes the approach — the strike
+		// impulse is setDeltaMovement, not movement input, so the burst still fires.
+		spirit.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+				net.minecraft.world.effect.MobEffects.SLOWNESS, 2400, 100, false, false, false));
 		double victimMax = victim.getMaxHealth();
 		AtomicReference<Double> maxHorizSpeed = new AtomicReference<>(0.0);
 		// The burst must stand out from the body's OWN motion: a flat floor below the walk-speed

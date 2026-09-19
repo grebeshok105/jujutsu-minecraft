@@ -37,6 +37,17 @@ public final class JujutsuSounds {
 	public static final SoundEvent MEGUMI_DOG_AMBIENT = create("megumi.dog_ambient");
 	/** Dire Wolf (Divine Dogs visual): growl. */
 	public static final SoundEvent MEGUMI_DOG_GROWL = create("megumi.dog_growl");
+	// Shikigami quick selector (issue #109): four tactile UI roles, synthesized by
+	// tools/synth_selector_sounds.py. Deliberately short (45-120 ms) so repeated combat use
+	// never queues: the strip speaks open / hover / confirm / reject and nothing else.
+	/** Selector strip slides in. */
+	public static final SoundEvent MEGUMI_SELECTOR_OPEN = create("megumi.selector_open");
+	/** Cursor crosses into another slot (fires often -- quietest row, pitched with jitter). */
+	public static final SoundEvent MEGUMI_SELECTOR_HOVER = create("megumi.selector_hover");
+	/** A shikigami became the active one. */
+	public static final SoundEvent MEGUMI_SELECTOR_SELECT = create("megumi.selector_select");
+	/** The clicked entry is unavailable and the click was refused. */
+	public static final SoundEvent MEGUMI_SELECTOR_REJECT = create("megumi.selector_reject");
 	// Cursed spirits: 34 channels, one row per frozen variant/channel pair (Block 1 ships the
 	// .ogg files and sounds.json keys these constants point at). GULBER and GUZZLER have no
 	// scream — there is deliberately no CURSED_GULBER_SCREAM / CURSED_GUZZLER_SCREAM row.
@@ -74,6 +85,10 @@ public final class JujutsuSounds {
 	public static final SoundEvent CURSED_WISTIVER_HURT = create("cursed.wistiver_hurt");
 	public static final SoundEvent CURSED_WISTIVER_DEATH = create("cursed.wistiver_death");
 	public static final SoundEvent CURSED_WISTIVER_SCREAM = create("cursed.wistiver_scream");
+	public static final SoundEvent INCIDENT_DRONE = create("incident_drone");
+	public static final SoundEvent SEAL_CRACK = create("seal_crack");
+	public static final SoundEvent SEAL_BREAK = create("seal_break");
+	public static final SoundEvent SECONDARY_BIRTH = create("secondary_birth");
 
 	public static void register() {
 		register("hairpin.prep", HAIRPIN_PREP);
@@ -102,6 +117,10 @@ public final class JujutsuSounds {
 		register("nobara.mega_launch_blast", NOBARA_MEGA_LAUNCH_BLAST);
 		register("megumi.dog_ambient", MEGUMI_DOG_AMBIENT);
 		register("megumi.dog_growl", MEGUMI_DOG_GROWL);
+		register("megumi.selector_open", MEGUMI_SELECTOR_OPEN);
+		register("megumi.selector_hover", MEGUMI_SELECTOR_HOVER);
+		register("megumi.selector_select", MEGUMI_SELECTOR_SELECT);
+		register("megumi.selector_reject", MEGUMI_SELECTOR_REJECT);
 		register("cursed.prowler_ambient", CURSED_PROWLER_AMBIENT);
 		register("cursed.prowler_hurt", CURSED_PROWLER_HURT);
 		register("cursed.prowler_death", CURSED_PROWLER_DEATH);
@@ -136,6 +155,10 @@ public final class JujutsuSounds {
 		register("cursed.wistiver_hurt", CURSED_WISTIVER_HURT);
 		register("cursed.wistiver_death", CURSED_WISTIVER_DEATH);
 		register("cursed.wistiver_scream", CURSED_WISTIVER_SCREAM);
+		register("incident_drone", INCIDENT_DRONE);
+		register("seal_crack", SEAL_CRACK);
+		register("seal_break", SEAL_BREAK);
+		register("secondary_birth", SECONDARY_BIRTH);
 	}
 
 	private static SoundEvent create(String path) {

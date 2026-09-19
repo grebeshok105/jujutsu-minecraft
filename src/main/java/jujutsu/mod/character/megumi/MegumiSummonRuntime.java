@@ -43,7 +43,6 @@ import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.vfx.MegumiVfxIds;
-import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuEntities;
@@ -57,6 +56,11 @@ public final class MegumiSummonRuntime {
 	private static final AtomicLong NEXT_SUMMON_TOKEN = new AtomicLong();
 	private static final ResourceKey<WolfSoundVariant> DIRE_WOLF_SOUND =
 			ResourceKey.create(Registries.WOLF_SOUND_VARIANT, JujutsuMod.id("dire_wolf"));
+	/**
+	 * The failure-memory action key a pounce abort is filed under (issue #107 §15). The dogs are
+	 * the only pouncers, and the coordination pass reads the same key when it weighs an order.
+	 */
+	private static final String POUNCE_FAILURE_KEY = "pounce";
 
 	private MegumiSummonRuntime() {}
 
@@ -78,8 +82,13 @@ public final class MegumiSummonRuntime {
 				teardown(newPlayer.getServer(), newPlayer.getUUID(), TeardownReason.RESPAWN));
 		ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) ->
 				teardown(player.getServer(), player.getUUID(), TeardownReason.DIMENSION_CHANGE));
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-				teardown(server, handler.player.getUUID(), TeardownReason.DISCONNECT));
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+			teardown(server, handler.player.getUUID(), TeardownReason.DISCONNECT);
+			// The per-type summon map is shared with the shikigami runtime (issue #107), so the
+			// owner's whole row is dropped here: a reconnect greets the player with a clean slate,
+			// exactly like the ability-slot map it replaced.
+			MegumiSummonCooldowns.clear(handler.player.getUUID());
+		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			Set<UUID> ownerIds = new HashSet<>(PACKS.keySet());
 			for (ServerLevel level : server.getAllLevels()) {
@@ -95,6 +104,7 @@ public final class MegumiSummonRuntime {
 			}
 			PACKS.clear();
 			TEARDOWN_IN_PROGRESS.clear();
+			MegumiSummonCooldowns.clearAll();
 		});
 	}
 
@@ -136,6 +146,11 @@ public final class MegumiSummonRuntime {
 			teardown(player.getServer(), ownerId, TeardownReason.RECALL);
 			return true;
 		}
+		if (MegumiSummonCooldowns.onCooldown(ownerId, MegumiShikigami.DOGS, gameTime)) {
+			// Issue #107: the summon readiness of each type lives on its own per-type deadline, so a
+			// recalled Nue no longer locks the dogs (and vice versa) the way the shared PRIMARY slot did.
+			return rejectRecharging(player, MegumiShikigami.DOGS, notify);
+		}
 
 		ServerLevel level = player.level();
 		MegumiGroundSafety.SpawnPair positions = MegumiGroundSafety.findSummonPair(
@@ -163,53 +178,21 @@ public final class MegumiSummonRuntime {
 		broadcastCue(level, player, MegumiVfxIds.DOGS_SUMMON_BODY, player.position(), player.getId(), Vec3.ZERO);
 		broadcastDogCue(level, player, MegumiVfxIds.DOGS_SUMMON, white);
 		broadcastDogCue(level, player, MegumiVfxIds.DOGS_SUMMON, black);
+		// The pack is live: the owner's snapshot marks DOGS as out without implying any despawn.
+		MegumiShikigamiSync.push(player);
 		return true;
 	}
 
-	public static boolean trySic(ServerPlayer player, boolean notify) {
-		MegumiDivineDogPack pack = PACKS.get(player.getUUID());
-		List<MegumiDivineDogEntity> livingPackDogs =
-				pack == null ? List.of() : livingDogs(player.getServer(), player.getUUID(), pack);
-		if (livingPackDogs.isEmpty()) {
-			if (pack != null) {
-				reconcile(player.getServer(), player.getUUID(), RemovalCause.TICK);
-			}
-			if (notify) {
-				player.displayClientMessage(Component.translatable("message.jujutsumod.megumi.dogs.none_out"), true);
-			}
-			return false;
-		}
-		List<MegumiDivineDogEntity> dogs = livingPackDogs.stream()
+	/**
+	 * The dogs this owner can actually command right now (issue #107: the sic command is global, so
+	 * the dog half of it is gathered from the living list the caller already read). A dog still
+	 * materializing answers no key, and the filter keeps the caller from confirming, emitting or
+	 * charging for a command nobody received.
+	 */
+	static List<MegumiDivineDogEntity> commandableDogs(List<MegumiDivineDogEntity> livingDogs) {
+		return livingDogs.stream()
 				.filter(MegumiDivineDogEntity::acceptsSicCommand)
 				.toList();
-		if (dogs.isEmpty()) {
-			return false;
-		}
-
-		ServerLevel level = player.level();
-		TargetResolver.Result result = TargetResolver.resolve(
-				level, player, MegumiProfile.SIC_RANGE,
-				target -> isEligibleTarget(player, target));
-		if (result.mode() != TargetResolver.Mode.ENTITY || result.entityId().isEmpty()) {
-			return false;
-		}
-		Entity resolved = level.getEntity(result.entityId().get());
-		if (!(resolved instanceof LivingEntity target)
-				|| !isEligibleTarget(player, target)
-				|| !player.hasLineOfSight(target)) {
-			return false;
-		}
-		for (MegumiDivineDogEntity dog : dogs) {
-			dog.assignSicTarget(target);
-		}
-		player.level().playSound(null, player.getX(), player.getY(), player.getZ(), JujutsuSounds.PROJECTJJK_SNAP,
-				SoundSource.PLAYERS, 0.66f, 0.88f);
-		MegumiDivineDogEntity voice = dogs.getFirst();
-		voice.playSicSound();
-		broadcastCue(level, player, MegumiVfxIds.DOGS_SIC, target.position(), target.getId(),
-				new Vec3(0.0, target.getBbHeight() * 0.55, 0.0));
-		startCooldownIfLonger(player, CharacterAbility.PRIMARY_SNEAK, MegumiProfile.SIC_COOLDOWN_TICKS);
-		return true;
 	}
 
 	/**
@@ -330,8 +313,10 @@ public final class MegumiSummonRuntime {
 			return;
 		}
 		if (PACKS.remove(ownerId, pack)) {
-			startCooldownIfLonger(server.getPlayerList().getPlayer(ownerId), CharacterAbility.PRIMARY,
+			startSummonCooldown(server, ownerId, MegumiShikigami.DOGS,
 					MegumiCooldownPolicy.duration(MegumiCooldownPolicy.Cause.FINAL_LOSS));
+			// The pack record is gone, so the selector's DOGS marker must go with it.
+			MegumiShikigamiSync.push(server.getPlayerList().getPlayer(ownerId));
 		}
 	}
 
@@ -376,7 +361,9 @@ public final class MegumiSummonRuntime {
 			TEARDOWN_IN_PROGRESS.remove(ownerId);
 		}
 		if (MegumiLifecyclePolicy.shouldApplyTeardownCooldown(pack != null, foundCooldownOwningDog)) {
-			startCooldownIfLonger(server.getPlayerList().getPlayer(ownerId), CharacterAbility.PRIMARY, reason.cooldownTicks());
+			startSummonCooldown(server, ownerId, MegumiShikigami.DOGS, reason.cooldownTicks());
+			// The pack record is gone whichever way this went, so the DOGS marker must go with it.
+			MegumiShikigamiSync.push(server.getPlayerList().getPlayer(ownerId));
 		}
 	}
 
@@ -421,11 +408,12 @@ public final class MegumiSummonRuntime {
 		}
 		LivingEntity aggressor = retaliationTarget(owner);
 		if (aggressor == null) {
-			// Issue #96: the mark was never meant to outlive the answer. With no aggressor in reach,
-			// every mark the pack gave itself expires; a manual sic is the owner's order and stands.
+			// Issue #96/#107: the mark was never meant to outlive the answer. With no aggressor in
+			// reach, every mark this pass placed expires; the owner's manual sic and the
+			// coordinator's autonomous mark both answer to other owners and stand.
 			for (MegumiDivineDogEntity dog : living) {
 				if (dog.sicTargetUuid() != null
-						&& MegumiRetaliationPolicy.markExpiresWithoutAggressor(dog.hasManualSicTarget())) {
+						&& MegumiRetaliationPolicy.markExpiresWithoutAggressor(dog.markKind())) {
 					dog.clearSicCommand();
 					dog.setTarget(null);
 				}
@@ -495,6 +483,11 @@ public final class MegumiSummonRuntime {
 						return;
 					}
 					if (postMoveAction == MegumiPouncePolicy.PostMoveAction.FINISH) {
+						if (dog.horizontalCollision) {
+							// The flight ended on a wall instead of the target (issue #107 §15): remember
+							// the abort so the next tick's launch is held instead of re-slammed into it.
+							MegumiFailureMemory.recordFailure(dog.getUUID(), POUNCE_FAILURE_KEY, gameTime);
+						}
 						finishPounceAndMaybeResume(
 								dog, owner, assignedTarget, MegumiPouncePolicy.ResumeTermination.ORDINARY,
 								dog.onGround(), resolvedVelocity);
@@ -520,6 +513,12 @@ public final class MegumiSummonRuntime {
 				distance,
 				dog.pounceReady(gameTime));
 		if (!MegumiPouncePolicy.canLaunch(facts)) {
+			return;
+		}
+		if (MegumiFailureMemory.weight(dog.getUUID(), POUNCE_FAILURE_KEY, gameTime)
+				< MegumiProfile.POUNCE_RETRY_MIN_WEIGHT) {
+			// Issue #107 R16: the body just failed this action recently, so it holds the launch this
+			// tick. The memory recovers on its own window, so the wall is not retried forever either.
 			return;
 		}
 		Vec3 velocity = MegumiPouncePolicy.launchVelocity(dog.position(), assignedTarget.position());
@@ -648,6 +647,12 @@ public final class MegumiSummonRuntime {
 				.toList();
 	}
 
+	/** Every living dog of this owner (coordinator + sic fan-out, issue #107). */
+	public static List<MegumiDivineDogEntity> livingDogs(MinecraftServer server, UUID ownerId) {
+		MegumiDivineDogPack pack = PACKS.get(ownerId);
+		return pack == null ? List.of() : livingDogs(server, ownerId, pack);
+	}
+
 	static void startCooldownIfLonger(ServerPlayer player, CharacterAbility ability, int durationTicks) {
 		if (player == null) {
 			return;
@@ -658,6 +663,29 @@ public final class MegumiSummonRuntime {
 		}
 		CharacterAbilityCooldowns.start(player, ability, durationTicks);
 		JujutsuNetworking.sendAbilityCooldown(player, ability, durationTicks);
+	}
+
+	/**
+	 * Arms one type's summon deadline (issue #107): every summon rides the per-type map, the dogs
+	 * included under {@link MegumiShikigami#DOGS}, so a recalled Nue can no longer keep the dogs
+	 * waiting the way the shared PRIMARY slot did. The game time is read from the overworld — every
+	 * level derives its clock from it, so the deadline is dimension-independent.
+	 */
+	static void startSummonCooldown(MinecraftServer server, UUID ownerId, MegumiShikigami type, int ticks) {
+		if (server == null || ticks <= 0) {
+			return;
+		}
+		MegumiSummonCooldowns.start(ownerId, type, server.overworld().getGameTime() + ticks);
+	}
+
+	/** The summon of {@code type} is not ready yet: name the type so the player knows which row it is. */
+	static boolean rejectRecharging(ServerPlayer player, MegumiShikigami type, boolean notify) {
+		if (notify) {
+			player.displayClientMessage(Component.translatable(
+					"message.jujutsumod.megumi.shikigami.recharging",
+					Component.translatable("jujutsumod.megumi.shikigami." + type.id())), true);
+		}
+		return false;
 	}
 
 	enum RemovalCause {
@@ -673,7 +701,13 @@ public final class MegumiSummonRuntime {
 		DIMENSION_CHANGE(MegumiCooldownPolicy.Cause.RECALL),
 		DISCONNECT(MegumiCooldownPolicy.Cause.NONE),
 		SERVER_STOPPING(MegumiCooldownPolicy.Cause.NONE),
-		DESELECTED(MegumiCooldownPolicy.Cause.RECALL),
+		/**
+		 * The vessel left the field. The summon price is deliberately NONE (issue #107): the
+		 * deadline now lives on the per-type summon map, and a vessel switch is a clean slate
+		 * (issue #84) — the shared ability-slot store that used to carry it was wiped by the
+		 * switch, so arming a per-type deadline here would lock the returning player instead.
+		 */
+		DESELECTED(MegumiCooldownPolicy.Cause.NONE),
 		SUMMON_ROLLBACK(MegumiCooldownPolicy.Cause.NONE),
 		FIXTURE_RESET(MegumiCooldownPolicy.Cause.NONE),
 		/** Dismissed because the player swapped to another shikigami: visual recall, no cooldown. */

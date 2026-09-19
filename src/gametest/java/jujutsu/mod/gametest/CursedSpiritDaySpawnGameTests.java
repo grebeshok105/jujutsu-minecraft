@@ -45,6 +45,7 @@ public final class CursedSpiritDaySpawnGameTests {
 	private static final int SWEEP_TICK = 30;
 
 	private final List<CursedSpiritEntity> owned = new ArrayList<>();
+	private final List<BlockPos> placedLamps = new ArrayList<>();
 
 	/** Day and night both allow in the sealed dark room (night needs no roll, day passes super). */
 	@GameTest(maxTicks = 60)
@@ -95,6 +96,7 @@ public final class CursedSpiritDaySpawnGameTests {
 		buildDarkRoom(helper);
 		helper.setBlock(LIT_FEET.below(), Blocks.STONE);
 		helper.setBlock(LIT_LAMP, Blocks.GLOWSTONE);
+		placeHoistLamp(helper);
 		helper.runAtTickTime(ORACLE_TICK, () -> {
 			ServerLevel level = helper.getLevel();
 			owned.clear();
@@ -124,6 +126,7 @@ public final class CursedSpiritDaySpawnGameTests {
 				}
 			} finally {
 				CursedSpiritSpawnSchedule.resetDayChance();
+				removePlacedLamps(level);
 				for (CursedSpiritEntity spirit : owned) {
 					spirit.discard();
 				}
@@ -173,6 +176,7 @@ public final class CursedSpiritDaySpawnGameTests {
 		buildDarkRoom(helper);
 		helper.setBlock(LIT_FEET.below(), Blocks.STONE);
 		helper.setBlock(LIT_LAMP, Blocks.GLOWSTONE);
+		placeHoistLamp(helper);
 		helper.runAtTickTime(ORACLE_TICK, () -> {
 			ServerLevel level = helper.getLevel();
 			owned.clear();
@@ -185,6 +189,7 @@ public final class CursedSpiritDaySpawnGameTests {
 				assertTierPassesByDay(helper, fixture, level, JujutsuEntities.GREATER_CURSED_SPIRIT, "greater");
 			} finally {
 				CursedSpiritSpawnSchedule.resetDayChance();
+				removePlacedLamps(level);
 				for (CursedSpiritEntity spirit : owned) {
 					spirit.discard();
 				}
@@ -340,13 +345,33 @@ public final class CursedSpiritDaySpawnGameTests {
 
 	/**
 	 * Lifts the probe well above the shared level's spirit arenas: 80 blocks puts ground
-	 * bodies outside the crowd cap's 48-block box, while open sky at noon still refuses the
-	 * vanilla light half of {@code checkSpawnRules} — so the NATURAL gate outcome is decided
-	 * by the day roll alone, deterministically.
+	 * bodies outside the crowd cap's 48-block box. The hoisted cell carries its own
+	 * glowstone because sky light is NOT deterministic here: {@code skyDarken} lags
+	 * {@code setDayTime} by a level tick and sibling arenas write the shared clock, so a
+	 * sky-lit cell can still read dark for one tick and pass the vanilla light half —
+	 * which reads exactly like a day-roll pass and flaked CI (runs 35344640232,
+	 * 35445114511). Block light ignores {@code skyDarken} entirely. The lamp is placed at
+	 * test setup (tick 0) so the light engine has ~15 ticks to propagate before the oracle.
 	 */
-	private static void hoistAboveCrowd(GameTestHelper helper, CursedSpiritEntity probe) {
-		BlockPos abs = helper.absolutePos(LIT_FEET).above(80);
-		probe.setPos(abs.getX() + 0.5, abs.getY(), abs.getZ() + 0.5);
+	private void placeHoistLamp(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		BlockPos lamp = helper.absolutePos(LIT_FEET).above(80);
+		level.setBlockAndUpdate(lamp, Blocks.GLOWSTONE.defaultBlockState());
+		if (!placedLamps.contains(lamp)) {
+			placedLamps.add(lamp);
+		}
+	}
+
+	private void hoistAboveCrowd(GameTestHelper helper, CursedSpiritEntity probe) {
+		BlockPos feet = helper.absolutePos(LIT_FEET).above(81);
+		probe.setPos(feet.getX() + 0.5, feet.getY(), feet.getZ() + 0.5);
+	}
+
+	private void removePlacedLamps(ServerLevel level) {
+		for (BlockPos lamp : placedLamps) {
+			level.setBlockAndUpdate(lamp, Blocks.AIR.defaultBlockState());
+		}
+		placedLamps.clear();
 	}
 
 	/** Ambient-crowd diagnostic: which conjunct of the natural branch refuses, if any. */

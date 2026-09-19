@@ -452,6 +452,22 @@ Both allowlist entries went with it. `VesselBoundaryTest#theOneKnownNetworkLeakD
 
 **One residue, recorded rather than hidden.** `selectCurseLink` is a shared extension point with exactly one implementer, which "Limits of the build-time gate" above lists as a thing no structural rule can tell from a genuine shared hook. `canonicalSlot` sat in the same position until the stone rework deleted it together with its only implementer — the fold that used to collapse Todo's `Shift+B` into `B`.
 
+### E17 — Megumi's sic is now a global order with a cooldown and a clear-orders edge
+
+Changed 2026-09-17 on `feat/megumi-autonomy-partial` (issues #107/#108). Two deliberate semantics
+shifts that dev-lane scripts and future designs must know:
+
+- **Empty aim clears orders (D5).** `MegumiShikigamiRuntime.trySic` resolves the aim once and, when
+  it names nothing, clears every MANUAL mark across both families and reports `sic_cleared`. A sic
+  that hits nothing is a "release the pack" command, not a no-op. Scripts that sic-then-sic to
+  re-aim must now expect the first miss to disband the order.
+- **Sic costs `PRIMARY_SNEAK`.** A successful global sic applies the PRIMARY_SNEAK cooldown, so a
+  dev-lane sequence that sic'd twice in a row now sees the second cast refused. The mcpdev
+  `jujutsu_cooldowns_clear` tool clears it; `fixture_reset` clears it too.
+
+Both are pinned by `MegumiCoexistenceGameTests` (`emptyAimCancelsManualOrders`,
+`globalSicCommandsBothFamilies`) and by `MegumiAbilitySlotsTest`.
+
 ## Low-priority product debt
 
 - Nobara's nail-cast sound is noticeably too loud during manual smoke. Expected behavior is a comfortable volume consistent with the rest of Nobara's kit. Reported 2026-07-31; tracked in [GitHub issue #48](https://github.com/grebeshok105/jujutsu-minecraft/issues/48). No audio change is included in the current pass.
@@ -459,6 +475,7 @@ Both allowlist entries went with it. `VesselBoundaryTest#theOneKnownNetworkLeakD
 - Publication automation for Modrinth/CurseForge should wait until release provenance is clean.
 - Some generic Rich ClickGui modules/components are unused and can be removed after confirming the final UI scope.
 - The debug domain-sphere effect (`jujutsumod:domain_sphere`) is a proof of concept, not gameplay: it is a client-only world-space shell rendered on top of the scene, it exists only to be triggered by hand — `/jujutsu_debug domain_sphere [radius]` in-game or the dev-lane MCP tool `jujutsu_domain_sphere` — and it is registered outside the vessel recipe packs, so no ability, no vessel and no server runtime can reach it yet. Treat the shader, the cue id and the timing constants as a prototype to be reworked by the real Domain Expansion work rather than as a stable seam.
+- Megumi's shikigami quick selector (G) ships deliberately narrowed: `MegumiShikigamiSlotState` declares `LOCKED`/`DESTROYED`/`TEMPORARY` and the wire + strip render them, but nothing in `src/main` produces them — they exist so a future design (quest locks, destroyed shikigami, temporary summons) lands without a protocol change. The strip also models exactly one pack per shikigami: multi-summon does not exist as a class, and `SUMMONED` is set by a single live pack (dogs count as one). Selection is free and never despawns anything.
 
 ## Archived and recoverable
 
@@ -468,9 +485,18 @@ The whole in-world combat HUD the player saw in the 2026-08-21 build was put in 
 
 Untouched: ability input (R / S+R / B / S+B / LMB …), cooldown suppression, VfxDirector + the four remaining contributions (Megumi ×2, Todo ×2), the `hudSlots()`/`maxCooldownTicks()` seam (kept for restore), shared render helpers, assets and the `esp.jujutsumod.rank.*` lang keys. The game-instance jar was rebuilt from `feat/archive-combat-hud` and redeployed on 2026-09-09 17:10.
 
+### E18 — Cursed incidents: accepted limits (issue #110, feat/cursed-incidents)
+
+Landed 2026-09-18 with the full subsystem green. Deliberate leftovers, not bugs:
+
+- `PressureRuntime.tick` has no fake-clock seam; pressure accumulation is covered indirectly (the remainder math is pinned in code review), not by a dedicated unit test.
+- `cadenceProbeForTest` is a live but unused test seam in `InfectionSink`.
+- GameTest drain-timing is inherently racy: `IncidentRuntime.tick` runs on `gameTime % 20`, while `runAtTickTime` counts test ticks — block-edit assertions can flake one drain window. Observed flakes (all pre-existing, unrelated to this branch): `heldVictimDeathReleasesTheGrab`, dead-zone forensics, `stageAdvanceChangesBlocks`/`infectionDestroysPlayerBlocks` timing. Resolved on the integration branch: `toadSelfPickIgnoresOwnerLineOfSight` (autonomous marks counted as owner-ordered for the LoS grab gate — real defect, fixed), `dayLitFollowsPinnedChance` (hoist could land in a roofed cell, passing the vanilla light half — fixed with a canSeeSky climb), `commonStrikeCarriesStepBurst` (spirit walked into the victim during windup, collision ate the lunge impulse — fixed by freezing the approach).
+
 ## Resolved and now in main
 
 - These are closed. They are kept as a short list only so a reader does not reopen them; the live behavior is described in the Codex MOC product snapshot and the source it points to.
+
 
 - Character selection persists through Fabric Data Attachment API and is copied on death.
 - Nobara's starter kit is restored idempotently on every selection — it fills only a missing hammer, doll or nails, so re-selection cannot duplicate held tools. (This deliberately reversed the earlier one-time-claim rule; the persisted claim is now recorded for every vessel and read by nothing — see E12.)

@@ -77,7 +77,7 @@ public final class TodoDefinition implements CharacterDefinition {
 	 * take it off — the attribute sweeps do not reach it, since it belongs to the effect rather than here.
 	 */
 	@Override
-	public void onDeselected(ServerPlayer player) {
+	public void onDeselected(ServerPlayer player, JujutsuCharacter incoming) {
 		TodoStateLifecycle.dropEverything(player);
 	}
 

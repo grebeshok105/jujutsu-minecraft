@@ -26,8 +26,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.animal.Cow;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.state.BlockState;
-import jujutsu.mod.character.CharacterAbility;
-import jujutsu.mod.character.CharacterAbilityCooldowns;
+import jujutsu.mod.character.megumi.MegumiSummonCooldowns;
 import jujutsu.mod.character.megumi.MegumiElephantEntity;
 import jujutsu.mod.character.megumi.MegumiElephantPolicy;
 import jujutsu.mod.character.megumi.MegumiShikigami;
@@ -152,10 +151,11 @@ public final class MegumiElephantGameTests {
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "summon", helper.getTick(), ownerId,
 								"owned elephant bodies in level", "1", bodies.size()));
 
-				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.ELEPHANT,
+						level.getGameTime());
 				helper.assertTrue(remaining == 0,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "summon", helper.getTick(), ownerId,
-								"PRIMARY cooldown (summon is free)", "0", remaining));
+								"summon cooldown (summon is free)", "0", remaining));
 			} finally {
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 			}
@@ -214,10 +214,11 @@ public final class MegumiElephantGameTests {
 				helper.assertTrue(recalled, MegumiShikigamiTestFixtures.diagnostic(fixture,
 						"recall", helper.getTick(), ownerId, "second tryPrimary result", "true", recalled));
 
-				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.ELEPHANT,
+						level.getGameTime());
 				helper.assertTrue(remaining == EXPECTED_RECALL_COOLDOWN_TICKS,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "recall", helper.getTick(), ownerId,
-								"PRIMARY recall cooldown", EXPECTED_RECALL_COOLDOWN_TICKS, remaining));
+								"summon recall cooldown", EXPECTED_RECALL_COOLDOWN_TICKS, remaining));
 
 				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "recall", caster);
 			} finally {
@@ -274,10 +275,11 @@ public final class MegumiElephantGameTests {
 						"kill", helper.getTick(), ownerId, "lethal damage applied", "true", damaged));
 
 				// AFTER_DEATH reconciles synchronously inside hurtServer, so the same-tick read is exact.
-				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.ELEPHANT,
+						level.getGameTime());
 				helper.assertTrue(remaining == EXPECTED_DEATH_COOLDOWN_TICKS,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "kill", helper.getTick(), ownerId,
-								"PRIMARY death cooldown", EXPECTED_DEATH_COOLDOWN_TICKS, remaining));
+								"summon death cooldown", EXPECTED_DEATH_COOLDOWN_TICKS, remaining));
 
 				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "kill", caster);
 			} finally {
@@ -304,13 +306,10 @@ public final class MegumiElephantGameTests {
 		helper.setBlock(new BlockPos(5, 4, 6), Blocks.STONE);
 		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
 		ServerLevel level = helper.getLevel();
-		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
-		zombie.setPersistenceRequired();
-		AttributeInstance health = zombie.getAttribute(Attributes.MAX_HEALTH);
-		helper.assertTrue(health != null, MegumiShikigamiTestFixtures.diagnostic(fixture,
-				"setup", helper.getTick(), caster.getUUID(), "zombie health attribute", "present", "absent"));
-		health.setBaseValue(200.0);
-		zombie.setHealth(200.0f);
+		// The zombie spawns inside the sic callback, not at setup: left in the arena from tick 0,
+		// the elephant's autonomy pass marks it and fires the jet before the sic ever lands, and
+		// the "goals live before sic" oracle reads the jet's NoAI instead of a live body.
+		AtomicReference<Zombie> zombieRef = new AtomicReference<>();
 		AtomicBoolean planted = new AtomicBoolean();
 
 		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
@@ -324,6 +323,14 @@ public final class MegumiElephantGameTests {
 		helper.runAtTickTime(SIC_TICK, () -> {
 			try {
 				UUID ownerId = caster.getUUID();
+				Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
+				zombie.setPersistenceRequired();
+				AttributeInstance health = zombie.getAttribute(Attributes.MAX_HEALTH);
+				helper.assertTrue(health != null, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"sic", helper.getTick(), ownerId, "zombie health attribute", "present", "absent"));
+				health.setBaseValue(200.0);
+				zombie.setHealth(200.0f);
+				zombieRef.set(zombie);
 				List<MegumiElephantEntity> bodies = elephantsOwnedBy(level, ownerId);
 				helper.assertTrue(bodies.size() == 1,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "sic", helper.getTick(), ownerId,
@@ -341,18 +348,21 @@ public final class MegumiElephantGameTests {
 				helper.assertTrue(sicced, MegumiShikigamiTestFixtures.diagnostic(fixture,
 						"sic", helper.getTick(), ownerId, "trySic result", "true", sicced));
 			} catch (RuntimeException | AssertionError failure) {
-				zombie.discard();
+				Zombie zombie = zombieRef.get();
+				if (zombie != null) {
+					zombie.discard();
+				}
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 				throw failure;
 			}
 		});
-
 		long deadline = SIC_TICK + JET_WINDOW_TICKS + 10;
 		for (long tick = SIC_TICK + 1; tick <= deadline; tick++) {
 			final long pollTick = tick;
 			helper.runAtTickTime(pollTick, () -> {
+				Zombie zombie = zombieRef.get();
 				List<MegumiElephantEntity> live = elephantsOwnedBy(level, caster.getUUID());
-				if (live.isEmpty() || zombie.isRemoved()) {
+				if (live.isEmpty() || zombie == null || zombie.isRemoved()) {
 					return;
 				}
 				MegumiElephantEntity body = live.get(0);
@@ -386,7 +396,10 @@ public final class MegumiElephantGameTests {
 				helper.assertTrue(planted.get(), MegumiShikigamiTestFixtures.diagnostic(fixture,
 						"jet", helper.getTick(), caster.getUUID(), "planted jet observed", "true", planted.get()));
 			} finally {
-				zombie.discard();
+				Zombie zombie = zombieRef.get();
+				if (zombie != null) {
+					zombie.discard();
+				}
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 			}
 		});
@@ -407,6 +420,14 @@ public final class MegumiElephantGameTests {
 		ServerLevel level = helper.getLevel();
 		Cow cow = GameTestFixtures.spawnMob(helper, fixture, EntityType.COW, new BlockPos(5, 1, 6));
 		cow.setPersistenceRequired();
+		// The cow is teamed with the caster: a bare neutral is still autonomy-eligible
+		// (isEligibleTarget accepts any non-allied living), and the elephant would mark it between
+		// the park and the push — the jet pulse then reads as exactly 1.0 damage. Allied keeps the
+		// push (isOwnSideOnly excludes only the owner's own bodies) but drops the mark.
+		net.minecraft.world.scores.PlayerTeam team = level.getScoreboard()
+				.addPlayerTeam(fixture + "_team");
+		level.getScoreboard().addPlayerToTeam(caster.getScoreboardName(), team);
+		level.getScoreboard().addPlayerToTeam(cow.getScoreboardName(), team);
 		AtomicReference<Double> healthBefore = new AtomicReference<>();
 		AtomicBoolean pushed = new AtomicBoolean();
 

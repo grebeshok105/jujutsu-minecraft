@@ -1,7 +1,19 @@
 # Current State — память проекта
 
 Status: CURRENT
-Обновлено: 2026-09-16
+Обновлено: 2026-09-19
+
+## 2026-09-19 — integration branch `integration/megumi-incidents-107-110` (PRs #115+#116+#117 → один PR)
+
+- Три PR смержены в одну ветку: selector (#109), cursed incidents (#110), coexistence/partials (#107/#108). Phase 3 review wave (4 ревьюера + QA) нашла ~20 реальных дефектов — все зачинены в рабочем дереве: durable dirty marking (tickZone/replayPendingDeltas), decay anchor policy (fresh seal=now, потом preserve), container setChanged на всех write-путях, per-dimension clock (catchUp/budget/dimension equals), secondary work-center stage edits + node radius, cap re-registration по durable identity, disconnect cleanup (perception override + carried objects), orphan node spirits на relocate/dwell-relocate, pendingDeltas cleared on cleanup, queue map removal, birth-cue seeding, cadence inherit, trySeal already_sealed guard, rebuildObjectIndex skip scarred/voided, reconcile record→component on observe.
+- Статус: compileJava/compileGametestJava/compileTestJava/mcpdevClasses green, JUnit green. Pending: commit, full qualityGate, in-game MCP verify, PR.
+
+## 2026-09-18 — cursed incidents subsystem (issue #110, ветка feat/cursed-incidents — superseded by integration)
+
+- Крупная мировая подсистема: персистентные эскалирующие зоны (INITIAL→…→CATASTROPHIC) на FREE/OBJECT источниках, SavedData `jujutsumod_incidents`, инфекция блоков (seeded sample, 64/tick бюджет), тегнутые духи `jujutsumod:incident/<uuid>`, cull животных, dwell-объекты (world/carried/container), seal/unseal/damage с component-authoritative зеркалом, secondary nodes, pressure-driven natural spawns, 15 mcpdev тулов + `/jujutsu incident *`.
+- Rule-of-four полный: 4 скаута → план → 3 ревью плана → 4 воркера + main → барьер → 5 ревьюеров (все FIX-FIRST, F1-F29) → fix-волна (FixA/FixB/FixC + интеграция) → fable-judge VERIFIED WITH CAVEATS (3 оговорки зачинены) → qualityGate green → in-game 13-шаговый сценарий + save/load persistence.
+- **Грабли (проверены)**: (1) `PressureRuntime` передавал 2400-тиковое окно в /24000 аккумулятор → pressure навсегда 0, natural spawn мёртв — remainder обязателен; (2) `IncidentControl.cleanup` ставил только scarred — тела духов/объект не удалялись (`IncidentSpawnRuntime.cleanup` был dead code, world-border bounds не покрывают дальние GT-координаты → `getAllEntities`); (3) талисман-сил писал только компонент — record.sealed не зеркалился ни в одну сторону (`syncSealFromComponent`); (4) `InfectionSink` был привязан с `DwellProvider.NONE` → container dwell мёртв в проде; (5) биндинги, снятые на SERVER_STOPPING, не восстанавливались на SERVER_STARTED → второй вход в мир = тихий NOOP; (6) `RemovalReason.DISCARDED` = pickup, не уничтожение — иначе pickup деструктибл-объекта скарит инцидент, а indestructible дупится; (7) `Map.of` iteration order жрёт RNG в per-JVM порядке → seeded rolls не воспроизводимы между запусками — сортировать ключи; (8) JUnit-тест, трогающий `Blocks.*` без `Bootstrap.bootStrap()`, отравляет clinit и каскадом валит весь JVM (`NoClassDefFoundError` у 18 других тестов).
+- Проверено: qualityGate green (test 0 failures, runGameTest green), in-game MCP 8775/8776: spawn→GROWING→relocate→INFESTED→seal→damage→unseal→CRITICAL→secondary + persistence через рестарт лейна. Флейки (pre-existing): toadSelfPick, heldVictimDeath, dead-zone forensics, drain-timing у block-edit GT.
 
 ## 2026-09-16 — domain-sphere PoC (PR #112, ветка feat/domain-sphere-vfx)
 

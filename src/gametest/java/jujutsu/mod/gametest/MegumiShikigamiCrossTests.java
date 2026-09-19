@@ -1,5 +1,6 @@
 package jujutsu.mod.gametest;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -16,20 +17,23 @@ import jujutsu.mod.character.megumi.MegumiShikigami;
 import jujutsu.mod.character.megumi.MegumiShikigamiRuntime;
 import jujutsu.mod.character.megumi.MegumiShikigamiRuntime.PackView;
 import jujutsu.mod.character.megumi.MegumiShikigamiSelection;
+import jujutsu.mod.character.megumi.MegumiSummonCooldowns;
 
 /**
- * Cross-type shikigami guarantees, block 4 — one-active-across-types with a free swap (C1), the
- * fixture-reset clean slate: pack gone and the selection back to DOGS (C2), the FIXTURE_RESET
- * reason alone: pack gone, selection untouched, no cooldown (C3), vessel deselect tearing the
- * pack down while keeping the selection (C4), the cooldown-free lifecycle teardowns (C5
- * disconnect, C6 respawn), the recall-priced dimension change (C7), the same-tick duplicate
- * press keeping the pack (C8), a refused swap leaving the previous body out (C9), and the
- * swap-out sink lasting its twelve ticks instead of one frame (C10) — exercised through the
- * production runtime calls
+ * Cross-type shikigami guarantees, block 4 — coexistence of two live types with a free second
+ * summon (C1), the fixture-reset clean slate: pack gone and the selection back to DOGS (C2), the
+ * FIXTURE_RESET reason alone: pack gone, selection untouched, no cooldown (C3), vessel deselect
+ * tearing the pack down while keeping the selection and leaving no summon deadline behind (C4),
+ * the cooldown-free lifecycle teardowns (C5 disconnect, C6 respawn), the recall-priced dimension
+ * change on the per-type map (C7), the same-tick duplicate press keeping the pack (C8), a refused
+ * summon leaving the packs already out (C9), and one type's recall playing its sink out while the
+ * other pack keeps fighting (C10) — exercised through the production runtime calls
  *
  * <p><b>Pinned literals.</b> C4/C7 assert the literal 240 ticks rather than the profile constant
  * ON PURPOSE: the red-proof mutates the profile row and the assert must follow the balance
- * contract, not the constant.
+ * contract, not the constant. Since issue #107 the deadline is armed on the per-type summon map
+ * ({@code MegumiSummonCooldowns}) rather than the shared PRIMARY slot, so every cooldown read here
+ * names the type and the slot is asserted to stay free.
  *
  * <p><b>Traps avoided.</b> World offset is random per run, so nothing asserts absolute positions:
  * only the pack view and the selection map are read, never bounds. The summon/act steps sit on
@@ -56,13 +60,13 @@ public final class MegumiShikigamiCrossTests {
 	private static final int EXPECTED_DIMENSION_CHANGE_COOLDOWN_TICKS = 240;
 
 	/**
-	 * C1 — with Nue out, cycling to TOAD and pressing the technique key swaps for free: the pack
-	 * view reads type "toad" with one anchored body and PRIMARY stays 0 (the swap-out teardown
-	 * uses the cooldown-free SWAPPED reason and the summon starts none).
+	 * C1 — coexistence between two shikigami types (issue #107 D1): with Nue out, selecting TOAD and
+	 * pressing the technique key summons the Toad *beside* it. Both pack records live, the Toad pack
+	 * reads one anchored body, and PRIMARY stays 0 — nothing was recalled for the arrival.
 	 */
 	@GameTest(maxTicks = 60)
-	public void swappingNueForToadIsFreeAndLeavesOnePack(GameTestHelper helper) {
-		String fixture = "swappingNueForToadIsFreeAndLeavesOnePack";
+	public void summoningToadBesideNueIsFreeAndKeepsBothPacks(GameTestHelper helper) {
+		String fixture = "summoningToadBesideNueIsFreeAndKeepsBothPacks";
 		BlockPos casterFeet = new BlockPos(2, 1, 2);
 		layStoneFloor(helper);
 
@@ -88,28 +92,33 @@ public final class MegumiShikigamiCrossTests {
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "cycle", helper.getTick(), ownerId,
 								"selection after one cycle from NUE", MegumiShikigami.TOAD, selected));
 
-				boolean swapped = MegumiShikigamiRuntime.tryPrimary(caster, false);
-				helper.assertTrue(swapped, MegumiShikigamiTestFixtures.diagnostic(fixture,
-						"swap", helper.getTick(), ownerId, "tryPrimary result", "true", swapped));
+				boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
+				helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"coexist", helper.getTick(), ownerId, "tryPrimary result", "true", summoned));
+
+				// Both types are out: the per-type map is what makes this possible at all.
+				List<String> types = MegumiShikigamiTestFixtures.shikigamiPackTypes(level.getServer(), ownerId);
+				helper.assertTrue(types.contains(MegumiShikigami.NUE.id()),
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "coexist", helper.getTick(), ownerId,
+								"nue pack kept", MegumiShikigami.NUE.id(), types));
+				helper.assertTrue(types.contains(MegumiShikigami.TOAD.id()),
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "coexist", helper.getTick(), ownerId,
+								"toad pack present", MegumiShikigami.TOAD.id(), types));
+				helper.assertTrue(types.size() == 2,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "coexist", helper.getTick(), ownerId,
+								"live pack count", "2", types.size()));
 
 				Optional<PackView> view = MegumiShikigamiRuntime.packView(level.getServer(), ownerId);
 				helper.assertTrue(view.isPresent(), MegumiShikigamiTestFixtures.diagnostic(fixture,
-						"swap", helper.getTick(), ownerId, "pack view present", "present", "absent"));
-				PackView pack = view.get();
-				helper.assertTrue(MegumiShikigami.TOAD.id().equals(pack.type()),
-						MegumiShikigamiTestFixtures.diagnostic(fixture, "swap", helper.getTick(), ownerId,
-								"pack type", MegumiShikigami.TOAD.id(), pack.type()));
-				helper.assertTrue(pack.aliveBodies() == 1,
-						MegumiShikigamiTestFixtures.diagnostic(fixture, "swap", helper.getTick(), ownerId,
-								"alive bodies", "1", pack.aliveBodies()));
-				helper.assertTrue(pack.anchorAlive(),
-						MegumiShikigamiTestFixtures.diagnostic(fixture, "swap", helper.getTick(), ownerId,
-								"anchor alive (the javadoc's anchored body)", "true", pack.anchorAlive()));
+						"coexist", helper.getTick(), ownerId, "pack view present", "present", "absent"));
+				helper.assertTrue(view.get().aliveBodies() == 1,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "coexist", helper.getTick(), ownerId,
+								"alive bodies of the first pack", "1", view.get().aliveBodies()));
 
 				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
 				helper.assertTrue(remaining == 0,
-						MegumiShikigamiTestFixtures.diagnostic(fixture, "swap", helper.getTick(), ownerId,
-								"PRIMARY cooldown (swap is free)", "0", remaining));
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "coexist", helper.getTick(), ownerId,
+								"PRIMARY cooldown (nothing was recalled)", "0", remaining));
 			} finally {
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 			}
@@ -243,6 +252,13 @@ public final class MegumiShikigamiCrossTests {
 				helper.assertTrue(remaining == 0,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "deselect", helper.getTick(), ownerId,
 								"PRIMARY cooldown after re-selecting MEGUMI", 0, remaining));
+				// Issue #107: the summon deadline lives on the per-type map now, so the clean slate has
+				// to hold there too — the returning Megumi must be able to summon at once.
+				long summonCooldown = MegumiSummonCooldowns.remainingTicks(
+						ownerId, MegumiShikigami.NUE, helper.getLevel().getGameTime());
+				helper.assertTrue(summonCooldown == 0,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "deselect", helper.getTick(), ownerId,
+								"Nue summon cooldown after re-selecting MEGUMI", 0, summonCooldown));
 			} finally {
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 			}
@@ -362,11 +378,17 @@ public final class MegumiShikigamiCrossTests {
 
 				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "dimension", caster);
 
-				// Same-tick read: the cooldown was just armed, so the remaining time is exact.
-				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				// Same-tick read: the cooldown was just armed, so the remaining time is exact. Issue
+				// #107 moved the storage per type, so the PRIMARY slot stays untouched.
+				long gameTime = helper.getLevel().getGameTime();
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.NUE, gameTime);
 				helper.assertTrue(remaining == EXPECTED_DIMENSION_CHANGE_COOLDOWN_TICKS,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "dimension", helper.getTick(), ownerId,
-								"PRIMARY recall cooldown", EXPECTED_DIMENSION_CHANGE_COOLDOWN_TICKS, remaining));
+								"Nue recall cooldown", EXPECTED_DIMENSION_CHANGE_COOLDOWN_TICKS, remaining));
+				int primary = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				helper.assertTrue(primary == 0,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "dimension", helper.getTick(), ownerId,
+								"PRIMARY slot (the per-type map owns the deadline now)", "0", primary));
 			} finally {
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 			}
@@ -424,16 +446,16 @@ public final class MegumiShikigamiCrossTests {
 	}
 
 	/**
-	 * C9 — a swap whose arrival has nowhere to stand is refused, and the refusal must not cost the
-	 * body already out. The caster's air column is walled in (the Toad stands forward of it and is
+	 * C9 — a summon whose arrival has nowhere to stand is refused, and the refusal must not cost the
+	 * other packs. The caster's air column is walled in (the Toad stands forward of it and is
 	 * untouched), so the Nue's three hover candidates all sit inside blocks: the technique key
 	 * answers false while the toad pack still reads one live body and PRIMARY stays 0. Run against
 	 * the pre-fix order this fails at the pack view — the sweep used to run before placement was
 	 * ever attempted.
 	 */
 	@GameTest(maxTicks = 80)
-	public void refusedSwapKeepsTheBodyAlreadyOut(GameTestHelper helper) {
-		String fixture = "refusedSwapKeepsTheBodyAlreadyOut";
+	public void refusedSummonKeepsTheOtherPackOut(GameTestHelper helper) {
+		String fixture = "refusedSummonKeepsTheOtherPackOut";
 		BlockPos casterFeet = new BlockPos(2, 1, 2);
 		layStoneFloor(helper);
 
@@ -453,23 +475,28 @@ public final class MegumiShikigamiCrossTests {
 				UUID ownerId = caster.getUUID();
 				sealTheAirColumn(helper, casterFeet);
 				MegumiShikigamiSelection.set(ownerId, MegumiShikigami.NUE);
-				boolean swapped = MegumiShikigamiRuntime.tryPrimary(caster, false);
-				helper.assertTrue(!swapped, MegumiShikigamiTestFixtures.diagnostic(fixture,
-						"refused swap", helper.getTick(), ownerId, "tryPrimary result", "false", swapped));
+				boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
+				helper.assertTrue(!summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"refused summon", helper.getTick(), ownerId, "tryPrimary result", "false", summoned));
 
 				Optional<PackView> view = MegumiShikigamiRuntime.packView(level.getServer(), ownerId);
 				helper.assertTrue(view.isPresent(), MegumiShikigamiTestFixtures.diagnostic(fixture,
-						"refused swap", helper.getTick(), ownerId, "pack view present", "present", "absent"));
+						"refused summon", helper.getTick(), ownerId, "pack view present", "present", "absent"));
 				helper.assertTrue(MegumiShikigami.TOAD.id().equals(view.get().type()),
-						MegumiShikigamiTestFixtures.diagnostic(fixture, "refused swap", helper.getTick(), ownerId,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "refused summon", helper.getTick(), ownerId,
 								"pack type after the refusal", MegumiShikigami.TOAD.id(), view.get().type()));
 				helper.assertTrue(view.get().aliveBodies() == 1,
-						MegumiShikigamiTestFixtures.diagnostic(fixture, "refused swap", helper.getTick(), ownerId,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "refused summon", helper.getTick(), ownerId,
 								"alive bodies after the refusal", "1", view.get().aliveBodies()));
+				helper.assertTrue(
+						MegumiShikigamiTestFixtures.shikigamiPackTypes(level.getServer(), ownerId).size() == 1,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "refused summon", helper.getTick(), ownerId,
+								"live pack count after the refusal", "1",
+								MegumiShikigamiTestFixtures.shikigamiPackTypes(level.getServer(), ownerId)));
 
 				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
 				helper.assertTrue(remaining == 0,
-						MegumiShikigamiTestFixtures.diagnostic(fixture, "refused swap", helper.getTick(), ownerId,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "refused summon", helper.getTick(), ownerId,
 								"PRIMARY cooldown after the refusal", "0", remaining));
 			} finally {
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
@@ -479,14 +506,14 @@ public final class MegumiShikigamiCrossTests {
 	}
 
 	/**
-	 * C10 — the body that steps aside keeps its sink. Right after the swap the outgoing Nue is still
-	 * in the level: its recall is twelve ticks of animation, not an instant delete. A dozen ticks
-	 * later its own finisher has removed it. Pre-fix this failed at the first read — the type
-	 * mismatch discarded the body on its next tick, cutting the sink to a single frame.
+	 * C10 — a recall sweeps exactly its own type (issue #107 D1). Nue and Toad are both out; recalling
+	 * Nue keeps the Toad pack and its body alive, while the outgoing Nue plays out its twelve-tick
+	 * sink instead of vanishing on the spot — a body that cannot finish would already be gone three
+	 * ticks in, which is exactly the regression this pins.
 	 */
 	@GameTest(maxTicks = 80)
-	public void theSwapOutBodyFinishesItsSink(GameTestHelper helper) {
-		String fixture = "theSwapOutBodyFinishesItsSink";
+	public void theRecalledTypeFinishesItsSinkWhileTheOtherPackStays(GameTestHelper helper) {
+		String fixture = "theRecalledTypeFinishesItsSinkWhileTheOtherPackStays";
 		BlockPos casterFeet = new BlockPos(2, 1, 2);
 		layStoneFloor(helper);
 
@@ -504,18 +531,25 @@ public final class MegumiShikigamiCrossTests {
 		helper.runAtTickTime(ACT_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
 			UUID ownerId = caster.getUUID();
 			MegumiShikigamiSelection.set(ownerId, MegumiShikigami.TOAD);
-			boolean swapped = MegumiShikigamiRuntime.tryPrimary(caster, false);
-			helper.assertTrue(swapped, MegumiShikigamiTestFixtures.diagnostic(fixture,
-					"swap", helper.getTick(), ownerId, "tryPrimary result", "true", swapped));
+			boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"coexist", helper.getTick(), ownerId, "toad tryPrimary result", "true", summoned));
+			MegumiShikigamiSelection.set(ownerId, MegumiShikigami.NUE);
+			boolean recalled = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(recalled, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"recall", helper.getTick(), ownerId, "nue recall result", "true", recalled));
 		}));
 
-		// Three ticks in: past the outgoing body's next tick, well inside its twelve-tick sink. A body
-		// that cannot finish would already be gone here, which is exactly the regression this pins.
+		// Three ticks in: past the outgoing body's next tick, well inside its twelve-tick sink.
 		helper.runAtTickTime(ACT_TICK + 3, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
 			UUID ownerId = caster.getUUID();
 			int midSink = MegumiShikigamiTestFixtures.nueOwnedBy(level, ownerId).size();
 			helper.assertTrue(midSink == 1, MegumiShikigamiTestFixtures.diagnostic(fixture,
 					"sink", helper.getTick(), ownerId, "nue bodies still sinking", "1", midSink));
+			List<String> types = MegumiShikigamiTestFixtures.shikigamiPackTypes(level.getServer(), ownerId);
+			helper.assertTrue(types.size() == 1 && types.contains(MegumiShikigami.TOAD.id()),
+					MegumiShikigamiTestFixtures.diagnostic(fixture, "sink", helper.getTick(), ownerId,
+							"packs left while the sink plays", List.of(MegumiShikigami.TOAD.id()), types));
 		}));
 
 		helper.runAtTickTime(ACT_TICK + 16, () -> {
@@ -524,6 +558,10 @@ public final class MegumiShikigamiCrossTests {
 				int left = MegumiShikigamiTestFixtures.nueOwnedBy(level, ownerId).size();
 				helper.assertTrue(left == 0, MegumiShikigamiTestFixtures.diagnostic(fixture,
 						"sink", helper.getTick(), ownerId, "nue bodies after the sink", "0", left));
+				boolean toadKept = MegumiShikigamiTestFixtures.hasPack(
+						level.getServer(), ownerId, MegumiShikigami.TOAD);
+				helper.assertTrue(toadKept, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"sink", helper.getTick(), ownerId, "toad pack after the nue recall", "kept", "gone"));
 			} finally {
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 			}

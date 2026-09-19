@@ -57,7 +57,8 @@ final class VfxRadiusContractTest {
 						MegumiVfxIds.SHADOW_RIPPLE, MegumiVfxIds.SHADOW_EMERGE, MegumiVfxIds.DROP_ZONE_OPEN,
 						MegumiVfxIds.DROP_ZONE, MegumiVfxIds.DROP_ZONE_CLOSE)),
 				finiteNone("Megumi shikigami cues", Set.of(MegumiVfxIds.NUE_SUMMON, MegumiVfxIds.NUE_DIVE,
-						MegumiVfxIds.NUE_SHOCK, MegumiVfxIds.SHIKIGAMI_SIC, MegumiVfxIds.SHIKIGAMI_RECALL,
+						MegumiVfxIds.NUE_SHOCK, MegumiVfxIds.NUE_PARTIAL_WINGS,
+						MegumiVfxIds.SHIKIGAMI_SIC, MegumiVfxIds.SHIKIGAMI_RECALL,
 						MegumiVfxIds.TOAD_SUMMON, MegumiVfxIds.TOAD_TONGUE,
 						MegumiVfxIds.RABBITS_SUMMON, MegumiVfxIds.RABBITS_POP,
 						MegumiVfxIds.ELEPHANT_SUMMON, MegumiVfxIds.ELEPHANT_JET)));

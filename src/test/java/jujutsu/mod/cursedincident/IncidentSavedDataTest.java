@@ -1,0 +1,93 @@
+package jujutsu.mod.cursedincident;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.google.gson.JsonObject;
+import com.mojang.serialization.JsonOps;
+import java.util.Map;
+import java.util.UUID;
+
+import jujutsu.mod.cursedincident.persist.IncidentNbt;
+import jujutsu.mod.cursedincident.persist.IncidentSavedData;
+import net.minecraft.SharedConstants;
+import net.minecraft.server.Bootstrap;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+/** R54/R59/R60 — registry, pressure and corrupt-entry isolation. */
+class IncidentSavedDataTest {
+	private static final UUID ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+
+	@BeforeAll
+	static void bootstrapMinecraft() {
+		SharedConstants.tryDetectVersion();
+		Bootstrap.bootStrap();
+	}
+
+	@Test
+	void registryAndPressureRoundTrip() {
+		IncidentRecord record = record();
+		IncidentSavedData before = new IncidentSavedData(Map.of(record.id, record), 12);
+		var encoded = IncidentSavedData.CODEC.encodeStart(JsonOps.INSTANCE, before).result().orElseThrow();
+		IncidentSavedData after = IncidentSavedData.CODEC.parse(JsonOps.INSTANCE, encoded).result().orElseThrow();
+		assertEquals(12, after.pressure());
+		assertEquals(record.id, after.get(record.id).id);
+		assertEquals(record.center, after.get(record.id).center);
+	}
+
+	@Test
+	void mutationsMarkSavedDataDirty() {
+		IncidentSavedData data = new IncidentSavedData();
+		assertFalse(data.isDirty());
+		data.put(record());
+		assertTrue(data.isDirty());
+		data.setDirty(false);
+		data.setPressure(3);
+		assertTrue(data.isDirty());
+    }
+
+    @Test
+    void voidedAndKnownObjectsRoundTrip() {
+        UUID voided = UUID.fromString("33333333-3333-3333-3333-333333333333");
+        UUID known = UUID.fromString("44444444-4444-4444-4444-444444444444");
+        IncidentSavedData before = new IncidentSavedData();
+        before.voidObject(voided);
+        before.rememberObject(known, "sukuna_finger");
+        var encoded = IncidentSavedData.CODEC.encodeStart(JsonOps.INSTANCE, before).result().orElseThrow();
+        IncidentSavedData after = IncidentSavedData.CODEC.parse(JsonOps.INSTANCE, encoded).result().orElseThrow();
+        assertTrue(after.isVoided(voided));
+        assertEquals("sukuna_finger", after.knownObjectType(known));
+    }
+
+    @Test
+    void voidedIdsAreNotRememberedAsKnownObjects() {
+        UUID id = UUID.fromString("55555555-5555-5555-5555-555555555555");
+        IncidentSavedData data = new IncidentSavedData();
+        data.voidObject(id);
+        data.rememberObject(id, "cursed_nail");
+        assertEquals(null, data.knownObjectType(id),
+                "a voided object must never re-enter the durable index");
+    }
+
+	@Test
+	void corruptEntryIsDroppedWithoutDroppingHealthyEntries() {
+		IncidentRecord healthy = record();
+		JsonObject root = IncidentSavedData.CODEC.encodeStart(JsonOps.INSTANCE,
+				new IncidentSavedData(Map.of(healthy.id, healthy), 4)).result().orElseThrow().getAsJsonObject();
+		JsonObject incidents = root.getAsJsonObject(IncidentNbt.INCIDENTS);
+		incidents.add("22222222-2222-2222-2222-222222222222", new JsonObject());
+		IncidentSavedData decoded = IncidentSavedData.CODEC.parse(JsonOps.INSTANCE, root).result().orElseThrow();
+		assertEquals(1, decoded.incidents().size());
+		assertTrue(decoded.incidents().containsKey(ID));
+	}
+
+	private static IncidentRecord record() {
+		IncidentRecord record = new IncidentRecord();
+		record.id = ID;
+		record.center = net.minecraft.core.BlockPos.ZERO;
+		record.templateId = "blight";
+		return record;
+	}
+}

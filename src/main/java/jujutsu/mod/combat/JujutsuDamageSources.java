@@ -15,7 +15,8 @@ public final class JujutsuDamageSources {
 	public static final ResourceKey<DamageType> BLACK_FLASH = key("black_flash");
 	/** Cursed-spirit acid (Block 3, #86): direct glob hits and zone pulses. */
 	public static final ResourceKey<DamageType> CURSED_ACID = key("cursed_acid");
-
+	/** Cursed-zone environmental damage (issue #110). */
+	public static final ResourceKey<DamageType> CURSED_ZONE = key("cursed_zone");
 	private JujutsuDamageSources() {}
 
 	public static DamageSource hairpin(Level level, Entity attacker) {
@@ -31,6 +32,9 @@ public final class JujutsuDamageSources {
 
 	public static DamageSource cursedAcid(Level level, Entity attacker) {
 		return source(level, CURSED_ACID, attacker);
+	}
+	public static DamageSource cursedZone(Level level, Entity attacker) {
+		return source(level, CURSED_ZONE, attacker);
 	}
 
 	private static ResourceKey<DamageType> key(String path) {

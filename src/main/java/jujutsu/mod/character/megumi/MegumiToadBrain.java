@@ -1,6 +1,7 @@
 package jujutsu.mod.character.megumi;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -68,8 +69,11 @@ final class MegumiToadBrain {
 		// Owner LoS gates only the owner's own ORDER (an owner cannot sic what it cannot see).
 		// A self-picked target answers to the body's own senses instead: nearestGrabbable already
 		// required the toad's LoS, and the commit below re-checks it — an owner standing in a
-		// cellar must not blind its toad (issue #90).
-		boolean ownerOrdered = toad.sicTargetUuid() != null
+		// cellar must not blind its toad (issue #90). The same holds for an AUTONOMOUS mark the
+		// coordinator wrote: it is the pack's pick, not the owner's sighted order — treating it
+		// as owner-ordered let a blind owner veto the body's own mark (CI flake 35362569362).
+		boolean ownerOrdered = toad.hasManualSicTarget()
+				&& toad.sicTargetUuid() != null
 				&& toad.sicTargetUuid().equals(target.getUUID());
 		if (owner == null || !toad.attackReady(gameTime)
 				|| !MegumiToadPolicy.canGrab(toad.distanceTo(target))
@@ -119,16 +123,27 @@ final class MegumiToadBrain {
 						&& MegumiSummonRuntime.isEligibleTarget(owner, candidate)
 						&& MegumiToadPolicy.canGrab(toad.distanceTo(candidate))
 						&& toad.hasLineOfSight(candidate));
+		// Soft coordination (issue #107 §3): a target no ally already marks or works is preferred —
+		// the toad spreads the pack across the crowd instead of doubling up. Falls back to the
+		// nearest overall when everything in reach is claimed.
+		Set<UUID> claimed = owner == null ? Set.of()
+				: MegumiPackCoordinator.contextFor(owner, level).occupiedOrClaimed();
 		LivingEntity nearest = null;
+		LivingEntity nearestFree = null;
 		double best = Double.MAX_VALUE;
+		double bestFree = Double.MAX_VALUE;
 		for (LivingEntity candidate : candidates) {
 			double distance = toad.distanceToSqr(candidate);
 			if (distance < best) {
 				best = distance;
 				nearest = candidate;
 			}
+			if (!claimed.contains(candidate.getUUID()) && distance < bestFree) {
+				bestFree = distance;
+				nearestFree = candidate;
+			}
 		}
-		return nearest;
+		return nearestFree != null ? nearestFree : nearest;
 	}
 
 	/** The tongue has landed: nothing is damaged, the hold starts (R1). */

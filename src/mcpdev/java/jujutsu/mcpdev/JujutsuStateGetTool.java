@@ -15,15 +15,19 @@ import com.chapmanjw.minecraft.fabric.mcp.tools.annotations.McpTool;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.phys.Vec3;
 
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.character.CharacterSelectionManager;
+import jujutsu.mod.character.megumi.MegumiPartialRuntime;
 import jujutsu.mod.character.megumi.MegumiShadowDropRuntime;
 import jujutsu.mod.character.megumi.MegumiShadowMoveRuntime;
 import jujutsu.mod.character.megumi.MegumiShadowTrapRuntime;
+import jujutsu.mod.character.megumi.MegumiShikigami;
 import jujutsu.mod.character.megumi.MegumiShikigamiRuntime;
 import jujutsu.mod.character.megumi.MegumiShikigamiSelection;
+import jujutsu.mod.character.megumi.MegumiSummonCooldowns;
 import jujutsu.mod.character.megumi.MegumiSummonRuntime;
 import jujutsu.mod.character.nobara.projectjjk.EmbeddedNailRegistry;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailMarks;
@@ -36,8 +40,10 @@ import jujutsu.mod.registry.JujutsuEffects;
  * Read-only jujutsu state observation tool (issue #43 slice 2).
  *
  * <p>Returns the C2 row-7 snapshot for one online player: vessel, position, stagger, per-slot
- * cooldowns, effect flags, Todo pair selection and stone, Megumi pack/trap/move/drop presence,
- * and Nobara embedded nails and marks. {@code nobara.embedded_nails_loaded} counts only nails
+ * cooldowns, effect flags, Todo pair selection and stone, Megumi dogs/trap/move/drop, the
+ * per-type shikigami packs with their summon cooldowns, the active partial manifestation and the
+ * owner's known movement, and Nobara embedded nails and marks.
+ * {@code nobara.embedded_nails_loaded} counts only nails
  * loaded in the player's CURRENT dimension (fixture_reset, by contrast, sweeps all levels).
  * Reads ONLY public accessors (the C1 statics plus the
  * pre-existing ones) and never mutates gameplay state; all gameplay access goes through the
@@ -45,7 +51,7 @@ import jujutsu.mod.registry.JujutsuEffects;
  */
 @McpTool(
 		name = "jujutsu_state_get",
-		description = "Reads the current combat and transient state of one online player: vessel, position, stagger, cooldowns, effect flags, Todo pair selection and stone, Megumi pack/trap/move/drop, and Nobara embedded nails (current dimension only) and marks.",
+		description = "Reads the current combat and transient state of one online player: vessel, position, stagger, cooldowns, effect flags, Todo pair selection and stone, Megumi dogs/trap/move/drop, per-type shikigami packs + summon cooldowns, active partial manifestation, known movement, and Nobara embedded nails (current dimension only) and marks.",
 		readOnly = true)
 public final class JujutsuStateGetTool extends BaseTool {
 
@@ -115,17 +121,45 @@ public final class JujutsuStateGetTool extends BaseTool {
 					megumi.put("trap", MegumiShadowTrapRuntime.hasOwned(playerId));
 					megumi.put("move", MegumiShadowMoveRuntime.hasOwned(playerId));
 					megumi.put("drop", MegumiShadowDropRuntime.hasOwned(playerId));
+					// The partial row (#108): which partial is out, if any. `kind` is the shikigami id the
+					// partial belongs to, so it lines up with the pack keys below.
+					ObjectNode partial = megumi.putObject("partial");
+					MegumiPartialRuntime.partialView(playerId).ifPresentOrElse(
+							view -> {
+								partial.put("active", true);
+								partial.put("kind", view.kind());
+							},
+							() -> {
+								partial.put("active", false);
+								partial.putNull("kind");
+							});
+					// Coexistence (#107) turned the one-pack surface into a per-type map, so the shape follows:
+					// `packs` is keyed by shikigami id and holds every living pack at once.
 					ObjectNode shikigami = megumi.putObject("shikigami");
 					shikigami.put("selected", MegumiShikigamiSelection.selected(playerId).id());
-					MegumiShikigamiRuntime.packView(server, playerId).ifPresentOrElse(
-							pack -> {
-								shikigami.put("type", pack.type());
-								shikigami.put("dimension", pack.dimension());
-								shikigami.put("alive_bodies", pack.aliveBodies());
-								shikigami.put("anchor_alive", pack.anchorAlive());
-								shikigami.put("anchor_id", pack.anchorId());
-							},
-							() -> shikigami.putNull("type"));
+					ObjectNode packs = shikigami.putObject("packs");
+					for (MegumiShikigamiRuntime.PackView pack : MegumiShikigamiRuntime.packViews(server, playerId)) {
+						ObjectNode entry = packs.putObject(pack.type());
+						entry.put("dimension", pack.dimension());
+						entry.put("alive_bodies", pack.aliveBodies());
+						entry.put("anchor_alive", pack.anchorAlive());
+						entry.put("anchor_id", pack.anchorId());
+						entry.put("summoned_at_game_time", pack.summonedAtGameTime());
+					}
+					// The per-type summon cooldowns the packs use in place of the PRIMARY slot (issue #107) —
+					// this row is the dev lane's replacement for the old readiness gate.
+					ObjectNode summonCooldowns = megumi.putObject("summonCooldowns");
+					for (MegumiShikigami type : MegumiShikigami.values()) {
+						summonCooldowns.put(type.id(),
+								MegumiSummonCooldowns.remainingTicks(playerId, type, gameTime));
+					}
+					// The velocity readout the partial-movement oracles need (R30b/R35): the same value the
+					// server last saw the player move by.
+					ObjectNode motion = megumi.putObject("motion");
+					Vec3 knownMovement = player.getKnownMovement();
+					motion.put("x", knownMovement.x);
+					motion.put("y", knownMovement.y);
+					motion.put("z", knownMovement.z);
 
 					ObjectNode nobara = node.putObject("nobara");
 					nobara.put("embedded_nails_loaded", EmbeddedNailRegistry.loadedOwnedNails(player.level(), playerId).size());
