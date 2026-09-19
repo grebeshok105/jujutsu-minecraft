@@ -15,6 +15,7 @@ import net.minecraft.world.entity.player.Player;
 import jujutsu.mod.cursedincident.IncidentControl;
 import jujutsu.mod.cursedincident.IncidentRecord;
 import jujutsu.mod.cursedincident.IncidentStage;
+import jujutsu.mod.cursedincident.SecondaryNode;
 import jujutsu.mod.cursedincident.infection.ZoneGeometry;
 import jujutsu.mod.network.IncidentPerceptionPayload;
 
@@ -49,7 +50,8 @@ public final class PerceptionOverrideRuntime {
 		Set<UUID> seen = new HashSet<>();
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 			seen.add(player.getUUID());
-			boolean override = shouldOverride(player, IncidentControl.recordsForRuntime());
+			boolean override = shouldOverride(player.blockPosition(), player.level().dimension(),
+					IncidentControl.recordsForRuntime());
 			Boolean old = OVERRIDES.put(player.getUUID(), override);
 			if (old == null || old.booleanValue() != override) {
 				send(player, override);
@@ -58,21 +60,40 @@ public final class PerceptionOverrideRuntime {
 		OVERRIDES.keySet().removeIf(id -> !seen.contains(id));
 	}
 
-	public static boolean shouldOverride(Player player, Iterable<IncidentRecord> records) {
-		if (player == null || records == null) {
+	public static boolean shouldOverride(net.minecraft.core.BlockPos playerPos,
+			net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> playerDim,
+			Iterable<IncidentRecord> records) {
+		if (playerPos == null || records == null) {
 			return false;
 		}
 		for (IncidentRecord record : records) {
-			if (record == null || record.center == null || record.stage == null || record.scarred || record.sealed
+			if (record == null || record.stage == null || record.sealed
 					|| !record.stage.atLeast(IncidentStage.CRITICAL)) {
 				continue;
 			}
-			if (record.dimension != null && !player.level().dimension().equals(record.dimension)) {
+			if (record.dimension != null && playerDim != null
+					&& !playerDim.equals(record.dimension)) {
 				continue;
 			}
-			if (ZoneGeometry.contains(ZoneGeometry.shapeOf(record.params), record.center, record.radius,
-					player.blockPosition())) {
+			var shape = ZoneGeometry.shapeOf(record.params);
+			// The parent work center overrides only while the record itself is alive.
+			if (!record.scarred && record.center != null
+					&& ZoneGeometry.contains(shape, record.center, record.radius, playerPos)) {
 				return true;
+			}
+			// Secondary work centers are their own override volumes — a self-sustaining
+			// node keeps spawning curses after the parent is cleaned up, so a non-mage
+			// standing inside it must still perceive them (review finding).
+			for (SecondaryNode node : record.secondaries) {
+				if (node == null || node.scarred() || node.center() == null) {
+					continue;
+				}
+				if (record.scarred && !node.selfSustaining()) {
+					continue;
+				}
+				if (ZoneGeometry.contains(shape, node.center(), node.radius(), playerPos)) {
+					return true;
+				}
 			}
 		}
 		return false;

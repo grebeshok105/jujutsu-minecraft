@@ -37,7 +37,7 @@ public final class InfectionSink implements IncidentWorldSink {
 	public static final long CULL_TICKS = 400L;
 	public static final long AMBIENT_INTERVAL_TICKS = 100L;
 
-	private static final Map<UUID, Set<UUID>> ANNOUNCED_SECONDARY_BIRTHS = new HashMap<>();
+	private static final Map<UUID, Set<UUID>> PENDING_SECONDARY_BIRTHS = new HashMap<>();
 	private static final Map<UUID, Map<UUID, CenterCadence>> CENTER_CADENCE = new HashMap<>();
 	private static long budgetTick = Long.MIN_VALUE;
 	private static int budgetUsed;
@@ -123,13 +123,21 @@ public final class InfectionSink implements IncidentWorldSink {
 		int allowance = Math.min(Math.max(0, tickBudget), available);
 		InfectionQueue queue = InfectionQueue.forIncident(record);
 		budgetUsed += queue.drain(level, allowance, nodeId);
+		CenterCadence cadence = nodeId == null ? null : cadenceFor(record, nodeId);
 		// Re-arm the short client recipe from a durable server cadence, not every zone tick.
-		if (due(now, record.lastAmbientGameTime, AMBIENT_INTERVAL_TICKS)) {
-			record.lastAmbientGameTime = now;
+		// Per work center: the parent and every secondary keep their own ambient clock —
+		// sharing record.lastAmbientGameTime starved every secondary that ticked after the
+		// parent in the same interval (review finding).
+		if (due(now, nodeId == null ? record.lastAmbientGameTime : cadence.lastAmbient,
+				AMBIENT_INTERVAL_TICKS)) {
+			if (nodeId == null) {
+				record.lastAmbientGameTime = now;
+			} else {
+				cadence.lastAmbient = now;
+			}
 			int intensity = Math.max(1, record.stage == null ? 1 : record.stage.ordinal());
 			emitCue(level, record, CursedIncidentVfxIds.ZONE_AMBIENT, false, intensity, center);
 		}
-		CenterCadence cadence = nodeId == null ? null : cadenceFor(record, nodeId);
 		if (due(now, nodeId == null ? record.lastTopUpGameTime : cadence.lastTopUp, CURSE_TOPUP_TICKS)) {
 			if (nodeId == null) {
 				record.lastTopUpGameTime = now;
@@ -158,28 +166,35 @@ public final class InfectionSink implements IncidentWorldSink {
 				scanKnownContainers(level);
 			}
 		}
-		if (now % CURSE_TOPUP_TICKS == 0L) {
-			// Seed the announcement set from durable node state on first sight of a record —
-			// the runtime map is wiped on restart, and without seeding every persisted node
-			// re-announces its birth cue once per restart (review P2).
-			Set<UUID> announced = ANNOUNCED_SECONDARY_BIRTHS.computeIfAbsent(record.id, ignored -> {
-				Set<UUID> seeded = new HashSet<>();
-				for (var node : record.secondaries) {
-					if (node != null && node.createdGameTime() < now) {
-						seeded.add(node.nodeId());
-					}
-				}
-				return seeded;
-			});
+		// Birth cues fire only for nodes born at runtime (onSecondaryBorn queues them).
+		// Persisted nodes are never queued, so a restart replays nothing — the old
+		// createdGameTime<now seeding heuristic also swallowed births that landed
+		// between cadence passes (review finding). Drained every zone pass, not on a
+		// modulo gate: the level clock is per-dimension, so a phase-shifted dimension
+		// could sit on a pending cue forever (review finding).
+		Set<UUID> pending = PENDING_SECONDARY_BIRTHS.get(record.id);
+		if (pending != null && !pending.isEmpty()) {
 			for (var node : record.secondaries) {
-				if (node != null && announced.add(node.nodeId())) {
-					emitCue(level, record, CursedIncidentVfxIds.SECONDARY_BIRTH, true, 2, node.center());
+				if (node != null && pending.remove(node.nodeId())) {
+					emitCue(level, record, CursedIncidentVfxIds.SECONDARY_BIRTH, true, 2,
+							node.center());
 				}
+			}
+			if (pending.isEmpty()) {
+				PENDING_SECONDARY_BIRTHS.remove(record.id);
 			}
 		}
 		// The queue drain, counters and cadence anchors above all mutate durable record
 		// fields — mark the store dirty or a restart silently loses them (C5/d5).
 		IncidentControl.markDirty();
+	}
+
+	@Override
+	public void onSecondaryBorn(IncidentRecord record, SecondaryNode node) {
+		if (record != null && record.id != null && node != null) {
+			PENDING_SECONDARY_BIRTHS.computeIfAbsent(record.id, ignored -> new HashSet<>())
+					.add(node.nodeId());
+		}
 	}
 
 	@Override
@@ -199,7 +214,16 @@ public final class InfectionSink implements IncidentWorldSink {
 			record.lastContainerScanGameTime = Long.MIN_VALUE;
 			record.lastCullGameTime = Long.MIN_VALUE;
 			record.lastAmbientGameTime = Long.MIN_VALUE;
-			ANNOUNCED_SECONDARY_BIRTHS.remove(record.id);
+			// Pending birth cues survive only for nodes that survive the relocate — a
+			// self-sustaining node born mid-window still gets its cue, a stripped
+			// dependent's cue dies with it.
+			Set<UUID> pending = PENDING_SECONDARY_BIRTHS.get(record.id);
+			if (pending != null) {
+				pending.removeIf(nodeId -> !survivingNodes.contains(nodeId));
+				if (pending.isEmpty()) {
+					PENDING_SECONDARY_BIRTHS.remove(record.id);
+				}
+			}
 			CENTER_CADENCE.remove(record.id);
 		}
 	}
@@ -254,7 +278,15 @@ public final class InfectionSink implements IncidentWorldSink {
 		record.pendingEdits.removeIf(edit -> edit == null || edit.nodeId() == null
 				|| !survivingNodes.contains(edit.nodeId()));
 		if (record.id != null) {
-			ANNOUNCED_SECONDARY_BIRTHS.remove(record.id);
+			// Same survivor rule as onRelocated: a self-sustaining node born mid-window
+			// keeps its pending birth cue; stripped dependents lose theirs.
+			Set<UUID> pending = PENDING_SECONDARY_BIRTHS.get(record.id);
+			if (pending != null) {
+				pending.removeIf(nodeId -> !survivingNodes.contains(nodeId));
+				if (pending.isEmpty()) {
+					PENDING_SECONDARY_BIRTHS.remove(record.id);
+				}
+			}
 			CENTER_CADENCE.remove(record.id);
 			InfectionQueue.remove(record.id);
 		}
@@ -290,7 +322,7 @@ public final class InfectionSink implements IncidentWorldSink {
 	}
 
 	public static void clearRuntimeState() {
-		ANNOUNCED_SECONDARY_BIRTHS.clear();
+		PENDING_SECONDARY_BIRTHS.clear();
 		CENTER_CADENCE.clear();
 		budgetTick = Long.MIN_VALUE;
 		budgetUsed = 0;
@@ -359,6 +391,7 @@ public final class InfectionSink implements IncidentWorldSink {
 					cadence.lastTopUp = record.lastTopUpGameTime;
 					cadence.lastContainerScan = record.lastContainerScanGameTime;
 					cadence.lastCull = record.lastCullGameTime;
+					cadence.lastAmbient = record.lastAmbientGameTime;
 					return cadence;
 				});
 	}
@@ -414,6 +447,7 @@ public final class InfectionSink implements IncidentWorldSink {
 		long lastTopUp = Long.MIN_VALUE;
 		long lastContainerScan = Long.MIN_VALUE;
 		long lastCull = Long.MIN_VALUE;
+		long lastAmbient = Long.MIN_VALUE;
 	}
 
 	private static boolean due(long now, long last, long cadence) {

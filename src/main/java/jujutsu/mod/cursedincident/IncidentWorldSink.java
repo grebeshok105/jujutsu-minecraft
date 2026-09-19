@@ -49,4 +49,8 @@ public interface IncidentWorldSink {
 	/** Remove runtime entities and source bindings while retaining the incident scar. */
 	default void onCleanup(ServerLevel level, IncidentRecord record) {
 	}
+
+	/** A secondary work center was just created at runtime — persisted nodes never fire this. */
+	default void onSecondaryBorn(IncidentRecord rec, SecondaryNode node) {
+	}
 }

@@ -348,8 +348,10 @@ public final class IncidentControl {
 			ServerLevel level = levelFor(record);
 			BlockPos center = jujutsu.mod.cursedincident.infection.ZoneGeometry.secondaryCenter(
 					level, record, record.secondaries.size());
-			record.secondaries.add(new SecondaryNode(UUID.randomUUID(), center,
-					Math.max(1.0, record.radius * 0.60), now, true));
+			SecondaryNode node = new SecondaryNode(UUID.randomUUID(), center,
+					Math.max(1.0, record.radius * 0.60), now, true);
+			record.secondaries.add(node);
+			worldSink.onSecondaryBorn(record, node);
 		}
 		applyStageDelta(record, previous, next);
 	}
@@ -543,6 +545,7 @@ public final class IncidentControl {
 				center == null ? BlockPos.ZERO : center, Math.max(1.0, record.radius * 0.60),
 				currentGameTime(record), true);
 		record.secondaries.add(node);
+		worldSink.onSecondaryBorn(record, node);
 		data().setDirty();
 		return node;
 	}
