@@ -1,3 +1,24 @@
+# Session Handoff — cursed-spirit melee "hit air" fix — 2026-09-20
+
+## State — DONE, committed `e386cd7` on `integration/megumi-incidents-107-110`
+
+User report: melee on cursed spirits felt like swinging at air. Two defects fixed:
+
+1. **ARMOR silent-absorb** (`CursedSpiritEntity.hurtServer`): a fully absorbed hit
+   returned `false` → client played the no-damage whiff, no hurt flash. Now routes a
+   zero-damage blow through `super.hurtServer` — connects (flash/voice/knockback/
+   i-frames) while armor still eats all HP. Verified live: `hurt:true`, HP pinned.
+2. **Incident-override asymmetry** (`CursePerception.canInteract`): the override made
+   spirits visible to non-mages in CRITICAL+ zones but left interact false → every
+   swing rejected. Override now grants interact too (symmetric pair rule — spirits
+   may also hunt overridden non-mages).
+
+Verified: `qualityGate` BUILD SUCCESSFUL (47 tasks, 249 GameTests — one
+`elephant_stays_within_leash` flake re-ran green, #104 family); in-game on lane119.
+GameTest `armorAbsorbsWeakHitLetsHeavyThrough` updated for the new contract.
+
+---
+
 # Session Handoff — integration branch `integration/megumi-incidents-107-110` — 2026-09-19
 
 ## State — Phase 3 review wave done, fixes applied; qualityGate + in-game pending
