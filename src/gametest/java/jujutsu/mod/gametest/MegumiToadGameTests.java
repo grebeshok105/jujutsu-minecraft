@@ -332,8 +332,8 @@ public final class MegumiToadGameTests {
 						Vec3 currentVictimPosition = zombie.position();
 						Vec3 previousPosition = previousVictimPosition.getAndSet(currentVictimPosition);
 						double pullDistance = currentVictimPosition.distanceTo(previousPosition);
-						double remainingGap = currentVictimPosition.distanceTo(anchor);
-						if (remainingGap > PULL_STEP_EPSILON) {
+						double gapBeforeStep = previousPosition.distanceTo(anchor);
+						if (gapBeforeStep > PULL_STEP_EPSILON) {
 							helper.assertTrue(pullDistance <= MAX_PULL_STEP + PULL_STEP_EPSILON,
 									MegumiShikigamiTestFixtures.diagnostic(fixture, "hold", pollTick,
 											caster.getUUID(), "zombie pull step while a gap remains",
@@ -622,8 +622,8 @@ public final class MegumiToadGameTests {
 						Vec3 currentVictimPosition = victim.position();
 						Vec3 previousPosition = previousVictimPosition.getAndSet(currentVictimPosition);
 						double pullDistance = currentVictimPosition.distanceTo(previousPosition);
-						double remainingGap = currentVictimPosition.distanceTo(anchor);
-						if (remainingGap > PULL_STEP_EPSILON) {
+						double gapBeforeStep = previousPosition.distanceTo(anchor);
+						if (gapBeforeStep > PULL_STEP_EPSILON) {
 							helper.assertTrue(pullDistance <= MAX_PULL_STEP + PULL_STEP_EPSILON,
 									MegumiShikigamiTestFixtures.diagnostic(fixture, "hold", pollTick,
 											caster.getUUID(), "player pull step while a gap remains",
