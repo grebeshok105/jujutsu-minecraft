@@ -43,7 +43,11 @@ public final class IncidentZoneRenderer {
 	}
 
 	public static void register() {
-		WorldRenderEvents.AFTER_TRANSLUCENT.register(IncidentZoneRenderer::render);
+		// AFTER_ENTITIES, not AFTER_TRANSLUCENT: inside the framegraph pass the shared
+		// BufferSource is already ended, so getBuffer() hands back a dead builder and the
+		// first addVertex crashes "Not building!". AFTER_ENTITIES is the proven hook —
+		// NueArcRenderer and VfxWorldChannel draw through context.consumers() there.
+		WorldRenderEvents.AFTER_ENTITIES.register(IncidentZoneRenderer::render);
 	}
 
 	private static void render(WorldRenderContext context) {
@@ -58,8 +62,12 @@ public final class IncidentZoneRenderer {
 		Camera camera = context.camera();
 		Vec3 camPos = camera.getPosition();
 		String dimension = level.dimension().location().toString();
-		VertexConsumer quads = consumers.getBuffer(RenderType.debugQuads());
+		// One consumer for everything: debugQuads rides the shared buffer, which any later
+		// getBuffer() call from another AFTER_TRANSLUCENT listener ends mid-frame — the
+		// first addVertex then crashes "Not building!". lightning is a fixed buffer and
+		// stays open for the whole pass.
 		VertexConsumer glow = consumers.getBuffer(RenderType.lightning());
+		VertexConsumer quads = glow;
 		float partialTick = context.tickCounter().getGameTimeDeltaPartialTick(false);
 		long gameTime = level.getGameTime();
 
