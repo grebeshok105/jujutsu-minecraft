@@ -404,5 +404,29 @@
       "jujutsumod:secondary_birth"
     ],
     "subtitle": "subtitles.jujutsumod.secondary_birth"
+  },
+  "blackhole.prelude": {
+    "sounds": [
+      "jujutsumod:blackhole/prelude"
+    ],
+    "subtitle": "subtitles.jujutsumod.blackhole.prelude"
+  },
+  "blackhole.drone": {
+    "sounds": [
+      "jujutsumod:blackhole/drone"
+    ],
+    "subtitle": "subtitles.jujutsumod.blackhole.drone"
+  },
+  "blackhole.inner": {
+    "sounds": [
+      "jujutsumod:blackhole/inner"
+    ],
+    "subtitle": "subtitles.jujutsumod.blackhole.inner"
+  },
+  "blackhole.impulse": {
+    "sounds": [
+      "jujutsumod:blackhole/impulse"
+    ],
+    "subtitle": "subtitles.jujutsumod.blackhole.impulse"
   }
 }

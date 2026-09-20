@@ -1,3 +1,37 @@
+# Session Handoff — black hole VFX experiment — 2026-09-20
+
+## State — implemented, verified in game, qualityGate green; commit/PR pending
+
+Branch `feat/black-hole-vfx` (off main). Design spec: monochrome black hole,
+~30 blocks, 30 ahead, 5-phase lifecycle (prelude/appear/stable/disappear/aftermath),
+lensing + fullscreen warp + HUD warp + desaturation + dominant sound + 2s silence.
+Reuses the domain_sphere (Railgun port) pipeline pattern; entry point is the new
+`/jujutsu_debug black_hole [seconds]` client command (+ `remove`), plus mcpdev
+`jujutsu_black_hole`.
+
+Key pieces: `client/vfx/blackhole/` (Timing/State/Profile/Renderer/SoundInstance/
+Debug), `VfxBlackHoleChannel` (singleton slot), 3 client mixins (GameRenderer
+renderLevel TAIL → world pass; GuiRenderer → hudPre/hudPost copies + composite;
+SoundEngine → duck by 1-duckAmount, exempt own sounds). HUD warp is copy-based
+(pre/post framebuffer diff mask pulled toward the hole) — the earlier
+TextureTarget-redirect approach captured the item atlas instead of the world.
+Shaders `black_hole.fsh` (bent-ray march: disk emission + horizon capture +
+screen warp + monochrome grade) and `black_hole_hud.fsh`. Captured rays keep
+disk luminance so the equatorial band crosses the shadow; inside-horizon flag
+blacks out world+HUD. Disk tilt 14° off vertical (near-horizontal Gargantua
+read). Sounds synthesized by `tools/synth_blackhole_sounds.py` (4 OGGs).
+
+Verified in game (audit/bh/*.png): full lifecycle, disk band + lensed arc +
+doppler side, inside-horizon absolute black, look-away residual arc, close-up
+blowout, HUD pull, monochrome grade, clean aftermath. Sound events registered,
+no missing-event errors (subjective loudness not verifiable headless).
+qualityGate BUILD SUCCESSFUL (47 tasks, 797 tests, GameTest lane, doc audit,
+jar isolation). VesselBoundaryTest: `blackhole` pinned as shared vfx segment.
+
+Remaining: commit + PR per §12 (RU title, «Для игрока» body).
+
+---
+
 # Session Handoff — cursed-spirit melee "hit air" fix — 2026-09-20
 
 ## State — DONE, committed `e386cd7` on `integration/megumi-incidents-107-110`
