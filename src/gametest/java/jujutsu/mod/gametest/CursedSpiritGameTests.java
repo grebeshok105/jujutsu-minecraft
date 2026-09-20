@@ -27,6 +27,7 @@ import jujutsu.mod.cursedspirit.CursedSpiritProfile;
 import jujutsu.mod.cursedspirit.CursedSpiritTier;
 import jujutsu.mod.cursedspirit.CursedSpiritVariant;
 import jujutsu.mod.registry.JujutsuEntities;
+import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityId;
 
 /**
  * Block 2 in-world scenarios (Step 10): tier AI and strikes (R3/R4/R5), the damage path (R11),
@@ -927,6 +928,12 @@ public final class CursedSpiritGameTests {
 		AtomicBoolean done = new AtomicBoolean();
 
 		helper.runAtTickTime(2, () -> {
+			// Deterministic pool: the slam must exist for the dead-zone oracle to mean
+			// anything — a natural 3-of-8 roll without GROUND_SLAM reds the scenario
+			// regardless of product behaviour (same forcing pattern as the runner tests).
+			spirit.gradeStats();
+			spirit.abilityBrain().forcePoolForTest(java.util.List.of(CursedSpiritAbilityId.GROUND_SLAM,
+					CursedSpiritAbilityId.REGEN, CursedSpiritAbilityId.ARMOR));
 			helper.assertTrue(spirit.hasLineOfSight(victim),
 					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
 							"line of sight to victim", "true", spirit.hasLineOfSight(victim)));

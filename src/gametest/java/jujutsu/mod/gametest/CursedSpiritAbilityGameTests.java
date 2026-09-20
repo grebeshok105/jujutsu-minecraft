@@ -294,19 +294,24 @@ public final class CursedSpiritAbilityGameTests {
 				} else if (poll == 130) {
 					helper.assertTrue(false, CursedSpiritTestFixtures.diagnostic(fixture,
 							helper.getTick(), "contact miss observed by tick 130",
-							"abort", "phase=" + RunnerEffect.phaseOf(spirit)
-									+ " active=" + spirit.abilityBrain().isActive(
-											CursedSpiritAbilityId.GRAB_RUNNER, level.getGameTime())
-									+ " dist=" + spirit.distanceTo(victim)
-									+ " spiritPos=" + spirit.position()
-									+ " victimPos=" + victim.position()
-									+ " moved=" + movedAtContact.get()
-									+ " approachSeen=" + observedApproach.get()
-									+ " navDone=" + spirit.getNavigation().isDone()
-									+ " navPath=" + spirit.getNavigation().getPath()
-									+ " target=" + spirit.getTarget()
-									+ " noAi=" + spirit.isNoAi()
-									+ " hColl=" + spirit.horizontalCollision));
+									"abort", "phase=" + RunnerEffect.phaseOf(spirit)
+											+ " active=" + spirit.abilityBrain().isActive(
+													CursedSpiritAbilityId.GRAB_RUNNER, level.getGameTime())
+											+ " dist=" + spirit.distanceTo(victim)
+											+ " spiritPos=" + spirit.position()
+											+ " victimPos=" + victim.position()
+											+ " moved=" + movedAtContact.get()
+											+ " approachSeen=" + observedApproach.get()
+											+ " navDone=" + spirit.getNavigation().isDone()
+											+ " navPath=" + spirit.getNavigation().getPath()
+											+ " target=" + spirit.getTarget()
+											+ " noAi=" + spirit.isNoAi()
+											+ " hColl=" + spirit.horizontalCollision
+											+ " victimAlive=" + victim.isAlive()
+											+ " victimDisc=" + victim.hasDisconnected()
+											+ " mayTouch=" + jujutsu.mod.cursedspirit.perception.CursePerception.mayTouch(spirit, victim)
+											+ " inLevel=" + (level.getEntity(victim.getUUID()) != null)
+											+ " moveCtrlOp=" + spirit.getMoveControl()));
 				}
 			});
 		}

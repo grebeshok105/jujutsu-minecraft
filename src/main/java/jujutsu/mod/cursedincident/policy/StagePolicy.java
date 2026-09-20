@@ -37,7 +37,11 @@ public final class StagePolicy {
 			return STAGE_AGE_TICKS[0];
 		}
 		int index = Math.max(0, Math.min(stage.ordinal(), STAGE_AGE_TICKS.length - 1));
-		return Math.round(STAGE_AGE_TICKS[index] * validMultiplier(escalationSpeedMul));
+		// ceil, not round: the requested age must satisfy stageForAge's `age >= threshold`
+		// check. round() can land below the true threshold when 48000·speed isn't an exact
+		// double (e.g. 48000·0.77 = 36960.000000000004 → round 36960 < threshold → the
+		// spawn-time transition silently never fires and the record stays INITIAL).
+		return (long) Math.ceil(STAGE_AGE_TICKS[index] * validMultiplier(escalationSpeedMul));
 	}
 
 	/**

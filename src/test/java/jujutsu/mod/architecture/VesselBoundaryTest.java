@@ -140,7 +140,13 @@ class VesselBoundaryTest {
 			// banned from a vessel package outright, so this is their only legal home.
 			"jujutsu.mod.network.ShikigamiSelectPayload",
 			"jujutsu.mod.network.ShikigamiStatePayload",
-			"jujutsu.mod.network.IncidentPerceptionPayload");
+			"jujutsu.mod.network.IncidentPerceptionPayload",
+			// #110: the incident zone snapshot is world-state sync to perceiving clients, not an
+			// input path — same justification as the perception payload above it.
+			"jujutsu.mod.network.IncidentZoneStatePayload",
+			// #108: the wings phase is a state sync like the tongue payload; the client renders
+			// from it, it never carries input.
+			"jujutsu.mod.network.MegumiWingsStatePayload");
 	/** Vessel-named classes that sit outside their vessel's packages today. Five are deliberate, two are debt. */
 	private static final Set<String> VESSEL_NAMED_CLASSES_OUTSIDE_VESSEL_PACKAGES = Set.of(
 			"jujutsu.mod.vfx.NobaraVfxIds",
@@ -149,6 +155,13 @@ class VesselBoundaryTest {
 			"jujutsu.mod.vfx.TodoSwapArrivalPayload",
 			// #108: payloads live in the shared network package by rule; the name still names the vessel.
 			"jujutsu.mod.network.MegumiTongueStatePayload",
+			// #108: same rule — payloads must live in the shared network package even when the
+			// name names the vessel.
+			"jujutsu.mod.network.MegumiWingsStatePayload",
+			// #108: payload registration seams — they register shared-package payloads, so they
+			// live beside them; the Megumi prefix is unavoidable and pinned here.
+			"jujutsu.mod.network.MegumiPartialPayloads",
+			"jujutsu.mod.network.MegumiTonguePayloads",
 			"jujutsu.mod.client.fx.NobaraHudState",
 			MISPLACED_NAIL_RENDERER);
 

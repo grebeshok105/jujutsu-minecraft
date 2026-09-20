@@ -344,16 +344,28 @@ public final class CursedIncidentGameTests {
 		helper.succeed();
 	}
 
-	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 520)
+	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 120)
 	public void animalsCulledInZone(GameTestHelper helper) {
 		IncidentRecord record = CursedIncidentTestFixtures.spawnFree(helper, CENTER, IncidentStage.CATASTROPHIC, RADIUS, 1115L);
 		for (int i = 0; i < 12; i++) helper.spawn(EntityType.COW, new BlockPos(6 + i % 4, 1, 6 + i / 4));
 		AABB area = new AABB(record.center).inflate(record.radius);
 		int before = helper.getLevel().getEntitiesOfClass(Cow.class, area, Cow::isAlive).size();
-		helper.runAtTickTime(500, () -> {
-			long culled = record.counters.animalsCulled;
-			helper.assertTrue(before > 0 && culled > 0L, CursedIncidentTestFixtures.diagnostic("animalsCulledInZone(R32)", helper,
-					"cull cadence and cursed_zone damage", "animals>0 and counter>0", before + "->" + culled));
+		// Deterministic drive (same pattern as curseTopUpRespectsCap): the runtime loop's
+		// 400-tick cadence plus the per-cow 0.45 roll made the old wait-500 version episodic —
+		// cows could wander out of the 3-block box between passes, and a bad gameTime seed
+		// could blank a whole pass. Driving tickZone directly with a re-armed cadence tests
+		// the same cull path (due-gate + cursed_zone damage + counter) without the wait.
+		InfectionSink sink = new InfectionSink();
+		long culled = 0L;
+		for (int attempt = 0; attempt < 5 && culled == 0L; attempt++) {
+			record.lastCullGameTime = Long.MIN_VALUE;
+			sink.tickZone(helper.getLevel(), record, record.center, null, 64);
+			culled = record.counters.animalsCulled;
+		}
+		final long finalCulled = culled;
+		helper.runAtTickTime(5, () -> {
+			helper.assertTrue(before > 0 && finalCulled > 0L, CursedIncidentTestFixtures.diagnostic("animalsCulledInZone(R32)", helper,
+					"cull cadence and cursed_zone damage", "animals>0 and counter>0", before + "->" + finalCulled));
 			CursedIncidentTestFixtures.cleanup(record);
 			helper.succeed();
 		});

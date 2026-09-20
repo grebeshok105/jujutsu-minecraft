@@ -85,9 +85,8 @@ final class MegumiNueBrain {
 				SoundSource.NEUTRAL, 0.5f, 1.4f);
 		Vec3 targetPos = target.position();
 		Vec3 nuePos = nue.position();
-		long seed = owner == null ? nue.getRandom().nextLong() : owner.getRandom().nextLong();
-		MegumiShikigamiRuntime.broadcastCue(level, owner,
-				shockCue(targetPos, nue.getId(), nuePos, gameTime, seed));
+		MegumiShikigamiRuntime.broadcastCue(level, owner, MegumiVfxIds.NUE_SHOCK, targetPos,
+				nue.getId(), nuePos, targetPos.subtract(nuePos));
 	}
 
 	/**

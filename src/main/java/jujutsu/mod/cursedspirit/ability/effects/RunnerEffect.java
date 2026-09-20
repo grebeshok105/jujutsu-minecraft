@@ -234,14 +234,11 @@ public final class RunnerEffect {
 		double speed = clampSpeed(params.speed());
 		if (spirit.getNavigation().isDone() && !inContactRange(spirit, victim)) {
 			// Pathfinding calls ~3 blocks "close enough" and ends the path, but the contact gate
-			// wants the victim inside arm's reach — push the last stretch straight at the body.
-			Vec3 toVictim = victim.position().subtract(spirit.position());
-			Vec3 horizontal = new Vec3(toVictim.x, 0.0, toVictim.z);
-			if (horizontal.lengthSqr() > 1.0E-6) {
-				Vec3 push = horizontal.normalize().scale(Math.min(0.35, speed * 0.25));
-				spirit.setDeltaMovement(push.x, spirit.getDeltaMovement().y, push.z);
-				spirit.setYRot((float) (Math.atan2(-push.x, push.z) * 180.0 / Math.PI));
-			}
+			// wants the victim inside arm's reach. Drive the last stretch through MoveControl —
+			// the vanilla input path (travel reads the wanted position every tick) — instead of
+			// a raw delta push, which the mob input model cancels out.
+			spirit.getMoveControl().setWantedPosition(victim.getX(), victim.getY(), victim.getZ(),
+					speed);
 			return;
 		}
 		spirit.getNavigation().moveTo(victim, speed);

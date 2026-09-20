@@ -98,6 +98,14 @@ public class CursedSpiritAttackGoal extends Goal {
 					retreatFrom(target);
 				} else {
 					mob.getNavigation().moveTo(target, 1.0);
+					// Vanilla pathfinding ends a path ~3 blocks out and can return a null
+					// path outright; the next moveTo then no-ops and the body freezes just
+					// outside reach (the #104 stall). Drive the last stretch through
+					// MoveControl — the same input path travel reads every tick.
+					if (mob.getNavigation().isDone() && !inReach) {
+						mob.getMoveControl().setWantedPosition(target.getX(), target.getY(),
+								target.getZ(), 1.0);
+					}
 				}
 				mob.abilityBrain().decideInCombat(mob, mob.grade(), target, now);
 			} else if (phase == Phase.WINDUP) {

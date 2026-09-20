@@ -143,7 +143,12 @@ public final class IncidentRuntime {
 		while (replayed++ < MAX_PENDING_DELTAS_PER_TICK && !record.pendingDeltas.isEmpty()) {
 			IncidentRecord.PendingDelta delta = record.pendingDeltas.remove(0);
 			// Replay the committed pair directly; never re-run transitionsBetween.
-			record.stage = delta.to();
+			// A stale queued delta (e.g. the spawn-time INITIAL→INITIAL, queued while the
+			// chunk was still loading) must not regress a stage that already advanced
+			// past it — the stage write is skipped, the block-edit replay still runs.
+			if (delta.to() != null && delta.to().ordinal() > record.stage.ordinal()) {
+				record.stage = delta.to();
+			}
 			sink.applyStageDelta(level, record, delta.from(), delta.to());
 		}
 		if (replayed > 1) {
