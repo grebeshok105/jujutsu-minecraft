@@ -42,7 +42,13 @@ public final class MegumiWingsLayer extends RenderLayer<PlayerRenderState, Playe
 		// The player model has already received setupAnim, so this copies crouch, swim, and
 		// fall-flying body rotation before placing the rig on the back-facing (+Z) side.
 		getParentModel().body.translateAndRotate(poseStack);
-		poseStack.translate(0.0f, 0.0f, 0.125f);
+		// The wing rig is authored Y-up (Blockbench space) but this layer runs inside the vanilla
+		// player flip (scale(-1,-1,1)): rendered as-is the rig hangs upside-down below the body
+		// pivot, which is why the wings used to float at the feet. A 180° roll about Z restores
+		// Y-up for the rig without flipping face winding, then the root is seated so the wing
+		// pivots land on the upper back (rig pivot y=31 ≈ 1.07 blocks above the root).
+		poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(180.0f));
+		poseStack.translate(0.0f, -1.2f, 0.125f);
 		RENDERER.render(player, poseStack, bufferSource, packedLight,
 				client.getDeltaTracker().getGameTimeDeltaPartialTick(false), phase);
 		poseStack.popPose();

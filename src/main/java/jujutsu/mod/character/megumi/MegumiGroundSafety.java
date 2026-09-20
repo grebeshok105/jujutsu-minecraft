@@ -10,6 +10,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -54,11 +55,11 @@ final class MegumiGroundSafety {
 	}
 
 	static Optional<Vec3> findLeashPosition(
-			ServerLevel level, Vec3 ownerPosition, MegumiDivineDogEntity dog) {
-		EntityDimensions dimensions = dog.getDimensions(Pose.STANDING);
+			ServerLevel level, Vec3 ownerPosition, Entity body) {
+		EntityDimensions dimensions = body.getDimensions(Pose.STANDING);
 		return firstSafe(leashCandidates(ownerPosition), candidate -> {
 			boolean entityCollision = !level.getEntities(
-					dog, dimensions.makeBoundingBox(candidate), entity -> !entity.isSpectator()).isEmpty();
+					body, dimensions.makeBoundingBox(candidate), entity -> !entity.isSpectator()).isEmpty();
 			return isSafe(level, candidate, dimensions, entityCollision);
 		});
 	}

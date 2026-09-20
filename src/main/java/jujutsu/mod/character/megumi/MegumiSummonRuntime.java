@@ -619,9 +619,14 @@ public final class MegumiSummonRuntime {
 			if (dog.distanceToSqr(owner) <= leashDistanceSquared) {
 				continue;
 			}
-			MegumiGroundSafety.findLeashPosition(level, owner.position(), dog).ifPresent(destination ->
-					dog.teleportTo(level, destination.x, destination.y, destination.z, Set.<Relative>of(),
-							dog.getYRot(), dog.getXRot(), false));
+			MegumiGroundSafety.findLeashPosition(level, owner.position(), dog).ifPresent(destination -> {
+				// The leash is a recall, not a relocation: a stale target across the map is dropped
+				// so the dog re-enters the follow/fight loop beside the owner.
+				dog.setTarget(null);
+				dog.getNavigation().stop();
+				dog.teleportTo(level, destination.x, destination.y, destination.z, Set.<Relative>of(),
+						dog.getYRot(), dog.getXRot(), false);
+			});
 		}
 	}
 

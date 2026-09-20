@@ -31,8 +31,8 @@ class TonguePullPolicyTest {
 	@Test
 	void capRampsFromTheAttachValueToItsCeilingInFortyHeldTicks() {
 		assertEquals(TonguePullPolicy.BASE_SPEED_CAP, TonguePullPolicy.speedCap(0), EPS);
-		assertEquals(0.5175, TonguePullPolicy.speedCap(1), EPS);
-		assertEquals(0.85, TonguePullPolicy.speedCap(20), EPS);
+		assertEquals(0.9175, TonguePullPolicy.speedCap(1), EPS);
+		assertEquals(1.25, TonguePullPolicy.speedCap(20), EPS);
 		// The ramp reaches its ceiling exactly at the documented 40 held ticks...
 		assertEquals(TonguePullPolicy.MAX_SPEED_CAP, TonguePullPolicy.speedCap(40), EPS);
 		// ...and never grows past it however long the key is held.
@@ -63,7 +63,7 @@ class TonguePullPolicyTest {
 					"tick " + held + " ended at " + next.length() + " over cap " + TonguePullPolicy.speedCap(held));
 			velocity = next;
 		}
-		// Held long past the ramp, the body travels at the ceiling and no faster: 1.2 blocks/tick is
+		// Held long past the ramp, the body travels at the ceiling and no faster: 1.6 blocks/tick is
 		// the number the server's "moved too quickly" watch is calibrated against.
 		assertEquals(TonguePullPolicy.MAX_SPEED_CAP, velocity.length(), EPS);
 	}

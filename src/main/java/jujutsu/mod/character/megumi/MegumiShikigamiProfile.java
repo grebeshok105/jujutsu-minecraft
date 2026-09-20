@@ -5,7 +5,8 @@ public final class MegumiShikigamiProfile {
 	private MegumiShikigamiProfile() {}
 
 	// --- shared summon/sic surface ---
-	public static final double SIC_RANGE = 20.0;
+	/** Manual sic reach — same 15-block bubble as autonomy, ordered targets never outrun it either. */
+	public static final double SIC_RANGE = 15.0;
 	public static final int SIC_COOLDOWN_TICKS = 30;
 
 	// --- cooldown table (one row per type; DOGS mirrors the dog runtime values for reference only) ---
@@ -104,7 +105,7 @@ public final class MegumiShikigamiProfile {
 	public static final double TOAD_GRAB_HOLD_HP_PENALTY = 0.20;
 	/** Ticks of hold removed per block of the victim's hitbox volume (players are exempt). */
 	public static final double TOAD_GRAB_HOLD_SIZE_PENALTY = 6.0;
-	public static final int TOAD_GRAB_COOLDOWN_TICKS = 100;
+	public static final int TOAD_GRAB_COOLDOWN_TICKS = 200;
 	/** The grab breaks when the body is dragged further than this from its owner. */
 	public static final double TOAD_GRAB_BIND_RANGE = 16.0;
 	public static final double TOAD_THROW_SPEED = 1.6;
@@ -174,7 +175,7 @@ public final class MegumiShikigamiProfile {
 	/** Horizontal speed below which the body counts as standing still (no sweep while parked). */
 	public static final double ELEPHANT_FOOTPRINT_MIN_SPEED = 0.05;
 	/** Blocks destroyed per sweep (a budget, not a target: fewer are destroyed when fewer qualify). */
-	public static final int ELEPHANT_FOOTPRINT_BUDGET = 4;
+	public static final int ELEPHANT_FOOTPRINT_BUDGET = 3;
 	public static final double ELEPHANT_PRESENCE_RADIUS = 3.5;
 	public static final int ELEPHANT_PRESENCE_PERIOD_TICKS = 10;
 	public static final double ELEPHANT_PRESENCE_DAMAGE = 1.0;
@@ -187,9 +188,13 @@ public final class MegumiShikigamiProfile {
 	/** One shared combat-context scan per owner per this many ticks — the scale answer for crowds. */
 	public static final int COORDINATION_SCAN_TICKS = 5;
 	/** Spec §16: full autonomy inside this radius of the owner. */
-	public static final double AUTONOMY_RADIUS = 50.0;
+	public static final double AUTONOMY_RADIUS = 15.0;
 	/** Past this distance a body drops its self-placed mark and walks home; manual marks are exempt. */
-	public static final double RETURN_RADIUS = 60.0;
+	public static final double RETURN_RADIUS = 20.0;
+	/** Past this distance a body teleports back to the owner instead of walking home. */
+	public static final double SHIKIGAMI_LEASH_TELEPORT = 25.0;
+	/** The leash check runs on this period, not every tick. */
+	public static final int SHIKIGAMI_LEASH_RETRY_TICKS = 10;
 	/** Per-block distance cost: nearer candidates are preferred, all else equal. */
 	public static final double COORD_DISTANCE_WEIGHT = 0.02;
 	/** Danger weight: a tougher candidate scores higher, capped so it never pulls the whole pack. */

@@ -59,6 +59,7 @@ public final class TongueRenderer {
 			Vec3 mouth = TongueClientState.mouthWorldPos(owner, partialTick).subtract(cameraPosition);
 			renderTongue(tongue, mouth, tip.subtract(cameraPosition), alpha);
 		}
+
 		VertexConsumer head = consumers.getBuffer(RenderType.entityTranslucent(ToadHeadRenderer.TEXTURE));
 		for (Player owner : level.players()) {
 			TongueClientState.Phase phase = TongueClientState.phaseFor(owner.getUUID());
@@ -73,7 +74,7 @@ public final class TongueRenderer {
 		}
 	}
 
-	private static void renderTongue(VertexConsumer consumer, Vec3 mouth, Vec3 tip, float alpha) {
+	public static void renderTongue(VertexConsumer consumer, Vec3 mouth, Vec3 tip, float alpha) {
 		Vec3 span = tip.subtract(mouth);
 		double length = span.length();
 		if (length < 1.0E-4) {

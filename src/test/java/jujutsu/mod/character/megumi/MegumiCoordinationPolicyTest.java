@@ -133,14 +133,14 @@ class MegumiCoordinationPolicyTest {
 		assertEquals(MegumiCoordinationPolicy.BandAction.ASSIGNABLE,
 				MegumiCoordinationPolicy.bandAction(10.0, true), "inside the work radius");
 		assertEquals(MegumiCoordinationPolicy.BandAction.HOLD,
-				MegumiCoordinationPolicy.bandAction(55.0, true), "the band holds a self-placed mark");
+				MegumiCoordinationPolicy.bandAction(17.0, true), "the band holds a self-placed mark");
 		assertEquals(MegumiCoordinationPolicy.BandAction.HOLD,
-				MegumiCoordinationPolicy.bandAction(55.0, false), "the band holds an unmarked body");
+				MegumiCoordinationPolicy.bandAction(17.0, false), "the band holds an unmarked body");
 		assertEquals(MegumiCoordinationPolicy.BandAction.DROP,
-				MegumiCoordinationPolicy.bandAction(61.0, true),
+				MegumiCoordinationPolicy.bandAction(21.0, true),
 				"past the return radius a self-placed mark drops (R17)");
 		assertEquals(MegumiCoordinationPolicy.BandAction.HOLD,
-				MegumiCoordinationPolicy.bandAction(61.0, false),
+				MegumiCoordinationPolicy.bandAction(21.0, false),
 				"a manual sic ignores the band entirely (R18)");
 	}
 

@@ -28,6 +28,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Relative;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.Vec3;
@@ -472,6 +473,34 @@ public final class MegumiShikigamiRuntime {
 		});
 	}
 
+	/**
+	 * The shikigami leash (PR118 fix): a body that drifts past {@code SHIKIGAMI_LEASH_TELEPORT}
+	 * blocks from its owner teleports back beside them instead of walking home — walking back is
+	 * exactly where bodies used to stall on terrain and never catch up. A manual sic mark is the
+	 * owner's order and is never interrupted; anything else is dropped so the body re-enters the
+	 * follow/fight loop next to the owner.
+	 */
+	private static void tickLeash(MegumiShikigamiEntity body, ServerPlayer owner, long gameTime) {
+		if (owner == null || owner.level() != body.level()
+				|| gameTime % MegumiShikigamiProfile.SHIKIGAMI_LEASH_RETRY_TICKS != 0) {
+			return;
+		}
+		double leashSqr = MegumiShikigamiProfile.SHIKIGAMI_LEASH_TELEPORT
+				* MegumiShikigamiProfile.SHIKIGAMI_LEASH_TELEPORT;
+		if (body.distanceToSqr(owner) <= leashSqr) {
+			return;
+		}
+		ServerLevel level = (ServerLevel) body.level();
+		MegumiGroundSafety.findLeashPosition(level, owner.position(), body).ifPresent(destination -> {
+			if (!body.hasManualSicTarget()) {
+				body.clearSicCommand();
+			}
+			body.getNavigation().stop();
+			body.teleportTo(level, destination.x, destination.y, destination.z,
+					Set.<Relative>of(), body.getYRot(), body.getXRot(), false);
+		});
+	}
+
 	/** Per-body tick dispatch, called from the body itself. */
 	static void tickBody(MegumiShikigamiEntity body) {
 		if (!body.combatEnabled()) {
@@ -487,6 +516,10 @@ public final class MegumiShikigamiRuntime {
 		}
 		ServerPlayer owner = server.getPlayerList().getPlayer(body.ownerUuid());
 		long gameTime = body.level().getGameTime();
+		tickLeash(body, owner, gameTime);
+		if (body.isRemoved()) {
+			return;
+		}
 		switch (body.shikigamiType()) {
 			case NUE -> MegumiNueBrain.tick((ServerLevel) body.level(), owner, pack, (MegumiNueEntity) body, gameTime);
 			case TOAD -> MegumiToadBrain.tick((ServerLevel) body.level(), owner, pack, (MegumiToadEntity) body, gameTime);

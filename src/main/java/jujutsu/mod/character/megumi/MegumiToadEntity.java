@@ -1,6 +1,9 @@
 package jujutsu.mod.character.megumi;
 
 import java.util.UUID;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
@@ -38,6 +41,9 @@ public final class MegumiToadEntity extends MegumiShikigamiEntity {
 				.add(Attributes.FOLLOW_RANGE, 16.0);
 	}
 
+	private static final EntityDataAccessor<Integer> DATA_GRABBED_ID =
+			SynchedEntityData.defineId(MegumiToadEntity.class, EntityDataSerializers.INT);
+
 	@Override
 	public MegumiShikigami shikigamiType() {
 		return MegumiShikigami.TOAD;
@@ -56,6 +62,12 @@ public final class MegumiToadEntity extends MegumiShikigamiEntity {
 	@Override
 	protected double baseHealth() {
 		return MegumiShikigamiProfile.TOAD_HEALTH;
+	}
+
+	@Override
+	protected void defineSynchedData(SynchedEntityData.Builder builder) {
+		super.defineSynchedData(builder);
+		builder.define(DATA_GRABBED_ID, -1);
 	}
 
 	@Override
@@ -127,6 +139,7 @@ public final class MegumiToadEntity extends MegumiShikigamiEntity {
 		grabEndGameTime = endGameTime;
 		grabbedIsPlayer = victim instanceof Player;
 		grabIntentUuid = null;
+		entityData.set(DATA_GRABBED_ID, victim.getId());
 	}
 
 	/** Ends the hold (throw, break, recall, death) without touching the victim. */
@@ -135,6 +148,12 @@ public final class MegumiToadEntity extends MegumiShikigamiEntity {
 		grabbedIsPlayer = false;
 		grabEndGameTime = 0L;
 		grabIntentUuid = null;
+		entityData.set(DATA_GRABBED_ID, -1);
+	}
+
+	/** The network id of the held victim, or -1 — the client draws the tongue to it. */
+	public int grabbedEntityId() {
+		return entityData.get(DATA_GRABBED_ID);
 	}
 
 	void markThrown(LivingEntity victim, long untilGameTime) {

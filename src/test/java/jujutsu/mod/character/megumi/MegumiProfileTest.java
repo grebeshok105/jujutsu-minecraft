@@ -25,10 +25,10 @@ class MegumiProfileTest {
 		assertEquals(1.0, MegumiProfile.NAVIGATION_SPEED_MODIFIER);
 		assertEquals(10.0, MegumiProfile.FOLLOW_START_DISTANCE);
 		assertEquals(2.0, MegumiProfile.FOLLOW_STOP_DISTANCE);
-		assertEquals(60.0, MegumiProfile.LEASH_DISTANCE, "issue #107 D7: the leash moved out to 60");
+		assertEquals(20.0, MegumiProfile.LEASH_DISTANCE, "PR118: the leash matches the 15-block bubble");
 		assertEquals(3.0, MegumiProfile.LEASH_SAFE_SEARCH_RADIUS);
 		assertEquals(10, MegumiProfile.LEASH_RETRY_TICKS);
-		assertEquals(20.0, MegumiProfile.SIC_RANGE);
+		assertEquals(15.0, MegumiProfile.SIC_RANGE);
 		assertEquals(30, MegumiProfile.SIC_COOLDOWN_TICKS);
 		assertEquals(3.0, MegumiProfile.POUNCE_MIN_RANGE);
 		assertEquals(8.0, MegumiProfile.POUNCE_MAX_RANGE);

@@ -753,9 +753,11 @@ public final class MegumiElephantGameTests {
 	}
 
 	/**
-	 * S11 — footprint breaks its allowlist, not the rest: driven over a dirt/obsidian strip, the
-	 * walking body clears all 5 dirt while both obsidian blocks survive. Fails if the allowlist is
-	 * empty (dirt stays) or wide open (obsidian breaks).
+	 * S11 — footprint breaks its allowlist, not the rest: driven through a poppy strip at
+	 * foot level, the walking body clears all 5 poppies while both obsidian blocks survive. The
+	 * strip sits at y=1 (the foot band) over a dirt support row — the sweep never digs the floor
+	 * itself, so the flowers are the breakable cells and obsidian the surviving control. Fails if
+	 * the allowlist is empty (poppies stay) or wide open (obsidian breaks).
 	 */
 	@GameTest(maxTicks = 180)
 	public void elephantFootprintBreaksAllowlistOnly(GameTestHelper helper) {
@@ -785,9 +787,15 @@ public final class MegumiElephantGameTests {
 						"strip", helper.getTick(), ownerId, "body ACTIVE", "true", bodies.get(0).combatEnabled()));
 				int row = Math.min(7, Math.max(0, relativeOf(helper, bodies.get(0).position()).getZ()));
 				rowRef.set(row);
-				for (int x = 0; x <= 6; x++) {
-					helper.setBlock(new BlockPos(x, 0, row), (x == 3 || x == 6) ? Blocks.OBSIDIAN : Blocks.DIRT);
+				for (int x = 0; x <= 4; x++) {
+					helper.setBlock(new BlockPos(x, 0, row), Blocks.DIRT);
+					helper.setBlock(new BlockPos(x, 1, row), Blocks.POPPY);
 				}
+				// Obsidian closes the strip on the drive row: inside the sweep band once the body
+				// arrives, while the drive target stops just short of it — a solid block reached
+				// mid-lane would stall the drive before the poppies are swept.
+				helper.setBlock(new BlockPos(5, 1, row), Blocks.OBSIDIAN);
+				helper.setBlock(new BlockPos(6, 1, row), Blocks.OBSIDIAN);
 				bodies.get(0).teleportTo(origin.getX() + 0.5, origin.getY() + 1.0, origin.getZ() + row + 0.5);
 				caster.teleportTo(level, origin.getX() + 3.5, origin.getY() + 1.0, origin.getZ() + 5.5,
 						Set.of(), 0.0f, 0.0f, false);
@@ -806,17 +814,16 @@ public final class MegumiElephantGameTests {
 					return;
 				}
 				int row = rowRef.get();
-				driveElephant(live.get(0), origin, 7.0, 1.0, row + 0.5);
+				driveElephant(live.get(0), origin, 4.0, 1.0, row + 0.5);
 				int dirtAir = 0;
 				int obsidianOk = 0;
 				for (int x = 0; x <= 6; x++) {
-					BlockState state = stateAt(level, origin, x, 0, row);
-					if (x == 3 || x == 6) {
-						if (state.is(Blocks.OBSIDIAN)) {
-							obsidianOk++;
-						}
-					} else if (state.isAir()) {
+					BlockState state = stateAt(level, origin, x, 1, row);
+					if (state.isAir()) {
 						dirtAir++;
+					}
+					if (stateAt(level, origin, x, 1, row).is(Blocks.OBSIDIAN)) {
+						obsidianOk++;
 					}
 				}
 				if (dirtAir == 5 && obsidianOk == 2) {
@@ -827,7 +834,7 @@ public final class MegumiElephantGameTests {
 				if (pollTick == deadline) {
 					try {
 						helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
-								"walk", helper.getTick(), caster.getUUID(), "dirt cleared, obsidian kept",
+								"walk", helper.getTick(), caster.getUUID(), "poppies cleared, obsidian kept",
 								"5 air + 2 obsidian", dirtAir + " air + " + obsidianOk + " obsidian"));
 					} finally {
 						MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
@@ -883,6 +890,7 @@ public final class MegumiElephantGameTests {
 						int cx = Math.min(6, Math.max(0, relE.getX() + dx));
 						int cz = Math.min(7, Math.max(0, relE.getZ() + dz));
 						helper.setBlock(new BlockPos(cx, 0, cz), Blocks.DIRT);
+						helper.setBlock(new BlockPos(cx, 1, cz), Blocks.POPPY);
 						pad.add(new BlockPos(cx, 0, cz));
 					}
 				}
@@ -908,18 +916,19 @@ public final class MegumiElephantGameTests {
 					try {
 						helper.assertTrue(!moved.get(), MegumiShikigamiTestFixtures.diagnostic(fixture,
 								"stand", helper.getTick(), caster.getUUID(), "body stood still", "still", "moved"));
-						int dirt = 0;
+						int poppies = 0;
 						for (BlockPos cell : padCells.get()) {
-							if (stateAt(level, origin, cell.getX(), cell.getY(), cell.getZ()).is(Blocks.DIRT)) {
-								dirt++;
+							if (stateAt(level, origin, cell.getX(), cell.getY() + 1, cell.getZ()).is(Blocks.POPPY)) {
+								poppies++;
 							}
 						}
-						helper.assertTrue(dirt == 4, MegumiShikigamiTestFixtures.diagnostic(fixture,
-								"stand", helper.getTick(), caster.getUUID(), "standing breaks nothing", "4 dirt", dirt));
+						helper.assertTrue(poppies == 4, MegumiShikigamiTestFixtures.diagnostic(fixture,
+								"stand", helper.getTick(), caster.getUUID(), "standing breaks nothing", "4 poppies", poppies));
 						int col = colRef.get();
 						for (int x = col; x <= col + 1; x++) {
 							for (int z = 0; z <= 7; z++) {
 								helper.setBlock(new BlockPos(x, 0, z), Blocks.DIRT);
+								helper.setBlock(new BlockPos(x, 1, z), Blocks.POPPY);
 							}
 						}
 						live.get(0).teleportTo(origin.getX() + col + 0.5, origin.getY() + 1.0, origin.getZ() + 0.5);
@@ -979,7 +988,7 @@ public final class MegumiElephantGameTests {
 					int col = colRef.get();
 					for (int x = col; x <= col + 1; x++) {
 						for (int z = 0; z <= 7; z++) {
-							if (stateAt(level, origin, x, 0, z).isAir()) {
+							if (stateAt(level, origin, x, 1, z).isAir()) {
 								air++;
 							}
 						}

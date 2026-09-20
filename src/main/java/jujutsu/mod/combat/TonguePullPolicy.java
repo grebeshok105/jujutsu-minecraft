@@ -29,13 +29,13 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class TonguePullPolicy {
 	/** Blocks per tick² the tongue adds along its axis while held. */
-	public static final double ACCELERATION_PER_TICK = 0.08;
+	public static final double ACCELERATION_PER_TICK = 0.14;
 	/** Speed cap at the instant of attachment, blocks/tick. */
-	public static final double BASE_SPEED_CAP = 0.5;
+	public static final double BASE_SPEED_CAP = 0.9;
 	/** Cap growth per held tick, blocks/tick² — 40 held ticks reach {@link #MAX_SPEED_CAP} exactly. */
 	public static final double SPEED_CAP_GAIN_PER_TICK = 0.0175;
 	/** Hard ceiling of the cap ramp, blocks/tick. */
-	public static final double MAX_SPEED_CAP = 1.2;
+	public static final double MAX_SPEED_CAP = 1.6;
 	/** Largest deflection a held key may put between the tongue's axis and the applied pull. */
 	public static final double STEER_MAX_DEGREES = 20.0;
 	/** {@code tan(STEER_MAX_DEGREES)}: the tangent length that deflects the axis by exactly that angle. */

@@ -29,6 +29,7 @@ public final class MegumiPartialClientInit {
 			MegumiWingsState.tick();
 		});
 		TongueRenderer.register();
+		jujutsu.mod.client.render.megumi.MegumiToadTongueRenderer.register();
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 			TongueClientState.clear();
 			MegumiWingsState.clear();

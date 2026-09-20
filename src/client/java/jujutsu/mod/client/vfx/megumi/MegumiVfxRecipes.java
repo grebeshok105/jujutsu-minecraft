@@ -232,9 +232,9 @@ public final class MegumiVfxRecipes {
 	}
 
 	/**
-	 * The partial wings snap open (issue #108): one dark flare with an electric crackle at the
-	 * owner's shoulders. The sustained glide pose is owned by the wings layer, so this cue stays
-	 * a one-shot garnish with no per-tick re-emission.
+	 * The partial wings snap open (issue #108): a short electric crackle at the owner's shoulders.
+	 * No shadow pool — the wings are a worn manifestation, not a summon, and a ground impact under
+	 * the feet reads as something crawling out of the shadow that never arrives.
 	 */
 	private static VfxInstance nuePartialWings(VfxCue cue) {
 		return VfxInstance.of(NUE_PARTIAL_WINGS_DURATION_TICKS, (context, initialAgeTicks) -> {
@@ -243,10 +243,8 @@ public final class MegumiVfxRecipes {
 			}
 			Vec3 shoulders = cue.origin().add(0.0, 1.0, 0.0);
 			RandomSource random = random(cue, 0x4E554504L);
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN,
-					NUE_PARTIAL_WINGS_DURATION_TICKS);
-			context.burst(JujutsuParticles.MEGUMI_SHADOW_MOTE, shoulders, 12, 0.35, 0.16, random);
-			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, shoulders, 10, 0.55, 0.0, 0.04, random);
+			context.burst(ParticleTypes.ELECTRIC_SPARK, shoulders, 14, 0.40, 0.18, random);
+			context.burst(ParticleTypes.POOF, shoulders, 4, 0.20, 0.06, random);
 		});
 	}
 
