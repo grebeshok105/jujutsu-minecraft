@@ -1,34 +1,51 @@
 package jujutsu.mod.cursedincident;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.netty.buffer.Unpooled;
 import java.util.UUID;
 
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.junit.jupiter.api.Test;
 
 import jujutsu.mod.network.IncidentZoneStatePayload;
-
 /** Codec + store-lifecycle contract for the incident zone-state channel (C5). */
 final class IncidentZoneStatePayloadTest {
 
 	@Test
-	void payloadCarriesFullZoneSnapshot() {
+	void payloadCarriesFullZoneSnapshotAndRoundTripsThroughStreamCodec() {
 		UUID incident = UUID.randomUUID();
 		UUID node = UUID.randomUUID();
-		IncidentZoneStatePayload payload = new IncidentZoneStatePayload(
+		IncidentZoneStatePayload sent = new IncidentZoneStatePayload(
 				"minecraft:overworld", incident, node, 10.5, 64.5, -3.5, 12.0,
 				2, "blight", 2, 140, true);
-		assertEquals("minecraft:overworld", payload.dimension());
-		assertEquals(incident, payload.incidentId());
-		assertEquals(node, payload.nodeId());
-		assertEquals(10.5, payload.centerX());
-		assertEquals(2, payload.stage());
-		assertEquals("blight", payload.atmosphereId());
-		assertEquals(2, payload.sealTier());
-		assertEquals(140, payload.sealIntegrity());
-		assertTrue(payload.active());
+		IncidentZoneStatePayload payload = roundTrip(sent);
+		assertEquals(sent.dimension(), payload.dimension());
+		assertEquals(sent.incidentId(), payload.incidentId());
+		assertEquals(sent.nodeId(), payload.nodeId());
+		assertEquals(sent.centerX(), payload.centerX());
+		assertEquals(sent.centerY(), payload.centerY());
+		assertEquals(sent.centerZ(), payload.centerZ());
+		assertEquals(sent.radius(), payload.radius());
+		assertEquals(sent.stage(), payload.stage());
+		assertEquals(sent.atmosphereId(), payload.atmosphereId());
+		assertEquals(sent.sealTier(), payload.sealTier());
+		assertEquals(sent.sealIntegrity(), payload.sealIntegrity());
+		assertEquals(sent.active(), payload.active());
+	}
+
+	private static IncidentZoneStatePayload roundTrip(IncidentZoneStatePayload payload) {
+		RegistryFriendlyByteBuf buffer = new RegistryFriendlyByteBuf(
+				Unpooled.buffer(), RegistryAccess.EMPTY);
+		try {
+			IncidentZoneStatePayload.STREAM_CODEC.encode(buffer, payload);
+			IncidentZoneStatePayload decoded = IncidentZoneStatePayload.STREAM_CODEC.decode(buffer);
+			assertEquals(0, buffer.readableBytes());
+			return decoded;
+		} finally {
+			buffer.release();
+		}
 	}
 
 	@Test

@@ -1,4 +1,5 @@
 package jujutsu.mod.gametest;
+import net.minecraft.nbt.NbtOps;
 
 import java.util.List;
 
@@ -30,22 +31,71 @@ public final class CursedObjectGameTests {
 	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 120)
 	public void objectPickupDropChestKeepsInstance(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
+		ServerPlayer player = CursedSpiritTestFixtures.setupVictim(
+				helper, "objectPickupDropChestKeepsInstance", CENTER);
 		UUID id = UUID.randomUUID();
-		ItemStack original = CursedObjectItem.stack(CursedObjectState.fresh(id, "cursed_nail", 3, level.getGameTime()));
-		ItemEntity dropped = new ItemEntity(level, helper.absolutePos(CENTER).getX() + 0.5,
-				helper.absolutePos(CENTER).getY(), helper.absolutePos(CENTER).getZ() + 0.5, original);
+		ItemStack original = CursedObjectItem.stack(CursedObjectState.fresh(
+				id, "cursed_nail", 3, level.getGameTime()));
+		BlockPos center = helper.absolutePos(CENTER);
+		ItemEntity dropped = new ItemEntity(level, center.getX() + 0.5, center.getY(),
+				center.getZ() + 0.5, original);
+		dropped.setNoPickUpDelay();
 		level.addFreshEntity(dropped);
 		ObjectDwellTracker.noteWorldItem(dropped);
-		ItemStack picked = dropped.getItem().copy();
-		dropped.discard();
+
+		// Use the vanilla pickup path: playerTouch invokes the inventory transfer and onTake,
+		// rather than copying the entity stack and discarding the entity by hand.
+		dropped.playerTouch(player);
+		int carriedSlot = -1;
+		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+			CursedObjectState state = CursedObjectItem.state(player.getInventory().getItem(slot));
+			if (state != null && id.equals(state.instanceId())) {
+				carriedSlot = slot;
+				break;
+			}
+		}
+		helper.assertTrue(dropped.isRemoved() && carriedSlot >= 0,
+				CursedIncidentTestFixtures.diagnostic("objectPickupDropChestKeepsInstance(R2,R3,R46)",
+						helper, "real player pickup", "entity removed and inventory slot", dropped + "/" + carriedSlot));
+		ItemStack carried = player.getInventory().removeItem(carriedSlot, 1);
+		ObjectDwellTracker.noteCarried(carried, player);
+
+		// A Q-drop removes the inventory stack first, then calls Player.drop with that same stack.
+		ItemEntity qDrop = player.drop(carried, false);
+		helper.assertTrue(qDrop != null && qDrop.isAlive(),
+				CursedIncidentTestFixtures.diagnostic("objectPickupDropChestKeepsInstance(R2,R3,R46)",
+						helper, "real player Q-drop", "live ItemEntity", qDrop));
+		ObjectDwellTracker.noteWorldItem(qDrop);
+
 		BlockPos chestPos = helper.absolutePos(new BlockPos(9, 4, 8));
 		helper.setBlock(new BlockPos(9, 4, 8), Blocks.CHEST);
 		ChestBlockEntity chest = (ChestBlockEntity) level.getBlockEntity(chestPos);
-		chest.setItem(0, picked);
+		ItemStack chestStack = qDrop.getItem().copyAndClear();
+		qDrop.discard();
+		chest.setItem(0, chestStack);
+		new ObjectDwellTracker().noteContainer(level, chestPos, chest.getItem(0));
+
 		CursedObjectState stored = CursedObjectItem.state(chest.getItem(0));
-		helper.assertTrue(stored != null && id.equals(stored.instanceId()), CursedIncidentTestFixtures.diagnostic(
-				"objectPickupDropChestKeepsInstance(R2,R3,R46)", helper, "instance id through hops", id,
-				stored == null ? null : stored.instanceId()));
+		int inventoryStacks = 0;
+		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+			CursedObjectState state = CursedObjectItem.state(player.getInventory().getItem(slot));
+			if (state != null && id.equals(state.instanceId())) {
+				inventoryStacks++;
+			}
+		}
+		int entityStacks = level.getEntitiesOfClass(ItemEntity.class, new AABB(center).inflate(3.0),
+				entity -> {
+					CursedObjectState state = CursedObjectItem.state(entity.getItem());
+					return entity.isAlive() && state != null && id.equals(state.instanceId());
+				}).size();
+		helper.assertTrue(stored != null && id.equals(stored.instanceId())
+				&& inventoryStacks == 0 && entityStacks == 0,
+				CursedIncidentTestFixtures.diagnostic("objectPickupDropChestKeepsInstance(R2,R3,R46)", helper,
+						"instance survives pickup/Q-drop/chest without duplication",
+						id + " / inventory=0 / entities=0",
+						(stored == null ? null : stored.instanceId()) + " / inventory="
+								+ inventoryStacks + " / entities=" + entityStacks));
+		CursedSpiritTestFixtures.cleanupVictim(helper, player);
 		helper.succeed();
 	}
 
@@ -249,13 +299,17 @@ public final class CursedObjectGameTests {
 
 	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 80)
 	public void sealSurvivesSaveLoad(GameTestHelper helper) {
-		CursedObjectState state = CursedObjectState.fresh(UUID.randomUUID(), "cursed_nail", 3, helper.getLevel().getGameTime())
-				.withSeal(true, 2, 75);
+		CursedObjectState state = CursedObjectState.fresh(UUID.randomUUID(), "cursed_nail", 3,
+				helper.getLevel().getGameTime()).withSeal(true, 2, 75);
 		ItemStack stack = CursedObjectItem.stack(state);
-		CursedObjectState roundTrip = CursedObjectItem.state(stack.copy());
-		helper.assertTrue(roundTrip.sealed() && roundTrip.sealTier() == 2 && roundTrip.sealIntegrity() == 75,
+		var ops = helper.getLevel().registryAccess().createSerializationContext(NbtOps.INSTANCE);
+		var encoded = ItemStack.CODEC.encodeStart(ops, stack).result().orElseThrow();
+		ItemStack decodedStack = ItemStack.CODEC.parse(ops, encoded).result().orElseThrow();
+		CursedObjectState roundTrip = CursedObjectItem.state(decodedStack);
+		helper.assertTrue(roundTrip != null && roundTrip.sealed()
+				&& roundTrip.sealTier() == 2 && roundTrip.sealIntegrity() == 75,
 				CursedIncidentTestFixtures.diagnostic("sealSurvivesSaveLoad(R46)", helper,
-					"sealed component fields", state, roundTrip));
+						"sealed component fields after ItemStack codec", state, roundTrip));
 		helper.succeed();
 	}
 

@@ -1,5 +1,6 @@
 package jujutsu.mod.client.render.cursedspirit;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Map;
@@ -16,10 +17,12 @@ import jujutsu.mod.cursedspirit.CursedSpiritVariant;
  */
 class CursedSpiritScreamClipTest {
 	private static final Set<String> ROOT_OR_BODY_BONES = Set.of(
-			"body", "body2", "bod", "spine", "root", "flater", "flatter", "bone", "bone2", "bone4");
+			"body", "body2", "bod", "spine", "root", "flater", "flatter", "chest",
+			"bone", "bone2", "bone4");
 
 	@Test
 	void screamRootAndBodyPositionsStayWithinBound() {
+		assertEquals(0.75f, CursedSpiritClips.SCREAM_POSITION_BOUND_BLOCKS);
 		float bound = CursedSpiritClips.SCREAM_POSITION_BOUND_BLOCKS;
 		for (CursedSpiritVariant variant : CursedSpiritVariant.values()) {
 			Map<String, AnimationDefinition> clips = CursedSpiritRigFixtures.clipsOf(

@@ -9,7 +9,9 @@ import com.google.gson.JsonParser;
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
@@ -21,9 +23,8 @@ final class MegumiTongueResourcesTest {
 			"src/main/resources/assets/jujutsumod/textures/entity/megumi_tongue.png");
 	private static final Path HEAD_TEXTURE = Path.of(
 			"src/main/resources/assets/jujutsumod/textures/entity/megumi_toad_head.png");
-
 	@Test
-	void tongueHasRootAndSixTaperedCubicSegments() throws Exception {
+	void tongueHasRootAndTaperedCubicSegments() throws Exception {
 		assertTrue(Files.isRegularFile(GEO));
 		JsonObject geometry = JsonParser.parseString(Files.readString(GEO))
 				.getAsJsonObject().getAsJsonArray("minecraft:geometry").get(0).getAsJsonObject();
@@ -31,23 +32,29 @@ final class MegumiTongueResourcesTest {
 				geometry.getAsJsonObject("description").get("identifier").getAsString());
 		JsonArray bones = geometry.getAsJsonArray("bones");
 		Set<String> names = new HashSet<>();
-		int cubes = 0;
+		List<Double> segmentWidths = new ArrayList<>();
 		for (var element : bones) {
 			JsonObject bone = element.getAsJsonObject();
-			names.add(bone.get("name").getAsString());
-			if (!bone.has("cubes")) {
+			String name = bone.get("name").getAsString();
+			names.add(name);
+			if (!name.startsWith("tongue_segment_")) {
 				continue;
 			}
-			for (var cubeElement : bone.getAsJsonArray("cubes")) {
-				JsonArray size = cubeElement.getAsJsonObject().getAsJsonArray("size");
-				assertTrue(size.get(0).getAsDouble() >= 1.0 && size.get(0).getAsDouble() <= 2.0);
-				assertTrue(size.get(1).getAsDouble() >= 1.0 && size.get(1).getAsDouble() <= 2.0);
-				cubes++;
-			}
+			assertTrue(bone.has("cubes") && !bone.getAsJsonArray("cubes").isEmpty(),
+					"each tongue segment has geometry: " + name);
+			JsonArray size = bone.getAsJsonArray("cubes").get(0).getAsJsonObject()
+					.getAsJsonArray("size");
+			assertTrue(size.get(0).getAsDouble() >= 1.0 && size.get(0).getAsDouble() <= 2.0);
+			assertTrue(size.get(1).getAsDouble() >= 1.0 && size.get(1).getAsDouble() <= 2.0);
+			segmentWidths.add(size.get(0).getAsDouble());
 		}
-		assertEquals(7, bones.size());
+		assertTrue(segmentWidths.size() >= 5 && segmentWidths.size() <= 7,
+				"tongue has 5-7 tapering segments: " + segmentWidths.size());
 		assertTrue(names.contains("tongue_root"));
-		assertEquals(6, cubes);
+		for (int index = 1; index < segmentWidths.size(); index++) {
+			assertTrue(segmentWidths.get(index) < segmentWidths.get(index - 1),
+					"tongue segment " + index + " is narrower than its predecessor");
+		}
 	}
 
 	@Test

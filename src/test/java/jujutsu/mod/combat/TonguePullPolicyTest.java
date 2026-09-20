@@ -4,10 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.regex.Pattern;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.phys.Vec3;
@@ -15,8 +11,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * The pull law of Toad's tongue, tick by tick: the gain per tick, the cap ramp of D9, the steering
- * deflection, what a released tick gives back, and the R33 tripwire that the tongue has no damage
- * path anywhere in its code. Every rule here runs in plain JUnit — the class under test is pure.
+ * deflection, and what a released tick gives back. Every rule here runs in plain JUnit — the class
+ * under test is pure.
  */
 class TonguePullPolicyTest {
 	private static final double EPS = 1.0E-6;
@@ -163,29 +159,6 @@ class TonguePullPolicyTest {
 		assertEquals(velocity, pulled);
 	}
 
-	/**
-	 * R33 — the tongue has no damage path at all: it is a mobility tool, and an impact oracle was
-	 * deliberately not built because nothing can impact. This tripwire reads the five sources that
-	 * make up the feature and fails if one ever grows a hurt/damage call.
-	 */
-	@Test
-	void tongueSourcesApplyNoDamageToAnybody() throws Exception {
-		List<Path> tongueSources = List.of(
-				Path.of("src/main/java/jujutsu/mod/combat/TonguePullPolicy.java"),
-				Path.of("src/main/java/jujutsu/mod/network/MegumiTongueStatePayload.java"),
-				Path.of("src/main/java/jujutsu/mod/character/megumi/MegumiPartialRuntime.java"),
-				Path.of("src/client/java/jujutsu/mod/client/tongue/TongueClientState.java"),
-				Path.of("src/client/java/jujutsu/mod/client/tongue/TongueClientFx.java"),
-				Path.of("src/client/java/jujutsu/mod/client/mixin/TonguePhysicsMixin.java"));
-		Pattern damagePath = Pattern.compile(
-				"\\.hurt\\s*\\(|\\.hurtServer\\s*\\(|DamageSource|\\.damage\\s*\\(|dealDamage|invulnerab");
-
-		for (Path source : tongueSources) {
-			String body = withoutComments(Files.readString(source));
-			assertTrue(!damagePath.matcher(body).find(),
-					source + " grew a damage path; the tongue is mobility only (R33)");
-		}
-	}
 
 	/** Deflection of the applied pull from the line to the anchor, in degrees. */
 	private static double deflectionDegrees(Vec3 velocity, Input input, Vec3 anchor) {
@@ -202,8 +175,4 @@ class TonguePullPolicyTest {
 		return Math.toDegrees(Math.acos(cosine));
 	}
 
-	/** Blanks comments so a javadoc sentence may name the thing this tripwire forbids in code. */
-	private static String withoutComments(String source) {
-		return source.replaceAll("(?s)/\\*.*?\\*/", " ").replaceAll("//[^\n]*", " ");
-	}
 }

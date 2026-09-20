@@ -276,7 +276,9 @@ public final class CursedSpiritAbilityGameTests {
 					// CONTACT lasts one tick and can be consumed between polls; WINDUP is the
 					// two-tick telegraph, so pulling the victim there still lands the miss on
 					// the CONTACT reach+LOS re-check.
-					victim.teleportTo(level, 2.5, 1.0, 14.5, Set.of(), 0.0f, 0.0f, false);
+					BlockPos missPosition = helper.absolutePos(new BlockPos(2, 1, 14));
+					victim.teleportTo(level, missPosition.getX() + 0.5, missPosition.getY(),
+							missPosition.getZ() + 0.5, Set.of(), 0.0f, 0.0f, false);
 				} else if (movedAtContact.get()
 						&& !spirit.abilityBrain().isActive(CursedSpiritAbilityId.GRAB_RUNNER,
 								level.getGameTime())) {

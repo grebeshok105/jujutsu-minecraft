@@ -1,6 +1,8 @@
 package jujutsu.mod.gametest;
+import com.mojang.serialization.JsonOps;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -18,6 +20,7 @@ import net.minecraft.world.phys.AABB;
 import jujutsu.mod.cursedincident.CursedIncidentVfxIds;
 import jujutsu.mod.cursedincident.IncidentControl;
 import jujutsu.mod.cursedincident.IncidentRecord;
+import jujutsu.mod.cursedincident.persist.IncidentSavedData;
 import jujutsu.mod.cursedincident.IncidentStage;
 import jujutsu.mod.cursedincident.SourceKind;
 import jujutsu.mod.cursedincident.infection.InfectionQueue;
@@ -164,13 +167,24 @@ public final class CursedIncidentGameTests {
 
 	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
 	public void saveLoadRoundTrip(GameTestHelper helper) {
-		IncidentRecord record = CursedIncidentTestFixtures.spawnFree(helper, CENTER, IncidentStage.INFESTED, RADIUS, 1109L);
+		IncidentRecord record = CursedIncidentTestFixtures.spawnFree(helper, CENTER, IncidentStage.INFESTED,
+				RADIUS, 1109L);
 		record.dwellTicks = 17L;
 		IncidentControl.reseed(record.id, 9911L);
-		IncidentControl.InspectView view = IncidentControl.inspect(record.id);
-		helper.assertTrue(view.seed() == 9911L && view.stage() == IncidentStage.INFESTED,
+
+		IncidentSavedData before = new IncidentSavedData(Map.of(record.id, record), 23L);
+		var encoded = IncidentSavedData.CODEC.encodeStart(JsonOps.INSTANCE, before).result().orElseThrow();
+		IncidentSavedData after = IncidentSavedData.CODEC.parse(JsonOps.INSTANCE, encoded).result().orElseThrow();
+		IncidentRecord loaded = after.get(record.id);
+		helper.assertTrue(loaded != null
+				&& loaded.seed == 9911L
+				&& loaded.stage == IncidentStage.INFESTED
+				&& loaded.center.equals(record.center)
+				&& loaded.radius == RADIUS
+				&& loaded.dwellTicks == 17L
+				&& after.pressure() == 23L,
 				CursedIncidentTestFixtures.diagnostic("saveLoadRoundTrip(R54,R55)", helper,
-					"persisted logical fields", "seed/stage retained", view));
+						"IncidentSavedData codec round-trip", "record fields and pressure retained", loaded));
 		CursedIncidentTestFixtures.cleanup(record);
 		helper.succeed();
 	}
@@ -408,21 +422,36 @@ public final class CursedIncidentGameTests {
 		var player = CursedSpiritTestFixtures.setupVictim(helper, "demoCommandSpawnsDressedIncident", CENTER);
 		helper.runAtTickTime(5, () -> {
 			try {
-				// Drive the command path the way a player would: spawn at the player's
-				// position with an OBJECT source and a non-default stage.
-				IncidentControl.SpawnOutcome outcome = IncidentControl.spawn(new IncidentControl.SpawnRequest(
-						player.blockPosition(), level.dimension(), null, null, null,
-						IncidentStage.GROWING, null, SourceKind.OBJECT, null));
-				helper.assertTrue(outcome instanceof IncidentControl.SpawnOutcome.Created,
+				Set<java.util.UUID> before = new java.util.HashSet<>();
+				for (IncidentRecord existing : IncidentControl.recordsForRuntime()) {
+					before.add(existing.id);
+				}
+				int result;
+				try {
+					result = level.getServer().getCommands().getDispatcher().execute(
+							"jujutsu incident demo", player.createCommandSourceStack().withPermission(2));
+				} catch (com.mojang.brigadier.exceptions.CommandSyntaxException failure) {
+					helper.assertTrue(false, CursedIncidentTestFixtures.diagnostic(
+							"demoCommandSpawnsDressedIncident(§15)", helper,
+							"real demo command dispatch", "no CommandSyntaxException", failure));
+					return;
+				}
+				List<IncidentRecord> created = IncidentControl.recordsForRuntime().stream()
+						.filter(record -> !before.contains(record.id))
+						.toList();
+				helper.assertTrue(result == 1 && created.size() == 1,
 						CursedIncidentTestFixtures.diagnostic("demoCommandSpawnsDressedIncident(§15)", helper,
-								"demo spawn accepted", "Created", outcome));
-				IncidentRecord record = ((IncidentControl.SpawnOutcome.Created) outcome).record();
+								"real demo command dispatch", "result=1 and one new record", result + "/" + created));
+				IncidentRecord record = created.getFirst();
 				helper.assertTrue(record.objectInstanceId != null && record.sourceKind == SourceKind.OBJECT,
 						CursedIncidentTestFixtures.diagnostic("demoCommandSpawnsDressedIncident(§15)", helper,
 								"object source minted", "objectInstanceId set", record.objectInstanceId));
 				helper.assertTrue(record.stage == IncidentStage.GROWING,
 						CursedIncidentTestFixtures.diagnostic("demoCommandSpawnsDressedIncident(§15)", helper,
 								"stage applied", "GROWING", record.stage));
+				helper.assertTrue(record.center.equals(player.blockPosition()),
+						CursedIncidentTestFixtures.diagnostic("demoCommandSpawnsDressedIncident(§15)", helper,
+								"command uses invoking player position", player.blockPosition(), record.center));
 				CursedIncidentTestFixtures.cleanup(record);
 			} finally {
 				CursedSpiritTestFixtures.cleanupVictim(helper, player);
