@@ -62,18 +62,12 @@ public final class IncidentZoneRenderer {
 		Camera camera = context.camera();
 		Vec3 camPos = camera.getPosition();
 		String dimension = level.dimension().location().toString();
-		// One consumer for everything: debugQuads rides the shared buffer, which any later
-		// getBuffer() call from another AFTER_TRANSLUCENT listener ends mid-frame — the
-		// first addVertex then crashes "Not building!". lightning is a fixed buffer and
-		// stays open for the whole pass.
-		VertexConsumer glow = consumers.getBuffer(RenderType.lightning());
-		VertexConsumer quads = glow;
 		float partialTick = context.tickCounter().getGameTimeDeltaPartialTick(false);
 		long gameTime = level.getGameTime();
 
-		int rendered = 0;
+		List<IncidentZoneState.Zone> visible = new ArrayList<>(MAX_ZONES);
 		for (IncidentZoneState.Zone zone : IncidentZoneState.zones()) {
-			if (rendered >= MAX_ZONES) {
+			if (visible.size() >= MAX_ZONES) {
 				break;
 			}
 			if (!zone.key.dimension().equals(dimension) || zone.center == null) {
@@ -83,14 +77,54 @@ public final class IncidentZoneRenderer {
 			if (dist > LOD_DISTANCE + zone.radius) {
 				continue;
 			}
-			rendered++;
-			renderZone(quads, glow, zone, camPos, gameTime, partialTick, dist);
+			visible.add(zone);
 			spawnMotes(level, zone, gameTime, dist);
+		}
+		if (visible.isEmpty()) {
+			return;
+		}
+
+		// Two sequential passes, one buffer each. Every render type here rides the shared
+		// buffer — getBuffer() ends the previous shared batch, so holding two consumers at
+		// once means the second fetch kills the first ("Not building!"). The only safe
+		// pattern is fetch → emit all vertices → done, exactly like VfxWorldChannel.
+		VertexConsumer glow = consumers.getBuffer(RenderType.lightning());
+		for (IncidentZoneState.Zone zone : visible) {
+			renderZoneGlow(glow, zone, camPos, gameTime, partialTick);
+		}
+		VertexConsumer quads = consumers.getBuffer(RenderType.debugQuads());
+		for (IncidentZoneState.Zone zone : visible) {
+			renderZoneDark(quads, zone, camPos);
 		}
 	}
 
-	private static void renderZone(VertexConsumer quads, VertexConsumer glow,
-			IncidentZoneState.Zone zone, Vec3 camPos, long gameTime, float partialTick, double dist) {
+	/** Additive pass: bright glow rings, pulse, source aura, seal — emitted on lightning. */
+	private static void renderZoneGlow(VertexConsumer glow,
+			IncidentZoneState.Zone zone, Vec3 camPos, long gameTime, float partialTick) {
+		int stage = Math.max(0, Math.min(4, zone.stage));
+		Vec3 c = zone.center.subtract(camPos);
+		double radius = Math.max(2.0, zone.radius);
+
+		// CRITICAL+: slow pulse glow ring expanding from the center.
+		if (stage >= 3) {
+			float phase = ((gameTime % 60) + partialTick) / 60.0f;
+			double pulseRadius = radius * (0.25 + 0.75 * phase);
+			int pulseAlpha = (int) (90 * (1.0f - phase));
+			renderGroundRing(glow, c, pulseRadius, 0.16f, 120, 40, 170, pulseAlpha);
+		}
+
+		// Source-object aura ring at the zone heart.
+		renderGroundRing(glow, c, 1.1, 0.22f, 90, 30, 130, 120 + stage * 20);
+
+		// Seal: talisman barrier ring at the center, degrading per band.
+		if (zone.sealTier > 0) {
+			renderSeal(glow, c, zone, gameTime, partialTick);
+		}
+	}
+
+	/** Opaque pass: edge ring, cursed veins, catastrophic cracks — emitted on debugQuads. */
+	private static void renderZoneDark(VertexConsumer quads,
+			IncidentZoneState.Zone zone, Vec3 camPos) {
 		int stage = Math.max(0, Math.min(4, zone.stage));
 		ZoneGeometry geo = geometryFor(zone);
 		Vec3 c = zone.center.subtract(camPos);
@@ -111,14 +145,6 @@ public final class IncidentZoneRenderer {
 			}
 		}
 
-		// CRITICAL+: slow pulse glow ring expanding from the center.
-		if (stage >= 3) {
-			float phase = ((gameTime % 60) + partialTick) / 60.0f;
-			double pulseRadius = radius * (0.25 + 0.75 * phase);
-			int pulseAlpha = (int) (90 * (1.0f - phase));
-			renderGroundRing(glow, c, pulseRadius, 0.16f, 120, 40, 170, pulseAlpha);
-		}
-
 		// CATASTROPHIC: jagged ground cracks radiating from the center.
 		if (stage >= 4) {
 			for (Vec3[] crack : geo.cracks) {
@@ -129,14 +155,6 @@ public final class IncidentZoneRenderer {
 					VfxWorldGeometry.addRibbon(quads, a, b, side, 8, 2, 12, 230);
 				}
 			}
-		}
-
-		// Source-object aura ring at the zone heart.
-		renderGroundRing(glow, c, 1.1, 0.22f, 90, 30, 130, 120 + stage * 20);
-
-		// Seal: talisman barrier ring at the center, degrading per band.
-		if (zone.sealTier > 0) {
-			renderSeal(glow, c, zone, gameTime, partialTick);
 		}
 	}
 

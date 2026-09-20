@@ -2,6 +2,7 @@ package jujutsu.mod.combat;
 
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -30,6 +31,12 @@ public final class HoldSupport {
 			this.correctionTries = correctionTries;
 		}
 	}
+	/**
+	 * Per-tick pull speed toward the hold anchor, in blocks. 0.5 keeps the grab-start drag
+	 * readable (~10 ticks to cross a 5-block gap) while staying under the entity tracker's
+	 * teleport threshold, so mob carries lerp client-side instead of snapping.
+	 */
+	private static final double MAX_PULL_STEP = 0.5;
 
 	private HoldSupport() {
 	}
@@ -53,9 +60,19 @@ public final class HoldSupport {
 		Vec3 safeAnchor = collisionSafeAnchor(holder, victim, anchor,
 				policy == null ? CollisionPolicy.RUNNER : policy);
 		victim.setDeltaMovement(Vec3.ZERO);
-		victim.teleportTo(safeAnchor.x, safeAnchor.y, safeAnchor.z);
-		// The teleport packet moves the position; hurtMarked carries the motion reset.
 		victim.hurtMarked = true;
+		// Smooth carry: never snap the victim straight onto the anchor. A hard teleportTo
+		// every tick reads as a teleport at grab start and as a jitter whenever the anchor
+		// jumps (wall clamp, holder turn). Cap the per-tick pull instead — for mobs setPos
+		// rides the entity tracker, so observers get a real 3-tick lerp; for players the
+		// small relative teleports approximate the same pull (vanilla cannot lerp the
+		// local player — isLocalInstanceAuthoritative ignores the sync packet).
+		Vec3 target = pullStep(victim, safeAnchor);
+		if (victim instanceof ServerPlayer) {
+			victim.teleportTo(target.x, target.y, target.z);
+		} else {
+			victim.setPos(target.x, target.y, target.z);
+		}
 		victim.addEffect(new MobEffectInstance(JujutsuEffects.GRIPPED,
 				Math.max(1, markerTicks), 0, false, false, false));
 	}
@@ -93,6 +110,30 @@ public final class HoldSupport {
 		// The current body position is the last known free point when every probe is blocked. Keeping
 		// it is safer than teleporting through a wall or enabling noPhysics as a broad workaround.
 		return lastFree == null ? victim.position() : lastFree;
+	}
+
+	/**
+	 * One tick of the pull toward {@code anchor}, capped at {@link #MAX_PULL_STEP} blocks.
+	 * A victim already inside solid geometry (a wall appeared around it mid-hold) snaps
+	 * straight to the collision-safe anchor — the capped step cannot help when every
+	 * intermediate box still clips. Otherwise a blocked step holds position for that tick
+	 * rather than clipping the victim through a wall the anchor clamp already rejected.
+	 */
+	static Vec3 pullStep(LivingEntity victim, Vec3 anchor) {
+		// Emergency extraction: the victim is already inside solid geometry (a wall appeared
+		// around it mid-hold). The capped step cannot help — every intermediate box still
+		// clips — so snap straight to the collision-safe anchor instead of leaving it to
+		// suffocate. Normal holds never take this branch.
+		if (!isFree(victim, victim.position())) {
+			return anchor;
+		}
+		Vec3 delta = anchor.subtract(victim.position());
+		double dist = delta.length();
+		if (dist <= MAX_PULL_STEP || dist < 1.0E-6) {
+			return anchor;
+		}
+		Vec3 target = victim.position().add(delta.scale(MAX_PULL_STEP / dist));
+		return isFree(victim, target) ? target : victim.position();
 	}
 
 	private static boolean isFree(LivingEntity victim, Vec3 position) {
