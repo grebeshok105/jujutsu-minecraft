@@ -8,13 +8,12 @@ import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.registry.JujutsuEffects;
 
 /**
- * Render-only interpolation for GRIPPED victims.
- *
- * <p>The server remains authoritative and continues to pin the entity. This store only keeps the
- * last visual point and eases it toward the latest replicated server position over approximately
- * three ticks, so repeated authoritative teleports do not become visible frame-to-frame jumps.
- * Release deliberately keeps the current visual point for the hand-back transition before the
- * renderer returns to vanilla entity coordinates.
+ * Render-only interpolation for GRIPPED victims that are pinned server-side (the Toad's
+ * hold). Mounted runner victims are excluded (issue #119): their seat is already smooth on
+ * both sides, so this store only eases pinned bodies toward the latest replicated position
+ * over approximately three ticks, keeping repeated authoritative teleports from becoming
+ * visible frame-to-frame jumps. Release deliberately keeps the current visual point for the
+ * hand-back transition before the renderer returns to vanilla entity coordinates.
  */
 public final class CarriedVictimSmoothing {
 	public static final double INTERPOLATION_TICKS = 3.0;
@@ -55,9 +54,13 @@ public final class CarriedVictimSmoothing {
 	 * back after release. The mixin must ask before writing state.x/y/z: writing the raw
 	 * {@code position()} for every living entity would kill vanilla partial-tick
 	 * interpolation globally.
+	 *
+	 * <p>Issue #119: a mounted runner victim is excluded — the passenger seat is already
+	 * smooth on both sides, and easing the render position on top would lag the model
+	 * behind the real hand attachment.
 	 */
 	public static boolean hasVisualOverride(LivingEntity victim) {
-		return victim != null
+		return victim != null && !victim.isPassenger()
 				&& (victim.hasEffect(JujutsuEffects.GRIPPED) || SAMPLES.containsKey(victim.getUUID()));
 	}
 

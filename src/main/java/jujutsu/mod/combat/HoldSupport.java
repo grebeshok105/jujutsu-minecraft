@@ -11,8 +11,11 @@ import jujutsu.mod.registry.JujutsuEffects;
 
 /**
  * One server-side implementation of "this body is being held": the Toad's grab and a cursed
- * spirit's runner pin their victim the same way, so they share the code and the
- * {@link JujutsuEffects#GRIPPED} marker the client reads.
+ * spirit's runner share the {@link JujutsuEffects#GRIPPED} marker and the
+ * {@link HeldVictimRegistry} pair table, but they pin differently. The Toad keeps the classic
+ * per-tick pin through {@link #applyHold}; the runner (issue #119) mounts its victim and only
+ * refreshes state through {@link #refreshMountedHold} — the seat position comes from the
+ * vehicle's {@code positionRider}, never from a per-tick teleport.
  *
  * <p>Collision handling is deliberately a policy, not a hidden runner special case. Runner pins
  * get three short steps back toward their holder when a hand anchor is inside solid geometry;
@@ -77,6 +80,36 @@ public final class HoldSupport {
 				Math.max(1, markerTicks), 0, false, false, false));
 	}
 
+	/**
+	 * Mounted-carry state refresh (issue #119): reaffirms the holder/victim pair and the
+	 * {@code GRIPPED} marker without touching the victim's position — a mounted victim's seat
+	 * is owned by the vehicle's {@code positionRider}, so a positional write here would fight
+	 * the attachment. Safe to call every tick.
+	 *
+	 * <p>Returns false when the registry refused the pair (another holder owns the victim):
+	 * the caller must abort the carry instead of mounting a body it does not hold.
+	 */
+	public static boolean refreshMountedHold(LivingEntity holder, LivingEntity victim,
+			int markerTicks) {
+		if (holder == null || victim == null || !HeldVictimRegistry.hold(holder, victim)) {
+			return false;
+		}
+		victim.setDeltaMovement(Vec3.ZERO);
+		victim.hurtMarked = true;
+		victim.addEffect(new MobEffectInstance(JujutsuEffects.GRIPPED,
+				Math.max(1, markerTicks), 0, false, false, false));
+		return true;
+	}
+
+	/**
+	 * The collision-safe seat anchor for a mounted runner victim: the same wall clamp the old
+	 * tick-teleport pin used, now applied to the passenger position so a hand anchor inside
+	 * solid geometry never suffocates the carried body.
+	 */
+	public static Vec3 mountedAnchor(LivingEntity holder, LivingEntity victim, Vec3 anchor) {
+		return collisionSafeAnchor(holder, victim, anchor, CollisionPolicy.RUNNER);
+	}
+
 	/** Drops the marker and exact holder/victim pair; idempotent on all release paths. */
 	public static void release(LivingEntity victim) {
 		HeldVictimRegistry.release(victim);
@@ -137,10 +170,10 @@ public final class HoldSupport {
 	}
 
 	private static boolean isFree(LivingEntity victim, Vec3 position) {
-		if (!(victim.level() instanceof ServerLevel level)) {
-			return true;
-		}
+		// Level.noCollision exists on both sides: the client replica must clamp the same
+		// anchor the server does, or a wall-adjacent carry diverges the two seats (issue
+		// #119 — positionRider runs on the client too).
 		AABB moved = victim.getBoundingBox().move(position.subtract(victim.position()));
-		return level.noCollision(victim, moved);
+		return victim.level().noCollision(victim, moved);
 	}
 }

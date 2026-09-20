@@ -33,6 +33,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.combat.HoldSupport;
 import jujutsu.mod.combat.StaggerResistant;
 import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityBrain;
 import jujutsu.mod.cursedspirit.ability.effects.ArmorEffect;
@@ -101,6 +103,16 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant, Cur
 	private final CursedSpiritAbilityBrain abilityBrain = new CursedSpiritAbilityBrain();
 	/** Latched berserk flag (C3 schema): persists; modifiers are transient and re-applied. */
 	private boolean berserkLatched;
+	/**
+	 * Issue #119 mounted carry: the grab-start seat position and the pull-in progress, kept
+	 * per side (client and server entities are distinct objects). A mount's lifetime is
+	 * tracked by {@link #removePassenger} — it fires on every dismount path on both sides —
+	 * so the first {@link #positionRider} call of a new mount always sees a cleared state.
+	 * (The GRIPPED instance cannot key this: the client replaces it on every effect packet.)
+	 */
+	private Entity carryPullPassenger;
+	private Vec3 carryPullFrom;
+	private int carryPullTicks;
 
 	public final AnimationState idleAnimationState = new AnimationState();
 	public final AnimationState attackAnimationState = new AnimationState();
@@ -479,6 +491,54 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant, Cur
 		}
 		super.remove(reason);
 	}
+
+	/**
+	 * Issue #119: a {@code GRIPPED} passenger is a runner victim — seat them at the hand
+	 * anchor instead of the default passenger attachment. The marker is the gate on both
+	 * sides: it is the only hold state the client replica can see ({@code HeldVictimRegistry}
+	 * is server-only), and the same gate keeps server and client seats identical.
+	 *
+	 * <p>The first {@link RunnerEffect#CARRY_PULL_TICKS} ticks smoothstep the seat from the
+	 * victim's grab position onto the anchor, so the mount commit reads as a pull-in, not a
+	 * snap. The anchor is wall-clamped through {@link HoldSupport#mountedAnchor} — a hand
+	 * anchor inside solid geometry must not suffocate the carried body.
+	 */
+	@Override
+	protected void positionRider(Entity passenger, Entity.MoveFunction move) {
+		if (!(passenger instanceof LivingEntity victim)
+				|| !victim.hasEffect(jujutsu.mod.registry.JujutsuEffects.GRIPPED)) {
+			super.positionRider(passenger, move);
+			return;
+		}
+		// A fresh mount always finds cleared state (removePassenger ran on the dismount):
+		// capture the grab position once, then smoothstep onto the anchor.
+		if (carryPullPassenger != passenger) {
+			carryPullPassenger = passenger;
+			carryPullFrom = passenger.position();
+			carryPullTicks = 0;
+		}
+		Vec3 anchor = HoldSupport.mountedAnchor(this, victim, RunnerEffect.carryAnchorFor(this));
+		double t = Math.min(1.0, carryPullTicks / (double) RunnerEffect.CARRY_PULL_TICKS);
+		Vec3 seat = t >= 1.0 ? anchor : carryPullFrom.lerp(anchor, t * t * (3.0 - 2.0 * t));
+		move.accept(passenger, seat.x, seat.y, seat.z);
+		carryPullTicks++;
+	}
+
+	/**
+	 * Drops the pull-in state the moment its passenger leaves the seat — release, portal,
+	 * removal, client SetPassengers update all route here on both sides.
+	 */
+	@Override
+	protected void removePassenger(Entity passenger) {
+		super.removePassenger(passenger);
+		if (carryPullPassenger == passenger) {
+			carryPullPassenger = null;
+			carryPullFrom = null;
+			carryPullTicks = 0;
+		}
+	}
+
+
 
 
 	@Override

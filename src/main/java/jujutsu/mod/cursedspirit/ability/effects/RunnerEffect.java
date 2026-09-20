@@ -38,10 +38,12 @@ import jujutsu.mod.vfx.VfxCues;
  * Grab-runner (Block 3, Step 6): the spirit snatches a player, carries them on a chaotic
  * run for ~4 s, and lets go. No damage at any point — the threat is displacement.
  *
- * <p>The pin reuses the one shared hold mechanic (C6): every tick calls
- * {@link HoldSupport#applyHold} with a short marker refresh, so the shared
- * {@code GRIPPED} marker never lapses (a lapsed tick lets the client fight the pin and
- * the victim "breaks out"). This file never re-implements the pin.
+ * <p>The carry rides the vanilla passenger attachment (issue #119): on commit the victim
+ * mounts the spirit, {@link CursedSpiritEntity#positionRider} seats them at the hand anchor
+ * every tick on both sides, and this class only refreshes the shared hold state through
+ * {@link HoldSupport#refreshMountedHold} — no per-tick {@code teleportTo}. The marker refresh
+ * still happens every tick so the shared {@code GRIPPED} marker never lapses (a lapsed tick
+ * lets the client fight the hold and the victim "breaks out").
  *
  * <p>Exactly three actions are denied to a carried victim — attacking, block breaking,
  * and block <em>placement</em> (only when the held stack is a {@link BlockItem}, read
@@ -69,6 +71,8 @@ public final class RunnerEffect {
 	public static final double CARRY_FORWARD = 0.6;
 	/** Upward hand offset in blocks. */
 	public static final double CARRY_UP = 1.2;
+	/** Grab-in pull duration: the seat eases from the victim's position onto the hand anchor. */
+	public static final int CARRY_PULL_TICKS = 5;
 
 	public enum Phase {
 		APPROACH,
@@ -223,20 +227,27 @@ public final class RunnerEffect {
 			}
 			case CONTACT -> {
 				// The victim may move or a wall may appear during the telegraph. This is the sole
-				// authoritative gate; a miss ends cleanly without CARRIED, GRIPPED, or teleport.
-				// A riding victim is refused the same way the toad's grab refuses one — pinning a
-				// passenger fights the mount's own rideTick and displaces an unrelated vehicle.
+				// authoritative gate; a miss ends cleanly without CARRIED, GRIPPED, or a mount.
+				// A riding victim is refused the same way the toad's grab refuses one — mounting
+				// a passenger fights the mount's own rideTick and displaces an unrelated vehicle.
 				if (!inContactRange(spirit, victim) || !spirit.hasLineOfSight(victim)
 						|| victim.isPassenger()) {
 					end(spirit, victim.getUUID(), brain);
 				} else {
-					commitCarry(spirit, level, victim, now);
+					commitCarry(spirit, level, victim, now, brain);
 				}
 			}
 			case CARRY -> {
-				HoldSupport.applyHold(spirit, victim, carryAnchor(spirit),
-						HoldSupport.CollisionPolicy.RUNNER, HOLD_MARKER_TICKS);
-				steer(spirit, level, state, now);
+				// The seat is owned by positionRider; here we only keep the hold state alive.
+				// A victim that somehow dismounted (portal, external teleport) or lost the
+				// registry pair is released instead of dragged back — the carry is over once
+				// the seat or the hold is gone.
+				if (victim.getVehicle() != spirit
+						|| !HoldSupport.refreshMountedHold(spirit, victim, HOLD_MARKER_TICKS)) {
+					end(spirit, victim.getUUID(), brain);
+				} else {
+					steer(spirit, level, state, now);
+				}
 			}
 		}
 	}
@@ -258,14 +269,22 @@ public final class RunnerEffect {
 	}
 
 	private static void commitCarry(CursedSpiritEntity spirit, ServerLevel level,
-			ServerPlayer victim, long now) {
+			ServerPlayer victim, long now, CursedSpiritAbilityBrain brain) {
 		dropHands(victim);
 		CARRIED.add(victim.getUUID());
 		APPROACHING.remove(victim.getUUID(), spirit.getUUID());
 		setPhase(spirit, Phase.CARRY);
-		Vec3 contactPoint = carryAnchor(spirit);
-		HoldSupport.applyHold(spirit, victim, contactPoint,
-				HoldSupport.CollisionPolicy.RUNNER, HOLD_MARKER_TICKS);
+		// GRIPPED first: positionRider gates the hand anchor on the marker, and
+		// ServerPlayer.startRiding positions the rider inside the same call. A refused pair
+		// (another holder took the victim during APPROACH) aborts before the mount — riding
+		// without GRIPPED would seat the victim at the default attachment and let end()
+		// strip a hold this run never owned.
+		if (!HoldSupport.refreshMountedHold(spirit, victim, HOLD_MARKER_TICKS)
+				|| !victim.startRiding(spirit, true)) {
+			end(spirit, victim.getUUID(), brain);
+			return;
+		}
+		Vec3 contactPoint = carryAnchorFor(spirit);
 		JujutsuNetworking.broadcastVfxCue(level, contactPoint,
 				CursedSpiritVfxIds.VFX_DELIVERY_RADIUS,
 				VfxCues.anchored(CursedSpiritVfxIds.RUNNER, contactPoint, spirit.getId(),
@@ -282,7 +301,7 @@ public final class RunnerEffect {
 		}
 	}
 
-	/** Releases the carry set entry and the shared pin. Idempotent: safe on expiry paths. */
+	/** Releases the carry set entry, the seat and the shared pin. Idempotent: safe on expiry paths. */
 	public static void end(CursedSpiritEntity spirit, UUID victimUuid,
 			CursedSpiritAbilityBrain brain) {
 		brain.forceEnd(CursedSpiritAbilityId.GRAB_RUNNER);
@@ -301,16 +320,36 @@ public final class RunnerEffect {
 		} else {
 			APPROACHING.remove(victimUuid);
 		}
-		HeldVictimRegistry.release(victimUuid);
-		if (spirit.level() instanceof ServerLevel level) {
+		// Only the pair this run owns may be released: a victim re-grabbed by another holder
+		// (toad, second runner) between our last refresh and this end must keep that hold —
+		// an unconditional release would strip a pin we never owned (issue #119 review).
+		UUID holder = HeldVictimRegistry.holderUuid(victimUuid);
+		boolean ownsHold = holder == null || (spiritUuid != null && spiritUuid.equals(holder));
+		if (ownsHold) {
+			HeldVictimRegistry.release(victimUuid);
+		}
+		if (spirit != null && spirit.level() instanceof ServerLevel level) {
 			// Resolve server-wide, not just in this level: a victim who changed dimension or
 			// unloaded before the release is invisible to level.getEntity but still wears
 			// GRIPPED — the marker would linger on the destination player for its refresh
 			// window and keep the client smoothing/deny gates alive.
 			if (level.getEntity(victimUuid) instanceof ServerPlayer victim) {
-				HoldSupport.release(victim);
+				// The seat goes first: positionRider reads the GRIPPED marker, so releasing
+				// the marker while still mounted would snap the victim to the default seat
+				// for a frame.
+				if (victim.getVehicle() == spirit) {
+					victim.stopRiding();
+				}
+				if (ownsHold) {
+					HoldSupport.release(victim);
+				}
 			} else if (level.getServer().getPlayerList().getPlayer(victimUuid) instanceof ServerPlayer remote) {
-				remote.removeEffect(jujutsu.mod.registry.JujutsuEffects.GRIPPED);
+				if (remote.getVehicle() == spirit) {
+					remote.stopRiding();
+				}
+				if (ownsHold) {
+					remote.removeEffect(jujutsu.mod.registry.JujutsuEffects.GRIPPED);
+				}
 			}
 			// Close the client attack pose only when this run reached the telegraph.
 			level.broadcastEntityEvent(spirit, CursedSpiritEntity.ABILITY_RELEASE);
@@ -322,7 +361,11 @@ public final class RunnerEffect {
 		PHASE_TICKS.put(spirit.getUUID(), 0);
 	}
 
-	private static Vec3 carryAnchor(CursedSpiritEntity spirit) {
+	/**
+	 * The hand anchor a mounted victim is seated at — forward of the body, at carry height.
+	 * Public for {@link CursedSpiritEntity#positionRider}, which owns the seat on both sides.
+	 */
+	public static Vec3 carryAnchorFor(CursedSpiritEntity spirit) {
 		Vec3 forward = Vec3.directionFromRotation(0.0f, spirit.getYRot());
 		return spirit.position().add(forward.scale(CARRY_FORWARD)).add(0.0, CARRY_UP, 0.0);
 	}
