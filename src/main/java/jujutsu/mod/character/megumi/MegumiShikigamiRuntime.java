@@ -476,9 +476,9 @@ public final class MegumiShikigamiRuntime {
 	/**
 	 * The shikigami leash (PR118 fix): a body that drifts past {@code SHIKIGAMI_LEASH_TELEPORT}
 	 * blocks from its owner teleports back beside them instead of walking home — walking back is
-	 * exactly where bodies used to stall on terrain and never catch up. A manual sic mark is the
-	 * owner's order and is never interrupted; anything else is dropped so the body re-enters the
-	 * follow/fight loop next to the owner.
+	 * exactly where bodies used to stall on terrain and never catch up. Any sic mark is dropped
+	 * too: keeping an unreachable order would rubber-band the body every retry tick — teleport
+	 * out, re-path toward the mark, teleport back — so the recall always wins over the mark.
 	 */
 	private static void tickLeash(MegumiShikigamiEntity body, ServerPlayer owner, long gameTime) {
 		if (owner == null || owner.level() != body.level()
@@ -492,9 +492,7 @@ public final class MegumiShikigamiRuntime {
 		}
 		ServerLevel level = (ServerLevel) body.level();
 		MegumiGroundSafety.findLeashPosition(level, owner.position(), body).ifPresent(destination -> {
-			if (!body.hasManualSicTarget()) {
-				body.clearSicCommand();
-			}
+			body.clearSicCommand();
 			body.getNavigation().stop();
 			body.teleportTo(level, destination.x, destination.y, destination.z,
 					Set.<Relative>of(), body.getYRot(), body.getXRot(), false);
