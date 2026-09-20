@@ -208,10 +208,20 @@ public final class CursedIncidentGameTests {
 	public void criticalZoneNonMagePerceives(GameTestHelper helper) {
 		IncidentRecord record = CursedIncidentTestFixtures.spawnFree(helper, CENTER, IncidentStage.CRITICAL, RADIUS, 1112L);
 		var victim = CursedSpiritTestFixtures.setupVictim(helper, "criticalZoneNonMagePerceives(R51)", CENTER);
+		var outsider = CursedSpiritTestFixtures.setupVictim(helper, "criticalZoneNonMagePerceives(R51)", new BlockPos(1, 4, 1));
 		PerceptionOverrideRuntime.tick(helper.getLevel().getServer());
 		helper.assertTrue(CursePerception.perceives(victim), CursedIncidentTestFixtures.diagnostic(
 				"criticalZoneNonMagePerceives(R51)", helper, "critical override", true, CursePerception.perceives(victim)));
+		// The override grants interact alongside perceive: a non-mage inside a critical
+		// zone sees the curse because it is real for them — their swings must reach it.
+		helper.assertTrue(CursePerception.canInteract(victim), CursedIncidentTestFixtures.diagnostic(
+				"criticalZoneNonMagePerceives(R51)", helper, "override grants interact", true, CursePerception.canInteract(victim)));
+		// Zone-scoped: a non-mage outside the radius keeps the base contract — no
+		// perceive, no interact.
+		helper.assertTrue(!CursePerception.canInteract(outsider), CursedIncidentTestFixtures.diagnostic(
+				"criticalZoneNonMagePerceives(R51)", helper, "outsider still cannot interact", false, CursePerception.canInteract(outsider)));
 		CursedSpiritTestFixtures.cleanupVictim(helper, victim);
+		CursedSpiritTestFixtures.cleanupVictim(helper, outsider);
 		CursedIncidentTestFixtures.cleanup(record);
 		helper.succeed();
 	}
