@@ -419,7 +419,11 @@ public class CursedSpiritEntity extends Monster implements StaggerResistant, Cur
 		float afterArmor = ArmorEffect.absorb(grade(), abilityBrain.pool(), amount, source);
 		if (afterArmor <= 0.0f) {
 			ArmorEffect.emitBlocked(this, level.getGameTime());
-			return false;
+			// A fully absorbed hit is still a hit: route a zero-damage blow through the
+			// vanilla path so the player sees the connect — hurt flash, voice, knockback
+			// and the normal i-frame window — instead of the no-damage whiff that reads
+			// as swinging at air. HP never moves; the blocked cue explains why.
+			return super.hurtServer(level, source, 0.0f);
 		}
 		boolean accepted = super.hurtServer(level, source, afterArmor);
 		// The hurt scream is a voice, not a damage effect: only variants with a scream channel

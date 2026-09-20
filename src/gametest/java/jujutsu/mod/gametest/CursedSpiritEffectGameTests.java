@@ -288,8 +288,9 @@ public final class CursedSpiritEffectGameTests {
 		});
 	}
 
-	/** R57 — flat absorption floors at zero: a weak hit is fully eaten (and refused), a
-	 * heavy hit passes through partially. */
+	/** R57 — flat absorption floors at zero: a weak hit is fully eaten but still
+	 * <em>connects</em> (hurt feedback + i-frames, zero HP loss), and a heavy hit passes
+	 * through partially once the i-frame window closes. */
 	@GameTest(maxTicks = 40, skyAccess = true)
 	public void armorAbsorbsWeakHitLetsHeavyThrough(GameTestHelper helper) {
 		String fixture = "armorAbsorbsWeakHitLetsHeavyThrough";
@@ -305,15 +306,21 @@ public final class CursedSpiritEffectGameTests {
 					CursedSpiritAbilityId.DASH, CursedSpiritAbilityId.REGEN));
 			spirit.setHealth(spirit.getMaxHealth());
 			float full = spirit.getHealth();
-			// 1.0 sits below every grade's absorption (2.0/3.0/4.0); 10.0 above all of them.
-			// Attacks (mobAttack) are absorbed; hazard sources are not — see below.
+			// 1.0 sits below every grade's absorption (2.0/3.0/4.0). The absorbed hit is
+			// accepted as a zero-damage connect — the player sees the blow land (hurt
+			// flash, voice, knockback) instead of the whiff that read as swinging at air.
 			boolean weakAccepted = spirit.hurtServer(level, level.damageSources().mobAttack(spirit),
 					1.0f);
-			helper.assertTrue(!weakAccepted, CursedSpiritTestFixtures.diagnostic(fixture,
-					helper.getTick(), "weak hit fully absorbed", "false", weakAccepted));
+			helper.assertTrue(weakAccepted, CursedSpiritTestFixtures.diagnostic(fixture,
+					helper.getTick(), "weak hit absorbed but connects", "true", weakAccepted));
 			helper.assertTrue(spirit.getHealth() == full,
 					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
 							"weak hit leaves full hp", full, spirit.getHealth()));
+		});
+		// The absorbed hit opens the vanilla 20-tick i-frame window; the heavy hit must
+		// wait it out or the cooldown swallows it like any rapid follow-up.
+		helper.runAtTickTime(25, () -> {
+			float full = spirit.getHealth();
 			boolean heavyAccepted = spirit.hurtServer(level, level.damageSources().mobAttack(spirit),
 					10.0f);
 			helper.assertTrue(heavyAccepted, CursedSpiritTestFixtures.diagnostic(fixture,

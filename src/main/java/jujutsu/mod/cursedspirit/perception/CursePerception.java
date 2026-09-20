@@ -69,11 +69,21 @@ public final class CursePerception {
 	/**
 	 * Whether the entity may fight curses (be acquired, damage, be damaged, collide).
 	 * Today every perceiving vessel also interacts; the fields stay separate for #83.
+	 * The incident override grants interact alongside perceive: a non-mage standing in a
+	 * critical zone sees the curse precisely because it is real for them — a visible body
+	 * their swings must be able to reach, and a hunter that may reach them back. Without
+	 * this the override produced a see-but-untouchable state: spirits rendered and
+	 * tracked, yet every melee swing answered FAIL.
 	 */
 	public static boolean canInteract(Entity entity) {
 		if (entity instanceof Player player) {
-			return JujutsuCharacters.definition(CharacterSelectionView.of(player))
+			boolean vesselInteracts = JujutsuCharacters.definition(CharacterSelectionView.of(player))
 					.cursePerception().interactWithCurses();
+			if (player instanceof ServerPlayer) {
+				return vesselInteracts
+						|| jujutsu.mod.cursedincident.IncidentPerceptionBridge.perceivesOverride(player);
+			}
+			return vesselInteracts;
 		}
 		return true;
 	}
