@@ -32,13 +32,36 @@ public final class MegumiWingsSync {
 
 	/** Sends the folding teardown packet and forgets the owner's heartbeat anchor. */
 	public static void sendInactive(ServerPlayer owner) {
+		sendInactive(owner, MegumiWingsStatePayload.FOLDING);
+	}
+
+	/**
+	 * Sends the teardown packet with the phase the client should play out — FOLDING for a
+	 * grounded exit, DISSOLVING when the wings were open in the air.
+	 */
+	public static void sendInactive(ServerPlayer owner, int teardownPhase) {
 		if (owner == null) {
 			return;
 		}
 		long now = owner.level().getGameTime();
 		PHASE_STARTS.remove(owner.getUUID());
 		broadcast(owner, new MegumiWingsStatePayload(
-				owner.getUUID(), false, MegumiWingsStatePayload.FOLDING, now));
+				owner.getUUID(), false, teardownPhase, now));
+	}
+
+	/** Drops every heartbeat anchor on server stop — no phase may leak into the next world. */
+	public static void clear() {
+		PHASE_STARTS.clear();
+	}
+
+	/**
+	 * Drops the heartbeat anchor without sending anything — for teardown paths where the
+	 * owner is already gone (offline, missing player) and nobody can receive a packet.
+	 */
+	public static void forget(UUID ownerUuid) {
+		if (ownerUuid != null) {
+			PHASE_STARTS.remove(ownerUuid);
+		}
 	}
 
 	private static void broadcast(ServerPlayer owner, MegumiWingsStatePayload payload) {

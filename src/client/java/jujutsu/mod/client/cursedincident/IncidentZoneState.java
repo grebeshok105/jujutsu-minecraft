@@ -62,8 +62,15 @@ public final class IncidentZoneState {
 	private IncidentZoneState() {
 	}
 
+	/** Client ticks without a heartbeat before a zone is presumed dead (3× server resend). */
+	private static final long STALE_AFTER_TICKS = 300L;
+
 	public static void tick() {
 		clientTick++;
+		// The server resends every live zone on a slow heartbeat; anything unheard past the
+		// TTL is dead — its teardown packet either never reached this client (walked out of
+		// the delivery radius) or the zone stopped existing while we were elsewhere.
+		ZONES.values().removeIf(zone -> clientTick - zone.lastSeenClientTick > STALE_AFTER_TICKS);
 	}
 
 	public static void apply(IncidentZoneStatePayload payload) {
@@ -74,6 +81,13 @@ public final class IncidentZoneState {
 		if (!payload.active()) {
 			// Exactly one key dies — never siblings/children of the same incident.
 			ZONES.remove(key);
+			return;
+		}
+		// A malformed or corrupt snapshot must never reach render math: NaN bypasses the
+		// LOD distance check and feeds NaN vertices into the shared buffer.
+		if (!Double.isFinite(payload.centerX()) || !Double.isFinite(payload.centerY())
+				|| !Double.isFinite(payload.centerZ()) || !Double.isFinite(payload.radius())
+				|| payload.radius() < 0.0) {
 			return;
 		}
 		Zone zone = ZONES.computeIfAbsent(key, Zone::new);

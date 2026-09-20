@@ -83,6 +83,12 @@ public final class RunnerEffect {
 	private static final Map<UUID, UUID> APPROACHING = new ConcurrentHashMap<>();
 	private static final Map<UUID, Phase> PHASES = new ConcurrentHashMap<>();
 	private static final Map<UUID, Integer> PHASE_TICKS = new ConcurrentHashMap<>();
+	/**
+	 * The exact player instance a run resolved — keyed by spirit UUID. A respawn or a
+	 * disconnect/reconnect produces a NEW ServerPlayer with the same UUID; identity, not
+	 * the UUID, is what keeps a run bound to the body it grabbed.
+	 */
+	private static final Map<UUID, ServerPlayer> RESOLVED = new ConcurrentHashMap<>();
 
 	private RunnerEffect() {
 	}
@@ -102,6 +108,7 @@ public final class RunnerEffect {
 			APPROACHING.clear();
 			PHASES.clear();
 			PHASE_TICKS.clear();
+			RESOLVED.clear();
 			HeldVictimRegistry.clear();
 		});
 	}
@@ -173,15 +180,18 @@ public final class RunnerEffect {
 		return true;
 	}
 
-	/**
-	 * Effect tick: approach owns navigation, windup owns the attack pose, CONTACT is the only
-	 * commit point, and CARRY refreshes the authoritative pin. A victim is never teleported before
-	 * the CONTACT reach+LOS re-check succeeds.
-	 */
 	public static void tick(CursedSpiritEntity spirit, ServerLevel level,
 			CursedSpiritAbilityBrain brain, CursedSpiritAbilityBrain.EffectState state, long now) {
 		if (!(level.getEntity(state.targetUuid()) instanceof ServerPlayer victim)
 				|| !victim.isAlive() || victim.hasDisconnected()) {
+			end(spirit, state.targetUuid(), brain);
+			return;
+		}
+		// A respawn or reconnect produces a new ServerPlayer with the same UUID — the run
+		// belongs to the body it grabbed, not the name. First resolve binds the instance;
+		// any later instance with the same UUID is a different body and ends the run.
+		ServerPlayer bound = RESOLVED.putIfAbsent(spirit.getUUID(), victim);
+		if (bound != null && bound != victim) {
 			end(spirit, state.targetUuid(), brain);
 			return;
 		}
@@ -214,7 +224,10 @@ public final class RunnerEffect {
 			case CONTACT -> {
 				// The victim may move or a wall may appear during the telegraph. This is the sole
 				// authoritative gate; a miss ends cleanly without CARRIED, GRIPPED, or teleport.
-				if (!inContactRange(spirit, victim) || !spirit.hasLineOfSight(victim)) {
+				// A riding victim is refused the same way the toad's grab refuses one — pinning a
+				// passenger fights the mount's own rideTick and displaces an unrelated vehicle.
+				if (!inContactRange(spirit, victim) || !spirit.hasLineOfSight(victim)
+						|| victim.isPassenger()) {
 					end(spirit, victim.getUUID(), brain);
 				} else {
 					commitCarry(spirit, level, victim, now);
@@ -275,6 +288,7 @@ public final class RunnerEffect {
 		brain.forceEnd(CursedSpiritAbilityId.GRAB_RUNNER);
 		UUID spiritUuid = spirit == null ? null : spirit.getUUID();
 		if (spiritUuid != null) {
+			RESOLVED.remove(spiritUuid);
 			PHASES.remove(spiritUuid);
 			PHASE_TICKS.remove(spiritUuid);
 		}
@@ -289,8 +303,14 @@ public final class RunnerEffect {
 		}
 		HeldVictimRegistry.release(victimUuid);
 		if (spirit.level() instanceof ServerLevel level) {
+			// Resolve server-wide, not just in this level: a victim who changed dimension or
+			// unloaded before the release is invisible to level.getEntity but still wears
+			// GRIPPED — the marker would linger on the destination player for its refresh
+			// window and keep the client smoothing/deny gates alive.
 			if (level.getEntity(victimUuid) instanceof ServerPlayer victim) {
 				HoldSupport.release(victim);
+			} else if (level.getServer().getPlayerList().getPlayer(victimUuid) instanceof ServerPlayer remote) {
+				remote.removeEffect(jujutsu.mod.registry.JujutsuEffects.GRIPPED);
 			}
 			// Close the client attack pose only when this run reached the telegraph.
 			level.broadcastEntityEvent(spirit, CursedSpiritEntity.ABILITY_RELEASE);

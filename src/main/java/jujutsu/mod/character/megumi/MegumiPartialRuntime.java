@@ -62,6 +62,8 @@ public final class MegumiPartialRuntime {
 	private static final int TONGUE_RETRACT_TICKS = 6;
 	private static final int WINGS_MATERIALIZE_TICKS = 8;
 	private static final int WINGS_HEARTBEAT_TICKS = 40;
+	private static final int WINGS_UNFOLD_TICKS = 6;
+	private static final int TONGUE_HEARTBEAT_TICKS = 40;
 
 	private MegumiPartialRuntime() {}
 
@@ -75,16 +77,24 @@ public final class MegumiPartialRuntime {
 		/** Toad only: original shot timestamp and the soft-retract countdown. */
 		long tongueShotGameTime;
 		int tonguePhase = MegumiTongueStatePayload.SHOOTING;
+		/** Toad only: last heartbeat send, so anchored tongues refresh late trackers. */
+		long lastTongueHeartbeat;
+		/** Toad only: a whiffed shot — bounded SHOOTING→RETRACTING, never ANCHORED. */
+		boolean tongueMiss;
 		int tonguePendingRemoval;
 		/** Nue only: whether the owner has been off the ground since the wings came out (D2 landing). */
 		boolean airborneSeen;
 		int wingPhase = MegumiWingsStatePayload.MATERIALIZING;
+		/** Game time the current wing phase began — the unfold clip's own clock. */
+		long wingPhaseStartGameTime;
 		long lastWingHeartbeat;
 
 		private PartialState(MegumiPartialProfile.PartialKind kind, long startedGameTime) {
 			this.kind = kind;
 			this.startedGameTime = startedGameTime;
+			this.wingPhaseStartGameTime = startedGameTime;
 			this.lastWingHeartbeat = startedGameTime;
+			this.lastTongueHeartbeat = startedGameTime;
 		}
 	}
 
@@ -109,6 +119,9 @@ public final class MegumiPartialRuntime {
 			if (state != null) {
 				endPartial(handler.player, state);
 			}
+			// The payload snapshots and wing heartbeat anchor are per-owner state too —
+			// a disconnecting player's UUID must not linger in them for the JVM's lifetime.
+			dropOwnerState(handler.player.getUUID());
 		});
 		// The marker effect persists with the player; the PARTIALS map does not. A restart leaves a
 		// serialized marker with no runtime state behind it — the wings would keep granting flight and
@@ -122,6 +135,7 @@ public final class MegumiPartialRuntime {
 			PARTIALS.clear();
 			LAST_TONGUE_PAYLOADS.clear();
 			LAST_WING_PAYLOADS.clear();
+			MegumiWingsSync.clear();
 		});
 	}
 
@@ -205,9 +219,22 @@ public final class MegumiPartialRuntime {
 			// Offline with no server to look the player up on (a shutdown walk, a fixture step): there is
 			// nobody to tell and no body to cleanse, so the record is all that is left to drop.
 			PARTIALS.remove(ownerId, state);
+			dropOwnerState(ownerId);
 			return;
 		}
 		endPartial(player, state);
+	}
+
+	/**
+	 * Releases every per-owner map entry that outlives the partial itself: the wing
+	 * heartbeat anchor and the two test-visible payload snapshots. Called on every path
+	 * where the owner leaves without a live partial — offline teardown, disconnect, and
+	 * the tick's missing-player drop — or the UUIDs accumulate for the JVM's lifetime.
+	 */
+	private static void dropOwnerState(UUID ownerId) {
+		MegumiWingsSync.forget(ownerId);
+		LAST_TONGUE_PAYLOADS.remove(ownerId);
+		LAST_WING_PAYLOADS.remove(ownerId);
 	}
 
 	private static void tick(MinecraftServer server) {
@@ -218,6 +245,7 @@ public final class MegumiPartialRuntime {
 			if (player == null) {
 				// The disconnect hook also fires; this is the same drop one tick sooner.
 				PARTIALS.remove(ownerId, state);
+				dropOwnerState(ownerId);
 				continue;
 			}
 			if (MegumiShadowMoveRuntime.locksAbilities(player)) {
@@ -256,8 +284,14 @@ public final class MegumiPartialRuntime {
 			return;
 		}
 		state.airborneSeen = true;
-		if (state.wingPhase != MegumiWingsStatePayload.FLYING) {
-			setWingPhase(player, state, MegumiWingsStatePayload.FLYING);
+		if (state.wingPhase == MegumiWingsStatePayload.UNFOLDING) {
+			// The unfold clip runs once between folded and flying — hold the phase for its
+			// authored length, then settle into the loop.
+			if (now - state.wingPhaseStartGameTime >= WINGS_UNFOLD_TICKS) {
+				setWingPhase(player, state, MegumiWingsStatePayload.FLYING);
+			}
+		} else if (state.wingPhase != MegumiWingsStatePayload.FLYING) {
+			setWingPhase(player, state, MegumiWingsStatePayload.UNFOLDING);
 		}
 		heartbeatWings(player, state, now);
 		// Nothing else sets the fall-flying flag (D2) — vanilla only ever clears it — so the request is
@@ -279,9 +313,24 @@ public final class MegumiPartialRuntime {
 		}
 		ServerLevel level = player.level();
 		long now = level.getGameTime();
+		if (state.tongueMiss) {
+			// A whiffed shot never anchors: after the shoot ticks it retracts on its own.
+			// The anchor checks below would NPE on the miss's null anchorBlock and are
+			// meaningless — there is no surface to lose.
+			if (now - state.tongueShotGameTime >= TONGUE_SHOOT_TICKS) {
+				beginTongueRetract(player, state);
+			}
+			return;
+		}
 		if (state.tonguePhase == MegumiTongueStatePayload.SHOOTING
 				&& now - state.tongueShotGameTime >= TONGUE_SHOOT_TICKS) {
 			state.tonguePhase = MegumiTongueStatePayload.ANCHORED;
+			sendTongueState(player, state, true);
+		}
+		// Heartbeat: the client expires anchored entries that go unheard, and a player who
+		// starts tracking the owner mid-anchor never got the original transition.
+		if (now - state.lastTongueHeartbeat >= TONGUE_HEARTBEAT_TICKS) {
+			state.lastTongueHeartbeat = now;
 			sendTongueState(player, state, true);
 		}
 		// Anchor destroyed (R32) and line blocked (R31) are the two ways the tongue lets go by itself.
@@ -311,13 +360,26 @@ public final class MegumiPartialRuntime {
 	private static boolean startTongue(ServerPlayer player, boolean notify) {
 		TargetResolver.Result aimed = TargetResolver.resolve(
 				player.level(), player, MegumiPartialProfile.TONGUE_RANGE, candidate -> false);
+		long now = player.level().getGameTime();
 		if (aimed.mode() != TargetResolver.Mode.BLOCK) {
-			// No surface on the ray inside the range: the tongue has nothing to stick to. A refused
-			// partial starts nothing — no marker, no payload, no state.
-			return reject(player, notify, "message.jujutsumod.megumi.partial.no_anchor");
+			// A miss still fires the tongue — the spec's shot/retract whiff — but it never
+			// anchors: the client plays SHOOTING then RETRACTING and the pull law never
+			// engages. The state is bounded: tickTongue retracts it after the shoot ticks.
+			PartialState miss = new PartialState(MegumiPartialProfile.PartialKind.TONGUE, now);
+			miss.tongueMiss = true;
+			miss.tongueShotGameTime = now;
+			Vec3 missPoint = aimed.point();
+			miss.anchor = missPoint == null || !Double.isFinite(missPoint.x)
+					? player.getEyePosition().add(player.getLookAngle().scale(MegumiPartialProfile.TONGUE_RANGE))
+					: missPoint;
+			addMarker(player, JujutsuEffects.MEGUMI_TOAD_TONGUE);
+			PARTIALS.put(player.getUUID(), miss);
+			sendTongueState(player, miss, true);
+			reject(player, notify, "message.jujutsumod.megumi.partial.no_anchor");
+			return true;
 		}
 		Vec3 anchor = aimed.point();
-		long now = player.level().getGameTime();
+		// `now` is already bound above — the miss branch shares the same shot timestamp.
 		PartialState state = new PartialState(MegumiPartialProfile.PartialKind.TONGUE, now);
 		state.anchor = anchor;
 		state.tongueShotGameTime = now;
@@ -340,8 +402,14 @@ public final class MegumiPartialRuntime {
 		}
 		player.removeEffect(markerFor(state.kind));
 		if (state.kind == MegumiPartialProfile.PartialKind.WINGS) {
-			setWingPhase(player, state, MegumiWingsStatePayload.FOLDING);
-			sendWingInactive(player);
+			// The teardown clip depends on where the wings were: open in the air they
+			// dissolve, folded on the ground they fold away. One inactive packet carries
+			// the phase — no separate active transition first.
+			boolean airborne = state.wingPhase == MegumiWingsStatePayload.FLYING
+					|| state.wingPhase == MegumiWingsStatePayload.UNFOLDING;
+			sendWingInactive(player, airborne
+					? MegumiWingsStatePayload.DISSOLVING
+					: MegumiWingsStatePayload.FOLDING);
 		} else {
 			sendTongueState(player, state, false);
 			sendWingInactive(player);
@@ -390,7 +458,8 @@ public final class MegumiPartialRuntime {
 			return;
 		}
 		state.wingPhase = phase;
-		state.lastWingHeartbeat = player.level().getGameTime();
+		state.wingPhaseStartGameTime = player.level().getGameTime();
+		state.lastWingHeartbeat = state.wingPhaseStartGameTime;
 		sendWingPhase(player, phase);
 	}
 
@@ -428,9 +497,13 @@ public final class MegumiPartialRuntime {
 	}
 
 	private static void sendWingInactive(ServerPlayer player) {
+		sendWingInactive(player, MegumiWingsStatePayload.FOLDING);
+	}
+
+	private static void sendWingInactive(ServerPlayer player, int teardownPhase) {
 		LAST_WING_PAYLOADS.put(player.getUUID(),
-				new WingPayloadProbe(false, MegumiWingsStatePayload.FOLDING));
-		MegumiWingsSync.sendInactive(player);
+				new WingPayloadProbe(false, teardownPhase));
+		MegumiWingsSync.sendInactive(player, teardownPhase);
 	}
 
 	private static void sendTongueState(ServerPlayer player, PartialState state, boolean active) {

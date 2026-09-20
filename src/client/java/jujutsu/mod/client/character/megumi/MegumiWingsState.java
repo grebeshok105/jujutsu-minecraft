@@ -13,7 +13,9 @@ public final class MegumiWingsState {
 		MATERIALIZING(MegumiWingsStatePayload.MATERIALIZING, "animation.megumi_nue_wings.materialize", 8),
 		GROUND_FOLDED(MegumiWingsStatePayload.GROUND_FOLDED, "animation.megumi_nue_wings.folded_idle", 1),
 		FLYING(MegumiWingsStatePayload.FLYING, "animation.megumi_nue_wings.fly", 1),
-		FOLDING(MegumiWingsStatePayload.FOLDING, "animation.megumi_nue_wings.fold", 6);
+		FOLDING(MegumiWingsStatePayload.FOLDING, "animation.megumi_nue_wings.fold", 6),
+		UNFOLDING(MegumiWingsStatePayload.UNFOLDING, "animation.megumi_nue_wings.unfold", 6),
+		DISSOLVING(MegumiWingsStatePayload.DISSOLVING, "animation.megumi_nue_wings.dissolve", 5);
 
 		private final int wireValue;
 		private final String clipId;
@@ -66,11 +68,19 @@ public final class MegumiWingsState {
 		synchronized (ENTRIES) {
 			Entry previous = ENTRIES.get(payload.ownerUuid());
 			if (!payload.active()) {
-				long foldingStartedAt = previous != null && !previous.active()
+				if (previous == null) {
+					// A teardown for a manifestation this client never saw must not invent one:
+					// the orphan-marker reconcile sends inactive to every joining player, and
+					// creating a FOLDING entry here would flash ghost wings on every join.
+					return;
+				}
+				long foldingStartedAt = !previous.active()
 						? previous.localPhaseStartGameTime()
 						: now;
 				ENTRIES.put(payload.ownerUuid(), new Entry(
-						Phase.FOLDING,
+						// The wire phase is the teardown clip — FOLDING on the ground,
+						// DISSOLVING in the air — not a hardcoded fold.
+						phase,
 						false,
 						payload.phaseStartGameTime(),
 						foldingStartedAt,
@@ -154,7 +164,7 @@ public final class MegumiWingsState {
 		while (iterator.hasNext()) {
 			Entry entry = iterator.next().getValue();
 			if (now - entry.lastSeenGameTime() > STALE_AFTER_TICKS
-					|| (!entry.active() && entry.phase() == Phase.FOLDING
+					|| (!entry.active()
 							&& now - entry.localPhaseStartGameTime() >= entry.phase().durationTicks())) {
 				iterator.remove();
 			}

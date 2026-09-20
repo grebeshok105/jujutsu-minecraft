@@ -16,6 +16,10 @@ public record MegumiWingsStatePayload(
 	public static final int GROUND_FOLDED = 1;
 	public static final int FLYING = 2;
 	public static final int FOLDING = 3;
+	/** Transition into flight — the authored unfold clip, played once before FLYING. */
+	public static final int UNFOLDING = 4;
+	/** Airborne teardown — the authored dissolve clip, played once before removal. */
+	public static final int DISSOLVING = 5;
 
 	public static final Type<MegumiWingsStatePayload> TYPE =
 			new Type<>(JujutsuMod.id("megumi_wings_state"));
@@ -29,7 +33,7 @@ public record MegumiWingsStatePayload(
 	}
 
 	public static boolean isKnownPhase(int phase) {
-		return phase >= MATERIALIZING && phase <= FOLDING;
+		return phase >= MATERIALIZING && phase <= DISSOLVING;
 	}
 
 	private static MegumiWingsStatePayload read(RegistryFriendlyByteBuf buffer) {

@@ -49,6 +49,10 @@ public final class MegumiWingsModel extends GeoModel<MegumiWingsModel.Animatable
 				RawAnimation.begin().thenLoop("animation.megumi_nue_wings.fly");
 		private static final RawAnimation FOLD =
 				RawAnimation.begin().thenPlay("animation.megumi_nue_wings.fold");
+		private static final RawAnimation UNFOLD =
+				RawAnimation.begin().thenPlay("animation.megumi_nue_wings.unfold");
+		private static final RawAnimation DISSOLVE =
+				RawAnimation.begin().thenPlay("animation.megumi_nue_wings.dissolve");
 		private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
 		@Override
@@ -80,6 +84,8 @@ public final class MegumiWingsModel extends GeoModel<MegumiWingsModel.Animatable
 				case GROUND_FOLDED -> FOLDED_IDLE;
 				case FLYING -> FLY;
 				case FOLDING -> FOLD;
+				case UNFOLDING -> UNFOLD;
+				case DISSOLVING -> DISSOLVE;
 			});
 		}
 	}

@@ -109,6 +109,11 @@ public final class InfectionSink implements IncidentWorldSink {
 		}
 		record.lastAmbientGameTime = level.getGameTime();
 		emitCue(level, record, CursedIncidentVfxIds.STAGE_PULSE, true, to.ordinal() + 1);
+		// A stage commit is also the zone's first audible beat: without this the ambient
+		// cadence leaves a fresh incident (and `/jujutsu incident demo`) silent for a full
+		// interval — up to six seconds at INITIAL.
+		emitCue(level, record, CursedIncidentVfxIds.ZONE_AMBIENT, false,
+				Math.max(1, to.ordinal()), record.center);
 		// Zone-state snapshot on every stage commit (spawn included — the INITIAL→INITIAL
 		// delta at spawn is the first broadcast a perceiving client sees).
 		IncidentZoneSync.sendZoneState(level, record);

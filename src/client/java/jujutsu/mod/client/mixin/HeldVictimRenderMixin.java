@@ -18,6 +18,11 @@ public abstract class HeldVictimRenderMixin {
 			at = @At("RETURN"))
 	private void jujutsumod$smoothHeldVictim(LivingEntity entity, LivingEntityRenderState state,
 			float partialTick, CallbackInfo ci) {
+		// Only held victims (or a release still easing back) get an override — writing the
+		// raw position for every living entity would kill vanilla partial-tick interpolation.
+		if (!CarriedVictimSmoothing.hasVisualOverride(entity)) {
+			return;
+		}
 		Vec3 visual = CarriedVictimSmoothing.position(entity, partialTick);
 		state.x = visual.x;
 		state.y = visual.y;

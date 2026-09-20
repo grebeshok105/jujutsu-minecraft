@@ -28,9 +28,9 @@ A world-scale subsystem: a **cursed incident** is a persistent, escalating zone 
 
 ## Surfaces
 
-- Commands: `/jujutsu incident spawn|inspect|list|advance|set_stage|escalate|seal|unseal|damage_seal|relocate|secondary|cleanup|reseed|identify` under the existing permission-2 root.
+- Commands: `/jujutsu incident spawn|inspect|list|advance|set_stage|escalate|seal|unseal|damage_seal|relocate|secondary|cleanup|reseed|identify|demo` under the existing permission-2 root (`demo` spawns a dressed incident — object + zone + waves — for visual checks).
 - mcpdev: 15 `jujutsu_incident_*` tools registered in `JujutsuModStatusToolProvider` (integer schemas for long args; structured errors, no stack traces).
-- Client: `src/client/.../cursedincident/` — zone atmosphere, stage pulse, seal cues (`seal_crack` on degrade), object GeckoLib rendering with a doll fallback for unknown/`qa_probe` types.
+- Client: `src/client/.../cursedincident/` — `IncidentZoneRenderer` draws the zone itself (two sequential passes on the shared buffer: additive glow rings/pulse/seal on lightning, then dark veins/cracks on debugQuads; nearest-N cap with LOD distance culling and per-stage cached geometry), zone atmosphere, stage pulse, seal cues (`seal_crack` on degrade), object GeckoLib rendering with a doll fallback for unknown/`qa_probe` types, and `CursedObjectSealFx` — object-side degradation motes/crackle by `SealState` band.
 
 ## Known limits
 

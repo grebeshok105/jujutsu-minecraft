@@ -39,8 +39,10 @@ public final class TongueRenderer {
 		Camera camera = context.camera();
 		Vec3 cameraPosition = camera.getPosition();
 		float partialTick = context.tickCounter().getGameTimeDeltaPartialTick(false);
+		// Two sequential passes, one buffer each: entityTranslucent rides the shared buffer,
+		// so the second getBuffer() would end the first mid-frame ("Not building!"). Emit
+		// all tongue geometry, then fetch the head consumer and emit all heads.
 		VertexConsumer tongue = consumers.getBuffer(RenderType.entityTranslucent(TongueModel.TEXTURE));
-		VertexConsumer head = consumers.getBuffer(RenderType.entityTranslucent(ToadHeadRenderer.TEXTURE));
 		for (Player owner : level.players()) {
 			TongueClientState.Phase phase = TongueClientState.phaseFor(owner.getUUID());
 			if (phase == null) {
@@ -50,10 +52,22 @@ public final class TongueRenderer {
 			if (alpha <= 0.0f) {
 				continue;
 			}
-			Vec3 mouth = TongueClientState.mouthWorldPos(owner, partialTick).subtract(cameraPosition);
 			Vec3 tip = TongueClientState.tipPosition(owner, partialTick);
-			if (tip != null) {
-				renderTongue(tongue, mouth, tip.subtract(cameraPosition), alpha);
+			if (tip == null) {
+				continue;
+			}
+			Vec3 mouth = TongueClientState.mouthWorldPos(owner, partialTick).subtract(cameraPosition);
+			renderTongue(tongue, mouth, tip.subtract(cameraPosition), alpha);
+		}
+		VertexConsumer head = consumers.getBuffer(RenderType.entityTranslucent(ToadHeadRenderer.TEXTURE));
+		for (Player owner : level.players()) {
+			TongueClientState.Phase phase = TongueClientState.phaseFor(owner.getUUID());
+			if (phase == null) {
+				continue;
+			}
+			float alpha = TongueClientState.alpha(owner.getUUID(), partialTick);
+			if (alpha <= 0.0f) {
+				continue;
 			}
 			ToadHeadRenderer.render(head, owner, cameraPosition, partialTick, alpha);
 		}

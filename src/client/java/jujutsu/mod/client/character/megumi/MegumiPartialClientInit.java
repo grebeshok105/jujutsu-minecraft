@@ -33,5 +33,12 @@ public final class MegumiPartialClientInit {
 			TongueClientState.clear();
 			MegumiWingsState.clear();
 		});
+		// Same reason as the disconnect clear: a dimension change swaps the ClientLevel, and
+		// anchored tongue/wing entries keyed by owner UUID would otherwise outlive the level.
+		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE
+				.register((client, world) -> {
+					TongueClientState.clear();
+					MegumiWingsState.clear();
+				});
 	}
 }

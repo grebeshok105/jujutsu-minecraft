@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Comparator;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
 
@@ -67,9 +70,6 @@ public final class IncidentZoneRenderer {
 
 		List<IncidentZoneState.Zone> visible = new ArrayList<>(MAX_ZONES);
 		for (IncidentZoneState.Zone zone : IncidentZoneState.zones()) {
-			if (visible.size() >= MAX_ZONES) {
-				break;
-			}
 			if (!zone.key.dimension().equals(dimension) || zone.center == null) {
 				continue;
 			}
@@ -78,8 +78,19 @@ public final class IncidentZoneRenderer {
 				continue;
 			}
 			visible.add(zone);
-			spawnMotes(level, zone, gameTime, dist);
 		}
+		// The cap keeps the NEAREST zones, not the first HashMap entries — iteration order
+		// is arbitrary, so an unsorted first-N could drop the zone the player stands in.
+		if (visible.size() > MAX_ZONES) {
+			visible.sort(Comparator.comparingDouble(zone -> zone.center.distanceToSqr(camPos)));
+			visible = new ArrayList<>(visible.subList(0, MAX_ZONES));
+		}
+		for (IncidentZoneState.Zone zone : visible) {
+			spawnMotes(level, zone, gameTime, zone.center.distanceTo(camPos));
+		}
+		// Prune before the early return: a dimension with no visible zones is exactly the
+		// case that would otherwise keep dead geometry cached forever.
+		pruneGeometry();
 		if (visible.isEmpty()) {
 			return;
 		}
@@ -230,8 +241,31 @@ public final class IncidentZoneRenderer {
 	}
 
 	private static ZoneGeometry geometryFor(IncidentZoneState.Zone zone) {
-		String cacheKey = zone.key.incidentId() + ":" + zone.key.nodeId() + ":" + zone.stage;
+		// Center and radius are part of the key: a relocated or resized zone at the same
+		// stage must regenerate — the cached paths are absolute coordinates.
+		String cacheKey = geometryKey(zone);
 		return GEOMETRY.computeIfAbsent(cacheKey, k -> generate(zone));
+	}
+
+	/**
+	 * Drops cached geometry whose zone key is no longer live. The cache key includes
+	 * center and radius, so a finished incident, a dimension change, or a relocation
+	 * would otherwise retain Vec3 arrays for the client's whole lifetime.
+	 */
+	private static void pruneGeometry() {
+		if (GEOMETRY.isEmpty()) {
+			return;
+		}
+		Set<String> live = new HashSet<>();
+		for (IncidentZoneState.Zone zone : IncidentZoneState.zones()) {
+			live.add(geometryKey(zone));
+		}
+		GEOMETRY.keySet().removeIf(key -> !live.contains(key));
+	}
+
+	private static String geometryKey(IncidentZoneState.Zone zone) {
+		return zone.key.incidentId() + ":" + zone.key.nodeId() + ":" + zone.stage
+				+ ":" + zone.center + ":" + zone.radius;
 	}
 
 	private static ZoneGeometry generate(IncidentZoneState.Zone zone) {

@@ -89,22 +89,28 @@ not as drive-by "fixes".
 3. **The Rabbit Escape texture is near-flat upstream.** `megumi_rabbit.png` ships byte-identical
    to the Sorcery Age source (321 bytes); no cleanup pass is planned. The swarm reads through
    motion and count, not fur detail.
-4. **The toad tongue is VFX-only.** `toad_tongue.png`/`toad_wings.png` are deliberately unshipped
-   (unreferenced by the imported geo — see PROVENANCE), so the tongue strike has a cue and a yank
-   but no tongue geometry. Adding a tongue model is new art, not a bug fix.
-5. **GameTest displacement oracles must not use `NoAI` mobs.** Measured in game 2026-09-11: a
+4. **The toad tongue is a flat ribbon, not a modeled tongue.** The tongue strike renders a
+   segmented cuboid ribbon plus the manifested head (visual pass 118) — real geometry, but
+   deliberately simple: no authored tongue model exists upstream, so the look is stylized
+   rather than anatomical. A sculpted tongue is new art, not a bug fix.
+5. **The runner's carry pose is the attack clip's end frame.** `ABILITY_WINDUP` holds the
+   attack animation for the whole carry (release only on `end`), so the spirit does keep a
+   pose — but it freezes at whatever the clip's last frame is, which reads neutral on some
+   models rather than "holding a victim". No authored carry clip exists upstream; a real
+   grab pose is new art, not a bug fix.
+6. **GameTest displacement oracles must not use `NoAI` mobs.** Measured in game 2026-09-11: a
    `NoAI:1b` mob is fully frozen — external velocity is stored but the position never integrates,
    not even gravity. Assert displacement only on AI mobs with zeroed speed (Slowness amplifier
    100), otherwise assert velocity/effect state. Recorded so a future scenario author cannot
    re-learn it the red way.
-6. **The sic can out-range what the body can actually do.** `SIC_RANGE` (the aim) is 20 blocks for
+7. **The sic can out-range what the body can actually do.** `SIC_RANGE` (the aim) is 20 blocks for
    every type, while the toad's tongue reaches 12 and the elephant's jet corridor about 13.2 from
    the body. A sic past those marks still routes, plays the snap and the cue, and arms the 30-tick
    `PRIMARY_SNEAK` cooldown; the elephant now refuses to *fire* beyond its reach (review fix), and
    in both cases the body walks in and melees the mark instead — so the command is not wasted, it
    just does not telegraph the shorter reach. A per-type sic-range contract would fix the tell;
    until then it is a UX wart, not a broken strike.
-7. **The elephant's jet is level.** `faceTarget` sets yaw only, so the corridor leaves the trunk
+8. **The elephant's jet is level.** `faceTarget` sets yaw only, so the corridor leaves the trunk
    at ~1.9 blocks with no pitch: bodies shorter than about 1.4 blocks (Rabbit Escape sits at 0.2)
    pass under it at any range. Aiming pitch at the target's chest would change which targets are
    hittable, so it is an owner call rather than a silent fix.
@@ -114,12 +120,12 @@ not as drive-by "fixes".
    facing and their PR (#72) verified their kit, so this is recorded rather than touched: it is a
    cosmetic pounce-facing question in a frozen system, and it deserves its own pass with the same
    frame evidence the shikigami got.
-8. **The rabbit `run` clip is asymmetric upstream.** `megumi_rabbit.animation.json`'s `run` bends
+9. **The rabbit `run` clip is asymmetric upstream.** `megumi_rabbit.animation.json`'s `run` bends
    the left knee without the left foot and the right foot without the right knee (`walk` is
    symmetric). Shipped byte-identical to the Sorcery Age source; the swarm reads through motion
    and count, and editing a third-party clip is a new asset revision, not a bug fix.
 
-9. **The MCP dev-lane save can kill the lane player before it loads.** Verified
+10. **The MCP dev-lane save can kill the lane player before it loads.** Verified
    2026-09-13: persisted cursed spirits (they are the only summon-like entities that
    save — shikigami are `noSave()`) gathered near the spawn over several live passes,
    and a freshly booted lane player died inside the same crowd before the world finished

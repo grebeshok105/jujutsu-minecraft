@@ -2,6 +2,7 @@ package jujutsu.mod.character.megumi;
 
 import java.util.UUID;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.damagesource.DamageSource;
@@ -20,6 +21,8 @@ import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import jujutsu.mod.combat.HoldSupport;
+import jujutsu.mod.cursedspirit.hold.HeldVictimRegistry;
+import jujutsu.mod.registry.JujutsuEffects;
 
 /** One transient Toad body: a ground walker whose sic command answers with a tongue grab. */
 public final class MegumiToadEntity extends MegumiShikigamiEntity {
@@ -190,9 +193,21 @@ public final class MegumiToadEntity extends MegumiShikigamiEntity {
 
 	/** Frees whoever is held — recall, death and removal all funnel through here. */
 	private void releaseHeldVictim() {
-		if (grabbedUuid != null && level() instanceof ServerLevel serverLevel
-				&& serverLevel.getEntity(grabbedUuid) instanceof LivingEntity victim) {
-			HoldSupport.release(victim);
+		// Release by UUID, not by resolved entity: an unloaded/dimension-hopped victim is
+		// unresolvable but its registry pair must still drop, or the UUID stays held forever.
+		if (grabbedUuid != null) {
+			HeldVictimRegistry.release(grabbedUuid);
+			if (level() instanceof ServerLevel serverLevel) {
+				if (serverLevel.getEntity(grabbedUuid) instanceof LivingEntity victim) {
+					victim.removeEffect(JujutsuEffects.GRIPPED);
+				} else if (serverLevel.getServer().getPlayerList().getPlayer(grabbedUuid)
+						instanceof ServerPlayer remote) {
+					// A victim who changed dimension before the release is invisible to this
+					// level but still wears GRIPPED — clear it server-wide or the marker
+					// lingers on the destination player for its refresh window.
+					remote.removeEffect(JujutsuEffects.GRIPPED);
+				}
+			}
 		}
 		clearGrab();
 	}

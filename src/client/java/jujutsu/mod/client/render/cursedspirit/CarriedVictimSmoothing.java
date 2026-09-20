@@ -18,6 +18,8 @@ import jujutsu.mod.registry.JujutsuEffects;
  */
 public final class CarriedVictimSmoothing {
 	public static final double INTERPOLATION_TICKS = 3.0;
+	/** Ticks without a render call before a sample is presumed orphaned (entity unloaded). */
+	private static final long STALE_AFTER_TICKS = 100L;
 	private static final Map<UUID, Sample> SAMPLES = new HashMap<>();
 
 	private CarriedVictimSmoothing() {
@@ -46,6 +48,31 @@ public final class CarriedVictimSmoothing {
 			SAMPLES.remove(victim.getUUID());
 		}
 		return rendered;
+	}
+
+	/**
+	 * True only while this entity needs a render-position override — held, or still easing
+	 * back after release. The mixin must ask before writing state.x/y/z: writing the raw
+	 * {@code position()} for every living entity would kill vanilla partial-tick
+	 * interpolation globally.
+	 */
+	public static boolean hasVisualOverride(LivingEntity victim) {
+		return victim != null
+				&& (victim.hasEffect(JujutsuEffects.GRIPPED) || SAMPLES.containsKey(victim.getUUID()));
+	}
+
+	/**
+	 * Evicts samples whose entity stopped rendering — an unloaded or despawned victim never
+	 * reaches the convergence removal in {@link #position}, so without a TTL its UUID
+	 * accumulates until the next disconnect or level change.
+	 */
+	public static void tick() {
+		net.minecraft.client.Minecraft client = net.minecraft.client.Minecraft.getInstance();
+		if (client.level == null) {
+			return;
+		}
+		long now = client.level.getGameTime();
+		SAMPLES.values().removeIf(sample -> now - sample.gameTime > STALE_AFTER_TICKS);
 	}
 
 	private static void advance(Sample sample, Vec3 serverPosition, long gameTime) {

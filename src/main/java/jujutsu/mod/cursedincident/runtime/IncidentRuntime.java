@@ -15,6 +15,8 @@ import jujutsu.mod.cursedincident.IncidentRecord;
 import jujutsu.mod.cursedincident.IncidentWorldSink;
 import jujutsu.mod.cursedincident.infection.InfectionQueue;
 import jujutsu.mod.cursedincident.infection.InfectionSink;
+import jujutsu.mod.cursedincident.SecondaryNode;
+import java.util.UUID;
 /** Bounded world work driver; logical age advances even while an incident's chunk is unloaded. */
 public final class IncidentRuntime {
 	private static final int PERIOD_TICKS = 20;
@@ -53,11 +55,19 @@ public final class IncidentRuntime {
 		int loadedUnits = loadedWorkUnits(records);
 		int share = 64 / Math.max(1, loadedUnits);
 		for (IncidentRecord record : records) {
-			if (record == null || record.sealed) {
+			if (record == null) {
 				continue;
 			}
 			ServerLevel level = levelFor(server, record);
 			if (level == null) {
+				continue;
+			}
+			// Zone-state heartbeat: event-driven sends only reach players inside the delivery
+			// radius at that instant, so a late tracker or a client that walked out before a
+			// teardown would hold stale zone state forever. The periodic resend refreshes
+			// lastSeenClientTick on live zones; the client expires anything unheard.
+			heartbeatZoneSync(level, record, server.getTickCount());
+			if (record.sealed) {
 				continue;
 			}
 			if (!record.scarred) {
@@ -101,6 +111,49 @@ public final class IncidentRuntime {
 			}
 		}
 		return loaded;
+	}
+
+	/** Ticks between zone-state resends; the client TTL is a multiple of this. */
+	private static final long ZONE_SYNC_INTERVAL_TICKS = 100L;
+
+	/**
+	 * Resends every live work center's zone state on a slow cadence. Event-driven sends
+	 * only reach players inside the delivery radius at that instant — a late tracker or a
+	 * client that walked out before a teardown would hold stale zone state forever. The
+	 * resend refreshes {@code lastSeenClientTick} on live zones; the client expires the rest.
+	 */
+	private static void heartbeatZoneSync(ServerLevel level, IncidentRecord record, long serverTick) {
+		if (record.lastZoneSyncGameTime != Long.MIN_VALUE
+				&& serverTick - record.lastZoneSyncGameTime < ZONE_SYNC_INTERVAL_TICKS) {
+			return;
+		}
+		record.lastZoneSyncGameTime = serverTick;
+		for (WorkCenter workCenter : IncidentControl.workCenters(record)) {
+			if (workCenter.isParent() && record.scarred
+					|| !isLoaded(level, workCenter.center())) {
+				continue;
+			}
+			if (workCenter.isParent()) {
+				IncidentZoneSync.sendZoneState(level, record);
+			} else {
+				SecondaryNode node = secondaryFor(record, workCenter.nodeId());
+				if (node != null && !node.scarred()) {
+					IncidentZoneSync.sendZoneState(level, record, node);
+				}
+			}
+		}
+	}
+
+	private static SecondaryNode secondaryFor(IncidentRecord record, UUID nodeId) {
+		if (nodeId == null) {
+			return null;
+		}
+		for (SecondaryNode node : record.secondaries) {
+			if (node != null && nodeId.equals(node.nodeId())) {
+				return node;
+			}
+		}
+		return null;
 	}
 
 	private static void drainLoaded(ServerLevel level) {

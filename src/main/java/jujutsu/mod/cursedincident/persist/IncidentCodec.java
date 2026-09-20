@@ -204,7 +204,10 @@ public final class IncidentCodec {
 
 		record.dimension = read(ops, map, IncidentNbt.DIM, DIMENSION_CODEC, Level.OVERWORLD);
 		record.center = read(ops, map, IncidentNbt.CENTER, BlockPos.CODEC, BlockPos.ZERO);
-		record.radius = Math.max(0.0, read(ops, map, IncidentNbt.RADIUS, Codec.DOUBLE, 0.0));
+		// Math.max(0, NaN) is still NaN — a corrupt radius must be clamped through the
+		// finite check, or it reaches the zone-state payload and the client's render math.
+		double decodedRadius = read(ops, map, IncidentNbt.RADIUS, Codec.DOUBLE, 0.0);
+		record.radius = IncidentNbt.validRadius(decodedRadius) ? decodedRadius : 0.0;
 		String stage = read(ops, map, IncidentNbt.STAGE, Codec.STRING, "initial");
 		record.stage = IncidentStage.byNameOrDefault(stage);
 		record.scarred = read(ops, map, IncidentNbt.SCARRED, Codec.BOOL, false);

@@ -14,7 +14,16 @@ public final class ClientPerceptionState {
 	}
 
 	public static void apply(IncidentPerceptionPayload payload) {
-		inCriticalZone = payload != null && payload.inCriticalZone();
+		boolean now = payload != null && payload.inCriticalZone();
+		if (inCriticalZone && !now) {
+			// The override is what lets a non-mage client hold zone state at all: when it
+			// drops, the server stops sending zone packets entirely, so every cached zone
+			// is stale the same tick — waiting out the TTL would keep rendering zones the
+			// client is no longer allowed to see.
+			IncidentZoneState.clear();
+			IncidentZoneRenderer.clearCache();
+		}
+		inCriticalZone = now;
 	}
 
 	public static void clear() {

@@ -66,6 +66,12 @@ public final class TongueClientState {
 		if (phase == null) {
 			return;
 		}
+		// A malformed anchor must never reach the pull math or the renderer: NaN lerps
+		// produce NaN positions and NaN vertices in the shared buffer.
+		if (!Double.isFinite(payload.anchorX()) || !Double.isFinite(payload.anchorY())
+				|| !Double.isFinite(payload.anchorZ())) {
+			return;
+		}
 		long now = gameTime();
 		synchronized (ENTRIES) {
 			if (!payload.active()) {
@@ -267,7 +273,12 @@ public final class TongueClientState {
 					&& now - state.lastSeenGameTime() > STALE_AFTER_TICKS;
 			boolean finishedRetract = state.phase() == Phase.RETRACTING
 					&& now - state.localPhaseStartGameTime() >= Phase.RETRACTING.durationTicks();
-			return stalledShot || finishedRetract;
+			// The server heartbeats an anchored tongue every 40 ticks; an anchored entry
+			// unheard for 3× that is a teardown packet this client never received (walked
+			// out of tracking, origin-dimension change) — expire it or it renders forever.
+			boolean anchoredStale = state.phase() == Phase.ANCHORED
+					&& now - state.lastSeenGameTime() > STALE_AFTER_TICKS * 2L;
+			return stalledShot || finishedRetract || anchoredStale;
 		});
 	}
 

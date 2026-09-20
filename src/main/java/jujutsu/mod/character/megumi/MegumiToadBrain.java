@@ -16,6 +16,7 @@ import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.combat.CombatTags;
 import jujutsu.mod.combat.HoldSupport;
+import jujutsu.mod.cursedspirit.hold.HeldVictimRegistry;
 import jujutsu.mod.vfx.MegumiVfxIds;
 
 /**
@@ -186,6 +187,10 @@ final class MegumiToadBrain {
 		// level still GRIPPED (issue #90).
 		LivingEntity victim = resolveHeld(level, toad.grabbedUuid());
 		if (victim == null) {
+			// The victim left the level entirely (unload, dimension change, despawn): the
+			// registry pair must still drop, or the UUID stays marked held forever and the
+			// same entity can never be grabbed again after it returns.
+			HeldVictimRegistry.release(toad.grabbedUuid());
 			toad.clearGrab();
 			return;
 		}

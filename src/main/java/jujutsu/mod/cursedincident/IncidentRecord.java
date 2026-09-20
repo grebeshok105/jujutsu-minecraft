@@ -92,6 +92,8 @@ public final class IncidentRecord {
 	public long lastContainerScanGameTime = Long.MIN_VALUE;
 	public long lastCullGameTime = Long.MIN_VALUE;
 	public long lastAmbientGameTime = Long.MIN_VALUE;
+	/** Last server-tick the zone-state heartbeat went out; MIN_VALUE means never. */
+	public long lastZoneSyncGameTime = Long.MIN_VALUE;
 	public final WorkCounters counters = new WorkCounters();
 
 	/** Logical age in ticks: world time elapsed since creation plus dev-added age. */

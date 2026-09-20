@@ -513,19 +513,24 @@ public final class IncidentControl {
 		record.dwellAnchor = newCenter.immutable();
 		record.dwellTicks = 0L;
 		// Dependent centres stop at the old site; self-sustaining nodes survive. Capture the
-		// removed node ids first — their already-spawned spirits carry node tags and must be
+		// removed nodes first — their already-spawned spirits carry node tags and must be
 		// cleaned explicitly, or they orphan forever (review P1).
-		java.util.List<UUID> removedNodes = new java.util.ArrayList<>();
+		java.util.List<SecondaryNode> removedNodes = new java.util.ArrayList<>();
 		for (SecondaryNode node : record.secondaries) {
 			if (node != null && !node.selfSustaining()) {
-				removedNodes.add(node.nodeId());
+				removedNodes.add(node);
 			}
 		}
 		record.secondaries.removeIf(node -> !node.selfSustaining());
 		data().setDirty();
 		ServerLevel level = levelFor(record);
-		for (UUID nodeId : removedNodes) {
-			jujutsu.mod.cursedincident.runtime.IncidentSpawnRuntime.cleanup(level, record.id, nodeId);
+		for (SecondaryNode node : removedNodes) {
+			jujutsu.mod.cursedincident.runtime.IncidentSpawnRuntime.cleanup(level, record.id, node.nodeId());
+			// The sink only sees surviving nodes, so it can never deactivate the stripped
+			// ones — a client that cached a dependent zone would render its old center
+			// until the TTL. The teardown has to go out here, where the ids still exist.
+			jujutsu.mod.cursedincident.runtime.IncidentZoneSync.sendInactive(
+					level, record, node.nodeId(), node.center());
 		}
 		worldSink.onRelocated(level, record, oldCenter);
 	}
@@ -740,16 +745,20 @@ public final class IncidentControl {
 		record.sourcePos = dwell.immutable();
 		record.dwellAnchor = dwell.immutable();
 		record.dwellTicks = 0L;
-		java.util.List<UUID> removedNodes = new java.util.ArrayList<>();
+		java.util.List<SecondaryNode> removedNodes = new java.util.ArrayList<>();
 		for (SecondaryNode node : record.secondaries) {
 			if (node != null && !node.selfSustaining()) {
-				removedNodes.add(node.nodeId());
+				removedNodes.add(node);
 			}
 		}
 		record.secondaries.removeIf(node -> !node.selfSustaining());
 		ServerLevel level = levelFor(record);
-		for (UUID nodeId : removedNodes) {
-			jujutsu.mod.cursedincident.runtime.IncidentSpawnRuntime.cleanup(level, record.id, nodeId);
+		for (SecondaryNode node : removedNodes) {
+			jujutsu.mod.cursedincident.runtime.IncidentSpawnRuntime.cleanup(level, record.id, node.nodeId());
+			// Same teardown as relocate(): the sink only sees survivors, so the stripped
+			// node's inactive must go out here or clients keep its old-center zone.
+			jujutsu.mod.cursedincident.runtime.IncidentZoneSync.sendInactive(
+					level, record, node.nodeId(), node.center());
 		}
 		worldSink.onRelocated(level, record, oldCenter);
 		data().setDirty();

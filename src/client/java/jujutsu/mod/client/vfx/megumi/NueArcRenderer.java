@@ -81,7 +81,11 @@ public final class NueArcRenderer {
 			return;
 		}
 		if (activeLevel != level) {
-			clear();
+			// Only a real level switch wipes live arcs — the very first render after
+			// registration must not clear cues that arrived before the first frame.
+			if (activeLevel != null) {
+				clear();
+			}
 			activeLevel = level;
 		}
 		Camera camera = context.camera();
@@ -124,9 +128,9 @@ public final class NueArcRenderer {
 	private static void renderShock(VertexConsumer consumer, Vec3 start, Vec3 target, NueArcState.Arc arc,
 			long gameTime, float partialTick) {
 		float age = arc.ageAt(gameTime, partialTick);
-		float fade = age < IMPACT_DURATION_TICKS
-				? 1.0f - age / (NueArcState.TTL_TICKS + 1.0f)
-				: Math.max(0.0f, (NueArcState.TTL_TICKS - age) / 2.0f);
+		// One continuous fade: the old two-branch curve jumped back to full opacity at the
+		// impact boundary (age 6 → (8-6)/2 = 1.0), flashing the lightning mid-death.
+		float fade = Math.max(0.0f, 1.0f - age / (NueArcState.TTL_TICKS + 1.0f));
 		int alpha = Math.max(0, Math.min(255, Math.round(230.0f * fade)));
 		if (alpha <= 0) {
 			return;

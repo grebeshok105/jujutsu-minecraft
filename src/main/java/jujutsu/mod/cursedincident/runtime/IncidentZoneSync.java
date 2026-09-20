@@ -65,7 +65,12 @@ public final class IncidentZoneSync {
 				record.sealed ? record.sealIntegrity : 0,
 				active);
 		int sent = 0;
-		for (ServerPlayer player : recipients(level, center)) {
+		// Inactive teardown reaches every perceiving player in the level, not just the
+		// delivery radius: a client that cached the zone then walked away must still hear
+		// the stand-down, or the stale entry lives until the client-side TTL.
+		for (ServerPlayer player : active
+				? recipients(level, center)
+				: level.players().stream().filter(CursePerception::perceives).toList()) {
 			if (ServerPlayNetworking.canSend(player, IncidentZoneStatePayload.TYPE)) {
 				ServerPlayNetworking.send(player, payload);
 				sent++;
