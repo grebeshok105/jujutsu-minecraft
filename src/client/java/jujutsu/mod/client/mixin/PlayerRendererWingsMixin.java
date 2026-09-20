@@ -16,15 +16,12 @@ import jujutsu.mod.client.render.PlayerRenderLayerRegistry;
 /** Adds every vessel-registered layer to vanilla's default and slim PlayerRenderer instances. */
 @Mixin(PlayerRenderer.class)
 public abstract class PlayerRendererWingsMixin {
-	@Shadow
-	protected abstract boolean addLayer(RenderLayer<PlayerRenderState, PlayerModel> layer);
-
 	@Inject(method = "<init>", at = @At("TAIL"))
 	private void jujutsumod$addWingsLayer(EntityRendererProvider.Context context, boolean slim,
 			CallbackInfo ci) {
 		for (RenderLayer<PlayerRenderState, PlayerModel> layer : PlayerRenderLayerRegistry.createLayers(
 				(RenderLayerParent<PlayerRenderState, PlayerModel>) (Object) this)) {
-			addLayer(layer);
+			((LivingEntityRendererAccessor) this).jujutsumod$invokeAddLayer(layer);
 		}
 	}
 }
