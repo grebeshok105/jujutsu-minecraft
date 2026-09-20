@@ -70,11 +70,12 @@ final class MegumiRetaliationPolicy {
 	}
 
 	/**
-	 * Issue #96: a mark the pack placed for itself exists only while an aggressor answers for the
-	 * owner — the tick none does, it expires. A manual sic is the owner's own order, not a
-	 * retaliation mark, and outlives the window.
+	 * Issue #96/#107: a mark the pack placed for itself — the retaliation answer — exists only
+	 * while an aggressor answers for the owner; the tick none does, it expires. The owner's own
+	 * sic ({@code MANUAL}) is an order and outlives the window, and the coordinator's
+	 * {@code AUTONOMOUS} mark belongs to the coordination pass that placed it, not to this one.
 	 */
-	static boolean markExpiresWithoutAggressor(boolean manualSic) {
-		return !manualSic;
+	static boolean markExpiresWithoutAggressor(MegumiMarkKind kind) {
+		return kind == MegumiMarkKind.RETALIATION;
 	}
 }

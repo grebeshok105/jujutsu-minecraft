@@ -1,8 +1,11 @@
 package jujutsu.mod.client.character.megumi;
 
 import java.util.List;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.CharacterAbility;
@@ -13,7 +16,12 @@ import jujutsu.mod.client.character.CharacterClientDefinition;
 import jujutsu.mod.client.character.CharacterRosterEntry;
 import jujutsu.mod.client.character.HudSlot;
 import jujutsu.mod.client.character.JujutsuCharacterIcons;
+import jujutsu.mod.client.character.megumi.selector.ClientMegumiShikigamiState;
+import jujutsu.mod.client.character.megumi.selector.MegumiShikigamiSelectorScreen;
+import jujutsu.mod.client.character.megumi.selector.ShikigamiSlotView;
 import jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes;
+import jujutsu.mod.client.vfx.megumi.NueArcRenderer;
+import jujutsu.mod.network.ShikigamiStatePayload;
 import jujutsu.mod.client.character.megumi.particle.MegumiShadowMoteParticle;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.render.CharacterSkinAnimation;
@@ -22,6 +30,8 @@ import jujutsu.mod.client.render.megumi.MegumiElephantRenderer;
 import jujutsu.mod.client.render.megumi.MegumiNueRenderer;
 import jujutsu.mod.client.render.megumi.MegumiRabbitRenderer;
 import jujutsu.mod.client.render.megumi.MegumiToadRenderer;
+import jujutsu.mod.client.render.megumi.MegumiWingsLayer;
+import jujutsu.mod.client.render.PlayerRenderLayerRegistry;
 import jujutsu.mod.client.render.megumi.MegumiSkinAnimationAdapter;
 import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.registry.JujutsuParticles;
@@ -57,7 +67,9 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOOM,
 								"screen.jujutsumod.character_select.ability.deep_submerge", "S+B+"),
 						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.BOOM,
-								"screen.jujutsumod.character_select.ability.shadow_drop", "V")));
+								"screen.jujutsumod.character_select.ability.shadow_drop", "V"),
+						new CharacterRosterEntry.Ability(JujutsuCharacterIcons.LINK,
+								"screen.jujutsumod.character_select.ability.partial", "X")));
 	}
 
 	/**
@@ -84,6 +96,11 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 	 * <p>A slot's casts can share a cooldown key at different prices — recalling both dogs is cheaper
 	 * than losing the pack, and a deep submerge costs more than a tap step — so the denominator is the
 	 * largest price any cast on the slot can ask.
+	 *
+	 * <p>Every slot is named. The default arm this used to end with answered zero for anything it did
+	 * not know, which is the one answer a HUD must not guess at: a new slot would silently read "free"
+	 * instead of failing the build. The two partial edges (D3) really are free (R34) — as is the
+	 * selection cycle and the two context slots — and they say so one at a time.
 	 */
 	@Override
 	public int maxCooldownTicks(CharacterAbility ability) {
@@ -94,7 +111,13 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 			case SECONDARY -> MegumiProfile.SHADOW_TRAP_COOLDOWN_TICKS;
 			case SECONDARY_SNEAK -> Math.max(MegumiProfile.SHADOW_STEP_COOLDOWN_TICKS, MegumiProfile.SUBMERGE_COOLDOWN_TICKS);
 			case TERTIARY -> MegumiProfile.DROP_COOLDOWN_TICKS;
-			default -> 0;
+			case TERTIARY_SNEAK -> 0;
+			case PARTIAL -> 0;
+			case PARTIAL_RELEASE -> 0;
+			case ATTACK_CONTEXT -> 0;
+			case USE_CONTEXT -> 0;
+			case SECONDARY_SNEAK_HOLD -> 0;
+			case SECONDARY_SNEAK_RELEASE -> 0;
 		};
 	}
 
@@ -139,9 +162,29 @@ public final class MegumiClientDefinition implements CharacterClientDefinition {
 		EntityRendererRegistry.register(JujutsuEntities.MEGUMI_RABBIT, MegumiRabbitRenderer::new);
 		EntityRendererRegistry.register(JujutsuEntities.MEGUMI_MAX_ELEPHANT, MegumiElephantRenderer::new);
 		ParticleFactoryRegistry.getInstance().register(JujutsuParticles.MEGUMI_SHADOW_MOTE, MegumiShadowMoteParticle.Provider::new);
+		NueArcRenderer.register();
+		MegumiPartialClientInit.register();
+		PlayerRenderLayerRegistry.register(MegumiWingsLayer::new);
 		MegumiVfxRecipes.register();
 		VfxDirector.registerHudContribution(JujutsuMod.id("megumi_divine_dogs_cooldown"), MegumiCooldownHud::render);
 		VfxDirector.registerHudContribution(JujutsuMod.id("megumi_shadow_dive_veil"), MegumiShadowDiveHud::render);
+		// The server owns every shikigami state; this is the only way the strip learns them.
+		ClientPlayNetworking.registerGlobalReceiver(ShikigamiStatePayload.TYPE, (payload, context) ->
+				context.client().execute(() -> ClientMegumiShikigamiState.apply(payload)));
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+			ClientMegumiShikigamiState.clear();
+			ShikigamiSlotView.clearModels();
+		});
+	}
+
+	@Override
+	public boolean hasQuickSelector() {
+		return true;
+	}
+
+	@Override
+	public void openQuickSelector(Minecraft client) {
+		client.setScreen(new MegumiShikigamiSelectorScreen());
 	}
 
 	@Override

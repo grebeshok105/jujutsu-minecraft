@@ -18,5 +18,6 @@ public final class JujutsuClientParticles {
 		ParticleFactoryRegistry.getInstance().register(JujutsuParticles.BF_LIGHTNING, BfLightningParticle.Provider::new);
 		ParticleFactoryRegistry.getInstance().register(JujutsuParticles.BF_SPARK, BfSparkParticle.Provider::new);
 		ParticleFactoryRegistry.getInstance().register(JujutsuParticles.BF_IMPACT, BfImpactParticle.Provider::new);
+		ParticleFactoryRegistry.getInstance().register(JujutsuParticles.CURSED_MOTE, CursedMoteParticle.Provider::new);
 	}
 }

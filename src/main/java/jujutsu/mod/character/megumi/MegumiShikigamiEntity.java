@@ -45,8 +45,8 @@ public abstract class MegumiShikigamiEntity extends TamableAnimal {
 	private long summonToken;
 	private ResourceKey<Level> recallDimension;
 	private UUID sicTargetUuid;
-	/** True while the current mark came from the owner's own sic command, not from retaliation. */
-	private boolean sicManual;
+	/** Where the current mark came from; null when the body carries no mark. */
+	private MegumiMarkKind markKind;
 	private long nextAttackReadyGameTime;
 
 	protected MegumiShikigamiEntity(EntityType<? extends TamableAnimal> type, Level level) {
@@ -128,7 +128,7 @@ public abstract class MegumiShikigamiEntity extends TamableAnimal {
 
 	void assignSicTarget(LivingEntity target) {
 		sicTargetUuid = target.getUUID();
-		sicManual = true;
+		markKind = MegumiMarkKind.MANUAL;
 		setTarget(target);
 	}
 
@@ -143,13 +143,31 @@ public abstract class MegumiShikigamiEntity extends TamableAnimal {
 			return;
 		}
 		sicTargetUuid = target.getUUID();
-		sicManual = false;
+		markKind = MegumiMarkKind.RETALIATION;
+		setTarget(target);
+	}
+
+	/**
+	 * A mark the coordinator picked from the shared combat context (issue #107). Same no-op rule as
+	 * retaliation: re-assigning the same target must not reset the body's attack state.
+	 */
+	void assignAutonomousTarget(LivingEntity target) {
+		if (target.getUUID().equals(sicTargetUuid)) {
+			return;
+		}
+		sicTargetUuid = target.getUUID();
+		markKind = MegumiMarkKind.AUTONOMOUS;
 		setTarget(target);
 	}
 
 	/** True while the current mark came from the owner's own ⇧R command. */
 	boolean hasManualSicTarget() {
-		return sicManual;
+		return markKind == MegumiMarkKind.MANUAL;
+	}
+
+	/** Where the current mark came from, or null when the body carries none. */
+	MegumiMarkKind markKind() {
+		return markKind;
 	}
 
 	UUID sicTargetUuid() {
@@ -170,7 +188,7 @@ public abstract class MegumiShikigamiEntity extends TamableAnimal {
 
 	void clearSicCommand() {
 		sicTargetUuid = null;
-		sicManual = false;
+		markKind = null;
 		setTarget(null);
 	}
 

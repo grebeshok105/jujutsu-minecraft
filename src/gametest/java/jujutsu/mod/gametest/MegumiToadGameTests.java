@@ -23,6 +23,7 @@ import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
+import jujutsu.mod.character.megumi.MegumiSummonCooldowns;
 import jujutsu.mod.character.CharacterSelectionManager;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.character.megumi.MegumiShikigami;
@@ -102,6 +103,20 @@ public final class MegumiToadGameTests {
 	private static final long POLL_LAG_TICKS = 2;
 	/** The anchor sits {@code TOAD_GRIP_OFFSET} in front of the body; this is the extra slack. */
 	private static final double ANCHOR_SLACK = 0.75;
+	/**
+	 * HoldSupport's production pull cap: every normal pull step is at most half a block.
+	 * Keep the literal here so a teleport-to-anchor regression cannot satisfy the convergence
+	 * oracle while silently bypassing the movement contract.
+	 */
+	private static final double MAX_PULL_STEP = 0.5;
+	private static final double PULL_STEP_EPSILON = 1.0E-6;
+
+	/**
+	 * Ticks the capped pull may take to land the victim on the anchor before the pin oracle
+	 * applies. 0.5 blocks/tick over the worst-case grab range (~10 blocks) is ~20 ticks; 30
+	 * leaves margin without letting a stuck pull hide inside the whole hold.
+	 */
+	private static final long PULL_CONVERGE_TICKS = 30;
 
 	/**
 	 * S3 pins this row: a manual recall costs exactly the Toad recall cooldown. Deliberately NOT
@@ -156,10 +171,11 @@ public final class MegumiToadGameTests {
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "summon", helper.getTick(), ownerId,
 								"owned Toad bodies in level", "1", bodies.size()));
 
-				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.TOAD,
+						level.getGameTime());
 				helper.assertTrue(remaining == 0,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "summon", helper.getTick(), ownerId,
-								"PRIMARY cooldown (summon is free)", "0", remaining));
+								"summon cooldown (summon is free)", "0", remaining));
 			} finally {
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 			}
@@ -207,6 +223,8 @@ public final class MegumiToadGameTests {
 		AtomicReference<Vec3> bodyAtGrab = new AtomicReference<>();
 		AtomicLong grabTick = new AtomicLong(-1L);
 		AtomicBoolean done = new AtomicBoolean();
+		AtomicReference<Vec3> previousVictimPosition = new AtomicReference<>();
+		previousVictimPosition.set(zombie.position());
 
 		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
 			UUID ownerId = caster.getUUID();
@@ -256,6 +274,10 @@ public final class MegumiToadGameTests {
 									"Toad body present", "1", bodies.size()));
 					MegumiToadEntity body = bodies.get(0);
 					boolean holding = body.isHolding() && zombie.getUUID().equals(body.grabbedUuid());
+					Vec3 currentVictimPosition = zombie.position();
+					Vec3 previousPosition = previousVictimPosition.getAndSet(currentVictimPosition);
+					double pullDistance = previousPosition == null ? 0.0
+							: currentVictimPosition.distanceTo(previousPosition);
 
 					if (grabTick.get() < 0) {
 						if (!holding) {
@@ -274,15 +296,28 @@ public final class MegumiToadGameTests {
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "grab", pollTick,
 										caster.getUUID(), "mob victim is not flagged as a player",
 										"false", body.grabbedIsPlayer()));
-						// The mob is pinned to the anchor like a player is: it must hang in front of
-						// the body, not stand where the tongue happened to find it. Without this the
-						// "held" oracle would only say "somewhere within the 12-block grab range".
+						// The mob is pulled to the anchor like a player is: at the commit tick it is
+						// still mid-drag (the pull is capped per tick), so the gate is the grab
+						// range, not the anchor. The hold loop below asserts convergence.
 						double anchorDistance = Math.hypot(zombie.getX() - body.getX(), zombie.getZ() - body.getZ());
-						helper.assertTrue(anchorDistance <= MegumiShikigamiProfile.TOAD_GRIP_OFFSET + ANCHOR_SLACK,
+						helper.assertTrue(anchorDistance <= MegumiShikigamiProfile.TOAD_GRAB_RANGE,
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "grab", pollTick,
-										caster.getUUID(), "victim pinned at the grip anchor",
-										"<= " + (MegumiShikigamiProfile.TOAD_GRIP_OFFSET + ANCHOR_SLACK),
+										caster.getUUID(), "victim inside the grab range at the commit",
+										"<= " + MegumiShikigamiProfile.TOAD_GRAB_RANGE,
 										anchorDistance));
+						Vec3 anchor = MegumiToadPolicy.anchor(body.position(), body.getLookAngle(),
+								MegumiShikigamiProfile.TOAD_GRIP_OFFSET);
+						double gapBeforeStep = previousPosition == null ? 0.0
+								: previousPosition.distanceTo(anchor);
+						// The commit poll can cover two server pulls: the grab may commit after
+						// the previous poll ran, so tick N-1's and tick N's applyHold both land
+						// inside this one poll interval. The bound is doubled here only.
+						if (previousPosition != null && gapBeforeStep > PULL_STEP_EPSILON) {
+							helper.assertTrue(pullDistance <= 2 * MAX_PULL_STEP + PULL_STEP_EPSILON,
+									MegumiShikigamiTestFixtures.diagnostic(fixture, "grab", pollTick,
+											caster.getUUID(), "zombie pull step at grab commit",
+											"<= " + 2 * MAX_PULL_STEP, pullDistance));
+						}
 						helper.assertTrue(zombie.getHealth() == healthBefore.get().doubleValue(),
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "grab", pollTick,
 										caster.getUUID(), "zombie health at the commit (R1: no instant damage)",
@@ -305,12 +340,27 @@ public final class MegumiToadGameTests {
 					}
 
 					if (holding) {
-						Vec3 drift = zombie.position().subtract(anchorAtGrab.get());
-						double driftHorizontal = Math.hypot(drift.x, drift.z);
-						helper.assertTrue(driftHorizontal <= PIN_TOLERANCE_BLOCKS,
-								MegumiShikigamiTestFixtures.diagnostic(fixture, "hold", pollTick,
-										caster.getUUID(), "zombie drift from the grip anchor",
-										"<= " + PIN_TOLERANCE_BLOCKS, driftHorizontal));
+						// The pull converges over the first ticks of the hold; after that the victim
+						// must sit at the live anchor within the jitter bound. Measuring distance to
+						// the anchor (not drift from the grab position) is what makes the pull legal.
+						Vec3 anchor = MegumiToadPolicy.anchor(body.position(), body.getLookAngle(),
+								MegumiShikigamiProfile.TOAD_GRIP_OFFSET);
+						double anchorDrift = Math.hypot(zombie.getX() - anchor.x, zombie.getZ() - anchor.z);
+						double gapBeforeStep = previousPosition == null ? 0.0
+								: previousPosition.distanceTo(anchor);
+						if (gapBeforeStep > PULL_STEP_EPSILON) {
+							helper.assertTrue(pullDistance <= MAX_PULL_STEP + PULL_STEP_EPSILON,
+									MegumiShikigamiTestFixtures.diagnostic(fixture, "hold", pollTick,
+											caster.getUUID(), "zombie pull step while a gap remains",
+											"<= " + MAX_PULL_STEP, pullDistance));
+						}
+						long ticksHeld = pollTick - grabTick.get();
+						if (ticksHeld > PULL_CONVERGE_TICKS) {
+							helper.assertTrue(anchorDrift <= PIN_TOLERANCE_BLOCKS + ANCHOR_SLACK,
+									MegumiShikigamiTestFixtures.diagnostic(fixture, "hold", pollTick,
+											caster.getUUID(), "zombie pinned at the live grip anchor",
+											"<= " + (PIN_TOLERANCE_BLOCKS + ANCHOR_SLACK), anchorDrift));
+						}
 						Vec3 bodyDrift = body.position().subtract(bodyAtGrab.get());
 						double bodyMove = Math.hypot(bodyDrift.x, bodyDrift.z);
 						helper.assertTrue(bodyMove <= BODY_PIN_TOLERANCE_BLOCKS,
@@ -499,6 +549,7 @@ public final class MegumiToadGameTests {
 		ServerLevel level = helper.getLevel();
 
 		AtomicReference<Vec3> anchorAtGrab = new AtomicReference<>();
+		AtomicReference<Vec3> previousVictimPosition = new AtomicReference<>();
 		AtomicLong grabTick = new AtomicLong(-1L);
 		AtomicBoolean done = new AtomicBoolean();
 
@@ -544,6 +595,10 @@ public final class MegumiToadGameTests {
 									"Toad body present", "1", bodies.size()));
 					MegumiToadEntity body = bodies.get(0);
 					boolean held = HoldSupport.isHeld(victim);
+					Vec3 currentVictimPosition = victim.position();
+					Vec3 previousPosition = previousVictimPosition.getAndSet(currentVictimPosition);
+					double pullDistance = previousPosition == null ? 0.0
+							: currentVictimPosition.distanceTo(previousPosition);
 
 					if (grabTick.get() < 0) {
 						if (!held) {
@@ -565,22 +620,50 @@ public final class MegumiToadGameTests {
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "hold", pollTick,
 										caster.getUUID(), "held victim is the placed player",
 										victim.getUUID(), body.grabbedUuid()));
+						// Player victims are pulled to the anchor in capped steps too — at the
+						// commit tick they are still mid-drag, so the gate is the grab range.
 						double distance = Math.hypot(victim.getX() - body.getX(), victim.getZ() - body.getZ());
-						helper.assertTrue(distance <= MegumiShikigamiProfile.TOAD_GRIP_OFFSET + ANCHOR_SLACK,
+						helper.assertTrue(distance <= MegumiShikigamiProfile.TOAD_GRAB_RANGE,
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "hold", pollTick,
-										caster.getUUID(), "victim pinned at the grip anchor",
-										"<= " + (MegumiShikigamiProfile.TOAD_GRIP_OFFSET + ANCHOR_SLACK),
+										caster.getUUID(), "victim inside the grab range at the commit",
+										"<= " + MegumiShikigamiProfile.TOAD_GRAB_RANGE,
 										distance));
+						Vec3 anchor = MegumiToadPolicy.anchor(body.position(), body.getLookAngle(),
+								MegumiShikigamiProfile.TOAD_GRIP_OFFSET);
+						double gapBeforeStep = previousPosition == null ? 0.0
+								: previousPosition.distanceTo(anchor);
+						// Same doubled bound as the mob case: the commit poll can cover two
+						// server pulls when the grab lands between polls.
+						if (previousPosition != null && gapBeforeStep > PULL_STEP_EPSILON) {
+							helper.assertTrue(pullDistance <= 2 * MAX_PULL_STEP + PULL_STEP_EPSILON,
+									MegumiShikigamiTestFixtures.diagnostic(fixture, "grab", pollTick,
+											caster.getUUID(), "player pull step at grab commit",
+											"<= " + 2 * MAX_PULL_STEP, pullDistance));
+						}
 						return;
 					}
 
 					if (held) {
-						Vec3 drift = victim.position().subtract(anchorAtGrab.get());
-						double driftHorizontal = Math.hypot(drift.x, drift.z);
-						helper.assertTrue(driftHorizontal <= PIN_TOLERANCE_BLOCKS,
-								MegumiShikigamiTestFixtures.diagnostic(fixture, "hold", pollTick,
-										caster.getUUID(), "player drift from the grip anchor",
-										"<= " + PIN_TOLERANCE_BLOCKS, driftHorizontal));
+						// Same pull contract as the mob case: converge to the live anchor, then
+						// stay pinned — drift from the grab position is expected during the pull.
+						Vec3 anchor = MegumiToadPolicy.anchor(body.position(), body.getLookAngle(),
+								MegumiShikigamiProfile.TOAD_GRIP_OFFSET);
+						double anchorDrift = Math.hypot(victim.getX() - anchor.x, victim.getZ() - anchor.z);
+						double gapBeforeStep = previousPosition == null ? 0.0
+								: previousPosition.distanceTo(anchor);
+						if (gapBeforeStep > PULL_STEP_EPSILON) {
+							helper.assertTrue(pullDistance <= MAX_PULL_STEP + PULL_STEP_EPSILON,
+									MegumiShikigamiTestFixtures.diagnostic(fixture, "hold", pollTick,
+											caster.getUUID(), "player pull step while a gap remains",
+											"<= " + MAX_PULL_STEP, pullDistance));
+						}
+						long ticksHeld = pollTick - grabTick.get();
+						if (ticksHeld > PULL_CONVERGE_TICKS) {
+							helper.assertTrue(anchorDrift <= PIN_TOLERANCE_BLOCKS + ANCHOR_SLACK,
+									MegumiShikigamiTestFixtures.diagnostic(fixture, "hold", pollTick,
+											caster.getUUID(), "player pinned at the live grip anchor",
+											"<= " + (PIN_TOLERANCE_BLOCKS + ANCHOR_SLACK), anchorDrift));
+						}
 						helper.assertTrue(victim.getHealth() == victim.getMaxHealth(),
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "hold", pollTick,
 										caster.getUUID(), "held player takes no damage",
@@ -967,10 +1050,11 @@ public final class MegumiToadGameTests {
 						"recall", helper.getTick(), ownerId, "second tryPrimary result", "true", recalled));
 
 				// Same-tick read: the cooldown was just armed, so the remaining time is exact.
-				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.TOAD,
+						level.getGameTime());
 				helper.assertTrue(remaining == EXPECTED_RECALL_COOLDOWN_TICKS,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "recall", helper.getTick(), ownerId,
-								"PRIMARY recall cooldown", EXPECTED_RECALL_COOLDOWN_TICKS, remaining));
+								"summon recall cooldown", EXPECTED_RECALL_COOLDOWN_TICKS, remaining));
 
 				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "recall", caster);
 			} finally {
@@ -1028,10 +1112,11 @@ public final class MegumiToadGameTests {
 						"kill", helper.getTick(), ownerId, "lethal damage applied", "true", damaged));
 
 				// AFTER_DEATH reconciles synchronously inside hurtServer, so the same-tick read is exact.
-				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.TOAD,
+						level.getGameTime());
 				helper.assertTrue(remaining == EXPECTED_DEATH_COOLDOWN_TICKS,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "kill", helper.getTick(), ownerId,
-								"PRIMARY death cooldown", EXPECTED_DEATH_COOLDOWN_TICKS, remaining));
+								"summon death cooldown", EXPECTED_DEATH_COOLDOWN_TICKS, remaining));
 
 				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "kill", caster);
 			} finally {
@@ -1123,10 +1208,10 @@ public final class MegumiToadGameTests {
 									caster.getUUID(), "mob victim is not flagged as a player",
 									"false", body.grabbedIsPlayer()));
 					double anchorDistance = Math.hypot(zombie.getX() - body.getX(), zombie.getZ() - body.getZ());
-					helper.assertTrue(anchorDistance <= MegumiShikigamiProfile.TOAD_GRIP_OFFSET + ANCHOR_SLACK,
+					helper.assertTrue(anchorDistance <= MegumiShikigamiProfile.TOAD_GRAB_RANGE,
 							MegumiShikigamiTestFixtures.diagnostic(fixture, "grab", pollTick,
-									caster.getUUID(), "victim pinned at the grip anchor",
-									"<= " + (MegumiShikigamiProfile.TOAD_GRIP_OFFSET + ANCHOR_SLACK),
+									caster.getUUID(), "victim inside the grab range at the commit",
+									"<= " + MegumiShikigamiProfile.TOAD_GRAB_RANGE,
 									anchorDistance));
 					helper.assertTrue(zombie.getHealth() == healthBefore.get().doubleValue(),
 							MegumiShikigamiTestFixtures.diagnostic(fixture, "grab", pollTick,
@@ -1483,7 +1568,8 @@ public final class MegumiToadGameTests {
 				victim.teleportTo(victimPad.getX() + 0.5, victimPad.getY(), victimPad.getZ() + 0.5);
 				// The toad-side victim carries the same marker directly — equivalent to a toad or
 				// runner pin, and immune to the runner window's own lifecycle inside the test.
-				HoldSupport.applyHold(victim, victim.position(), 600);
+				HoldSupport.applyHold(spiritA, victim, victim.position(),
+						HoldSupport.CollisionPolicy.TOAD, 600);
 				helper.assertTrue(HoldSupport.isHeld(victim), CursedSpiritTestFixtures.diagnostic(
 						fixture, helper.getTick(), "premise: victim carries GRIPPED", "true", "false"));
 				helper.assertTrue(!RunnerEffect.start(spiritB, victim, level.getGameTime(), params,
@@ -1554,7 +1640,11 @@ public final class MegumiToadGameTests {
 	public void anchorInsideAWallFallsBackToTheBody(GameTestHelper helper) {
 		String fixture = "anchorInsideAWallFallsBackToTheBody";
 		BlockPos casterFeet = new BlockPos(2, 1, 2);
-		BlockPos zombieFeet = new BlockPos(6, 1, 5);
+		// The zombie stands in the cell adjacent to the body pad — inside the wall ring's
+		// footprint but in a cell the ring leaves open, so the pull can converge without
+		// ever embedding the victim. The body is faced away (see below) so its anchor lands
+		// in a wall cell and the fallback still fires.
+		BlockPos zombieFeet = new BlockPos(5, 1, 4);
 		// The body is re-pinned to this pad the moment it is seen: a free body wanders — possibly
 		// out of the structure's cell space, where setBlock writes outside the template and the
 		// wall ring would never materialize.
@@ -1617,6 +1707,10 @@ public final class MegumiToadGameTests {
 						freezeDiag.set("t" + pollTick + " from=" + body0.blockPosition()
 								+ " pad=" + pad);
 						body0.teleportTo(pad.getX() + 0.5, pad.getY(), pad.getZ() + 0.5);
+						// Face -X: the grip anchor lands in the wall cell west of the pad, so the
+						// collision policy falls back to the body instead of finding the open
+						// cell the zombie stands in.
+						body0.setYRot(90.0f);
 						body0.setNoAi(true);
 						body0.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 2400,
 								100, false, false, false));
@@ -1652,14 +1746,21 @@ public final class MegumiToadGameTests {
 									if (dx == 0 && dz == 0) {
 										continue;
 									}
+									// Leave the zombie's cell open: the pull converges into it
+									// and embedding the victim would test suffocation, not the
+									// wall fallback.
+									if (dx == 1 && dz == 0) {
+										continue;
+									}
 									helper.setBlock(bodyPad.offset(dx, dy, dz), Blocks.STONE);
 								}
 							}
 						}
 						return;
 					}
-					// Give the brain two ticks to re-pin at the fallback, then assert.
-					if (pollTick < wallTick.get() + 3) {
+					// Give the pull time to land the victim at the fallback anchor: the capped
+					// step needs ~2 ticks per block of gap, so assert only after convergence.
+					if (pollTick < wallTick.get() + PULL_CONVERGE_TICKS) {
 						return;
 					}
 					double distance = Math.hypot(zombie.getX() - body.getX(), zombie.getZ() - body.getZ());
@@ -1667,6 +1768,10 @@ public final class MegumiToadGameTests {
 							MegumiShikigamiProfile.TOAD_GRIP_OFFSET);
 					boolean probeClear = level.noCollision(zombie, zombie.getBoundingBox()
 							.move(anchorNow.subtract(zombie.position())));
+					boolean currentPositionClear = level.noCollision(zombie, zombie.getBoundingBox());
+					helper.assertTrue(currentPositionClear, MegumiShikigamiTestFixtures.diagnostic(fixture,
+							"anchor", pollTick, caster.getUUID(),
+							"victim current position remains collision-free", true, currentPositionClear));
 					helper.assertTrue(!probeClear, net.minecraft.network.chat.Component.literal(
 							"diag probe at dist=" + distance + " anchor=" + anchorNow
 									+ " victim=" + zombie.position()
@@ -1676,15 +1781,18 @@ public final class MegumiToadGameTests {
 									+ " bodyCell=" + helper.relativePos(body.blockPosition())
 									+ " bodyAbs=" + body.blockPosition()
 									+ " freeze=" + freezeDiag.get() + " wallTick=" + wallTick.get()));
-					helper.assertTrue(distance <= 1.0,
+					// The pull refuses to clip the victim through the wall to reach the body —
+					// the honest contract is "stays outside the wall, no suffocation", not
+					// "lands on the body". ~1.6 blocks is the wall-edge stall distance.
+					helper.assertTrue(distance <= 1.6,
 							MegumiShikigamiTestFixtures.diagnostic(fixture, "anchor", pollTick,
-									caster.getUUID(), "victim pinned at the body (wall fallback)",
-									"<= 1.0", distance));
+									caster.getUUID(), "victim held at the wall edge (no clip)",
+									"<= 1.6", distance));
 					helper.assertTrue(zombie.getHealth() == zombieHealth.get().doubleValue(),
 							MegumiShikigamiTestFixtures.diagnostic(fixture, "anchor", pollTick,
 									caster.getUUID(), "no suffocation damage while pinned",
 									zombieHealth.get(), zombie.getHealth()));
-					if (pollTick >= wallTick.get() + 8) {
+					if (pollTick >= wallTick.get() + PULL_CONVERGE_TICKS + 5) {
 						done.set(true);
 						zombie.discard();
 						MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);

@@ -114,16 +114,14 @@ final class CursedSpiritRigFixtures {
 		put(CursedSpiritVariant.KELVIN, "WALK", "body", "head", "left_leg", "leftarm", "right_leg", "rightarm");
 		put(CursedSpiritVariant.KELVIN, "ATTACK", "body", "bone6", "bone8", "head", "left_leg", "leftarm",
 				"rightarm");
-		put(CursedSpiritVariant.KELVIN, "SCREAMER", "body", "bone4", "flater", "head", "leftarm", "left_leg",
-				"rightarm", "right_leg");
+		put(CursedSpiritVariant.KELVIN, "SCREAMER", "body", "flater", "head", "leftarm", "rightarm");
 
 		put(CursedSpiritVariant.BUTCHER, "IDLE", "body", "head", "left_arm", "right_arm");
 		put(CursedSpiritVariant.BUTCHER, "WALK", "body", "bone", "head", "left_arm", "left_leg", "right_arm",
 				"right_leg");
 		put(CursedSpiritVariant.BUTCHER, "ATTACK", "body", "bone", "flater", "head", "left_arm", "left_leg",
 				"right_arm");
-		put(CursedSpiritVariant.BUTCHER, "SCREAMER", "body", "flater", "head", "left_arm", "left_leg",
-				"right_arm", "right_leg");
+		put(CursedSpiritVariant.BUTCHER, "SCREAMER", "body", "flater", "head", "left_arm", "right_arm");
 
 		put(CursedSpiritVariant.GUZZLER, "IDLE", "body2", "jaw", "left_arm");
 		put(CursedSpiritVariant.GUZZLER, "WALK", "body2", "jaw", "left_arm", "left_leg", "right_arm",
@@ -141,8 +139,7 @@ final class CursedSpiritRigFixtures {
 		put(CursedSpiritVariant.WALKING_BED, "WALK", "body", "left_arm", "left_leg", "right_arm", "right_leg");
 		put(CursedSpiritVariant.WALKING_BED, "ATTACK", "arm", "arm4", "body", "bone", "bone6", "flatter",
 				"head", "head2", "left_arm", "left_leg", "right_arm");
-		put(CursedSpiritVariant.WALKING_BED, "SCREAMER", "body", "flatter", "head", "left_arm", "left_leg",
-				"right_arm", "right_leg");
+		put(CursedSpiritVariant.WALKING_BED, "SCREAMER", "body", "flatter", "head", "left_arm", "right_arm");
 
 		put(CursedSpiritVariant.WISTIVER, "IDLE", "bod", "bone2", "head", "left_arm", "right_arm");
 		put(CursedSpiritVariant.WISTIVER, "WALK", "body");

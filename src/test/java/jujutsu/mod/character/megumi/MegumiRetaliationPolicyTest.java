@@ -34,14 +34,17 @@ class MegumiRetaliationPolicyTest {
 	}
 
 	/**
-	 * Issue #96 — a self-placed mark expires the tick no aggressor answers; a manual sic is the
-	 * owner's order and never expires here.
+	 * Issue #96/#107 — only the mark this pass placed expires the tick no aggressor answers. The
+	 * owner's manual sic is an order, and the coordinator's autonomous mark belongs to the
+	 * coordination pass; neither is this pass's to take away.
 	 */
 	@Test
 	void onlyThePacksOwnMarkExpiresWithoutAnAggressor() {
-		assertTrue(MegumiRetaliationPolicy.markExpiresWithoutAggressor(false),
+		assertTrue(MegumiRetaliationPolicy.markExpiresWithoutAggressor(MegumiMarkKind.RETALIATION),
 				"a retaliation mark dies with the window");
-		assertFalse(MegumiRetaliationPolicy.markExpiresWithoutAggressor(true),
+		assertFalse(MegumiRetaliationPolicy.markExpiresWithoutAggressor(MegumiMarkKind.MANUAL),
 				"a manual sic outlives the window");
+		assertFalse(MegumiRetaliationPolicy.markExpiresWithoutAggressor(MegumiMarkKind.AUTONOMOUS),
+				"an autonomous mark is dropped by the coordinator, not by this pass");
 	}
 }

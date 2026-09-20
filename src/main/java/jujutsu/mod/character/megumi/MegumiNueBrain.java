@@ -14,6 +14,7 @@ import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.registry.JujutsuEffects;
 import jujutsu.mod.vfx.MegumiVfxIds;
+import jujutsu.mod.vfx.VfxCue;
 
 /**
  * Nue's sic behaviour: hover, then a straight electric dive at the assigned target. The flight is
@@ -61,7 +62,8 @@ final class MegumiNueBrain {
 		}
 		nue.beginDive(target, gameTime);
 		MegumiShikigamiRuntime.broadcastCue(level, owner, MegumiVfxIds.NUE_DIVE,
-				nue.position(), nue.getId(), Vec3.ZERO);
+				nue.position(), nue.getId(), nue.position(),
+				target.getEyePosition().subtract(nue.position()));
 	}
 
 	private static void impact(ServerLevel level, ServerPlayer owner, MegumiNueEntity nue,
@@ -81,8 +83,20 @@ final class MegumiNueBrain {
 				SoundSource.NEUTRAL, 0.9f, 1.08f);
 		level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.TRIDENT_THUNDER.value(),
 				SoundSource.NEUTRAL, 0.5f, 1.4f);
-		MegumiShikigamiRuntime.broadcastCue(level, owner, MegumiVfxIds.NUE_SHOCK,
-				target.position(), target.getId(), new Vec3(0.0, target.getBbHeight() * 0.5, 0.0));
+		Vec3 targetPos = target.position();
+		Vec3 nuePos = nue.position();
+		MegumiShikigamiRuntime.broadcastCue(level, owner, MegumiVfxIds.NUE_SHOCK, targetPos,
+				nue.getId(), nuePos, targetPos.subtract(nuePos));
+	}
+
+	/**
+	 * The production shock payload factory. Keeping this seam pure lets the cue contract be pinned
+	 * without a client or a network connection: the target stays immutable in {@code origin}, while
+	 * the Nue id is the only live endpoint and the direction is source-to-target.
+	 */
+	static VfxCue shockCue(Vec3 targetPos, int nueEntityId, Vec3 nuePos, long gameTime, long seed) {
+		return MegumiShikigamiRuntime.directedCue(MegumiVfxIds.NUE_SHOCK, targetPos, nueEntityId,
+				nuePos, 1, gameTime, seed, targetPos.subtract(nuePos));
 	}
 
 	private static LivingEntity resolve(ServerLevel level, UUID id) {

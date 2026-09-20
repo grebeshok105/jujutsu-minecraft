@@ -140,6 +140,11 @@ public final class TodoFakeClapTest {
 			assert router.contains(slot.name())
 					: "Every input slot must be answered explicitly by Todo's router, missing: " + slot;
 		}
+		// Issue #108 appended the partial key's two edges and he owns neither, so both are refused in one
+		// arm. Pinned as an arm rather than as two bare names: the loop above is satisfied by a mention in
+		// a comment, and the refusal is the part that has to survive.
+		assert router.contains("case PARTIAL, PARTIAL_RELEASE -> AbilityResult.UNHANDLED_FAILURE;")
+				: "Todo must refuse both partial slots in one explicit refusal arm";
 		assert !Pattern.compile("default\\s*->").matcher(router).find()
 				: "The slot switch must stay exhaustive so a new ability cannot fall into the swap";
 		String definition = Files.readString(TODO.resolve("TodoDefinition.java"));

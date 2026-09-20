@@ -27,6 +27,7 @@ import jujutsu.mod.cursedspirit.CursedSpiritProfile;
 import jujutsu.mod.cursedspirit.CursedSpiritTier;
 import jujutsu.mod.cursedspirit.CursedSpiritVariant;
 import jujutsu.mod.registry.JujutsuEntities;
+import jujutsu.mod.cursedspirit.ability.CursedSpiritAbilityId;
 
 /**
  * Block 2 in-world scenarios (Step 10): tier AI and strikes (R3/R4/R5), the damage path (R11),
@@ -128,6 +129,13 @@ public final class CursedSpiritGameTests {
 		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
 		CursedSpiritEntity spirit =
 				CursedSpiritTestFixtures.spawnSpirit(helper, fixture, JujutsuEntities.CURSED_SPIRIT, spiritFeet);
+		// The burst oracle assumes the body stands where it spawned: reach is borderline at two
+		// blocks, so a spirit that closes the gap during windup fires the lunge point-blank into
+		// the victim's hitbox and the collision eats the impulse before any poll samples it
+		// (CI run 35270185513: peak 0.066). Slowness-100 freezes the approach — the strike
+		// impulse is setDeltaMovement, not movement input, so the burst still fires.
+		spirit.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+				net.minecraft.world.effect.MobEffects.SLOWNESS, 2400, 100, false, false, false));
 		double victimMax = victim.getMaxHealth();
 		AtomicReference<Double> maxHorizSpeed = new AtomicReference<>(0.0);
 		// The burst must stand out from the body's OWN motion: a flat floor below the walk-speed
@@ -920,6 +928,12 @@ public final class CursedSpiritGameTests {
 		AtomicBoolean done = new AtomicBoolean();
 
 		helper.runAtTickTime(2, () -> {
+			// Deterministic pool: the slam must exist for the dead-zone oracle to mean
+			// anything — a natural 3-of-8 roll without GROUND_SLAM reds the scenario
+			// regardless of product behaviour (same forcing pattern as the runner tests).
+			spirit.gradeStats();
+			spirit.abilityBrain().forcePoolForTest(java.util.List.of(CursedSpiritAbilityId.GROUND_SLAM,
+					CursedSpiritAbilityId.REGEN, CursedSpiritAbilityId.ARMOR));
 			helper.assertTrue(spirit.hasLineOfSight(victim),
 					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
 							"line of sight to victim", "true", spirit.hasLineOfSight(victim)));

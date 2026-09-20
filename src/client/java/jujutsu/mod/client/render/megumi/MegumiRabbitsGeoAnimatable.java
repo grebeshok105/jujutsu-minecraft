@@ -22,7 +22,7 @@ public final class MegumiRabbitsGeoAnimatable implements GeoReplacedEntity {
 	/** The imported set ships no idle clip: the slow hop cycle doubles as the rest pose. */
 	private static final RawAnimation WALK = loop("animation.megumi_rabbit.walk");
 	private static final RawAnimation RUN = loop("animation.megumi_rabbit.run");
-	/** The imported swing is a one-shot; the server never drives it today, the wiring is contract. */
+	/** The imported swing is a one-shot, opened by the server bump's synchronized swing state. */
 	private static final RawAnimation ATTACK = RawAnimation.begin().thenPlay("animation.megumi_rabbit.attack");
 	private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
@@ -61,20 +61,22 @@ public final class MegumiRabbitsGeoAnimatable implements GeoReplacedEntity {
 	}
 
 	/**
-	 * The swing rides its own controller so the hop cycle never freezes while it plays. The server
-	 * never opens an action window for rabbits today; the controller idles on STOP until one does.
+	 * The swing rides its own controller so the hop cycle never freezes while it plays. The render
+	 * state is fed by the synchronized server swing, with the action timer as a compatible fallback.
 	 */
 	private PlayState actionAnimation(AnimationTest<MegumiRabbitsGeoAnimatable> state) {
 		if (!(state.renderState() instanceof MegumiShikigamiRenderState rabbits)) {
 			return PlayState.STOP;
 		}
-		if (!rabbits.actionActive) {
-			return PlayState.STOP;
-		}
-		if (state.isCurrentAnimation(ATTACK) && state.controller().hasAnimationFinished()) {
+		boolean triggerActive = rabbits.actionActive;
+		boolean clipPlaying = state.isCurrentAnimation(ATTACK);
+		boolean clipFinished = state.controller().hasAnimationFinished();
+		if (MegumiShikigamiAnimationPolicy.rabbitAttackNeedsRestart(triggerActive, clipPlaying, clipFinished)) {
 			state.resetCurrentAnimation();
 		}
-		return state.setAndContinue(ATTACK);
+		return MegumiShikigamiAnimationPolicy.rabbitAttackOwnsClip(triggerActive, clipPlaying, clipFinished)
+				? state.setAndContinue(ATTACK)
+				: PlayState.STOP;
 	}
 
 	private static RawAnimation rawAnimation(MegumiShikigamiAnimationPolicy.Clip clip) {

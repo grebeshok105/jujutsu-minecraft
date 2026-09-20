@@ -285,6 +285,8 @@ public final class CursedSpiritAbilityBrain {
 			case ACID_SPIT -> distance >= CursedSpiritAbilityProfile.ACID_MIN_RANGE
 					&& distance <= CursedSpiritAbilityProfile.ACID_MAX_RANGE;
 			case GRAB_RUNNER -> target instanceof ServerPlayer
+					// Selection deliberately stays broad enough to walk, but never beyond the
+					// profile's 12-block cap; contact reach belongs to RunnerEffect.
 					&& distance >= CursedSpiritAbilityProfile.RUNNER_MIN_RANGE
 					&& distance <= CursedSpiritAbilityProfile.RUNNER_MAX_RANGE;
 			// FEAR reads its profile cast range like ACID and, like GRAB_RUNNER, is a

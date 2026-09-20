@@ -166,6 +166,14 @@ Nothing in the build teleports anything, so every line here is only checkable in
 - Head look tracks the camera and stays inside the clamp; no pose-stack corruption after ability casts or menu open/close.
 - Todo animations play: idle, walk, attack, and `ability.boogie_woogie` on cast, with the clap SFX at the palm-contact beat.
 
+### Megumi — shikigami quick selector (G)
+
+- Tap G: the active shikigami advances to the next available one (same order as the strip) and no UI opens. Tap it twice quickly and confirm each press advances exactly once.
+- Hold G for ~200 ms: the bottom strip opens above the hotbar and status rows, the cursor centres, and the world keeps running — no pause, no slow-mo. Releasing G closes it; a hold that never clicked keeps the pre-open selection.
+- While open: hover gives feedback but never selects; left-click on an available slot selects immediately and the strip stays open for more clicks; left-click on a cooling slot rejects with a shake and keeps the strip open; LMB never swings the weapon.
+- Every slot shows its 3D body and name at a fixed position; a summoned shikigami carries its own marker and stays selectable; a cooling one shows the wipe and its reason.
+- Dev lane: `/jujutsu_debug shikigami_selector` toggles the strip without the key (for MCP screenshots); `jujutsu_input` (mcpdev) injects tap/press/release/hold/click so the gesture is scriptable end to end.
+
 ## MCP dev lane (autonomous client entry)
 
 The MCP dev-control surface (issue #43) is exercised through the modded client in `run/`, booted straight into a fixed singleplayer world. The full launch command:

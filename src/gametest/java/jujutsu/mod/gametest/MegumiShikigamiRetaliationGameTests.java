@@ -682,9 +682,19 @@ public final class MegumiShikigamiRetaliationGameTests {
 				}
 				if (!marked.get() && bodies.stream().anyMatch(body -> body.getTarget() == attacker)) {
 					marked.set(true);
-					// The aggressor walks out of reach while still fresh in the window.
+					// The aggressor walks out of reach while still fresh in the window. Forty blocks
+					// clears the 16-block retaliation radius but stays inside the 50-block autonomy
+					// scan, so the coordinator would lawfully re-mark it as an autonomous pick and
+					// the pack would hunt it down — the "only distance ends the answer" premise dies
+					// with the body. Teaming the aggressor with the owner after the mark lands keeps
+					// it ineligible for autonomy (isEligibleTarget rejects allies) while the
+					// retaliation mark still has to expire on its own rule.
 					attacker.teleportTo(level, attacker.getX() + 40.0, attacker.getY(), attacker.getZ(),
 							Set.of(), 0.0f, 0.0f, false);
+					net.minecraft.world.scores.PlayerTeam team = level.getScoreboard()
+							.addPlayerTeam(fixture + "_team");
+					level.getScoreboard().addPlayerToTeam(owner.getScoreboardName(), team);
+					level.getScoreboard().addPlayerToTeam(attacker.getScoreboardName(), team);
 					relocated.set(true);
 					return;
 				}
@@ -752,6 +762,19 @@ public final class MegumiShikigamiRetaliationGameTests {
 			attacker.getAttribute(Attributes.MAX_HEALTH).setBaseValue(500.0);
 			attacker.setHealth(500.0f);
 			attackerRef.set(attacker);
+			// The attacker is boxed in stone: the retaliation mark needs no line of sight, but the
+			// autonomy pass does — without the box the coordinator re-marks the zombie the tick the
+			// retaliation window closes, and the "no dog on it" oracle never fires.
+			for (int dx = -1; dx <= 1; dx++) {
+				for (int dz = -1; dz <= 1; dz++) {
+					if (dx == 0 && dz == 0) {
+						continue;
+					}
+					helper.setBlock(new BlockPos(3 + dx, 1, 6 + dz), Blocks.STONE);
+					helper.setBlock(new BlockPos(3 + dx, 2, 6 + dz), Blocks.STONE);
+				}
+			}
+			helper.setBlock(new BlockPos(3, 3, 6), Blocks.STONE);
 			owner.hurtServer(level, level.damageSources().mobAttack(attacker), 1.0f);
 		});
 

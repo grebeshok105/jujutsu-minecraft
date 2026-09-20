@@ -1,0 +1,76 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.megumi_nue_wings",
+        "texture_width": 256,
+        "texture_height": 256,
+        "visible_bounds_width": 6,
+        "visible_bounds_height": 3,
+        "visible_bounds_offset": [0, 1, 0]
+      },
+      "bones": [
+        {
+          "name": "wings_root",
+          "pivot": [0, 0, 0],
+          "rotation": [0, 0, 0]
+        },
+        {
+          "name": "right_wing",
+          "parent": "wings_root",
+          "pivot": [-7, 31, 4],
+          "rotation": [15, 0, 0],
+          "cubes": [
+            {
+              "origin": [-36, 15, 4],
+              "size": [29, 33, 1],
+              "uv": [0, 33]
+            }
+          ]
+        },
+        {
+          "name": "right_wing_tip",
+          "parent": "right_wing",
+          "pivot": [-36, 44, 4],
+          "rotation": [0, 0, 0],
+          "cubes": [
+            {
+              "origin": [-72, 15, 4],
+              "size": [36, 33, 1],
+              "uv": [0, 0]
+            }
+          ]
+        },
+        {
+          "name": "left_wing",
+          "parent": "wings_root",
+          "pivot": [7, 31, 4],
+          "rotation": [15, 0, 0],
+          "cubes": [
+            {
+              "origin": [7, 15, 4],
+              "size": [29, 33, 1],
+              "uv": [0, 33],
+              "mirror": true
+            }
+          ]
+        },
+        {
+          "name": "left_wing_tip",
+          "parent": "left_wing",
+          "pivot": [36, 44, 4],
+          "rotation": [0, 0, 0],
+          "cubes": [
+            {
+              "origin": [36, 15, 4],
+              "size": [36, 33, 1],
+              "uv": [0, 0],
+              "mirror": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

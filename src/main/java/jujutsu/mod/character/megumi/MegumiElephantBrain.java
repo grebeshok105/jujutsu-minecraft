@@ -41,6 +41,14 @@ final class MegumiElephantBrain {
 		if (target == null) {
 			return;
 		}
+		// Soft coordination (issue #107 §12): a jet would shove and soak a victim an ally is already
+		// committed to — a toad's windup or hold, a dive in flight. The jet is not forbidden, only
+		// de-preferred: while the shared context names the target as an ally's work, the elephant
+		// keeps melee-approaching instead of firing through the setup.
+		if (owner != null && MegumiPackCoordinator.contextFor(owner, level)
+				.intentTargets().contains(target.getUUID())) {
+			return;
+		}
 		if (!canStartJet(elephant, target, gameTime)) {
 			return;
 		}
@@ -116,7 +124,7 @@ final class MegumiElephantBrain {
 			soak(level, owner, elephant, candidate, unit);
 		}
 		MegumiShikigamiRuntime.broadcastCue(level, owner, MegumiVfxIds.ELEPHANT_JET,
-				trunk, elephant.getId(), Vec3.ZERO);
+				trunk, elephant.getId(), elephant.position(), direction);
 		level.playSound(null, trunk.x, trunk.y, trunk.z, SoundEvents.GENERIC_SPLASH,
 				SoundSource.NEUTRAL, 0.7f, 1.1f);
 	}
@@ -211,11 +219,15 @@ final class MegumiElephantBrain {
 	}
 
 	/**
-	 * The footprint (issue #79): while walking, the body crushes what its feet pass over. The
+	 * The footprint (issue #79): while walking, the body crushes what its legs pass through. The
 	 * trigger is movement, never a collision — natural ground has to break even when the body
 	 * walks through open space. The allowlist is natural terrain only (dirt, sand, leaves and
 	 * the like), so anything a player builds a base out of — planks, glass, torches, crops —
 	 * is never touched, and the broken ground drops nothing.
+	 *
+	 * <p>The sweep only ever touches the foot band ({@code minY} to {@code minY + 1}): the floor
+	 * block under the feet is never dug out, so the body cannot sink into a pit of its own
+	 * making and get stuck there.
 	 */
 	private static void tickFootprint(ServerLevel level, MegumiElephantEntity elephant, long gameTime) {
 		if (!MegumiElephantPresencePolicy.footprintDue(gameTime)) {
@@ -230,7 +242,7 @@ final class MegumiElephantBrain {
 		Vec3 heading = MegumiElephantPresencePolicy.footprintHeading(motion);
 		double reach = Math.max(box.getXsize(), box.getZsize()) * 0.5;
 		BlockPos min = BlockPos.containing(
-				box.minX - Math.abs(heading.x) * reach, box.minY - 1.0, box.minZ - Math.abs(heading.z) * reach);
+				box.minX - Math.abs(heading.x) * reach, box.minY, box.minZ - Math.abs(heading.z) * reach);
 		BlockPos max = BlockPos.containing(
 				box.maxX + Math.abs(heading.x) * reach, box.minY + 1.0, box.maxZ + Math.abs(heading.z) * reach);
 		int budget = MegumiShikigamiProfile.ELEPHANT_FOOTPRINT_BUDGET;

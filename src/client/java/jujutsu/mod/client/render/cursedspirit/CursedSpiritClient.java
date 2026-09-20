@@ -51,5 +51,14 @@ public final class CursedSpiritClient {
 				context -> new CursedSpiritRenderer(context, 0.7f));
 		EntityRendererRegistry.register(JujutsuEntities.CURSED_ACID_SPIT,
 				CursedSpiritAcidSpitRenderer::new);
+		// Held-victim smoothing samples are keyed by entity UUID and only self-clean while the
+		// entity keeps rendering — a disconnect or level change would leak them (and a reused
+		// UUID would inherit a stale visual position).
+		net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT
+				.register((handler, client) -> CarriedVictimSmoothing.clear());
+		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE
+				.register((client, world) -> CarriedVictimSmoothing.clear());
+		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK
+				.register(client -> CarriedVictimSmoothing.tick());
 	}
 }

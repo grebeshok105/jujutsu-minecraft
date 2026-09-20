@@ -103,6 +103,9 @@ sourceSets {
 	// resource entry (processMcpdevResources fails on the doubled fabric.mod.json).
 	mcpdev {
 		compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+		// The client source set too: dev tools may drive the integrated client (synthetic input
+		// for the selector lane). Dev-only — the companion jar never ships.
+		compileClasspath += sourceSets.client.output + sourceSets.client.compileClasspath
 	}
 }
 

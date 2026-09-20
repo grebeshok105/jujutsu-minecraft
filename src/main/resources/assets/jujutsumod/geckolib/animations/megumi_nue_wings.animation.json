@@ -1,0 +1,182 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.megumi_nue_wings.materialize": {
+      "animation_length": 0.4,
+      "bones": {
+        "wings_root": {
+          "scale": {
+            "0.0": { "vector": [0, 0, 0] },
+            "0.4": { "vector": [1, 1, 1] }
+          }
+        },
+        "right_wing": {
+          "rotation": {
+            "0.0": { "vector": [8, 4, 10] },
+            "0.4": { "vector": [26.31858, 38.81377, 26.48947] }
+          }
+        },
+        "right_wing_tip": {
+          "rotation": {
+            "0.0": { "vector": [0, 4, 0] },
+            "0.4": { "vector": [0, 20, 0] }
+          }
+        },
+        "left_wing": {
+          "rotation": {
+            "0.0": { "vector": [8, -4, -10] },
+            "0.4": { "vector": [26.31858, -38.8138, -26.4895] }
+          }
+        },
+        "left_wing_tip": {
+          "rotation": {
+            "0.0": { "vector": [0, -4, 0] },
+            "0.4": { "vector": [0, -20, 0] }
+          }
+        }
+      }
+    },
+    "animation.megumi_nue_wings.folded_idle": {
+      "loop": true,
+      "animation_length": 1.2,
+      "bones": {
+        "right_wing": {
+          "rotation": {
+            "0.0": { "vector": [8, 4, 10] },
+            "0.6": { "vector": [10, 8, 12] },
+            "1.2": { "vector": [8, 4, 10] }
+          }
+        },
+        "right_wing_tip": {
+          "rotation": {
+            "0.0": { "vector": [0, 4, 0] },
+            "0.6": { "vector": [0, 8, 0] },
+            "1.2": { "vector": [0, 4, 0] }
+          }
+        },
+        "left_wing": {
+          "rotation": {
+            "0.0": { "vector": [8, -4, -10] },
+            "0.6": { "vector": [10, -8, -12] },
+            "1.2": { "vector": [8, -4, -10] }
+          }
+        },
+        "left_wing_tip": {
+          "rotation": {
+            "0.0": { "vector": [0, -4, 0] },
+            "0.6": { "vector": [0, -8, 0] },
+            "1.2": { "vector": [0, -4, 0] }
+          }
+        }
+      }
+    },
+    "animation.megumi_nue_wings.unfold": {
+      "animation_length": 0.3,
+      "bones": {
+        "right_wing": {
+          "rotation": {
+            "0.0": { "vector": [8, 4, 10] },
+            "0.3": { "vector": [26.31858, 38.81377, 26.48947] }
+          }
+        },
+        "right_wing_tip": {
+          "rotation": {
+            "0.0": { "vector": [0, 4, 0] },
+            "0.3": { "vector": [0, 20, 0] }
+          }
+        },
+        "left_wing": {
+          "rotation": {
+            "0.0": { "vector": [8, -4, -10] },
+            "0.3": { "vector": [26.31858, -38.8138, -26.4895] }
+          }
+        },
+        "left_wing_tip": {
+          "rotation": {
+            "0.0": { "vector": [0, -4, 0] },
+            "0.3": { "vector": [0, -20, 0] }
+          }
+        }
+      }
+    },
+    "animation.megumi_nue_wings.fly": {
+      "loop": true,
+      "animation_length": 0.5833,
+      "bones": {
+        "right_wing": {
+          "rotation": {
+            "0.0": { "vector": [26.31858, 38.81377, 26.48947] },
+            "0.25": { "vector": [47.75185, -36.03314, -49.49881] },
+            "0.5833": { "vector": [26.31858, 38.81377, 26.48947] }
+          }
+        },
+        "right_wing_tip": {
+          "rotation": {
+            "0.0": { "vector": [0, 20, 0] },
+            "0.1667": { "vector": [0, 6.67, 0] },
+            "0.25": { "vector": [0, -22.5, 0] },
+            "0.4583": { "vector": [0, -7.71, 0] },
+            "0.5833": { "vector": [0, 20, 0] }
+          }
+        },
+        "left_wing": {
+          "rotation": {
+            "0.0": { "vector": [26.31858, -38.8138, -26.4895] },
+            "0.25": { "vector": [47.75185, 36.0331, 49.4988] },
+            "0.5833": { "vector": [26.31858, -38.8138, -26.4895] }
+          }
+        },
+        "left_wing_tip": {
+          "rotation": {
+            "0.0": { "vector": [0, -20, 0] },
+            "0.1667": { "vector": [0, -6.67, 0] },
+            "0.25": { "vector": [0, 22.5, 0] },
+            "0.4583": { "vector": [0, 7.71, 0] },
+            "0.5833": { "vector": [0, -20, 0] }
+          }
+        }
+      }
+    },
+    "animation.megumi_nue_wings.fold": {
+      "animation_length": 0.3,
+      "bones": {
+        "right_wing": {
+          "rotation": {
+            "0.0": { "vector": [26.31858, 38.81377, 26.48947] },
+            "0.3": { "vector": [8, 4, 10] }
+          }
+        },
+        "right_wing_tip": {
+          "rotation": {
+            "0.0": { "vector": [0, 20, 0] },
+            "0.3": { "vector": [0, 4, 0] }
+          }
+        },
+        "left_wing": {
+          "rotation": {
+            "0.0": { "vector": [26.31858, -38.8138, -26.4895] },
+            "0.3": { "vector": [8, -4, -10] }
+          }
+        },
+        "left_wing_tip": {
+          "rotation": {
+            "0.0": { "vector": [0, -20, 0] },
+            "0.3": { "vector": [0, -4, 0] }
+          }
+        }
+      }
+    },
+    "animation.megumi_nue_wings.dissolve": {
+      "animation_length": 0.25,
+      "bones": {
+        "wings_root": {
+          "scale": {
+            "0.0": { "vector": [1, 1, 1] },
+            "0.25": { "vector": [0, 0, 0] }
+          }
+        }
+      }
+    }
+  },
+  "geckolib_format_version": 2
+}

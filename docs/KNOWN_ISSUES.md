@@ -89,22 +89,28 @@ not as drive-by "fixes".
 3. **The Rabbit Escape texture is near-flat upstream.** `megumi_rabbit.png` ships byte-identical
    to the Sorcery Age source (321 bytes); no cleanup pass is planned. The swarm reads through
    motion and count, not fur detail.
-4. **The toad tongue is VFX-only.** `toad_tongue.png`/`toad_wings.png` are deliberately unshipped
-   (unreferenced by the imported geo — see PROVENANCE), so the tongue strike has a cue and a yank
-   but no tongue geometry. Adding a tongue model is new art, not a bug fix.
-5. **GameTest displacement oracles must not use `NoAI` mobs.** Measured in game 2026-09-11: a
+4. **The toad tongue is a flat ribbon, not a modeled tongue.** The tongue strike renders a
+   segmented cuboid ribbon plus the manifested head (visual pass 118) — real geometry, but
+   deliberately simple: no authored tongue model exists upstream, so the look is stylized
+   rather than anatomical. A sculpted tongue is new art, not a bug fix.
+5. **The runner's carry pose is the attack clip's end frame.** `ABILITY_WINDUP` holds the
+   attack animation for the whole carry (release only on `end`), so the spirit does keep a
+   pose — but it freezes at whatever the clip's last frame is, which reads neutral on some
+   models rather than "holding a victim". No authored carry clip exists upstream; a real
+   grab pose is new art, not a bug fix.
+6. **GameTest displacement oracles must not use `NoAI` mobs.** Measured in game 2026-09-11: a
    `NoAI:1b` mob is fully frozen — external velocity is stored but the position never integrates,
    not even gravity. Assert displacement only on AI mobs with zeroed speed (Slowness amplifier
    100), otherwise assert velocity/effect state. Recorded so a future scenario author cannot
    re-learn it the red way.
-6. **The sic can out-range what the body can actually do.** `SIC_RANGE` (the aim) is 20 blocks for
+7. **The sic can out-range what the body can actually do.** `SIC_RANGE` (the aim) is 20 blocks for
    every type, while the toad's tongue reaches 12 and the elephant's jet corridor about 13.2 from
    the body. A sic past those marks still routes, plays the snap and the cue, and arms the 30-tick
    `PRIMARY_SNEAK` cooldown; the elephant now refuses to *fire* beyond its reach (review fix), and
    in both cases the body walks in and melees the mark instead — so the command is not wasted, it
    just does not telegraph the shorter reach. A per-type sic-range contract would fix the tell;
    until then it is a UX wart, not a broken strike.
-7. **The elephant's jet is level.** `faceTarget` sets yaw only, so the corridor leaves the trunk
+8. **The elephant's jet is level.** `faceTarget` sets yaw only, so the corridor leaves the trunk
    at ~1.9 blocks with no pitch: bodies shorter than about 1.4 blocks (Rabbit Escape sits at 0.2)
    pass under it at any range. Aiming pitch at the target's chest would change which targets are
    hittable, so it is an owner call rather than a silent fix.
@@ -114,12 +120,12 @@ not as drive-by "fixes".
    facing and their PR (#72) verified their kit, so this is recorded rather than touched: it is a
    cosmetic pounce-facing question in a frozen system, and it deserves its own pass with the same
    frame evidence the shikigami got.
-8. **The rabbit `run` clip is asymmetric upstream.** `megumi_rabbit.animation.json`'s `run` bends
+9. **The rabbit `run` clip is asymmetric upstream.** `megumi_rabbit.animation.json`'s `run` bends
    the left knee without the left foot and the right foot without the right knee (`walk` is
    symmetric). Shipped byte-identical to the Sorcery Age source; the swarm reads through motion
    and count, and editing a third-party clip is a new asset revision, not a bug fix.
 
-9. **The MCP dev-lane save can kill the lane player before it loads.** Verified
+10. **The MCP dev-lane save can kill the lane player before it loads.** Verified
    2026-09-13: persisted cursed spirits (they are the only summon-like entities that
    save — shikigami are `noSave()`) gathered near the spawn over several live passes,
    and a freshly booted lane player died inside the same crowd before the world finished
@@ -452,6 +458,22 @@ Both allowlist entries went with it. `VesselBoundaryTest#theOneKnownNetworkLeakD
 
 **One residue, recorded rather than hidden.** `selectCurseLink` is a shared extension point with exactly one implementer, which "Limits of the build-time gate" above lists as a thing no structural rule can tell from a genuine shared hook. `canonicalSlot` sat in the same position until the stone rework deleted it together with its only implementer — the fold that used to collapse Todo's `Shift+B` into `B`.
 
+### E17 — Megumi's sic is now a global order with a cooldown and a clear-orders edge
+
+Changed 2026-09-17 on `feat/megumi-autonomy-partial` (issues #107/#108). Two deliberate semantics
+shifts that dev-lane scripts and future designs must know:
+
+- **Empty aim clears orders (D5).** `MegumiShikigamiRuntime.trySic` resolves the aim once and, when
+  it names nothing, clears every MANUAL mark across both families and reports `sic_cleared`. A sic
+  that hits nothing is a "release the pack" command, not a no-op. Scripts that sic-then-sic to
+  re-aim must now expect the first miss to disband the order.
+- **Sic costs `PRIMARY_SNEAK`.** A successful global sic applies the PRIMARY_SNEAK cooldown, so a
+  dev-lane sequence that sic'd twice in a row now sees the second cast refused. The mcpdev
+  `jujutsu_cooldowns_clear` tool clears it; `fixture_reset` clears it too.
+
+Both are pinned by `MegumiCoexistenceGameTests` (`emptyAimCancelsManualOrders`,
+`globalSicCommandsBothFamilies`) and by `MegumiAbilitySlotsTest`.
+
 ## Low-priority product debt
 
 - Nobara's nail-cast sound is noticeably too loud during manual smoke. Expected behavior is a comfortable volume consistent with the rest of Nobara's kit. Reported 2026-07-31; tracked in [GitHub issue #48](https://github.com/grebeshok105/jujutsu-minecraft/issues/48). No audio change is included in the current pass.
@@ -459,6 +481,7 @@ Both allowlist entries went with it. `VesselBoundaryTest#theOneKnownNetworkLeakD
 - Publication automation for Modrinth/CurseForge should wait until release provenance is clean.
 - Some generic Rich ClickGui modules/components are unused and can be removed after confirming the final UI scope.
 - The debug domain-sphere effect (`jujutsumod:domain_sphere`) is a proof of concept, not gameplay: it is a client-only world-space shell rendered on top of the scene, it exists only to be triggered by hand — `/jujutsu_debug domain_sphere [radius]` in-game or the dev-lane MCP tool `jujutsu_domain_sphere` — and it is registered outside the vessel recipe packs, so no ability, no vessel and no server runtime can reach it yet. Treat the shader, the cue id and the timing constants as a prototype to be reworked by the real Domain Expansion work rather than as a stable seam.
+- Megumi's shikigami quick selector (G) ships deliberately narrowed: `MegumiShikigamiSlotState` declares `LOCKED`/`DESTROYED`/`TEMPORARY` and the wire + strip render them, but nothing in `src/main` produces them — they exist so a future design (quest locks, destroyed shikigami, temporary summons) lands without a protocol change. The strip also models exactly one pack per shikigami: multi-summon does not exist as a class, and `SUMMONED` is set by a single live pack (dogs count as one). Selection is free and never despawns anything.
 
 ## Archived and recoverable
 
@@ -468,9 +491,18 @@ The whole in-world combat HUD the player saw in the 2026-08-21 build was put in 
 
 Untouched: ability input (R / S+R / B / S+B / LMB …), cooldown suppression, VfxDirector + the four remaining contributions (Megumi ×2, Todo ×2), the `hudSlots()`/`maxCooldownTicks()` seam (kept for restore), shared render helpers, assets and the `esp.jujutsumod.rank.*` lang keys. The game-instance jar was rebuilt from `feat/archive-combat-hud` and redeployed on 2026-09-09 17:10.
 
+### E18 — Cursed incidents: accepted limits (issue #110, feat/cursed-incidents)
+
+Landed 2026-09-18 with the full subsystem green. Deliberate leftovers, not bugs:
+
+- `PressureRuntime.tick` has no fake-clock seam; pressure accumulation is covered indirectly (the remainder math is pinned in code review), not by a dedicated unit test.
+- `cadenceProbeForTest` is a live but unused test seam in `InfectionSink`.
+- GameTest drain-timing is inherently racy: `IncidentRuntime.tick` runs on `gameTime % 20`, while `runAtTickTime` counts test ticks — block-edit assertions can flake one drain window. Observed flakes (all pre-existing, unrelated to this branch): `heldVictimDeathReleasesTheGrab`, dead-zone forensics, `stageAdvanceChangesBlocks`/`infectionDestroysPlayerBlocks` timing. Resolved on the integration branch: `toadSelfPickIgnoresOwnerLineOfSight` (autonomous marks counted as owner-ordered for the LoS grab gate — real defect, fixed), `dayLitFollowsPinnedChance` (hoist could land in a roofed cell, passing the vanilla light half — fixed with a canSeeSky climb), `commonStrikeCarriesStepBurst` (spirit walked into the victim during windup, collision ate the lunge impulse — fixed by freezing the approach).
+
 ## Resolved and now in main
 
 - These are closed. They are kept as a short list only so a reader does not reopen them; the live behavior is described in the Codex MOC product snapshot and the source it points to.
+
 
 - Character selection persists through Fabric Data Attachment API and is copied on death.
 - Nobara's starter kit is restored idempotently on every selection — it fills only a missing hammer, doll or nails, so re-selection cannot duplicate held tools. (This deliberately reversed the earlier one-time-claim rule; the persisted claim is now recorded for every vessel and read by nothing — see E12.)

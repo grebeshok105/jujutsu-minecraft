@@ -36,6 +36,27 @@ public final class VfxSoundChannel {
 		));
 	}
 
+	/**
+	 * Positional variant with real distance attenuation — the incident ambience must get
+	 * louder as the player approaches the source, which NONE-attenuated playback cannot do.
+	 */
+	public void playPositional(Minecraft client, SoundEvent soundEvent, float volume, float pitch, Vec3 origin, RandomSource random) {
+		client.getSoundManager().play(new SimpleSoundInstance(
+				soundEvent.location(),
+				SoundSource.AMBIENT,
+				Math.max(0.0f, volume),
+				pitch,
+				random,
+				false,
+				0,
+				SoundInstance.Attenuation.LINEAR,
+				origin.x,
+				origin.y,
+				origin.z,
+				false
+		));
+	}
+
 	/** Steps the world's own noise back for a beat. Extends an existing duck rather than restarting it. */
 	public void duck(Minecraft client, int durationTicks, float initialAgeTicks) {
 		long now = System.currentTimeMillis();

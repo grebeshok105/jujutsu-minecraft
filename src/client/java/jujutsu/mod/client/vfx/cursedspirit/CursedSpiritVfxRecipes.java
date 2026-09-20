@@ -29,7 +29,7 @@ public final class CursedSpiritVfxRecipes {
 		VfxDirector.register(CursedSpiritVfxIds.SLAM, CursedSpiritVfxRecipes::slam);
 		VfxDirector.register(CursedSpiritVfxIds.ACID_SPIT, CursedSpiritVfxRecipes::spit);
 		VfxDirector.register(CursedSpiritVfxIds.ACID_ZONE, CursedSpiritVfxRecipes::zone);
-		VfxDirector.register(CursedSpiritVfxIds.RUNNER, CursedSpiritVfxRecipes::burst);
+		VfxDirector.register(CursedSpiritVfxIds.RUNNER, CursedSpiritVfxRecipes::grabFlash);
 		VfxDirector.register(CursedSpiritVfxIds.FEAR, CursedSpiritVfxRecipes::fear);
 		VfxDirector.register(CursedSpiritVfxIds.REGEN, CursedSpiritVfxRecipes::burst);
 		VfxDirector.register(CursedSpiritVfxIds.ARMOR, CursedSpiritVfxRecipes::burst);
@@ -38,6 +38,15 @@ public final class CursedSpiritVfxRecipes {
 
 	private static VfxInstance burst(VfxCue cue) {
 		return VfxInstance.of(8, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			emit(context, cue, CURSE_GREEN, CURSE_DARK);
+		});
+	}
+	private static VfxInstance grabFlash(VfxCue cue) {
+		// Runner cues are emitted at the yaw-relative hand/contact point, never at spirit origin.
+		return VfxInstance.of(6, (context, initialAgeTicks) -> {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				return;
 			}

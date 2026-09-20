@@ -12,6 +12,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.registry.JujutsuEntities;
 import jujutsu.mod.vfx.MegumiVfxIds;
@@ -39,8 +40,10 @@ final class MegumiRabbitsBrain {
 			// one inert entry per past summoner cannot accumulate for a server lifetime.
 			dropUpkeepWithoutPack();
 			if (anchorLost(level, pack, body.ownerUuid())) {
-				MegumiShikigamiRuntime.teardown(level.getServer(), body.ownerUuid(),
-						MegumiShikigamiRuntime.TeardownReason.DEATH);
+				// Type-scoped teardown (issue #107 D1): losing the swarm's anchor must not sweep
+				// the owner's other packs — Nue/Toad/Elephant stand beside the rabbits.
+				MegumiShikigamiRuntime.teardownType(level.getServer(), body.ownerUuid(),
+						MegumiShikigami.RABBITS, MegumiShikigamiRuntime.TeardownReason.DEATH);
 				LAST_UPKEEP.remove(body.ownerUuid());
 				return;
 			}
@@ -76,7 +79,7 @@ final class MegumiRabbitsBrain {
 	static int dropUpkeepWithoutPack() {
 		List<UUID> stale = new ArrayList<>();
 		for (UUID ownerId : LAST_UPKEEP.keySet()) {
-			if (ownerId == null || MegumiShikigamiRuntime.pack(ownerId) == null) {
+			if (ownerId == null || MegumiShikigamiRuntime.packs(ownerId).isEmpty()) {
 				stale.add(ownerId);
 			}
 		}
@@ -124,8 +127,8 @@ final class MegumiRabbitsBrain {
 		}
 		MegumiShikigamiRuntime.broadcastCue(level, owner, MegumiVfxIds.RABBITS_POP,
 				centre, body.getId(), Vec3.ZERO);
-		MegumiShikigamiRuntime.teardown(level.getServer(), body.ownerUuid(),
-				MegumiShikigamiRuntime.TeardownReason.EXPIRED);
+		MegumiShikigamiRuntime.teardownType(level.getServer(), body.ownerUuid(),
+				MegumiShikigami.RABBITS, MegumiShikigamiRuntime.TeardownReason.EXPIRED);
 		LAST_UPKEEP.remove(body.ownerUuid());
 	}
 
@@ -194,6 +197,7 @@ final class MegumiRabbitsBrain {
 			return;
 		}
 		body.postponeBump(gameTime + MegumiShikigamiProfile.RABBITS_BUMP_PERIOD_TICKS);
+		boolean hit = false;
 		for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class,
 				body.getBoundingBox().inflate(MegumiShikigamiProfile.RABBITS_BUMP_RADIUS),
 				candidate -> candidate.isAlive() && !candidate.isRemoved())) {
@@ -210,6 +214,12 @@ final class MegumiRabbitsBrain {
 					SoundSource.NEUTRAL, 0.7f, 1.15f);
 			MegumiShikigamiRuntime.broadcastCue(level, owner, MegumiVfxIds.RABBITS_POP,
 					body.position(), body.getId(), Vec3.ZERO);
+			hit = true;
+		}
+		if (hit) {
+			// The existing server-side swing state is synchronized to clients; the imported one-shot
+			// attack clip now rides the same pounce/bite-style trigger as the other bodies.
+			body.swing(InteractionHand.MAIN_HAND);
 		}
 	}
 }

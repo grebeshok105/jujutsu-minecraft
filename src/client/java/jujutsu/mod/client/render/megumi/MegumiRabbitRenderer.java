@@ -33,8 +33,9 @@ public final class MegumiRabbitRenderer extends
 		state.progress = MegumiShikigamiPresentationPolicy.progress(state.phase, entity.phaseTicks(),
 				partialTick, entity.materializeTicks(), entity.recallTicks());
 		state.verticalOffset = MegumiShikigamiPresentationPolicy.verticalOffset(state.phase, state.progress);
-		state.actionActive = entity.actionTicks() > 0;
 		state.attackAnim = entity.getAttackAnim(partialTick);
+		state.actionActive = MegumiShikigamiAnimationPolicy.rabbitsAction(
+				entity.actionTicks() > 0, state.attackAnim);
 	}
 
 	/** Same offset contract as the dog renderer: shift first, then let GeckoLib capture the anchor. */

@@ -63,6 +63,9 @@ public final class MegumiVfxRecipes {
 	// Shikigami slice: dive streak outlives the dive commit by a beat; the shock owns its flash.
 	private static final int NUE_DIVE_DURATION_TICKS = 8;
 	private static final int NUE_SHOCK_DURATION_TICKS = 12;
+	// The partial wings: a short unfold snap, not a summon — the sustained glide is vanilla's own
+	// fall-flying pose, so nothing has to be re-emitted while the wings stay out.
+	private static final int NUE_PARTIAL_WINGS_DURATION_TICKS = 10;
 	private static final int TOAD_TONGUE_DURATION_TICKS = 8;
 	private static final int RABBITS_POP_DURATION_TICKS = 6;
 	private static final int ELEPHANT_JET_DURATION_TICKS = 8;
@@ -86,6 +89,7 @@ public final class MegumiVfxRecipes {
 		VfxDirector.register(MegumiVfxIds.NUE_SUMMON, MegumiVfxRecipes::nueSummon);
 		VfxDirector.register(MegumiVfxIds.NUE_DIVE, MegumiVfxRecipes::nueDive);
 		VfxDirector.register(MegumiVfxIds.NUE_SHOCK, MegumiVfxRecipes::nueShock);
+		VfxDirector.register(MegumiVfxIds.NUE_PARTIAL_WINGS, MegumiVfxRecipes::nuePartialWings);
 		VfxDirector.register(MegumiVfxIds.SHIKIGAMI_SIC, MegumiVfxRecipes::shikigamiSic);
 		VfxDirector.register(MegumiVfxIds.SHIKIGAMI_RECALL, MegumiVfxRecipes::shikigamiRecall);
 		VfxDirector.register(MegumiVfxIds.TOAD_SUMMON, MegumiVfxRecipes::toadSummon);
@@ -145,8 +149,9 @@ public final class MegumiVfxRecipes {
 			}
 			Vec3 trunk = context.resolveOrigin(cue);
 			RandomSource random = random(cue, 0x454C3102L);
-			context.burst(ParticleTypes.SPLASH, trunk, 18, 0.60, 0.30, random);
-			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, trunk, 10, 0.55, 0.02, 0.10, random);
+			NueArcRenderer.registerElephantJet(cue);
+			context.burst(ParticleTypes.SPLASH, trunk, 10, 0.35, 0.20, random);
+			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, trunk, 8, 0.55, 0.02, 0.10, random);
 		});
 	}
 
@@ -203,6 +208,12 @@ public final class MegumiVfxRecipes {
 			RandomSource random = random(cue, 0x4E554502L);
 			context.burst(SHADOW_DARK, origin, 8, 0.25, 0.20, random);
 			context.burst(ParticleTypes.ELECTRIC_SPARK, origin, 4, 0.20, 0.08, random);
+			if (cue.direction().lengthSqr() > 1.0E-8) {
+				for (int index = 1; index <= 5; index++) {
+					Vec3 alongPath = origin.add(cue.direction().scale(index * 0.45));
+					context.burst(ParticleTypes.ELECTRIC_SPARK, alongPath, 2, 0.08, 0.05, random);
+				}
+			}
 		});
 	}
 
@@ -212,10 +223,28 @@ public final class MegumiVfxRecipes {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				return;
 			}
-			Vec3 target = context.resolveOrigin(cue);
+			Vec3 target = cue.origin();
+			NueArcState.shared().registerCue(cue);
 			RandomSource random = random(cue, 0x4E554503L);
-			context.burst(ParticleTypes.ELECTRIC_SPARK, target.add(0.0, 0.4, 0.0), 26, 0.55, 0.35, random);
-			context.ring(SHADOW_DARK, target, 12, 0.50, 0.02, 0.0, random);
+			context.burst(ParticleTypes.ELECTRIC_SPARK, target.add(0.0, 0.4, 0.0), 8, 0.28, 0.16, random);
+			context.ring(SHADOW_DARK, target, 10, 0.50, 0.02, 0.0, random);
+		});
+	}
+
+	/**
+	 * The partial wings snap open (issue #108): a short electric crackle at the owner's shoulders.
+	 * No shadow pool — the wings are a worn manifestation, not a summon, and a ground impact under
+	 * the feet reads as something crawling out of the shadow that never arrives.
+	 */
+	private static VfxInstance nuePartialWings(VfxCue cue) {
+		return VfxInstance.of(NUE_PARTIAL_WINGS_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 shoulders = cue.origin().add(0.0, 1.0, 0.0);
+			RandomSource random = random(cue, 0x4E554504L);
+			context.burst(ParticleTypes.ELECTRIC_SPARK, shoulders, 14, 0.40, 0.18, random);
+			context.burst(ParticleTypes.POOF, shoulders, 4, 0.20, 0.06, random);
 		});
 	}
 

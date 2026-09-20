@@ -173,7 +173,14 @@ public final class CursedSpiritShelterGameTests {
 							+ " shelter=" + spirit.shelterGoal().currentShelterTarget()
 							+ " distance=" + spirit.position().distanceToSqr(victim.position())
 							+ " start=" + approachFrom[0]
-							+ " victimAlive=" + victim.isAlive()));
+							+ " victimAlive=" + victim.isAlive()
+							+ " moveOwned=" + spirit.abilityBrain().movementOwned(
+									helper.getLevel().getGameTime())
+							+ " retreat=" + spirit.abilityBrain().shouldRetreat(
+									helper.getLevel().getGameTime(), true)
+							+ " navDone=" + spirit.getNavigation().isDone()
+							+ " navPath=" + spirit.getNavigation().getPath()
+							+ " active=" + spirit.abilityBrain()));
 		});
 		helper.runAtTickTime(170, () -> {
 			for (CursedSpiritEntity spirit : owned) {

@@ -288,8 +288,9 @@ public final class CursedSpiritEffectGameTests {
 		});
 	}
 
-	/** R57 — flat absorption floors at zero: a weak hit is fully eaten (and refused), a
-	 * heavy hit passes through partially. */
+	/** R57 — flat absorption floors at zero: a weak hit is fully eaten but still
+	 * <em>connects</em> (hurt feedback + i-frames, zero HP loss), and a heavy hit passes
+	 * through partially once the i-frame window closes. */
 	@GameTest(maxTicks = 40, skyAccess = true)
 	public void armorAbsorbsWeakHitLetsHeavyThrough(GameTestHelper helper) {
 		String fixture = "armorAbsorbsWeakHitLetsHeavyThrough";
@@ -305,15 +306,21 @@ public final class CursedSpiritEffectGameTests {
 					CursedSpiritAbilityId.DASH, CursedSpiritAbilityId.REGEN));
 			spirit.setHealth(spirit.getMaxHealth());
 			float full = spirit.getHealth();
-			// 1.0 sits below every grade's absorption (2.0/3.0/4.0); 10.0 above all of them.
-			// Attacks (mobAttack) are absorbed; hazard sources are not — see below.
+			// 1.0 sits below every grade's absorption (2.0/3.0/4.0). The absorbed hit is
+			// accepted as a zero-damage connect — the player sees the blow land (hurt
+			// flash, voice, knockback) instead of the whiff that read as swinging at air.
 			boolean weakAccepted = spirit.hurtServer(level, level.damageSources().mobAttack(spirit),
 					1.0f);
-			helper.assertTrue(!weakAccepted, CursedSpiritTestFixtures.diagnostic(fixture,
-					helper.getTick(), "weak hit fully absorbed", "false", weakAccepted));
+			helper.assertTrue(weakAccepted, CursedSpiritTestFixtures.diagnostic(fixture,
+					helper.getTick(), "weak hit absorbed but connects", "true", weakAccepted));
 			helper.assertTrue(spirit.getHealth() == full,
 					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
 							"weak hit leaves full hp", full, spirit.getHealth()));
+		});
+		// The absorbed hit opens the vanilla 20-tick i-frame window; the heavy hit must
+		// wait it out or the cooldown swallows it like any rapid follow-up.
+		helper.runAtTickTime(25, () -> {
+			float full = spirit.getHealth();
 			boolean heavyAccepted = spirit.hurtServer(level, level.damageSources().mobAttack(spirit),
 					10.0f);
 			helper.assertTrue(heavyAccepted, CursedSpiritTestFixtures.diagnostic(fixture,
@@ -398,8 +405,65 @@ public final class CursedSpiritEffectGameTests {
 		});
 	}
 
+	/** R13 — the runner's yaw-relative hand anchor is clamped toward the holder instead of
+	 * teleporting the victim into a solid wall. */
+	@GameTest(maxTicks = 90, skyAccess = true)
+	public void runnerCarryAnchorClearsWalls(GameTestHelper helper) {
+		String fixture = "runnerCarryAnchorClearsWalls";
+		CursedSpiritTestFixtures.layStoneFloor(helper);
+		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
+		ServerLevel level = helper.getLevel();
+		// Yaw 0 faces +Z; this wall intersects the hand anchor at z≈2.6, but not the spirit's
+		// feet. A collision-safe policy must step the victim back toward the holder.
+		helper.setBlock(new BlockPos(2, 2, 3), Blocks.STONE);
+		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, fixture,
+				new BlockPos(4, 1, 2));
+		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
+		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
+				JujutsuEntities.CURSED_SPIRIT, new BlockPos(2, 1, 2));
+		CursedSpiritTestFixtures.freezeGround(spirit);
+		AtomicBoolean done = new AtomicBoolean();
+		helper.runAtTickTime(1, () -> {
+			spirit.setYRot(0.0f);
+			spirit.gradeStats();
+			spirit.rollAbilityPool();
+			spirit.abilityBrain().forcePoolForTest(List.of(CursedSpiritAbilityId.GRAB_RUNNER,
+					CursedSpiritAbilityId.REGEN, CursedSpiritAbilityId.ARMOR));
+			CursedSpiritAbilityParams params = CursedSpiritAbilityProfile.of(
+					CursedSpiritAbilityId.GRAB_RUNNER, spirit.grade());
+			helper.assertTrue(RunnerEffect.start(spirit, victim, level.getGameTime(), params,
+					spirit.abilityBrain()), CursedSpiritTestFixtures.diagnostic(fixture,
+					helper.getTick(), "run started", "true", "false"));
+		});
+		for (long tick = 2; tick <= 80; tick++) {
+			final long poll = tick;
+			helper.runAtTickTime(poll, () -> {
+				if (done.get()) {
+					return;
+				}
+				if (RunnerEffect.phaseOf(spirit) == RunnerEffect.Phase.CARRY) {
+					done.set(true);
+					helper.assertTrue(level.noCollision(victim, victim.getBoundingBox()),
+							CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+									"carried victim box is outside solids", "true", "false"));
+					double relativeZ = victim.getZ() - helper.absolutePos(new BlockPos(0, 0, 0)).getZ();
+					helper.assertTrue(relativeZ < 3.0,
+							CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(),
+									"wall-clamped anchor stays behind wall", "<3.0", relativeZ));
+					cleanupRunner(helper, spirit, victim);
+					helper.succeed();
+				} else if (poll == 80) {
+					helper.assertTrue(false, CursedSpiritTestFixtures.diagnostic(fixture,
+							helper.getTick(), "runner reached CARRY by tick 80", "CARRY",
+							RunnerEffect.phaseOf(spirit)));
+				}
+			});
+		}
+	}
+
 	/** R54 lava — a lava column on the course turns the run: the yaw kicks the same tick
-	 * the probe sees lava. */
+	 * the probe sees lava. The victim stands inside contact range so the frozen spirit
+	 * reaches CARRY through the approach/windup/contact gate without needing to walk. */
 	@GameTest(maxTicks = 60, skyAccess = true)
 	public void runnerTurnsAwayFromLava(GameTestHelper helper) {
 		String fixture = "runnerTurnsAwayFromLava";
@@ -409,8 +473,9 @@ public final class CursedSpiritEffectGameTests {
 		// Yaw 0 faces +Z, so the 3-block probe lands on rel (2, 1, 5).
 		BlockPos lavaRel = new BlockPos(2, 1, 5);
 		helper.setBlock(lavaRel, Blocks.LAVA);
+		// Adjacent victim: the approach gate closes in one tick even though the body is frozen.
 		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, fixture,
-				new BlockPos(5, 1, 2));
+				new BlockPos(3, 1, 2));
 		// Perceiving vessel: the grab is control, so a NONE victim refuses the start
 		// (same gate as the passing runnerCarriesWithUnbrokenMarker).
 		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
@@ -418,6 +483,7 @@ public final class CursedSpiritEffectGameTests {
 				JujutsuEntities.CURSED_SPIRIT, new BlockPos(2, 1, 2));
 		CursedSpiritTestFixtures.freezeGround(spirit);
 		AtomicBoolean done = new AtomicBoolean();
+		AtomicBoolean aimedAtLava = new AtomicBoolean();
 		helper.runAtTickTime(1, () -> {
 			spirit.gradeStats();
 			spirit.rollAbilityPool();
@@ -428,17 +494,23 @@ public final class CursedSpiritEffectGameTests {
 			helper.assertTrue(RunnerEffect.start(spirit, victim, level.getGameTime(), params,
 					spirit.abilityBrain()), CursedSpiritTestFixtures.diagnostic(fixture,
 					helper.getTick(), "run started", "true", "false"));
-			spirit.setYRot(0.0f);
 		});
-		for (long tick = 2; tick <= 12; tick++) {
+		for (long tick = 2; tick <= 50; tick++) {
 			final long poll = tick;
 			helper.runAtTickTime(poll, () -> {
 				if (done.get()) {
 					return;
 				}
 				try {
-					// No wander inside this window (steer period 15), so any large kick is
-					// the lava turn (120 degrees per unsafe tick).
+					// Once the carry holds, face the run at the lava column; the next steer
+					// probe must kick the yaw instead of walking into it.
+					if (!aimedAtLava.get() && RunnerEffect.isRunnerVictim(victim)) {
+						spirit.setYRot(0.0f);
+						aimedAtLava.set(true);
+					}
+					if (!aimedAtLava.get()) {
+						return;
+					}
 					double delta = Math.abs(wrapDegrees(spirit.getYRot()));
 					if (delta > 60.0) {
 						done.set(true);
@@ -450,9 +522,9 @@ public final class CursedSpiritEffectGameTests {
 								helper.getTick(), "lava premise still holds", "lava", "gone"));
 						cleanupRunner(helper, spirit, victim);
 						helper.succeed();
-					} else if (poll == 12) {
+					} else if (poll == 50) {
 						helper.assertTrue(false, CursedSpiritTestFixtures.diagnostic(fixture,
-								helper.getTick(), "course turned off lava by tick 12", ">60 deg",
+								helper.getTick(), "course turned off lava by tick 50", ">60 deg",
 								delta));
 					}
 				} catch (RuntimeException | AssertionError failure) {

@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 class MegumiShikigamiProfileTest {
 	@Test
 	void theSharedSicSurfaceStaysInOnePlace() {
-		assertEquals(20.0, MegumiShikigamiProfile.SIC_RANGE);
+		assertEquals(15.0, MegumiShikigamiProfile.SIC_RANGE);
 		assertEquals(30, MegumiShikigamiProfile.SIC_COOLDOWN_TICKS);
 	}
 
@@ -38,7 +38,7 @@ class MegumiShikigamiProfileTest {
 		assertEquals(12, MegumiShikigamiProfile.TOAD_RECALL_TICKS);
 		assertEquals(12.0, MegumiShikigamiProfile.TOAD_GRAB_RANGE);
 		assertEquals(6, MegumiShikigamiProfile.TOAD_GRAB_WINDUP_TICKS);
-		assertEquals(100, MegumiShikigamiProfile.TOAD_GRAB_COOLDOWN_TICKS);
+		assertEquals(200, MegumiShikigamiProfile.TOAD_GRAB_COOLDOWN_TICKS);
 		assertEquals(90, MegumiShikigamiProfile.TOAD_GRAB_HOLD_BASE);
 		assertEquals(60, MegumiShikigamiProfile.TOAD_GRAB_HOLD_MIN);
 		assertEquals(100, MegumiShikigamiProfile.TOAD_GRAB_HOLD_MAX);
@@ -69,7 +69,7 @@ class MegumiShikigamiProfileTest {
 		assertEquals(100, MegumiShikigamiProfile.ELEPHANT_PRESENCE_AGGRESSION_WINDOW_TICKS);
 		assertEquals(10, MegumiShikigamiProfile.ELEPHANT_FOOTPRINT_PERIOD_TICKS);
 		assertEquals(0.05, MegumiShikigamiProfile.ELEPHANT_FOOTPRINT_MIN_SPEED);
-		assertEquals(4, MegumiShikigamiProfile.ELEPHANT_FOOTPRINT_BUDGET);
+		assertEquals(3, MegumiShikigamiProfile.ELEPHANT_FOOTPRINT_BUDGET);
 	}
 
 	@Test

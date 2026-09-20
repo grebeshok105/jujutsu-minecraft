@@ -55,13 +55,19 @@ public final class MegumiVfxIds {
 	public static final ResourceLocation RABBITS_SUMMON = JujutsuMod.id("megumi/rabbits_summon");
 	/** Upkeep pop, bump puff and the expiry burst of the rabbit swarm. */
 	public static final ResourceLocation RABBITS_POP = JujutsuMod.id("megumi/rabbits_pop");
+	/**
+	 * Nue's partial manifestation snaps open (issue #108): one unfold beat at the owner. Emitted by
+	 * {@code MegumiNueWings.playUnfoldCue}; the sustained wings are vanilla's fall-flying pose, so
+	 * there is no per-tick re-emission and no close cue — landing simply stops the glide.
+	 */
+	public static final ResourceLocation NUE_PARTIAL_WINGS = JujutsuMod.id("megumi/nue_partial_wings");
 
 	public static final Set<ResourceLocation> LIVE = Set.of(
 			DOGS_SUMMON_BODY, DOGS_SUMMON, DOGS_RECALL, DOGS_SIC, DOGS_POUNCE,
 			SHADOW_TRAP_OPEN, SHADOW_TRAP_ZONE, SHADOW_TRAP_GRIP, SHADOW_TRAP_CLOSE,
 			SHADOW_DIVE, SHADOW_RIPPLE, SHADOW_EMERGE,
 			DROP_ZONE_OPEN, DROP_ZONE, DROP_ZONE_CLOSE,
-			NUE_SUMMON, NUE_DIVE, NUE_SHOCK, SHIKIGAMI_SIC, SHIKIGAMI_RECALL,
+			NUE_SUMMON, NUE_DIVE, NUE_SHOCK, NUE_PARTIAL_WINGS, SHIKIGAMI_SIC, SHIKIGAMI_RECALL,
 			TOAD_SUMMON, TOAD_TONGUE,
 			ELEPHANT_SUMMON, ELEPHANT_JET,
 			RABBITS_SUMMON, RABBITS_POP);

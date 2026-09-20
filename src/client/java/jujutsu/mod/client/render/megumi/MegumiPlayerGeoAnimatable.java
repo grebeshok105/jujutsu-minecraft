@@ -63,6 +63,7 @@ public final class MegumiPlayerGeoAnimatable implements GeoReplacedEntity {
 		triggerAnim(player, CharacterSkinAnimationAdapter.playerTriggerInstanceId(player), ACTION_CONTROLLER, SHADOW_EMERGE_ANIM);
 	}
 
+
 	public void restartMeleeTrigger(Entity player, String triggerName) {
 		long instanceId = CharacterSkinAnimationAdapter.playerTriggerInstanceId(player);
 		AnimatableManager<?> manager = getAnimatableInstanceCache().getManagerForId(instanceId);

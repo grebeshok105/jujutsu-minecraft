@@ -43,8 +43,8 @@ public final class MegumiDivineDogEntity extends Wolf {
 	private long summonToken;
 	private ResourceKey<Level> recallDimension;
 	private UUID sicTargetUuid;
-	/** True while the current mark came from the owner's own sic command, not from retaliation. */
-	private boolean sicManual;
+	/** Where the current mark came from; null when the body carries no mark. */
+	private MegumiMarkKind markKind;
 	private UUID pounceTargetUuid;
 	private UUID pounceSicTargetUuid;
 	private long nextPounceReadyGameTime;
@@ -131,7 +131,7 @@ public final class MegumiDivineDogEntity extends Wolf {
 	void assignSicTarget(LivingEntity target) {
 		finishPounce();
 		sicTargetUuid = target.getUUID();
-		sicManual = true;
+		markKind = MegumiMarkKind.MANUAL;
 		super.setTarget(target);
 	}
 
@@ -150,13 +150,32 @@ public final class MegumiDivineDogEntity extends Wolf {
 		}
 		finishPounce();
 		sicTargetUuid = target.getUUID();
-		sicManual = false;
+		markKind = MegumiMarkKind.RETALIATION;
+		super.setTarget(target);
+	}
+
+	/**
+	 * A mark the coordinator picked from the shared combat context (issue #107). Same no-op rule as
+	 * retaliation: re-assigning the same target must not cancel a pounce already in flight.
+	 */
+	void assignAutonomousTarget(LivingEntity target) {
+		if (target.getUUID().equals(sicTargetUuid)) {
+			return;
+		}
+		finishPounce();
+		sicTargetUuid = target.getUUID();
+		markKind = MegumiMarkKind.AUTONOMOUS;
 		super.setTarget(target);
 	}
 
 	/** True while the current mark came from the owner's own sic command. */
 	boolean hasManualSicTarget() {
-		return sicManual;
+		return markKind == MegumiMarkKind.MANUAL;
+	}
+
+	/** Where the current mark came from, or null when the body carries none. */
+	MegumiMarkKind markKind() {
+		return markKind;
 	}
 
 	UUID sicTargetUuid() {
@@ -223,8 +242,11 @@ public final class MegumiDivineDogEntity extends Wolf {
 
 	void clearSicCommand() {
 		sicTargetUuid = null;
-		sicManual = false;
+		markKind = null;
 		finishPounce();
+		// The vanilla target must drop with the mark: a stale getTarget() survives the clear and
+		// reads as a live sic to any observer (and to the coordinator's own mark checks).
+		setTarget(null);
 	}
 
 	private void playEmergenceSounds() {

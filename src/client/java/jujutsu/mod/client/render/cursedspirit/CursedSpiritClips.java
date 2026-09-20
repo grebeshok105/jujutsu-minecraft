@@ -9,9 +9,13 @@ import net.minecraft.client.animation.KeyframeAnimation;
  * <p>The ported models used to apply every layer in sequence on the same bones, so the eternal
  * looping idle — applied last — overwrote the one-shot poses whenever the clips shared a bone. That
  * is what made bodies jitter and what made a Greater's slam read as an empty swing (issue #77).
- * Keep the precedence here, not in the nine models.
+ * Keep the precedence here, not in the nine models. Scream assets retain rotation recoil, while
+ * their authored positional root/body channels are stripped; the fixed safety bound is
+ * {@link #SCREAM_POSITION_BOUND_BLOCKS}.
  */
 public final class CursedSpiritClips {
+	/** Maximum allowed authored scream positional displacement, in block-equivalent units. */
+	public static final float SCREAM_POSITION_BOUND_BLOCKS = 0.75f;
 	private CursedSpiritClips() {
 	}
 

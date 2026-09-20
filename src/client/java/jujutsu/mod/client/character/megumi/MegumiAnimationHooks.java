@@ -41,4 +41,5 @@ public final class MegumiAnimationHooks {
 			MegumiPlayerGeoAnimatable.INSTANCE.triggerShadowEmerge(caster);
 		}
 	}
+
 }

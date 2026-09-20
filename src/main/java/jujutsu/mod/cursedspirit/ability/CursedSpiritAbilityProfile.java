@@ -31,11 +31,15 @@ public final class CursedSpiritAbilityProfile {
 	public static final double ACID_MAX_RANGE = 18.0;
 	public static final double RUNNER_MIN_RANGE = 3.0;
 	public static final double RUNNER_MAX_RANGE = 12.0;
+	/** Maximum runner distance between hitbox edges at CONTACT, before the LOS gate. */
+	public static final double RUNNER_CONTACT_RANGE = 2.2;
 	private static final int VARIANT_BIAS = 2;
-	/** "Nasty" abilities (fear/berserk/runner/acid) weigh 8/10/12 across grades 5/4/3. BALANCE. */
+	/** "Nasty" abilities (berserk/runner/acid) weigh 8/10/12 across grades 5/4/3. BALANCE. */
 	private static final int NASTY_WEIGHT_GRADE_5 = 8;
 	private static final int NASTY_WEIGHT_GRADE_4 = 10;
 	private static final int NASTY_WEIGHT_GRADE_3 = 12;
+	/** Fear is deliberately rare: a control debuff that lands often reads as noise, not threat. */
+	private static final int FEAR_WEIGHT = 3;
 	/** Everything else weighs a flat 10 at every grade; passives are never down-weighted. */
 	private static final int FLAT_WEIGHT = 10;
 
@@ -79,12 +83,12 @@ public final class CursedSpiritAbilityProfile {
 				case GRADE_2, GRADE_1 -> throw new IllegalStateException("No v1 content for " + grade);
 			};
 			case FEAR -> switch (grade) {
-				case GRADE_5 -> new CursedSpiritAbilityParams(0.0, 8.0, 100, 0.0, 0.0, 320,
-						NASTY_WEIGHT_GRADE_5);
-				case GRADE_4 -> new CursedSpiritAbilityParams(0.0, 10.0, 140, 0.0, 0.0, 300,
-						NASTY_WEIGHT_GRADE_4);
-				case GRADE_3 -> new CursedSpiritAbilityParams(0.0, 12.0, 180, 0.0, 0.0, 280,
-						NASTY_WEIGHT_GRADE_3);
+				case GRADE_5 -> new CursedSpiritAbilityParams(0.0, 8.0, 100, 0.0, 0.0, 780,
+						FEAR_WEIGHT);
+				case GRADE_4 -> new CursedSpiritAbilityParams(0.0, 10.0, 140, 0.0, 0.0, 720,
+						FEAR_WEIGHT);
+				case GRADE_3 -> new CursedSpiritAbilityParams(0.0, 12.0, 180, 0.0, 0.0, 660,
+						FEAR_WEIGHT);
 				case GRADE_2, GRADE_1 -> throw new IllegalStateException("No v1 content for " + grade);
 			};
 			case REGEN -> switch (grade) {

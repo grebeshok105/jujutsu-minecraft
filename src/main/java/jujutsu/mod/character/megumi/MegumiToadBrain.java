@@ -1,6 +1,7 @@
 package jujutsu.mod.character.megumi;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -15,6 +16,7 @@ import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.combat.CombatTags;
 import jujutsu.mod.combat.HoldSupport;
+import jujutsu.mod.cursedspirit.hold.HeldVictimRegistry;
 import jujutsu.mod.vfx.MegumiVfxIds;
 
 /**
@@ -68,8 +70,11 @@ final class MegumiToadBrain {
 		// Owner LoS gates only the owner's own ORDER (an owner cannot sic what it cannot see).
 		// A self-picked target answers to the body's own senses instead: nearestGrabbable already
 		// required the toad's LoS, and the commit below re-checks it — an owner standing in a
-		// cellar must not blind its toad (issue #90).
-		boolean ownerOrdered = toad.sicTargetUuid() != null
+		// cellar must not blind its toad (issue #90). The same holds for an AUTONOMOUS mark the
+		// coordinator wrote: it is the pack's pick, not the owner's sighted order — treating it
+		// as owner-ordered let a blind owner veto the body's own mark (CI flake 35362569362).
+		boolean ownerOrdered = toad.hasManualSicTarget()
+				&& toad.sicTargetUuid() != null
 				&& toad.sicTargetUuid().equals(target.getUUID());
 		if (owner == null || !toad.attackReady(gameTime)
 				|| !MegumiToadPolicy.canGrab(toad.distanceTo(target))
@@ -119,16 +124,27 @@ final class MegumiToadBrain {
 						&& MegumiSummonRuntime.isEligibleTarget(owner, candidate)
 						&& MegumiToadPolicy.canGrab(toad.distanceTo(candidate))
 						&& toad.hasLineOfSight(candidate));
+		// Soft coordination (issue #107 §3): a target no ally already marks or works is preferred —
+		// the toad spreads the pack across the crowd instead of doubling up. Falls back to the
+		// nearest overall when everything in reach is claimed.
+		Set<UUID> claimed = owner == null ? Set.of()
+				: MegumiPackCoordinator.contextFor(owner, level).occupiedOrClaimed();
 		LivingEntity nearest = null;
+		LivingEntity nearestFree = null;
 		double best = Double.MAX_VALUE;
+		double bestFree = Double.MAX_VALUE;
 		for (LivingEntity candidate : candidates) {
 			double distance = toad.distanceToSqr(candidate);
 			if (distance < best) {
 				best = distance;
 				nearest = candidate;
 			}
+			if (!claimed.contains(candidate.getUUID()) && distance < bestFree) {
+				bestFree = distance;
+				nearestFree = candidate;
+			}
 		}
-		return nearest;
+		return nearestFree != null ? nearestFree : nearest;
 	}
 
 	/** The tongue has landed: nothing is damaged, the hold starts (R1). */
@@ -171,6 +187,10 @@ final class MegumiToadBrain {
 		// level still GRIPPED (issue #90).
 		LivingEntity victim = resolveHeld(level, toad.grabbedUuid());
 		if (victim == null) {
+			// The victim left the level entirely (unload, dimension change, despawn): the
+			// registry pair must still drop, or the UUID stays marked held forever and the
+			// same entity can never be grabbed again after it returns.
+			HeldVictimRegistry.release(toad.grabbedUuid());
 			toad.clearGrab();
 			return;
 		}
@@ -194,16 +214,9 @@ final class MegumiToadBrain {
 		toad.setDeltaMovement(Vec3.ZERO);
 		Vec3 anchor = MegumiToadPolicy.anchor(toad.position(), toad.getLookAngle(),
 				MegumiShikigamiProfile.TOAD_GRIP_OFFSET);
-		// Collision probe with the victim's own box: a body facing a wall or lava would bury the
-		// anchor inside solid blocks and suffocate the victim mid-hold (issue #90). Fall back to
-		// the body's feet — always in-bounds for the body itself.
-		if (!level.noCollision(victim, victim.getBoundingBox()
-				.move(anchor.subtract(victim.position())))) {
-			anchor = toad.position();
-		}
-		// One pin for both kinds of victim: the anchor is written every tick, so the victim hangs
-		// TOAD_GRIP_OFFSET in front of the body instead of freezing wherever the tongue found it.
-		HoldSupport.applyHold(victim, anchor, GRIP_MARKER_TICKS);
+		// HoldSupport keeps the historic Toad fallback to the body's feet when the hand anchor
+		// intersects a solid block; unlike the runner, this policy is intentionally one-step.
+		HoldSupport.applyHold(toad, victim, anchor, HoldSupport.CollisionPolicy.TOAD, GRIP_MARKER_TICKS);
 		if (victim instanceof Mob mob) {
 			// A mob is server-driven and its own AI keeps pushing between our ticks: stop the
 			// navigation and drain what is left of its walking speed. No setNoAi — the design keeps

@@ -26,8 +26,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.animal.Cow;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.state.BlockState;
-import jujutsu.mod.character.CharacterAbility;
-import jujutsu.mod.character.CharacterAbilityCooldowns;
+import jujutsu.mod.character.megumi.MegumiSummonCooldowns;
 import jujutsu.mod.character.megumi.MegumiElephantEntity;
 import jujutsu.mod.character.megumi.MegumiElephantPolicy;
 import jujutsu.mod.character.megumi.MegumiShikigami;
@@ -152,10 +151,11 @@ public final class MegumiElephantGameTests {
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "summon", helper.getTick(), ownerId,
 								"owned elephant bodies in level", "1", bodies.size()));
 
-				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.ELEPHANT,
+						level.getGameTime());
 				helper.assertTrue(remaining == 0,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "summon", helper.getTick(), ownerId,
-								"PRIMARY cooldown (summon is free)", "0", remaining));
+								"summon cooldown (summon is free)", "0", remaining));
 			} finally {
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 			}
@@ -214,10 +214,11 @@ public final class MegumiElephantGameTests {
 				helper.assertTrue(recalled, MegumiShikigamiTestFixtures.diagnostic(fixture,
 						"recall", helper.getTick(), ownerId, "second tryPrimary result", "true", recalled));
 
-				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.ELEPHANT,
+						level.getGameTime());
 				helper.assertTrue(remaining == EXPECTED_RECALL_COOLDOWN_TICKS,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "recall", helper.getTick(), ownerId,
-								"PRIMARY recall cooldown", EXPECTED_RECALL_COOLDOWN_TICKS, remaining));
+								"summon recall cooldown", EXPECTED_RECALL_COOLDOWN_TICKS, remaining));
 
 				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "recall", caster);
 			} finally {
@@ -274,10 +275,11 @@ public final class MegumiElephantGameTests {
 						"kill", helper.getTick(), ownerId, "lethal damage applied", "true", damaged));
 
 				// AFTER_DEATH reconciles synchronously inside hurtServer, so the same-tick read is exact.
-				int remaining = CharacterAbilityCooldowns.remainingTicks(caster, CharacterAbility.PRIMARY);
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.ELEPHANT,
+						level.getGameTime());
 				helper.assertTrue(remaining == EXPECTED_DEATH_COOLDOWN_TICKS,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "kill", helper.getTick(), ownerId,
-								"PRIMARY death cooldown", EXPECTED_DEATH_COOLDOWN_TICKS, remaining));
+								"summon death cooldown", EXPECTED_DEATH_COOLDOWN_TICKS, remaining));
 
 				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "kill", caster);
 			} finally {
@@ -304,13 +306,10 @@ public final class MegumiElephantGameTests {
 		helper.setBlock(new BlockPos(5, 4, 6), Blocks.STONE);
 		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
 		ServerLevel level = helper.getLevel();
-		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
-		zombie.setPersistenceRequired();
-		AttributeInstance health = zombie.getAttribute(Attributes.MAX_HEALTH);
-		helper.assertTrue(health != null, MegumiShikigamiTestFixtures.diagnostic(fixture,
-				"setup", helper.getTick(), caster.getUUID(), "zombie health attribute", "present", "absent"));
-		health.setBaseValue(200.0);
-		zombie.setHealth(200.0f);
+		// The zombie spawns inside the sic callback, not at setup: left in the arena from tick 0,
+		// the elephant's autonomy pass marks it and fires the jet before the sic ever lands, and
+		// the "goals live before sic" oracle reads the jet's NoAI instead of a live body.
+		AtomicReference<Zombie> zombieRef = new AtomicReference<>();
 		AtomicBoolean planted = new AtomicBoolean();
 
 		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
@@ -324,6 +323,14 @@ public final class MegumiElephantGameTests {
 		helper.runAtTickTime(SIC_TICK, () -> {
 			try {
 				UUID ownerId = caster.getUUID();
+				Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
+				zombie.setPersistenceRequired();
+				AttributeInstance health = zombie.getAttribute(Attributes.MAX_HEALTH);
+				helper.assertTrue(health != null, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"sic", helper.getTick(), ownerId, "zombie health attribute", "present", "absent"));
+				health.setBaseValue(200.0);
+				zombie.setHealth(200.0f);
+				zombieRef.set(zombie);
 				List<MegumiElephantEntity> bodies = elephantsOwnedBy(level, ownerId);
 				helper.assertTrue(bodies.size() == 1,
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "sic", helper.getTick(), ownerId,
@@ -341,18 +348,21 @@ public final class MegumiElephantGameTests {
 				helper.assertTrue(sicced, MegumiShikigamiTestFixtures.diagnostic(fixture,
 						"sic", helper.getTick(), ownerId, "trySic result", "true", sicced));
 			} catch (RuntimeException | AssertionError failure) {
-				zombie.discard();
+				Zombie zombie = zombieRef.get();
+				if (zombie != null) {
+					zombie.discard();
+				}
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 				throw failure;
 			}
 		});
-
 		long deadline = SIC_TICK + JET_WINDOW_TICKS + 10;
 		for (long tick = SIC_TICK + 1; tick <= deadline; tick++) {
 			final long pollTick = tick;
 			helper.runAtTickTime(pollTick, () -> {
+				Zombie zombie = zombieRef.get();
 				List<MegumiElephantEntity> live = elephantsOwnedBy(level, caster.getUUID());
-				if (live.isEmpty() || zombie.isRemoved()) {
+				if (live.isEmpty() || zombie == null || zombie.isRemoved()) {
 					return;
 				}
 				MegumiElephantEntity body = live.get(0);
@@ -386,7 +396,10 @@ public final class MegumiElephantGameTests {
 				helper.assertTrue(planted.get(), MegumiShikigamiTestFixtures.diagnostic(fixture,
 						"jet", helper.getTick(), caster.getUUID(), "planted jet observed", "true", planted.get()));
 			} finally {
-				zombie.discard();
+				Zombie zombie = zombieRef.get();
+				if (zombie != null) {
+					zombie.discard();
+				}
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 			}
 		});
@@ -407,6 +420,14 @@ public final class MegumiElephantGameTests {
 		ServerLevel level = helper.getLevel();
 		Cow cow = GameTestFixtures.spawnMob(helper, fixture, EntityType.COW, new BlockPos(5, 1, 6));
 		cow.setPersistenceRequired();
+		// The cow is teamed with the caster: a bare neutral is still autonomy-eligible
+		// (isEligibleTarget accepts any non-allied living), and the elephant would mark it between
+		// the park and the push — the jet pulse then reads as exactly 1.0 damage. Allied keeps the
+		// push (isOwnSideOnly excludes only the owner's own bodies) but drops the mark.
+		net.minecraft.world.scores.PlayerTeam team = level.getScoreboard()
+				.addPlayerTeam(fixture + "_team");
+		level.getScoreboard().addPlayerToTeam(caster.getScoreboardName(), team);
+		level.getScoreboard().addPlayerToTeam(cow.getScoreboardName(), team);
 		AtomicReference<Double> healthBefore = new AtomicReference<>();
 		AtomicBoolean pushed = new AtomicBoolean();
 
@@ -732,9 +753,11 @@ public final class MegumiElephantGameTests {
 	}
 
 	/**
-	 * S11 — footprint breaks its allowlist, not the rest: driven over a dirt/obsidian strip, the
-	 * walking body clears all 5 dirt while both obsidian blocks survive. Fails if the allowlist is
-	 * empty (dirt stays) or wide open (obsidian breaks).
+	 * S11 — footprint breaks its allowlist, not the rest: driven through a poppy strip at
+	 * foot level, the walking body clears all 5 poppies while both obsidian blocks survive. The
+	 * strip sits at y=1 (the foot band) over a dirt support row — the sweep never digs the floor
+	 * itself, so the flowers are the breakable cells and obsidian the surviving control. Fails if
+	 * the allowlist is empty (poppies stay) or wide open (obsidian breaks).
 	 */
 	@GameTest(maxTicks = 180)
 	public void elephantFootprintBreaksAllowlistOnly(GameTestHelper helper) {
@@ -764,9 +787,15 @@ public final class MegumiElephantGameTests {
 						"strip", helper.getTick(), ownerId, "body ACTIVE", "true", bodies.get(0).combatEnabled()));
 				int row = Math.min(7, Math.max(0, relativeOf(helper, bodies.get(0).position()).getZ()));
 				rowRef.set(row);
-				for (int x = 0; x <= 6; x++) {
-					helper.setBlock(new BlockPos(x, 0, row), (x == 3 || x == 6) ? Blocks.OBSIDIAN : Blocks.DIRT);
+				for (int x = 0; x <= 4; x++) {
+					helper.setBlock(new BlockPos(x, 0, row), Blocks.DIRT);
+					helper.setBlock(new BlockPos(x, 1, row), Blocks.POPPY);
 				}
+				// Obsidian closes the strip on the drive row: inside the sweep band once the body
+				// arrives, while the drive target stops just short of it — a solid block reached
+				// mid-lane would stall the drive before the poppies are swept.
+				helper.setBlock(new BlockPos(5, 1, row), Blocks.OBSIDIAN);
+				helper.setBlock(new BlockPos(6, 1, row), Blocks.OBSIDIAN);
 				bodies.get(0).teleportTo(origin.getX() + 0.5, origin.getY() + 1.0, origin.getZ() + row + 0.5);
 				caster.teleportTo(level, origin.getX() + 3.5, origin.getY() + 1.0, origin.getZ() + 5.5,
 						Set.of(), 0.0f, 0.0f, false);
@@ -785,17 +814,16 @@ public final class MegumiElephantGameTests {
 					return;
 				}
 				int row = rowRef.get();
-				driveElephant(live.get(0), origin, 7.0, 1.0, row + 0.5);
+				driveElephant(live.get(0), origin, 4.0, 1.0, row + 0.5);
 				int dirtAir = 0;
 				int obsidianOk = 0;
 				for (int x = 0; x <= 6; x++) {
-					BlockState state = stateAt(level, origin, x, 0, row);
-					if (x == 3 || x == 6) {
-						if (state.is(Blocks.OBSIDIAN)) {
-							obsidianOk++;
-						}
-					} else if (state.isAir()) {
+					BlockState state = stateAt(level, origin, x, 1, row);
+					if (state.isAir()) {
 						dirtAir++;
+					}
+					if (stateAt(level, origin, x, 1, row).is(Blocks.OBSIDIAN)) {
+						obsidianOk++;
 					}
 				}
 				if (dirtAir == 5 && obsidianOk == 2) {
@@ -806,7 +834,7 @@ public final class MegumiElephantGameTests {
 				if (pollTick == deadline) {
 					try {
 						helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
-								"walk", helper.getTick(), caster.getUUID(), "dirt cleared, obsidian kept",
+								"walk", helper.getTick(), caster.getUUID(), "poppies cleared, obsidian kept",
 								"5 air + 2 obsidian", dirtAir + " air + " + obsidianOk + " obsidian"));
 					} finally {
 						MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
@@ -862,6 +890,7 @@ public final class MegumiElephantGameTests {
 						int cx = Math.min(6, Math.max(0, relE.getX() + dx));
 						int cz = Math.min(7, Math.max(0, relE.getZ() + dz));
 						helper.setBlock(new BlockPos(cx, 0, cz), Blocks.DIRT);
+						helper.setBlock(new BlockPos(cx, 1, cz), Blocks.POPPY);
 						pad.add(new BlockPos(cx, 0, cz));
 					}
 				}
@@ -887,18 +916,19 @@ public final class MegumiElephantGameTests {
 					try {
 						helper.assertTrue(!moved.get(), MegumiShikigamiTestFixtures.diagnostic(fixture,
 								"stand", helper.getTick(), caster.getUUID(), "body stood still", "still", "moved"));
-						int dirt = 0;
+						int poppies = 0;
 						for (BlockPos cell : padCells.get()) {
-							if (stateAt(level, origin, cell.getX(), cell.getY(), cell.getZ()).is(Blocks.DIRT)) {
-								dirt++;
+							if (stateAt(level, origin, cell.getX(), cell.getY() + 1, cell.getZ()).is(Blocks.POPPY)) {
+								poppies++;
 							}
 						}
-						helper.assertTrue(dirt == 4, MegumiShikigamiTestFixtures.diagnostic(fixture,
-								"stand", helper.getTick(), caster.getUUID(), "standing breaks nothing", "4 dirt", dirt));
+						helper.assertTrue(poppies == 4, MegumiShikigamiTestFixtures.diagnostic(fixture,
+								"stand", helper.getTick(), caster.getUUID(), "standing breaks nothing", "4 poppies", poppies));
 						int col = colRef.get();
 						for (int x = col; x <= col + 1; x++) {
 							for (int z = 0; z <= 7; z++) {
 								helper.setBlock(new BlockPos(x, 0, z), Blocks.DIRT);
+								helper.setBlock(new BlockPos(x, 1, z), Blocks.POPPY);
 							}
 						}
 						live.get(0).teleportTo(origin.getX() + col + 0.5, origin.getY() + 1.0, origin.getZ() + 0.5);
@@ -958,7 +988,7 @@ public final class MegumiElephantGameTests {
 					int col = colRef.get();
 					for (int x = col; x <= col + 1; x++) {
 						for (int z = 0; z <= 7; z++) {
-							if (stateAt(level, origin, x, 0, z).isAir()) {
+							if (stateAt(level, origin, x, 1, z).isAir()) {
 								air++;
 							}
 						}

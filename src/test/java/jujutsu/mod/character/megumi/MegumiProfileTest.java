@@ -25,10 +25,10 @@ class MegumiProfileTest {
 		assertEquals(1.0, MegumiProfile.NAVIGATION_SPEED_MODIFIER);
 		assertEquals(10.0, MegumiProfile.FOLLOW_START_DISTANCE);
 		assertEquals(2.0, MegumiProfile.FOLLOW_STOP_DISTANCE);
-		assertEquals(32.0, MegumiProfile.LEASH_DISTANCE);
+		assertEquals(20.0, MegumiProfile.LEASH_DISTANCE, "PR118: the leash matches the 15-block bubble");
 		assertEquals(3.0, MegumiProfile.LEASH_SAFE_SEARCH_RADIUS);
 		assertEquals(10, MegumiProfile.LEASH_RETRY_TICKS);
-		assertEquals(20.0, MegumiProfile.SIC_RANGE);
+		assertEquals(15.0, MegumiProfile.SIC_RANGE);
 		assertEquals(30, MegumiProfile.SIC_COOLDOWN_TICKS);
 		assertEquals(3.0, MegumiProfile.POUNCE_MIN_RANGE);
 		assertEquals(8.0, MegumiProfile.POUNCE_MAX_RANGE);
@@ -40,6 +40,10 @@ class MegumiProfileTest {
 		assertEquals(2.0f, MegumiProfile.POUNCE_BONUS_DAMAGE);
 		assertEquals(2.4, MegumiProfile.POUNCE_KNOCKBACK);
 		assertEquals(6, MegumiProfile.POUNCE_STAGGER_TICKS);
+		assertEquals(0.5, MegumiProfile.POUNCE_RETRY_MIN_WEIGHT,
+				"issue #107 R16: a pounce whose failure weight fell below this holds the launch");
+		assertTrue(MegumiProfile.POUNCE_RETRY_MIN_WEIGHT < 1.0,
+				"the floor must be inside the weight scale, or a healthy body could never launch");
 		assertEquals(16, MegumiProfile.DOG_MATERIALIZATION_TICKS);
 		assertEquals(12, MegumiProfile.DOG_RECALL_TICKS);
 		assertEquals(240, MegumiProfile.RECALL_COOLDOWN_TICKS);

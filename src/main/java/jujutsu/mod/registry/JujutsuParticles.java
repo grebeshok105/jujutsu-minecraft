@@ -19,6 +19,7 @@ public final class JujutsuParticles {
 	public static final SimpleParticleType BF_SPARK = FabricParticleTypes.simple();
 	public static final SimpleParticleType BF_IMPACT = FabricParticleTypes.simple();
 	public static final SimpleParticleType MEGUMI_SHADOW_MOTE = FabricParticleTypes.simple();
+	public static final SimpleParticleType CURSED_MOTE = FabricParticleTypes.simple();
 
 	private JujutsuParticles() {}
 
@@ -35,5 +36,6 @@ public final class JujutsuParticles {
 		Registry.register(BuiltInRegistries.PARTICLE_TYPE, JujutsuMod.id("bf_spark"), BF_SPARK);
 		Registry.register(BuiltInRegistries.PARTICLE_TYPE, JujutsuMod.id("bf_impact"), BF_IMPACT);
 		Registry.register(BuiltInRegistries.PARTICLE_TYPE, JujutsuMod.id("megumi_shadow_mote"), MEGUMI_SHADOW_MOTE);
+		Registry.register(BuiltInRegistries.PARTICLE_TYPE, JujutsuMod.id("cursed_mote"), CURSED_MOTE);
 	}
 }

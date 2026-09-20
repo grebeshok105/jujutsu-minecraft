@@ -8,10 +8,16 @@ public final class MegumiProfile {
 	public static final double NAVIGATION_SPEED_MODIFIER = 1.0;
 	public static final double FOLLOW_START_DISTANCE = 10.0;
 	public static final double FOLLOW_STOP_DISTANCE = 2.0;
-	public static final double LEASH_DISTANCE = 32.0;
+	/**
+	 * How far a dog may stray before the leash drags it home. The autonomy bubble is 15 blocks,
+	 * so a body that drifted to its own target still has room to walk back before the leash
+	 * teleports it.
+	 */
+	public static final double LEASH_DISTANCE = 20.0;
 	public static final double LEASH_SAFE_SEARCH_RADIUS = 3.0;
 	public static final int LEASH_RETRY_TICKS = 10;
-	public static final double SIC_RANGE = 20.0;
+	/** Manual sic reach — the same 15-block bubble as autonomy, ordered targets included. */
+	public static final double SIC_RANGE = 15.0;
 	public static final int DOG_MATERIALIZATION_TICKS = 16;
 	public static final int DOG_RECALL_TICKS = 12;
 	public static final int RECALL_COOLDOWN_TICKS = 240;
@@ -35,6 +41,12 @@ public final class MegumiProfile {
 	public static final float POUNCE_BONUS_DAMAGE = 2.0f;
 	public static final double POUNCE_KNOCKBACK = 2.4;
 	public static final int POUNCE_STAGGER_TICKS = 6;
+	/**
+	 * Issue #107 §15/R16: below this failure weight a pounce launch is held for the tick. A body
+	 * that just ate a wall remembers it; the memory recovers on its own window, so the hold is a
+	 * pause, never a permanent refusal.
+	 */
+	public static final double POUNCE_RETRY_MIN_WEIGHT = 0.5;
 	public static final double VFX_CUE_RADIUS = 48.0;
 	static final Double VFX_DELIVERY_RADIUS = VFX_CUE_RADIUS;
 

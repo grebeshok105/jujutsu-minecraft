@@ -19,6 +19,22 @@ public final class MegumiShikigamiAnimationPolicy {
 	public static boolean isAttacking(float attackAnim) {
 		return attackAnim > ATTACK_ANIM_THRESHOLD;
 	}
+	/** Rabbit attack trigger: the server action window or the synchronized vanilla swing state. */
+	public static boolean rabbitsAction(boolean actionWindow, float attackAnim) {
+		return actionWindow || isAttacking(attackAnim);
+	}
+
+	/** Keep the imported rabbit attack readable after the short vanilla swing window closes. */
+	public static boolean rabbitAttackOwnsClip(boolean triggerActive, boolean clipPlaying,
+			boolean clipFinished) {
+		return triggerActive || (clipPlaying && !clipFinished);
+	}
+
+	/** A new rabbit bump restarts a clip that has already completed. */
+	public static boolean rabbitAttackNeedsRestart(boolean triggerActive, boolean clipPlaying,
+			boolean clipFinished) {
+		return triggerActive && clipPlaying && clipFinished;
+	}
 
 	public enum Clip {
 		/** Rising out of the shadow pool. */

@@ -33,13 +33,15 @@ public final class NobaraAbilityRouter {
 			// message gate below, so returning UNHANDLED_FAILURE here stays silent by construction.
 			return AbilityResult.UNHANDLED_FAILURE;
 		}
-		// The hold gesture, its release and the empty third technique key are not casts; refusing them
-		// through the switch would show the no-target line to anyone who holds Shift+B out of habit or
-		// taps V on a vessel with nothing there — and "no target" would be the wrong explanation for an
-		// unclaimed key. Refused silently, before the message gate. The switch below still answers all
-		// three arms so it stays exhaustive.
+		// The hold gesture, its release, the empty third technique key and the partial key are not casts;
+		// refusing them through the switch would show the no-target line to anyone who holds Shift+B out
+		// of habit, taps V on a vessel with nothing there, or presses Megumi's partial key while Nobara is
+		// selected — and "no target" would be the wrong explanation for an unclaimed key. Refused
+		// silently, before the message gate. The switch below still answers all of them so it stays
+		// exhaustive.
 		if (ability == CharacterAbility.SECONDARY_SNEAK_HOLD || ability == CharacterAbility.SECONDARY_SNEAK_RELEASE
-				|| ability == CharacterAbility.TERTIARY || ability == CharacterAbility.TERTIARY_SNEAK) {
+				|| ability == CharacterAbility.TERTIARY || ability == CharacterAbility.TERTIARY_SNEAK
+				|| ability == CharacterAbility.PARTIAL || ability == CharacterAbility.PARTIAL_RELEASE) {
 			return AbilityResult.UNHANDLED_FAILURE;
 		}
 		AbilityResult result = switch (ability) {
@@ -65,6 +67,9 @@ public final class NobaraAbilityRouter {
 			// Unreachable through the early return above; kept so the switch stays exhaustive.
 			case TERTIARY -> AbilityResult.UNHANDLED_FAILURE;
 			case TERTIARY_SNEAK -> AbilityResult.UNHANDLED_FAILURE;
+			// #108: the partial-manifestation key belongs to Megumi's kit; she has nothing on either edge.
+			// (Also unreachable through the early return above.)
+			case PARTIAL, PARTIAL_RELEASE -> AbilityResult.UNHANDLED_FAILURE;
 		};
 		if (result == AbilityResult.UNHANDLED_FAILURE && notify) {
 			nobara.displayClientMessage(Component.translatable("message.jujutsumod.nobara.action.no_target"), true);

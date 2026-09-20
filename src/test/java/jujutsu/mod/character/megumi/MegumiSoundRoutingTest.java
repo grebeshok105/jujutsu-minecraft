@@ -10,6 +10,12 @@ import org.junit.jupiter.api.Test;
 final class MegumiSoundRoutingTest {
 	private static final Path ENTITY = Path.of("src/main/java/jujutsu/mod/character/megumi/MegumiDivineDogEntity.java");
 	private static final Path RUNTIME = Path.of("src/main/java/jujutsu/mod/character/megumi/MegumiSummonRuntime.java");
+	/**
+	 * The sic command is global since issue #107 (one aim, both families), so its accent lives in
+	 * the shikigami runtime; the dog runtime keeps answering for the dogs' own beats.
+	 */
+	private static final Path SHIKIGAMI_RUNTIME =
+			Path.of("src/main/java/jujutsu/mod/character/megumi/MegumiShikigamiRuntime.java");
 	private static final Path RECIPES = Path.of("src/client/java/jujutsu/mod/client/vfx/megumi/MegumiVfxRecipes.java");
 
 	@Test
@@ -20,13 +26,15 @@ final class MegumiSoundRoutingTest {
 		assertTrue(entity.contains("JujutsuSounds.PROJECTJJK_GOO_FOLEY"));
 		assertTrue(entity.contains("JujutsuSounds.PROJECTJJK_WHOOSH_HIT"));
 		assertTrue(entity.contains("JujutsuSounds.PROJECTJJK_IMPLODE"));
-		assertTrue(runtime.contains("JujutsuSounds.PROJECTJJK_SNAP"));
 		assertTrue(entity.contains("growlSound().value()"));
 		assertTrue(entity.contains("serverLevel.playSound(null, getX(), getY(), getZ()"),
 				"Dog sounds must be server broadcasts from the dog position");
 		assertTrue(runtime.contains("white.playShadowOpenSound()"));
 		assertTrue(runtime.contains("black.playShadowOpenSound()"));
-		assertTrue(runtime.contains("player.level().playSound(null, player.getX(), player.getY(), player.getZ()"),
+
+		String sic = Files.readString(SHIKIGAMI_RUNTIME);
+		assertTrue(sic.contains("JujutsuSounds.PROJECTJJK_SNAP"));
+		assertTrue(sic.contains("level.playSound(null, player.getX(), player.getY(), player.getZ()"),
 				"Sic command accent must be spatially broadcast from the owner");
 	}
 

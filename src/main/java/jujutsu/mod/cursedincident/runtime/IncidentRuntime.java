@@ -1,0 +1,234 @@
+package jujutsu.mod.cursedincident.runtime;
+
+import java.util.List;
+
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
+import jujutsu.mod.cursedincident.IncidentControl;
+import jujutsu.mod.cursedincident.IncidentControl.WorkCenter;
+import jujutsu.mod.cursedincident.IncidentRecord;
+import jujutsu.mod.cursedincident.IncidentWorldSink;
+import jujutsu.mod.cursedincident.infection.InfectionQueue;
+import jujutsu.mod.cursedincident.infection.InfectionSink;
+import jujutsu.mod.cursedincident.SecondaryNode;
+import java.util.UUID;
+/** Bounded world work driver; logical age advances even while an incident's chunk is unloaded. */
+public final class IncidentRuntime {
+	private static final int PERIOD_TICKS = 20;
+	private static final int MAX_PENDING_DELTAS_PER_TICK = 8;
+	private static IncidentWorldSink sink = IncidentWorldSink.NOOP;
+	private static MinecraftServer activeServer;
+	private static boolean registered;
+
+	private IncidentRuntime() {
+	}
+
+	public static void bindWorldSink(IncidentWorldSink value) {
+		sink = value == null ? IncidentWorldSink.NOOP : value;
+	}
+
+	public static void register() {
+		if (registered) {
+			return;
+		}
+		registered = true;
+		ServerTickEvents.END_SERVER_TICK.register(server -> {
+			if (server.overworld().getGameTime() % PERIOD_TICKS == 0L) {
+				tick(server);
+			}
+		});
+		ServerChunkEvents.CHUNK_LOAD.register((level, chunk) -> drainLoaded(level));
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> clear());
+	}
+
+	public static void tick(MinecraftServer server) {
+		if (server == null || server.overworld() == null) {
+			return;
+		}
+		activeServer = server;
+		List<IncidentRecord> records = IncidentControl.recordsForRuntime();
+		int loadedUnits = loadedWorkUnits(records);
+		int share = 64 / Math.max(1, loadedUnits);
+		for (IncidentRecord record : records) {
+			if (record == null) {
+				continue;
+			}
+			ServerLevel level = levelFor(server, record);
+			if (level == null) {
+				continue;
+			}
+			// Zone-state heartbeat: event-driven sends only reach players inside the delivery
+			// radius at that instant, so a late tracker or a client that walked out before a
+			// teardown would hold stale zone state forever. The periodic resend refreshes
+			// lastSeenClientTick on live zones; the client expires anything unheard.
+			heartbeatZoneSync(level, record, server.getTickCount());
+			if (record.sealed) {
+				continue;
+			}
+			if (!record.scarred) {
+				long now = level.getGameTime();
+				IncidentControl.advanceTo(record, record.ageTicks(now));
+			}
+			for (WorkCenter workCenter : IncidentControl.workCenters(record)) {
+				if (workCenter.isParent() && record.scarred) {
+					continue;
+				}
+				if (!isLoaded(level, workCenter.center())) {
+					continue;
+				}
+				if (workCenter.isParent()) {
+					replayPendingDeltas(level, record);
+				}
+				sink.tickZone(level, record, workCenter.center(), workCenter.nodeId(), share);
+			}
+		}
+		flushPendingDrains();
+	}
+
+	/** Counts loaded work centres, including self-sustaining nodes on scarred parents. */
+	public static int loadedWorkUnits(List<IncidentRecord> records) {
+		if (activeServer == null || records == null) {
+			return 0;
+		}
+		int loaded = 0;
+		for (IncidentRecord record : records) {
+			if (record == null || record.sealed) {
+				continue;
+			}
+			ServerLevel level = levelFor(activeServer, record);
+			for (WorkCenter workCenter : IncidentControl.workCenters(record)) {
+				if (workCenter.isParent() && record.scarred) {
+					continue;
+				}
+				if (isLoaded(level, workCenter.center())) {
+					loaded++;
+				}
+			}
+		}
+		return loaded;
+	}
+
+	/** Ticks between zone-state resends; the client TTL is a multiple of this. */
+	private static final long ZONE_SYNC_INTERVAL_TICKS = 100L;
+
+	/**
+	 * Resends every live work center's zone state on a slow cadence. Event-driven sends
+	 * only reach players inside the delivery radius at that instant — a late tracker or a
+	 * client that walked out before a teardown would hold stale zone state forever. The
+	 * resend refreshes {@code lastSeenClientTick} on live zones; the client expires the rest.
+	 */
+	private static void heartbeatZoneSync(ServerLevel level, IncidentRecord record, long serverTick) {
+		if (record.lastZoneSyncGameTime != Long.MIN_VALUE
+				&& serverTick - record.lastZoneSyncGameTime < ZONE_SYNC_INTERVAL_TICKS) {
+			return;
+		}
+		record.lastZoneSyncGameTime = serverTick;
+		for (WorkCenter workCenter : IncidentControl.workCenters(record)) {
+			if (workCenter.isParent() && record.scarred
+					|| !isLoaded(level, workCenter.center())) {
+				continue;
+			}
+			if (workCenter.isParent()) {
+				IncidentZoneSync.sendZoneState(level, record);
+			} else {
+				SecondaryNode node = secondaryFor(record, workCenter.nodeId());
+				if (node != null && !node.scarred()) {
+					IncidentZoneSync.sendZoneState(level, record, node);
+				}
+			}
+		}
+	}
+
+	private static SecondaryNode secondaryFor(IncidentRecord record, UUID nodeId) {
+		if (nodeId == null) {
+			return null;
+		}
+		for (SecondaryNode node : record.secondaries) {
+			if (node != null && nodeId.equals(node.nodeId())) {
+				return node;
+			}
+		}
+		return null;
+	}
+
+	private static void drainLoaded(ServerLevel level) {
+		// Never mutate the world inside CHUNK_LOAD — a setBlock there re-enters the
+		// chunk pipeline ("Recursive update" crash). Defer to the next server tick.
+		PENDING_DRAIN.add(level);
+	}
+
+	private static final java.util.Set<ServerLevel> PENDING_DRAIN =
+			java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+	private static void flushPendingDrains() {
+		for (ServerLevel level : PENDING_DRAIN) {
+			PENDING_DRAIN.remove(level);
+			List<IncidentRecord> records = IncidentControl.recordsForRuntime();
+			// Same per-center share as the normal tick — a chunk-load burst must not let the
+			// first centers eat the whole 64-block budget and starve the rest (review P2).
+			int share = 64 / Math.max(1, loadedWorkUnits(records));
+			for (IncidentRecord record : records) {
+				if (record == null || record.sealed
+						|| record.dimension != null && !record.dimension.equals(level.dimension())) {
+					continue;
+				}
+				for (WorkCenter workCenter : IncidentControl.workCenters(record)) {
+					if (workCenter.isParent() && record.scarred
+							|| !isLoaded(level, workCenter.center())) {
+						continue;
+					}
+					if (workCenter.isParent()) {
+						replayPendingDeltas(level, record);
+					}
+					sink.tickZone(level, record, workCenter.center(), workCenter.nodeId(), share);
+				}
+			}
+		}
+	}
+
+	private static void replayPendingDeltas(ServerLevel level, IncidentRecord record) {
+		int replayed = 0;
+		while (replayed++ < MAX_PENDING_DELTAS_PER_TICK && !record.pendingDeltas.isEmpty()) {
+			IncidentRecord.PendingDelta delta = record.pendingDeltas.remove(0);
+			// Replay the committed pair directly; never re-run transitionsBetween.
+			// A stale queued delta (e.g. the spawn-time INITIAL→INITIAL, queued while the
+			// chunk was still loading) must not regress a stage that already advanced
+			// past it — the stage write is skipped, the block-edit replay still runs.
+			if (delta.to() != null && delta.to().ordinal() > record.stage.ordinal()) {
+				record.stage = delta.to();
+			}
+			sink.applyStageDelta(level, record, delta.from(), delta.to());
+		}
+		if (replayed > 1) {
+			IncidentControl.markDirty();
+		}
+	}
+
+	private static boolean isActive(ServerLevel level, IncidentRecord record) {
+		return level != null && record != null && !record.sealed
+				&& (record.dimension == null || record.dimension.equals(level.dimension()));
+	}
+
+	private static ServerLevel levelFor(MinecraftServer server, IncidentRecord record) {
+		return server.getLevel(record == null || record.dimension == null ? Level.OVERWORLD : record.dimension);
+	}
+
+	private static boolean isLoaded(ServerLevel level, BlockPos center) {
+		return level != null && center != null
+				&& level.getChunkSource().hasChunk(center.getX() >> 4, center.getZ() >> 4);
+	}
+
+	public static void clear() {
+		sink = IncidentWorldSink.NOOP;
+		activeServer = null;
+		InfectionSink.clearRuntimeState();
+		InfectionQueue.clearRuntimeState();
+		PerceptionOverrideRuntime.clear();
+		PENDING_DRAIN.clear();
+	}
+}
