@@ -29,7 +29,7 @@ uniform sampler2D SceneDepthSampler;
 in vec2 texCoord;
 out vec4 fragColor;
 
-#define STEPS 96
+#define STEPS 64
 #define MAX_MARCH 512.0
 #define PI 3.14159265
 
@@ -63,7 +63,7 @@ float vnoise(vec2 p) {
 float fbm(vec2 p) {
     float v = 0.0;
     float a = 0.55;
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 3; i++) {
         v += a * vnoise(p);
         p = p * 2.13 + vec2(17.7, 9.2);
         a *= 0.5;
@@ -135,7 +135,7 @@ vec2 march(vec3 dir, float maxDist) {
             horizonT = traveled;
             break;
         }
-        float stepLen = clamp(dist * 0.12, 0.18, 3.0);
+        float stepLen = clamp(dist * 0.16, 0.22, 4.0);
         // Gravitational bend toward the centre, scaled by the step.
         vec3 toC = (CenterRadius.xyz - p) / dist;
         d = normalize(d + toC * (bendK / (dist * dist)) * stepLen);
@@ -210,12 +210,15 @@ void main() {
     float endDist = length(scenePoint);
     float maxDist = (endDist >= 0.0 && endDist < MAX_MARCH) ? endDist + 1.0 : MAX_MARCH;
 
-    vec2 mr = march(dir, maxDist);
+    // Early-out: rays whose straight-line miss distance already exceeds the reach of the bend
+    // can never see disk or horizon — skip the march entirely (most of the screen).
+    float b = length(cross(dir, CenterRadius.xyz));
+    float marchReach = DiskParams.y * 2.5 + CenterRadius.w * 4.0;
+    vec2 mr = b < marchReach ? march(dir, maxDist) : vec2(0.0);
     float diskLum = mr.x;
     float captured = mr.y;
 
     // --- photon ring / edge glow on the unbent impact parameter ---
-    float b = length(cross(dir, CenterRadius.xyz));
     float bCrit = CenterRadius.w * 2.6;
     float ring = exp(-pow((b - bCrit) / (CenterRadius.w * 0.13), 2.0)) * intensity * 1.6;
     float edgeGlow = exp(-max(b - CenterRadius.w, 0.0) / (CenterRadius.w * 0.30)) * 0.22 * intensity;
@@ -223,6 +226,7 @@ void main() {
     float ringVis = step(length(CenterRadius.xyz), maxDist);
     ring *= ringVis;
     edgeGlow *= ringVis;
+
 
     // --- grade ---
     float lum = dot(scene, vec3(0.299, 0.587, 0.114));

@@ -121,6 +121,8 @@ public final class BlackHoleRenderer implements AutoCloseable {
 	private final Matrix4f inverseProjection = new Matrix4f();
 	private final Matrix4f inversePosition = new Matrix4f();
 	private boolean disabledForSession;
+	private long fpsWindowStart;
+	private int fpsFrames;
 	private boolean copyProbeLogged;
 
 	/**
@@ -165,8 +167,27 @@ public final class BlackHoleRenderer implements AutoCloseable {
 		}
 		try {
 			drawFrame(client, target, context, hole, ageTicks, projection, position);
+			logFrameRate();
 		} catch (RuntimeException | LinkageError error) {
 			disable("render", error);
+		}
+	}
+
+	/** Debug probe: logs the average frame interval every 240 frames while the effect draws. */
+	private void logFrameRate() {
+		long now = System.nanoTime();
+		if (fpsWindowStart == 0L) {
+			fpsWindowStart = now;
+			fpsFrames = 0;
+			return;
+		}
+		fpsFrames++;
+		if (fpsFrames >= 240) {
+			double ms = (now - fpsWindowStart) / 1_000_000.0 / fpsFrames;
+			LOG.info("[BlackHole] avg frame {} ms (~{} fps) over {} frames",
+					String.format("%.2f", ms), String.format("%.0f", 1000.0 / ms), fpsFrames);
+			fpsWindowStart = now;
+			fpsFrames = 0;
 		}
 	}
 
