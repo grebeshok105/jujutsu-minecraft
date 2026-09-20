@@ -121,16 +121,19 @@ public final class MegumiPartialGameTests {
 
 		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
 
-		helper.runAtTickTime(PRESS_TICK, () -> guarded(helper, caster, () -> {
-			MegumiShikigamiSelection.set(caster.getUUID(), MegumiShikigami.NUE);
-			boolean on = MegumiPartialRuntime.tryPartial(caster, false);
-			helper.assertTrue(on, MegumiShikigamiTestFixtures.diagnostic(fixture, "press", helper.getTick(),
-					caster.getUUID(), "first tryPartial result", "true", on));
-			assertPartial(helper, fixture, "press", caster, MegumiShikigami.NUE);
-			assertFreeAndFreeOfSummonCooldowns(helper, fixture, "press", caster);
-			assertWingPayload(helper, fixture, "materializing", caster,
-					true, MegumiWingsStatePayload.MATERIALIZING);
-		}));
+	helper.runAtTickTime(PRESS_TICK, () -> guarded(helper, caster, () -> {
+		// A mock ServerPlayer's physics never ticks, so onGround stays false unless driven —
+		// without this the wings read airborne and fold the scenario into FLYING.
+		caster.setOnGroundWithMovement(true, Vec3.ZERO);
+		MegumiShikigamiSelection.set(caster.getUUID(), MegumiShikigami.NUE);
+		boolean on = MegumiPartialRuntime.tryPartial(caster, false);
+		helper.assertTrue(on, MegumiShikigamiTestFixtures.diagnostic(fixture, "press", helper.getTick(),
+				caster.getUUID(), "first tryPartial result", "true", on));
+		assertPartial(helper, fixture, "press", caster, MegumiShikigami.NUE);
+		assertFreeAndFreeOfSummonCooldowns(helper, fixture, "press", caster);
+		assertWingPayload(helper, fixture, "materializing", caster,
+				true, MegumiWingsStatePayload.MATERIALIZING);
+	}));
 
 		helper.runAtTickTime(ACT_TICK, () -> guarded(helper, caster, () -> {
 			// Three grounded ticks later the wings are still out: nothing folds them but a landing.

@@ -270,8 +270,12 @@ public final class CursedSpiritAbilityGameTests {
 									"approach has no held marker", "false/false",
 									RunnerEffect.isRunnerVictim(victim) + "/"
 											+ victim.hasEffect(JujutsuEffects.GRIPPED)));
-				} else if (RunnerEffect.phaseOf(spirit) == RunnerEffect.Phase.CONTACT
+				} else if ((RunnerEffect.phaseOf(spirit) == RunnerEffect.Phase.WINDUP
+						|| RunnerEffect.phaseOf(spirit) == RunnerEffect.Phase.CONTACT)
 						&& movedAtContact.compareAndSet(false, true)) {
+					// CONTACT lasts one tick and can be consumed between polls; WINDUP is the
+					// two-tick telegraph, so pulling the victim there still lands the miss on
+					// the CONTACT reach+LOS re-check.
 					victim.teleportTo(level, 2.5, 1.0, 14.5, Set.of(), 0.0f, 0.0f, false);
 				} else if (movedAtContact.get()
 						&& !spirit.abilityBrain().isActive(CursedSpiritAbilityId.GRAB_RUNNER,
@@ -290,7 +294,19 @@ public final class CursedSpiritAbilityGameTests {
 				} else if (poll == 130) {
 					helper.assertTrue(false, CursedSpiritTestFixtures.diagnostic(fixture,
 							helper.getTick(), "contact miss observed by tick 130",
-							"abort", RunnerEffect.phaseOf(spirit)));
+							"abort", "phase=" + RunnerEffect.phaseOf(spirit)
+									+ " active=" + spirit.abilityBrain().isActive(
+											CursedSpiritAbilityId.GRAB_RUNNER, level.getGameTime())
+									+ " dist=" + spirit.distanceTo(victim)
+									+ " spiritPos=" + spirit.position()
+									+ " victimPos=" + victim.position()
+									+ " moved=" + movedAtContact.get()
+									+ " approachSeen=" + observedApproach.get()
+									+ " navDone=" + spirit.getNavigation().isDone()
+									+ " navPath=" + spirit.getNavigation().getPath()
+									+ " target=" + spirit.getTarget()
+									+ " noAi=" + spirit.isNoAi()
+									+ " hColl=" + spirit.horizontalCollision));
 				}
 			});
 		}

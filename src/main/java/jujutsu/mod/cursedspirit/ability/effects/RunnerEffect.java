@@ -134,11 +134,20 @@ public final class RunnerEffect {
 		if (spirit == null || victim == null) {
 			return false;
 		}
-		double centreDistance = spirit.distanceTo(victim);
+		// Horizontal edge distance: a victim one slab/ledge up must still be grabbable, and the
+		// 3D centre distance would tax that height difference twice. The vertical band keeps the
+		// gate honest — a victim two blocks overhead is out of arm's reach.
+		double dx = spirit.getX() - victim.getX();
+		double dz = spirit.getZ() - victim.getZ();
+		double horizontal = Math.sqrt(dx * dx + dz * dz);
+		double dy = Math.abs(spirit.getY() - victim.getY());
+		if (dy > 2.0) {
+			return false;
+		}
 		CursedSpiritTierStats stats = CursedSpiritProfile.of(spirit.tier());
-		boolean tierReach = CursedSpiritAttackPolicy.inReach(centreDistance,
+		boolean tierReach = CursedSpiritAttackPolicy.inReach(horizontal,
 				spirit.getBbWidth(), victim.getBbWidth(), stats);
-		double edgeDistance = centreDistance - spirit.getBbWidth() * 0.5 - victim.getBbWidth() * 0.5;
+		double edgeDistance = horizontal - spirit.getBbWidth() * 0.5 - victim.getBbWidth() * 0.5;
 		return tierReach && edgeDistance <= CursedSpiritAbilityProfile.RUNNER_CONTACT_RANGE;
 	}
 
@@ -222,7 +231,20 @@ public final class RunnerEffect {
 	private static void approach(CursedSpiritEntity spirit, ServerPlayer victim,
 			CursedSpiritAbilityParams params) {
 		spirit.getLookControl().setLookAt(victim, 30.0f, 30.0f);
-		spirit.getNavigation().moveTo(victim, clampSpeed(params.speed()));
+		double speed = clampSpeed(params.speed());
+		if (spirit.getNavigation().isDone() && !inContactRange(spirit, victim)) {
+			// Pathfinding calls ~3 blocks "close enough" and ends the path, but the contact gate
+			// wants the victim inside arm's reach — push the last stretch straight at the body.
+			Vec3 toVictim = victim.position().subtract(spirit.position());
+			Vec3 horizontal = new Vec3(toVictim.x, 0.0, toVictim.z);
+			if (horizontal.lengthSqr() > 1.0E-6) {
+				Vec3 push = horizontal.normalize().scale(Math.min(0.35, speed * 0.25));
+				spirit.setDeltaMovement(push.x, spirit.getDeltaMovement().y, push.z);
+				spirit.setYRot((float) (Math.atan2(-push.x, push.z) * 180.0 / Math.PI));
+			}
+			return;
+		}
+		spirit.getNavigation().moveTo(victim, speed);
 	}
 
 	private static void commitCarry(CursedSpiritEntity spirit, ServerLevel level,
