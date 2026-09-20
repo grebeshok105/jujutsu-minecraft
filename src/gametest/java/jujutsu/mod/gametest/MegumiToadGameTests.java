@@ -224,6 +224,7 @@ public final class MegumiToadGameTests {
 		AtomicLong grabTick = new AtomicLong(-1L);
 		AtomicBoolean done = new AtomicBoolean();
 		AtomicReference<Vec3> previousVictimPosition = new AtomicReference<>();
+		previousVictimPosition.set(zombie.position());
 
 		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
 			UUID ownerId = caster.getUUID();
@@ -273,6 +274,10 @@ public final class MegumiToadGameTests {
 									"Toad body present", "1", bodies.size()));
 					MegumiToadEntity body = bodies.get(0);
 					boolean holding = body.isHolding() && zombie.getUUID().equals(body.grabbedUuid());
+					Vec3 currentVictimPosition = zombie.position();
+					Vec3 previousPosition = previousVictimPosition.getAndSet(currentVictimPosition);
+					double pullDistance = previousPosition == null ? 0.0
+							: currentVictimPosition.distanceTo(previousPosition);
 
 					if (grabTick.get() < 0) {
 						if (!holding) {
@@ -287,7 +292,6 @@ public final class MegumiToadGameTests {
 						grabTick.set(pollTick);
 						anchorAtGrab.set(zombie.position());
 						bodyAtGrab.set(body.position());
-						previousVictimPosition.set(zombie.position());
 						helper.assertTrue(!body.grabbedIsPlayer(),
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "grab", pollTick,
 										caster.getUUID(), "mob victim is not flagged as a player",
@@ -301,6 +305,16 @@ public final class MegumiToadGameTests {
 										caster.getUUID(), "victim inside the grab range at the commit",
 										"<= " + MegumiShikigamiProfile.TOAD_GRAB_RANGE,
 										anchorDistance));
+						Vec3 anchor = MegumiToadPolicy.anchor(body.position(), body.getLookAngle(),
+								MegumiShikigamiProfile.TOAD_GRIP_OFFSET);
+						double gapBeforeStep = previousPosition == null ? 0.0
+								: previousPosition.distanceTo(anchor);
+						if (previousPosition != null && gapBeforeStep > PULL_STEP_EPSILON) {
+							helper.assertTrue(pullDistance <= MAX_PULL_STEP + PULL_STEP_EPSILON,
+									MegumiShikigamiTestFixtures.diagnostic(fixture, "grab", pollTick,
+											caster.getUUID(), "zombie pull step at grab commit",
+											"<= " + MAX_PULL_STEP, pullDistance));
+						}
 						helper.assertTrue(zombie.getHealth() == healthBefore.get().doubleValue(),
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "grab", pollTick,
 										caster.getUUID(), "zombie health at the commit (R1: no instant damage)",
@@ -329,10 +343,8 @@ public final class MegumiToadGameTests {
 						Vec3 anchor = MegumiToadPolicy.anchor(body.position(), body.getLookAngle(),
 								MegumiShikigamiProfile.TOAD_GRIP_OFFSET);
 						double anchorDrift = Math.hypot(zombie.getX() - anchor.x, zombie.getZ() - anchor.z);
-						Vec3 currentVictimPosition = zombie.position();
-						Vec3 previousPosition = previousVictimPosition.getAndSet(currentVictimPosition);
-						double pullDistance = currentVictimPosition.distanceTo(previousPosition);
-						double gapBeforeStep = previousPosition.distanceTo(anchor);
+						double gapBeforeStep = previousPosition == null ? 0.0
+								: previousPosition.distanceTo(anchor);
 						if (gapBeforeStep > PULL_STEP_EPSILON) {
 							helper.assertTrue(pullDistance <= MAX_PULL_STEP + PULL_STEP_EPSILON,
 									MegumiShikigamiTestFixtures.diagnostic(fixture, "hold", pollTick,
@@ -580,6 +592,10 @@ public final class MegumiToadGameTests {
 									"Toad body present", "1", bodies.size()));
 					MegumiToadEntity body = bodies.get(0);
 					boolean held = HoldSupport.isHeld(victim);
+					Vec3 currentVictimPosition = victim.position();
+					Vec3 previousPosition = previousVictimPosition.getAndSet(currentVictimPosition);
+					double pullDistance = previousPosition == null ? 0.0
+							: currentVictimPosition.distanceTo(previousPosition);
 
 					if (grabTick.get() < 0) {
 						if (!held) {
@@ -593,7 +609,6 @@ public final class MegumiToadGameTests {
 						}
 						grabTick.set(pollTick);
 						anchorAtGrab.set(victim.position());
-						previousVictimPosition.set(victim.position());
 						helper.assertTrue(body.grabbedIsPlayer(),
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "hold", pollTick,
 										caster.getUUID(), "victim flagged as a player",
@@ -610,6 +625,16 @@ public final class MegumiToadGameTests {
 										caster.getUUID(), "victim inside the grab range at the commit",
 										"<= " + MegumiShikigamiProfile.TOAD_GRAB_RANGE,
 										distance));
+						Vec3 anchor = MegumiToadPolicy.anchor(body.position(), body.getLookAngle(),
+								MegumiShikigamiProfile.TOAD_GRIP_OFFSET);
+						double gapBeforeStep = previousPosition == null ? 0.0
+								: previousPosition.distanceTo(anchor);
+						if (previousPosition != null && gapBeforeStep > PULL_STEP_EPSILON) {
+							helper.assertTrue(pullDistance <= MAX_PULL_STEP + PULL_STEP_EPSILON,
+									MegumiShikigamiTestFixtures.diagnostic(fixture, "grab", pollTick,
+											caster.getUUID(), "player pull step at grab commit",
+											"<= " + MAX_PULL_STEP, pullDistance));
+						}
 						return;
 					}
 
@@ -619,10 +644,8 @@ public final class MegumiToadGameTests {
 						Vec3 anchor = MegumiToadPolicy.anchor(body.position(), body.getLookAngle(),
 								MegumiShikigamiProfile.TOAD_GRIP_OFFSET);
 						double anchorDrift = Math.hypot(victim.getX() - anchor.x, victim.getZ() - anchor.z);
-						Vec3 currentVictimPosition = victim.position();
-						Vec3 previousPosition = previousVictimPosition.getAndSet(currentVictimPosition);
-						double pullDistance = currentVictimPosition.distanceTo(previousPosition);
-						double gapBeforeStep = previousPosition.distanceTo(anchor);
+						double gapBeforeStep = previousPosition == null ? 0.0
+								: previousPosition.distanceTo(anchor);
 						if (gapBeforeStep > PULL_STEP_EPSILON) {
 							helper.assertTrue(pullDistance <= MAX_PULL_STEP + PULL_STEP_EPSILON,
 									MegumiShikigamiTestFixtures.diagnostic(fixture, "hold", pollTick,

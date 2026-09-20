@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Cow;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -419,7 +420,10 @@ public final class CursedIncidentGameTests {
 	@GameTest(structure = "jujutsumod:large_empty", maxTicks = 100)
 	public void demoCommandSpawnsDressedIncident(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
-		var player = CursedSpiritTestFixtures.setupVictim(helper, "demoCommandSpawnsDressedIncident", CENTER);
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		BlockPos playerPos = helper.absolutePos(CENTER);
+		player.teleportTo(level, playerPos.getX() + 0.5, playerPos.getY(),
+				playerPos.getZ() + 0.5, Set.of(), 0.0f, 0.0f, false);
 		helper.runAtTickTime(5, () -> {
 			try {
 				Set<java.util.UUID> before = new java.util.HashSet<>();

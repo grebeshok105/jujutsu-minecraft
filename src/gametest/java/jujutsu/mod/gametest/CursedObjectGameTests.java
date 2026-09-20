@@ -306,8 +306,8 @@ public final class CursedObjectGameTests {
 		var encoded = ItemStack.CODEC.encodeStart(ops, stack).result().orElseThrow();
 		ItemStack decodedStack = ItemStack.CODEC.parse(ops, encoded).result().orElseThrow();
 		CursedObjectState roundTrip = CursedObjectItem.state(decodedStack);
-		helper.assertTrue(roundTrip != null && roundTrip.sealed()
-				&& roundTrip.sealTier() == 2 && roundTrip.sealIntegrity() == 75,
+		helper.assertTrue(roundTrip != null && state.equals(roundTrip)
+				&& roundTrip.sealed() && roundTrip.sealTier() == 2 && roundTrip.sealIntegrity() == 75,
 				CursedIncidentTestFixtures.diagnostic("sealSurvivesSaveLoad(R46)", helper,
 						"sealed component fields after ItemStack codec", state, roundTrip));
 		helper.succeed();

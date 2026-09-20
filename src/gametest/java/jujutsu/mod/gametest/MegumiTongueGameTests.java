@@ -61,7 +61,8 @@ public final class MegumiTongueGameTests {
 
 	/**
 	 * R29 — the wall case: a flat wall 9.5 blocks from the eye takes the tongue, the release edge
-	 * starts a six-tick retract window, and a wall whose face is 10.5 blocks away is refused after it.
+	 * starts a six-tick retract window, and a wall whose face is 10.5 blocks away answers with the
+	 * spec's bounded whiff — the tongue shoots, never anchors, and retracts on its own.
 	 */
 	@GameTest(maxTicks = 60, structure = "jujutsumod:large_empty")
 	public void tongueHooksAWallFaceWithinTenBlocksAndRefusesPastTen(GameTestHelper helper) {
@@ -92,30 +93,56 @@ public final class MegumiTongueGameTests {
 		}));
 
 		helper.runAtTickTime(SECOND_STEP_TICK, () -> {
+			UUID ownerId = caster.getUUID();
+			// The first wall must come down before the whiff step: left standing, its face at
+			// 9.5 blocks is still in range and the ray hits it instead of reaching the far wall.
+			for (int offset = -1; offset <= 1; offset++) {
+				helper.setBlock(new BlockPos(12, 1, 2 + offset), Blocks.AIR);
+				helper.setBlock(new BlockPos(12, 2, 2 + offset), Blocks.AIR);
+			}
+
+			// Same geometry, one cell further out: the face is now 10.5 blocks away, past the limit.
+			// The spec's answer to a miss is a bounded whiff — the tongue shoots, never anchors,
+			// and retracts on its own — not a silent refusal.
+			layWall(helper, new BlockPos(13, 1, 2));
+			MegumiShikigamiSelection.set(ownerId, MegumiShikigami.TOAD);
+			TodoSwapTestFixtures.aimAt(caster, blockCenter(helper, new BlockPos(13, 2, 2)));
+			helper.assertTrue(MegumiPartialRuntime.tryPartial(caster, false),
+					MegumiShikigamiTestFixtures.diagnostic(fixture, "whiff", helper.getTick(), ownerId,
+							"tryPartial on a 10.5-block wall face", "true", "false"));
+			helper.assertTrue(MegumiPartialRuntime.isActiveForType(ownerId, MegumiShikigami.TOAD),
+					MegumiShikigamiTestFixtures.diagnostic(fixture, "whiff", helper.getTick(), ownerId,
+							"tongue active for the whiff", "true", "false"));
+			MegumiTongueStatePayload payload = MegumiPartialRuntime.lastTonguePayload(ownerId);
+			helper.assertTrue(payload != null && payload.active()
+							&& payload.phase() == MegumiTongueStatePayload.SHOOTING,
+					MegumiShikigamiTestFixtures.diagnostic(fixture, "whiff", helper.getTick(), ownerId,
+							"outgoing tongue phase on the whiff", MegumiTongueStatePayload.SHOOTING,
+							payload == null ? "null" : payload.phase()));
+		});
+
+		// Four shoot ticks after the whiff the tongue retracts by itself — no anchor was ever made.
+		helper.runAtTickTime(SECOND_STEP_TICK + 5, () -> {
+			UUID ownerId = caster.getUUID();
+			MegumiTongueStatePayload payload = MegumiPartialRuntime.lastTonguePayload(ownerId);
+			helper.assertTrue(payload != null && payload.phase() == MegumiTongueStatePayload.RETRACTING,
+					MegumiShikigamiTestFixtures.diagnostic(fixture, "whiff-retract", helper.getTick(), ownerId,
+							"outgoing tongue phase after the shoot ticks", MegumiTongueStatePayload.RETRACTING,
+							payload == null ? "null" : payload.phase()));
+		});
+
+		// The retract window is six ticks; after it the whiff state is fully torn down.
+		helper.runAtTickTime(SECOND_STEP_TICK + 13, () -> {
 			try {
 				UUID ownerId = caster.getUUID();
-				// The first wall must come down before the refuse step: left standing, its face at
-				// 9.5 blocks is still in range and the ray hits it instead of reaching the far wall.
-				for (int offset = -1; offset <= 1; offset++) {
-					helper.setBlock(new BlockPos(12, 1, 2 + offset), Blocks.AIR);
-					helper.setBlock(new BlockPos(12, 2, 2 + offset), Blocks.AIR);
-				}
-
-				// Same geometry, one cell further out: the face is now 10.5 blocks away, past the limit.
-				layWall(helper, new BlockPos(13, 1, 2));
-				MegumiShikigamiSelection.set(ownerId, MegumiShikigami.TOAD);
-				TodoSwapTestFixtures.aimAt(caster, blockCenter(helper, new BlockPos(13, 2, 2)));
-				helper.assertTrue(!MegumiPartialRuntime.tryPartial(caster, false),
-						MegumiShikigamiTestFixtures.diagnostic(fixture, "refuse", helper.getTick(), ownerId,
-								"tryPartial on a 10.5-block wall face", "false", "true"));
 				helper.assertTrue(!MegumiPartialRuntime.isActiveForType(ownerId, MegumiShikigami.TOAD),
-						MegumiShikigamiTestFixtures.diagnostic(fixture, "refuse", helper.getTick(), ownerId,
-								"tongue active after the out-of-range refusal", "false", "true"));
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "whiff-teardown", helper.getTick(), ownerId,
+								"tongue active after the whiff retracted", "false", "true"));
 			} finally {
 				cleanup(helper, caster);
 			}
 		});
-		helper.runAtTickTime(20, () -> helper.succeed());
+		helper.runAtTickTime(SECOND_STEP_TICK + 15, () -> helper.succeed());
 	}
 
 	/** R29 — the ceiling case: the ray goes up into a block overhead, four and a half blocks away. */
