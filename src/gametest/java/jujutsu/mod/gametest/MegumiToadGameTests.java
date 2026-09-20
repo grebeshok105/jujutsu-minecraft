@@ -309,11 +309,14 @@ public final class MegumiToadGameTests {
 								MegumiShikigamiProfile.TOAD_GRIP_OFFSET);
 						double gapBeforeStep = previousPosition == null ? 0.0
 								: previousPosition.distanceTo(anchor);
+						// The commit poll can cover two server pulls: the grab may commit after
+						// the previous poll ran, so tick N-1's and tick N's applyHold both land
+						// inside this one poll interval. The bound is doubled here only.
 						if (previousPosition != null && gapBeforeStep > PULL_STEP_EPSILON) {
-							helper.assertTrue(pullDistance <= MAX_PULL_STEP + PULL_STEP_EPSILON,
+							helper.assertTrue(pullDistance <= 2 * MAX_PULL_STEP + PULL_STEP_EPSILON,
 									MegumiShikigamiTestFixtures.diagnostic(fixture, "grab", pollTick,
 											caster.getUUID(), "zombie pull step at grab commit",
-											"<= " + MAX_PULL_STEP, pullDistance));
+											"<= " + 2 * MAX_PULL_STEP, pullDistance));
 						}
 						helper.assertTrue(zombie.getHealth() == healthBefore.get().doubleValue(),
 								MegumiShikigamiTestFixtures.diagnostic(fixture, "grab", pollTick,
@@ -629,11 +632,13 @@ public final class MegumiToadGameTests {
 								MegumiShikigamiProfile.TOAD_GRIP_OFFSET);
 						double gapBeforeStep = previousPosition == null ? 0.0
 								: previousPosition.distanceTo(anchor);
+						// Same doubled bound as the mob case: the commit poll can cover two
+						// server pulls when the grab lands between polls.
 						if (previousPosition != null && gapBeforeStep > PULL_STEP_EPSILON) {
-							helper.assertTrue(pullDistance <= MAX_PULL_STEP + PULL_STEP_EPSILON,
+							helper.assertTrue(pullDistance <= 2 * MAX_PULL_STEP + PULL_STEP_EPSILON,
 									MegumiShikigamiTestFixtures.diagnostic(fixture, "grab", pollTick,
 											caster.getUUID(), "player pull step at grab commit",
-											"<= " + MAX_PULL_STEP, pullDistance));
+											"<= " + 2 * MAX_PULL_STEP, pullDistance));
 						}
 						return;
 					}
