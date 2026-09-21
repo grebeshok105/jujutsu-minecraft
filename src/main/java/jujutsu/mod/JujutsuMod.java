@@ -31,10 +31,6 @@ public class JujutsuMod implements ModInitializer {
 	public void onInitialize() {
 		JujutsuEntities.register();
 		jujutsu.mod.cursedspirit.CursedSpirits.registerServerHooks();
-		jujutsu.mod.cursedincident.CursedIncidents.registerServerHooks();
-		jujutsu.mod.cursedincident.object.ObjectWiring.register();
-		jujutsu.mod.cursedincident.IncidentWiring.register();
-		jujutsu.mod.cursedincident.runtime.PressureRuntime.register();
 		JujutsuAttachments.register();
 		JujutsuDataComponents.register();
 		JujutsuItems.register();
