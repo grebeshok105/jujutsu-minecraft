@@ -89,6 +89,13 @@ public final class JujutsuSounds {
 	public static final SoundEvent SEAL_CRACK = create("seal_crack");
 	public static final SoundEvent SEAL_BREAK = create("seal_break");
 	public static final SoundEvent SECONDARY_BIRTH = create("secondary_birth");
+	// Black hole visual experiment (debug-only): PRELUDE and IMPULSE are synthesized by
+	// tools/synth_blackhole_sounds.py; DRONE is the licensed freesound loop
+	// 568574__ericnorcross81__void-of-a-black-hole-fictional (mono, loop-wrapped, bass-boosted).
+	// All layers are strictly positional at the hole's centre.
+	public static final SoundEvent BLACK_HOLE_PRELUDE = create("blackhole.prelude");
+	public static final SoundEvent BLACK_HOLE_DRONE = create("blackhole.drone");
+	public static final SoundEvent BLACK_HOLE_IMPULSE = create("blackhole.impulse");
 
 	public static void register() {
 		register("hairpin.prep", HAIRPIN_PREP);
@@ -159,6 +166,9 @@ public final class JujutsuSounds {
 		register("seal_crack", SEAL_CRACK);
 		register("seal_break", SEAL_BREAK);
 		register("secondary_birth", SECONDARY_BIRTH);
+		register("blackhole.prelude", BLACK_HOLE_PRELUDE);
+		register("blackhole.drone", BLACK_HOLE_DRONE);
+		register("blackhole.impulse", BLACK_HOLE_IMPULSE);
 	}
 
 	private static SoundEvent create(String path) {

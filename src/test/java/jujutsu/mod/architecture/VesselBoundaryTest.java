@@ -87,13 +87,15 @@ class VesselBoundaryTest {
 	 * <li>{@code vfx → domain}: shared debug/dev VFX (domain-sphere PoC) — a world-space effect with no
 	 * vessel owner, registered outside the vessel recipe packs on purpose so the per-vessel live-id
 	 * coverage stays exactly the vessel packs.</li>
+	 * <li>{@code vfx → blackhole}: shared debug/dev VFX (black-hole experiment) — same standing as
+	 * {@code domain}: a world-space post-effect with no vessel owner, triggered by a debug command.</li>
 	 * <li>{@code render → cursedspirit}: shared hostile-mob render tree (ported models/animations plus one
 	 * renderer per visual variant). Its gameplay seam is the cursed-spirit tier, not a vessel; the
 	 * server-side module lives in {@code jujutsu.mod.cursedspirit}.</li>
 	 * </ul>
 	 */
 	private static final Map<String, Set<String>> SHARED_SEGMENTS_BY_PARENT = Map.of(
-			"jujutsu.mod.client.vfx.", Set.of("world", "cursedspirit", "domain"),
+			"jujutsu.mod.client.vfx.", Set.of("world", "cursedspirit", "domain", "blackhole"),
 			"jujutsu.mod.client.render.", Set.of("cursedspirit"));
 
 	/**
@@ -228,7 +230,7 @@ class VesselBoundaryTest {
 		// The exception map is the only way a package under a vessel parent may avoid naming a
 		// vessel, so it must not grow silently: pin the exact pairs, not just their lookups.
 		assertEquals(Map.of(
-				"jujutsu.mod.client.vfx.", Set.of("world", "cursedspirit", "domain"),
+				"jujutsu.mod.client.vfx.", Set.of("world", "cursedspirit", "domain", "blackhole"),
 				"jujutsu.mod.client.render.", Set.of("cursedspirit")),
 				SHARED_SEGMENTS_BY_PARENT,
 				"a new shared-segment exception needs the same justification a vessel registration does");

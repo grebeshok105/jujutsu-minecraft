@@ -3,6 +3,10 @@
   "package": "jujutsu.mod.client.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
+		"BlackHoleBobViewMixin",
+		"BlackHoleGameRendererMixin",
+		"BlackHoleGuiRendererMixin",
+		"BlackHoleSoundEngineMixin",
 		"CharacterSkinAnimationMixin",
 		"CharacterSkinMixin",
     "FirstPersonHandFxMixin",

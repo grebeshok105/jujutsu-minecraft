@@ -1,3 +1,45 @@
+# Session Handoff — black hole VFX experiment — 2026-09-21
+
+## State — DONE: PR #120 open on `feat/black-hole-vfx`, pushed through `3e19632`, qualityGate green
+
+Branch `feat/black-hole-vfx` (off main). Design spec: monochrome black hole,
+~30 blocks, 30 ahead, 5-phase lifecycle (prelude/appear/stable/disappear/aftermath),
+lensing + fullscreen warp + HUD warp + desaturation + dominant sound + 2s silence.
+Reuses the domain_sphere (Railgun port) pipeline pattern; entry point is the new
+`/jujutsu_debug black_hole [seconds]` client command (+ `remove`), plus mcpdev
+`jujutsu_black_hole`.
+
+Key pieces: `client/vfx/blackhole/` (Timing/State/Profile/Renderer/SoundInstance/
+Debug), `VfxBlackHoleChannel` (singleton slot), 4 client mixins (GameRenderer
+renderLevel TAIL → world pass; GuiRenderer → hudPre/hudPost copies + composite;
+SoundEngine → duck by 1-duckAmount, exempt own sounds; BlackHoleBobViewMixin →
+no view-bobbing while active). HUD warp is copy-based. Shaders `black_hole.fsh`
+(bent-ray march 64 steps + ANALYTIC ray-sphere capture Rs=2.6·R·collapse → perfect
+black silhouette RGB 0; disk emission w/ streaks/clumps/flashes, doppler, far-side
+dim 0.62; screen warp + under-shade; monochrome grade) and `black_hole_hud.fsh`.
+Disk tilt 14° off vertical. Sounds: positional drone (freesound 568574, ffmpeg-
+processed mono loop, vol 1.4, att 96) + synthesized prelude/impulse
+(`tools/synth_blackhole_sounds.py`); inner layer removed.
+
+Polish round 2 (user's 7 asks) all verified in game on the lane: analytic
+silhouette, RGB 0 inside, non-uniform asymmetric disk, tame bloom, bob-mixin
+stability, punchy implosion collapse (flash arcs → debris scatter → aftermath,
+warp outlives object), grey dome under hole fixed via under-shade.
+
+Round 3 (`7774e0b`): the sky itself becomes a seeded procedural cosmos while the
+hole lives — domain-warped fbm3 nebula (palette rotates per spawn), octa-mapped
+star layers, 1–4 planets with bands/limb/halo/rings; distant terrain dissolves
+into space, near geometry tints. CosmosParams vec4 (4 seed offsets from
+timing.seed) in the UBO (352B). Verified on lane: nebula+stars+planets visible,
+village silhouettes dissolve, palette differs between spawns.
+
+qualityGate BUILD SUCCESSFUL (47 tasks). MOC metrics updated (client java 290,
+mixins 17). PR body carries freesound attribution + cosmos bullets.
+
+Remaining: user review/merge of PR #120; subjective loudness check on real ears.
+
+---
+
 # Session Handoff — cursed-spirit melee "hit air" fix — 2026-09-20
 
 ## State — DONE, committed `e386cd7` on `integration/megumi-incidents-107-110`
