@@ -241,11 +241,10 @@ float diskEmission(vec3 p, vec3 viewDir) {
     // Differential rotation: inner edge faster. Slow, stately — not a whirlpool.
     float rot = DiskNormal.w + Params1.z * 0.55 * pow(rIn / rad, 1.5);
 
-    // Radial brightness: a hard hot rim right at the inner edge, then a decaying tail.
-    // The band must read as ONE continuous ring — turbulence modulates it, never breaks it.
+    // Radial brightness: hot inner rim, then a broad luminous body that stays bright far
+    // enough to be seen PAST the shadow's edge — a steep decay hides the disk inside the dome.
     float x = (rad - rIn) / (rOut - rIn);
-
-    float profile = smoothstep(0.0, 0.05, x) * pow(1.0 - x, 1.5);
+    float profile = smoothstep(0.0, 0.04, x) * (pow(1.0 - x, 0.9) * 0.75 + 0.25 * (1.0 - x));
     profile += 0.9 * smoothstep(0.0, 0.03, x) * exp(-x * 16.0); // hot inner rim
 
     // Gentle shear streaks — slow brightness drift along the flow, not holes in the ring.
@@ -433,9 +432,9 @@ void main() {
     vec3 col = scene + holeLight;
     // Soft HDR rolloff so the disk blows out to white instead of clipping ugly.
     col = col / (1.0 + col * 0.16);
-    // Captured rays keep ONLY the bright equatorial band gathered before the horizon — the
-    // diffuse lensed under-image dies, so the shadow interior is true black, not a grey ball.
-    vec3 band = vec3(diskLum * 2.6) * smoothstep(0.55, 1.4, diskLum);
+    // Captured rays keep ONLY the equatorial band gathered before the horizon — a continuous
+    // bright line across the shadow, not a ragged remnant.
+    vec3 band = vec3(diskLum * 2.6) * smoothstep(0.35, 1.0, diskLum);
 
     vec3 capturedCol = band / (1.0 + band * 0.16);
     fragColor = vec4(mix(col, capturedCol, captured), 1.0);

@@ -14,11 +14,10 @@ public final class BlackHoleProfile {
 	/** Disk outer edge: ~30 blocks radius → the ring reaches ~2.2x past the capture shadow,
 	 * so the equatorial band visibly wraps the dome instead of hiding inside it. */
 	public static final double DISK_OUTER_RADIUS = 30.0;
-	/** Half-thickness of the disk slab. */
-	public static final double DISK_HALF_THICKNESS = 0.55;
+	/** Half-thickness of the disk slab — thin enough that the band reads as a crisp line. */
+	public static final double DISK_HALF_THICKNESS = 0.22;
 
 	/** Spawn distance ahead of the player's eye, in blocks. */
 	public static final double SPAWN_DISTANCE = 30.0;
-	/** Disk tilt off the vertical axis, radians — near-horizontal disk read edge-on, Gargantua-style. */
-	public static final double DISK_TILT_RADIANS = Math.toRadians(14.0);
+	public static final double DISK_TILT_RADIANS = Math.toRadians(20.0);
 }
