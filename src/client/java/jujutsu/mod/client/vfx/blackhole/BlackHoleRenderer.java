@@ -58,8 +58,8 @@ public final class BlackHoleRenderer implements AutoCloseable {
 	private static final ResourceLocation HUD_SHADER_ID =
 			ResourceLocation.fromNamespaceAndPath("jujutsumod", "core/black_hole_hud");
 
-	/** std140 BlackHoleData: 4 mat4 + 5 vec4 = 336 bytes. */
-	private static final int BLACK_HOLE_DATA_SIZE = 336;
+	/** std140 BlackHoleData: 4 mat4 + 6 vec4 = 352 bytes. */
+	private static final int BLACK_HOLE_DATA_SIZE = 352;
 	/** std140 BlackHoleHud: 2 vec4 = 32 bytes. */
 	private static final int HUD_DATA_SIZE = 32;
 
@@ -267,6 +267,11 @@ public final class BlackHoleRenderer implements AutoCloseable {
 				.putFloat((float) BlackHoleProfile.DISK_OUTER_RADIUS)
 				.putFloat((float) BlackHoleProfile.DISK_HALF_THICKNESS)
 				.putFloat(timing.collapse(ageTicks));
+		long seed = timing.seed();
+		data.putFloat(((seed >>> 32) & 0xFFFF) / 65536.0f)
+				.putFloat((seed & 0xFFFF) / 65536.0f)
+				.putFloat(((seed >>> 16) & 0xFFFF) / 65536.0f)
+				.putFloat(((seed >>> 48) & 0xFFFF) / 65536.0f);
 		data.flip();
 		encoder.writeToBuffer(blackHoleData.slice(0, BLACK_HOLE_DATA_SIZE), data);
 	}

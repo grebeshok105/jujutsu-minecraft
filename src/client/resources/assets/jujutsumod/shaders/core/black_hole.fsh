@@ -10,7 +10,7 @@
 //      capture (event horizon). The march runs on the UNWARPED direction so the disk stays a
 //      coherent 3D object while the background warps around it.
 //
-// std140, 320 bytes.
+// std140, 352 bytes.
 layout(std140) uniform BlackHoleData {
     mat4 InvProjMat;
     mat4 InvViewMat;
@@ -21,6 +21,7 @@ layout(std140) uniform BlackHoleData {
     vec4 Params0;        // x: intensity, y: lensStrength, z: diskIntensity, w: desaturation
     vec4 Params1;        // x: jolt, y: aspect ratio (w/h), z: time seconds, w: camera-inside flag
     vec4 DiskParams;     // x: disk inner radius, y: disk outer radius, z: disk half-thickness, w: collapse (1=alive, 0=gone)
+    vec4 CosmosParams;   // x..w: per-spawn seed offsets (nebula, hue, stars, planets)
 };
 
 uniform sampler2D SceneSampler;
@@ -69,6 +70,148 @@ float fbm(vec2 p) {
         a *= 0.5;
     }
     return v;
+}
+
+// ---------------------------------------------------------------------------
+// procedural cosmos: per-spawn seeded nebula + stars + planets. Evaluated on the
+// (possibly warped) view direction, so the sky bends with the lensing.
+
+float hash31(vec3 p) {
+    p = fract(p * vec3(443.897, 441.423, 437.195));
+    p += dot(p, p.zxy + 31.31);
+    return fract((p.x + p.y) * p.z);
+}
+
+vec3 hash33(vec3 p) {
+    p = fract(p * vec3(443.897, 441.423, 437.195));
+    p += dot(p, p.yxz + 19.19);
+    return fract((p.xxy + p.yxx) * p.zyx);
+}
+
+float vnoise3(vec3 p) {
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float n000 = hash31(i);
+    float n100 = hash31(i + vec3(1.0, 0.0, 0.0));
+    float n010 = hash31(i + vec3(0.0, 1.0, 0.0));
+    float n110 = hash31(i + vec3(1.0, 1.0, 0.0));
+    float n001 = hash31(i + vec3(0.0, 0.0, 1.0));
+    float n101 = hash31(i + vec3(1.0, 0.0, 1.0));
+    float n011 = hash31(i + vec3(0.0, 1.0, 1.0));
+    float n111 = hash31(i + vec3(1.0, 1.0, 1.0));
+    return mix(mix(mix(n000, n100, f.x), mix(n010, n110, f.x), f.y),
+               mix(mix(n001, n101, f.x), mix(n011, n111, f.x), f.y), f.z);
+}
+
+float fbm3(vec3 p) {
+    float v = 0.0;
+    float a = 0.55;
+    for (int i = 0; i < 4; i++) {
+        v += a * vnoise3(p);
+        p = p * 2.07 + vec3(13.3, 7.1, 5.7);
+        a *= 0.5;
+    }
+    return v;
+}
+
+// Octahedral map of the direction sphere — seamless 2D domain for cell stars.
+vec2 octa(vec3 d) {
+    d /= (abs(d.x) + abs(d.y) + abs(d.z));
+    if (d.z < 0.0) {
+        vec2 s = vec2(d.x >= 0.0 ? 1.0 : -1.0, d.y >= 0.0 ? 1.0 : -1.0);
+        d.xy = (1.0 - abs(d.yx)) * s;
+    }
+    return d.xy;
+}
+
+float stars(vec3 dir, float scale, float thresh, float seed) {
+    vec2 sp = octa(dir) * scale + seed;
+    vec2 cell = floor(sp);
+    vec2 f = fract(sp);
+    float h = hash21(cell + seed);
+    if (h < thresh) {
+        return 0.0;
+    }
+    vec2 pos = vec2(hash21(cell + 7.7 + seed), hash21(cell + 3.1 + seed));
+    float d = length(f - pos);
+    float bright = (h - thresh) / (1.0 - thresh);
+    return smoothstep(0.09, 0.0, d) * (0.35 + 0.65 * bright * bright);
+}
+
+vec3 planetColor(float h, vec3 pdir, vec3 dir, float prad, float ang) {
+    float band = vnoise3(pdir * 4.0 + vec3(0.0, dir.y * 9.0, h * 40.0));
+    vec3 base = mix(vec3(0.45, 0.30, 0.55), vec3(0.25, 0.45, 0.60), fract(h * 7.3));
+    base = mix(base, vec3(0.65, 0.45, 0.25), step(0.75, fract(h * 3.7)) * 0.6);
+    vec3 surf = base * (0.55 + 0.45 * band);
+    float limb = smoothstep(1.0, 0.35, ang / prad);
+    return surf * (0.35 + 0.75 * limb);
+}
+
+vec3 planets(vec3 dir, float seed) {
+    vec3 acc = vec3(0.0);
+    for (int i = 0; i < 4; i++) {
+        float fi = float(i);
+        vec3 hd = hash33(vec3(seed * 0.31, fi * 17.0, seed * 0.17));
+        if (hd.x < 0.35) {
+            continue; // this slot is empty this spawn
+        }
+        vec3 pdir = hd - 0.5 + vec3(0.001);
+        // Bias into the upper hemisphere so planets hang in the sky, not under the dirt.
+        pdir.y = abs(pdir.y) * 0.8 + 0.12;
+        pdir = normalize(pdir);
+        float ang = acos(clamp(dot(dir, pdir), -1.0, 1.0));
+        float prad = 0.025 + 0.055 * fract(hd.y * 13.7);
+        float disc = smoothstep(prad, prad * 0.82, ang);
+        if (disc > 0.0) {
+            acc += planetColor(hd.z, pdir, dir, prad, ang) * disc;
+        }
+        // Halo + occasional ring.
+        acc += vec3(0.35, 0.40, 0.60) * exp(-ang * ang / (prad * prad * 6.0)) * 0.10;
+        if (hd.z > 0.62) {
+            vec3 rn = normalize(cross(pdir, vec3(0.31, 0.9, 0.2)));
+            float plane = abs(dot(dir - pdir, rn)) / prad;
+            float rr = ang / prad;
+            float ring = smoothstep(0.30, 0.12, plane) * smoothstep(2.6, 1.9, rr) * smoothstep(1.15, 1.45, rr);
+            acc += vec3(0.55, 0.50, 0.62) * ring * 0.5 * (1.0 - disc);
+        }
+    }
+    return acc;
+}
+
+vec3 cosmos(vec3 dir) {
+    float sNeb = CosmosParams.x;
+    float sHue = CosmosParams.y;
+    float sStar = CosmosParams.z;
+    float sPl = CosmosParams.w;
+
+    // Domain-warped 3D fbm — organic swirls, different every spawn.
+    vec3 q = dir * 2.1 + vec3(sNeb * 37.0, sNeb * 11.0, sNeb * 23.0);
+    vec3 w = vec3(fbm3(q), fbm3(q + vec3(5.2, 1.3, 2.8)), fbm3(q + vec3(9.1, 4.4, 7.7)));
+    float dens = fbm3(q + (w - 0.5) * 1.9);
+    float hue = fbm3(q * 0.55 + vec3(sHue * 53.0, sHue * 29.0, sHue * 71.0));
+    float hot = fbm3(q * 1.4 + vec3(sHue * 97.0, sHue * 61.0, sHue * 13.0));
+
+    // Palette: deep space → violet → blue → teal, rare amber embers. The whole ramp
+    // rotates by a seed-driven shift so different spawns read as different skies.
+    float shift = fract(sHue * 5.0);
+    vec3 midA = mix(vec3(0.16, 0.07, 0.28), vec3(0.06, 0.20, 0.30), smoothstep(0.35, 0.75, shift));
+    vec3 midB = mix(vec3(0.10, 0.22, 0.46), vec3(0.30, 0.12, 0.40), smoothstep(0.15, 0.55, fract(shift + 0.5)));
+    vec3 midC = mix(vec3(0.10, 0.42, 0.42), vec3(0.50, 0.28, 0.12), smoothstep(0.6, 0.95, shift));
+    vec3 col = vec3(0.010, 0.012, 0.030);
+    col = mix(col, midA, smoothstep(0.38, 0.72, dens));
+    col = mix(col, midB, smoothstep(0.55, 0.85, dens) * (0.35 + 0.65 * hue));
+    col = mix(col, midC, smoothstep(0.62, 0.92, dens) * smoothstep(0.55, 0.8, hue) * 0.8);
+    col = mix(col, vec3(0.55, 0.30, 0.10), smoothstep(0.78, 0.95, dens) * smoothstep(0.72, 0.9, hot) * 0.7);
+    // Faint green wisps, sparse.
+    col += vec3(0.05, 0.22, 0.12) * smoothstep(0.70, 0.95, fbm3(q * 0.8 + vec3(sHue * 41.0))) * 0.5;
+
+    // Two star layers: dense faint dust + sparse bright sparks.
+    col += vec3(0.9, 0.93, 1.0) * stars(dir, 60.0, 0.76, sStar * 91.0) * 0.6;
+    col += vec3(1.0, 0.98, 0.92) * stars(dir, 26.0, 0.90, sStar * 37.0) * 1.2;
+
+    col += planets(dir, sPl);
+    return col;
 }
 
 // ---------------------------------------------------------------------------
@@ -259,6 +402,24 @@ void main() {
     // Slight corner falloff while the effect holds: the world submits at the edges first.
     float vig = 1.0 - 0.30 * intensity * smoothstep(0.35, 1.15, length(dvecA));
     scene *= vig;
+
+    // --- cosmos: the sky becomes deep space, distant geometry dissolves into it ---
+    // Sky test on the WARPED sample (the pixel actually shown); the unwarped depth still
+    // drives the march/capture math above.
+    float skyDepth = texture(SceneDepthSampler, uvW).r;
+    float cosmosAmt = smoothstep(0.15, 0.85, intensity);
+    if (cosmosAmt > 0.001) {
+        vec3 dirW = normalize(relWorldPos(vec3(uvW, 0.5)));
+        vec3 space = cosmos(dirW);
+        float isSky = step(0.9999, skyDepth);
+        // Distant terrain fades into space rather than staying a hard horizon line.
+        float endDistW = length(relWorldPos(vec3(uvW, skyDepth)));
+        float far = smoothstep(60.0, 200.0, endDistW);
+        float dissolve = max(isSky, far * 0.85) * cosmosAmt;
+        scene = mix(scene, space, dissolve);
+        // Near geometry keeps its shape but picks up the ambient tint.
+        scene = mix(scene, scene * vec3(0.55, 0.50, 0.75) + space * 0.06, (1.0 - isSky) * cosmosAmt * 0.35);
+    }
 
     vec3 holeLight = vec3(diskLum * 2.2 + ring * 1.2 + edgeGlow);
     vec3 col = scene + holeLight;
