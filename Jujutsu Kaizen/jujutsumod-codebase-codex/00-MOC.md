@@ -81,7 +81,7 @@ The audit runs inside ./gradlew qualityGate, so these counters are checked befor
 - [Megumi shikigami — Nue / Toad / Rabbit Escape / Max Elephant](03-systems/Megumi-shikigami.md)
 - [Megumi shadow kit](03-systems/Megumi-shadow-kit.md)
 - [Cursed spirits — three hostile tiers](03-systems/Cursed-spirits.md)
-- [Cursed incidents — persistent escalating zones](03-systems/Cursed-incidents.md)
+- [Cursed incidents — ARCHIVED](../../archive/cursed-incidents-v1/docs/Cursed-incidents.md)
 
 ## Client and VFX
 
