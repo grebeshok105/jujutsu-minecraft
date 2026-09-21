@@ -25,8 +25,16 @@ Polish round 2 (user's 7 asks) all verified in game on the lane: analytic
 silhouette, RGB 0 inside, non-uniform asymmetric disk, tame bloom, bob-mixin
 stability, punchy implosion collapse (flash arcs → debris scatter → aftermath,
 warp outlives object), grey dome under hole fixed via under-shade.
+
+Round 3 (`7774e0b`): the sky itself becomes a seeded procedural cosmos while the
+hole lives — domain-warped fbm3 nebula (palette rotates per spawn), octa-mapped
+star layers, 1–4 planets with bands/limb/halo/rings; distant terrain dissolves
+into space, near geometry tints. CosmosParams vec4 (4 seed offsets from
+timing.seed) in the UBO (352B). Verified on lane: nebula+stars+planets visible,
+village silhouettes dissolve, palette differs between spawns.
+
 qualityGate BUILD SUCCESSFUL (47 tasks). MOC metrics updated (client java 290,
-mixins 17). PR body carries freesound attribution.
+mixins 17). PR body carries freesound attribution + cosmos bullets.
 
 Remaining: user review/merge of PR #120; subjective loudness check on real ears.
 
