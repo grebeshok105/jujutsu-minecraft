@@ -60,8 +60,8 @@ public final class BlackHoleDebug {
 
 	/**
 	 * Disk normal tilted in the vertical plane containing the eye→hole line: the equatorial band
-	 * always reads horizontal on screen (Gargantua), only the top of the disk leans away from the
-	 * viewer. A random azimuth slants the band — that reads as a bug, not a design.
+	 * always reads horizontal on screen (Gargantua), and the slight tilt TOWARD the viewer drops
+	 * the band across the shadow's middle instead of its lower rim.
 	 */
 	private static Vec3 diskNormal(net.minecraft.client.Minecraft client, Vec3 center) {
 		Vec3 eye = client.player != null ? client.player.getEyePosition() : center;
