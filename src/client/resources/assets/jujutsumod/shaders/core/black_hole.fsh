@@ -242,17 +242,19 @@ float diskEmission(vec3 p, vec3 viewDir) {
     float rot = DiskNormal.w + Params1.z * 0.55 * pow(rIn / rad, 1.5);
 
     // Radial brightness: a hard hot rim right at the inner edge, then a decaying tail.
+    // The band must read as ONE continuous ring — turbulence modulates it, never breaks it.
     float x = (rad - rIn) / (rOut - rIn);
-    float profile = smoothstep(0.0, 0.06, x) * pow(1.0 - x, 1.7);
-    profile += 0.55 * smoothstep(0.0, 0.03, x) * exp(-x * 14.0); // hot inner rim
 
-    // Turbulence: two counter-drifting shear layers so the surface never reads as one texture.
-    float streaks = fbm(vec2(rad * 0.9, ang * 3.4 + rot * 3.0));
-    streaks = streaks * 0.75 + 0.45 * fbm(vec2(rad * 2.3, ang * 7.0 - rot * 5.0));
-    // Bright knots riding the flow: sparse clumps plus rarer local flashes.
-    float clump = pow(fbm(vec2(rad * 0.5, ang * 1.6 + rot * 1.2)), 3.0) * 2.4;
-    float flash = pow(vnoise(vec2(ang * 4.0 + rot * 2.0, rad * 0.7 - Params1.z * 0.35)), 6.0) * 3.0;
-    float tex = (0.40 + 0.95 * streaks) * (1.0 + clump + flash);
+    float profile = smoothstep(0.0, 0.05, x) * pow(1.0 - x, 1.5);
+    profile += 0.9 * smoothstep(0.0, 0.03, x) * exp(-x * 16.0); // hot inner rim
+
+    // Gentle shear streaks — slow brightness drift along the flow, not holes in the ring.
+    float streaks = fbm(vec2(rad * 0.7, ang * 2.6 + rot * 2.2));
+    streaks = streaks * 0.8 + 0.35 * fbm(vec2(rad * 1.9, ang * 5.0 - rot * 3.5));
+    // Rare bright knots riding the flow — small boosts, never dropouts.
+    float clump = pow(fbm(vec2(rad * 0.5, ang * 1.6 + rot * 1.2)), 3.0) * 1.1;
+    float flash = pow(vnoise(vec2(ang * 4.0 + rot * 2.0, rad * 0.7 - Params1.z * 0.35)), 6.0) * 1.6;
+    float tex = (0.72 + 0.55 * streaks) * (1.0 + clump + flash);
 
     // Vertical falloff inside the slab.
     float vert = 1.0 - (s * s) / (half_ * half_);
@@ -261,9 +263,9 @@ float diskEmission(vec3 p, vec3 viewDir) {
     vec3 velDir = normalize(cross(n, planar));
     float beam = 1.0 + 1.9 * max(0.0, dot(velDir, -viewDir)) - 0.55 * max(0.0, dot(velDir, viewDir));
 
-    // Depth asymmetry: the far side of the disk sits behind the hole — dim it so the ring reads
-    // as a 3D object with a near and a far half, not a flat Ø sign.
-    float farSide = 1.0 - 0.62 * max(0.0, dot(normalize(planar), viewDir));
+    // Depth asymmetry: the far side sits behind the hole — dim it just enough to read as a 3D
+    // object, never enough to break the ring.
+    float farSide = 1.0 - 0.30 * max(0.0, dot(normalize(planar), viewDir));
 
     return profile * tex * vert * beam * farSide * Params0.z;
 }
@@ -346,7 +348,8 @@ void main() {
     // global pull so the world stays subdued when the player looks away.
     float bump = (ringScreen * ringScreen) / (r * r + ringScreen * ringScreen * 0.55);
     float pull = lens * (0.16 * bump + 0.018 * exp(-r * 1.4));
-    float swirl = lens * 0.085 * bump;
+    // Implosion: space itself is sucked inward — the swirl spikes with the jolt, not after it.
+    float swirl = lens * 0.085 * bump + jolt * 0.30 * bump;
     // Disappearance jolt: a single hard radial displacement with a ripple.
     float j = jolt * (0.30 + 0.10 * sin(r * 46.0 - Params1.z * 30.0));
     vec2 warp = dirS * (-pull - j) + perp * swirl;
@@ -388,6 +391,10 @@ void main() {
     ring *= ringVis;
     edgeGlow *= ringVis;
 
+    // Implosion point flash: as the shadow collapses to a point it flares once, then dies.
+    float implFlash = exp(-b * b / max(R * R * 0.09, 0.04))
+                    * smoothstep(0.6, 0.0, collapse) * smoothstep(0.0, 0.15, collapse) * 6.0;
+
 
     // --- grade ---
     float lum = dot(scene, vec3(0.299, 0.587, 0.114));
@@ -403,7 +410,7 @@ void main() {
     float vig = 1.0 - 0.30 * intensity * smoothstep(0.35, 1.15, length(dvecA));
     scene *= vig;
 
-    // --- cosmos: the sky becomes deep space, distant geometry dissolves into it ---
+    // --- cosmos: the sky becomes deep space, geometry dissolves into it ---
     // Sky test on the WARPED sample (the pixel actually shown); the unwarped depth still
     // drives the march/capture math above.
     float skyDepth = texture(SceneDepthSampler, uvW).r;
@@ -412,22 +419,23 @@ void main() {
         vec3 dirW = normalize(relWorldPos(vec3(uvW, 0.5)));
         vec3 space = cosmos(dirW);
         float isSky = step(0.9999, skyDepth);
-        // Distant terrain fades into space rather than staying a hard horizon line.
+        // Blocks fall into space too: terrain dissolves starting ~35 blocks out, fully cosmic
+        // by ~120 — the world ends, not just the sky.
         float endDistW = length(relWorldPos(vec3(uvW, skyDepth)));
-        float far = smoothstep(60.0, 200.0, endDistW);
-        float dissolve = max(isSky, far * 0.85) * cosmosAmt;
+        float far = smoothstep(35.0, 120.0, endDistW);
+        float dissolve = max(isSky, far) * cosmosAmt;
         scene = mix(scene, space, dissolve);
-        // Near geometry keeps its shape but picks up the ambient tint.
-        scene = mix(scene, scene * vec3(0.55, 0.50, 0.75) + space * 0.06, (1.0 - isSky) * cosmosAmt * 0.35);
+        // Near geometry keeps its shape but drowns in the ambient dark + nebula tint.
+        scene = mix(scene, scene * vec3(0.38, 0.34, 0.55) + space * 0.10, (1.0 - isSky) * cosmosAmt * 0.55);
     }
 
-    vec3 holeLight = vec3(diskLum * 2.2 + ring * 1.2 + edgeGlow);
+    vec3 holeLight = vec3(diskLum * 2.6 + ring * 1.2 + edgeGlow + implFlash);
     vec3 col = scene + holeLight;
     // Soft HDR rolloff so the disk blows out to white instead of clipping ugly.
     col = col / (1.0 + col * 0.16);
     // Captured rays keep ONLY the bright equatorial band gathered before the horizon — the
     // diffuse lensed under-image dies, so the shadow interior is true black, not a grey ball.
-    vec3 band = vec3(diskLum * 2.2) * smoothstep(0.55, 1.4, diskLum);
+    vec3 band = vec3(diskLum * 2.6) * smoothstep(0.55, 1.4, diskLum);
 
     vec3 capturedCol = band / (1.0 + band * 0.16);
     fragColor = vec4(mix(col, capturedCol, captured), 1.0);

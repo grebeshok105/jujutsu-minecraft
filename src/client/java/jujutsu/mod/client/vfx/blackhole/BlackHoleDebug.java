@@ -49,7 +49,7 @@ public final class BlackHoleDebug {
 		int stableTicks = Math.max(BlackHoleTiming.MIN_STABLE_TICKS, cue.intensity());
 		BlackHoleTiming timing = new BlackHoleTiming(stableTicks, cue.seed());
 		return VfxInstance.of(timing.totalTicks(), (context, ignoredInitialAgeTicks) -> {
-			Vec3 diskNormal = diskNormal(cue.seed());
+			Vec3 diskNormal = diskNormal(context.client(), cue.origin());
 			float diskPhase = (cue.seed() & 0xFFFF) / 65536.0f * 6.2831853f;
 			boolean started = context.blackHole().tryTrigger(cue, timing, diskNormal, diskPhase);
 			if (started) {
@@ -58,13 +58,23 @@ public final class BlackHoleDebug {
 		});
 	}
 
-	/** Deterministic disk normal from the cue seed: tilted off vertical, random azimuth. */
-	private static Vec3 diskNormal(long seed) {
-		double azimuth = ((seed >>> 16) & 0xFFFF) / 65536.0 * Math.PI * 2.0;
+	/**
+	 * Disk normal tilted in the vertical plane containing the eye→hole line: the equatorial band
+	 * always reads horizontal on screen (Gargantua), only the top of the disk leans away from the
+	 * viewer. A random azimuth slants the band — that reads as a bug, not a design.
+	 */
+	private static Vec3 diskNormal(net.minecraft.client.Minecraft client, Vec3 center) {
+		Vec3 eye = client.player != null ? client.player.getEyePosition() : center;
+		Vec3 toHole = center.subtract(eye);
+		Vec3 vh = new Vec3(toHole.x, 0.0, toHole.z);
+		if (vh.lengthSqr() < 1.0e-6) {
+			vh = new Vec3(0.0, 0.0, 1.0);
+		}
+		vh = vh.normalize();
 		double tilt = BlackHoleProfile.DISK_TILT_RADIANS;
-		double horizontal = Math.sin(tilt);
-		return new Vec3(Math.cos(azimuth) * horizontal, Math.cos(tilt), Math.sin(azimuth) * horizontal);
+		return new Vec3(-vh.x * Math.sin(tilt), Math.cos(tilt), -vh.z * Math.sin(tilt));
 	}
+
 
 	private static int trigger(FabricClientCommandSource source, int seconds) {
 		LocalPlayer player = source.getPlayer();

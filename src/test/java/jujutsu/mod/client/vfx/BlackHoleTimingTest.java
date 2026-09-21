@@ -43,12 +43,19 @@ class BlackHoleTimingTest {
 	}
 
 	@Test
-	void disappearanceCutsIntensityButKeepsTheJolt() {
+	void disappearanceImplodesTogetherAndStaysGone() {
 		BlackHoleTiming timing = BlackHoleTiming.defaults(7L);
 		float mid = timing.disappearStart() + BlackHoleTiming.DISAPPEAR_TICKS * 0.4f;
-		assertEquals(0.0f, timing.intensity(mid), EPSILON);
+		// The world-effect dies WITH the object: intensity tracks the collapse, never snaps to 0
+		// while the dome is still shrinking — that desync was the "неодновременно" bug.
+		assertTrue(timing.intensity(mid) > 0.2f && timing.intensity(mid) < 1.0f,
+				"mid-implosion intensity must ride the collapse, was " + timing.intensity(mid));
 		assertTrue(timing.jolt(mid) > 0.5f, "the jolt must peak mid-disappearance, was " + timing.jolt(mid));
 		assertEquals(0.0f, timing.jolt(timing.stableStart()), EPSILON);
+		// After the implosion the object stays collapsed — the aftermath is shimmer only,
+		// never the dome again.
+		assertEquals(0.0f, timing.collapse(timing.aftermathStart() + 1.0f), EPSILON);
+		assertEquals(0.0f, timing.collapse(timing.totalTicks() - 1.0f), EPSILON);
 	}
 
 	@Test

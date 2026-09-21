@@ -8,9 +8,9 @@ package jujutsu.mod.client.vfx.blackhole;
  * the sound driver consume only these envelopes — they never re-derive phase logic themselves.
  *
  * <p>Phase lengths (ticks): prelude 18 (0.9 s), appearance 70 (3.5 s), stable configurable
- * (default 140 = 7 s), disappearance 12 (0.6 s — the object collapses in the first ~3 ticks while
- * the spatial jolt keeps bending the emptied frame), aftermath 50 (2.5 s, of which the first 40 are
- * the mandated ~2 s of near-total silence).
+ * (default 140 = 7 s), disappearance 12 (0.6 s — a coordinated implosion: the object collapses
+ * over ~8 ticks while the cosmos is sucked inward and the jolt bends the frame), aftermath 50
+ * (2.5 s, of which the first 40 are the mandated ~2 s of near-total silence).
  */
 public record BlackHoleTiming(int stableTicks, long seed) {
 	public static final int PRELUDE_TICKS = 18;
@@ -103,8 +103,10 @@ public record BlackHoleTiming(int stableTicks, long seed) {
 				return 1.0f;
 			}
 			case DISAPPEAR -> {
-				// The object is gone the instant the jolt fires; only the jolt envelope remains.
-				return 0.0f;
+				// The implosion keeps the world-effect alive while the object collapses —
+				// cosmos, vignette and shade die WITH the hole, not before it.
+				float c = collapse(ageTicks);
+				return 0.25f + 0.75f * c;
 			}
 			case AFTERMATH -> {
 				float p = (ageTicks - aftermathStart()) / AFTERMATH_TICKS;
@@ -124,7 +126,11 @@ public record BlackHoleTiming(int stableTicks, long seed) {
 	public float lensStrength(float ageTicks) {
 		float base = intensity(ageTicks);
 		if (phase(ageTicks) == Phase.DISAPPEAR) {
-			return jolt(ageTicks) * 1.6f;
+			// The implosion sucks space inward: the pull peaks with the collapse, not after it.
+			return jolt(ageTicks) * 1.6f + collapse(ageTicks) * 0.4f;
+		}
+		if (phase(ageTicks) == Phase.AFTERMATH) {
+			return jolt(ageTicks) * 0.8f;
 		}
 		return base * (1.0f + 0.55f * burstAt(ageTicks)) * pulsation(ageTicks);
 	}
@@ -139,16 +145,25 @@ public record BlackHoleTiming(int stableTicks, long seed) {
 	}
 
 	/**
-	 * Object collapse during the disappearance, 1→0 over the first ~3 ticks: the hole and its
-	 * disk shrink to nothing almost instantly while the spatial jolt keeps bending the emptied
-	 * frame for the rest of the window. Outside DISAPPEAR the object is always whole.
+	 * Object collapse, 1→0: during APPEAR the hole grows in with the reveal ramp (snap, not a
+	 * build); during DISAPPEAR it implodes over ~8 ticks — fast enough to read as a snap, slow
+	 * enough to see the disk and shadow shrink into the point. Outside those phases the object
+	 * is always whole.
 	 */
 	public float collapse(float ageTicks) {
-		if (phase(ageTicks) != Phase.DISAPPEAR) {
-			return 1.0f;
+		if (phase(ageTicks) == Phase.APPEAR) {
+			float p = (ageTicks - PRELUDE_TICKS) / APPEAR_TICKS;
+			return Math.max(0.15f, smooth01(Math.min(1.0f, p / 0.18f)));
 		}
-		float p = (ageTicks - disappearStart()) / 3.0f;
-		return 1.0f - smooth01(Math.min(1.0f, p));
+		if (phase(ageTicks) == Phase.DISAPPEAR) {
+			float p = (ageTicks - disappearStart()) / 8.0f;
+			return 1.0f - smooth01(Math.min(1.0f, p));
+		}
+		if (phase(ageTicks) == Phase.AFTERMATH || phase(ageTicks) == Phase.EXPIRED) {
+			// The object stays gone — the aftermath is only the spatial shimmer, never the dome.
+			return 0.0f;
+		}
+		return 1.0f;
 	}
 
 	/** World desaturation amount, 0..1: the world dies toward monochrome as the hole asserts itself. */
@@ -157,17 +172,23 @@ public record BlackHoleTiming(int stableTicks, long seed) {
 	}
 
 	/**
-	 * Disappearance jolt, 0..1..0 over {@link #DISAPPEAR_TICKS}: a single sharp spatial displacement
-	 * spike. Peaks at ~40% through the window so the snap reads as a relocation, not a shrink.
+	 * Disappearance jolt, 0..1..0 over {@link #DISAPPEAR_TICKS}: a single sharp spatial
+	 * displacement spike peaking at ~35% through the window — the implosion kick. In AFTERMATH
+	 * it degrades into a decaying shimmer so the emptied point keeps breathing for a moment
+	 * instead of snapping back to a clean frame.
 	 */
 	public float jolt(float ageTicks) {
-		if (phase(ageTicks) != Phase.DISAPPEAR) {
-			return 0.0f;
+		if (phase(ageTicks) == Phase.DISAPPEAR) {
+			float p = (ageTicks - disappearStart()) / DISAPPEAR_TICKS;
+			float up = smooth01(Math.min(1.0f, p / 0.35f));
+			float down = 1.0f - smooth01(Math.max(0.0f, (p - 0.35f) / 0.65f));
+			return up * down;
 		}
-		float p = (ageTicks - disappearStart()) / DISAPPEAR_TICKS;
-		float up = smooth01(Math.min(1.0f, p / 0.4f));
-		float down = 1.0f - smooth01(Math.max(0.0f, (p - 0.4f) / 0.6f));
-		return up * down;
+		if (phase(ageTicks) == Phase.AFTERMATH) {
+			float p = (ageTicks - aftermathStart()) / AFTERMATH_TICKS;
+			return 0.30f * (1.0f - smooth01(p));
+		}
+		return 0.0f;
 	}
 
 	/**
