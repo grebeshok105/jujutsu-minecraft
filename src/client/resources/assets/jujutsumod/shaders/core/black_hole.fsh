@@ -255,13 +255,12 @@ float diskEmission(vec3 p, vec3 viewDir) {
     float flash = pow(vnoise(vec2(ang * 4.0 + rot * 2.0, rad * 0.7 - Params1.z * 0.35)), 6.0) * 1.6;
     float tex = (0.72 + 0.55 * streaks) * (1.0 + clump + flash);
 
-    // Vertical falloff inside the slab — floored so grazing crossings (band edges, the
-    // transition into the lensed arcs) never dip to zero and open black slits.
-    float vert = 0.35 + 0.65 * (1.0 - (s * s) / (half_ * half_));
+    // Vertical falloff inside the slab.
+    float vert = 1.0 - (s * s) / (half_ * half_);
 
     // Doppler-ish beaming: the side moving toward the camera burns brighter.
     vec3 velDir = normalize(cross(n, planar));
-    float beam = 1.0 + 1.9 * max(0.0, dot(velDir, -viewDir)) - 0.40 * max(0.0, dot(velDir, viewDir));
+    float beam = 1.0 + 1.9 * max(0.0, dot(velDir, -viewDir)) - 0.55 * max(0.0, dot(velDir, viewDir));
 
     // Depth asymmetry: the far side sits behind the hole — dim it just enough to read as a 3D
     // object, never enough to break the ring.
