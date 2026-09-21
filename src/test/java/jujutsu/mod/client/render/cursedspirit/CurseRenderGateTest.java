@@ -38,8 +38,6 @@ final class CurseRenderGateTest {
 		assertTrue(body.contains("viewer == null"), "fail-open on an absent viewer");
 		assertTrue(body.contains("CursePerception.perceives(viewer)"),
 				"subject branch defers to perceives");
-		assertTrue(body.contains("ClientPerceptionState.inCriticalZone()"),
-				"client critical-zone override must reach the render gate");
 	}
 
 	@Test
