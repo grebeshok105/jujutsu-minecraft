@@ -1,6 +1,6 @@
-# Session Handoff — black hole VFX experiment — 2026-09-20
+# Session Handoff — black hole VFX experiment — 2026-09-21
 
-## State — implemented, verified in game, qualityGate green; commit/PR pending
+## State — DONE: PR #120 open on `feat/black-hole-vfx`, pushed through `3e19632`, qualityGate green
 
 Branch `feat/black-hole-vfx` (off main). Design spec: monochrome black hole,
 ~30 blocks, 30 ahead, 5-phase lifecycle (prelude/appear/stable/disappear/aftermath),
@@ -10,25 +10,25 @@ Reuses the domain_sphere (Railgun port) pipeline pattern; entry point is the new
 `jujutsu_black_hole`.
 
 Key pieces: `client/vfx/blackhole/` (Timing/State/Profile/Renderer/SoundInstance/
-Debug), `VfxBlackHoleChannel` (singleton slot), 3 client mixins (GameRenderer
+Debug), `VfxBlackHoleChannel` (singleton slot), 4 client mixins (GameRenderer
 renderLevel TAIL → world pass; GuiRenderer → hudPre/hudPost copies + composite;
-SoundEngine → duck by 1-duckAmount, exempt own sounds). HUD warp is copy-based
-(pre/post framebuffer diff mask pulled toward the hole) — the earlier
-TextureTarget-redirect approach captured the item atlas instead of the world.
-Shaders `black_hole.fsh` (bent-ray march: disk emission + horizon capture +
-screen warp + monochrome grade) and `black_hole_hud.fsh`. Captured rays keep
-disk luminance so the equatorial band crosses the shadow; inside-horizon flag
-blacks out world+HUD. Disk tilt 14° off vertical (near-horizontal Gargantua
-read). Sounds synthesized by `tools/synth_blackhole_sounds.py` (4 OGGs).
+SoundEngine → duck by 1-duckAmount, exempt own sounds; BlackHoleBobViewMixin →
+no view-bobbing while active). HUD warp is copy-based. Shaders `black_hole.fsh`
+(bent-ray march 64 steps + ANALYTIC ray-sphere capture Rs=2.6·R·collapse → perfect
+black silhouette RGB 0; disk emission w/ streaks/clumps/flashes, doppler, far-side
+dim 0.62; screen warp + under-shade; monochrome grade) and `black_hole_hud.fsh`.
+Disk tilt 14° off vertical. Sounds: positional drone (freesound 568574, ffmpeg-
+processed mono loop, vol 1.4, att 96) + synthesized prelude/impulse
+(`tools/synth_blackhole_sounds.py`); inner layer removed.
 
-Verified in game (audit/bh/*.png): full lifecycle, disk band + lensed arc +
-doppler side, inside-horizon absolute black, look-away residual arc, close-up
-blowout, HUD pull, monochrome grade, clean aftermath. Sound events registered,
-no missing-event errors (subjective loudness not verifiable headless).
-qualityGate BUILD SUCCESSFUL (47 tasks, 797 tests, GameTest lane, doc audit,
-jar isolation). VesselBoundaryTest: `blackhole` pinned as shared vfx segment.
+Polish round 2 (user's 7 asks) all verified in game on the lane: analytic
+silhouette, RGB 0 inside, non-uniform asymmetric disk, tame bloom, bob-mixin
+stability, punchy implosion collapse (flash arcs → debris scatter → aftermath,
+warp outlives object), grey dome under hole fixed via under-shade.
+qualityGate BUILD SUCCESSFUL (47 tasks). MOC metrics updated (client java 290,
+mixins 17). PR body carries freesound attribution.
 
-Remaining: commit + PR per §12 (RU title, «Для игрока» body).
+Remaining: user review/merge of PR #120; subjective loudness check on real ears.
 
 ---
 
