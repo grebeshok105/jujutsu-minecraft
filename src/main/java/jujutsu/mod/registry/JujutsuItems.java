@@ -19,6 +19,7 @@ public final class JujutsuItems {
 	public static final Item STRAW_DOLL_HAMMER = createProjectJjkHammer("straw_doll_hammer", new Item.Properties().stacksTo(1).durability(256));
 	public static final Item PROJECTJJK_HAIRPIN_NAIL = createProjectJjkNail("projectjjk_hairpin_nail", new Item.Properties().stacksTo(64));
 	public static final Item PROJECTJJK_STRAW_DOLL_HAMMER = createProjectJjkHammer("projectjjk_straw_doll_hammer", new Item.Properties().stacksTo(1).durability(256));
+	public static final Item RESONANCE_REMNANT = createProjectJjkRemnant("resonance_remnant", new Item.Properties().stacksTo(1));
 	public static final Item STRAW_DOLL = createProjectJjkStrawDoll("straw_doll", strawDollProperties());
 
 	private JujutsuItems() {}
