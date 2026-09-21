@@ -8,7 +8,6 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 
 public final class JujutsuDataComponents {
-			.build();
 	public static final DataComponentType<ProjectJjkResonanceRemnant> RESONANCE_TARGET = DataComponentType
 			.<ProjectJjkResonanceRemnant>builder()
 			.persistent(ProjectJjkResonanceRemnant.CODEC)
