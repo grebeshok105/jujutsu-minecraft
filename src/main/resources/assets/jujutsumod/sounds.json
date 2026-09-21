@@ -413,15 +413,12 @@
   },
   "blackhole.drone": {
     "sounds": [
-      "jujutsumod:blackhole/drone"
+      {
+        "name": "jujutsumod:blackhole/drone",
+        "attenuation_distance": 96
+      }
     ],
     "subtitle": "subtitles.jujutsumod.blackhole.drone"
-  },
-  "blackhole.inner": {
-    "sounds": [
-      "jujutsumod:blackhole/inner"
-    ],
-    "subtitle": "subtitles.jujutsumod.blackhole.inner"
   },
   "blackhole.impulse": {
     "sounds": [

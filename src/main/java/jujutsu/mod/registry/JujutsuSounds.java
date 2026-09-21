@@ -89,13 +89,12 @@ public final class JujutsuSounds {
 	public static final SoundEvent SEAL_CRACK = create("seal_crack");
 	public static final SoundEvent SEAL_BREAK = create("seal_break");
 	public static final SoundEvent SECONDARY_BIRTH = create("secondary_birth");
-	// Black hole visual experiment (debug-only): four layers synthesized by
-	// tools/synth_blackhole_sounds.py. PRELUDE is the pre-reveal pressure rumble, DRONE the
-	// positional mass loop, INNER the non-positional "inside the head" layer, IMPULSE the
-	// disappearance jolt.
+	// Black hole visual experiment (debug-only): PRELUDE and IMPULSE are synthesized by
+	// tools/synth_blackhole_sounds.py; DRONE is the licensed freesound loop
+	// 568574__ericnorcross81__void-of-a-black-hole-fictional (mono, loop-wrapped, bass-boosted).
+	// All layers are strictly positional at the hole's centre.
 	public static final SoundEvent BLACK_HOLE_PRELUDE = create("blackhole.prelude");
 	public static final SoundEvent BLACK_HOLE_DRONE = create("blackhole.drone");
-	public static final SoundEvent BLACK_HOLE_INNER = create("blackhole.inner");
 	public static final SoundEvent BLACK_HOLE_IMPULSE = create("blackhole.impulse");
 
 	public static void register() {
@@ -169,7 +168,6 @@ public final class JujutsuSounds {
 		register("secondary_birth", SECONDARY_BIRTH);
 		register("blackhole.prelude", BLACK_HOLE_PRELUDE);
 		register("blackhole.drone", BLACK_HOLE_DRONE);
-		register("blackhole.inner", BLACK_HOLE_INNER);
 		register("blackhole.impulse", BLACK_HOLE_IMPULSE);
 	}
 

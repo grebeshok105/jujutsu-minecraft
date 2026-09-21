@@ -20,7 +20,6 @@ public final class BlackHoleState {
 	private final float diskPhase;
 
 	private Object positionalSound;
-	private Object innerSound;
 
 	public BlackHoleState(Vec3 centerWorld, BlackHoleTiming timing, long startGameTime, Vec3 diskNormal, float diskPhase) {
 		this.centerWorld = centerWorld;
@@ -67,11 +66,4 @@ public final class BlackHoleState {
 		this.positionalSound = sound;
 	}
 
-	public Object innerSound() {
-		return innerSound;
-	}
-
-	public void innerSound(Object sound) {
-		this.innerSound = sound;
-	}
 }

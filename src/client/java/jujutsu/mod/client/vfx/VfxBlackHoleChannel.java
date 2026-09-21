@@ -100,14 +100,12 @@ public final class VfxBlackHoleChannel implements AutoCloseable {
 			droneStarted = true;
 			Vec3 pos = active.centerWorld();
 			var random = client.level.getRandom();
+			// The drone is strictly positional: it emanates from the hole's centre, never from
+			// "inside the head" — the spec's pressure comes from loudness, not a floating layer.
 			SoundInstance positional = BlackHoleSoundInstance.at(
-					JujutsuSounds.BLACK_HOLE_DRONE.location(), 1.0f, 1.0f, random, true, pos);
-			SoundInstance inner = BlackHoleSoundInstance.inner(
-					JujutsuSounds.BLACK_HOLE_INNER.location(), 0.85f, 1.0f, random, true);
+					JujutsuSounds.BLACK_HOLE_DRONE.location(), 1.4f, 1.0f, random, true, pos);
 			active.positionalSound(positional);
-			active.innerSound(inner);
 			client.getSoundManager().play(positional);
-			client.getSoundManager().play(inner);
 		}
 		if (!impulsePlayed && age >= timing.disappearStart()) {
 			impulsePlayed = true;
@@ -173,11 +171,7 @@ public final class VfxBlackHoleChannel implements AutoCloseable {
 		if (active.positionalSound() instanceof SoundInstance s) {
 			client.getSoundManager().stop(s);
 		}
-		if (active.innerSound() instanceof SoundInstance s) {
-			client.getSoundManager().stop(s);
-		}
 		active.positionalSound(null);
-		active.innerSound(null);
 	}
 
 	private void finish(Minecraft client) {

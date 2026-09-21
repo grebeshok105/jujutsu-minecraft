@@ -17,16 +17,11 @@ public final class BlackHoleSoundInstance extends SimpleSoundInstance {
 		super(sound, source, volume, pitch, random, looping, delay, attenuation, x, y, z, false);
 	}
 
-	/** Non-positional variant: the "inside the head" pressure layer. */
-	public static BlackHoleSoundInstance inner(ResourceLocation sound, float volume, float pitch, RandomSource random, boolean looping) {
-		return new BlackHoleSoundInstance(sound, SoundSource.MASTER, volume, pitch, random, looping, 0,
-				SoundInstance.Attenuation.NONE, 0.0, 0.0, 0.0);
-	}
-
 	/** Positional variant anchored at the hole. */
 	public static BlackHoleSoundInstance at(ResourceLocation sound, float volume, float pitch, RandomSource random,
 			boolean looping, net.minecraft.world.phys.Vec3 pos) {
 		return new BlackHoleSoundInstance(sound, SoundSource.AMBIENT, volume, pitch, random, looping, 0,
 				SoundInstance.Attenuation.LINEAR, pos.x, pos.y, pos.z);
 	}
+
 }

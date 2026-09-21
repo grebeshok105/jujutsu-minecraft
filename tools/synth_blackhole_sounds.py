@@ -103,25 +103,8 @@ def drone():
     return norm(np.tanh(loopify(out) * 1.15))
 
 
-def inner():
-    T = 16.0
-    t = np.linspace(0, T, int(SR * T), endpoint=False)
-    rng = np.random.default_rng(0x1AAE)
-
-    # Inside-the-head layer: even lower, narrower band, close and uniform — no space around it.
-    sub = (np.sin(2 * np.pi * 22 * t + 0.3)
-           + 0.45 * np.sin(2 * np.pi * 33 * t + 1.9))
-    body = lowpass(rng.standard_normal(len(t)), 0.006) * 0.5
-
-    # Breathing pressure: very slow, deep.
-    breath = 0.78 + 0.22 * np.sin(2 * np.pi * t / 7.9 + 1.1)
-
-    out = (sub * 0.9 + body) * breath
-    return norm(np.tanh(loopify(out) * 1.1))
-
-
 def impulse():
-    T = 0.8
+    T = 1.6
     t = np.linspace(0, T, int(SR * T), endpoint=False)
     rng = np.random.default_rng(0x1E9C)
 
@@ -132,7 +115,12 @@ def impulse():
     f = 24 + 46 * np.exp(-t / 0.13)
     drop = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / 0.30)
 
-    out = crack + drop * 1.1
+    # Residual ring: a low 52 Hz tone decaying over ~1.2 s — the "stunned ringing" after the
+    # snap, quiet enough to read as near-silence.
+    ring = np.sin(2 * np.pi * 52 * t) * np.exp(-t / 0.55) * 0.22
+    ring += np.sin(2 * np.pi * 78 * t + 0.7) * np.exp(-t / 0.40) * 0.10
+
+    out = crack + drop * 1.1 + ring
     out[int(0.5 * SR):] *= np.linspace(1, 0, len(t) - int(0.5 * SR)) ** 1.6  # hard cut into silence
     return norm(np.tanh(out * 1.2))
 
@@ -140,8 +128,6 @@ def impulse():
 def main():
     os.makedirs(ROOT, exist_ok=True)
     for name, data in (("prelude.ogg", prelude()),
-                       ("drone.ogg", drone()),
-                       ("inner.ogg", inner()),
                        ("impulse.ogg", impulse())):
         path = os.path.join(ROOT, name)
         sf.write(path, data.astype(np.float32), SR, format="OGG", subtype="VORBIS")

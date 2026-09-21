@@ -8,13 +8,14 @@ package jujutsu.mod.client.vfx.blackhole;
  * the sound driver consume only these envelopes — they never re-derive phase logic themselves.
  *
  * <p>Phase lengths (ticks): prelude 18 (0.9 s), appearance 70 (3.5 s), stable configurable
- * (default 140 = 7 s), disappearance 7 (0.35 s), aftermath 50 (2.5 s, of which the first 40 are
+ * (default 140 = 7 s), disappearance 12 (0.6 s — the object collapses in the first ~3 ticks while
+ * the spatial jolt keeps bending the emptied frame), aftermath 50 (2.5 s, of which the first 40 are
  * the mandated ~2 s of near-total silence).
  */
 public record BlackHoleTiming(int stableTicks, long seed) {
 	public static final int PRELUDE_TICKS = 18;
 	public static final int APPEAR_TICKS = 70;
-	public static final int DISAPPEAR_TICKS = 7;
+	public static final int DISAPPEAR_TICKS = 12;
 	public static final int AFTERMATH_TICKS = 50;
 	public static final int SILENCE_TICKS = 40;
 	public static final int DEFAULT_STABLE_TICKS = 140;
@@ -127,10 +128,27 @@ public record BlackHoleTiming(int stableTicks, long seed) {
 		}
 		return base * (1.0f + 0.55f * burstAt(ageTicks)) * pulsation(ageTicks);
 	}
-
 	/** Accretion-disk luminance multiplier: identical envelope, bursts brighten the disk too. */
 	public float diskIntensity(float ageTicks) {
+		if (phase(ageTicks) == Phase.DISAPPEAR) {
+			// Implosion flash: the disk flares as it collapses, then dies with it.
+			float c = collapse(ageTicks);
+			return c * (1.0f + 1.5f * (1.0f - c));
+		}
 		return intensity(ageTicks) * (1.0f + 0.8f * burstAt(ageTicks));
+	}
+
+	/**
+	 * Object collapse during the disappearance, 1→0 over the first ~3 ticks: the hole and its
+	 * disk shrink to nothing almost instantly while the spatial jolt keeps bending the emptied
+	 * frame for the rest of the window. Outside DISAPPEAR the object is always whole.
+	 */
+	public float collapse(float ageTicks) {
+		if (phase(ageTicks) != Phase.DISAPPEAR) {
+			return 1.0f;
+		}
+		float p = (ageTicks - disappearStart()) / 3.0f;
+		return 1.0f - smooth01(Math.min(1.0f, p));
 	}
 
 	/** World desaturation amount, 0..1: the world dies toward monochrome as the hole asserts itself. */

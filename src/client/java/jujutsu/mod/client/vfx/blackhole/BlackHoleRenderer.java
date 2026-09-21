@@ -266,7 +266,7 @@ public final class BlackHoleRenderer implements AutoCloseable {
 		data.putFloat((float) BlackHoleProfile.DISK_INNER_RADIUS)
 				.putFloat((float) BlackHoleProfile.DISK_OUTER_RADIUS)
 				.putFloat((float) BlackHoleProfile.DISK_HALF_THICKNESS)
-				.putFloat(0.0f);
+				.putFloat(timing.collapse(ageTicks));
 		data.flip();
 		encoder.writeToBuffer(blackHoleData.slice(0, BLACK_HOLE_DATA_SIZE), data);
 	}
