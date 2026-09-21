@@ -255,12 +255,13 @@ float diskEmission(vec3 p, vec3 viewDir) {
     float flash = pow(vnoise(vec2(ang * 4.0 + rot * 2.0, rad * 0.7 - Params1.z * 0.35)), 6.0) * 1.6;
     float tex = (0.72 + 0.55 * streaks) * (1.0 + clump + flash);
 
-    // Vertical falloff inside the slab.
-    float vert = 1.0 - (s * s) / (half_ * half_);
+    // Vertical falloff inside the slab — floored so grazing crossings (band edges, the
+    // transition into the lensed arcs) never dip to zero and open black slits.
+    float vert = 0.35 + 0.65 * (1.0 - (s * s) / (half_ * half_));
 
     // Doppler-ish beaming: the side moving toward the camera burns brighter.
     vec3 velDir = normalize(cross(n, planar));
-    float beam = 1.0 + 1.9 * max(0.0, dot(velDir, -viewDir)) - 0.55 * max(0.0, dot(velDir, viewDir));
+    float beam = 1.0 + 1.9 * max(0.0, dot(velDir, -viewDir)) - 0.40 * max(0.0, dot(velDir, viewDir));
 
     // Depth asymmetry: the far side sits behind the hole — dim it just enough to read as a 3D
     // object, never enough to break the ring.
@@ -433,8 +434,10 @@ void main() {
     // Soft HDR rolloff so the disk blows out to white instead of clipping ugly.
     col = col / (1.0 + col * 0.16);
     // Captured rays keep ONLY the equatorial band gathered before the horizon — a continuous
-    // bright line across the shadow, not a ragged remnant.
-    vec3 band = vec3(diskLum * 2.6) * smoothstep(0.35, 1.0, diskLum);
+    // bright line across the shadow, not a ragged remnant. Sub-gate regions get a 55%
+    // floor instead of black so the line never breaks into segments.
+    float bg = smoothstep(0.35, 1.0, diskLum);
+    vec3 band = vec3(diskLum * 2.6) * max(bg, 0.55 * smoothstep(0.10, 0.35, diskLum));
 
     vec3 capturedCol = band / (1.0 + band * 0.16);
     fragColor = vec4(mix(col, capturedCol, captured), 1.0);
