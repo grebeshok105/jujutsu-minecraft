@@ -35,8 +35,6 @@ public final class JujutsuNetworking {
 		// future roster travels the same two channels.
 		PayloadTypeRegistry.playC2S().register(ShikigamiSelectPayload.TYPE, ShikigamiSelectPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(ShikigamiStatePayload.TYPE, ShikigamiStatePayload.STREAM_CODEC);
-		PayloadTypeRegistry.playS2C().register(IncidentPerceptionPayload.TYPE, IncidentPerceptionPayload.STREAM_CODEC);
-		PayloadTypeRegistry.playS2C().register(IncidentZoneStatePayload.TYPE, IncidentZoneStatePayload.STREAM_CODEC);
 		registerServerReceivers();
 	}
 
