@@ -12,8 +12,10 @@ import java.util.Set;
 import jujutsu.mod.vfx.MegumiVfxIds;
 import jujutsu.mod.character.megumi.MegumiProfile;
 import jujutsu.mod.client.vfx.nobara.NobaraVfxRecipes;
+import jujutsu.mod.client.vfx.shared.SharedVfxRecipes;
 import jujutsu.mod.client.vfx.todo.TodoVfxRecipes;
 import jujutsu.mod.vfx.NobaraVfxIds;
+import jujutsu.mod.vfx.SharedVfxIds;
 import jujutsu.mod.vfx.TodoVfxIds;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
@@ -42,8 +44,12 @@ final class VfxRadiusContractTest {
 						NobaraVfxRecipes.IMPACT_PRESENTATION_RADIUS),
 				radius("Nobara trap impact", Set.of(NobaraVfxIds.NAIL_TRAP_IMPACT), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
 				finiteNone("Nobara caster actions", Set.of(NobaraVfxIds.CASTER_ACTION)),
-				radius("Nobara black flash", Set.of(NobaraVfxIds.BLACK_FLASH), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
-				radius("Todo clap", Set.of(TodoVfxIds.BOOGIE_WOOGIE), TodoVfxRecipes.BOOGIE_WOOGIE_PRESENTATION_RADIUS),
+				radius("Shared black flash", Set.of(SharedVfxIds.BLACK_FLASH), SharedVfxRecipes.WIDE_PRESENTATION_RADIUS),
+				radius("Todo clap", Set.of(TodoVfxIds.BOOGIE_WOOGIE, TodoVfxIds.FEINT_CLAP),
+						TodoVfxRecipes.BOOGIE_WOOGIE_PRESENTATION_RADIUS),
+				direct("Todo rhythm state", Set.of(TodoVfxIds.RHYTHM_STATE)),
+				radius("Todo rhythm peak", Set.of(TodoVfxIds.RHYTHM_PEAK), TodoVfxRecipes.RHYTHM_PRESENTATION_RADIUS),
+				radius("Todo revised start", Set.of(TodoVfxIds.REVISED_START), TodoVfxRecipes.REVISED_PRESENTATION_RADIUS),
 				direct("Todo mark", Set.of(TodoVfxIds.PAIR_MARK)),
 				direct("Todo feint", Set.of(TodoVfxIds.FEINT_TELL)),
 				finiteNone("Todo swap geometry", Set.of(TodoVfxIds.SWAP_ENDPOINT, TodoVfxIds.SWAP_AFTERIMAGE, TodoVfxIds.SWAP_ARRIVAL)),
@@ -90,6 +96,7 @@ final class VfxRadiusContractTest {
 		Set<ResourceLocation> live = new HashSet<>();
 		live.addAll(NobaraVfxIds.LIVE);
 		live.addAll(TodoVfxIds.LIVE);
+		live.addAll(SharedVfxIds.LIVE);
 		live.addAll(MegumiVfxIds.LIVE);
 		assertEquals(live, covered);
 		assertEquals(Set.of(MegumiProfile.VFX_CUE_RADIUS), deliveries.get(MegumiVfxIds.DOGS_SUMMON));

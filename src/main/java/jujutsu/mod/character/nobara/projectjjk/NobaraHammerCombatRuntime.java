@@ -25,6 +25,7 @@ import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.vfx.NobaraVfxIds;
+import jujutsu.mod.vfx.SharedVfxIds;
 import jujutsu.mod.vfx.VfxCues;
 
 /**
@@ -166,7 +167,7 @@ public final class NobaraHammerCombatRuntime {
 		Vec3 direction = nail.getDeltaMovement().lengthSqr() > 1e-6
 				? nail.getDeltaMovement().normalize()
 				: player.getLookAngle();
-		emitDirected(player, NobaraVfxIds.BLACK_FLASH, nail.position(), chain ? 3 : 2, direction);
+		emitDirected(player, SharedVfxIds.BLACK_FLASH, nail.position(), chain ? 3 : 2, direction);
 	}
 
 	private static void tryProcLivingBlackFlash(
@@ -197,7 +198,7 @@ public final class NobaraHammerCombatRuntime {
 		}
 		emitDirected(
 				player,
-				NobaraVfxIds.BLACK_FLASH,
+				SharedVfxIds.BLACK_FLASH,
 				BlackFlashStrike.impactOrigin(target),
 				chain ? 3 : 2,
 				player.getLookAngle());

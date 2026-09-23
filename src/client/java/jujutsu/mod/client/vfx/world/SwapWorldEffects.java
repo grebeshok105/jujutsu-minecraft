@@ -52,7 +52,9 @@ public final class SwapWorldEffects {
 	 * arriving, and a longer overlap stops reading as "you see who left" and starts reading as a bug.
 	 */
 	public static void renderSwapAfterimage(VertexConsumer consumer, Vec3 center, float progress, VfxCue cue) {
-		int alpha = Math.round(SILHOUETTE_PEAK_ALPHA * silhouetteAlpha(progress));
+		int beat = Math.max(0, Math.min(4, cue.intensity() - 1));
+		float intensityScale = 1.0f + beat * 0.12f;
+		int alpha = Math.min(240, Math.round(SILHOUETTE_PEAK_ALPHA * intensityScale * silhouetteAlpha(progress)));
 		if (alpha <= 0) {
 			return;
 		}
@@ -112,7 +114,9 @@ public final class SwapWorldEffects {
 	 * as the same event happening twice.
 	 */
 	public static void renderSwapArrival(VertexConsumer consumer, Vec3 center, float progress, float fade, VfxCue cue) {
-		int alpha = Math.min(200, Math.round(200.0f * fade));
+		int beat = Math.max(0, Math.min(4, cue.intensity() - 1));
+		float intensityScale = 1.0f + beat * 0.12f;
+		int alpha = Math.min(220, Math.round(200.0f * intensityScale * fade));
 		if (alpha <= 0) {
 			return;
 		}
