@@ -143,6 +143,10 @@ public final class NobaraHammerCombatRuntime {
 			float damage = ProjectJjkNobaraProfile.HAMMER_OVERHEAD_DAMAGE * ResonantMomentum.damageMultiplier(player);
 			if (target.hurtServer(level, level.damageSources().playerAttack(player), damage)) {
 				deepenOneNail(player, target);
+				// Extraction is a role-specific overhead follow-through. The runtime revalidates
+				// DeeplyAnchored and duplicate remnant state, so ordinary and horizontal hits
+				// never mint setup.
+				ProjectJjkStrawDollRuntime.tryExtractRemnant(player, target);
 				CombatStagger.GLOBAL.apply(target, now, ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
 				tryProcLivingBlackFlash(player, target, BlackFlashImpact.HAMMER, damage);
 			}
@@ -217,9 +221,9 @@ public final class NobaraHammerCombatRuntime {
 		BF_STREAK.put(player.getUUID(), 0);
 	}
 
-	/** Chain bonus ("Double Flash"): Resonant Momentum + small heal. */
+	/** Chain bonus ("Double Flash"): bounded execution Momentum + small heal. */
 	private static void applyChainBonus(ServerPlayer player) {
-		ResonantMomentum.grant(player);
+		ResonantMomentum.grantExecutionMoment(player, ProjectJjkNobaraProfile.MOMENTUM_WINDOW_TICKS);
 		player.heal(ProjectJjkNobaraProfile.BLACK_FLASH_CHAIN_HEAL);
 	}
 
@@ -232,6 +236,9 @@ public final class NobaraHammerCombatRuntime {
 				.orElse(null);
 		if (nail != null && nail.deepen()) {
 			emitAt(player, NobaraVfxIds.NAIL_DEEPEN, nail.position(), nail.embedDepthLevel());
+			if (nail.embedDepthLevel() == 3) {
+				emitAt(player, NobaraVfxIds.DEEPLY_ANCHORED, nail.position(), 3);
+			}
 			emitCasterAction(player, NobaraVfxIds.CASTER_HAMMER_EMBEDDED);
 		}
 	}
