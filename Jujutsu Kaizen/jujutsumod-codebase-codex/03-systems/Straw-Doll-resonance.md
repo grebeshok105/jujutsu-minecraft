@@ -2,9 +2,9 @@
 
 Status: CURRENT
 
-Ordinary accepted nail hits advance target-bound remnant progress. The ritual requires a matching remnant, nail, hammer, doll, valid target, same dimension, range, and no duplicate pending cast. Final impact revalidates before consuming resources and applying 28 damage.
+Ordinary embedded nails provide anchor/depth setup and target marks; they do not mint a bound remnant. An overhead hammer action extracts a bound remnant only when the target is deeply anchored — at least one live depth-3 anchor for that target — and extraction itself does not consume the setup. The ritual requires a matching remnant, nail, doll, valid target, same dimension, range, and no duplicate pending cast. Final release revalidates before consuming resources and applying 28 damage.
 
-A successful impact grants Resonant Momentum, applies heavy CombatStagger, and triggers ServerTimeDilation at 10 TPS for 20 server ticks. This global server hit-stop is an explicit accepted decision for the current private 1–2 player target. It is not a client-only effect and must be reconsidered if the product becomes public multiplayer.
+A successful ritual follows the authored 40-tick timeline: bind at t0, windup at t10, doll strike at t24, and release at t30. The pre-release beats are presentation-only; release consumes one nail and one bound remnant, then applies damage, momentum, stagger, and the release VFX. Resonance hit-stop is presentation-only (camera impulse, sound duck, post-process blur, and timeline cues); it never mutates the server tick rate.
 
 DOLL_STRIKE and RESONANCE_RELEASE remain transient VFX Core cues. No VfxDeltaTrackerMixin exists.
 

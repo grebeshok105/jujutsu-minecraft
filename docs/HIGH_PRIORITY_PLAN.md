@@ -178,7 +178,7 @@ Counted as call sites, enumerated, since an earlier draft mixed the two units:
 | `TodoPairSwapRuntime` | 1 | `TodoProfile.BOOGIE_WOOGIE_RANGE` |
 | `NobaraHammerCombatRuntime` | 1 | `ProjectJjkNobaraProfile.HAMMER_MELEE_RANGE` |
 | `ProjectJjkNobaraRuntime` | 1 | `ProjectJjkNobaraProfile.TARGET_RANGE` |
-| `ProjectJjkRitualRuntime` | 2 | `ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_RANGE` |
+| `ProjectJjkRitualRuntime` *(superseded — renamed to `HairpinRuntime` in the Nobara rework)* | 2 | `ProjectJjkNobaraProfile.HAIRPIN_ENLARGE_RANGE` |
 
 The two Todo call sites use the four-argument overload with an eligibility predicate; the other four use the three-argument overload. `ProjectJjkStrawDollRuntime` does not use the resolver at all.
 

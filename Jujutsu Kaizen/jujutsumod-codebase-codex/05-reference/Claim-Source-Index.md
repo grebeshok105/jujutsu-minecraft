@@ -12,11 +12,11 @@ Status: CURRENT
 | Every vessel binds one server and one client definition through two exhaustive switches | JujutsuCharacters.definition, JujutsuCharacterClients.definition | VERIFIED |
 | C2S actions execute on server thread | JujutsuNetworking.registerServerReceivers | VERIFIED |
 | Nobara actions require selected Nobara | CharacterAbilityExecutor.tryCast resolves the stored selection; JujutsuNetworking.handleCharacterAbility refuses a mismatched vessel claim | VERIFIED |
-| Hairpin uses concrete loaded owner nails | EmbeddedNailRegistry.loadedOwnedNails, ProjectJjkRitualRuntime | VERIFIED |
-| Embedded nail TTL/cap are 1200/30 | ProjectJjkNobaraProfile | VERIFIED |
-| Resonance changes global server TPS | ProjectJjkStrawDollRuntime.resolveImpact, ServerTimeDilation | VERIFIED and accepted |
+| Hairpin uses concrete loaded owner nails | `NailAnchorRegistry.ownedAnchors`, `HairpinRuntime` | VERIFIED |
+| Embedded nail TTL/cap are 1200/30 | `ProjectJjkNailEntity`, `ProjectJjkNobaraProfile`, `NailAnchorRegistry` | VERIFIED |
+| Resonance is a 40-tick presentation-only ritual; release consumes resources and resolves impact | `ProjectJjkStrawDollRuntime`, `NobaraActionTimeline`, `ResonancePolicy` | VERIFIED |
 | VFX uses one cue/director/recipe path | VfxDirector, JujutsuClientNetworking, NobaraVfxRecipes | VERIFIED |
-| Nobara defines 24 live VFX ids | NobaraVfxIds | VERIFIED |
+| Nobara defines 27 live VFX ids | NobaraVfxIds | VERIFIED |
 | Client mixin count is 6 | jujutsumod.client.mixins.json | VERIFIED |
 | Verification program inventory | build.gradle `verifyAssertionsEnabled` | VERIFIED |
 | Roster panel has four cards (Nobara/Todo/Megumi/None) | CharacterRosterPanel.CARDS, initialized from JujutsuCharacterClients.inRosterOrder | VERIFIED |
@@ -29,7 +29,7 @@ Status: CURRENT
 | The stone is cast-gated, not item-gated: a non-Todo cast never reaches the stone runtime, and no marker item exists | CharacterAbilityExecutor.tryCast, TodoDefinition → TodoAbilityRouter | VERIFIED |
 | GeckoLib 5 loads only geckolib/models and geckolib/animations | live skin rigs under `geckolib/models/character_skin`, existing animation JSON, archive manifest and ProjectSanityTest | VERIFIED |
 | ClickGui registers one module per vessel, derived from the client registry (four today) | JujutsuModules.registerAll, JujutsuCharacterClients.all | VERIFIED |
-| Mega Nail (B) consumes aimed-target embedded nails with a 24-tick charge and 60-tick flight | ProjectJjkMegaNailRuntime, ProjectJjkNobaraProfile | VERIFIED |
+| Mega Nail (B) consumes aimed-target embedded nails at t0, then runs a 14-tick gather, 16-tick charge and 60-tick flight | ProjectJjkMegaNailRuntime, ProjectJjkNailEntity, ProjectJjkNobaraProfile | VERIFIED |
 | ProjectJJK assets are temporary permitted placeholders | docs/PROVENANCE.md permission scope, docs/THIRD_PARTY_NOTICES.md | VERIFIED for private development |
 | Rich provenance is release-ready | no durable permission/license found | UNKNOWN |
 | In-game visual feel is correct | no current smoke evidence | UNKNOWN |

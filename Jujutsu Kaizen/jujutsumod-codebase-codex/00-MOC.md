@@ -29,8 +29,8 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 - World transient rendering keeps lifecycle and dispatch in `VfxWorldChannel` while `HairpinWorldEffects`, `BlackFlashWorldEffects`, `SwapWorldEffects`, `ShadowWorldEffects`, and shared `VfxWorldGeometry` own the extracted visual families; the cap remains 48.
 - `VfxCameraChannel` keeps production wall-clock behavior through `System::currentTimeMillis` while its package-private millisecond supplier seam makes deterministic start, expiry, overlap, clamp, strength, and clear contracts executable without sleeps.
 - A completed Boogie Woogie emits its own cues — afterimage and arrival — which the feint does not, and opens a 24-tick window on Todo's next hit. The marker system is deleted: Todo's stone exists only in flight (V throws or self-swaps, Shift+V feeds a target into it), and B → Shift+B runs the fixed triple cycle Todo→A→T→Todo. Contracts: [Todo — Boogie Woogie and combat slice](03-systems/Todo-Boogie-Woogie.md), design `docs/TODO_STONE_REWORK.md`.
-- Loaded ordinary embedded nails use a 1200-tick TTL, a 30-per-owner cap, and EmbeddedNailRegistry.
-- Resonance global server hit-stop is intentional for the private 1–2 player target.
+- The physical `ProjectJjkNailEntity` expires ordinary embedded nails after 1200 ticks; `NailAnchorRegistry` maintains a 30-per-owner cap and indexes loaded anchors.
+- Resonance hit-stop is presentation-only — caster camera impulse, sound duck, post-process blur, and the authored ritual timeline; it never mutates the server tick rate.
 
 ## Code-derived metrics
 

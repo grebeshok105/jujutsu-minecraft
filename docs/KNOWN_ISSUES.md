@@ -307,7 +307,7 @@ Ranking now has three live keys, in order:
 
 Detection is untouched — still ray–AABB, not centre-near-ray. The extra record component defaults to a real hit in both existing `EntityCandidate` constructors, so no call site changed. `TargetResolverTest` now covers real-hit-beats-graze, angle between grazes, distance between equally aimed grazes, and id-decided ties independent of list order.
 
-Still open, and the reason this entry survives the fix: the resolver is shared by four callers — `TodoBoogieWoogieRuntime`, `NobaraHammerCombatRuntime`, `ProjectJjkNobaraRuntime`, and `ProjectJjkRitualRuntime` — so this was a roster-wide gameplay change, not a per-ability tweak, and it has only pure-comparator coverage. **Needs a Nobara targeting regression smoke: hammer targeting, nail launch, and directed Hairpin.** Until that runs, "assist no longer steals the target" is verified as comparator logic and UNVERIFIED as feel. Any future comparator edit needs the same smoke.
+Still open, and the reason this entry survives the fix: the resolver is shared by four callers — `TodoBoogieWoogieRuntime`, `NobaraHammerCombatRuntime`, `ProjectJjkNobaraRuntime`, and `HairpinRuntime` — so this was a roster-wide gameplay change, not a per-ability tweak, and it has only pure-comparator coverage. **Needs a Nobara targeting regression smoke: hammer targeting, nail launch, and directed Hairpin.** Until that runs, "assist no longer steals the target" is verified as comparator logic and UNVERIFIED as feel. Any future comparator edit needs the same smoke.
 
 ### E2 — Curse-link technique ids lack canonical semantic validation
 
@@ -509,7 +509,7 @@ Landed 2026-09-18 with the full subsystem green. Deliberate leftovers, not bugs:
 - Character selection persists through Fabric Data Attachment API and is copied on death.
 - Nobara's starter kit is restored idempotently on every selection — it fills only a missing hammer, doll or nails, so re-selection cannot duplicate held tools. (This deliberately reversed the earlier one-time-claim rule; the persisted claim is now recorded for every vessel and read by nothing — see E12.)
 - Loaded ordinary embedded nails have a TTL and a per-owner cap.
-- Hairpin R/B resolve nails through EmbeddedNailRegistry instead of level.getAllEntities().
+- Hairpin R/B resolve nails through `NailAnchorRegistry` instead of `level.getAllEntities()`.
 - VFX recipe registration goes through each vessel's `CharacterClientDefinition.registerClientHooks()`; the `JujutsuVfxRecipes` aggregator is deleted so the list of who has recipes cannot drift from the list of who exists.
 - `TodoProfile.SAFE_POSITION_HORIZONTAL_RADIUS` and `WORLD_BORDER_MARGIN` are wired into `TodoBoogieWoogieRuntime` instead of being dead constants.
 - Todo has a GeckoLib model, animations, and a player renderer; the `ability.boogie_woogie` hook is live, not a no-op.

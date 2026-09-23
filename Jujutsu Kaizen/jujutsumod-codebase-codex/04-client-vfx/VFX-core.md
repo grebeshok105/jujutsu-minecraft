@@ -60,21 +60,21 @@ Duration ownership follows the same rule: one semantic lifetime has one named ow
 
 Each vessel registers its own recipe pack from `CharacterClientDefinition.registerClientHooks()` — Nobara's registers `NobaraVfxRecipes`, Todo's `TodoVfxRecipes`, and Megumi's `MegumiVfxRecipes` — installed once by `JujutsuCharacterClients.registerAll()` at client init, after `VfxDirector.initialize()` because the recipes register into the director it builds. The aggregate `JujutsuVfxRecipes` this replaced is deleted, so the list of who has recipes cannot drift from the list of who exists. See [Vessel definitions](../02-architecture/Vessel-definitions.md).
 
-VfxDirector owns recipe registration, cue age/expiry, world identity, disconnect cleanup, render callbacks, and seven live channels: world, HUD, camera, first-person, particles, sound, and post-process. It does not retain a director-side collection of recipe instances: an accepted cue creates its instance, rejects expiry before start, computes late-cue age, and starts exactly once. After start, retained state belongs to the concrete channels, while level change and disconnect cleanup clear those channel owners. The removed size-64 bookkeeping cap never limited visible effects; the real world-render cap remains `VfxWorldChannel.MAX_IMPACT_FLASHES = 48`. `VfxTimeChannel` was removed because no production consumer applied its stored scale; client-global slow motion is not a VFX Core feature. Resonance's server-global hit-stop remains a separate accepted gameplay/presentation decision through `ServerTimeDilation`. Unknown ids are logged once and ignored.
+VfxDirector owns recipe registration, cue age/expiry, world identity, disconnect cleanup, render callbacks, and seven live channels: world, HUD, camera, first-person, particles, sound, and post-process. It does not retain a director-side collection of recipe instances: an accepted cue creates its instance, rejects expiry before start, computes late-cue age, and starts exactly once. After start, retained state belongs to the concrete channels, while level change and disconnect cleanup clear those channel owners. The removed size-64 bookkeeping cap never limited visible effects; the real world-render cap remains `VfxWorldChannel.MAX_IMPACT_FLASHES = 48`. `VfxTimeChannel` was removed because no production consumer applied its stored scale; client-global slow motion is not a VFX Core feature. Resonance hit-stop is presentation-only — the authored ritual timeline drives camera impulse, sound duck, and post-process blur; there is no server-global tick-rate mutation. Unknown ids are logged once and ignored.
 
 **A recipe body runs exactly once per cue.** `startResolvedCue` calls `instance.start(context, initialAgeTicks)` a single time; `initialAgeTicks` is only the late-cue age, and no channel re-ticks PARTICLES. Branches like `initialAgeTicks % 5 == 0` or `>= duration - 6` inside a recipe are one-shot lottery tickets, not a timeline (this trap was actually shipped once — see PR #54). Continuous presentation needs a real driver: an entity renderer or client entity tick reading synced state (mega nail charge vortex), or a server runtime re-emitting a cue periodically (nail trap boundary pulse, mega nail flight rumble).
 
-NobaraVfxIds defines 24 live ids: four dead ids and their aliases were removed, `nobara/caster_action`
+NobaraVfxIds defines 27 live ids: four dead ids and their aliases were removed, `nobara/caster_action`
 was appended for server-confirmed caster animation anchors, `nobara/mega_nail_strike` was appended
 for the Mega Nail terminal tracer, and `nobara/mega_nail_charge` was appended for the 24-tick
-Mega Nail charge-up (squeezing rings, spiral particles, growing glow). The `nobara/enlarge` id stays
-live as the Mega Nail per-nail consume flash after the standalone Enlarge mechanic was removed.
+client charge-up recipe (the entity's live charge phase is 16 ticks after a 14-tick gather). The
+`nobara/enlarge` id stays live as the Mega Nail per-nail consume flash after the standalone Enlarge mechanic was removed.
 TodoVfxIds defines ten live ids (VERIFIED — TodoVfxIds.java:63-65 LIVE set: boogie_woogie, swap_endpoint,
 feint_tell, pair_mark, swap_afterimage, swap_arrival, momentum_strike, stone_throw, stone_vanish,
 triple_swap). MegumiVfxIds defines fifteen live ids (VERIFIED — MegumiVfxIds.java:35-39 LIVE set: five
 Divine Dogs — dogs_summon_body, dogs_summon, dogs_recall, dogs_sic, dogs_pounce — plus ten shadow-kit
 ids — shadow_trap open/zone/grip/close, shadow_dive/ripple/emerge, drop_zone open/zone/close).
-Across the three owners, 49 declared live ids remain (24 + 10 + 15); existing wire strings stay stable
+Across the three owners, 52 declared live ids remain (27 + 10 + 15); existing wire strings stay stable
 and the new strings are explicitly covered by the cue test.
 Every live id must have exactly one recipe plus a production emitter reference. Recipe completeness
 calls the real three recipe packs against the director registry, whose duplicate registration remains a
