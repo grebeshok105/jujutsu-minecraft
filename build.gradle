@@ -326,9 +326,9 @@ tasks.register('testRemnantVisualType', JavaExec) {
 	jvmArgs '-ea'
 }
 
-tasks.register('testNobaraRitual', JavaExec) {
+tasks.register('testNobaraResonance', JavaExec) {
 	group = 'verification'
-	description = 'Runs assertion-based tests for Nobara straw doll ritual policy'
+	description = 'Runs assertion-based tests for Nobara resonance policy'
 	dependsOn tasks.named('testClasses')
 	classpath = sourceSets.test.runtimeClasspath
 	mainClass = 'jujutsu.mod.character.nobara.projectjjk.ResonancePolicyTest'
@@ -456,15 +456,7 @@ tasks.register('testResonantMomentum', JavaExec) {
 	jvmArgs '-ea'
 }
 
-tasks.register('testNobaraMegaNail', JavaExec) {
-	group = 'verification'
-	description = 'Runs assertion-based tests for Mega Nail setup consumption'
-	dependsOn tasks.named('testClasses')
-	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'jujutsu.mod.character.nobara.projectjjk.ProjectJjkMegaNailMathTest'
-	maxHeapSize = '128m'
-	jvmArgs '-ea'
-}
+// Mega Nail math is covered by the JUnit suite under `test`; no standalone JavaExec needed.
 
 
 

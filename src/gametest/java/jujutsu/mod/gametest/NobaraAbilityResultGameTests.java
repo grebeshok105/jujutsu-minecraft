@@ -157,15 +157,13 @@ public final class NobaraAbilityResultGameTests {
 	}
 
 	/**
-	 * A genuinely silent failure must still show the generic fallback, exactly once. Mega Nail aimed
-	 * into empty sky resolves to MISS ({@code ProjectJjkMegaNailRuntime.start} returns
-	 * UNHANDLED_FAILURE — nothing was said), so the router's no_target line is the one message.
+	 * A genuinely silent failure must still show the generic fallback, exactly once. USE_CONTEXT is
+	 * Nobara's unclaimed right click ({@code NobaraAbilityRouter} returns UNHANDLED_FAILURE — nothing
+	 * was said), so the router's no_target line is the one message.
 	 *
-	 * <p>PRIMARY is deliberately not used here: with no nails and no target,
-	 * {@code startDirectedHairpin} finds no seed and returns SUCCESS (the snap cue is the original
-	 * boolean-true behavior preserved by the frozen mapping), so PRIMARY cannot produce an
-	 * UNHANDLED_FAILURE for a fresh player — only the explosive lock can, and it is private static
-	 * state no test can seed. SECONDARY exercises the same fallback gate deterministically.
+	 * <p>SECONDARY is deliberately not used here: Mega Nail now reports its own handled failure
+	 * ({@code mega.no_setup}) on a mis-aim, so it can no longer produce an UNHANDLED_FAILURE for a
+	 * fresh player. USE_CONTEXT exercises the same fallback gate deterministically.
 	 */
 	@GameTest(maxTicks = 100, skyAccess = true)
 	public void unhandledFailureStillShowsGenericFallback(GameTestHelper helper) {
@@ -176,7 +174,7 @@ public final class NobaraAbilityResultGameTests {
 
 		helper.runAtTickTime(2, () -> {
 			try {
-				AbilityResult result = cast(nobara, CharacterAbility.SECONDARY);
+				AbilityResult result = cast(nobara, CharacterAbility.USE_CONTEXT);
 				helper.assertTrue(result == AbilityResult.UNHANDLED_FAILURE, diagnostic(fixture, "cast",
 						helper, nobara, "unhandled cast result", "UNHANDLED_FAILURE", result));
 				assertRecordedExactly(helper, fixture, "cast", nobara, List.of(NO_TARGET));

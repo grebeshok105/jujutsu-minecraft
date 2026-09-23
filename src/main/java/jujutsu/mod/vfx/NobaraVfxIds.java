@@ -9,10 +9,7 @@ public final class NobaraVfxIds {
 	public static final ResourceLocation IMPACT = id("impact");
 	public static final ResourceLocation IMPACT_SOUND = id("impact_sound");
 	public static final ResourceLocation DETONATE = id("detonate");
-	public static final ResourceLocation ENLARGE = id("enlarge");
-	public static final ResourceLocation EXPLOSION = id("explosion");
 	public static final ResourceLocation FIRST_PERSON_SNAP = id("first_person_snap");
-	public static final ResourceLocation REMNANT_DROP = id("remnant_drop");
 	public static final ResourceLocation RITUAL_BIND = id("ritual_bind");
 	public static final ResourceLocation DOLL_STRIKE = id("doll_strike");
 	public static final ResourceLocation RESONANCE_RELEASE = id("resonance_release");
@@ -44,23 +41,15 @@ public final class NobaraVfxIds {
 	public static final int CASTER_REMNANT_EXTRACT = 6;
 	public static final int CASTER_RESONANCE_RITUAL = 7;
 	public static final Set<ResourceLocation> LIVE = Set.of(
-			HAMMER, IMPACT, IMPACT_SOUND, DETONATE, ENLARGE, EXPLOSION, FIRST_PERSON_SNAP, REMNANT_DROP,
+			HAMMER, IMPACT, IMPACT_SOUND, DETONATE, FIRST_PERSON_SNAP,
 			RITUAL_BIND, DOLL_STRIKE, RESONANCE_RELEASE, HAMMER_HORIZONTAL, HAMMER_OVERHEAD, HAMMER_NAIL_LAUNCH,
 			BLACK_FLASH, SELF_RESONANCE, NAIL_DEEPEN, NAIL_TRAP_PLACED, NAIL_TRAP_ARMED, NAIL_TRAP_COLLAPSE,
 			NAIL_TRAP_IMPACT, CASTER_ACTION, MEGA_NAIL_STRIKE, MEGA_NAIL_CHARGE, DEEPLY_ANCHORED,
 			REMNANT_EXTRACT, RITUAL_WINDUP, RESONANCE_LINK, MEGA_GATHER, HAIRPIN_LINK);
 
 	public static final Set<ResourceLocation> PLANNED = Set.of();
-	private static final int HAIRPIN_FINALE_FLAG = 8;
 
 	private NobaraVfxIds() {}
-
-	public static int hairpinExplosionIntensity(int depth, boolean finale) {
-		return Math.max(1, Math.min(3, depth)) | (finale ? HAIRPIN_FINALE_FLAG : 0);
-	}
-
-	public static int hairpinExplosionDepth(int intensity) { return Math.max(1, Math.min(3, intensity & 7)); }
-	public static boolean isHairpinFinale(int intensity) { return (intensity & HAIRPIN_FINALE_FLAG) != 0; }
 
 	private static ResourceLocation id(String path) {
 		return JujutsuMod.id("nobara/" + path);

@@ -42,9 +42,6 @@ public final class NobaraVfxRecipes {
 	private static final int IMPACT_SOUND_DURATION_TICKS = 2;
 	private static final int DETONATE_DURATION_TICKS = 14;
 	private static final int FIRST_PERSON_SNAP_DURATION_TICKS = 15;
-	public static final int ENLARGE_DURATION_TICKS = 28;
-	public static final int EXPLOSION_DURATION_TICKS = 18;
-	public static final int REMNANT_DROP_DURATION_TICKS = 16;
 	public static final int RITUAL_BIND_DURATION_TICKS = 18;
 	public static final int DOLL_STRIKE_DURATION_TICKS = ProjectJjkNobaraProfile.RESONANCE_VFX_DURATION_TICKS;
 	public static final int RESONANCE_RELEASE_DURATION_TICKS = ProjectJjkNobaraProfile.RESONANCE_VFX_DURATION_TICKS;
@@ -64,10 +61,7 @@ public final class NobaraVfxRecipes {
 		VfxDirector.register(NobaraVfxIds.IMPACT, NobaraVfxRecipes::impact);
 		VfxDirector.register(NobaraVfxIds.IMPACT_SOUND, NobaraVfxRecipes::impactSound);
 		VfxDirector.register(NobaraVfxIds.DETONATE, NobaraVfxRecipes::detonate);
-		VfxDirector.register(NobaraVfxIds.ENLARGE, NobaraVfxRecipes::enlarge);
-		VfxDirector.register(NobaraVfxIds.EXPLOSION, NobaraVfxRecipes::explosion);
 		VfxDirector.register(NobaraVfxIds.FIRST_PERSON_SNAP, NobaraVfxRecipes::firstPersonSnap);
-		VfxDirector.register(NobaraVfxIds.REMNANT_DROP, NobaraVfxRecipes::remnantDrop);
 		VfxDirector.register(NobaraVfxIds.RITUAL_BIND, NobaraVfxRecipes::ritualBind);
 		VfxDirector.register(NobaraVfxIds.DOLL_STRIKE, NobaraVfxRecipes::dollStrike);
 		VfxDirector.register(NobaraVfxIds.RESONANCE_RELEASE, NobaraVfxRecipes::resonanceRelease);
@@ -524,109 +518,6 @@ public final class NobaraVfxRecipes {
 				context.camera().triggerLaunch(marks, proximity * 0.7f, initialAgeTicks);
 				context.hud().triggerSwing(proximity * 0.65f, initialAgeTicks);
 			}
-		});
-	}
-
-	private static VfxInstance enlarge(VfxCue cue) {
-		return VfxInstance.of(ENLARGE_DURATION_TICKS, (context, initialAgeTicks) -> {
-			int marks = intensity(cue);
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.ENLARGE, ENLARGE_DURATION_TICKS);
-			float proximity = context.proximity(cue, WIDE_PRESENTATION_RADIUS);
-			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
-				Vec3 origin = context.resolveOrigin(cue);
-				RandomSource random = random(cue, 0xE11A6EL);
-				// Directional particle stream along the consume path toward the gather point.
-				Vec3 dir = cue.direction();
-				if (dir.lengthSqr() > 1e-8) {
-					int steps = 8 + marks * 2;
-					for (int step = 0; step <= steps; step++) {
-						Vec3 at = origin.add(dir.scale(step * 0.12 * (1.0 + marks * 0.06)));
-						context.burst(PROJECTJJK_CYAN_SMALL, at, 1, 0.02, 0.06, random);
-						context.burst(JujutsuParticles.HAIRPIN_SPARK, at, 1, 0.03, 0.1, random);
-					}
-				}
-				context.burst(ParticleTypes.FLASH, origin.add(0.0, 0.18, 0.0), 2, 0.18, 0.0, random);
-				context.burst(PROJECTJJK_CYAN, origin.add(0.0, 0.2, 0.0), 34 + marks * 7, 1.15, 0.18, random);
-				context.burst(ParticleTypes.DAMAGE_INDICATOR, origin, 12, 0.22, 0.04, random);
-				context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 18 + marks * 4, 0.36, 0.08, random);
-				context.burst(JujutsuParticles.HAIRPIN_SNAP_CRACK, origin, 12 + marks, 0.3, 0.08, random);
-				context.burst(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, origin, 18, 0.44, 0.3, random);
-				context.burst(JujutsuParticles.HAIRPIN_BURST_RESIDUE, origin, 24, 0.48, 0.18, random);
-				context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 12, 0.48, 0.0, -0.12, random);
-				if (proximity > 0.01f) {
-					context.playNoFalloff(JujutsuSounds.PROJECTJJK_BLACK_FLASH_IMPACT, 1.35f * proximity, 1.82f, origin, random);
-					context.playNoFalloff(JujutsuSounds.PROJECTJJK_GOO_FOLEY, 0.36f * proximity, 1.45f, origin, random);
-				}
-			}
-			if (proximity > 0.01f) {
-				context.camera().triggerHeavyImpact(marks + 2, Math.min(1.0f, proximity * 1.15f), initialAgeTicks);
-				context.hud().triggerImpact(Math.min(1.0f, proximity * 1.1f), initialAgeTicks);
-				context.postProcess().triggerBlur(Math.round(260.0f * proximity), initialAgeTicks);
-			}
-		});
-	}
-
-	private static VfxInstance explosion(VfxCue cue) {
-		return VfxInstance.of(EXPLOSION_DURATION_TICKS, (context, initialAgeTicks) -> {
-			int depth = NobaraVfxIds.hairpinExplosionDepth(intensity(cue));
-			boolean finale = NobaraVfxIds.isHairpinFinale(intensity(cue));
-			int marks = depth;
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.EXPLOSION, EXPLOSION_DURATION_TICKS);
-			float proximity = context.proximity(cue, WIDE_PRESENTATION_RADIUS);
-			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
-				Vec3 origin = context.resolveOrigin(cue);
-				RandomSource random = random(cue, 0xE0B00FL);
-				context.burst(ParticleTypes.FLASH, origin.add(0.0, 0.18, 0.0), 1, 0.0, 0.0, random);
-				context.burst(PROJECTJJK_CYAN, origin, 24 + marks * 5, 0.85, 0.2, random);
-				context.burst(JujutsuParticles.HAIRPIN_BURST_RESIDUE, origin, 10 + marks * 3, 0.38, 0.09, random);
-				context.burst(JujutsuParticles.HAIRPIN_SPARK, origin, 22 + marks * 5, 0.52, 0.28, random);
-				context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 6 + marks, 0.28, 0.08, random);
-				context.ring(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 20 + marks * 3, 1.1 + Math.min(4, marks) * 0.12, 0.08, 0.04, random);
-				if (depth == 3) {
-					context.burst(new DustParticleOptions(0x1A0006, 1.8f), origin, 42, 0.65, 0.24, random);
-					context.burst(JujutsuParticles.HAIRPIN_SNAP_CRACK, origin, 30, 0.55, 0.24, random);
-					context.burst(JujutsuParticles.HAIRPIN_BURST_RESIDUE, origin, 22, 0.48, 0.14, random);
-					context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 40, 1.7, 0.25, -0.18, random);
-				}
-				if (finale) {
-					context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 42, 2.05, 0.42, 0.14, random);
-					context.ring(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 34, 2.65, -0.12, 0.08, random);
-					context.burst(ParticleTypes.FLASH, origin, 2, 0.12, 0.0, random);
-				}
-				if (proximity > 0.01f) {
-					context.playNoFalloff(JujutsuSounds.PROJECTJJK_EXPLODE, 0.42f * proximity, 1.96f, origin, random);
-					context.playNoFalloff(JujutsuSounds.PROJECTJJK_IMPLODE, 0.24f * proximity, 1.22f, origin, random);
-					if (depth == 3) context.playNoFalloff(JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, 0.68f * proximity, 0.76f, origin, random);
-					if (finale) context.playNoFalloff(JujutsuSounds.PROJECTJJK_LONG_WHOOSH, 0.86f * proximity, 0.58f, origin, random);
-				}
-			}
-			if (proximity > 0.01f) {
-				context.camera().triggerExplosion(depth + (finale ? 3 : 0), Math.min(1.0f, proximity * (finale ? 1.0f : 0.82f)), initialAgeTicks);
-				if (proximity > 0.35f) {
-					context.camera().triggerHeavyImpact(depth + (finale ? 2 : 0), proximity * 0.4f, initialAgeTicks);
-				}
-				context.hud().triggerImpact(Math.min(1.0f, proximity * 0.74f), initialAgeTicks);
-				context.postProcess().triggerBlur(Math.round(210.0f * proximity), initialAgeTicks);
-				if (finale) {
-					context.hud().triggerFlash(1000, Math.round(70 * proximity), initialAgeTicks);
-					context.postProcess().triggerBlur(Math.round(380.0f * proximity), initialAgeTicks);
-				}
-			}
-		});
-	}
-
-	private static VfxInstance remnantDrop(VfxCue cue) {
-		return VfxInstance.of(REMNANT_DROP_DURATION_TICKS, (context, initialAgeTicks) -> {
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.RITUAL_BIND, REMNANT_DROP_DURATION_TICKS);
-			float proximity = context.proximity(cue, WIDE_PRESENTATION_RADIUS);
-			if (!VfxTimeline.isOpeningBeat(initialAgeTicks) || proximity <= 0.01f) {
-				return;
-			}
-			Vec3 origin = context.resolveOrigin(cue);
-			RandomSource random = random(cue, 0xB1ADL);
-			context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 16, 0.72, 0.0, -0.04, random);
-			context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 10, 0.34, 0.06, random);
-			context.playNoFalloff(JujutsuSounds.PROJECTJJK_CHIME, 0.62f * proximity, 1.22f, origin, random);
 		});
 	}
 
