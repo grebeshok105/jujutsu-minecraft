@@ -99,7 +99,7 @@ public final class TodoStatusHud {
 		if (beat == 4) {
 			double pulse = 0.65 + 0.35 * (0.5 + 0.5
 					* Math.sin((level.getGameTime() + tickCounter.getGameTimeDeltaPartialTick(false)) * 0.22));
-			int peakAlpha = Math.round(255.0 * pulse);
+			int peakAlpha = Math.round((float) (255.0 * pulse));
 			peakColor = (peakAlpha << 24) | (PEAK_ACCENT & 0x00FFFFFF);
 			Component peak = Component.translatable("hud.jujutsumod.todo.rhythm.peak");
 			graphics.drawString(font, peak, x + width - font.width(peak) - 7, y + 5, peakColor, false);
