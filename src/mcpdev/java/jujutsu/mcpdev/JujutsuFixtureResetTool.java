@@ -33,6 +33,7 @@ import jujutsu.mod.character.nobara.projectjjk.ProjectJjkRitualRuntime;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollRuntime;
 import jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime;
 import jujutsu.mod.character.todo.TodoStateLifecycle;
+import jujutsu.mod.character.todo.TodoTransientState;
 import jujutsu.mod.combat.BlackFlashFocus;
 import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.combat.ForcedBlackFlash;
@@ -83,6 +84,11 @@ public final class JujutsuFixtureResetTool extends BaseTool {
 					runStep(steps, "cooldowns_clear", () -> CharacterAbilityCooldowns.clearAllForPlayer(playerId));
 					runStep(steps, "stagger_clear", () -> CombatStagger.GLOBAL.clear(playerId));
 					runStep(steps, "todo_drop_everything", () -> TodoStateLifecycle.dropEverything(player));
+					runStep(steps, "todo_rhythm_verify_clear", () -> {
+						if (TodoTransientState.rhythm(playerId).isPresent()) {
+							throw new IllegalStateException("Todo rhythm survived transient-state drop");
+						}
+					});
 					runStep(steps, "megumi_summon_teardown",
 							() -> MegumiSummonRuntime.teardown(server, playerId, MegumiSummonRuntime.TeardownReason.FIXTURE_RESET));
 					runStep(steps, "megumi_shikigami_teardown",

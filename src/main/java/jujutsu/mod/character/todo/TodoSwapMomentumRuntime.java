@@ -115,16 +115,17 @@ public final class TodoSwapMomentumRuntime {
 	 * will ever query again.
 	 */
 	private static void consume(ServerPlayer todo, LivingEntity target, boolean applyStagger) {
+		int beat = TodoRhythmRuntime.beatOf(todo);
 		todo.removeEffect(JujutsuEffects.TODO_SWAP_MOMENTUM);
 		if (applyStagger && target.isAlive()) {
-			CombatStagger.GLOBAL.apply(target, todo.level().getGameTime(), TodoProfile.SWAP_MOMENTUM_STAGGER_TICKS);
+			CombatStagger.GLOBAL.apply(target, todo.level().getGameTime(), TodoSwapMomentum.staggerTicks(beat));
 		}
 		Vec3 origin = BlackFlashStrike.impactOrigin(target);
 		JujutsuNetworking.broadcastVfxCue(todo.level(), origin, TodoProfile.VFX_DELIVERY_RADIUS,
-				VfxCues.worldFixedDirected(TodoVfxIds.MOMENTUM_STRIKE, origin, 1,
-						todo.level().getGameTime(), todo.getRandom().nextLong(), todo.getLookAngle()));
-		JujutsuMod.LOGGER.debug("Todo swap momentum spent player={} target={}",
-				todo.getGameProfile().getName(), target.getName().getString());
+				VfxCues.anchored(TodoVfxIds.MOMENTUM_STRIKE, origin, todo.getId(), todo.position(),
+						TodoSwapMomentum.cueIntensity(beat), todo.level().getGameTime(), todo.getRandom().nextLong()));
+		JujutsuMod.LOGGER.debug("Todo swap momentum spent player={} target={} beat={}",
+				todo.getGameProfile().getName(), target.getName().getString(), beat);
 	}
 
 	/** The player whose own melee this was, or null when the damage came from anything else. */
