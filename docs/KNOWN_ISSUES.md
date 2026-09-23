@@ -18,17 +18,19 @@ Owner hierarchy: current code/tests → AGENTS.md → SESSION.md → Codebase Co
 
 ## Accepted product decisions
 
-### Global Resonance hit-stop
+### Global Resonance hit-stop — SUPERSEDED (Nobara rework, 2026-09-23)
 
-This register owns the rationale; other documents point here.
-
-Resonance intentionally changes the global server tick rate to create hit-stop. This affects every player and dimension, but the current product target is private play for one or two people. Do not remove it as a generic multiplayer optimization. Reopen only if the target becomes a public or competitive server.
+Superseded by the Nobara rework design spec §21: Resonance no longer changes the global
+server tick rate. `ServerTimeDilation` is deleted; the cinematic hit-stop is built from
+presentation only — caster-only `RESONANCE_LINK` cue (camera impulse, sound duck, post
+blur) plus the authored 40-tick ritual timeline. The old rationale (private 1–2 player
+target) is kept here for history; the mechanism it justified is gone.
 
 ### VFX Core does not provide client-global slow motion
 
 Verified 2026-07-29 against the removed `VfxTimeChannel` path, `NobaraVfxRecipes`, and `VfxDirector`.
 
-`VfxTimeChannel` stored a scale and deadline. `dollStrike` and `resonanceRelease` wrote values into it, but no production consumer applied `VfxDirector.timeScale()`, so real client-global slow motion never existed. The channel and its calls are removed as dead API, not replaced with another system. Server-global Resonance hit-stop remains the separate accepted decision above. Client-global slow motion may return only through an independently approved design with an explicitly named consumer and lifecycle.
+`VfxTimeChannel` stored a scale and deadline. `dollStrike` and `resonanceRelease` wrote values into it, but no production consumer applied `VfxDirector.timeScale()`, so real client-global slow motion never existed. The channel and its calls are removed as dead API, not replaced with another system. Server-global Resonance hit-stop is superseded per the entry above; client-global slow motion may return only through an independently approved design with an explicitly named consumer and lifecycle.
 
 ### Boogie Woogie destinations have no entity-occupancy gate
 

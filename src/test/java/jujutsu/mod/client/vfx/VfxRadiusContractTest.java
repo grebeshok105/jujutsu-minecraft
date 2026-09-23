@@ -42,6 +42,13 @@ final class VfxRadiusContractTest {
 						NobaraVfxRecipes.IMPACT_PRESENTATION_RADIUS),
 				radius("Nobara trap impact", Set.of(NobaraVfxIds.NAIL_TRAP_IMPACT), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
 				finiteNone("Nobara caster actions", Set.of(NobaraVfxIds.CASTER_ACTION)),
+				radius("Nobara deeply anchored", Set.of(NobaraVfxIds.DEEPLY_ANCHORED), NobaraVfxRecipes.HAMMER_PRESENTATION_RADIUS),
+				radius("Nobara remnant extract", Set.of(NobaraVfxIds.REMNANT_EXTRACT), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
+				radius("Nobara ritual windup", Set.of(NobaraVfxIds.RITUAL_WINDUP), NobaraVfxRecipes.HAMMER_PRESENTATION_RADIUS),
+				// RESONANCE_LINK is caster-only: the compression hit-stop is private, sent directly.
+				direct("Nobara resonance link", Set.of(NobaraVfxIds.RESONANCE_LINK)),
+				radius("Nobara mega gather", Set.of(NobaraVfxIds.MEGA_GATHER), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
+				radius("Nobara hairpin link", Set.of(NobaraVfxIds.HAIRPIN_LINK), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
 				radius("Nobara black flash", Set.of(NobaraVfxIds.BLACK_FLASH), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
 				radius("Todo clap", Set.of(TodoVfxIds.BOOGIE_WOOGIE), TodoVfxRecipes.BOOGIE_WOOGIE_PRESENTATION_RADIUS),
 				direct("Todo mark", Set.of(TodoVfxIds.PAIR_MARK)),

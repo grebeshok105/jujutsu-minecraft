@@ -104,7 +104,7 @@ public final class NobaraAbilitySlotsTest {
 		String router = Files.readString(ROUTER);
 		record Slot(CharacterAbility slot, String call) {}
 		Slot[] map = {
-				new Slot(CharacterAbility.PRIMARY, "ProjectJjkRitualRuntime.startDirectedHairpin(nobara)"),
+				new Slot(CharacterAbility.PRIMARY, "HairpinRuntime.startDirectedHairpin(nobara)"),
 				new Slot(CharacterAbility.PRIMARY_SNEAK, "SelfResonanceRuntime.tryCast(nobara)"),
 				new Slot(CharacterAbility.SECONDARY, "ProjectJjkMegaNailRuntime.start(nobara)"),
 				new Slot(CharacterAbility.SECONDARY_SNEAK, "NailTrapRuntime.tryPlace(nobara)"),

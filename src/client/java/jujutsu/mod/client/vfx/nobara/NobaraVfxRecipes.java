@@ -52,6 +52,12 @@ public final class NobaraVfxRecipes {
 	public static final int CASTER_ACTION_DURATION_TICKS = 20;
 	private static final int MEGA_NAIL_STRIKE_DURATION_TICKS = 24;
 	private static final int MEGA_NAIL_CHARGE_DURATION_TICKS = 24;
+	private static final int DEEPLY_ANCHORED_DURATION_TICKS = 22;
+	private static final int REMNANT_EXTRACT_DURATION_TICKS = 20;
+	private static final int RITUAL_WINDUP_DURATION_TICKS = 14;
+	private static final int RESONANCE_LINK_DURATION_TICKS = 12;
+	private static final int MEGA_GATHER_DURATION_TICKS = 16;
+	private static final int HAIRPIN_LINK_DURATION_TICKS = 10;
 
 	public static void register() {
 		VfxDirector.register(NobaraVfxIds.HAMMER, NobaraVfxRecipes::hammer);
@@ -78,20 +84,156 @@ public final class NobaraVfxRecipes {
 		VfxDirector.register(NobaraVfxIds.CASTER_ACTION, NobaraVfxRecipes::casterAction);
 		VfxDirector.register(NobaraVfxIds.MEGA_NAIL_STRIKE, NobaraVfxRecipes::megaNailStrike);
 		VfxDirector.register(NobaraVfxIds.MEGA_NAIL_CHARGE, NobaraVfxRecipes::megaNailCharge);
+		VfxDirector.register(NobaraVfxIds.DEEPLY_ANCHORED, NobaraVfxRecipes::deeplyAnchored);
+		VfxDirector.register(NobaraVfxIds.REMNANT_EXTRACT, NobaraVfxRecipes::remnantExtract);
+		VfxDirector.register(NobaraVfxIds.RITUAL_WINDUP, NobaraVfxRecipes::ritualWindup);
+		VfxDirector.register(NobaraVfxIds.RESONANCE_LINK, NobaraVfxRecipes::resonanceLink);
+		VfxDirector.register(NobaraVfxIds.MEGA_GATHER, NobaraVfxRecipes::megaGather);
+		VfxDirector.register(NobaraVfxIds.HAIRPIN_LINK, NobaraVfxRecipes::hairpinLink);
 	}
 
 	private static VfxInstance casterAction(VfxCue cue) {
 		return VfxInstance.of(CASTER_ACTION_DURATION_TICKS, (context, ignoredInitialAgeTicks) -> {
 			String animation = switch (intensity(cue)) {
-				case NobaraVfxIds.CASTER_HAIRPIN_DIRECTED, NobaraVfxIds.CASTER_MEGA_NAIL -> "spell1";
-				case NobaraVfxIds.CASTER_NAIL_TRAP -> "spell3";
+				case NobaraVfxIds.CASTER_HAIRPIN_DIRECTED -> "hairpin_activate";
+				case NobaraVfxIds.CASTER_NAIL_PREPARE -> "nail_prepare";
+				case NobaraVfxIds.CASTER_NAIL_TRAP -> "nail_trap_place";
 				case NobaraVfxIds.CASTER_HAMMER_EMBEDDED -> "hammer_embedded_drive";
+				case NobaraVfxIds.CASTER_MEGA_NAIL -> "mega_nail_setup";
+				case NobaraVfxIds.CASTER_REMNANT_EXTRACT -> "remnant_extract";
+				case NobaraVfxIds.CASTER_RESONANCE_RITUAL -> "resonance_ritual";
 				default -> null;
 			};
 			if (animation == null) {
 				return;
 			}
 			triggerAnchoredAction(context, cue, animation);
+		});
+	}
+
+	/** Depth-3 confirmation: a sharp critical-anchor beat — tight ring, white flash, heavy snap. */
+	private static VfxInstance deeplyAnchored(VfxCue cue) {
+		return VfxInstance.of(DEEPLY_ANCHORED_DURATION_TICKS, (context, initialAgeTicks) -> {
+			Vec3 origin = context.resolveOrigin(cue);
+			float proximity = context.proximity(cue, HAMMER_PRESENTATION_RADIUS);
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				RandomSource random = random(cue, 0xD33A17L);
+				context.burst(ParticleTypes.FLASH, origin, 2, 0.1, 0.0, random);
+				context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 30, 0.9, -0.3, -0.12, random);
+				context.burst(JujutsuParticles.HAIRPIN_SNAP_CRACK, origin, 24, 0.5, 0.22, random);
+				context.burst(new DustParticleOptions(0x1A0006, 1.6f), origin, 26, 0.5, 0.18, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_IMPLODE, 0.8f * proximity, 0.62f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_SNAP, 0.7f * proximity, 0.9f, origin, random);
+			}
+			if (proximity > 0.01f) {
+				context.camera().triggerHeavyImpact(3, proximity * 0.7f, initialAgeTicks);
+				context.hud().triggerImpact(proximity * 0.6f, initialAgeTicks);
+			}
+		});
+	}
+
+	/** Remnant extraction: cursed energy peels off the target toward the caster. */
+	private static VfxInstance remnantExtract(VfxCue cue) {
+		return VfxInstance.of(REMNANT_EXTRACT_DURATION_TICKS, (context, initialAgeTicks) -> {
+			Vec3 origin = context.resolveOrigin(cue);
+			float proximity = context.proximity(cue, WIDE_PRESENTATION_RADIUS);
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				RandomSource random = random(cue, 0xE7A7C1L);
+				Vec3 dir = cue.direction();
+				if (dir.lengthSqr() > 1e-8) {
+					for (int step = 0; step <= 12; step++) {
+						Vec3 at = origin.add(dir.scale(step * 0.14));
+						context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, at, 2, 0.04, 0.05, random);
+						context.burst(PROJECTJJK_CYAN_SMALL, at, 1, 0.03, 0.04, random);
+					}
+				}
+				context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 20, 0.8, -0.2, -0.08, random);
+				context.burst(JujutsuParticles.HAIRPIN_MARK_STAIN, origin, 14, 0.4, 0.06, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_CHIME, 0.75f * proximity, 1.1f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_MAGIC, 0.6f * proximity, 0.8f, origin, random);
+			}
+			if (proximity > 0.01f) {
+				context.camera().triggerRitual(2, proximity * 0.6f, initialAgeTicks);
+				context.hud().triggerSwing(proximity * 0.5f, initialAgeTicks);
+			}
+		});
+	}
+
+	/** Ritual windup beat (t10 of the 40t timeline): tension gathering before the strike. */
+	private static VfxInstance ritualWindup(VfxCue cue) {
+		return VfxInstance.of(RITUAL_WINDUP_DURATION_TICKS, (context, initialAgeTicks) -> {
+			Vec3 origin = context.resolveOrigin(cue);
+			float proximity = context.proximity(cue, HAMMER_PRESENTATION_RADIUS);
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				RandomSource random = random(cue, 0x1D9A2FL);
+				context.ring(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 22, 1.2, -0.35, -0.1, random);
+				context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 20, 0.5, 0.05, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_MAGIC, 0.7f * proximity, 0.6f, origin, random);
+			}
+			if (proximity > 0.01f) {
+				context.camera().triggerRitual(intensity(cue), proximity * 0.8f, initialAgeTicks);
+				context.hud().triggerSwing(proximity * 0.45f, initialAgeTicks);
+			}
+		});
+	}
+
+	/**
+	 * Caster-only compression (t24–30): the private hit-stop — camera impulse, sound duck,
+	 * post blur. Sent directly to the caster; bystanders never receive it.
+	 */
+	private static VfxInstance resonanceLink(VfxCue cue) {
+		return VfxInstance.of(RESONANCE_LINK_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				Vec3 origin = context.resolveOrigin(cue);
+				RandomSource random = random(cue, 0x11A4EDL);
+				context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 18, 0.35, 0.04, random);
+				context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 16, 0.6, -0.4, -0.06, random);
+				context.sound().duck(context.client(), RESONANCE_LINK_DURATION_TICKS + 4, initialAgeTicks);
+			}
+			context.camera().triggerRitual(4, 0.9f, initialAgeTicks);
+			context.postProcess().triggerBlur(Math.round(420.0f), initialAgeTicks);
+			context.hud().triggerImpact(0.5f, initialAgeTicks);
+		});
+	}
+
+	/** Mega gather: one embedded nail's energy streams toward the forming mega nail. */
+	private static VfxInstance megaGather(VfxCue cue) {
+		return VfxInstance.of(MEGA_GATHER_DURATION_TICKS, (context, initialAgeTicks) -> {
+			Vec3 origin = context.resolveOrigin(cue);
+			float proximity = context.proximity(cue, WIDE_PRESENTATION_RADIUS);
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				RandomSource random = random(cue, 0x6A7E4L);
+				Vec3 travel = cue.anchorOffset();
+				if (travel.lengthSqr() > 1e-8) {
+					for (int step = 0; step <= 10; step++) {
+						Vec3 at = origin.add(travel.scale(step / 10.0));
+						context.burst(JujutsuParticles.HAIRPIN_SPARK, at, 2, 0.04, 0.1, random);
+						context.burst(PROJECTJJK_CYAN_SMALL, at, 1, 0.03, 0.05, random);
+					}
+				}
+				context.burst(JujutsuParticles.HAIRPIN_COMPRESSION_MOTE, origin, 12, 0.3, 0.06, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_SIZZLE, 0.55f * proximity, 1.2f, origin, random);
+			}
+			if (proximity > 0.01f) {
+				context.hud().triggerSwing(proximity * 0.3f, initialAgeTicks);
+			}
+		});
+	}
+
+	/** Hairpin link: a faint directed thread from one detonated anchor to the next in chain. */
+	private static VfxInstance hairpinLink(VfxCue cue) {
+		return VfxInstance.of(HAIRPIN_LINK_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) return;
+			Vec3 origin = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0xA1B1E1L);
+			Vec3 travel = cue.anchorOffset();
+			if (travel.lengthSqr() > 1e-8) {
+				for (int step = 0; step <= 12; step++) {
+					Vec3 at = origin.add(travel.scale(step / 12.0));
+					context.burst(JujutsuParticles.HAIRPIN_SPARK, at, 1, 0.03, 0.08, random);
+					context.burst(PROJECTJJK_CYAN_SMALL, at, 1, 0.02, 0.04, random);
+				}
+			}
 		});
 	}
 
@@ -106,6 +248,7 @@ public final class NobaraVfxRecipes {
 			float proximity = context.proximity(cue, WIDE_PRESENTATION_RADIUS);
 			RandomSource random = random(cue, 0x4E61A1L + intensity(cue));
 			if (intensity(cue) <= 1) {
+				triggerAnchoredAction(context, cue, "mega_nail_charge");
 				// Start beat: flash plus the outer gathering ring. The riser owns the audio.
 				context.burst(ParticleTypes.FLASH, origin.add(0.0, 0.18, 0.0), 3, 0.1, 0.0, random);
 				context.ring(JujutsuParticles.HAIRPIN_WARN_EDGE, origin, 26, 2.6, 0.02, -0.14, random);
@@ -128,6 +271,7 @@ public final class NobaraVfxRecipes {
 			Vec3 origin = context.resolveOrigin(cue);
 			float proximity = context.proximity(cue, WIDE_PRESENTATION_RADIUS);
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				triggerAnchoredAction(context, cue, "mega_nail_release");
 				RandomSource random = random(cue, 0x7A1E5FL);
 				Vec3 travel = cue.anchorOffset();
 				// Directed tracer along the flight path — denser with more nails.

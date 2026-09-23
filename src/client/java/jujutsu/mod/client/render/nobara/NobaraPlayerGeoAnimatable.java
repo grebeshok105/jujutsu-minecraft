@@ -32,17 +32,12 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 	private static final RawAnimation RUN = loop("animation.player_model.run");
 	private static final RawAnimation IDLE_2 = loop("animation.player_model.idle2");
 	private static final RawAnimation WALK_2 = loop("animation.player_model.walk2");
-	private static final RawAnimation ONE_TWO = play("animation.player_model.one_two");
 	private static final RawAnimation ATTACK_1 = play("animation.player_model.attack1");
 	private static final RawAnimation ATTACK_2 = play("animation.player_model.attack2");
 	private static final RawAnimation ATTACK_3 = play("animation.player_model.attack3");
 	private static final RawAnimation SNAP = play("animation.player_model.snap");
 	private static final RawAnimation SPELL_1 = play("animation.player_model.spell1");
-	private static final RawAnimation SPELL_2 = play("animation.player_model.spell2");
 	private static final RawAnimation SPELL_3 = play("animation.player_model.spell3");
-	private static final RawAnimation SPELL_4 = play("animation.player_model.spell4");
-	private static final RawAnimation SPELL_5 = play("animation.player_model.spell5");
-	private static final RawAnimation SWIPE_1 = play("animation.player_model.swipe1");
 	private static final RawAnimation HAMMER_HORIZONTAL = play("animation.player_model.hammer_horizontal");
 	private static final RawAnimation HAMMER_OVERHEAD = play("animation.player_model.hammer_overhead");
 	private static final RawAnimation HAMMER_NAIL_LAUNCH = play("animation.player_model.hammer_nail_launch");
@@ -50,6 +45,14 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 	private static final RawAnimation HAMMER_DOLL_STRIKE = play("animation.player_model.hammer_doll_strike");
 	private static final RawAnimation SELF_RESONANCE = play("animation.player_model.self_resonance");
 	private static final RawAnimation BLACK_FLASH = play("animation.player_model.black_flash");
+	private static final RawAnimation NAIL_PREPARE = play("animation.player_model.nail_prepare");
+	private static final RawAnimation NAIL_TRAP_PLACE = play("animation.player_model.nail_trap_place");
+	private static final RawAnimation HAIRPIN_ACTIVATE = play("animation.player_model.hairpin_activate");
+	private static final RawAnimation MEGA_NAIL_SETUP = play("animation.player_model.mega_nail_setup");
+	private static final RawAnimation MEGA_NAIL_CHARGE = play("animation.player_model.mega_nail_charge");
+	private static final RawAnimation MEGA_NAIL_RELEASE = play("animation.player_model.mega_nail_release");
+	private static final RawAnimation REMNANT_EXTRACT = play("animation.player_model.remnant_extract");
+	private static final RawAnimation RESONANCE_RITUAL = play("animation.player_model.resonance_ritual");
 	private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
 	private NobaraPlayerGeoAnimatable() {
@@ -81,24 +84,27 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 	public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
 		controllers.add(new AnimationController<NobaraPlayerGeoAnimatable>(BASE_CONTROLLER, 4, this::baseAnimation));
 		controllers.add(new AnimationController<NobaraPlayerGeoAnimatable>(ACTION_CONTROLLER, 1, state -> PlayState.STOP)
-				.triggerableAnim("one_two", ONE_TWO)
 				.triggerableAnim("attack1", ATTACK_1)
 				.triggerableAnim("attack2", ATTACK_2)
 				.triggerableAnim("attack3", ATTACK_3)
 				.triggerableAnim("snap", SNAP)
 				.triggerableAnim("spell1", SPELL_1)
-				.triggerableAnim("spell2", SPELL_2)
 				.triggerableAnim("spell3", SPELL_3)
-				.triggerableAnim("spell4", SPELL_4)
-				.triggerableAnim("spell5", SPELL_5)
-				.triggerableAnim("swipe1", SWIPE_1)
 				.triggerableAnim("hammer_horizontal", HAMMER_HORIZONTAL)
 				.triggerableAnim("hammer_overhead", HAMMER_OVERHEAD)
 				.triggerableAnim("hammer_nail_launch", HAMMER_NAIL_LAUNCH)
 				.triggerableAnim("hammer_embedded_drive", HAMMER_EMBEDDED_DRIVE)
 				.triggerableAnim("hammer_doll_strike", HAMMER_DOLL_STRIKE)
 				.triggerableAnim("self_resonance", SELF_RESONANCE)
-				.triggerableAnim("black_flash", BLACK_FLASH));
+				.triggerableAnim("black_flash", BLACK_FLASH)
+				.triggerableAnim("nail_prepare", NAIL_PREPARE)
+				.triggerableAnim("nail_trap_place", NAIL_TRAP_PLACE)
+				.triggerableAnim("hairpin_activate", HAIRPIN_ACTIVATE)
+				.triggerableAnim("mega_nail_setup", MEGA_NAIL_SETUP)
+				.triggerableAnim("mega_nail_charge", MEGA_NAIL_CHARGE)
+				.triggerableAnim("mega_nail_release", MEGA_NAIL_RELEASE)
+				.triggerableAnim("remnant_extract", REMNANT_EXTRACT)
+				.triggerableAnim("resonance_ritual", RESONANCE_RITUAL));
 	}
 
 	@Override
@@ -161,11 +167,13 @@ public final class NobaraPlayerGeoAnimatable implements GeoReplacedEntity {
 	}
 
 	private static boolean headKeyframedAction(RawAnimation animation) {
-		return animation == ONE_TWO || animation == ATTACK_1 || animation == ATTACK_2 || animation == ATTACK_3
-				|| animation == SNAP || animation == SPELL_1 || animation == SPELL_2 || animation == SPELL_3
-				|| animation == SPELL_4 || animation == SPELL_5 || animation == SWIPE_1
+		return animation == ATTACK_1 || animation == ATTACK_2 || animation == ATTACK_3
+				|| animation == SNAP || animation == SPELL_1 || animation == SPELL_3
 				|| animation == HAMMER_HORIZONTAL || animation == HAMMER_OVERHEAD || animation == HAMMER_NAIL_LAUNCH
-				|| animation == HAMMER_EMBEDDED_DRIVE || animation == HAMMER_DOLL_STRIKE || animation == SELF_RESONANCE || animation == BLACK_FLASH;
+				|| animation == HAMMER_EMBEDDED_DRIVE || animation == HAMMER_DOLL_STRIKE || animation == SELF_RESONANCE
+				|| animation == BLACK_FLASH || animation == NAIL_PREPARE || animation == NAIL_TRAP_PLACE
+				|| animation == HAIRPIN_ACTIVATE || animation == MEGA_NAIL_SETUP || animation == MEGA_NAIL_CHARGE
+				|| animation == MEGA_NAIL_RELEASE || animation == REMNANT_EXTRACT || animation == RESONANCE_RITUAL;
 	}
 
 	private record Movement(boolean moving, boolean running) {}

@@ -19,7 +19,7 @@ final class VfxFactoryMigrationContractTest {
 			"jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime",
 			"jujutsu.mod.character.nobara.projectjjk.NobaraHammerCombatRuntime",
 			"jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraRuntime",
-			"jujutsu.mod.character.nobara.projectjjk.ProjectJjkRitualRuntime",
+			"jujutsu.mod.character.nobara.projectjjk.HairpinRuntime",
 			"jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollRuntime",
 			"jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime",
 			"jujutsu.mod.character.todo.TodoBlackFlashRuntime",
