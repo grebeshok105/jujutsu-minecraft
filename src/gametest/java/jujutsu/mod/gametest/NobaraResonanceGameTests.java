@@ -34,14 +34,14 @@ import jujutsu.mod.registry.JujutsuItems;
 
 /** Block 4's server gameplay oracles: extraction, fixed-timeline release, and bounded Momentum. */
 public final class NobaraResonanceGameTests {
-	private static final String FIXTURE_EXTRACTION = "twoNailImpactsMintCurseRemnantsForEveryTier";
+	private static final String FIXTURE_EXTRACTION = "deeplyAnchoredExtractionMintsRemnantPerTier";
 	private static final String FIXTURE_RITUAL = "strawDollRitualBurnsMarkedSpiritAndSparesUnmarked";
 
 	public NobaraResonanceGameTests() {}
 
 	/** D10-migrated scenario: Deeply Anchored + overhead setup mints one curse remnant per tier. */
 	@GameTest(maxTicks = 120, skyAccess = true)
-	public void twoNailImpactsMintCurseRemnantsForEveryTier(GameTestHelper helper) {
+	public void deeplyAnchoredExtractionMintsRemnantPerTier(GameTestHelper helper) {
 		CursedSpiritTestFixtures.layStoneFloor(helper);
 		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
 		ServerPlayer caster = setupCaster(helper, FIXTURE_EXTRACTION, new BlockPos(1, 1, 1));
