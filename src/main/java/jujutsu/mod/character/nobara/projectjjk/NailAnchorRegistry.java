@@ -153,6 +153,18 @@ public final class NailAnchorRegistry {
 		return discarded;
 	}
 
+	/** Discards one owner's anchors across all loaded dimensions without forcing chunk loads. */
+	public static int discardOwned(MinecraftServer server, UUID ownerId) {
+		if (server == null || ownerId == null) {
+			return 0;
+		}
+		int discarded = 0;
+		for (ServerLevel level : server.getAllLevels()) {
+			discarded += discardOwned(level, ownerId);
+		}
+		return discarded;
+	}
+
 	/** Discards owned anchors across all loaded dimensions without forcing chunk loads. */
 	public static int discardOwned(MinecraftServer server) {
 		if (server == null) {

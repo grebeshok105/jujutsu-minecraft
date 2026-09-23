@@ -61,7 +61,8 @@ public final class ProjectJjkMegaNailRuntime {
 		if (ownerId == null) {
 			return;
 		}
-		PENDING_GATHERS.keySet().removeIf(ownerId::equals);
+		// Gathers are keyed by random id — match on the caster inside the pending record.
+		PENDING_GATHERS.values().removeIf(pending -> ownerId.equals(pending.caster.getUUID()));
 		for (ServerLevel level : server.getAllLevels()) {
 			for (Entity entity : level.getAllEntities()) {
 				if (entity instanceof ProjectJjkNailEntity nail && nail.isMegaNail()

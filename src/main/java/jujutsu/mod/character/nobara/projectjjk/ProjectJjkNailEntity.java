@@ -650,6 +650,7 @@ public final class ProjectJjkNailEntity extends Entity {
 		}
 		entityData.set(DATA_MEGA_CRITICAL, input.getBooleanOr(MEGA_CRITICAL_TAG, false));
 		boolean mega = input.getBooleanOr(MEGA_NAIL_TAG, false);
+		entityData.set(DATA_MEGA, mega);
 		if (mega) {
 			megaWeight = input.getFloatOr(MEGA_WEIGHT_TAG, 0.0f);
 			megaCount = input.getIntOr(MEGA_COUNT_TAG, 0);
@@ -895,7 +896,10 @@ public final class ProjectJjkNailEntity extends Entity {
 		untrackActiveExplosiveNail();
 		if (level() instanceof ServerLevel serverLevel) {
 			NailAnchorRegistry.untrack(serverLevel, getUUID());
-			if (isTrapNail()) {
+			// Chunk unload / dimension change is a pause, not a destruction — the trap must
+			// not collapse for an anchor that will come back (NailAnchorLifecycle agrees).
+			if (isTrapNail() && removalReason != RemovalReason.UNLOADED_TO_CHUNK
+					&& removalReason != RemovalReason.CHANGED_DIMENSION) {
 				NailTrapRuntime.onAnchorDestroyed(serverLevel, getUUID());
 			}
 		}

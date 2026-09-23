@@ -94,9 +94,8 @@ public final class JujutsuFixtureResetTool extends BaseTool {
 					runStep(steps, "megumi_shadow_trap_clear", () -> MegumiShadowTrapRuntime.clearOwned(server, playerId));
 					runStep(steps, "megumi_shadow_drop_clear", () -> MegumiShadowDropRuntime.clearOwned(server, playerId));
 					runStep(steps, "megumi_shadow_move_teardown", () -> MegumiShadowMoveRuntime.teardownOwned(server, playerId));
-					runStep(steps, "megumi_shadow_grip_effect", () -> player.removeEffect(JujutsuEffects.MEGUMI_SHADOW_GRIP));
 					runStep(steps, "nobara_embedded_nails_discard",
-							() -> NailAnchorRegistry.discardOwned(player.level(), playerId));
+							() -> NailAnchorRegistry.discardOwned(server, playerId));
 					runStep(steps, "nobara_nail_traps_clear", () -> NailTrapRuntime.clearOwned(server, playerId));
 					runStep(steps, "nobara_nail_marks_clear", () -> ProjectJjkNailMarks.clearOwner(playerId));
 					runStep(steps, "nobara_hammer_combat_clear", () -> NobaraHammerCombatRuntime.clearPlayer(playerId));
