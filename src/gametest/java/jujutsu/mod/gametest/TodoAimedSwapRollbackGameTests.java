@@ -9,7 +9,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.world.entity.animal.Pig;
 import net.minecraft.world.level.block.Blocks;
-import jujutsu.mod.character.todo.TodoBoogieWoogieRuntime;
+import jujutsu.mod.character.todo.SwapCommit;
 
 /**
  * Scenarios 3 and 4 of the aimed Boogie Woogie slice (issue #21): the blocked-destination atomic
@@ -19,7 +19,7 @@ import jujutsu.mod.character.todo.TodoBoogieWoogieRuntime;
  * placement candidate for the target fails {@code noBlockCollision}, so the destination preflight
  * cancels the whole cast: nobody moves, nothing charges. {@link #forcedSecondPlacementFailureRollsBackBothBodies}
  * makes the second commit placement report failure through the block-1 seam
- * ({@link TodoBoogieWoogieRuntime#overrideCommitTeleport}) and observes the production rollback
+ * ({@link SwapCommit#overrideCommitTeleport}) and observes the production rollback
  * restore both bodies to their snapshots.
  *
  * <p><b>Why the seam is the only deterministic route into the rollback branch.</b> The commit
@@ -34,9 +34,9 @@ import jujutsu.mod.character.todo.TodoBoogieWoogieRuntime;
  * call sites; {@code place}, {@code restore} and {@code rollback} keep the production teleport.
  * The rollback observed by scenario 4 is therefore production code — the seam only manufactures
  * the second commit's failure, and the first commit delegates to
- * {@link TodoBoogieWoogieRuntime#PRODUCTION_COMMIT_TELEPORT}, so the caster's body really moves
+ * {@link SwapCommit#PRODUCTION_COMMIT_TELEPORT}, so the caster's body really moves
  * before the rollback puts it back. The seam is process-global static state, so every override is
- * paired with {@link TodoBoogieWoogieRuntime#restoreProductionCommitTeleport()} in a
+ * paired with {@link SwapCommit#restoreProductionCommitTeleport()} in a
  * {@code finally} block; a leak would poison sibling tests.
  *
  * <p><b>Candidate-kill table</b> for the scenario 3 alcove — the STRICT scan
@@ -61,7 +61,7 @@ import jujutsu.mod.character.todo.TodoBoogieWoogieRuntime;
  *                                            | tops 4.7 / 5.7 / 6.7 always reach into [4,7)
  *                                            | (feet y=2 additionally dies on the y=1..2 walls)
  *   every candidate                          | findSafeDestination(STRICT) returns null =>
- *                                            | TodoSwapPlan.preflight empty => atomic refuse
+ *                                            | SwapPlan.preflight empty => atomic refuse
  * </pre>
  *
  * <p>The slab floats at y=4..6, entirely above the sightline: vanilla {@code hasLineOfSight}
@@ -211,9 +211,9 @@ public final class TodoAimedSwapRollbackGameTests {
 
 		helper.runAtTickTime(2, () -> {
 			try {
-				TodoBoogieWoogieRuntime.overrideCommitTeleport((body, level, dest, yaw, pitch) -> {
+				SwapCommit.overrideCommitTeleport((body, level, dest, yaw, pitch) -> {
 					if (commits.incrementAndGet() == 1) {
-						return TodoBoogieWoogieRuntime.PRODUCTION_COMMIT_TELEPORT.teleport(body, level, dest, yaw, pitch); // caster commit REAL
+						return SwapCommit.PRODUCTION_COMMIT_TELEPORT.teleport(body, level, dest, yaw, pitch); // caster commit REAL
 					}
 					return false; // second (target) commit reports authoritative failure
 				});
@@ -241,7 +241,7 @@ public final class TodoAimedSwapRollbackGameTests {
 				TodoSwapTestFixtures.assertNoPrimaryCharge(helper, FIXTURE_FORCED_ROLLBACK, "rollback", caster);
 				asserted.set(true);
 			} finally {
-				TodoBoogieWoogieRuntime.restoreProductionCommitTeleport();
+				SwapCommit.restoreProductionCommitTeleport();
 				// On failure the pig goes now — the tick-6/tick-16 teardown never runs after a fail.
 				if (!asserted.get()) {
 					pig.discard();

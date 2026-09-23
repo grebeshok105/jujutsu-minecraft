@@ -423,17 +423,22 @@ public final class ProjectSanityTest {
 		assert Files.exists(todoRuntime) : "Todo needs the server-authoritative Boogie Woogie runtime";
 		String runtime = Files.readString(todoRuntime);
 		assert runtime.contains("TodoProfile.BOOGIE_WOOGIE_RANGE") : "Todo range must come from the profile";
-		// The rollback used to be pinned as the literal `restore(todo, todoSnapshot)`, which named one call
-		// site rather than the property. Four commit paths roll back and only three reported a failed
-		// restore, so they were folded into one helper — and this assertion had to follow the property
-		// instead of the old spelling.
-		assert runtime.contains("TodoSwapPlan.preflight") && runtime.contains("rollback(\"boogie woogie\"")
-				: "Boogie Woogie must require an atomic destination plan and roll back a partial authoritative move";
-		assert Files.exists(MAIN_JAVA.resolve("jujutsu/mod/character/todo/TodoSwapPlan.java"))
-				: "Todo must keep the two-party swap preflight in a testable atomic plan";
+		String nodes = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/todo/SwapNodes.java"));
+		String commit = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/todo/SwapCommit.java"));
+		assert nodes.contains("SwapNodes") && nodes.contains("planExchange")
+				&& nodes.contains("planCycle") : "Todo must expose unified node resolvers and plan builders";
+		assert commit.contains("SwapNodes.revalidate") && commit.contains("commitTeleport.teleport")
+				&& commit.contains("LOGGER.error")
+				: "every Todo swap must use commit-time validation, injectable teleport, and rollback evidence";
+		assert Files.exists(MAIN_JAVA.resolve("jujutsu/mod/character/todo/SwapPlan.java"))
+				: "Todo must keep the unified swap preflight in a testable atomic plan";
+		assert runtime.contains("TodoSwapHooks.fireAfterCommit")
+				: "successful aimed swaps must notify the Todo post-commit hook";
+		assert runtime.contains("TodoCooldownPolicy.arm")
+				: "aimed cooldowns must be armed through the Todo-owned policy";
 		assert runtime.contains("hasLineOfSight") && runtime.contains("ArmorStand") && runtime.contains("isPassenger")
 				&& runtime.contains("isVehicle") && runtime.contains("Leashable")
-				: "Todo targeting must validate visibility and reject armor stands, passengers, vehicles, and leashed entities";
+				: "Todo targeting must validate visibility and reject unsafe transport states";
 		String networking = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/network/JujutsuNetworking.java"));
 		assert networking.contains("CharacterAbilityPayload.TYPE") && networking.contains("AbilityCooldownPayload.TYPE")
 				: "Todo must use typed shared ability and cooldown packets";
@@ -471,9 +476,9 @@ public final class ProjectSanityTest {
 		String clientInit = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/JujutsuModClient.java"));
 		assert clientInit.contains("JujutsuCharacterClients.registerAll()")
 				: "Client init must install every vessel's client hooks through the registry";
-		assert runtime.contains("isPlaceableDestination") || runtime.contains("isInWorldDestination")
+		assert nodes.contains("SafeBodyPlacement")
 				: "Boogie Woogie destinations must stay free-form (air/water/flight), not floor-gated";
-		assert !runtime.contains("hasSafeFloor")
+		assert !nodes.contains("hasSafeFloor")
 				: "Boogie Woogie must not require a solid floor under destinations";
 		String swapGates = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/todo/TodoSwapGates.java"));
 		assert swapGates.contains("isEmptyHand(todo.getMainHandItem())") && swapGates.contains("isEmptyHand(todo.getOffhandItem())")
@@ -522,11 +527,11 @@ public final class ProjectSanityTest {
 		assert router.contains("case SECONDARY, SECONDARY_SNEAK -> TodoPairSwapRuntime.tryCast")
 				: "B and Shift+B must reach the pair runtime as two distinct slots — the fold must not return";
 		String stoneRuntime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/todo/TodoStoneRuntime.java"));
-		assert stoneRuntime.contains("Strictness.STRICT") && !stoneRuntime.contains("Strictness.SOFT")
-				: "Every stone destination must be STRICT; SOFT belongs to the aimed swap's own arrival alone";
+		assert nodes.contains("Strictness.STRICT") && !stoneRuntime.contains("Strictness.SOFT")
+				: "Every stone destination must use the shared STRICT policy";
 		String pairRuntime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/todo/TodoPairSwapRuntime.java"));
-		assert pairRuntime.contains("Strictness.STRICT") && !pairRuntime.contains("Strictness.SOFT")
-				: "Every pair and triple destination must be STRICT";
+		assert nodes.contains("planCycle") && !pairRuntime.contains("Strictness.SOFT")
+				: "Every pair and triple destination must use the shared STRICT policy";
 		assert stoneRuntime.contains("TodoSwapMomentumRuntime.grant") && !pairRuntime.contains("TodoSwapMomentumRuntime.grant")
 				: "Momentum rewards swaps Todo makes with his own body: the stone self-swap grants it, pair and triple never do";
 		assert !Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/CharacterDefinition.java")).contains("canonicalSlot")
