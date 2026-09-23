@@ -35,6 +35,7 @@ import jujutsu.mod.character.todo.TodoPendingSelection;
 import jujutsu.mod.character.todo.TodoRhythmRuntime;
 import jujutsu.mod.character.todo.TodoRhythmState;
 import jujutsu.mod.character.todo.TodoTransientState;
+import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.registry.JujutsuEffects;
 
 /**
