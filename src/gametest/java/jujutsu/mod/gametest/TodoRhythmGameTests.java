@@ -3,8 +3,8 @@ package jujutsu.mod.gametest;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
-import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
@@ -224,7 +224,7 @@ public final class TodoRhythmGameTests {
 		TodoSwapHooks.fireAfterCommit(caster, SwapKind.AIMED, SUCCESS, false);
 	}
 
-	private static net.minecraft.network.chat.Component diagnostic(GameTestHelper helper, String fixture,
+	private static net.minecraft.network.chat.Component diagnostic(String fixture, GameTestHelper helper,
 			String what, Object expected, Object actual) {
 		return TodoSwapTestFixtures.diagnostic(fixture, "rhythm", helper.getTick(), null, null, what, expected, actual);
 	}
