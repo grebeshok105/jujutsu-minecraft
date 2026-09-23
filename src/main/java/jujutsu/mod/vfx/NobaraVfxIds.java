@@ -30,15 +30,26 @@ public final class NobaraVfxIds {
 	public static final ResourceLocation CASTER_ACTION = id("caster_action");
 	public static final ResourceLocation MEGA_NAIL_STRIKE = id("mega_nail_strike");
 	public static final ResourceLocation MEGA_NAIL_CHARGE = id("mega_nail_charge");
+	public static final ResourceLocation DEEPLY_ANCHORED = id("deeply_anchored");
+	public static final ResourceLocation REMNANT_EXTRACT = id("remnant_extract");
+	public static final ResourceLocation RITUAL_WINDUP = id("ritual_windup");
+	public static final ResourceLocation RESONANCE_LINK = id("resonance_link");
+	public static final ResourceLocation MEGA_GATHER = id("mega_gather");
+	public static final ResourceLocation HAIRPIN_LINK = id("hairpin_link");
 	public static final int CASTER_HAIRPIN_DIRECTED = 1;
+	public static final int CASTER_NAIL_PREPARE = 2;
 	public static final int CASTER_NAIL_TRAP = 3;
 	public static final int CASTER_HAMMER_EMBEDDED = 4;
 	public static final int CASTER_MEGA_NAIL = 5;
+	public static final int CASTER_REMNANT_EXTRACT = 6;
+	public static final int CASTER_RESONANCE_RITUAL = 7;
 	public static final Set<ResourceLocation> LIVE = Set.of(
 			HAMMER, IMPACT, IMPACT_SOUND, DETONATE, ENLARGE, EXPLOSION, FIRST_PERSON_SNAP, REMNANT_DROP,
 			RITUAL_BIND, DOLL_STRIKE, RESONANCE_RELEASE, HAMMER_HORIZONTAL, HAMMER_OVERHEAD, HAMMER_NAIL_LAUNCH,
 			BLACK_FLASH, SELF_RESONANCE, NAIL_DEEPEN, NAIL_TRAP_PLACED, NAIL_TRAP_ARMED, NAIL_TRAP_COLLAPSE,
-		NAIL_TRAP_IMPACT, CASTER_ACTION, MEGA_NAIL_STRIKE, MEGA_NAIL_CHARGE);
+			NAIL_TRAP_IMPACT, CASTER_ACTION, MEGA_NAIL_STRIKE, MEGA_NAIL_CHARGE, DEEPLY_ANCHORED,
+			REMNANT_EXTRACT, RITUAL_WINDUP, RESONANCE_LINK, MEGA_GATHER, HAIRPIN_LINK);
+
 	public static final Set<ResourceLocation> PLANNED = Set.of();
 	private static final int HAIRPIN_FINALE_FLAG = 8;
 
