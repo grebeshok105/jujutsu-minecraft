@@ -72,7 +72,7 @@ public final class NobaraMegaNailGameTests {
 							"Mega Nail cast", AbilityResult.SUCCESS, result));
 			helper.assertTrue(NailAnchorRegistry.anchorsOnTarget(level, caster.getUUID(), target.getUUID()).isEmpty(),
 					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(), caster.getUUID(), target.getUUID(),
-							"atomic t0 consumption clears caster anchors", "empty", 
+							"atomic t0 consumption clears caster anchors", "empty",
 							NailAnchorRegistry.anchorsOnTarget(level, caster.getUUID(), target.getUUID())));
 			helper.assertTrue(NailAnchorRegistry.anchorsOnTarget(level, foreign.getUUID(), target.getUUID()).size() == 1,
 					CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(), foreign.getUUID(), target.getUUID(),
