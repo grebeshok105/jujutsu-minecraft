@@ -8,8 +8,6 @@ import jujutsu.mod.network.VfxCuePayload;
 import jujutsu.mod.vfx.NobaraVfxIds;
 import jujutsu.mod.vfx.VfxCue;
 import net.minecraft.core.RegistryAccess;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
@@ -71,19 +69,7 @@ final class NailTrapCollapseTest {
 			buffer.release();
 		}
 	}
-	@Test
-	void cornerLossCollapsesWithoutReenteringDiscardedCorners() throws Exception {
-		String runtime = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/NailTrapRuntime.java"));
-		assertEquals(true, runtime.contains("onAnchorDestroyed"));
-		assertEquals(true, runtime.contains("COLLAPSING_DISCARDS"));
-		assertEquals(false, runtime.contains("ServerPlayConnectionEvents.DISCONNECT"));
-	}
-	@Test
-	void trapTickLoopIsRegistered() throws Exception {
-		// Without END_SERVER_TICK the placed trap never ages, triggers, collapses or expires —
-		// the whole §13 network integration goes inert. Pin the registration, not just the method.
-		String runtime = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/NailTrapRuntime.java"));
-		assertEquals(true, runtime.contains("ServerTickEvents.END_SERVER_TICK.register(NailTrapRuntime::tick)"),
-				"NailTrapRuntime.tick must be registered on END_SERVER_TICK");
-	}
+	// The collapse-on-corner-loss and tick-registration contracts are now exercised live by
+	// NobaraAnchorGameTests.cornerLossCollapsesTheTrap (real trap placement, real discard,
+	// real END_SERVER_TICK) — source-string pins would pass on dead code, so they were removed.
 }

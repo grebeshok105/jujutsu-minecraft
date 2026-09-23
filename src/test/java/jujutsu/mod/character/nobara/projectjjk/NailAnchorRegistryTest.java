@@ -48,7 +48,7 @@ public final class NailAnchorRegistryTest {
 		assert NailAnchorRegistry.anchorsOnTarget(null, UUID.randomUUID(), UUID.randomUUID()).isEmpty();
 		assert NailAnchorRegistry.anchorsOnTarget(null, UUID.randomUUID(), null).isEmpty();
 		assert !NailAnchorRegistry.isDeeplyAnchored(null, UUID.randomUUID(), UUID.randomUUID());
-		assert NailAnchorRegistry.discardOwned(null, UUID.randomUUID()) == 0;
+		assert NailAnchorRegistry.discardOwned((net.minecraft.server.level.ServerLevel) null, UUID.randomUUID()) == 0;
 		assert NailAnchorRegistry.discardOwned((net.minecraft.server.MinecraftServer) null) == 0;
 		// untrack/updateDepth on nulls must not throw.
 		NailAnchorRegistry.untrack(null, UUID.randomUUID());

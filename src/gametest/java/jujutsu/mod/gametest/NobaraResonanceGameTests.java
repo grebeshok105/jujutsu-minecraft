@@ -14,6 +14,7 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.network.chat.Component;
 import net.minecraft.gametest.framework.GameTestHelper;
 
 import jujutsu.mod.character.AbilityResult;
@@ -100,6 +101,73 @@ public final class NobaraResonanceGameTests {
 					"all tiers extracted before final oracle", true, extracted.get()));
 			cleanup(helper, caster, spirits.toArray(new CursedSpiritEntity[0]));
 			helper.succeed();
+		});
+	}
+
+	/**
+	 * Production-path oracle: the remnant must come out of the real ATTACK_CONTEXT hammer
+	 * overhead swing, not a direct helper call. Drives handleInput twice — the first call
+	 * queues HORIZONTAL, the second queues OVERHEAD (OVERHEAD_NEXT alternation) — and the
+	 * overhead impact's extract-before-deepen branch must mint the remnant.
+	 */
+	@GameTest(maxTicks = 120, skyAccess = true)
+	public void overheadHammerSwingExtractsRemnantThroughProductionPath(GameTestHelper helper) {
+		CursedSpiritTestFixtures.layStoneFloor(helper);
+		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
+		ServerPlayer caster = setupCaster(helper, "overheadHammerSwingExtractsRemnantThroughProductionPath",
+				new BlockPos(1, 1, 1));
+		ServerLevel level = helper.getLevel();
+		CursedSpiritEntity spirit = CursedSpiritTestFixtures.spawnSpirit(helper,
+				"overheadHammerSwingExtractsRemnantThroughProductionPath",
+				JujutsuEntities.CURSED_SPIRIT, new BlockPos(3, 1, 1));
+		AtomicBoolean minted = new AtomicBoolean();
+
+		helper.runAtTickTime(2, () -> {
+			try {
+				CursedSpiritTestFixtures.freezeGround(spirit);
+				createDeepAnchor(level, caster, spirit);
+			helper.assertTrue(NailAnchorRegistry.isDeeplyAnchored(level, caster.getUUID(), spirit.getUUID()),
+					Component.literal("deep anchor is the extraction premise"));
+				// Face the spirit: the caster teleports in looking -X, the spirit sits +2 blocks east.
+				caster.setYRot(-90.0f);
+				caster.setXRot(0.0f);
+				caster.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(JujutsuItems.PROJECTJJK_STRAW_DOLL_HAMMER));
+				// First swing is HORIZONTAL (OVERHEAD_NEXT starts false); it must not mint —
+				// extraction is overhead-only.
+				AbilityResult first = NobaraHammerCombatRuntime.handleInput(caster);
+			helper.assertTrue(first == AbilityResult.SUCCESS,
+					Component.literal("horizontal hammer swing must be accepted, got " + first));
+			} catch (RuntimeException | AssertionError failure) {
+				cleanup(helper, caster, spirit);
+				throw failure;
+			}
+		});
+
+		helper.runAtTickTime(14, () -> {
+			try {
+			helper.assertTrue(remnantFor(caster, spirit.getUUID()) == null,
+					Component.literal("horizontal swing must not mint a remnant"));
+				// Recovery elapsed: the alternating second swing is OVERHEAD.
+				AbilityResult second = NobaraHammerCombatRuntime.handleInput(caster);
+			helper.assertTrue(second == AbilityResult.SUCCESS,
+					Component.literal("overhead hammer swing must be accepted, got " + second));
+			} catch (RuntimeException | AssertionError failure) {
+				cleanup(helper, caster, spirit);
+				throw failure;
+			}
+		});
+
+		helper.runAtTickTime(30, () -> {
+			try {
+				minted.set(remnantFor(caster, spirit.getUUID()) != null);
+			helper.assertTrue(minted.get(),
+					Component.literal("overhead hammer impact must mint a bound remnant through the production path"));
+				cleanup(helper, caster, spirit);
+				helper.succeed();
+			} catch (RuntimeException | AssertionError failure) {
+				cleanup(helper, caster, spirit);
+				throw failure;
+			}
 		});
 	}
 

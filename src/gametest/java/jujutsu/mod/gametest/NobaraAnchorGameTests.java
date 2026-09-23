@@ -230,6 +230,65 @@ public final class NobaraAnchorGameTests {
 		});
 	}
 
+	/**
+	 * Behavior-level trap oracle: a placed trap is a live registry entry whose corner nails
+	 * are real entities. Discarding one corner outside the collapse animation must collapse
+	 * the whole trap — every remaining corner nail is discarded and isTrapNail clears.
+	 * This exercises END_SERVER_TICK registration, onAnchorDestroyed, and the
+	 * COLLAPSING_DISCARDS recursion guard, which source-string pins cannot.
+	 */
+	@GameTest(maxTicks = 120, skyAccess = true)
+	public void cornerLossCollapsesTheTrap(GameTestHelper helper) {
+		String fixture = "cornerLossCollapsesTheTrap";
+		CursedSpiritTestFixtures.layStoneFloor(helper);
+		ServerLevel level = helper.getLevel();
+		ServerPlayer caster = setupCaster(helper, new BlockPos(1, 1, 1));
+		caster.getInventory().add(new net.minecraft.world.item.ItemStack(
+				jujutsu.mod.registry.JujutsuItems.HAIRPIN_NAIL, 8));
+		java.util.List<UUID> cornerIds = new java.util.ArrayList<>();
+
+		helper.runAtTickTime(2, () -> {
+			// Aim straight down at the stone floor so tryPlace finds a supported center.
+			caster.setXRot(90.0f);
+			caster.setYRot(0.0f);
+			helper.assertTrue(
+					jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime.tryPlace(caster)
+							== jujutsu.mod.character.AbilityResult.SUCCESS,
+					Component.literal("trap placement must succeed on flat ground"));
+			for (ProjectJjkNailEntity nail : level.getEntitiesOfClass(ProjectJjkNailEntity.class,
+					caster.getBoundingBox().inflate(8.0),
+					nail -> nail.isOwnedBy(caster.getUUID()) && nail.isTrapNail())) {
+				cornerIds.add(nail.getUUID());
+			}
+			helper.assertTrue(cornerIds.size() == 3,
+					Component.literal("trap must spawn three corner nails, got " + cornerIds.size()));
+			helper.assertTrue(cornerIds.stream().allMatch(
+					jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime::isTrapNail),
+					Component.literal("every corner must be registered as a trap nail"));
+		});
+
+		helper.runAtTickTime(6, () -> {
+			// Losing a corner outside the collapse animation collapses the remaining trap.
+			net.minecraft.world.entity.Entity corner = level.getEntity(cornerIds.get(0));
+			helper.assertTrue(corner != null, Component.literal("first corner nail is missing"));
+			corner.discard();
+		});
+
+		helper.runAtTickTime(12, () -> {
+			for (UUID nailId : cornerIds) {
+				helper.assertTrue(level.getEntity(nailId) == null,
+						Component.literal("collapsed trap must discard corner nail " + nailId));
+				helper.assertTrue(!jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime.isTrapNail(nailId),
+						Component.literal("trap registry must forget nail " + nailId));
+			}
+			ProjectJjkNailMarks.clearOwner(caster.getUUID());
+			NailAnchorRegistry.discardOwned(level, caster.getUUID());
+			jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime.clearOwned(caster);
+			CursedSpiritTestFixtures.cleanupVictim(helper, caster);
+			helper.succeed();
+		});
+	}
+
 	private static ProjectJjkNailEntity entityNail(ServerLevel level, ServerPlayer caster,
 			net.minecraft.world.entity.Entity target) {
 		ProjectJjkNailEntity nail = JujutsuEntities.PROJECTJJK_NAIL.create(level, EntitySpawnReason.COMMAND);
