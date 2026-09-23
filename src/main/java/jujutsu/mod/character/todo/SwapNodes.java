@@ -106,10 +106,8 @@ public final class SwapNodes {
 		if (a == null || b == null || a.level() != b.level()) {
 			return Optional.empty();
 		}
-		Vec3 aPosition = a.position();
-		Vec3 bPosition = b.position();
-		Vec3 aDestination = destinationFor(a, bPosition);
-		Vec3 bDestination = destinationFor(b, aPosition);
+		Vec3 aDestination = destinationFor(a, b);
+		Vec3 bDestination = destinationFor(b, a);
 		return SwapPlan.preflight(new SwapMove(a, aDestination), new SwapMove(b, bDestination));
 	}
 
@@ -133,12 +131,18 @@ public final class SwapNodes {
 				new SwapMove(t, tDestination)));
 	}
 
-	private static Vec3 destinationFor(SwapNode moving, Vec3 partnerPosition) {
+	private static Vec3 destinationFor(SwapNode moving, SwapNode partner) {
 		if (moving instanceof StoneNode) {
+			// The displaced body's center, as the design contract promises: a feet-level respawn
+			// would bury the stone in the floor.
+			Vec3 partnerPosition = partner.position();
+			if (partner instanceof BodyNode body) {
+				return partnerPosition.add(0.0, body.body().getBbHeight() / 2.0, 0.0);
+			}
 			return partnerPosition;
 		}
 		BodyNode body = (BodyNode) moving;
-		return TodoBoogieWoogieRuntime.findSafeDestination(body.level(), body.body(), partnerPosition, body.strictness());
+		return TodoBoogieWoogieRuntime.findSafeDestination(body.level(), body.body(), partner.position(), body.strictness());
 	}
 
 	private static boolean stoneEligible(ServerPlayer todo, TodoStoneEntity stone) {

@@ -4,7 +4,8 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
-import jujutsu.mod.client.render.nobara.NobaraPlayerGeoAnimatable;
+import jujutsu.mod.client.character.ClientCharacterSelectionManager;
+import jujutsu.mod.client.character.JujutsuCharacterClients;
 import jujutsu.mod.client.vfx.VfxContext;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.vfx.VfxInstance;
@@ -83,11 +84,14 @@ public final class SharedVfxRecipes {
 		if (entity == null) {
 			return;
 		}
-		// Keep the body-animation dispatch explicitly narrowed to the Nobara animatable. Todo has no BF
-		// body clip; its shared cue intentionally stops at world, sound, camera, and post effects.
-		Object animatable = NobaraPlayerGeoAnimatable.INSTANCE;
-		if (animatable instanceof NobaraPlayerGeoAnimatable nobara) {
-			nobara.triggerAction(entity, animation);
+		// The body-animation dispatch goes through the anchored player's client definition: the vessel
+		// seam means shared code asks the definition, never which character the player is. Nobara's
+		// definition fires its Black Flash clip; Todo deliberately has none and keeps the full world,
+		// sound, camera, and post presentation.
+		ClientCharacterSelectionManager.Selection selection =
+				ClientCharacterSelectionManager.selectionByEntityId(cue.anchorEntityId());
+		if (selection != null) {
+			JujutsuCharacterClients.definition(selection.character()).triggerActionAnimation(entity, animation);
 		}
 	}
 

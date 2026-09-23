@@ -146,10 +146,13 @@ public final class TodoRhythmRuntime {
 		return state.withSwap(kind, recent, gameTime, points, peakArmed);
 	}
 
-	/** Pure decay schedule: grace is strict, and the first tick is grace+interval. */
+	/** Pure decay schedule: grace is strict, the first tick is grace+interval, and armed Peak or an open
+	 * Revised window freezes the rhythm entirely — the caller checks the same gates before ticking. */
 	static boolean shouldDecay(TodoRhythmState state, long now) {
 		long elapsed = now - state.lastSwapGameTime();
 		return state.points() > 0
+				&& !state.peakArmed()
+				&& !state.revisedAt(now)
 				&& elapsed > TodoProfile.RHYTHM_DECAY_DELAY_TICKS
 				&& (elapsed - TodoProfile.RHYTHM_DECAY_DELAY_TICKS) % TodoProfile.RHYTHM_DECAY_INTERVAL_TICKS == 0;
 	}

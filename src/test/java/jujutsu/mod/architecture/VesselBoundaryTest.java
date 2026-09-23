@@ -227,6 +227,7 @@ class VesselBoundaryTest {
 		assertEquals(Map.of(
 				"jujutsu.mod.client.vfx.", Set.of("world", "shared", "cursedspirit", "domain"),
 				"jujutsu.mod.client.render.", Set.of("cursedspirit")),
+				SHARED_SEGMENTS_BY_PARENT,
 				"a new shared-segment exception needs the same justification a vessel registration does");
 	}
 

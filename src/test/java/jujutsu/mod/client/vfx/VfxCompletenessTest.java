@@ -138,15 +138,19 @@ final class VfxCompletenessTest {
 			if (ids.isEmpty()) {
 				continue;
 			}
-			Map<ResourceLocation, Set<Double>> methodRadii = directDeliveryRadii(method, ids);
-			if (methodRadii.isEmpty()) {
-				DeliveryPath path = networkDeliveryPath(method, methods);
-				if (path.reachesTransport()) {
-					for (IdReference id : ids) {
+			Map<ResourceLocation, Set<Double>> methodRadii = directDeliveryRadii(method, ids, methods);
+			// Ids inside a cue builder (collapseCue) have no transport in this method at all — the
+			// delivery lives in a caller, which the reverse call-graph walk finds.
+			DeliveryPath path = null;
+			for (IdReference id : ids) {
+				if (!methodRadii.containsKey(id.id())) {
+					if (path == null) {
+						path = networkDeliveryPath(method, methods);
+					}
+					if (path.reachesTransport()) {
 						radii.computeIfAbsent(id.id(), ignored -> new HashSet<>()).addAll(path.radii());
 					}
 				}
-				continue;
 			}
 			for (Map.Entry<ResourceLocation, Set<Double>> entry : methodRadii.entrySet()) {
 				radii.computeIfAbsent(entry.getKey(), ignored -> new HashSet<>()).addAll(entry.getValue());
@@ -210,24 +214,59 @@ final class VfxCompletenessTest {
 	}
 
 	private static Map<ResourceLocation, Set<Double>> directDeliveryRadii(
-			JavaMethod method, List<IdReference> ids) {
+			JavaMethod method, List<IdReference> ids, Map<String, JavaMethod> methods) {
 		List<JavaCall<?>> networkCalls = method.getCallsFromSelf().stream()
 				.filter(call -> call.getTargetOwner().getName().equals("jujutsu.mod.network.JujutsuNetworking"))
 				.filter(call -> call.getName().equals("broadcastVfxCue") || call.getName().equals("sendVfxCue"))
 				.toList();
-		if (networkCalls.isEmpty()) {
+		List<JavaMethodCall> productionCalls = method.getMethodCallsFromSelf().stream()
+				.filter(call -> !call.getTargetOwner().getName().equals("jujutsu.mod.network.JujutsuNetworking"))
+				.filter(call -> resolveTarget(call, methods) != null)
+				.toList();
+		if (networkCalls.isEmpty() && productionCalls.isEmpty()) {
 			return Map.of();
 		}
 		Set<Double> fields = deliveryRadiusFields(method);
 		Map<ResourceLocation, Set<Double>> radii = new HashMap<>();
 		for (IdReference id : ids) {
-			JavaCall<?> nearest = networkCalls.stream()
-					.min(java.util.Comparator.comparingInt(call -> Math.abs(call.getLineNumber() - id.lineNumber())))
-					.orElseThrow();
-			radii.put(id.id(), nearest.getName().equals("broadcastVfxCue") ? fields : Set.of());
+			Set<Double> attributed = attributeDelivery(id, networkCalls, productionCalls, methods, fields);
+			if (attributed != null) {
+				radii.put(id.id(), attributed);
+			}
 		}
 		return radii;
 	}
+
+	private static Set<Double> attributeDelivery(IdReference id, List<JavaCall<?>> networkCalls,
+			List<JavaMethodCall> productionCalls, Map<String, JavaMethod> methods, Set<Double> fields) {
+		int line = id.lineNumber();
+		// A call containing the id in its arguments starts on the id's line or earlier — a later call
+		// is a sibling, never the container. The invoke itself can land a couple of lines before the
+		// field access inside a multi-line argument list, so allow a small look-back window.
+		List<JavaMethodCall> nearbyProduction = productionCalls.stream()
+				.filter(call -> call.getLineNumber() <= line && call.getLineNumber() >= line - 3)
+				.toList();
+		// The innermost production callee that itself reaches a transport owns the id (the clap cue
+		// id handed to emitClapPerformance). Cue builders like VfxCues.anchored never reach one, so
+		// they fall through to the transport call that consumes their result.
+		JavaMethodCall transporting = nearbyProduction.stream()
+				.filter(call -> walkNetwork(resolveTarget(call, methods), methods, Map.of(), false)
+						.reachesTransport())
+				.max(java.util.Comparator.comparingInt(JavaCall::getLineNumber))
+				.orElse(null);
+		if (transporting != null) {
+			return walkNetwork(resolveTarget(transporting, methods), methods, Map.of(), false).radii();
+		}
+		JavaCall<?> nearestNetwork = networkCalls.stream()
+				.filter(call -> call.getLineNumber() <= line && call.getLineNumber() >= line - 3)
+				.max(java.util.Comparator.comparingInt(JavaCall::getLineNumber))
+				.orElse(null);
+		if (nearestNetwork != null) {
+			return nearestNetwork.getName().equals("broadcastVfxCue") ? fields : Set.of();
+		}
+		return null;
+	}
+
 
 	private static DeliveryPath networkDeliveryPath(JavaMethod start, Map<String, JavaMethod> methods) {
 		Map<String, Set<JavaMethod>> callers = new HashMap<>();

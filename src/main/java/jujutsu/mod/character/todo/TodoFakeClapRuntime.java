@@ -9,6 +9,7 @@ import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.vfx.TodoVfxIds;
+import jujutsu.mod.vfx.VfxCues;
 
 /** Shift+R deception clap: no node resolution, plan, commit, movement, or momentum. */
 public final class TodoFakeClapRuntime {
@@ -36,6 +37,11 @@ public final class TodoFakeClapRuntime {
 		TodoBoogieWoogieRuntime.emitClapPerformance(level, todo, origin, todo.getLookAngle(),
 				TodoVfxIds.FEINT_CLAP, intensity);
 		TodoBoogieWoogieRuntime.scheduleDisplacementWhoosh(level, origin);
+		// Caster-only feint confirmation: the observer must see nothing a real swap would not show, so
+		// this cue is a direct send, never a broadcast.
+		JujutsuNetworking.sendVfxCue(todo,
+				VfxCues.anchored(TodoVfxIds.FEINT_TELL, origin, todo.getId(), todo.position(), 1,
+						level.getGameTime(), todo.getRandom().nextLong()));
 		JujutsuMod.LOGGER.debug("Todo fake clap player={} at={}", todo.getGameProfile().getName(), origin);
 		return true;
 	}

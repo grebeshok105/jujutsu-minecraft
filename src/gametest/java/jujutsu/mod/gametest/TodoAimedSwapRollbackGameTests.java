@@ -211,7 +211,12 @@ public final class TodoAimedSwapRollbackGameTests {
 
 		helper.runAtTickTime(2, () -> {
 			try {
+				// The override is a global static shared by every test running on this tick, so it is
+				// scoped to this fixture's bodies — anything else gets the production teleport.
 				SwapCommit.overrideCommitTeleport((body, level, dest, yaw, pitch) -> {
+					if (body != caster && body != pig) {
+						return SwapCommit.PRODUCTION_COMMIT_TELEPORT.teleport(body, level, dest, yaw, pitch);
+					}
 					if (commits.incrementAndGet() == 1) {
 						return SwapCommit.PRODUCTION_COMMIT_TELEPORT.teleport(body, level, dest, yaw, pitch); // caster commit REAL
 					}
