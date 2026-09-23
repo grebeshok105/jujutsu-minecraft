@@ -15,7 +15,6 @@ import com.chapmanjw.minecraft.fabric.mcp.tools.annotations.McpTool;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
-import jujutsu.mod.cursedincident.IncidentControl;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.character.megumi.MegumiPartialRuntime;
 import jujutsu.mod.character.megumi.MegumiShadowDropRuntime;
@@ -81,7 +80,6 @@ public final class JujutsuFixtureResetTool extends BaseTool {
 
 					ObjectNode node = context.mapper().createObjectNode();
 					ArrayNode steps = node.putArray("steps");
-					runStep(steps, "incidents", JujutsuFixtureResetTool::cleanupIncidents);
 					runStep(steps, "cooldowns_clear", () -> CharacterAbilityCooldowns.clearAllForPlayer(playerId));
 					runStep(steps, "stagger_clear", () -> CombatStagger.GLOBAL.clear(playerId));
 					runStep(steps, "todo_drop_everything", () -> TodoStateLifecycle.dropEverything(player));
@@ -135,9 +133,4 @@ public final class JujutsuFixtureResetTool extends BaseTool {
 		}
 	}
 
-	private static void cleanupIncidents() {
-		for (var view : IncidentControl.list()) {
-			IncidentControl.cleanup(view.id());
-		}
-	}
 }

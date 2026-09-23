@@ -36,9 +36,9 @@ The repository intentionally keeps no documentation archive. Prefer repo-relativ
 
 | Metric | Value |
 |---|---:|
-| Main Java files | 268 |
-| Client Java files | 279 |
-| Test Java files | 185 |
+| Main Java files | 222 |
+| Client Java files | 270 |
+| Test Java files | 164 |
 | Verification programs | 29 |
 | Client mixins | 13 |
 | Network payloads | 17 |
@@ -81,7 +81,7 @@ The audit runs inside ./gradlew qualityGate, so these counters are checked befor
 - [Megumi shikigami — Nue / Toad / Rabbit Escape / Max Elephant](03-systems/Megumi-shikigami.md)
 - [Megumi shadow kit](03-systems/Megumi-shadow-kit.md)
 - [Cursed spirits — three hostile tiers](03-systems/Cursed-spirits.md)
-- [Cursed incidents — persistent escalating zones](03-systems/Cursed-incidents.md)
+- [Cursed incidents — ARCHIVED](../../archive/cursed-incidents-v1/docs/Cursed-incidents.md)
 
 ## Client and VFX
 

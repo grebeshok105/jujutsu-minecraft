@@ -1,0 +1,52 @@
+{
+	"schemaVersion": 1,
+	"id": "jujutsumod-gametest",
+	"version": "1.0.0",
+	"name": "Jujutsu Mod GameTests",
+	"description": "Isolated GameTest mod for the Jujutsu Minecraft mod: server canaries (issue #42 Stage A) and client canaries (issue #42 Stage B).",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-gametest": [
+			"jujutsu.mod.gametest.ServerGameTests",
+			"jujutsu.mod.gametest.TodoAimedSwapGameTests",
+			"jujutsu.mod.gametest.TodoAimedSwapRollbackGameTests",
+			"jujutsu.mod.gametest.NobaraAbilityResultGameTests",
+			"jujutsu.mod.gametest.TodoStoneGameTests",
+			"jujutsu.mod.gametest.MegumiShikigamiGameTests",
+			"jujutsu.mod.gametest.MegumiToadGameTests",
+			"jujutsu.mod.gametest.MegumiRabbitsGameTests",
+			"jujutsu.mod.gametest.MegumiElephantGameTests",
+			"jujutsu.mod.gametest.MegumiShikigamiCrossTests",
+			"jujutsu.mod.gametest.MegumiShikigamiRetaliationGameTests",
+			"jujutsu.mod.gametest.MegumiCoordinationGameTests",
+			"jujutsu.mod.gametest.MegumiShikigamiSelectorGameTests",
+			"jujutsu.mod.gametest.CursedSpiritGameTests",
+			"jujutsu.mod.gametest.CursedSpiritGradeGameTests",
+			"jujutsu.mod.gametest.CursedSpiritAbilityGameTests",
+			"jujutsu.mod.gametest.CursedSpiritPerceptionGameTests",
+			"jujutsu.mod.gametest.CursedSpiritSpawnGameTests",
+			"jujutsu.mod.gametest.CursedSpiritDaySpawnGameTests",
+			"jujutsu.mod.gametest.CursedSpiritShelterGameTests",
+			"jujutsu.mod.gametest.CursedSpiritIntegrationGameTests",
+			"jujutsu.mod.gametest.CursedSpiritEffectGameTests",
+			"jujutsu.mod.gametest.MegumiCoexistenceGameTests",
+			"jujutsu.mod.gametest.MegumiPartialGameTests",
+			"jujutsu.mod.gametest.MegumiWingsGameTests",
+			"jujutsu.mod.gametest.MegumiTongueGameTests",
+			"jujutsu.mod.gametest.MegumiAutonomyGameTests",
+			"jujutsu.mod.gametest.CursedIncidentGameTests",
+			"jujutsu.mod.gametest.CursedObjectGameTests",
+			"jujutsu.mod.gametest.CursedIncidentWorldGameTests"
+		],
+		"fabric-client-gametest": [
+			"jujutsu.mod.gametest.client.ClientLoadCanaryTest",
+			"jujutsu.mod.gametest.client.ClientObservationCanaryTest",
+			"jujutsu.mod.gametest.client.SdfGlassCanaryTest"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~1.21.8",
+		"jujutsumod": "*"
+	}
+}

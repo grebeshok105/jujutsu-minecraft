@@ -140,10 +140,6 @@ class VesselBoundaryTest {
 			// banned from a vessel package outright, so this is their only legal home.
 			"jujutsu.mod.network.ShikigamiSelectPayload",
 			"jujutsu.mod.network.ShikigamiStatePayload",
-			"jujutsu.mod.network.IncidentPerceptionPayload",
-			// #110: the incident zone snapshot is world-state sync to perceiving clients, not an
-			// input path — same justification as the perception payload above it.
-			"jujutsu.mod.network.IncidentZoneStatePayload",
 			// #108: the wings phase is a state sync like the tongue payload; the client renders
 			// from it, it never carries input.
 			"jujutsu.mod.network.MegumiWingsStatePayload");
