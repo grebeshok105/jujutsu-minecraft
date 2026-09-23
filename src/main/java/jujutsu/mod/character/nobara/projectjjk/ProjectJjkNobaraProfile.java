@@ -28,11 +28,14 @@ public final class ProjectJjkNobaraProfile {
 	public static final int MAX_EMBEDDED_NAILS_PER_OWNER = 30;
 	public static final int TARGET_MARK_RENDER_TICKS = MARK_DURATION_TICKS;
 
-	// Hairpin mark detonation.
-	public static final double DETONATE_RANGE = 24.0;
+	// Hairpin directed-chain timing and topology.
+	public static final double HAIRPIN_CHAIN_RADIUS = 10.0;
+	public static final int HAIRPIN_FIRST_DETONATION_TICKS = 8;
+	public static final int HAIRPIN_CADENCE_TICKS = 2;
+	public static final int TEMP_RETRY_DEADLINE_TICKS = 20;
 	public static final float HAIRPIN_DIRECTED_DAMAGE_PER_NAIL = 5.0f;
-	public static final double HAIRPIN_DIRECTED_CHAIN_RADIUS = 10.0;
-	public static final int HAIRPIN_DIRECTED_CHAIN_DELAY_TICKS = 2;
+	public static final double HAIRPIN_DIRECTED_CHAIN_RADIUS = HAIRPIN_CHAIN_RADIUS;
+	public static final int HAIRPIN_DIRECTED_CHAIN_DELAY_TICKS = HAIRPIN_CADENCE_TICKS;
 	public static final float HAIRPIN_BLOCK_EXPLOSION_POWER = 1.5f;
 	public static final float NAIL_DEPTH_1_MULTIPLIER = 1.0f;
 	public static final float NAIL_DEPTH_2_MULTIPLIER = 1.35f;
@@ -50,9 +53,11 @@ public final class ProjectJjkNobaraProfile {
 	public static final int NAIL_TRAP_COLLAPSE_TICKS = 6;
 	public static final int RESONANT_MOMENTUM_DURATION_TICKS = 1200;
 	public static final float RESONANT_MOMENTUM_MULTIPLIER = 1.15f;
+	public static final int MOMENTUM_WINDOW_TICKS = 100;
+	public static final float MOMENTUM_DAMAGE_MULT = 1.10f;
 	public static final float DETONATE_DAMAGE_BASE = 3.0f;
 	public static final float DETONATE_DAMAGE_PER_MARK = 0.0f;
-	public static final int HAIRPIN_EXPLOSION_START_DELAY_TICKS = 10;
+	public static final int HAIRPIN_EXPLOSION_START_DELAY_TICKS = HAIRPIN_FIRST_DETONATION_TICKS;
 	public static final double HAIRPIN_EXPLOSION_RADIUS = 1.5;
 	public static final float HAIRPIN_EXPLOSION_KNOCKBACK = 0.2f;
 	public static final double HAIRPIN_EXPLOSION_DETECT_FORWARD_OFFSET = 0.0;
@@ -70,9 +75,12 @@ public final class ProjectJjkNobaraProfile {
 	public static final float MEGA_NAIL_DAMAGE_PER_NAIL = HAIRPIN_ENLARGE_DAMAGE_PER_NAIL;
 	/** Hard cap on total mega nail damage: 1.5x Resonance damage, the kit's hardest single hit with full setup. */
 	public static final float MEGA_NAIL_DAMAGE_CAP = 42.0f;
-	/** Ticks the mega nail charges in front of the caster before launching (grows scale 0.6→2.6). */
+	/** Ticks spent presenting the gathered nails before the mega nail entity spawns. */
+	public static final int MEGA_GATHER_TICKS = 14;
+	/** Ticks the mega nail charges in front of the caster before launching. */
+	public static final int MEGA_CHARGE_TICKS = 16;
+	/** Legacy charge constant retained until the old assertion task is repointed by B5. */
 	public static final int MEGA_NAIL_CHARGE_TICKS = 24;
-	/** Max flight ticks before the mega nail times out (miss/block fallback). */
 	public static final int MEGA_NAIL_FLIGHT_TIMEOUT_TICKS = 60;
 	/** Speed multiplier for mega nail flight, applied on top of LAUNCH_SPEED. */
 	public static final double MEGA_NAIL_SPEED_MULTIPLIER = 1.3;
@@ -89,10 +97,7 @@ public final class ProjectJjkNobaraProfile {
 
 	// Resonance (straw doll remote strike).
 	public static final float RESONANCE_DAMAGE = 28.0f;
-	/** Server tick rate during Resonance hit-stop (normal is 20). */
-	public static final float RESONANCE_SERVER_TICK_RATE = 10.0f;
-	/** Dilated server ticks after impact ≈ 2 real seconds at half rate. */
-	public static final int RESONANCE_SERVER_SLOW_TICKS = 20;
+	public static final int RESONANCE_TIMELINE_TICKS = 40;
 	/** World VFX lifetime for struck Resonance (~3.5s at 20 tps). */
 	public static final int RESONANCE_VFX_DURATION_TICKS = 70;
 	public static final float SELF_RESONANCE_SELF_DAMAGE = 6.0f;

@@ -181,22 +181,20 @@ public final class ProjectJjkNobaraRuntime {
 
 	public static void resolveNailImpact(ServerLevel level, ProjectJjkNailEntity nail, HitResult hit, boolean explosiveImpact) {
 		Vec3 point = hit.getLocation();
-		ServerPlayer owner = owner(level, nail.ownerUuid());
-		DamageSource source = owner == null ? level.damageSources().magic() : level.damageSources().playerAttack(owner);
+		ServerPlayer caster = owner(level, nail.ownerUuid());
+		DamageSource source = caster == null ? level.damageSources().magic() : level.damageSources().playerAttack(caster);
 		LivingEntity directTarget = null;
-		if (hit instanceof EntityHitResult entityHit && entityHit.getEntity() instanceof LivingEntity livingTarget) {
-			directTarget = livingTarget;
-			boolean damageAccepted = hurtTarget(level, owner, directTarget, source, ProjectJjkNobaraProfile.NAIL_DAMAGE, point, 0.9f);
-			boolean selfHit = owner != null && directTarget.getUUID().equals(owner.getUUID());
-			// Accepted ordinary hits preserve Hairpin marks and independently advance remnant acquisition.
-			if (ProjectJjkRitualPolicy.isSuccessfulOrdinaryHit(damageAccepted, explosiveImpact, selfHit)) {
-				NobaraHammerCombatRuntime.openNailEmbedWindow(owner, directTarget, ProjectJjkNobaraProfile.NAIL_DAMAGE);
-				ProjectJjkRitualRuntime.markTarget(level, directTarget, owner, point);
-				ProjectJjkStrawDollRuntime.onOrdinaryNailHit(level, owner, directTarget, point);
+		if (hit instanceof EntityHitResult entityHit && entityHit.getEntity() instanceof LivingEntity target) {
+			directTarget = target;
+			boolean damageAccepted = hurtTarget(level, caster, target, source, ProjectJjkNobaraProfile.NAIL_DAMAGE, point, 0.9f);
+			boolean selfHit = caster != null && target.getUUID().equals(caster.getUUID());
+			if (damageAccepted && !explosiveImpact && !selfHit && caster != null) {
+				NobaraHammerCombatRuntime.openNailEmbedWindow(caster, target, ProjectJjkNobaraProfile.NAIL_DAMAGE);
+				ProjectJjkNailMarks.apply(caster.getUUID(), target.getUUID(), level.getGameTime());
 			}
 		}
 
-		emitImpactCue(level, point, owner);
+		emitImpactCue(level, point, caster);
 		if (!explosiveImpact) {
 			spawnPiercingImpactFeedback(level, point, nail.forwardDirection());
 			return;
@@ -210,7 +208,7 @@ public final class ProjectJjkNobaraRuntime {
 				continue;
 			}
 			if (entity instanceof LivingEntity living) {
-				hurtTarget(level, owner, living, source, areaDamage, point, ProjectJjkNobaraProfile.HAIRPIN_KNOCKBACK);
+				hurtTarget(level, caster, living, source, areaDamage, point, ProjectJjkNobaraProfile.HAIRPIN_KNOCKBACK);
 			}
 		}
 

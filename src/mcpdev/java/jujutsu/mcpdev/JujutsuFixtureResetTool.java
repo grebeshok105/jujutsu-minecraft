@@ -24,12 +24,12 @@ import jujutsu.mod.character.megumi.MegumiShikigamiRuntime;
 import jujutsu.mod.character.megumi.MegumiShikigamiSelection;
 import jujutsu.mod.character.megumi.MegumiSummonCooldowns;
 import jujutsu.mod.character.megumi.MegumiSummonRuntime;
-import jujutsu.mod.character.nobara.projectjjk.EmbeddedNailRegistry;
+import jujutsu.mod.character.nobara.projectjjk.HairpinRuntime;
+import jujutsu.mod.character.nobara.projectjjk.NailAnchorRegistry;
 import jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime;
 import jujutsu.mod.character.nobara.projectjjk.NobaraHammerCombatRuntime;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailMarks;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraRuntime;
-import jujutsu.mod.character.nobara.projectjjk.ProjectJjkRitualRuntime;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollRuntime;
 import jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime;
 import jujutsu.mod.character.todo.TodoStateLifecycle;
@@ -37,6 +37,7 @@ import jujutsu.mod.combat.BlackFlashFocus;
 import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.combat.ForcedBlackFlash;
 import jujutsu.mod.registry.JujutsuEffects;
+
 
 /**
  * Dev fixture reset tool (issue #43 slice 2).
@@ -93,14 +94,14 @@ public final class JujutsuFixtureResetTool extends BaseTool {
 					runStep(steps, "megumi_shadow_drop_clear", () -> MegumiShadowDropRuntime.clearOwned(server, playerId));
 					runStep(steps, "megumi_shadow_move_teardown", () -> MegumiShadowMoveRuntime.teardownOwned(server, playerId));
 					runStep(steps, "megumi_shadow_grip_effect", () -> player.removeEffect(JujutsuEffects.MEGUMI_SHADOW_GRIP));
-					runStep(steps, "nobara_embedded_nails_discard", () -> EmbeddedNailRegistry.discardOwned(server, playerId));
+					runStep(steps, "nobara_embedded_nails_discard", () -> NailAnchorRegistry.discardOwned(server));
 					runStep(steps, "nobara_nail_traps_clear", () -> NailTrapRuntime.clearOwned(server, playerId));
 					runStep(steps, "nobara_nail_marks_clear", () -> ProjectJjkNailMarks.clearAll());
 					runStep(steps, "nobara_hammer_combat_clear", () -> NobaraHammerCombatRuntime.clearPlayer(playerId));
 					runStep(steps, "nobara_runtime_clear", () -> ProjectJjkNobaraRuntime.clearPlayer(playerId));
 					runStep(steps, "nobara_self_resonance_clear", () -> SelfResonanceRuntime.clearCaster(playerId));
-					runStep(steps, "nobara_straw_doll_reset", () -> ProjectJjkStrawDollRuntime.resetCaster(server, playerId));
-					runStep(steps, "nobara_ritual_glow_restore", () -> ProjectJjkRitualRuntime.restoreAllGlow(server));
+					runStep(steps, "nobara_straw_doll_reset", () -> ProjectJjkStrawDollRuntime.resetCaster(playerId));
+					runStep(steps, "nobara_ritual_glow_restore", () -> HairpinRuntime.restoreAllGlow(server));
 					runStep(steps, "black_flash_focus_clear", () -> BlackFlashFocus.clear(player));
 					runStep(steps, "forced_black_flash_clear", () -> ForcedBlackFlash.set(player, false));
 					runStep(steps, "todo_swap_momentum_effect", () -> player.removeEffect(JujutsuEffects.TODO_SWAP_MOMENTUM));
