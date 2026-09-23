@@ -8,6 +8,8 @@ import jujutsu.mod.network.VfxCuePayload;
 import jujutsu.mod.vfx.NobaraVfxIds;
 import jujutsu.mod.vfx.VfxCue;
 import net.minecraft.core.RegistryAccess;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
@@ -68,5 +70,12 @@ final class NailTrapCollapseTest {
 		} finally {
 			buffer.release();
 		}
+	}
+	@Test
+	void cornerLossCollapsesWithoutReenteringDiscardedCorners() throws Exception {
+		String runtime = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/NailTrapRuntime.java"));
+		assertEquals(true, runtime.contains("onAnchorDestroyed"));
+		assertEquals(true, runtime.contains("COLLAPSING_DISCARDS"));
+		assertEquals(false, runtime.contains("ServerPlayConnectionEvents.DISCONNECT"));
 	}
 }

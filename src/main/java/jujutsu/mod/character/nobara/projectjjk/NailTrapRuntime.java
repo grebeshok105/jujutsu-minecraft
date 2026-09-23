@@ -1,15 +1,16 @@
 package jujutsu.mod.character.nobara.projectjjk;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Set;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
@@ -47,14 +48,13 @@ import jujutsu.mod.vfx.VfxCue;
 public final class NailTrapRuntime {
 	private static final Double VFX_DELIVERY_RADIUS = 64.0;
 	private static final NailTrap.Registry TRAPS = new NailTrap.Registry();
+	private static final Set<UUID> COLLAPSING_DISCARDS = new HashSet<>();
 	private static final Map<UUID, CollapseState> COLLAPSES = new HashMap<>();
 
 	private NailTrapRuntime() {}
 
 	public static void register() {
-		ServerTickEvents.END_SERVER_TICK.register(NailTrapRuntime::tick);
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> clear(server, true));
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> clearOwned(server, handler.player.getUUID()));
 	}
 
 	public static AbilityResult tryPlace(ServerPlayer owner) {
@@ -94,6 +94,7 @@ public final class NailTrapRuntime {
 
 		NailTrap trap = new NailTrap(owner.getUUID(), level.dimension().location().toString(), point(centerHit.getLocation()),
 				placements.stream().map(placement -> point(placement.point())).toList(),
+
 				entities.stream().map(Entity::getUUID).toList(), ProjectJjkNobaraProfile.NAIL_TRAP_LIFETIME_TICKS,
 				ProjectJjkNobaraProfile.NAIL_TRAP_COLLAPSE_TICKS);
 		TRAPS.replace(trap).ifPresent(previous -> cleanupTrap(serverLevel(owner.getServer(), previous), previous));
@@ -114,6 +115,43 @@ public final class NailTrapRuntime {
 		for (NailTrap trap : TRAPS.values()) if (trap.nailIds().contains(nailId)) return true;
 		return false;
 	}
+	/**
+	 * Called by a trap-corner entity after removal. A corner lost outside the collapse animation
+	 * collapses the remaining trap; discards issued by that animation are recursion-guarded.
+	 */
+	public static void onAnchorDestroyed(ServerLevel level, UUID nailId) {
+		if (level == null || nailId == null || COLLAPSING_DISCARDS.remove(nailId)) return;
+		for (NailTrap trap : snapshotTraps()) {
+			if (!trap.nailIds().contains(nailId) || !level.dimension().location().toString().equals(trap.dimensionId())) {
+				continue;
+			}
+			if (COLLAPSES.containsKey(trap.ownerId())) return;
+			UUID targetId = trap.targetId().orElse(null);
+			Entity target = targetId == null ? null : level.getEntity(targetId);
+			if (target instanceof LivingEntity living && living.isAlive()) {
+				COLLAPSES.put(trap.ownerId(), new CollapseState(targetId, 0));
+			} else {
+				collapseWithoutTarget(level, trap);
+			}
+			return;
+		}
+	}
+	private static List<NailTrap> snapshotTraps() {
+		List<NailTrap> snapshot = new ArrayList<>();
+		TRAPS.values().forEach(snapshot::add);
+		return snapshot;
+	}
+
+	private static void collapseWithoutTarget(ServerLevel level, NailTrap trap) {
+		Vec3 center = vec(trap.center());
+		for (int index = 0; index < trap.nailIds().size(); index++) {
+			UUID nailId = trap.nailIds().get(index);
+			Entity entity = level.getEntity(nailId);
+			Vec3 from = entity == null ? vec(trap.vertices().get(index)) : entity.position();
+			emit(level, from, NobaraVfxIds.NAIL_TRAP_COLLAPSE, index + 1, center.subtract(from));
+		}
+		remove(level, trap);
+	}
 
 	private static void tick(MinecraftServer server) {
 		List<NailTrap> snapshot = new ArrayList<>();
@@ -126,11 +164,11 @@ public final class NailTrapRuntime {
 		if (level == null) { TRAPS.remove(trap.ownerId(), trap); COLLAPSES.remove(trap.ownerId()); return; }
 		if (!available(level, trap)) return;
 		ServerPlayer owner = server.getPlayerList().getPlayer(trap.ownerId());
-		if (owner == null || owner.level() != level) { remove(level, trap); return; }
+		if (owner != null && owner.level() != level) owner = null;
 
 		CollapseState collapse = COLLAPSES.get(trap.ownerId());
 		if (collapse != null) {
-			tickCollapse(level, owner, trap, collapse);
+			if (owner != null) tickCollapse(level, owner, trap, collapse);
 			return;
 		}
 		if (!allNailsResolved(level, trap)) {
@@ -149,9 +187,11 @@ public final class NailTrapRuntime {
 		if (level.getGameTime() % 40L == 0L) {
 			emit(level, vec(trap.center()), NobaraVfxIds.NAIL_TRAP_ARMED, 1, Vec3.ZERO);
 		}
-		selectTarget(level, owner, trap).ifPresent(target -> {
-			if (trap.trigger(target.getUUID())) COLLAPSES.put(trap.ownerId(), new CollapseState(target.getUUID(), 0));
-		});
+		if (owner != null) {
+			selectTarget(level, owner, trap).ifPresent(target -> {
+				if (trap.trigger(target.getUUID())) COLLAPSES.put(trap.ownerId(), new CollapseState(target.getUUID(), 0));
+			});
+		}
 	}
 
 	private static void tickCollapse(ServerLevel level, ServerPlayer owner, NailTrap trap, CollapseState collapse) {
@@ -166,7 +206,7 @@ public final class NailTrapRuntime {
 			Entity nail = level.getEntity(nailId);
 			Vec3 from = nail == null ? vec(trap.vertices().get(beat)) : nail.position();
 			Vec3 to = target.position().add(0.0, target.getBbHeight() * 0.45, 0.0);
-			if (nail != null) nail.discard();
+			if (nail != null) discardNail(level, nailId, true);
 			spawnCollapseTrail(level, from, to);
 			JujutsuNetworking.broadcastVfxCue(level, from, VFX_DELIVERY_RADIUS,
 					collapseCue(from, to, beat + 1, level.getGameTime(), level.random.nextLong()));
@@ -185,18 +225,20 @@ public final class NailTrapRuntime {
 		Vec3 direction = target.position().subtract(owner.position()).normalize();
 		embedded.prepare(owner, at, direction);
 		embedded.attachToEntity(target, at);
+		embedded.setOrigin(NailAnchorRegistry.NailOrigin.TRAP_IMPACT);
 		if (!level.addFreshEntity(embedded)) {
 			remove(level, trap);
 			return;
 		}
 		target.hurtServer(level, NobaraDamageSources.hairpin(level, owner), ProjectJjkNobaraProfile.NAIL_TRAP_DAMAGE);
 		CombatStagger.GLOBAL.apply(target, level.getGameTime(), ProjectJjkNobaraProfile.NAIL_TRAP_INTERRUPT_TICKS);
-		ProjectJjkRitualRuntime.markTarget(level, target, owner, at);
+		HairpinRuntime.markTarget(level, trap.ownerId(), target);
 
 		for (UUID nailId : trap.nailIds()) {
 			Entity nail = level.getEntity(nailId);
-			if (nail != null) nail.discard();
+			if (nail != null) discardNail(level, nailId, true);
 		}
+
 		level.sendParticles(ParticleTypes.FLASH, at.x, at.y, at.z, 2, 0.08, 0.08, 0.08, 0.0);
 		level.sendParticles(JujutsuParticles.HAIRPIN_BURST_METAL_SHARD, at.x, at.y, at.z, 24, 0.5, 0.45, 0.5, 0.24);
 		level.playSound(null, at.x, at.y, at.z, JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, SoundSource.PLAYERS, 1.0f, 0.86f);
@@ -320,16 +362,29 @@ public final class NailTrapRuntime {
 
 	private static void cleanupTrap(ServerLevel level, NailTrap trap) {
 		if (level == null) return;
-		for (UUID nailId : trap.nailIds()) {
-			Entity nail = level.getEntity(nailId);
-			if (nail != null) nail.discard();
-		}
+		for (UUID nailId : trap.nailIds()) discardNail(level, nailId, true);
 	}
 
+	private static void discardNail(ServerLevel level, UUID nailId, boolean collapsing) {
+		Entity nail = level.getEntity(nailId);
+		if (nail == null) return;
+		if (collapsing) COLLAPSING_DISCARDS.add(nailId);
+		try {
+			nail.discard();
+		} finally {
+			if (collapsing) COLLAPSING_DISCARDS.remove(nailId);
+		}
+	}
 	private static void clear(MinecraftServer server, boolean discardNails) {
 		if (discardNails) for (NailTrap trap : TRAPS.values()) cleanupTrap(serverLevel(server, trap), trap);
 		TRAPS.clear();
 		COLLAPSES.clear();
+		COLLAPSING_DISCARDS.clear();
+	}
+
+	/** Explicit fixture/control-surface cleanup; disconnect does not call this (traps persist). */
+	public static void clearOwned(ServerPlayer owner) {
+		if (owner != null) clearOwned(owner.getServer(), owner.getUUID());
 	}
 
 	/** Clears every trap owned by the player. Exists for the dev control surface + gametests. */
