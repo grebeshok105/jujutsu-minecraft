@@ -18,17 +18,19 @@ Owner hierarchy: current code/tests → AGENTS.md → SESSION.md → Codebase Co
 
 ## Accepted product decisions
 
-### Global Resonance hit-stop
+### Global Resonance hit-stop — SUPERSEDED (Nobara rework, 2026-09-23)
 
-This register owns the rationale; other documents point here.
-
-Resonance intentionally changes the global server tick rate to create hit-stop. This affects every player and dimension, but the current product target is private play for one or two people. Do not remove it as a generic multiplayer optimization. Reopen only if the target becomes a public or competitive server.
+Superseded by the Nobara rework design spec §21: Resonance no longer changes the global
+server tick rate. `ServerTimeDilation` is deleted; the cinematic hit-stop is built from
+presentation only — caster-only `RESONANCE_LINK` cue (camera impulse, sound duck, post
+blur) plus the authored 40-tick ritual timeline. The old rationale (private 1–2 player
+target) is kept here for history; the mechanism it justified is gone.
 
 ### VFX Core does not provide client-global slow motion
 
 Verified 2026-07-29 against the removed `VfxTimeChannel` path, `NobaraVfxRecipes`, and `VfxDirector`.
 
-`VfxTimeChannel` stored a scale and deadline. `dollStrike` and `resonanceRelease` wrote values into it, but no production consumer applied `VfxDirector.timeScale()`, so real client-global slow motion never existed. The channel and its calls are removed as dead API, not replaced with another system. Server-global Resonance hit-stop remains the separate accepted decision above. Client-global slow motion may return only through an independently approved design with an explicitly named consumer and lifecycle.
+`VfxTimeChannel` stored a scale and deadline. `dollStrike` and `resonanceRelease` wrote values into it, but no production consumer applied `VfxDirector.timeScale()`, so real client-global slow motion never existed. The channel and its calls are removed as dead API, not replaced with another system. Server-global Resonance hit-stop is superseded per the entry above; client-global slow motion may return only through an independently approved design with an explicitly named consumer and lifecycle.
 
 ### Boogie Woogie destinations have no entity-occupancy gate
 
@@ -305,7 +307,7 @@ Ranking now has three live keys, in order:
 
 Detection is untouched — still ray–AABB, not centre-near-ray. The extra record component defaults to a real hit in both existing `EntityCandidate` constructors, so no call site changed. `TargetResolverTest` now covers real-hit-beats-graze, angle between grazes, distance between equally aimed grazes, and id-decided ties independent of list order.
 
-Still open, and the reason this entry survives the fix: the resolver is shared by four callers — `TodoBoogieWoogieRuntime`, `NobaraHammerCombatRuntime`, `ProjectJjkNobaraRuntime`, and `ProjectJjkRitualRuntime` — so this was a roster-wide gameplay change, not a per-ability tweak, and it has only pure-comparator coverage. **Needs a Nobara targeting regression smoke: hammer targeting, nail launch, and directed Hairpin.** Until that runs, "assist no longer steals the target" is verified as comparator logic and UNVERIFIED as feel. Any future comparator edit needs the same smoke.
+Still open, and the reason this entry survives the fix: the resolver is shared by four callers — `TodoBoogieWoogieRuntime`, `NobaraHammerCombatRuntime`, `ProjectJjkNobaraRuntime`, and `HairpinRuntime` — so this was a roster-wide gameplay change, not a per-ability tweak, and it has only pure-comparator coverage. **Needs a Nobara targeting regression smoke: hammer targeting, nail launch, and directed Hairpin.** Until that runs, "assist no longer steals the target" is verified as comparator logic and UNVERIFIED as feel. Any future comparator edit needs the same smoke.
 
 ### E2 — Curse-link technique ids lack canonical semantic validation
 
@@ -507,7 +509,7 @@ Landed 2026-09-18 with the full subsystem green. Deliberate leftovers, not bugs:
 - Character selection persists through Fabric Data Attachment API and is copied on death.
 - Nobara's starter kit is restored idempotently on every selection — it fills only a missing hammer, doll or nails, so re-selection cannot duplicate held tools. (This deliberately reversed the earlier one-time-claim rule; the persisted claim is now recorded for every vessel and read by nothing — see E12.)
 - Loaded ordinary embedded nails have a TTL and a per-owner cap.
-- Hairpin R/B resolve nails through EmbeddedNailRegistry instead of level.getAllEntities().
+- Hairpin R/B resolve nails through `NailAnchorRegistry` instead of `level.getAllEntities()`.
 - VFX recipe registration goes through each vessel's `CharacterClientDefinition.registerClientHooks()`; the `JujutsuVfxRecipes` aggregator is deleted so the list of who has recipes cannot drift from the list of who exists.
 - `TodoProfile.SAFE_POSITION_HORIZONTAL_RADIUS` and `WORLD_BORDER_MARGIN` are wired into `TodoBoogieWoogieRuntime` instead of being dead constants.
 - Todo has a GeckoLib model, animations, and a player renderer; the `ability.boogie_woogie` hook is live, not a no-op.

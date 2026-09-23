@@ -43,6 +43,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	private static final EntityDataAccessor<Boolean> DATA_TRAP = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.BOOLEAN); // TRAP: persistent visual flag
 	private static final EntityDataAccessor<Boolean> DATA_MEGA = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.BOOLEAN);
 	private static final EntityDataAccessor<Float> DATA_MEGA_PROGRESS = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.FLOAT);
+	private static final EntityDataAccessor<Boolean> DATA_MEGA_CRITICAL = SynchedEntityData.defineId(ProjectJjkNailEntity.class, EntityDataSerializers.BOOLEAN);
 	private static final String OWNER_UUID_TAG = "OwnerUuid";
 	private static final String OWNER_ENTITY_ID_TAG = "OwnerEntityId";
 	private static final String LAUNCHED_TAG = "Launched";
@@ -73,6 +74,8 @@ public final class ProjectJjkNailEntity extends Entity {
 	private static final String MEGA_LAUNCH_DIR_Y_TAG = "MegaLaunchDirY";
 	private static final String MEGA_LAUNCH_DIR_Z_TAG = "MegaLaunchDirZ";
 	private static final String MEGA_FLIGHT_TICKS_TAG = "MegaFlightTicks";
+	private static final String ORIGIN_TAG = "Origin";
+	private static final String MEGA_CRITICAL_TAG = "MegaCritical";
 	private static final String ANCHOR_KIND_TAG = "AnchorKind";
 	private static final String ANCHOR_BLOCK_X_TAG = "AnchorBlockX";
 	private static final String ANCHOR_BLOCK_Y_TAG = "AnchorBlockY";
@@ -101,6 +104,7 @@ public final class ProjectJjkNailEntity extends Entity {
 	private Vec3 embeddedLocalForward = new Vec3(0.0, 0.0, 1.0);
 	private NailAnchor anchor = NailAnchor.none();
 	private boolean trapNail;
+	private NailAnchorRegistry.NailOrigin origin = NailAnchorRegistry.NailOrigin.LAUNCHED;
 	private boolean embeddedIndexTracked;
 	// Mega nail (server-only fields)
 	private float megaWeight;
@@ -198,17 +202,33 @@ public final class ProjectJjkNailEntity extends Entity {
 		return anchor;
 	}
 
+	public NailAnchorRegistry.NailOrigin origin() {
+		return origin;
+	}
+
+	public void setOrigin(NailAnchorRegistry.NailOrigin origin) {
+		this.origin = origin == null ? NailAnchorRegistry.NailOrigin.LAUNCHED : origin;
+	}
+
+	public NailAnchorRegistry.Entry anchorRecord() {
+		UUID targetId = anchor.kind() == NailAnchor.Kind.ENTITY ? embeddedTargetUuid : null;
+		return new NailAnchorRegistry.Entry(getUUID(), ownerUuid, anchor, embedDepthLevel(), origin, targetId);
+	}
+
 	public int embedDepthLevel() {
 		return Mth.clamp(entityData.get(DATA_EMBED_DEPTH), 1, 3);
 	}
-
 	public float depthDamageMultiplier() {
 		return ProjectJjkNobaraProfile.nailDepthMultiplier(embedDepthLevel());
 	}
 
 	public boolean deepen() {
 		if (!isEmbedded() || embedDepthLevel() >= 3) return false;
-		entityData.set(DATA_EMBED_DEPTH, embedDepthLevel() + 1);
+		int depth = embedDepthLevel() + 1;
+		entityData.set(DATA_EMBED_DEPTH, depth);
+		if (!level().isClientSide() && level() instanceof ServerLevel serverLevel) {
+			NailAnchorRegistry.updateDepth(serverLevel, getUUID(), depth);
+		}
 		return true;
 	}
 
@@ -218,14 +238,17 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	public void markAsTrapNail() {
 		trapNail = true;
+		origin = NailAnchorRegistry.NailOrigin.TRAP_CORNER;
 		entityData.set(DATA_TRAP, true);
-		untrackEmbeddedNail();
 	}
 	public boolean isTrapNail() {
 		return level().isClientSide() ? entityData.get(DATA_TRAP) : trapNail;
 	}
 
 	public boolean isMegaNail() { return entityData.get(DATA_MEGA); }
+	public boolean megaCritical() { return entityData.get(DATA_MEGA_CRITICAL); }
+
+	public void setMegaCritical(boolean critical) { entityData.set(DATA_MEGA_CRITICAL, critical); }
 	public float megaProgress() { return entityData.get(DATA_MEGA_PROGRESS); }
 	/** Render scale derived from synced charge progress, so the shared renderer needs no profile reference. */
 	public float megaRenderScale() {
@@ -393,7 +416,7 @@ public final class ProjectJjkNailEntity extends Entity {
 			// CHARGE phase: hover at gather point, progress 0→1
 			setDeltaMovement(Vec3.ZERO);
 			int chargeElapsed = tickCount - 1;
-			float progress = Mth.clamp((float) chargeElapsed / ProjectJjkNobaraProfile.MEGA_NAIL_CHARGE_TICKS, 0.0f, 1.0f);
+			float progress = Mth.clamp((float) chargeElapsed / ProjectJjkNobaraProfile.MEGA_CHARGE_TICKS, 0.0f, 1.0f);
 			entityData.set(DATA_MEGA_PROGRESS, progress);
 			// The synthesized riser (played at charge start) owns the audio build-up; the
 			// quiet sizzle underneath is a mechanical layer, not the crescendo itself.
@@ -478,7 +501,9 @@ public final class ProjectJjkNailEntity extends Entity {
 		if (targetEntity instanceof LivingEntity living && living.isAlive()) {
 			double distSqr = living.distanceToSqr(this);
 			if (distSqr <= 48.0 * 48.0) {
-				launchTarget = living.position();
+				// Aim at body center: a feet-level ray from the raised gather point clips the
+				// floor a fraction of a block before the hitbox on flat ground.
+				launchTarget = living.position().add(0.0, living.getBbHeight() * 0.5, 0.0);
 			} else {
 				launchTarget = target;
 			}
@@ -512,6 +537,11 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	@Override
 	public boolean hurtServer(ServerLevel level, DamageSource damageSource, float amount) {
+		// A charging or flying mega nail is a committed cursed projectile: stray AoE must not
+		// pop it mid-flight (also shields it from unrelated explosions in shared arenas).
+		if (isMegaNail()) {
+			return false;
+		}
 		discard();
 		return true;
 	}
@@ -529,6 +559,7 @@ public final class ProjectJjkNailEntity extends Entity {
 		builder.define(DATA_TRAP, false); // TRAP: persistent visual flag
 		builder.define(DATA_MEGA, false);
 		builder.define(DATA_MEGA_PROGRESS, 0.0f);
+		builder.define(DATA_MEGA_CRITICAL, false);
 	}
 
 	@Override
@@ -549,6 +580,8 @@ public final class ProjectJjkNailEntity extends Entity {
 		output.putInt(EMBEDDED_AGE_TAG, embeddedAgeTicks);
 		output.putInt(EMBED_DEPTH_TAG, embedDepthLevel());
 		output.putBoolean(TRAP_NAIL_TAG, trapNail);
+		output.putString(ORIGIN_TAG, origin.name());
+		output.putBoolean(MEGA_CRITICAL_TAG, megaCritical());
 		output.putBoolean(MEGA_NAIL_TAG, entityData.get(DATA_MEGA));
 		if (entityData.get(DATA_MEGA)) {
 			output.putFloat(MEGA_WEIGHT_TAG, megaWeight);
@@ -605,6 +638,17 @@ public final class ProjectJjkNailEntity extends Entity {
 		entityData.set(DATA_EMBED_DEPTH, Mth.clamp(input.getIntOr(EMBED_DEPTH_TAG, 1), 1, 3));
 		trapNail = input.getBooleanOr(TRAP_NAIL_TAG, false);
 		entityData.set(DATA_TRAP, trapNail);
+		String originName = input.getStringOr(ORIGIN_TAG, "");
+		if (originName.isBlank()) {
+			origin = trapNail ? NailAnchorRegistry.NailOrigin.TRAP_CORNER : NailAnchorRegistry.NailOrigin.LAUNCHED;
+		} else {
+			try {
+				origin = NailAnchorRegistry.NailOrigin.valueOf(originName);
+			} catch (IllegalArgumentException ignored) {
+				origin = trapNail ? NailAnchorRegistry.NailOrigin.TRAP_CORNER : NailAnchorRegistry.NailOrigin.LAUNCHED;
+			}
+		}
+		entityData.set(DATA_MEGA_CRITICAL, input.getBooleanOr(MEGA_CRITICAL_TAG, false));
 		boolean mega = input.getBooleanOr(MEGA_NAIL_TAG, false);
 		entityData.set(DATA_MEGA, mega);
 		if (mega) {
@@ -710,8 +754,8 @@ public final class ProjectJjkNailEntity extends Entity {
 
 	private void tickEmbedded() {
 		setDeltaMovement(Vec3.ZERO);
-		if (!level().isClientSide() && level() instanceof ServerLevel serverLevel && !trapNail && !embeddedIndexTracked) {
-			embeddedIndexTracked = EmbeddedNailRegistry.track(serverLevel, this);
+		if (!level().isClientSide() && level() instanceof ServerLevel serverLevel) {
+			embeddedIndexTracked = NailAnchorRegistry.track(serverLevel, this);
 		}
 		if (!level().isClientSide() && ProjectJjkNobaraProfile.EMBEDDED_NAIL_AGE_TICKS > 0
 				&& embeddedAgeTicks++ >= ProjectJjkNobaraProfile.EMBEDDED_NAIL_AGE_TICKS) {
@@ -850,16 +894,21 @@ public final class ProjectJjkNailEntity extends Entity {
 	@Override
 	public void onRemoval(RemovalReason removalReason) {
 		untrackActiveExplosiveNail();
-		untrackEmbeddedNail();
+		if (level() instanceof ServerLevel serverLevel) {
+			NailAnchorRegistry.untrack(serverLevel, getUUID());
+			// Chunk unload / dimension change is a pause, not a destruction — the trap must
+			// not collapse for an anchor that will come back (NailAnchorLifecycle agrees).
+			if (isTrapNail() && removalReason != RemovalReason.UNLOADED_TO_CHUNK
+					&& removalReason != RemovalReason.CHANGED_DIMENSION) {
+				NailTrapRuntime.onAnchorDestroyed(serverLevel, getUUID());
+			}
+		}
 		super.onRemoval(removalReason);
 	}
 
 	private void untrackEmbeddedNail() {
-		if (!embeddedIndexTracked) {
-			return;
-		}
 		if (level() instanceof ServerLevel serverLevel) {
-			EmbeddedNailRegistry.untrack(serverLevel, this);
+			NailAnchorRegistry.untrack(serverLevel, getUUID());
 		}
 		embeddedIndexTracked = false;
 	}

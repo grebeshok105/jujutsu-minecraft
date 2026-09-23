@@ -50,7 +50,7 @@ public final class ProjectSanityTest {
 		assertNobaraCastsThroughTheSharedSlotPath();
 		assertTodoSecondCharacterContracts();
 		assertProjectJjkHairpinFinisherNumbers();
-		assertHairpinFinishersSnapWithoutMarks();
+		assertSeedlessHairpinFailsWithDiagnostic();
 		assertVfxCueTransportIsRegistered();
 		assertVfxDirectorOwnsClientLifecycle();
 		assertVfxCoreProvidesReusableChannels();
@@ -113,11 +113,11 @@ public final class ProjectSanityTest {
 	}
 
 	private static void assertPerNailHairpinDamageContract() throws IOException {
-		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
+		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/HairpinRuntime.java"));
 		String megaNail = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkMegaNailRuntime.java"));
 		String damage = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/NobaraDamageSources.java"));
 		String bypassTag = Files.readString(MAIN_RESOURCES.resolve("data/minecraft/tags/damage_type/bypasses_cooldown.json"));
-		assert megaNail.contains("nail.anchor().stableId()") : "Mega Nail must select concrete embedded nails";
+		assert megaNail.contains("NailAnchorRegistry.anchorsOnTarget") && megaNail.contains("entry.nailId()") : "Mega Nail must select concrete embedded nails";
 		assert megaNail.contains("MEGA_NAIL_DAMAGE_PER_NAIL") : "Mega Nail damage must scale from concrete nails";
 		assert !ritual.contains("ProjectJjkNailMarks.marks(living.getUUID(), gameTime)") : "Boom must not synthesize aggregate anchors from marks";
 		assert damage.contains("HAIRPIN") : "Hairpin needs a dedicated damage type";
@@ -133,7 +133,7 @@ public final class ProjectSanityTest {
 	private static void assertCombatExpansionReviewFixes() throws IOException {
 		String guard = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/NobaraActionGuard.java"));
 		assert guard.contains("AttackEntityCallback") && guard.contains("isHammer(player.getItemInHand(hand))") : "Hammer LMB must suppress vanilla entity damage";
-		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
+		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/HairpinRuntime.java"));
 		assert ritual.contains("HairpinChain.Resolution.TEMPORARILY_UNAVAILABLE") && ritual.contains("HairpinChainScheduler")
 				: "Hairpin chains must preserve temporarily unloaded nails without blocking later steps";
 		String focus = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/combat/BlackFlashFocus.java"));
@@ -147,16 +147,16 @@ public final class ProjectSanityTest {
 	}
 
 	private static void assertEmbeddedNailLifecycleIsBounded() throws IOException {
-		Path registryPath = MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/EmbeddedNailRegistry.java");
-		assert Files.exists(registryPath) : "Embedded nails need an owner-indexed server registry";
+		Path registryPath = MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/NailAnchorRegistry.java");
+		assert Files.exists(registryPath) : "Owned nails need a unified owner-indexed server registry";
 		String registry = Files.readString(registryPath);
-		assert registry.contains("MAX_EMBEDDED_NAILS_PER_OWNER") : "Embedded nail registry must enforce the per-owner cap";
-		assert registry.contains("ServerLifecycleEvents.SERVER_STOPPING") : "Embedded nail registry must clear server-owned state on shutdown";
+		assert registry.contains("MAX_EMBEDDED_NAILS_PER_OWNER") : "Anchor registry must enforce the per-owner cap";
+		assert registry.contains("ServerLifecycleEvents.SERVER_STOPPING") : "Anchor registry must clear server-owned state on shutdown";
 		String entity = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNailEntity.java"));
-		assert entity.contains("EmbeddedNailRegistry.track") && entity.contains("untrackEmbeddedNail")
-				: "Embedded nail entities must enter and leave the loaded-owner index with their lifecycle";
-		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
-		assert ritual.contains("EmbeddedNailRegistry.loadedOwnedNails") : "Hairpin must resolve owned nails through the bounded index";
+		assert entity.contains("NailAnchorRegistry.track") && entity.contains("NailAnchorRegistry.untrack")
+				: "Nail entities must enter and leave the owner index with their lifecycle";
+		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/HairpinRuntime.java"));
+		assert ritual.contains("NailAnchorRegistry.ownedAnchors") : "Hairpin must resolve owned nails through the anchor index";
 		assert !ritual.contains("level.getAllEntities()") : "Hairpin must not scan every loaded entity";
 	}
 
@@ -551,10 +551,10 @@ public final class ProjectSanityTest {
 		assert profile.contains("DETONATE_DAMAGE_PER_MARK = 0.0f") : "Hairpin Explosion must not scale from old jujutsumod mark damage";
 	}
 
-	private static void assertHairpinFinishersSnapWithoutMarks() throws IOException {
-		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
-		assert runtime.contains("playCasterSnap(level, caster, 1, gameTime)") : "Hairpin finishers should still play the snap gesture when there is no active mark";
-		assert runtime.contains("return true;") && runtime.contains("seed == null") : "Empty directed Hairpin should consume the action as a snap-only cast instead of showing no-target failure";
+	private static void assertSeedlessHairpinFailsWithDiagnostic() throws IOException {
+		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/HairpinRuntime.java"));
+		assert runtime.contains("HANDLED_FAILURE") && runtime.contains("hairpin.no_anchors")
+				: "A seedless directed Hairpin must fail with the explicit no-anchors diagnostic";
 	}
 
 	private static void assertNobaraNailsEmbedLikeOpaqueBodyAnchors() throws IOException {
@@ -570,7 +570,7 @@ public final class ProjectSanityTest {
 		assert !nailRenderer.contains("EMBEDDED_NAIL_RENDER_DEPTH_OFFSET")
 				: "Depth must not drag embedded nails down the victim hitbox; keep the original body anchor";
 		assert !nailRenderer.contains("renderEmbeddedMark(") : "Embedded nails must not restore the removed broad translucent mark envelope";
-		assert nailRenderer.contains("renderEmbeddedMarkPulse") : "Embedded nails must keep only the approved faint readable mark pulse";
+		assert nailRenderer.contains("renderEmbeddedDepthMark") : "Embedded nails must keep only the approved faint readable depth mark";
 		assert !nailRenderer.contains("state.hostOffset") : "Embedded nails must not use the old follower offset that visually chases target position";
 		assert nailRenderer.contains("state.embeddedAnchorOffset") : "Embedded nails must render from the target body anchor, relative to the dispatcher render origin";
 		assert nailRenderer.contains("living.yBodyRot") : "Embedded nail renderer must use interpolated body rotation for the host attachment";
@@ -578,14 +578,14 @@ public final class ProjectSanityTest {
 	}
 
 	private static void assertNobaraTargetMarksUseVanillaGlowing() throws IOException {
-		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
+		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/HairpinRuntime.java"));
 		assert runtime.contains("MobEffects.GLOWING") : "Target marks must use Minecraft's real Glowing effect";
 		assert runtime.contains("ChatFormatting.AQUA") : "Target mark Glowing must be cursed-energy cyan/blue, not vanilla white";
 		assert runtime.contains("scoreboard.addPlayerToTeam(target.getScoreboardName(), markTeam)") : "Target mark must color Glowing through a scoreboard team";
 		assert runtime.contains("previousTeamName") : "Target mark team coloring must remember the victim's previous scoreboard team";
 		assert runtime.contains("scoreboard.removePlayerFromTeam(state.scoreboardName(), markTeam)") : "Clearing marks must remove only our temporary glow team membership";
 		assert runtime.contains("pruneGlowingMarks(server, gameTime)") : "Expired target marks must clean up temporary glow team state";
-		assert runtime.contains("restoreAllGlowTeams(server.getScoreboard())") : "Server stop must restore glow teams before dropping in-memory snapshots";
+		assert runtime.contains("restoreAllGlow(level)") : "Server stop must restore glow teams before dropping in-memory snapshots";
 		assert runtime.contains("clearGlowingMark") : "Consumed marks must remove our Glowing effect instead of leaving a stale target mark";
 		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/VfxWorldChannel.java"));
 		assert !renderer.contains("renderTargetMarks") : "Target marks must not be custom world geometry when vanilla Glowing is active";
@@ -594,7 +594,7 @@ public final class ProjectSanityTest {
 	}
 
 	private static void assertHairpinFinishersUseSnapImpulse() throws IOException {
-		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
+		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/HairpinRuntime.java"));
 		assert runtime.contains("NobaraVfxIds.FIRST_PERSON_SNAP") : "Hairpin finishers must request the typed first-person snap cue";
 		assert !runtime.contains("NobaraVfxIds.HAMMER, Math.max(1, marks)") : "Hairpin Enlarge must not reuse the hammer swing cue";
 		String client = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/network/JujutsuClientNetworking.java"));
@@ -700,13 +700,13 @@ public final class ProjectSanityTest {
 		String recipes = Files.readString(recipesPath);
 		assert recipes.contains("NobaraVfxIds.HAMMER") : "Missing Nobara hammer recipe";
 		assert recipes.contains("NobaraVfxIds.RESONANCE_RELEASE") : "Missing Nobara resonance recipe";
-		assert recipes.contains("NobaraVfxIds.ENLARGE") && recipes.contains("NobaraVfxIds.EXPLOSION") : "Missing Nobara finisher recipes";
+		assert recipes.contains("NobaraVfxIds.DETONATE") && recipes.contains("NobaraVfxIds.MEGA_NAIL_STRIKE") : "Missing Nobara finisher recipes";
 		assert recipes.contains("NobaraVfxIds.FIRST_PERSON_SNAP") : "Missing Nobara first-person snap recipe";
 		long openingBeatGuards = Pattern.compile("VfxTimeline\\.isOpeningBeat\\(initialAgeTicks\\)").matcher(recipes).results().count();
 		assert openingBeatGuards >= 8 : "Every non-seekable Nobara sound/particle opening beat must reject late playback";
 		long ageAwareChannelCalls = Pattern.compile("trigger(?:Launch|HeavyImpact|Explosion|Ritual|Swing|Impact|Snap|Blur|ResonanceImpact|Nausea|BlackFlash|Flash)\\([^\\n]*initialAgeTicks\\)")
 				.matcher(recipes).results().count();
-		assert ageAwareChannelCalls == 50 : "All 50 Nobara realtime channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
+		assert ageAwareChannelCalls == 51 : "All 51 Nobara realtime channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
 		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/network/ProjectJjkNobaraImpulsePayload.java")) : "Legacy integer VFX payload must be removed after migration";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java")) : "Legacy Hairpin world renderer must be replaced by VFX Core";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinCinematicCamera.java")) : "Legacy Hairpin camera manager must be replaced by VFX Core";
@@ -776,7 +776,7 @@ public final class ProjectSanityTest {
 	private static void assertNobaraVfxExpansionContract() throws IOException {
 		String ids = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/vfx/NobaraVfxIds.java"));
 		String recipes = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/vfx/nobara/NobaraVfxRecipes.java"));
-		for (String id : new String[] {"REMNANT_DROP", "RITUAL_BIND", "DOLL_STRIKE", "RESONANCE_RELEASE"}) {
+		for (String id : new String[] {"REMNANT_EXTRACT", "RITUAL_BIND", "DOLL_STRIKE", "RESONANCE_RELEASE"}) {
 			assert ids.contains(id) : "Missing Straw Doll VFX id " + id;
 			assert recipes.contains("VfxDirector.register(NobaraVfxIds." + id)
 					: "Missing Straw Doll VFX recipe registration " + id;
@@ -810,7 +810,7 @@ public final class ProjectSanityTest {
 		assert blurCalls >= 4 : "Heavy Nobara scenes must use age-aware proximity-gated blur; found " + blurCalls;
 
 		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkStrawDollRuntime.java"));
-		for (String id : new String[] {"REMNANT_DROP", "RITUAL_BIND", "DOLL_STRIKE", "RESONANCE_RELEASE"}) {
+		for (String id : new String[] {"REMNANT_EXTRACT", "RITUAL_BIND", "DOLL_STRIKE", "RESONANCE_RELEASE"}) {
 			assert ritual.contains("NobaraVfxIds." + id) : "Server ritual must emit " + id;
 		}
 	}
@@ -822,9 +822,9 @@ public final class ProjectSanityTest {
 		assert start >= 0 && end > start : "Straw Doll recipes must keep distinct caster and target impact phases";
 		String dollStrike = recipes.substring(start, end);
 		String ritual = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkStrawDollRuntime.java"));
-		assert ritual.contains("tickRateManager") && ritual.contains("RESONANCE_TIME.trigger")
-				: "Resonance impact must briefly lower server tick rate for hit-stop";
-		assert ritual.contains("worldFixedCue") && ritual.contains("VfxCues.worldFixed(")
+		assert !ritual.contains("tickRateManager") && !ritual.contains("ServerTimeDilation")
+				: "Resonance must never mutate the global server tick rate — hit-stop is presentation-only";
+		assert ritual.contains("emitWorldCue") && ritual.contains("VfxCues.worldFixed(")
 				: "Resonance struck VFX must use the world-fixed factory, not player-anchored transport";
 		assert !dollStrike.contains("SoundEvents.ANVIL_USE") : "The doll strike must not sound like an anvil";
 		for (String sound : new String[] {"PROJECTJJK_IMPLODE", "PROJECTJJK_DEEP_EXPLOSION", "PROJECTJJK_BLACK_FLASH_IMPACT", "PROJECTJJK_LONG_WHOOSH"}) {
@@ -847,9 +847,7 @@ public final class ProjectSanityTest {
 		assert ritual.contains("RESONANCE_TARGET") : "Resonance must resolve a typed target-bound remnant";
 		assert ritual.contains("NobaraActionTimeline.DOLL_STRIKE.impactTick()") : "Resonance must use the shared readable wind-up";
 		assert ritual.contains("consumeResources(caster, remnant)") : "Resonance must consume one remnant and one nail only at impact";
-		assert ritual.contains("ProjectJjkRitualPolicy.validate") : "Runtime validation must use the tested ritual policy";
-		assert ritual.contains("ServerEntityEvents.ENTITY_UNLOAD")
-				: "Partial remnant progress must clear when a living target unloads";
+		assert ritual.contains("ResonancePolicy.validate") : "Runtime validation must use the tested resonance policy";
 		assert ritual.contains("List.copyOf(PENDING_RITUALS.values())")
 				&& ritual.contains("PENDING_RITUALS.remove(pending.casterId(), pending)")
 				: "Pending rituals must tolerate synchronous death callbacks mutating the map during impact";
@@ -868,7 +866,7 @@ public final class ProjectSanityTest {
 				: "Typed remnants must persist and network-sync the localized target Component";
 
 		String hammer = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkHammerItem.java"));
-		assert hammer.contains("ProjectJjkStrawDollRuntime.tryStart") : "Shift-hammer must start the physical remnant ritual";
+		assert hammer.contains("ProjectJjkStrawDollRuntime.tryStartResonance") : "Shift-hammer must start the physical remnant ritual";
 		assert !hammer.contains("performResonance") : "Shift-hammer must not use the removed mark-only Resonance path";
 		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkResonanceLink.java"))
 				: "The old mark-only two-step Resonance link must stay removed";
@@ -876,8 +874,8 @@ public final class ProjectSanityTest {
 		String loadout = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraLoadout.java"));
 		assert loadout.contains("JujutsuItems.STRAW_DOLL") : "Nobara's loadout must include one reusable straw doll";
 		String runtime = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/character/nobara/projectjjk/ProjectJjkNobaraRuntime.java"));
-		assert runtime.contains("onOrdinaryNailHit(level, owner, directTarget, point)")
-				: "Ordinary nail hits must advance remnant acquisition";
+		assert !runtime.contains("onOrdinaryNailHit")
+				: "Ordinary nail hits must not auto-mint remnants — extraction needs Deeply Anchored + overhead";
 	}
 
 	private static void assertOriginalStrawDollAssetWired() throws IOException {
@@ -974,15 +972,15 @@ public final class ProjectSanityTest {
 		assert !runtime.contains("ParticleTypes.SOUL_FIRE_FLAME") : "Nobara nail aura must not use vanilla soul-fire particles";
 		assert !runtime.contains("HAIRPIN_IGNITION_TICK") && runtime.contains("spawnPreparedNailPressure")
 				: "Prepared and flying nails must use compressed-energy motes instead of ignition particles";
-		int impactCue = runtime.indexOf("emitImpactCue(level, point, owner);");
+		int impactCue = runtime.indexOf("emitImpactCue(level, point, caster);");
 		int ordinaryImpactBranch = runtime.indexOf("if (!explosiveImpact)");
 		assert impactCue >= 0 && impactCue < ordinaryImpactBranch
 				: "Every ordinary or explosive nail impact must emit the named impact camera/HUD cue before branching";
 		String renderer = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/ProjectJjkNailRenderer.java"));
 		assert renderer.contains("renderCompressedEnergyAura") && renderer.contains("renderPressureBand")
 				: "Real nail entities must render a narrow rim, pressure bands, and orbiting slivers";
-		assert renderer.contains("renderEmbeddedMarkPulse")
-				: "Embedded nails must retain a faint state-driven mark pulse after the flight aura ends";
+		assert renderer.contains("renderEmbeddedDepthMark")
+				: "Embedded nails must retain a faint state-driven depth mark after the flight aura ends";
 		assert renderer.contains("VfxPalette") : "Persistent nail aura must reuse the VFX Core cursed-energy palette";
 		assert !renderer.contains("renderBlueForceFieldEnvelope") : "The rejected broad nail envelope must stay removed";
 		assert !renderer.contains("renderCyanNailFireAura") : "Blue nail aura must not use the rejected cyan flame ribbon geometry";
@@ -1081,8 +1079,8 @@ public final class ProjectSanityTest {
 				JsonArray rotation = bone.getAsJsonArray("rotation");
 				assert pivot != null && pivot.size() == 3
 						: "Skin animation rig bone must declare a three-component pivot: " + rig;
-				assert rotation != null && rotation.size() == 3
-						: "Skin animation rig bone must declare a three-component rotation: " + rig;
+			assert rotation == null || rotation.size() == 3
+					: "Skin animation rig bone rotation must be absent (zero) or three-component: " + rig;
 			}
 		}
 
@@ -1214,7 +1212,7 @@ public final class ProjectSanityTest {
 		String animatable = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/render/nobara/NobaraPlayerGeoAnimatable.java"));
 		assert animatable.contains("headKeyframedActionIsPlaying(state)") : "Nobara head look must attenuate while ProjectJJK head-keyframed action clips are active";
 		assert animatable.contains("getTriggeredAnimation()") && animatable.contains("getCurrentRawAnimation()") : "Nobara head look must account for GeckoLib triggered and current raw action animations";
-		assert animatable.contains("animation == SNAP") && animatable.contains("animation == SPELL_5") && animatable.contains("animation == SWIPE_1") : "Nobara head look action guard must include snap, spell, and swipe ProjectJJK clips";
+		assert animatable.contains("animation == SNAP") && animatable.contains("animation == SPELL_1") && animatable.contains("animation == HAMMER_HORIZONTAL") : "Nobara head look action guard must include snap, spell, and hammer ProjectJJK clips";
 		String geo = Files.readString(MAIN_RESOURCES.resolve("assets/jujutsumod/geckolib/models/character_skin/nobara.geo.json"));
 		assert Pattern.compile("\"name\"\\s*:\\s*\"head\"\\s*,\\s*\"parent\"\\s*:\\s*\"body\"").matcher(geo).find() : "Nobara model must keep a separate head bone parented to body for look tracking";
 	}

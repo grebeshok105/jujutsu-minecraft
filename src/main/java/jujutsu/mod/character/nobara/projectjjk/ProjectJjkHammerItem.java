@@ -18,7 +18,7 @@ public final class ProjectJjkHammerItem extends Item {
 		ItemStack stack = player.getItemInHand(hand);
 		if (level instanceof net.minecraft.server.level.ServerLevel && player instanceof ServerPlayer serverPlayer) {
 			if (player.isShiftKeyDown()) {
-				ProjectJjkStrawDollRuntime.tryStart(serverPlayer, stack, hand);
+				ProjectJjkStrawDollRuntime.tryStartResonance(serverPlayer);
 			} else {
 				ProjectJjkNobaraRuntime.launchHairpin(serverPlayer, stack, hand, false);
 			}

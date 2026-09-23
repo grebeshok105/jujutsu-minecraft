@@ -25,14 +25,17 @@ final class CharacterSkinAnimationPackTest {
 		List<Pack> packs = List.of(
 				new Pack("nobara", "projectjjk/npc", Set.of(
 						"animation.player_model.idle", "animation.player_model.idle2", "animation.player_model.walk",
-						"animation.player_model.walk2", "animation.player_model.run", "animation.player_model.one_two",
-						"animation.player_model.attack1", "animation.player_model.attack2", "animation.player_model.attack3",
-						"animation.player_model.snap", "animation.player_model.spell1", "animation.player_model.spell2",
-						"animation.player_model.spell3", "animation.player_model.spell4", "animation.player_model.spell5",
-						"animation.player_model.swipe1", "animation.player_model.hammer_horizontal",
-						"animation.player_model.hammer_overhead", "animation.player_model.hammer_nail_launch",
-						"animation.player_model.hammer_embedded_drive", "animation.player_model.hammer_doll_strike",
-						"animation.player_model.self_resonance", "animation.player_model.black_flash"),
+						"animation.player_model.walk2", "animation.player_model.run", "animation.player_model.attack1",
+						"animation.player_model.attack2", "animation.player_model.attack3",
+						"animation.player_model.snap", "animation.player_model.spell1", "animation.player_model.spell3",
+						"animation.player_model.hammer_horizontal", "animation.player_model.hammer_overhead",
+						"animation.player_model.hammer_nail_launch", "animation.player_model.hammer_embedded_drive",
+						"animation.player_model.hammer_doll_strike", "animation.player_model.self_resonance",
+						"animation.player_model.black_flash", "animation.player_model.nail_prepare",
+						"animation.player_model.nail_trap_place", "animation.player_model.hairpin_activate",
+						"animation.player_model.mega_nail_setup", "animation.player_model.mega_nail_charge",
+						"animation.player_model.mega_nail_release", "animation.player_model.remnant_extract",
+						"animation.player_model.resonance_ritual"),
 						Set.of("animation.player_model.idle", "animation.player_model.idle2", "animation.player_model.walk",
 								"animation.player_model.walk2", "animation.player_model.run")),
 				new Pack("todo", "todo/todo_aoi", Set.of(
@@ -61,7 +64,8 @@ final class CharacterSkinAnimationPackTest {
 			for (JsonElement element : bones) {
 				JsonObject bone = element.getAsJsonObject();
 				assertEquals(3, bone.getAsJsonArray("pivot").size(), pack.id() + " pivot");
-				assertEquals(3, bone.getAsJsonArray("rotation").size(), pack.id() + " rotation");
+				assertEquals(3, bone.has("rotation") ? bone.getAsJsonArray("rotation").size() : 3,
+						pack.id() + " rotation (absent means [0,0,0])");
 				assertFalse(bone.has("cubes"), pack.id() + " rig must stay invisible");
 				assertFalse(bone.has("uv"), pack.id() + " rig must not define texture geometry");
 			}
@@ -88,9 +92,11 @@ final class CharacterSkinAnimationPackTest {
 		assertTrue(nobara.contains("IDLE_2 = loop") && nobara.contains("WALK_2 = loop")
 				&& nobara.contains("movement.running()") && nobara.contains("MELEE_VARIANT"));
 		for (String trigger : List.of(
-				"one_two", "attack1", "attack2", "attack3", "snap", "spell1", "spell2", "spell3", "spell4",
-				"spell5", "swipe1", "hammer_horizontal", "hammer_overhead", "hammer_nail_launch",
-				"hammer_embedded_drive", "hammer_doll_strike", "self_resonance", "black_flash")) {
+				"attack1", "attack2", "attack3", "snap", "spell1", "spell3",
+				"hammer_horizontal", "hammer_overhead", "hammer_nail_launch",
+				"hammer_embedded_drive", "hammer_doll_strike", "self_resonance", "black_flash",
+				"nail_prepare", "nail_trap_place", "hairpin_activate", "mega_nail_setup",
+				"mega_nail_charge", "mega_nail_release", "remnant_extract", "resonance_ritual")) {
 			assertTrue(nobara.contains("triggerableAnim(\"" + trigger + "\""), "Nobara trigger: " + trigger);
 		}
 
@@ -112,7 +118,7 @@ final class CharacterSkinAnimationPackTest {
 				&& nobaraRecipes.contains("CASTER_MEGA_NAIL")
 				&& nobaraRecipes.contains("CASTER_NAIL_TRAP")
 				&& nobaraRecipes.contains("CASTER_HAMMER_EMBEDDED"));
-		assertTrue(read("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java")
+		assertTrue(read("src/main/java/jujutsu/mod/character/nobara/projectjjk/HairpinRuntime.java")
 				.contains("NobaraVfxIds.CASTER_ACTION"));
 		assertTrue(read("src/main/java/jujutsu/mod/character/nobara/projectjjk/NailTrapRuntime.java")
 				.contains("NobaraVfxIds.CASTER_ACTION"));

@@ -306,12 +306,12 @@ tasks.register('testProjectJjkNobaraProfile', JavaExec) {
 	jvmArgs '-ea'
 }
 
-tasks.register('testNobaraRemnant', JavaExec) {
+tasks.register('testRemnantExtraction', JavaExec) {
 	group = 'verification'
-	description = 'Runs assertion-based tests for Nobara remnant progression'
+	description = 'Runs assertion-based tests for Deeply-Anchored remnant extraction'
 	dependsOn tasks.named('testClasses')
 	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'jujutsu.mod.character.nobara.projectjjk.ProjectJjkRemnantProgressTest'
+	mainClass = 'jujutsu.mod.character.nobara.projectjjk.RemnantExtractionTest'
 	maxHeapSize = '128m'
 	jvmArgs '-ea'
 }
@@ -326,12 +326,12 @@ tasks.register('testRemnantVisualType', JavaExec) {
 	jvmArgs '-ea'
 }
 
-tasks.register('testNobaraRitual', JavaExec) {
+tasks.register('testNobaraResonance', JavaExec) {
 	group = 'verification'
-	description = 'Runs assertion-based tests for Nobara straw doll ritual policy'
+	description = 'Runs assertion-based tests for Nobara resonance policy'
 	dependsOn tasks.named('testClasses')
 	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'jujutsu.mod.character.nobara.projectjjk.ProjectJjkRitualPolicyTest'
+	mainClass = 'jujutsu.mod.character.nobara.projectjjk.ResonancePolicyTest'
 	maxHeapSize = '128m'
 	jvmArgs '-ea'
 }
@@ -342,6 +342,26 @@ tasks.register('testNailAnchor', JavaExec) {
 	dependsOn tasks.named('testClasses')
 	classpath = sourceSets.test.runtimeClasspath
 	mainClass = 'jujutsu.mod.character.nobara.projectjjk.NailAnchorTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
+tasks.register('testNailAnchorRegistry', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for the unified nail anchor registry'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.nobara.projectjjk.NailAnchorRegistryTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
+tasks.register('testNailMarks', JavaExec) {
+	group = 'verification'
+	description = 'Runs assertion-based tests for owner-scoped nail marks'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailMarksTest'
 	maxHeapSize = '128m'
 	jvmArgs '-ea'
 }
@@ -406,6 +426,16 @@ tasks.register('testHairpinChain', JavaExec) {
 	jvmArgs '-ea'
 }
 
+tasks.register('testHairpinNetwork', JavaExec) {
+	group = 'verification'
+	description = 'Runs deterministic Hairpin network construction tests'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'jujutsu.mod.character.nobara.projectjjk.HairpinNetworkTest'
+	maxHeapSize = '128m'
+	jvmArgs '-ea'
+}
+
 tasks.register('testNailTrap', JavaExec) {
 	group = 'verification'
 	description = 'Runs deterministic Nobara triangular nail trap tests'
@@ -426,15 +456,9 @@ tasks.register('testResonantMomentum', JavaExec) {
 	jvmArgs '-ea'
 }
 
-tasks.register('testServerTimeDilation', JavaExec) {
-	group = 'verification'
-	description = 'Runs ServerTimeDilation restore/overlap tests'
-	dependsOn tasks.named('testClasses')
-	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'jujutsu.mod.character.nobara.projectjjk.ServerTimeDilationTest'
-	maxHeapSize = '128m'
-	jvmArgs '-ea'
-}
+// Mega Nail math is covered by the JUnit suite under `test`; no standalone JavaExec needed.
+
+
 
 tasks.register('testTodoPairSwap', JavaExec) {
 	group = 'verification'

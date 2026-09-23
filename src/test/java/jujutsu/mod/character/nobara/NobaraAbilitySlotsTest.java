@@ -104,7 +104,7 @@ public final class NobaraAbilitySlotsTest {
 		String router = Files.readString(ROUTER);
 		record Slot(CharacterAbility slot, String call) {}
 		Slot[] map = {
-				new Slot(CharacterAbility.PRIMARY, "ProjectJjkRitualRuntime.startDirectedHairpin(nobara)"),
+				new Slot(CharacterAbility.PRIMARY, "HairpinRuntime.startDirectedHairpin(nobara)"),
 				new Slot(CharacterAbility.PRIMARY_SNEAK, "SelfResonanceRuntime.tryCast(nobara)"),
 				new Slot(CharacterAbility.SECONDARY, "ProjectJjkMegaNailRuntime.start(nobara)"),
 				new Slot(CharacterAbility.SECONDARY_SNEAK, "NailTrapRuntime.tryPlace(nobara)"),
@@ -150,12 +150,13 @@ public final class NobaraAbilitySlotsTest {
 		// "no target", which is the wrong explanation for a key that was never hers.
 		assert router.contains("ability == CharacterAbility.PARTIAL")
 				: "the partial key must be refused before the no-target fallback, not through it";
-		// Both Hairpin slots share one precondition, and it has to be in both arms rather than twice in one.
+		// Rework: PRIMARY owns seed resolution inside startDirectedHairpin (its own no-anchor
+		// diagnostic), while SECONDARY gates Mega Nail on the marked-target precondition exactly once.
 		String precondition = "ProjectJjkNobaraRuntime.canCastMarkedHairpin(nobara)";
-		for (CharacterAbility hairpin : new CharacterAbility[] {CharacterAbility.PRIMARY, CharacterAbility.SECONDARY}) {
-			assert countOf(armOf(router, hairpin), precondition) == 1
-					: hairpin + " must check the marked-target precondition exactly once";
-		}
+		assert countOf(armOf(router, CharacterAbility.SECONDARY), precondition) == 1
+				: "SECONDARY must check the marked-target precondition exactly once";
+		assert countOf(router, precondition) == 1
+				: "the marked-target precondition must live in exactly one arm";
 	}
 
 	/**
