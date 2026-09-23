@@ -38,9 +38,10 @@ final class CharacterSkinAnimationPackTest {
 				new Pack("todo", "todo/todo_aoi", Set.of(
 						"animation.todo_aoi.idle", "animation.todo_aoi.idle2", "animation.todo_aoi.walk",
 						"animation.todo_aoi.walk2", "animation.todo_aoi.run", "animation.todo_aoi.attack",
-						"ability.boogie_woogie"),
+						"ability.boogie_woogie", "ability.fake_clap", "ability.stone_throw",
+						"ability.momentum_strike", "ability.peak", "ability.revised"),
 						Set.of("animation.todo_aoi.idle", "animation.todo_aoi.idle2", "animation.todo_aoi.walk",
-								"animation.todo_aoi.walk2", "animation.todo_aoi.run")),
+								"animation.todo_aoi.walk2", "animation.todo_aoi.run", "ability.revised")),
 				new Pack("megumi", "megumi/megumi_fushiguro", Set.of(
 						"animation.megumi_fushiguro.idle", "animation.megumi_fushiguro.walk",
 						"animation.megumi_fushiguro.run", "animation.megumi_fushiguro.combat_idle",
@@ -98,6 +99,10 @@ final class CharacterSkinAnimationPackTest {
 		assertTrue(todo.contains("RUN = loop") && todo.contains("movement.running()"));
 		assertTrue(todo.contains("triggerableAnim(\"attack\", ATTACK)"));
 		assertTrue(todo.contains("triggerableAnim(BOOGIE_WOOGIE_ANIM, BOOGIE_WOOGIE)"));
+		for (String trigger : List.of(
+				"FAKE_CLAP_ANIM", "STONE_THROW_ANIM", "MOMENTUM_STRIKE_ANIM", "PEAK_ANIM", "REVISED_ANIM")) {
+			assertTrue(todo.contains("triggerableAnim(" + trigger + ","), "Todo trigger: " + trigger);
+		}
 
 		String megumi = read("src/client/java/jujutsu/mod/client/render/megumi/MegumiPlayerGeoAnimatable.java");
 		assertTrue(megumi.contains("COMBAT_IDLE_ANIMATION = loop") && megumi.contains("MELEE_VARIANT_COUNT = 3")
