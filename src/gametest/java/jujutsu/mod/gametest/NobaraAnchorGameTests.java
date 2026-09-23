@@ -1,6 +1,7 @@
 package jujutsu.mod.gametest;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -155,18 +156,26 @@ public final class NobaraAnchorGameTests {
 		var spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
 				JujutsuEntities.LESSER_CURSED_SPIRIT, new BlockPos(4, 1, 1));
 		int cap = ProjectJjkNobaraProfile.MAX_EMBEDDED_NAILS_PER_OWNER;
+		List<UUID> spawnedIds = new java.util.ArrayList<>();
 		helper.runAtTickTime(2, () -> {
 			for (int i = 0; i < cap + 2; i++) {
 				ProjectJjkNailEntity nail = entityNail(level, caster, spirit);
 				helper.assertTrue(level.addFreshEntity(nail), Component.literal("nail " + i + " was not spawned"));
+				spawnedIds.add(nail.getUUID());
 			}
 		});
 		helper.runAtTickTime(10, () -> {
 			List<NailAnchorRegistry.Entry> anchors = NailAnchorRegistry.ownedAnchors(level, caster.getUUID());
-			helper.assertTrue(anchors.size() <= cap, CursedSpiritTestFixtures.diagnostic(fixture,
+			helper.assertTrue(anchors.size() == cap, CursedSpiritTestFixtures.diagnostic(fixture,
 					helper.getTick(), caster.getUUID(), spirit.getUUID(),
-					"tracked anchors past the cap", "<= " + cap, anchors.size()));
-			helper.assertTrue(!anchors.isEmpty(), Component.literal("the cap must evict the oldest, not wipe the index"));
+					"tracked anchors past the cap", String.valueOf(cap), anchors.size()));
+			Set<UUID> live = anchors.stream().map(NailAnchorRegistry.Entry::nailId).collect(java.util.stream.Collectors.toSet());
+			// The cap evicts the OLDEST anchors: the first two spawned nails must be gone,
+			// the last two spawned must still be tracked.
+			helper.assertTrue(!live.contains(spawnedIds.get(0)) && !live.contains(spawnedIds.get(1)),
+					Component.literal("cap did not evict the oldest anchors"));
+			helper.assertTrue(live.contains(spawnedIds.get(cap)) && live.contains(spawnedIds.get(cap + 1)),
+					Component.literal("cap evicted the newest anchors instead of the oldest"));
 			cleanup(helper, caster, spirit);
 			helper.succeed();
 		});

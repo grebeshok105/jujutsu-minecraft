@@ -84,15 +84,15 @@ public final class HairpinChainTest {
 		HairpinChainScheduler<String> scheduler = new HairpinChainScheduler<>();
 		List<String> finalized = new ArrayList<>();
 		scheduler.schedule("invalid", HairpinChain.start(List.of(A), 0L, 2));
-		scheduler.tick(0L, (context, id) -> HairpinChain.Resolution.INVALID,
+		scheduler.tick(context -> 0L, (context, id) -> HairpinChain.Resolution.INVALID,
 				(context, id, finale, time) -> { throw new AssertionError("invalid entry detonated"); },
 				(context, id, time) -> finalized.add(context));
 		assert finalized.isEmpty();
 		scheduler.schedule("success", HairpinChain.start(List.of(B), 0L, 2));
-		scheduler.tick(0L, (context, id) -> HairpinChain.Resolution.RESOLVED,
+		scheduler.tick(context -> 0L, (context, id) -> HairpinChain.Resolution.RESOLVED,
 				(context, id, finale, time) -> {},
 				(context, id, time) -> finalized.add(context));
-		scheduler.tick(2L, (context, id) -> HairpinChain.Resolution.RESOLVED,
+		scheduler.tick(context -> 2L, (context, id) -> HairpinChain.Resolution.RESOLVED,
 				(context, id, finale, time) -> {},
 				(context, id, time) -> finalized.add(context));
 		assert finalized.equals(List.of("success"));

@@ -37,7 +37,7 @@ public final class NobaraTeardown {
 			return;
 		}
 		UUID playerId = player.getUUID();
-		ProjectJjkNobaraRuntime.clearPlayer(playerId);
+		ProjectJjkNobaraRuntime.clearPlayer(player.getServer(), playerId);
 		NobaraHammerCombatRuntime.clearPlayer(playerId);
 		ProjectJjkStrawDollRuntime.resetCaster(playerId);
 		SelfResonanceRuntime.clearCaster(playerId);

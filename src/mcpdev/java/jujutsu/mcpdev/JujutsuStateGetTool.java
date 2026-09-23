@@ -168,7 +168,7 @@ public final class JujutsuStateGetTool extends BaseTool {
 					ObjectNode nobara = node.putObject("nobara");
 					List<NailAnchorRegistry.Entry> anchors = NailAnchorRegistry.ownedAnchors(player.level(), playerId);
 					nobara.put("embedded_nails_loaded", anchors.size());
-					nobara.put("marks_on_player", ProjectJjkNailMarks.marks(playerId, player.getUUID(), gameTime) > 0);
+					nobara.put("marks_on_player", ProjectJjkNailMarks.anyMarks(player.getUUID(), gameTime));
 					ArrayNode anchorNodes = nobara.putArray("anchors");
 					Set<UUID> deeplyAnchored = new HashSet<>();
 					for (NailAnchorRegistry.Entry anchor : anchors) {

@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -53,6 +54,11 @@ public final class ProjectJjkNobaraRuntime {
 		}
 		LAST_SNAP_AT.put(player.getUUID(), now);
 		PREPARATIONS.put(player.getUUID(), new PreparationSession());
+		// Anchored caster cue: the nail_prepare clip is the authored start of the prep loop.
+		JujutsuNetworking.broadcastVfxCue(player.level(), player.position(), IMPULSE_BROADCAST_RADIUS,
+				VfxCues.anchored(NobaraVfxIds.CASTER_ACTION, player.getEyePosition(), player.getId(),
+						player.position(), NobaraVfxIds.CASTER_NAIL_PREPARE, now,
+						player.level().random.nextLong()));
 		return true;
 	}
 
@@ -66,13 +72,20 @@ public final class ProjectJjkNobaraRuntime {
 		PREPARATIONS.remove(player.getUUID());
 	}
 
-	/** Drops the player's prep session, snap clock and explosive-nail count. Exists for the dev control surface + gametests. */
-	public static void clearPlayer(UUID playerId) {
+	/** Drops the player's prep session, snap clock, explosive-nail count and any still-hovering
+	 *  prepared nail entities. Exists for the dev control surface + gametests. */
+	public static void clearPlayer(MinecraftServer server, UUID playerId) {
 		ACTIVE_EXPLOSIVE_NAILS.remove(playerId);
 		PREPARATIONS.remove(playerId);
 		LAST_SNAP_AT.remove(playerId);
+		for (ServerLevel level : server.getAllLevels()) {
+			for (Entity entity : level.getAllEntities()) {
+				if (entity instanceof ProjectJjkNailEntity nail && nail.isPrepared() && nail.isOwnedBy(playerId)) {
+					nail.discard();
+				}
+			}
+		}
 	}
-
 	public static void prepareNails(ServerPlayer player, ItemStack usedStack, int useTicks) {
 		int desiredCount = ProjectJjkNobaraProfile.nailCountForUseTicks(ResonantMomentum.accelerateElapsedTicks(player, useTicks));
 		boolean creative = player.getAbilities().instabuild;
@@ -188,9 +201,17 @@ public final class ProjectJjkNobaraRuntime {
 			directTarget = target;
 			boolean damageAccepted = hurtTarget(level, caster, target, source, ProjectJjkNobaraProfile.NAIL_DAMAGE, point, 0.9f);
 			boolean selfHit = caster != null && target.getUUID().equals(caster.getUUID());
-			if (damageAccepted && !explosiveImpact && !selfHit && caster != null) {
-				NobaraHammerCombatRuntime.openNailEmbedWindow(caster, target, ProjectJjkNobaraProfile.NAIL_DAMAGE);
-				ProjectJjkNailMarks.apply(caster.getUUID(), target.getUUID(), level.getGameTime());
+			if (damageAccepted && !explosiveImpact && !selfHit) {
+				if (caster != null) {
+					NobaraHammerCombatRuntime.openNailEmbedWindow(caster, target, ProjectJjkNobaraProfile.NAIL_DAMAGE);
+					// markTarget applies the owner-scoped mark AND the cursed glow/pulse feedback;
+					// a bare NailMarks.apply would leave ordinary impacts without the glow.
+					HairpinRuntime.markTarget(level, caster.getUUID(), target);
+				} else if (nail.ownerUuid() != null) {
+					// Owner offline: the anchor persists (D6), so the mark must too — apply it
+					// directly; the glow presentation needs a live caster and is skipped.
+					ProjectJjkNailMarks.apply(nail.ownerUuid(), target.getUUID(), level.getGameTime());
+				}
 			}
 		}
 

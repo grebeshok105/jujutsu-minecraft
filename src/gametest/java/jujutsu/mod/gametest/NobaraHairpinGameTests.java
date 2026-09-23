@@ -2,6 +2,7 @@ package jujutsu.mod.gametest;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.UUID;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -17,6 +18,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.network.chat.Component;
 import jujutsu.mod.character.AbilityResult;
 import jujutsu.mod.character.CharacterAbility;
+import jujutsu.mod.character.CharacterAbilityExecutor;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.character.CharacterSelectionManager;
 import jujutsu.mod.character.JujutsuCharacter;
@@ -28,6 +30,7 @@ import jujutsu.mod.character.nobara.projectjjk.NailTrap;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEntity;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailMarks;
 import jujutsu.mod.registry.JujutsuEntities;
+
 
 /** Block-2 live oracles for Hairpin seed parity, chain execution, and trap-corner anchors. */
 public final class NobaraHairpinGameTests {
@@ -42,33 +45,72 @@ public final class NobaraHairpinGameTests {
 		ServerLevel level = helper.getLevel();
 		var spirit = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
 				JujutsuEntities.LESSER_CURSED_SPIRIT, new BlockPos(6, 1, 1));
+		AtomicBoolean marked = new AtomicBoolean();
 		AtomicBoolean cast = new AtomicBoolean();
 		AtomicBoolean punished = new AtomicBoolean();
 		AtomicReference<Double> healthBefore = new AtomicReference<>(0.0);
-		helper.runAtTickTime(4, () -> {
-			Vec3 hit = spirit.position().add(0.0, spirit.getBbHeight() * 0.5, 0.0);
-			ProjectJjkNailEntity nail = entityNail(level, caster, spirit, hit);
-			helper.assertTrue(level.addFreshEntity(nail), Component.literal("owned nail entity was not spawned"));
-			// tickEmbedded self-tracks on the NEXT tick; the cast below runs this tick, so track now.
-			NailAnchorRegistry.track(level, nail);
-			HairpinRuntime.markTarget(level, caster.getUUID(), spirit);
-			TodoSwapTestFixtures.aimAt(caster, hit);
-			healthBefore.set((double) spirit.getHealth());
-			AbilityResult result = HairpinRuntime.startDirectedHairpin(caster);
-			helper.assertTrue(result == AbilityResult.SUCCESS,
-				CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(), caster.getUUID(), spirit.getUUID(),
-						"directed Hairpin cast", AbilityResult.SUCCESS, result));
-			cast.set(true);
+		AtomicInteger marksBefore = new AtomicInteger(0);
+		helper.runAtTickTime(2, () -> {
+			try {
+				TodoSwapTestFixtures.aimAt(caster,
+						spirit.position().add(0.0, spirit.getBbHeight() * 0.5, 0.0));
+				CursedSpiritTestFixtures.freezeGround(spirit);
+				// Production path: a real launched nail must embed, mark, and register — the
+				// oracle below proves resolveNailImpact wiring, not a hand-built fixture.
+				ProjectJjkNailEntity nail = JujutsuEntities.PROJECTJJK_NAIL.create(level, EntitySpawnReason.COMMAND);
+				helper.assertTrue(nail != null, Component.literal("projectjjk_nail did not create"));
+				Vec3 from = caster.getEyePosition();
+				Vec3 hit = spirit.position().add(0.0, spirit.getBbHeight() * 0.5, 0.0);
+				nail.prepare(caster, from, hit.subtract(from).normalize());
+				nail.launchAt(hit, 0, false);
+				helper.assertTrue(level.addFreshEntity(nail), Component.literal("launched nail was not spawned"));
+			} catch (RuntimeException | AssertionError failure) {
+				cleanup(helper, caster, spirit);
+				throw failure;
+			}
 		});
-		for (int tick = 5; tick <= POLL_DEADLINE; tick++) {
+		for (int tick = 3; tick <= POLL_DEADLINE; tick++) {
 			final int poll = tick;
 			helper.runAtTickTime(poll, () -> {
-				if (cast.get() && spirit.getHealth() < healthBefore.get()) punished.set(true);
+				if (cast.get()) {
+					if (spirit.getHealth() < healthBefore.get()
+							&& ProjectJjkNailMarks.marks(caster.getUUID(), spirit.getUUID(), level.getGameTime()) < marksBefore.get()) {
+						punished.set(true);
+					}
+					return;
+				}
+				if (ProjectJjkNailMarks.marks(caster.getUUID(), spirit.getUUID(), level.getGameTime()) >= 1) {
+					marked.set(true);
+				}
+				if (!marked.get()) {
+					return;
+				}
+				try {
+					List<NailAnchorRegistry.Entry> chained = NailAnchorRegistry.ownedAnchors(level, caster.getUUID());
+					if (chained.isEmpty()) {
+						return;
+					}
+					TodoSwapTestFixtures.aimAt(caster,
+							spirit.position().add(0.0, spirit.getBbHeight() * 0.5, 0.0));
+					healthBefore.set((double) spirit.getHealth());
+					marksBefore.set(ProjectJjkNailMarks.marks(caster.getUUID(), spirit.getUUID(), level.getGameTime()));
+					AbilityResult result = CharacterAbilityExecutor.tryCast(caster, CharacterAbility.PRIMARY, true);
+					helper.assertTrue(result == AbilityResult.SUCCESS,
+							CursedSpiritTestFixtures.diagnostic(fixture, helper.getTick(), caster.getUUID(),
+									spirit.getUUID(), "directed Hairpin cast via PRIMARY slot",
+									AbilityResult.SUCCESS, result));
+					cast.set(true);
+				} catch (RuntimeException | AssertionError failure) {
+					cleanup(helper, caster, spirit);
+					throw failure;
+				}
 			});
 		}
-		helper.runAtTickTime(POLL_DEADLINE + 1, () -> {
-			helper.assertTrue(cast.get(), Component.literal("Hairpin cast did not complete"));
-			helper.assertTrue(punished.get(), Component.literal("directed Hairpin did not damage its marked target"));
+		helper.runAtTickTime(POLL_DEADLINE + 40, () -> {
+			helper.assertTrue(marked.get(), Component.literal("launched nail never marked the spirit"));
+			helper.assertTrue(cast.get(), Component.literal("PRIMARY slot did not route to directed Hairpin"));
+			helper.assertTrue(punished.get(), Component.literal(
+					"directed Hairpin did not damage and consume the mark on its target"));
 			cleanup(helper, caster, spirit);
 			helper.succeed();
 		});
@@ -98,11 +140,14 @@ public final class NobaraHairpinGameTests {
 							NailAnchorRegistry.NailOrigin.LAUNCHED));
 			BlockHitResult blockHit = new BlockHitResult(new Vec3(2.0, 1.0, 1.0), Direction.UP,
 					helper.absolutePos(new BlockPos(2, 1, 1)), false);
+			BlockHitResult farBlockHit = new BlockHitResult(new Vec3(3.0, 1.0, 1.0), Direction.UP,
+					helper.absolutePos(new BlockPos(3, 1, 1)), false);
 			List<SeedCase> cases = List.of(
 					new SeedCase("env-to-env", null, blockHit, envA),
-					new SeedCase("env-to-entity", null, blockHit, envA),
-					new SeedCase("entity-to-env", spirit, null, entityA),
-					new SeedCase("entity-to-entity", spirit, null, entityA));
+					new SeedCase("env-to-env-far", null, farBlockHit, envB),
+					new SeedCase("entity-aim", spirit, null, entityA),
+					// Entity aim wins over a simultaneous block hit — precedence, not a duplicate row.
+					new SeedCase("entity-over-block", spirit, farBlockHit, entityA));
 			for (SeedCase seedCase : cases) {
 				UUID resolved = HairpinSeedResolver.resolveSeed(level, caster.getEyePosition(), new Vec3(1, 0, 0),
 						seedCase.aimedEntity(), seedCase.blockHit(), nodes);

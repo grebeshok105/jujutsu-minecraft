@@ -80,8 +80,13 @@ public final class NobaraHairpinPreview {
 			if (!nail.clientOwnerUuid().map(client.player.getUUID()::equals).orElse(false)) {
 				continue;
 			}
+			// Server candidates come from NailAnchorRegistry, which only tracks embedded
+			// nails; prepared/flying/mega nails must not appear as preview seeds.
+			if (!nail.isEmbedded()) {
+				continue;
+			}
 			UUID targetId = null;
-			if (nail.isEmbedded() && nail.embeddedTargetEntityId() >= 0) {
+			if (nail.embeddedTargetEntityId() >= 0) {
 				Entity target = client.level.getEntity(nail.embeddedTargetEntityId());
 				if (target != null) {
 					targetId = target.getUUID();
@@ -163,9 +168,14 @@ public final class NobaraHairpinPreview {
 		}
 	}
 
-	/** Preview only while the player holds the nail or the hammer — the tools that detonate. */
+	/** Preview only while the player holds the nail or the hammer — the tools that detonate.
+	 *  Mirrors the server gate: both hands, both legacy and projectjjk aliases. */
 	private static boolean holdsNailTool(Minecraft client) {
-		ItemStack held = client.player.getMainHandItem();
-		return held.is(JujutsuItems.HAIRPIN_NAIL) || held.is(JujutsuItems.PROJECTJJK_STRAW_DOLL_HAMMER);
+		return isNailTool(client.player.getMainHandItem()) || isNailTool(client.player.getOffhandItem());
+	}
+
+	private static boolean isNailTool(ItemStack stack) {
+		return stack.is(JujutsuItems.HAIRPIN_NAIL) || stack.is(JujutsuItems.PROJECTJJK_HAIRPIN_NAIL)
+				|| stack.is(JujutsuItems.STRAW_DOLL_HAMMER) || stack.is(JujutsuItems.PROJECTJJK_STRAW_DOLL_HAMMER);
 	}
 }

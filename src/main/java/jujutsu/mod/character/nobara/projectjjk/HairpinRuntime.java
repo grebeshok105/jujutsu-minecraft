@@ -57,14 +57,17 @@ public final class HairpinRuntime {
 		ServerTickEvents.END_SERVER_TICK.register(HairpinRuntime::onServerTick);
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			HAIRPIN_CHAINS.clear();
+			ProjectJjkNailMarks.clearAll();
 			for (ServerLevel level : server.getAllLevels()) restoreAllGlow(level);
 		});
 	}
 
 	private static void onServerTick(MinecraftServer server) {
-		long gameTime = server.overworld().getGameTime();
-		HAIRPIN_CHAINS.tick(gameTime, HairpinRuntime::resolveChainNail,
+		// Each chain ticks on its own dimension's clock; the overworld clock would detonate
+		// cross-dimension chains early or late.
+		HAIRPIN_CHAINS.tick(context -> context.level().getGameTime(), HairpinRuntime::resolveChainNail,
 				HairpinRuntime::explodeChainNail, HairpinRuntime::finishHairpinChain);
+		long gameTime = server.overworld().getGameTime();
 		if ((gameTime & 63L) == 0L) {
 			ProjectJjkNailMarks.pruneExpired(gameTime);
 			pruneGlowingMarks(server, gameTime);
@@ -258,6 +261,22 @@ public final class HairpinRuntime {
 			Entity entity = findEntity(server, targetId);
 			if (entity instanceof LivingEntity living) living.removeEffect(net.minecraft.world.effect.MobEffects.GLOWING);
 			restoreGlowTeam(server.getScoreboard(), targetId);
+		}
+	}
+
+	/**
+	 * Restores glow on every target that no longer holds an active mark. Owner-scoped in
+	 * effect: after an owner's marks are cleared, targets marked only by that owner lose the
+	 * glow while targets still marked by other owners keep it.
+	 */
+	public static void restoreUnmarkedGlow(MinecraftServer server) {
+		pruneGlowingMarks(server, server.overworld().getGameTime());
+	}
+
+	/** Drops every scheduled chain owned by one caster (fixture reset / teardown). */
+	public static void clearChains(UUID ownerId) {
+		if (ownerId != null) {
+			HAIRPIN_CHAINS.removeIf(context -> ownerId.equals(context.casterId()));
 		}
 	}
 

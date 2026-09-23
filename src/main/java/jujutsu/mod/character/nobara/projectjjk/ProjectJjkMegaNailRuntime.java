@@ -56,6 +56,22 @@ public final class ProjectJjkMegaNailRuntime {
 				PENDING_GATHERS.entrySet().removeIf(entry -> entry.getValue().level.getServer() == server));
 	}
 
+	/** Drops one caster's pending gathers and live mega-nail entities (fixture reset / teardown). */
+	public static void clearOwned(MinecraftServer server, UUID ownerId) {
+		if (ownerId == null) {
+			return;
+		}
+		PENDING_GATHERS.keySet().removeIf(ownerId::equals);
+		for (ServerLevel level : server.getAllLevels()) {
+			for (Entity entity : level.getAllEntities()) {
+				if (entity instanceof ProjectJjkNailEntity nail && nail.isMegaNail()
+						&& ownerId.equals(nail.ownerUuid())) {
+					nail.discard();
+				}
+			}
+		}
+	}
+
 	// -- Public API -----------------------------------------------------------------------------
 
 	/**
@@ -202,8 +218,13 @@ public final class ProjectJjkMegaNailRuntime {
 		pending.level.addFreshEntity(megaNail);
 
 		long gameTime = pending.level.getGameTime();
-		broadcast(pending.level, pending.gatherPoint, NobaraVfxIds.MEGA_NAIL_CHARGE,
-				pending.critical ? 2 : 1, gameTime);
+		// Anchored to the caster so the mega_nail_charge Blockbench clip fires; a worldFixed
+		// cue has NO_ANCHOR and the recipe's triggerAnchoredAction returns early. Intensity
+		// stays 1 — the start beat — while the entity's own pulses carry the escalation.
+		JujutsuNetworking.broadcastVfxCue(pending.level, pending.gatherPoint, VFX_DELIVERY_RADIUS,
+				VfxCues.anchored(NobaraVfxIds.MEGA_NAIL_CHARGE, pending.gatherPoint,
+						pending.caster.getId(), pending.caster.position(), 1, gameTime,
+						pending.level.random.nextLong()));
 		pending.level.playSound(null, pending.gatherPoint.x, pending.gatherPoint.y, pending.gatherPoint.z,
 				JujutsuSounds.NOBARA_MEGA_CHARGE_RISER, SoundSource.PLAYERS, 1.9f, 1.0f);
 	}
@@ -235,8 +256,7 @@ public final class ProjectJjkMegaNailRuntime {
 			Vec3 origin = target.position().add(knockbackDir.scale(-0.5));
 			Vec3 displacement = knockbackDir.scale(4.0);
 			int intensity = clampIntensity(entity.megaCount() + (entity.megaCritical() ? 2 : 0));
-			broadcastDisplacement(level, origin, NobaraVfxIds.MEGA_NAIL_STRIKE,
-					intensity, gameTime, displacement);
+			strikeCue(level, caster, origin, intensity, gameTime, displacement);
 			level.playSound(null, target.getX(), target.getY(), target.getZ(),
 					JujutsuSounds.PROJECTJJK_DEEP_EXPLOSION, SoundSource.PLAYERS, 1.35f, 0.68f);
 			level.playSound(null, target.getX(), target.getY(), target.getZ(),
@@ -262,9 +282,23 @@ public final class ProjectJjkMegaNailRuntime {
 			dir = entity.forwardDirection();
 		}
 		Vec3 origin = entity.position().add(dir.scale(-0.5));
-		broadcastDisplacement(level, origin, NobaraVfxIds.MEGA_NAIL_STRIKE,
+		strikeCue(level, owner(level, entity.ownerUuid()), origin,
 				clampIntensity(entity.megaCount() + (entity.megaCritical() ? 2 : 0)),
 				level.getGameTime(), dir.scale(4.0));
+	}
+
+	/** Anchored to the caster when online so the mega_nail_release clip fires; falls back to a
+	 *  world-fixed displacement cue (no caster animation) when the caster is gone. */
+	private static void strikeCue(ServerLevel level, ServerPlayer caster, Vec3 origin,
+			int intensity, long gameTime, Vec3 displacement) {
+		if (caster != null) {
+			JujutsuNetworking.broadcastVfxCue(level, origin, VFX_DELIVERY_RADIUS,
+					VfxCues.anchored(NobaraVfxIds.MEGA_NAIL_STRIKE, origin, caster.getId(),
+							caster.position(), intensity, gameTime, level.random.nextLong()));
+			return;
+		}
+		broadcastDisplacement(level, origin, NobaraVfxIds.MEGA_NAIL_STRIKE,
+				intensity, gameTime, displacement);
 	}
 
 	private static void broadcastDirectional(ServerLevel level, Vec3 origin, ResourceLocation effectId,

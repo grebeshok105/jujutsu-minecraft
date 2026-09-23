@@ -142,11 +142,11 @@ public final class NobaraHammerCombatRuntime {
 		if (pending.kind() == AttackKind.OVERHEAD) {
 			float damage = ProjectJjkNobaraProfile.HAMMER_OVERHEAD_DAMAGE * ResonantMomentum.damageMultiplier(player);
 			if (target.hurtServer(level, level.damageSources().playerAttack(player), damage)) {
-				deepenOneNail(player, target);
-				// Extraction is a role-specific overhead follow-through. The runtime revalidates
-				// DeeplyAnchored and duplicate remnant state, so ordinary and horizontal hits
-				// never mint setup.
+				// Extraction must see the anchor state BEFORE this hit deepens it: the spec
+				// requires a target that is already Deeply Anchored, then a further overhead
+				// interaction. Checking first keeps the D2->D3 hit from minting the remnant.
 				ProjectJjkStrawDollRuntime.tryExtractRemnant(player, target);
+				deepenOneNail(player, target);
 				CombatStagger.GLOBAL.apply(target, now, ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
 				tryProcLivingBlackFlash(player, target, BlackFlashImpact.HAMMER, damage);
 			}

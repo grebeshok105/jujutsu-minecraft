@@ -78,4 +78,12 @@ final class NailTrapCollapseTest {
 		assertEquals(true, runtime.contains("COLLAPSING_DISCARDS"));
 		assertEquals(false, runtime.contains("ServerPlayConnectionEvents.DISCONNECT"));
 	}
+	@Test
+	void trapTickLoopIsRegistered() throws Exception {
+		// Without END_SERVER_TICK the placed trap never ages, triggers, collapses or expires —
+		// the whole §13 network integration goes inert. Pin the registration, not just the method.
+		String runtime = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/NailTrapRuntime.java"));
+		assertEquals(true, runtime.contains("ServerTickEvents.END_SERVER_TICK.register(NailTrapRuntime::tick)"),
+				"NailTrapRuntime.tick must be registered on END_SERVER_TICK");
+	}
 }

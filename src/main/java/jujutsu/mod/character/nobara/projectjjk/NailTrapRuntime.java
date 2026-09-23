@@ -54,6 +54,7 @@ public final class NailTrapRuntime {
 	private NailTrapRuntime() {}
 
 	public static void register() {
+		ServerTickEvents.END_SERVER_TICK.register(NailTrapRuntime::tick);
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> clear(server, true));
 	}
 
@@ -165,10 +166,16 @@ public final class NailTrapRuntime {
 		if (!available(level, trap)) return;
 		ServerPlayer owner = server.getPlayerList().getPlayer(trap.ownerId());
 		if (owner != null && owner.level() != level) owner = null;
-
 		CollapseState collapse = COLLAPSES.get(trap.ownerId());
 		if (collapse != null) {
-			if (owner != null) tickCollapse(level, owner, trap, collapse);
+			if (owner == null) {
+				// Owner left after the trigger: finish the collapse silently so the trap
+				// cannot freeze mid-collapse and leak its nails (D6 world events persist).
+				collapseWithoutTarget(level, trap);
+				COLLAPSES.remove(trap.ownerId());
+				return;
+			}
+			tickCollapse(level, owner, trap, collapse);
 			return;
 		}
 		if (!allNailsResolved(level, trap)) {
