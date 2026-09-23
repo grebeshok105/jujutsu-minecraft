@@ -28,6 +28,7 @@ import jujutsu.mod.character.nobara.projectjjk.HairpinRuntime;
 import jujutsu.mod.character.nobara.projectjjk.NailAnchorRegistry;
 import jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime;
 import jujutsu.mod.character.nobara.projectjjk.NobaraHammerCombatRuntime;
+import jujutsu.mod.character.nobara.projectjjk.ProjectJjkMegaNailRuntime;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailMarks;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraRuntime;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkStrawDollRuntime;
