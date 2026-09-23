@@ -32,6 +32,8 @@ import jujutsu.mod.character.megumi.MegumiSummonRuntime;
 import jujutsu.mod.character.nobara.projectjjk.EmbeddedNailRegistry;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailMarks;
 import jujutsu.mod.character.todo.TodoPendingSelection;
+import jujutsu.mod.character.todo.TodoRhythmRuntime;
+import jujutsu.mod.character.todo.TodoRhythmState;
 import jujutsu.mod.character.todo.TodoTransientState;
 import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.registry.JujutsuEffects;
@@ -106,6 +108,14 @@ public final class JujutsuStateGetTool extends BaseTool {
 					ObjectNode todo = node.putObject("todo");
 					putNullableUuid(todo, "pair_selection",
 							TodoTransientState.pairSelection(playerId).map(TodoPendingSelection::targetUuid));
+					TodoRhythmState rhythm = TodoRhythmRuntime.stateOf(playerId);
+					ObjectNode rhythmNode = node.putObject("todo_rhythm");
+					rhythmNode.put("beat", TodoRhythmRuntime.beatOf(player));
+					rhythmNode.put("points", rhythm.points());
+					rhythmNode.put("peak_armed", rhythm.peakArmed());
+					rhythmNode.put("revised_remaining", TodoRhythmRuntime.revisedRemainingTicks(player));
+					rhythmNode.put("auto_swaps_used", rhythm.autoSwapsUsed());
+
 					todo.put("stone", TodoTransientState.stone(playerId).isPresent());
 
 					ObjectNode megumi = node.putObject("megumi");

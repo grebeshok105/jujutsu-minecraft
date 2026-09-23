@@ -1,56 +1,57 @@
 package jujutsu.mod.character.todo;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 
-/**
- * Pins the aimed swap's commit-teleport seam to its default wiring.
- *
- * <p>The seam exists so a test can substitute a failing backend at the second placement and exercise
- * the partial-commit rollback, which no deterministic world state reaches (Entity#teleportTo only fails
- * for removed entities). These tests only assert the seam's own lifecycle — default, override, restore,
- * null rejection — which is pure static state: {@link TodoBoogieWoogieRuntime}'s class initializer
- * touches no registries (only profile constants and placement policies), and the override's warn line
- * initializes only {@code JujutsuMod}'s slf4j logger, so no Minecraft bootstrap is needed. The override
- * is process-global, so every test restores the production instance in a finally.
- *
- * <p>The default-wiring pin is identity-based ({@code assertSame} on the constant), deliberately
- * bootstrap-free: an edit that keeps the constant but changes the lambda's behaviour passes here and
- * is caught instead by gametest scenarios 1 and 4, which run the default backend against a live world.
- */
+/** Injectable commit backend lifecycle and pinned SwapKind mapping. */
 class SwapCommitTeleportTest {
 	@Test
 	void defaultWiringIsTheProductionTeleport() {
-		assertSame(TodoBoogieWoogieRuntime.PRODUCTION_COMMIT_TELEPORT,
-				TodoBoogieWoogieRuntime.commitTeleport(),
-				"the unmodified seam must be the production authoritative teleport");
+		assertSame(SwapCommit.PRODUCTION_COMMIT_TELEPORT, SwapCommit.commitTeleport());
 	}
 
 	@Test
-	void overrideReplacesAndRestoreReturnsTheProductionInstance() {
+	void overrideReplacesAndRestoreReturnsProduction() {
 		SwapCommitTeleport failing = (body, level, destination, yaw, pitch) -> false;
-		TodoBoogieWoogieRuntime.overrideCommitTeleport(failing);
+		SwapCommit.overrideCommitTeleport(failing);
 		try {
-			assertSame(failing, TodoBoogieWoogieRuntime.commitTeleport(),
-					"the override must be visible through the getter");
-			assertNotSame(TodoBoogieWoogieRuntime.PRODUCTION_COMMIT_TELEPORT,
-					TodoBoogieWoogieRuntime.commitTeleport(),
-					"the override must actually replace the production instance");
+			assertSame(failing, SwapCommit.commitTeleport());
+			assertNotSame(SwapCommit.PRODUCTION_COMMIT_TELEPORT, SwapCommit.commitTeleport());
 		} finally {
-			TodoBoogieWoogieRuntime.restoreProductionCommitTeleport();
+			SwapCommit.restoreProductionCommitTeleport();
 		}
-		assertSame(TodoBoogieWoogieRuntime.PRODUCTION_COMMIT_TELEPORT,
-				TodoBoogieWoogieRuntime.commitTeleport(),
-				"the restore must put the production instance back");
+		assertSame(SwapCommit.PRODUCTION_COMMIT_TELEPORT, SwapCommit.commitTeleport());
 	}
 
 	@Test
 	void overrideRejectsNull() {
-		assertThrows(NullPointerException.class,
-				() -> TodoBoogieWoogieRuntime.overrideCommitTeleport(null),
-				"a null backend must be refused rather than silently disable the commit");
+		assertThrows(NullPointerException.class, () -> SwapCommit.overrideCommitTeleport(null));
+	}
+
+	@Test
+	void everySwapKindHasThePinnedSlotAndCooldown() {
+		assertEquals(60, SwapKind.AIMED.baseCooldownTicks());
+		assertEquals(100, SwapKind.PAIR.baseCooldownTicks());
+		assertEquals(160, SwapKind.TRIPLE.baseCooldownTicks());
+		assertEquals(60, SwapKind.STONE_SELF.baseCooldownTicks());
+		assertEquals(100, SwapKind.STONE_TARGET.baseCooldownTicks());
+	}
+
+	@Test
+	void runtimesDoNotOwnASecondTeleportBackend() throws Exception {
+		for (String runtime : new String[] {"TodoBoogieWoogieRuntime.java", "TodoPairSwapRuntime.java", "TodoStoneRuntime.java"}) {
+			String source = Files.readString(Path.of("src/main/java/jujutsu/mod/character/todo", runtime));
+			assertEquals(-1, source.indexOf("teleportTo("), runtime + " must route body movement through SwapCommit");
+		}
 	}
 }
+
+// Red: before this change, the seam lived on TodoBoogieWoogieRuntime and pair/stone bypassed it;
+// `./gradlew.bat test --tests '*SwapCommitTeleportTest*'` failed the unified-backend contract.
+// Run: ./gradlew.bat test --tests "*SwapCommitTeleportTest*"
+// Expected: SwapCommit backend and all-kind contract assertions pass.

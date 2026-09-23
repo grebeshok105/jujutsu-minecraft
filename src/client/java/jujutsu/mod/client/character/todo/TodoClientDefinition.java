@@ -1,6 +1,8 @@
 package jujutsu.mod.client.character.todo;
 
 import java.util.List;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.minecraft.resources.ResourceLocation;
 import jujutsu.mod.JujutsuMod;
@@ -128,11 +130,13 @@ public final class TodoClientDefinition implements CharacterClientDefinition {
 
 	@Override
 	public void registerClientHooks() {
-		// The stone is a real entity, so it renders through its own code-geometry renderer.
 		EntityRendererRegistry.register(JujutsuEntities.TODO_STONE, TodoStoneRenderer::new);
 		TodoVfxRecipes.register();
 		VfxDirector.registerHudContribution(JujutsuMod.id("todo_stone_status"), TodoStatusHud::renderStone);
 		VfxDirector.registerHudContribution(JujutsuMod.id("todo_pair_status"), TodoStatusHud::renderPair);
+		VfxDirector.registerHudContribution(JujutsuMod.id("todo_rhythm_status"), TodoStatusHud::renderRhythm);
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> TodoRhythmClientState.clear());
+		ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register((client, world) -> TodoRhythmClientState.clear());
 	}
 
 	@Override

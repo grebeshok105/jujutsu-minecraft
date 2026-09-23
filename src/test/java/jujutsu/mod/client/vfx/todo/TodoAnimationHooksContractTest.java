@@ -14,18 +14,27 @@ final class TodoAnimationHooksContractTest {
 			"src/main/java/jujutsu/mod/character/todo/TodoBoogieWoogieRuntime.java");
 	private static final Path FAKE_CLAP_RUNTIME = Path.of(
 			"src/main/java/jujutsu/mod/character/todo/TodoFakeClapRuntime.java");
-
+	private static final Path TODO_BLACK_FLASH = Path.of(
+			"src/main/java/jujutsu/mod/character/todo/TodoBlackFlashRuntime.java");
+	private static final Path NOBARA_HAMMER = Path.of(
+			"src/main/java/jujutsu/mod/character/nobara/projectjjk/NobaraHammerCombatRuntime.java");
+	private static final Path RECIPES = Path.of(
+			"src/client/java/jujutsu/mod/client/vfx/todo/TodoVfxRecipes.java");
+	private static final Path SHARED_BLACK_FLASH = Path.of(
+			"src/client/java/jujutsu/mod/client/vfx/shared/SharedVfxRecipes.java");
+	private static final Path NOBARA_DEFINITION = Path.of(
+			"src/client/java/jujutsu/mod/client/character/nobara/NobaraClientDefinition.java");
 	@Test
 	void everyLiveClapRouteUsesTheCasterAnchor() throws Exception {
 		String clap = Files.readString(CLAP_RUNTIME);
-		String performance = methodBody(clap, "emitClapPerformance");
-		assertTrue(performance.contains(
-				"VfxCues.anchoredDirected(TodoVfxIds.BOOGIE_WOOGIE, origin, todo.getId(), origin,"),
+		assertTrue(clap.contains(
+				"VfxCues.anchoredDirected(cueId, origin, todo.getId(), origin,"),
 				"the clap anchor position must be the cue origin, preserving zero offset after a swap");
 		assertTrue(Files.readString(FAKE_CLAP_RUNTIME).contains("TodoBoogieWoogieRuntime.emitClapPerformance"),
 				"fake clap must share the anchored route");
 		assertTrue(Files.readString(Path.of("src/main/java/jujutsu/mod/character/todo/TodoPairSwapRuntime.java"))
-				.contains("TodoBoogieWoogieRuntime.emitSwapImpact"));
+				.contains("TodoBoogieWoogieRuntime.emitSwapFeedback"),
+				"pair swap must share the single swap-feedback emission point");
 	}
 
 	@Test
@@ -36,16 +45,42 @@ final class TodoAnimationHooksContractTest {
 		assertFalse(hooks.contains("legacy NO_ANCHOR"));
 	}
 
-	private static String methodBody(String source, String methodName) {
-		int start = source.indexOf("void " + methodName + "(");
-		assertTrue(start >= 0, "missing method " + methodName);
-		int open = source.indexOf('{', start);
-		int depth = 0;
-		for (int index = open; index < source.length(); index++) {
-			char current = source.charAt(index);
-			if (current == '{') depth++;
-			if (current == '}' && --depth == 0) return source.substring(start, index + 1);
+	@Test
+	void everyTodoAnimationHookUsesTheCueContract() throws Exception {
+		String hooks = Files.readString(HOOKS);
+		for (String name : new String[] {
+				"triggerBoogieWoogie", "triggerFakeClap", "triggerStoneThrow",
+				"triggerMomentumStrike", "triggerPeak", "triggerRevised"}) {
+			assertTrue(hooks.contains("void " + name + "(VfxCue cue)"), "missing VfxCue hook: " + name);
 		}
-		throw new AssertionError("unterminated method " + methodName);
+		assertTrue(Files.readString(RECIPES).contains("TodoAnimationHooks.triggerBoogieWoogie(cue)"));
+		assertTrue(Files.readString(RECIPES).contains("TodoAnimationHooks.triggerFakeClap(cue)"));
+		assertTrue(Files.readString(RECIPES).contains("TodoAnimationHooks.triggerStoneThrow(cue)"));
+		assertTrue(Files.readString(RECIPES).contains("TodoAnimationHooks.triggerMomentumStrike(cue)"));
+		assertTrue(Files.readString(RECIPES).contains("TodoAnimationHooks.triggerPeak(cue)"));
+		assertTrue(Files.readString(RECIPES).contains("TodoAnimationHooks.triggerRevised(cue)"));
 	}
+
+	@Test
+	void blackFlashUsesTheSharedIdAndBodyDispatchGoesThroughTheDefinition() throws Exception {
+		assertTrue(Files.readString(TODO_BLACK_FLASH).contains("SharedVfxIds.BLACK_FLASH"));
+		assertTrue(Files.readString(NOBARA_HAMMER).contains("SharedVfxIds.BLACK_FLASH"));
+		String sharedRecipe = Files.readString(SHARED_BLACK_FLASH);
+		assertFalse(sharedRecipe.contains("NobaraPlayerGeoAnimatable"),
+				"shared code asks the definition, never which character the player is");
+		assertTrue(sharedRecipe.contains("triggerActionAnimation"));
+		assertTrue(sharedRecipe.contains("VfxWorldChannel.ImpactStyle.BLACK_FLASH"));
+		assertTrue(Files.readString(NOBARA_DEFINITION).contains("NobaraPlayerGeoAnimatable.INSTANCE.triggerAction"),
+				"the Nobara body clip lives behind the vessel's own definition");
+	}
+
+	@Test
+	void feintAndRealClapShareTheBeatFormulaAndOnlySwapTheAnimationHook() throws Exception {
+		String recipes = Files.readString(RECIPES);
+		assertTrue(recipes.contains("TodoVfxIds.FEINT_CLAP"));
+		assertTrue(recipes.contains("intensity(cue) - 1"));
+		assertTrue(recipes.contains("TodoAnimationHooks.triggerFakeClap(cue)"));
+		assertTrue(recipes.contains("TodoAnimationHooks.triggerBoogieWoogie(cue)"));
+	}
+
 }

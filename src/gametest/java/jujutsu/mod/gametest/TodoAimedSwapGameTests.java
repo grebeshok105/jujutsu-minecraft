@@ -10,6 +10,7 @@ import net.minecraft.world.level.block.Blocks;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.CharacterAbilityCooldowns;
 import jujutsu.mod.character.todo.TodoProfile;
+import jujutsu.mod.character.todo.TodoRhythmState;
 import jujutsu.mod.character.todo.TodoTransientState;
 import jujutsu.mod.registry.JujutsuEffects;
 
@@ -57,8 +58,9 @@ public final class TodoAimedSwapGameTests {
 	/**
 	 * A successful aimed swap through the production runtime: caster and pig exchange exact
 	 * positions, each body keeps its own pre-cast rotation and velocity, fall distance is reset,
-	 * the PRIMARY cooldown starts, and the momentum window opens on the caster only — with no
-	 * transient state created.
+	 * the PRIMARY cooldown starts (within its 60-tick window), the momentum window opens on the
+	 * caster only, and the only transient state created is the Boogie Rhythm record of the swap
+	 * itself.
 	 *
 	 * <p>Swap distance ≈ 5.7 blocks (stations at (1,1,1) and (5,1,5)) — inside the 20-block
 	 * production range and inside the structure. The pig spawns AI-less (Stage A
@@ -186,11 +188,27 @@ public final class TodoAimedSwapGameTests {
 						helper.getTick(), caster.getUUID(), pig.getUUID(),
 						"pig without momentum", "false", pigMomentum));
 
-				// The swap creates no transient state.
-				boolean transientState = TodoTransientState.owners().contains(caster.getUUID());
-				helper.assertTrue(!transientState, TodoSwapTestFixtures.diagnostic(fixture, "commit",
+				// The swap leaves exactly one transient entry — the Boogie Rhythm record of this
+				// commit: a first AIMED swap is worth 2 points (new kind + kind change), with no
+				// Revised window, no pending auto-swap, and no pair selection or live stone.
+				TodoRhythmState rhythm = TodoTransientState.rhythm(caster.getUUID()).orElse(null);
+				helper.assertTrue(rhythm != null, TodoSwapTestFixtures.diagnostic(fixture, "commit",
 						helper.getTick(), caster.getUUID(), pig.getUUID(),
-						"no transient state", "false", transientState));
+						"rhythm entry recorded", "present", rhythm));
+				helper.assertTrue(rhythm != null && rhythm.points() == 2,
+						TodoSwapTestFixtures.diagnostic(fixture, "commit", helper.getTick(),
+								caster.getUUID(), pig.getUUID(), "rhythm points after first swap",
+								"2", rhythm == null ? null : rhythm.points()));
+				helper.assertTrue(rhythm != null && rhythm.pending().isEmpty()
+								&& rhythm.revisedUntilGameTime() == 0L,
+						TodoSwapTestFixtures.diagnostic(fixture, "commit", helper.getTick(),
+								caster.getUUID(), pig.getUUID(), "no revised window or pending auto-swap",
+								"none", rhythm));
+				helper.assertTrue(TodoTransientState.pairSelection(caster.getUUID()).isEmpty()
+								&& TodoTransientState.stone(caster.getUUID()).isEmpty(),
+						TodoSwapTestFixtures.diagnostic(fixture, "commit", helper.getTick(),
+								caster.getUUID(), pig.getUUID(), "no pair selection or stone",
+								"none", "present"));
 				asserted.set(true);
 			} finally {
 				// Success AND failure: an assert throw has already failed the test; cleanup is

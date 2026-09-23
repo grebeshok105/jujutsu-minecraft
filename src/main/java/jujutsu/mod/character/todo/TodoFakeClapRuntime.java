@@ -11,17 +11,7 @@ import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.vfx.TodoVfxIds;
 import jujutsu.mod.vfx.VfxCues;
 
-/**
- * The feint: a complete Boogie Woogie clap that moves nobody.
- *
- * <p>The server knows the cast is hollow from the first tick. It never starts a swap and cancels it,
- * so no target is resolved, no destination is planned and no body is ever half-moved — which is why
- * this file contains none of the teleport machinery. What everyone in range gets is the clap
- * performance the real swap emits, from the same method, on the same tick.
- *
- * <p>The one packet the feint does not share goes to the caster alone, so the player who pressed the
- * key knows the cast registered without anyone else learning that nothing followed it.
- */
+/** Shift+R deception clap: no node resolution, plan, commit, movement, or momentum. */
 public final class TodoFakeClapRuntime {
 	private TodoFakeClapRuntime() {}
 
@@ -41,27 +31,23 @@ public final class TodoFakeClapRuntime {
 		}
 		ServerLevel level = todo.level();
 		Vec3 origin = todo.position();
-		// Its own cooldown slot, so a feint neither spends nor postpones the real swap.
+		int intensity = 1 + TodoSwapHooks.beatOf(todo);
 		CharacterAbilityCooldowns.start(todo, CharacterAbility.PRIMARY_SNEAK, TodoProfile.FAKE_CLAP_COOLDOWN_TICKS);
-		JujutsuNetworking.sendAbilityCooldown(todo, CharacterAbility.PRIMARY_SNEAK,
-				TodoProfile.FAKE_CLAP_COOLDOWN_TICKS);
-		// An aim vector rather than zero. A real swap passes the raw caster-to-target delta, which VfxCue's
-		// compact constructor normalizes, so what arrives on the wire is a unit vector pointing roughly
-		// where the caster looks. Matching that keeps the cues alike even to a future recipe that reads the
-		// field -- and note the likeness depends on VfxCue keeping that normalization.
-		TodoBoogieWoogieRuntime.emitClapPerformance(level, todo, origin, todo.getLookAngle());
-		// The same displacement whoosh a real swap schedules one tick behind the clap. Nothing moved,
-		// but the teleport's sound signature must be complete, or the ear calls the coin at t=0.
+		JujutsuNetworking.sendAbilityCooldown(todo, CharacterAbility.PRIMARY_SNEAK, TodoProfile.FAKE_CLAP_COOLDOWN_TICKS);
+		TodoBoogieWoogieRuntime.emitClapPerformance(level, todo, origin, todo.getLookAngle(),
+				TodoVfxIds.FEINT_CLAP, intensity);
 		TodoBoogieWoogieRuntime.scheduleDisplacementWhoosh(level, origin);
+		// Caster-only feint confirmation: the observer must see nothing a real swap would not show, so
+		// this cue is a direct send, never a broadcast.
 		JujutsuNetworking.sendVfxCue(todo,
 				VfxCues.anchored(TodoVfxIds.FEINT_TELL, origin, todo.getId(), todo.position(), 1,
 						level.getGameTime(), todo.getRandom().nextLong()));
-		JujutsuMod.LOGGER.debug("Todo feint clap player={} at={}", todo.getGameProfile().getName(), origin);
+		JujutsuMod.LOGGER.debug("Todo fake clap player={} at={}", todo.getGameProfile().getName(), origin);
 		return true;
 	}
 
 	private static boolean reject(ServerPlayer player, boolean notify, String messageKey, String reason) {
-		JujutsuMod.LOGGER.debug("Todo feint clap rejected player={} reason={}", player.getGameProfile().getName(), reason);
+		JujutsuMod.LOGGER.debug("Todo fake clap rejected player={} reason={}", player.getGameProfile().getName(), reason);
 		if (notify) {
 			player.displayClientMessage(Component.translatable(messageKey), true);
 		}

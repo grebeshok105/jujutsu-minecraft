@@ -248,10 +248,10 @@ tasks.register('testTodoProfile', JavaExec) {
 
 tasks.register('testTodoSwapPlan', JavaExec) {
 	group = 'verification'
-	description = 'Runs Todo atomic swap-preflight tests'
+	description = 'Runs Todo unified node-plan preflight tests'
 	dependsOn tasks.named('testClasses')
 	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'jujutsu.mod.character.todo.TodoSwapPlanTest'
+	mainClass = 'jujutsu.mod.character.todo.SwapPlanTest'
 	maxHeapSize = '128m'
 	jvmArgs '-ea'
 }
@@ -436,14 +436,38 @@ tasks.register('testServerTimeDilation', JavaExec) {
 	jvmArgs '-ea'
 }
 
-tasks.register('testTodoPairSwap', JavaExec) {
+tasks.register('testTodoPairSwap', Test) {
 	group = 'verification'
 	description = 'Runs Todo pair-swap selection lifecycle and bystander-safety tests'
 	dependsOn tasks.named('testClasses')
+	testClassesDirs = sourceSets.test.output.classesDirs
 	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'jujutsu.mod.character.todo.TodoPairSwapTest'
-	maxHeapSize = '128m'
-	jvmArgs '-ea'
+	useJUnitPlatform()
+	filter {
+		includeTestsMatching 'jujutsu.mod.character.todo.TodoPairSwapTest'
+	}
+}
+
+tasks.register('testTodoStone', Test) {
+	group = 'verification'
+	description = 'Runs Todo stone node and lifecycle unit tests'
+	dependsOn tasks.named('testClasses')
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	filter {
+		includeTestsMatching 'jujutsu.mod.character.todo.TodoStoneTest'
+	}
+}
+
+tasks.register('testTodoTripleSwap', Test) {
+	group = 'verification'
+	description = 'Runs Todo triple-cycle node and rollback unit tests'
+	dependsOn tasks.named('testClasses')
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	filter {
+		includeTestsMatching 'jujutsu.mod.character.todo.TodoTripleSwapTest'
+	}
 }
 
 tasks.register('testTodoFakeClap', JavaExec) {

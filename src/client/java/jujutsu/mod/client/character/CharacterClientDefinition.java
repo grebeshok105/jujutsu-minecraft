@@ -3,6 +3,7 @@ package jujutsu.mod.client.character;
 import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.client.render.CharacterSkinAnimation;
@@ -44,6 +45,13 @@ public interface CharacterClientDefinition {
 	default CharacterSkinAnimation skinAnimation() {
 		return null;
 	}
+
+	/**
+	 * Fires a one-shot body animation on this vessel's player animatable, or does nothing when the
+	 * vessel has no clip for it. Shared recipes call this through the definition so the vessel seam
+	 * holds: shared code asks the definition, never which character the player is.
+	 */
+	default void triggerActionAnimation(Entity entity, String animation) {}
 
 	/**
 	 * The texture that replaces the vanilla player skin, or {@code null} to keep the player's own.
