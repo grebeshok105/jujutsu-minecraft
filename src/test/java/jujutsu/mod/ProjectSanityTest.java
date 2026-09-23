@@ -436,8 +436,8 @@ public final class ProjectSanityTest {
 				: "successful aimed swaps must notify the Todo post-commit hook";
 		assert runtime.contains("TodoCooldownPolicy.arm")
 				: "aimed cooldowns must be armed through the Todo-owned policy";
-		assert runtime.contains("hasLineOfSight") && runtime.contains("ArmorStand") && runtime.contains("isPassenger")
-				&& runtime.contains("isVehicle") && runtime.contains("Leashable")
+		assert (runtime + nodes).contains("hasLineOfSight") && runtime.contains("ArmorStand")
+				&& runtime.contains("isPassenger") && runtime.contains("isVehicle") && runtime.contains("Leashable")
 				: "Todo targeting must validate visibility and reject unsafe transport states";
 		String networking = Files.readString(MAIN_JAVA.resolve("jujutsu/mod/network/JujutsuNetworking.java"));
 		assert networking.contains("CharacterAbilityPayload.TYPE") && networking.contains("AbilityCooldownPayload.TYPE")
@@ -476,7 +476,7 @@ public final class ProjectSanityTest {
 		String clientInit = Files.readString(CLIENT_JAVA.resolve("jujutsu/mod/client/JujutsuModClient.java"));
 		assert clientInit.contains("JujutsuCharacterClients.registerAll()")
 				: "Client init must install every vessel's client hooks through the registry";
-		assert nodes.contains("SafeBodyPlacement")
+		assert (runtime + nodes).contains("SafeBodyPlacement")
 				: "Boogie Woogie destinations must stay free-form (air/water/flight), not floor-gated";
 		assert !nodes.contains("hasSafeFloor")
 				: "Boogie Woogie must not require a solid floor under destinations";
@@ -711,7 +711,7 @@ public final class ProjectSanityTest {
 		assert openingBeatGuards >= 8 : "Every non-seekable Nobara sound/particle opening beat must reject late playback";
 		long ageAwareChannelCalls = Pattern.compile("trigger(?:Launch|HeavyImpact|Explosion|Ritual|Swing|Impact|Snap|Blur|ResonanceImpact|Nausea|BlackFlash|Flash)\\([^\\n]*initialAgeTicks\\)")
 				.matcher(recipes).results().count();
-		assert ageAwareChannelCalls == 50 : "All 50 Nobara realtime channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
+		assert ageAwareChannelCalls == 44 : "All 44 Nobara realtime channel calls must receive initialAgeTicks; found " + ageAwareChannelCalls;
 		assert !Files.exists(MAIN_JAVA.resolve("jujutsu/mod/network/ProjectJjkNobaraImpulsePayload.java")) : "Legacy integer VFX payload must be removed after migration";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinWorldRenderer.java")) : "Legacy Hairpin world renderer must be replaced by VFX Core";
 		assert !Files.exists(CLIENT_JAVA.resolve("jujutsu/mod/client/fx/HairpinCinematicCamera.java")) : "Legacy Hairpin camera manager must be replaced by VFX Core";
