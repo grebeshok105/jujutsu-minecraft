@@ -62,8 +62,13 @@ public final class MegumiOxGameTests {
 	/** Staged charge origin (west end of the +X corridor) and the mark anchors. */
 	private static final BlockPos OX_SPOT = new BlockPos(1, 1, 1);
 	private static final BlockPos VICTIM_SHORT = new BlockPos(4, 1, 1);   // ~3 block corridor
-	private static final BlockPos VICTIM_FAR = new BlockPos(7, 1, 1);     // ~6 block corridor
+	// rel 6, not 7: the wall-clamped corridor reach from the ox spot is ~5.5, so a victim
+	// parked at 7 is unreachable and the commit gate honestly refuses — the tests that need
+	// a charge to run stage their mark inside reach and let the charge die on the wall anyway.
+	private static final BlockPos VICTIM_FAR = new BlockPos(6, 1, 1);     // ~5 block corridor
 	private static final BlockPos VICTIM_DIAG = new BlockPos(6, 1, 6);    // ~7 block diagonal
+	private static final BlockPos WALL_OX_SPOT = new BlockPos(1, 1, 4);   // centre lane: drift room on both sides
+	private static final BlockPos WALL_VICTIM = new BlockPos(6, 1, 4);
 	private static final BlockPos OWNER_OUTSIDE = new BlockPos(-16, 1, 1); // teleports ignore walls
 
 	/**
@@ -663,6 +668,7 @@ public final class MegumiOxGameTests {
 			} finally {
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 			}
+			helper.succeed();
 		});
 	}
 
@@ -792,6 +798,7 @@ public final class MegumiOxGameTests {
 				}
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 			}
+			helper.succeed();
 		});
 	}
 
@@ -881,10 +888,14 @@ public final class MegumiOxGameTests {
 	}
 
 	/**
-	 * OX-3 — the charge dies on the barrier wall: the victim is still hit, the ox aborts on the
-	 * wall face and never crosses the arena boundary.
+	 * OX-3 — the charge dies on the barrier wall. The mark is on the corridor to buy the
+	 * windup, then sidesteps mid-flight: the frozen line carries the ox past the empty mark
+	 * spot and the charge aborts on the wall face without ever crossing the arena boundary.
+	 * The lane runs through the arena's centre: the lock line is measured from the ox's real
+	 * position at windup, and a centre lane gives any drift enough room to still reach the
+	 * east wall before a side wall.
 	 */
-	@GameTest(maxTicks = 180)
+	@GameTest(maxTicks = 200)
 	public void oxStopsAtWalls(GameTestHelper helper) {
 		String fixture = "oxStopsAtWalls";
 		paveFloor(helper, 0, 7, 0, 7);
@@ -893,41 +904,70 @@ public final class MegumiOxGameTests {
 		ServerLevel level = helper.getLevel();
 		AtomicReference<Zombie> zombieRef = new AtomicReference<>();
 		AtomicReference<Double> oxStartX = new AtomicReference<>();
+		AtomicBoolean sidestepped = new AtomicBoolean();
+		AtomicBoolean resolved = new AtomicBoolean();
 
 		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster,
 				() -> summonOx(helper, fixture, caster)));
 
 		helper.runAtTickTime(VICTIM_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster,
-				() -> zombieRef.set(spawnToughZombie(helper, fixture, VICTIM_FAR, 200.0))));
+				() -> zombieRef.set(spawnToughZombie(helper, fixture, WALL_VICTIM, 200.0))));
 
 		helper.runAtTickTime(STAGE_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
 			MegumiOxEntity ox = onlyOx(helper, fixture, "stage", level, caster.getUUID());
-			teleportTo(helper, ox, OX_SPOT);
+			teleportTo(helper, ox, WALL_OX_SPOT);
 			oxStartX.set(ox.getX());
 			sicAt(helper, fixture, caster, zombieRef.get());
 		}));
 
-		// Settled read at the deadline: the charge ran the corridor and came to rest east of
-		// the victim — the wall must have stopped it (maxDistance pass-through crosses rel 8).
-		helper.runAtTickTime(STAGE_TICK + 110, () -> {
-			try {
-				UUID ownerId = caster.getUUID();
-				MegumiOxEntity ox = onlyOx(helper, fixture, "wall", level, ownerId);
+		long deadline = STAGE_TICK + 130;
+		for (long tick = STAGE_TICK + 1; tick <= deadline; tick++) {
+			helper.runAtTickTime(tick, () -> {
 				Zombie zombie = zombieRef.get();
-				helper.assertTrue(zombie.getHealth() < zombie.getMaxHealth(),
-						MegumiShikigamiTestFixtures.diagnostic(fixture, "wall", helper.getTick(), ownerId,
-								"victim hit before the wall", "yes", String.valueOf(zombie.getHealth())));
-				double travelled = ox.getX() - oxStartX.get();
-				helper.assertTrue(travelled >= 5.0, MegumiShikigamiTestFixtures.diagnostic(fixture,
-						"wall", helper.getTick(), ownerId, "ox travel down the corridor",
-						">=5.0 blocks", String.valueOf(travelled)));
-				double wallX = helper.absolutePos(new BlockPos(8, 1, 1)).getX();
-				helper.assertTrue(ox.getX() < wallX, MegumiShikigamiTestFixtures.diagnostic(fixture,
-						"wall", helper.getTick(), ownerId, "ox stayed inside the barrier",
-						"west of wall", String.valueOf(ox.getX() - wallX)));
-				helper.assertTrue(!ox.charging(), MegumiShikigamiTestFixtures.diagnostic(fixture,
-						"wall", helper.getTick(), ownerId, "charge aborted at the wall", "settled",
-						ox.charging()));
+				List<MegumiOxEntity> bodies = oxenOwnedBy(level, caster.getUUID());
+				if (zombie == null || zombie.isRemoved() || bodies.isEmpty() || resolved.get()) {
+					return;
+				}
+				MegumiOxEntity ox = bodies.get(0);
+				// Once the line is frozen and the ox is running, the mark steps aside — the
+				// corridor ahead is empty and the wall face is the only thing that stops it.
+				if (!sidestepped.get() && ox.presentationAction() == MegumiOxEntity.ACTION_CHARGE) {
+					zombie.teleportTo(zombie.getX(), zombie.getY(), zombie.getZ() - 4.0);
+					sidestepped.set(true);
+					return;
+				}
+				if (!sidestepped.get() || ox.charging()) {
+					return;
+				}
+				try {
+					resolved.set(true);
+					UUID ownerId = caster.getUUID();
+					helper.assertTrue(zombie.getHealth() >= zombie.getMaxHealth(),
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "wall", helper.getTick(), ownerId,
+									"sidestepped victim health", "full",
+									String.valueOf(zombie.getHealth())));
+					double travelled = ox.getX() - oxStartX.get();
+					helper.assertTrue(travelled >= 5.0, MegumiShikigamiTestFixtures.diagnostic(fixture,
+							"wall", helper.getTick(), ownerId, "ox travel down the corridor",
+							">=5.0 blocks", String.valueOf(travelled)));
+					double wallX = helper.absolutePos(new BlockPos(8, 1, 1)).getX();
+					helper.assertTrue(ox.getX() < wallX, MegumiShikigamiTestFixtures.diagnostic(fixture,
+							"wall", helper.getTick(), ownerId, "ox stayed inside the barrier",
+							"west of wall", String.valueOf(ox.getX() - wallX)));
+				} finally {
+					zombie.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+				}
+				helper.succeed();
+			});
+		}
+		helper.runAtTickTime(deadline + 1, () -> {
+			try {
+				helper.assertTrue(sidestepped.get(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"wall", helper.getTick(), caster.getUUID(), "charge ever committed", "yes",
+						"never"));
+				helper.fail(MegumiShikigamiTestFixtures.diagnostic(fixture, "wall", helper.getTick(),
+						caster.getUUID(), "charge resolved into the wall", "before deadline", "never"));
 			} finally {
 				Zombie zombie = zombieRef.get();
 				if (zombie != null) {
@@ -1103,8 +1143,10 @@ public final class MegumiOxGameTests {
 
 	/**
 	 * OX-6 — the leash gate: with the owner teleported past the wall-clamped projected stop
-	 * (~rel 7.9 vs owner at rel -16 → ~24 > RETURN_RADIUS 20), every commit is refused and the
-	 * charge never starts, even though the mark stands.
+	 * (~rel 7 vs owner at rel -16 → ~22 > RETURN_RADIUS 20), every commit is refused and the
+	 * charge never starts, even though the mark stands. The mark is spawned INTO the sic
+	 * callback — parked early it would earn the coordinator's autonomous pick and commit the
+	 * moment the ox goes ACTIVE, before the owner ever leaves.
 	 */
 	@GameTest(maxTicks = 160)
 	public void oxRefusesCommitBeyondLeash(GameTestHelper helper) {
@@ -1119,16 +1161,15 @@ public final class MegumiOxGameTests {
 		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster,
 				() -> summonOx(helper, fixture, caster)));
 
-		helper.runAtTickTime(VICTIM_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster,
-				() -> zombieRef.set(spawnFrozenZombie(helper, fixture, VICTIM_FAR))));
-
 		helper.runAtTickTime(STAGE_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
 			MegumiOxEntity ox = onlyOx(helper, fixture, "stage", level, caster.getUUID());
 			teleportTo(helper, ox, OX_SPOT);
 			// Mark first, then pull the owner out in the SAME tick — the body's next commit read
 			// already sees the far owner, and the ox-to-owner gap (17.5) stays inside leash (25)
 			// so the mark itself survives.
-			sicAt(helper, fixture, caster, zombieRef.get());
+			Zombie zombie = spawnFrozenZombie(helper, fixture, VICTIM_FAR);
+			zombieRef.set(zombie);
+			sicAt(helper, fixture, caster, zombie);
 			Vec3 outside = Vec3.atBottomCenterOf(helper.absolutePos(OWNER_OUTSIDE));
 			caster.teleportTo(outside.x, outside.y, outside.z);
 		}));
@@ -1160,6 +1201,7 @@ public final class MegumiOxGameTests {
 				}
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 			}
+			helper.succeed();
 		});
 	}
 
@@ -1209,6 +1251,7 @@ public final class MegumiOxGameTests {
 				}
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 			}
+			helper.succeed();
 		});
 	}
 
@@ -1317,8 +1360,13 @@ public final class MegumiOxGameTests {
 		return owned;
 	}
 
+	/**
+	 * Husks, not zombies: plain zombies ignite in the open-air arena's daylight and the burn
+	 * ticks pollute every damage-read (~1.0 per tick — the phantom "hit" the real harness saw).
+	 * A husk shares the zombie combat surface but never burns.
+	 */
 	private static Zombie spawnFrozenZombie(GameTestHelper helper, String fixture, BlockPos feet) {
-		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, feet);
+		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.HUSK, feet);
 		zombie.setPersistenceRequired();
 		zombie.setNoAi(true);
 		CursedSpiritTestFixtures.freezeGround(zombie);

@@ -101,6 +101,8 @@ final class MegumiOxBrain {
 			abortQuietly(ox, gameTime);
 			return;
 		}
+		// Planted stance: a committed ox holds its position until the line locks.
+		ox.setDeltaMovement(Vec3.ZERO);
 		ox.armChargeTarget(target.getUUID());
 		ox.transitionTo(MegumiOxEntity.OxState.ALIGN);
 	}
@@ -114,6 +116,8 @@ final class MegumiOxBrain {
 			abortQuietly(ox, gameTime);
 			return;
 		}
+		// Planted stance: pushing or leftover momentum must not shift the lock point.
+		ox.setDeltaMovement(Vec3.ZERO);
 		faceTarget(ox, target);
 		double yawError = yawErrorDegrees(ox, target);
 		if (MegumiOxPolicy.alignedEnough(yawError) || ox.stateTicks() >= ALIGN_MAX_TICKS) {
