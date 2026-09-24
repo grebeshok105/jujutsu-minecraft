@@ -81,7 +81,7 @@ final class MegumiSerpentBrain {
 	private static void tickSeeking(ServerLevel level, ServerPlayer owner,
 			MegumiSerpentEntity serpent, long gameTime) {
 		serpent.setNoAi(false);
-		serpent.setPresentationAction(0);
+		serpent.setPresentationAction(MegumiSerpentEntity.ACTION_NONE);
 		LivingEntity marked = resolve(level, serpent.sicTargetUuid());
 		if (marked == null) {
 			if (serpent.state() != SerpentState.FOLLOW) {
@@ -308,7 +308,7 @@ final class MegumiSerpentBrain {
 			// included, so a respawned player never re-enters the level still GRIPPED (issue #90).
 			serpent.releaseBindVictim();
 			serpent.setState(SerpentState.RECOVERY);
-			serpent.setPresentationAction(0);
+			serpent.setPresentationAction(MegumiSerpentEntity.ACTION_NONE);
 			return;
 		}
 		if (action == MegumiSerpentPolicy.SerpentAction.RELEASE) {
@@ -362,7 +362,7 @@ final class MegumiSerpentBrain {
 		serpent.setDeltaMovement(Vec3.ZERO);
 		if (serpent.stateTicks() >= MegumiSerpentPolicy.SERPENT_RELEASE_TICKS) {
 			serpent.setState(SerpentState.RECOVERY);
-			serpent.setPresentationAction(0);
+			serpent.setPresentationAction(MegumiSerpentEntity.ACTION_NONE);
 		}
 	}
 
@@ -378,7 +378,7 @@ final class MegumiSerpentBrain {
 		serpent.clearAmbush();
 		serpent.setState(SerpentState.RECOVERY);
 		serpent.setNoAi(false);
-		serpent.setPresentationAction(0);
+		serpent.setPresentationAction(MegumiSerpentEntity.ACTION_NONE);
 		serpent.markAttackUsed(gameTime, MegumiShikigamiProfile.SERPENT_AMBUSH_SCAN_TICKS);
 		MegumiFailureMemory.recordFailure(serpent.getUUID(), AMBUSH_FAILURE_KEY, gameTime);
 	}

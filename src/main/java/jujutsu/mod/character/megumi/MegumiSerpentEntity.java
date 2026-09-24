@@ -46,6 +46,7 @@ public final class MegumiSerpentEntity extends MegumiShikigamiEntity {
 	}
 
 	/** Action-clip indices the client reads: submerge/emerge/bind/release plus the sunken idle. */
+	public static final int ACTION_NONE = 0;
 	public static final int ACTION_SUBMERGE = 1;
 	public static final int ACTION_EMERGE = 2;
 	public static final int ACTION_BIND = 3;

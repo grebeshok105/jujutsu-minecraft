@@ -71,13 +71,14 @@ public final class MegumiOxGeoAnimatable implements GeoReplacedEntity {
 		});
 	}
 
-	/** The action layer owns the committed sequence: 1=windup, 3=impact, 4=recover (2=charge stays on the body run cycle). */
+	/** The action layer owns the committed sequence: 1=windup, 2=charge, 3=impact, 4=recover. */
 	private PlayState actionAnimation(AnimationTest<MegumiOxGeoAnimatable> state) {
 		if (!(state.renderState() instanceof MegumiShikigamiRenderState ox)) {
 			return PlayState.STOP;
 		}
 		RawAnimation action = switch (ox.actionIndex) {
 			case 1 -> WINDUP;
+			case 2 -> CHARGE;
 			case 3 -> IMPACT;
 			case 4 -> RECOVER;
 			default -> null;

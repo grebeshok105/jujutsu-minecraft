@@ -13,7 +13,7 @@ import jujutsu.mod.character.megumi.MegumiShikigamiPresentationPolicy;
 /** GeckoLib renderer for the Piercing Ox. */
 public final class MegumiOxRenderer extends
 		GeoReplacedEntityRenderer<MegumiOxGeoAnimatable, MegumiOxEntity, MegumiShikigamiRenderState> {
-	/** Model-scale placeholder until the authored geometry is measured against the hitbox. */
+	/** Uniform render scale — verified against the entity hitbox in the live lane. */
 	private static final float MODEL_SCALE = 1.0f;
 
 	public MegumiOxRenderer(EntityRendererProvider.Context context) {

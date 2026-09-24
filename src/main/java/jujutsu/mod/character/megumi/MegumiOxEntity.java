@@ -77,7 +77,7 @@ public final class MegumiOxEntity extends MegumiShikigamiEntity {
 		builder.define(DATA_PRESENTATION, ACTION_NONE);
 	}
 
-	/** Which action clip the client should hold: 0=none, 1=windup, 3=impact, 4=recover (2=charge rides the run cycle). */
+	/** Which action clip the client should hold: 0=none, 1=windup, 2=charge, 3=impact, 4=recover. */
 	public int presentationAction() {
 		return entityData.get(DATA_PRESENTATION);
 	}

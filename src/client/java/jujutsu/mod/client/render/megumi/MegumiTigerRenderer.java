@@ -13,7 +13,7 @@ import jujutsu.mod.character.megumi.MegumiShikigamiPresentationPolicy;
 /** GeckoLib renderer for Tiger Funeral. */
 public final class MegumiTigerRenderer extends
 		GeoReplacedEntityRenderer<MegumiTigerGeoAnimatable, MegumiTigerEntity, MegumiShikigamiRenderState> {
-	/** Model-scale placeholder until the authored geometry is measured against the hitbox. */
+	/** Uniform render scale — verified against the entity hitbox in the live lane. */
 	private static final float MODEL_SCALE = 1.0f;
 
 	public MegumiTigerRenderer(EntityRendererProvider.Context context) {

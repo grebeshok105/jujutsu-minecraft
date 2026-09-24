@@ -13,7 +13,7 @@ import jujutsu.mod.character.megumi.MegumiShikigamiPresentationPolicy;
 /** GeckoLib renderer for the Great Serpent. */
 public final class MegumiSerpentRenderer extends
 		GeoReplacedEntityRenderer<MegumiSerpentGeoAnimatable, MegumiSerpentEntity, MegumiShikigamiRenderState> {
-	/** Model-scale placeholder until the authored geometry is measured against the hitbox. */
+	/** Uniform render scale — verified against the entity hitbox in the live lane. */
 	private static final float MODEL_SCALE = 1.0f;
 
 	public MegumiSerpentRenderer(EntityRendererProvider.Context context) {

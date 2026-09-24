@@ -26,8 +26,8 @@ public final class MegumiShikigamiRenderState extends LivingEntityRenderState im
 	public float attackAnim;
 	/**
 	 * Which clip the action layer holds, defined per type (0 = none). Serpent uses
-	 * 1=submerge, 2=emerge, 3=bind, 4=release; deer 1=pulse, 2=shove; ox 1=windup, 2=charge,
-	 * 3=impact, 4=recover; tiger 1=windup, 2..4=strikes, 5=recover.
+	 * 1=submerge, 2=emerge, 3=bind, 4=release, 5=submerged; deer 1=pulse, 2=shove; ox 1=windup,
+	 * 2=charge, 3=impact, 4=recover; tiger 1=windup, 2..4=strikes, 5=recover.
 	 */
 	public int actionIndex;
 

@@ -64,6 +64,12 @@ final class MegumiDeerBrain {
 	 */
 	private static void tickAntlerShove(ServerLevel level, ServerPlayer owner,
 			MegumiDeerEntity deer, long gameTime) {
+		// The shove clip rides only the flash window at the top of the cooldown; once it has
+		// passed the client drops back to the base cycle even though the cooldown still runs.
+		if (deer.presentationAction() == MegumiDeerEntity.ACTION_SHOVE
+				&& deer.shoveFlashOver(gameTime)) {
+			deer.setPresentationAction(MegumiDeerEntity.ACTION_NONE);
+		}
 		if (!MegumiDeerPolicy.shoveReady(gameTime, deer.antlerCooldownUntil())) {
 			return;
 		}
@@ -82,6 +88,7 @@ final class MegumiDeerBrain {
 		aggressor.knockback(MegumiShikigamiProfile.DEER_ANTLER_KNOCKBACK, shove.x, shove.z);
 		deer.swing(InteractionHand.MAIN_HAND);
 		deer.markAntlerShove(gameTime + MegumiShikigamiProfile.DEER_ANTLER_COOLDOWN_TICKS);
+		deer.setPresentationAction(MegumiDeerEntity.ACTION_SHOVE);
 	}
 
 	// — Heal pulse ————————————————————————————————————————————————————————
@@ -104,6 +111,7 @@ final class MegumiDeerBrain {
 		}
 		deer.setHealTarget(pick.uuid());
 		deer.beginAction(MegumiShikigamiProfile.DEER_HEAL_ACTION_TICKS);
+		deer.setPresentationAction(MegumiDeerEntity.ACTION_HEAL_PULSE);
 	}
 
 	/**
@@ -116,6 +124,7 @@ final class MegumiDeerBrain {
 		}
 		UUID targetId = deer.healTargetUuid();
 		deer.setHealTarget(null);
+		deer.setPresentationAction(MegumiDeerEntity.ACTION_NONE);
 		LivingEntity target = resolve(level, targetId);
 		if (target == null || !target.isAlive() || target.isRemoved()) {
 			return;

@@ -266,7 +266,8 @@ public final class MegumiShikigamiProfile {
 	public static final int OX_RECALL_COOLDOWN_TICKS = 240;
 	public static final int OX_DEATH_COOLDOWN_TICKS = 520;
 	public static final double OX_HEALTH = 80.0;
-	public static final double OX_ATTACK_DAMAGE = 8.0;
+	/** Attribute surface only — charge damage comes from OX_IMPACT_*, never the attribute. */
+	public static final double OX_ATTACK_DAMAGE = 2.0;
 	public static final double OX_SPEED = 0.26;
 	public static final double OX_FOLLOW_START = 7.0;
 	public static final double OX_FOLLOW_STOP = 3.0;
@@ -295,6 +296,7 @@ public final class MegumiShikigamiProfile {
 	public static final int TIGER_RECALL_COOLDOWN_TICKS = 250;
 	public static final int TIGER_DEATH_COOLDOWN_TICKS = 560;
 	public static final double TIGER_HEALTH = 100.0;
+	/** Attribute surface only — per-strike damage is STRIKE_1=5.0, STRIKE_2=7.0, FINISHER=12.0. */
 	public static final double TIGER_ATTACK_DAMAGE = 8.0;
 	public static final double TIGER_SPEED = 0.24;
 	public static final double TIGER_FOLLOW_START = 6.0;

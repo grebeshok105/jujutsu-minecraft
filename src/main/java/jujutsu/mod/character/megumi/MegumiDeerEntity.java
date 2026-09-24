@@ -4,6 +4,9 @@ import java.util.UUID;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -26,8 +29,16 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class MegumiDeerEntity extends MegumiShikigamiEntity {
 
+	/** Action-clip indices the client reads: heal pulse / antler shove (0 = none). */
+	public static final int ACTION_NONE = 0;
+	public static final int ACTION_HEAL_PULSE = 1;
+	public static final int ACTION_SHOVE = 2;
+
 	/** How many ticks of the antler cooldown still show the shove clip (first ticks after the hit). */
 	private static final int SHOVE_FLASH_TICKS = 8;
+
+	private static final EntityDataAccessor<Integer> DATA_PRESENTATION =
+			SynchedEntityData.defineId(MegumiDeerEntity.class, EntityDataSerializers.INT);
 
 	private long nextHealScanGameTime;
 	private long nextCleanseScanGameTime;
@@ -40,18 +51,29 @@ public final class MegumiDeerEntity extends MegumiShikigamiEntity {
 		super(type, level);
 	}
 
+	@Override
+	protected void defineSynchedData(SynchedEntityData.Builder builder) {
+		super.defineSynchedData(builder);
+		builder.define(DATA_PRESENTATION, ACTION_NONE);
+	}
+
 	/** Which action clip the client should hold: 0=none, 1=heal pulse, 2=antler shove. */
 	public int presentationAction() {
-		if (healTargetUuid != null && actionTicks() > 0) {
-			return 1;
-		}
-		long gameTime = level().getGameTime();
-		if (gameTime < antlerCooldownUntil
-				&& antlerCooldownUntil - gameTime
-						> MegumiShikigamiProfile.DEER_ANTLER_COOLDOWN_TICKS - SHOVE_FLASH_TICKS) {
-			return 2;
-		}
-		return 0;
+		return entityData.get(DATA_PRESENTATION);
+	}
+
+	void setPresentationAction(int actionIndex) {
+		entityData.set(DATA_PRESENTATION, actionIndex);
+	}
+
+	/**
+	 * The shove clip rides only the first {@link #SHOVE_FLASH_TICKS} of the antler cooldown —
+	 * the brain calls this each tick to drop the clip once the flash window has passed.
+	 */
+	boolean shoveFlashOver(long gameTime) {
+		return gameTime >= antlerCooldownUntil
+				|| antlerCooldownUntil - gameTime
+						<= MegumiShikigamiProfile.DEER_ANTLER_COOLDOWN_TICKS - SHOVE_FLASH_TICKS;
 	}
 
 	public static AttributeSupplier.Builder createAttributes() {

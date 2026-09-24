@@ -481,7 +481,7 @@ public final class MegumiVfxRecipes {
 		});
 	}
 
-	/** The charge launches: a dust trail along the committed line. */
+	/** The charge launches: a dust trail along the committed line, scaled by real distance. */
 	private static VfxInstance oxCharge(VfxCue cue) {
 		return VfxInstance.of(SIC_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
@@ -489,9 +489,10 @@ public final class MegumiVfxRecipes {
 			}
 			Vec3 origin = context.resolveOrigin(cue);
 			RandomSource random = random(cue, 0x0F000003L);
-			context.burst(ParticleTypes.POOF, origin, 8, 0.40, 0.10, random);
+			int charge = Math.max(1, cue.intensity());
+			context.burst(ParticleTypes.POOF, origin, 4 + charge, 0.40, 0.10, random);
 			if (cue.direction().lengthSqr() > 1.0E-8) {
-				for (int index = 1; index <= 6; index++) {
+				for (int index = 1; index <= 2 + charge; index++) {
 					Vec3 alongPath = origin.add(cue.direction().scale(index * 0.5));
 					context.burst(ParticleTypes.POOF, alongPath, 2, 0.10, 0.04, random);
 				}
@@ -499,7 +500,7 @@ public final class MegumiVfxRecipes {
 		});
 	}
 
-	/** The line runs through a target: the impact burst on the hit body. */
+	/** The line runs through a target: the impact burst on the hit body, scaled by impact power. */
 	private static VfxInstance oxImpact(VfxCue cue) {
 		return VfxInstance.of(POUNCE_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
@@ -507,8 +508,9 @@ public final class MegumiVfxRecipes {
 			}
 			Vec3 target = context.resolveOrigin(cue);
 			RandomSource random = random(cue, 0x0F000004L);
-			context.burst(SHADOW_DARK, target.add(0.0, 0.6, 0.0), 12, 0.35, 0.18, random);
-			context.burst(ParticleTypes.POOF, target.add(0.0, 0.4, 0.0), 8, 0.30, 0.12, random);
+			int impact = Math.max(1, cue.intensity());
+			context.burst(SHADOW_DARK, target.add(0.0, 0.6, 0.0), 8 + impact, 0.35, 0.18, random);
+			context.burst(ParticleTypes.POOF, target.add(0.0, 0.4, 0.0), 5 + impact / 2, 0.30, 0.12, random);
 		});
 	}
 
@@ -520,8 +522,9 @@ public final class MegumiVfxRecipes {
 			}
 			Vec3 target = context.resolveOrigin(cue);
 			RandomSource random = random(cue, 0x0F000005L);
-			context.burst(ParticleTypes.POOF, target.add(0.0, 0.5, 0.0), 16, 0.55, 0.18, random);
-			context.burst(SHADOW_DARK, target, 6, 0.30, 0.12, random);
+			int impact = Math.max(1, cue.intensity());
+			context.burst(ParticleTypes.POOF, target.add(0.0, 0.5, 0.0), 10 + impact, 0.55, 0.18, random);
+			context.burst(SHADOW_DARK, target, 4 + impact / 2, 0.30, 0.12, random);
 		});
 	}
 
@@ -539,7 +542,7 @@ public final class MegumiVfxRecipes {
 		});
 	}
 
-	/** One combo beat landed: a slash streak; the cue's direction.x carries the beat index. */
+	/** One combo beat landed: a slash streak; the cue's intensity carries the beat index. */
 	private static VfxInstance tigerStrike(VfxCue cue) {
 		return VfxInstance.of(POUNCE_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
@@ -547,7 +550,7 @@ public final class MegumiVfxRecipes {
 			}
 			Vec3 target = context.resolveOrigin(cue);
 			RandomSource random = random(cue, 0x71670002L);
-			int beat = (int) cue.direction().x();
+			int beat = Math.max(1, cue.intensity());
 			context.burst(SHADOW_DARK, target.add(0.0, 0.7, 0.0), 8 + beat * 4, 0.35, 0.16, random);
 			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, target.add(0.0, 0.5, 0.0), 6 + beat * 2, 0.6, 0.02, 0.0, random);
 		});
