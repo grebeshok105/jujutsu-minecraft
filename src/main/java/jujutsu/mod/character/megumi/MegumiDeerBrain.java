@@ -124,6 +124,12 @@ final class MegumiDeerBrain {
 		if (kind == null) {
 			return;
 		}
+		// Ten ticks of channel are enough for either side to drift out of the ring — re-validate
+		// the radius at the commit, not just at the pick, or the pulse lands on stale geometry.
+		if (deer.distanceToSqr(target)
+				> MegumiShikigamiProfile.DEER_HEAL_RANGE * MegumiShikigamiProfile.DEER_HEAL_RANGE) {
+			return;
+		}
 		double missing = missingFraction(target);
 		if (missing <= 0.0) {
 			return;
