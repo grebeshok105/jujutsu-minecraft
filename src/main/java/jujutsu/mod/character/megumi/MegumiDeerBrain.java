@@ -282,7 +282,9 @@ final class MegumiDeerBrain {
 					deer.getBoundingBox().inflate(MegumiShikigamiProfile.DEER_HEAL_RANGE),
 					entity -> entity != deer && entity != owner && entity.isAlive()
 							&& !entity.isSpectator() && !entity.isRemoved()
-							&& !ownBodyIds.contains(entity.getUUID()))) {
+							&& !ownBodyIds.contains(entity.getUUID())
+							&& !isForeignBody(entity, ownerId)
+							&& deer.distanceToSqr(entity) <= rangeSqr)) {
 				if (owner.isAlliedTo(candidate)) {
 					facts.add(factsFor(deer, candidate, WoundedKind.ALLY));
 				}
@@ -310,16 +312,22 @@ final class MegumiDeerBrain {
 			return WoundedKind.OWNER;
 		}
 		UUID ownerId = deer.ownerUuid();
-		if (target instanceof MegumiShikigamiEntity body && ownerId.equals(body.ownerUuid())) {
-			return WoundedKind.OWN_SHIKIGAMI;
+		if (target instanceof MegumiShikigamiEntity body) {
+			return ownerId.equals(body.ownerUuid()) ? WoundedKind.OWN_SHIKIGAMI : null;
 		}
-		if (target instanceof MegumiDivineDogEntity dog && ownerId.equals(dog.ownerUuid())) {
-			return WoundedKind.OWN_SHIKIGAMI;
+		if (target instanceof MegumiDivineDogEntity dog) {
+			return ownerId.equals(dog.ownerUuid()) ? WoundedKind.OWN_SHIKIGAMI : null;
 		}
 		if (owner != null && owner.isAlliedTo(target)) {
 			return WoundedKind.ALLY;
 		}
 		return null;
+	}
+
+	/** A summon body owned by someone else — foreign shikigami are ineligible, not merely deprioritized. */
+	private static boolean isForeignBody(LivingEntity entity, UUID ownerId) {
+		return (entity instanceof MegumiShikigamiEntity body && !ownerId.equals(body.ownerUuid()))
+				|| (entity instanceof MegumiDivineDogEntity dog && !ownerId.equals(dog.ownerUuid()));
 	}
 
 	private static double missingFraction(LivingEntity entity) {

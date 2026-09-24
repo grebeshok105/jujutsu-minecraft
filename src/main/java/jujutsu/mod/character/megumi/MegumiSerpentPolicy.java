@@ -173,19 +173,21 @@ public final class MegumiSerpentPolicy {
 			boolean victimAlive,
 			boolean victimDisconnected,
 			boolean sameDimension,
+			boolean victimMounted,
 			boolean expired,
 			double ownerLeash,
 			double victimDistance) {}
 
 	/**
-	 * The bound-tick decision: an absent/dead/disconnected/cross-dimension victim is released
-	 * silently (the toss is for a live exit), an expired timer or a broken leash — owner-side
+	 * The bound-tick decision: an absent/dead/disconnected/cross-dimension victim — or one that
+	 * slipped the pin by mounting a vehicle, matching the commit gate — is released silently
+	 * (the toss is for a live exit), an expired timer or a broken leash — owner-side
 	 * (the coil is anchored to its caster) or victim-side (the victim was dragged or teleported
 	 * out of the coil's reach) — releases with the toss. Anything else keeps pinning.
 	 */
 	public static SerpentAction bindAction(BindFacts facts) {
 		if (!facts.victimPresent() || !facts.sameDimension()
-				|| !facts.victimAlive() || facts.victimDisconnected()) {
+				|| !facts.victimAlive() || facts.victimDisconnected() || facts.victimMounted()) {
 			return SerpentAction.ABORT;
 		}
 		if (facts.expired()

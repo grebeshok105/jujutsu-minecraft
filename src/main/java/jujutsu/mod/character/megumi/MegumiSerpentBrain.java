@@ -297,6 +297,7 @@ final class MegumiSerpentBrain {
 						victim == null || victim.isAlive(),
 						victim instanceof ServerPlayer player && player.hasDisconnected(),
 						victim != null && victim.level() == level,
+						victim != null && victim.isPassenger(),
 						gameTime >= serpent.bindEndGameTime(),
 						ownerLeash,
 						victim == null ? 0.0 : serpent.distanceTo(victim)));

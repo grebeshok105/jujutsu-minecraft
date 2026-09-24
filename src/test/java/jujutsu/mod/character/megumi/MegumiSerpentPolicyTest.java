@@ -143,33 +143,36 @@ class MegumiSerpentPolicyTest {
 
 	@Test
 	void bindActionOrdersAbortBeforeReleaseBeforeHold() {
-		BindFacts nominal = new BindFacts(true, true, false, true, false, 3.0, 1.5);
+		BindFacts nominal = new BindFacts(true, true, false, true, false, false, 3.0, 1.5);
 		assertEquals(SerpentAction.HOLD, MegumiSerpentPolicy.bindAction(nominal));
-		// The four silent exits — each one alone, and even an expired timer stays an abort.
+		// The five silent exits — each one alone, and even an expired timer stays an abort.
 		assertEquals(SerpentAction.ABORT, MegumiSerpentPolicy.bindAction(
-				new BindFacts(false, true, false, true, false, 3.0, 1.5)), "victim gone");
+				new BindFacts(false, true, false, true, false, false, 3.0, 1.5)), "victim gone");
 		assertEquals(SerpentAction.ABORT, MegumiSerpentPolicy.bindAction(
-				new BindFacts(true, false, false, true, false, 3.0, 1.5)), "victim dead");
+				new BindFacts(true, false, false, true, false, false, 3.0, 1.5)), "victim dead");
 		assertEquals(SerpentAction.ABORT, MegumiSerpentPolicy.bindAction(
-				new BindFacts(true, true, true, true, false, 3.0, 1.5)), "victim disconnected");
+				new BindFacts(true, true, true, true, false, false, 3.0, 1.5)), "victim disconnected");
 		assertEquals(SerpentAction.ABORT, MegumiSerpentPolicy.bindAction(
-				new BindFacts(true, true, false, false, false, 3.0, 1.5)), "dimension split");
+				new BindFacts(true, true, false, false, false, false, 3.0, 1.5)), "dimension split");
 		assertEquals(SerpentAction.ABORT, MegumiSerpentPolicy.bindAction(
-				new BindFacts(false, false, false, false, true, 3.0, 1.5)),
+				new BindFacts(true, true, false, true, true, false, 3.0, 1.5)),
+				"victim slipped the pin into a vehicle");
+		assertEquals(SerpentAction.ABORT, MegumiSerpentPolicy.bindAction(
+				new BindFacts(false, false, false, false, false, true, 3.0, 1.5)),
 				"dead AND expired is still quiet");
 		// The live exits.
 		assertEquals(SerpentAction.RELEASE, MegumiSerpentPolicy.bindAction(
-				new BindFacts(true, true, false, true, true, 3.0, 1.5)), "timer expired");
+				new BindFacts(true, true, false, true, false, true, 3.0, 1.5)), "timer expired");
 		assertEquals(SerpentAction.RELEASE, MegumiSerpentPolicy.bindAction(
-				new BindFacts(true, true, false, true, false,
+				new BindFacts(true, true, false, true, false, false,
 						MegumiShikigamiProfile.SERPENT_BIND_BREAK_RANGE + 0.5, 1.5)),
 				"owner leash snapped");
 		assertEquals(SerpentAction.RELEASE, MegumiSerpentPolicy.bindAction(
-				new BindFacts(true, true, false, true, false, 3.0,
+				new BindFacts(true, true, false, true, false, false, 3.0,
 						MegumiShikigamiProfile.SERPENT_BIND_BREAK_RANGE + 0.5)),
 				"victim dragged out");
 		assertEquals(SerpentAction.HOLD, MegumiSerpentPolicy.bindAction(
-				new BindFacts(true, true, false, true, false,
+				new BindFacts(true, true, false, true, false, false,
 						MegumiShikigamiProfile.SERPENT_BIND_BREAK_RANGE,
 						MegumiShikigamiProfile.SERPENT_BIND_BREAK_RANGE)),
 				"both leashes at the exact edge still hold");

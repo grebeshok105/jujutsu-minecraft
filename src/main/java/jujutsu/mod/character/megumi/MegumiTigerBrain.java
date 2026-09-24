@@ -131,7 +131,8 @@ final class MegumiTigerBrain {
 			yawDeltaDeg = Mth.wrapDegrees(bearingDeg(delta) - tiger.comboYawDeg());
 		}
 		boolean connects = MegumiTigerPolicy.strikeConnects(new MegumiTigerPolicy.ComboFacts(
-				strike, targetPresent, targetPresent, distance, yawDeltaDeg));
+				strike, targetPresent && target.isAlive(),
+				targetPresent && target.level() == level, distance, yawDeltaDeg));
 		if (connects) {
 			connect(level, owner, tiger, target, strike, gameTime);
 		} else {

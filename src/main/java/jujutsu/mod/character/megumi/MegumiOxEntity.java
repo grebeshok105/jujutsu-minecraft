@@ -62,7 +62,6 @@ public final class MegumiOxEntity extends MegumiShikigamiEntity {
 	/** Entities already hit by this charge; cleared at every windup so a charge hits once each. */
 	private final Set<UUID> hitUuids = new HashSet<>();
 	private UUID chargeTargetUuid;
-	private long chargeEndGameTime;
 	private long nextChargeGameTime;
 	/** Ticks left of the IMPACT clip flash inside CHARGE/RECOVERY (server only, drives synched idx). */
 	private int impactFlashTicks;
@@ -136,10 +135,6 @@ public final class MegumiOxEntity extends MegumiShikigamiEntity {
 		return hitUuids;
 	}
 
-	long chargeEndGameTime() {
-		return chargeEndGameTime;
-	}
-
 	long nextChargeGameTime() {
 		return nextChargeGameTime;
 	}
@@ -162,9 +157,8 @@ public final class MegumiOxEntity extends MegumiShikigamiEntity {
 		transitionTo(OxState.WINDUP);
 	}
 
-	/** Arms the charge's hard expiry and flips into CHARGE. */
-	void beginCharge(long gameTime) {
-		chargeEndGameTime = gameTime + MegumiShikigamiProfile.OX_CHARGE_MAX_TICKS;
+	/** Flips into CHARGE; the hard expiry runs on the state's own tick count. */
+	void beginCharge() {
 		transitionTo(OxState.CHARGE);
 	}
 

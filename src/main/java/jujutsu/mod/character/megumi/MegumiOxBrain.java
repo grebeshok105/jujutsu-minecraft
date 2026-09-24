@@ -148,7 +148,7 @@ final class MegumiOxBrain {
 		}
 		ox.setDeltaMovement(Vec3.ZERO);
 		if (ox.stateTicks() >= MegumiShikigamiProfile.OX_WINDUP_TICKS) {
-			ox.beginCharge(gameTime);
+			ox.beginCharge();
 			ox.setPresentationAction(MegumiOxEntity.ACTION_CHARGE);
 			MegumiShikigamiRuntime.broadcastCue(level, owner,
 					MegumiShikigamiRuntime.directedCue(MegumiVfxIds.OX_CHARGE, ox.position(),
