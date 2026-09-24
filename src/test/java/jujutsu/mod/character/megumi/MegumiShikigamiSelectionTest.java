@@ -26,6 +26,10 @@ class MegumiShikigamiSelectionTest {
 		assertEquals(MegumiShikigami.TOAD, MegumiShikigamiSelection.cycle(ALICE));
 		assertEquals(MegumiShikigami.RABBITS, MegumiShikigamiSelection.cycle(ALICE));
 		assertEquals(MegumiShikigami.ELEPHANT, MegumiShikigamiSelection.cycle(ALICE));
+		assertEquals(MegumiShikigami.SERPENT, MegumiShikigamiSelection.cycle(ALICE));
+		assertEquals(MegumiShikigami.DEER, MegumiShikigamiSelection.cycle(ALICE));
+		assertEquals(MegumiShikigami.OX, MegumiShikigamiSelection.cycle(ALICE));
+		assertEquals(MegumiShikigami.TIGER, MegumiShikigamiSelection.cycle(ALICE));
 		assertEquals(MegumiShikigami.DOGS, MegumiShikigamiSelection.cycle(ALICE));
 	}
 

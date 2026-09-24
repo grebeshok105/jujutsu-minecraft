@@ -46,6 +46,8 @@ final class CharacterSkinAnimationPackTest {
 						"animation.megumi_fushiguro.run", "animation.megumi_fushiguro.combat_idle",
 						"animation.megumi_fushiguro.punch_1", "animation.megumi_fushiguro.punch_2",
 						"animation.megumi_fushiguro.kick", "animation.megumi_fushiguro.summon_divine_dogs",
+						"animation.megumi_fushiguro.summon_serpent", "animation.megumi_fushiguro.summon_deer",
+						"animation.megumi_fushiguro.summon_ox", "animation.megumi_fushiguro.summon_tiger",
 						"animation.megumi_fushiguro.shadow_dive", "animation.megumi_fushiguro.shadow_emerge"),
 						Set.of("animation.megumi_fushiguro.idle", "animation.megumi_fushiguro.walk",
 								"animation.megumi_fushiguro.run", "animation.megumi_fushiguro.combat_idle")));

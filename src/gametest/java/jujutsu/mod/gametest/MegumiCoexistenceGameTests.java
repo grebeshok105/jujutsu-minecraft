@@ -20,6 +20,7 @@ import jujutsu.mod.character.JujutsuCharacter;
 import jujutsu.mod.character.megumi.MegumiDivineDogEntity;
 import jujutsu.mod.character.megumi.MegumiFailureMemory;
 import jujutsu.mod.character.megumi.MegumiNueEntity;
+import jujutsu.mod.character.megumi.MegumiOxEntity;
 import jujutsu.mod.character.megumi.MegumiRabbitEntity;
 import jujutsu.mod.character.megumi.MegumiShikigami;
 import jujutsu.mod.character.megumi.MegumiShikigamiEntity;
@@ -57,6 +58,8 @@ public final class MegumiCoexistenceGameTests {
 	private static final int THIRD_SUMMON_TICK = 6;
 	/** Past {@code DOG_MATERIALIZATION_TICKS} / {@code NUE_MATERIALIZE_TICKS}: every body is ACTIVE. */
 	private static final int SIC_TICK = 26;
+	/** Past {@code OX_MATERIALIZE_TICKS} on a tick-4 summon: the ox takes orders by ~27. */
+	private static final int NEW_BODY_SIC_TICK = 30;
 	private static final int RECALL_TICK = 30;
 
 	/**
@@ -121,6 +124,80 @@ public final class MegumiCoexistenceGameTests {
 			}
 		});
 		helper.runAtTickTime(40, () -> helper.succeed());
+	}
+
+	/**
+	 * C1b — the issue #107 ceiling, exercised: every pack Megumi can field is out at once — the
+	 * Divine Dogs on their own runtime plus all eight shikigami types on the per-type map. Each
+	 * pack record is a distinct row, every body stands under the same owner, and no summon
+	 * corrupted a sibling's record.
+	 */
+	@GameTest(maxTicks = 100)
+	public void allNineTypesCoexistWithoutCorruption(GameTestHelper helper) {
+		String fixture = "allNineTypesCoexistWithoutCorruption";
+		BlockPos casterFeet = new BlockPos(3, 1, 3);
+		layPad(helper);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+
+		helper.runAtTickTime(FIRST_SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			UUID ownerId = caster.getUUID();
+			MegumiShikigamiSelection.set(ownerId, MegumiShikigami.DOGS);
+			boolean dogs = MegumiSummonRuntime.tryToggle(caster, false);
+			helper.assertTrue(dogs, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"dogs", helper.getTick(), ownerId, "dog tryToggle result", "true", dogs));
+		}));
+
+		// One press per tick — the runtime drops same-tick duplicate technique presses per type.
+		MegumiShikigami[] shikigami = {MegumiShikigami.NUE, MegumiShikigami.TOAD,
+				MegumiShikigami.RABBITS, MegumiShikigami.ELEPHANT, MegumiShikigami.SERPENT,
+				MegumiShikigami.DEER, MegumiShikigami.OX, MegumiShikigami.TIGER};
+		for (int i = 0; i < shikigami.length; i++) {
+			final MegumiShikigami type = shikigami[i];
+			helper.runAtTickTime(SECOND_SUMMON_TICK + 2 * i,
+					() -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+						MegumiShikigamiSelection.set(caster.getUUID(), type);
+						boolean out = MegumiShikigamiRuntime.tryPrimary(caster, false);
+						helper.assertTrue(out, MegumiShikigamiTestFixtures.diagnostic(fixture,
+								type.id(), helper.getTick(), caster.getUUID(),
+								type.id() + " tryPrimary result", "true", out));
+					}));
+		}
+
+		helper.runAtTickTime(50, () -> {
+			try {
+				UUID ownerId = caster.getUUID();
+				List<String> expected = shikigamiPackTypes(shikigami);
+				List<String> types = MegumiShikigamiTestFixtures.shikigamiPackTypes(level.getServer(), ownerId);
+				helper.assertTrue(types.equals(expected), MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"coexist", helper.getTick(), ownerId,
+						"all eight shikigami pack types (enum order)", expected, types));
+				boolean dogsOut = MegumiSummonRuntime.packView(level.getServer(), ownerId).isPresent();
+				helper.assertTrue(dogsOut, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"coexist", helper.getTick(), ownerId, "dog pack present", "present", "absent"));
+
+				List<MegumiShikigamiEntity> bodies =
+						MegumiShikigamiRuntime.livingBodiesAll(level.getServer(), ownerId);
+				helper.assertTrue(bodies.size() >= 8, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"coexist", helper.getTick(), ownerId,
+						"living shikigami bodies (>= 1 per type)", ">=8", bodies.size()));
+				int dogs = MegumiSummonRuntime.livingDogs(level.getServer(), ownerId).size();
+				helper.assertTrue(dogs == 2, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"coexist", helper.getTick(), ownerId, "living dogs", "2", dogs));
+
+				// No corruption: no body mistook a sibling pack body for an enemy mark.
+				for (MegumiShikigamiEntity body : bodies) {
+					helper.assertTrue(body.getTarget() == null, MegumiShikigamiTestFixtures.diagnostic(
+							fixture, "coexist", helper.getTick(), ownerId,
+							"no shikigami body carries a mark", "null",
+							String.valueOf(body.getTarget())));
+				}
+			} finally {
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+			}
+		});
+		helper.runAtTickTime(60, () -> helper.succeed());
 	}
 
 	/**
@@ -267,6 +344,76 @@ public final class MegumiCoexistenceGameTests {
 			}
 		});
 		helper.runAtTickTime(SIC_TICK + 4, () -> helper.succeed());
+	}
+
+	/**
+	 * C3b — the same global sic reaches the new-roster bodies: the dogs AND a post-#107 type (the
+	 * ox) are out, the aim resolves once, and both families take the mark — the ox's own row pins
+	 * the same getTarget/chargeTargetUuid reading.
+	 */
+	@GameTest(maxTicks = 120)
+	public void globalSicMarksNewBodiesAlongsideOld(GameTestHelper helper) {
+		String fixture = "globalSicMarksNewBodiesAlongsideOld";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		BlockPos markFeet = new BlockPos(2, 1, 5);
+		layPad(helper);
+		helper.setBlock(markFeet.below(), Blocks.STONE);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+		Zombie mark = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, markFeet);
+		mark.setPersistenceRequired();
+
+		helper.runAtTickTime(FIRST_SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			UUID ownerId = caster.getUUID();
+			MegumiShikigamiSelection.set(ownerId, MegumiShikigami.DOGS);
+			boolean dogs = MegumiSummonRuntime.tryToggle(caster, false);
+			helper.assertTrue(dogs, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"dogs", helper.getTick(), ownerId, "dog tryToggle result", "true", dogs));
+		}));
+
+		helper.runAtTickTime(SECOND_SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			UUID ownerId = caster.getUUID();
+			MegumiShikigamiSelection.set(ownerId, MegumiShikigami.OX);
+			boolean ox = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(ox, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"ox", helper.getTick(), ownerId, "ox tryPrimary result", "true", ox));
+		}));
+
+		helper.runAtTickTime(NEW_BODY_SIC_TICK, () -> {
+			try {
+				UUID ownerId = caster.getUUID();
+				List<MegumiDivineDogEntity> dogs = MegumiSummonRuntime.livingDogs(level.getServer(), ownerId);
+				List<MegumiOxEntity> oxen = MegumiShikigamiTestFixtures.ownedBy(
+						level, ownerId, MegumiOxEntity.class);
+				helper.assertTrue(dogs.size() == 2, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"sic", helper.getTick(), ownerId, "living dogs before the sic", "2", dogs.size()));
+				helper.assertTrue(oxen.size() == 1, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"sic", helper.getTick(), ownerId, "living oxen before the sic", "1", oxen.size()));
+				helper.assertTrue(mark.isAlive(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"sic", helper.getTick(), ownerId, "mark alive", "true", mark.isAlive()));
+
+				TodoSwapTestFixtures.aimAt(caster, mark.position().add(0.0, mark.getBbHeight() / 2.0, 0.0));
+				boolean sicced = MegumiShikigamiRuntime.trySic(caster, false);
+				helper.assertTrue(sicced, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"sic", helper.getTick(), ownerId, "trySic result", "true", sicced));
+
+				for (MegumiDivineDogEntity dog : dogs) {
+					helper.assertTrue(dog.getTarget() == mark, MegumiShikigamiTestFixtures.diagnostic(fixture,
+							"sic", helper.getTick(), ownerId, "dog mark", mark.getUUID(),
+							dog.getTarget() == null ? "null" : dog.getTarget().getUUID()));
+				}
+				MegumiOxEntity ox = oxen.get(0);
+				boolean oxMarked = ox.getTarget() == mark || mark.getUUID().equals(ox.chargeTargetUuid());
+				helper.assertTrue(oxMarked, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"sic", helper.getTick(), ownerId, "ox took the same mark", mark.getUUID(),
+						ox.getTarget() == null ? "null" : String.valueOf(ox.getTarget().getUUID())));
+			} finally {
+				mark.discard();
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+			}
+		});
+		helper.runAtTickTime(NEW_BODY_SIC_TICK + 4, () -> helper.succeed());
 	}
 
 	/**
@@ -665,6 +812,14 @@ public final class MegumiCoexistenceGameTests {
 			}
 		});
 		helper.runAtTickTime(50, () -> helper.succeed());
+	}
+
+	private static List<String> shikigamiPackTypes(MegumiShikigami[] types) {
+		List<String> ids = new java.util.ArrayList<>();
+		for (MegumiShikigami type : types) {
+			ids.add(type.id());
+		}
+		return ids;
 	}
 
 	/**

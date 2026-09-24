@@ -62,7 +62,18 @@ final class VfxRadiusContractTest {
 						MegumiVfxIds.SHIKIGAMI_SIC, MegumiVfxIds.SHIKIGAMI_RECALL,
 						MegumiVfxIds.TOAD_SUMMON, MegumiVfxIds.TOAD_TONGUE,
 						MegumiVfxIds.RABBITS_SUMMON, MegumiVfxIds.RABBITS_POP,
-						MegumiVfxIds.ELEPHANT_SUMMON, MegumiVfxIds.ELEPHANT_JET)));
+						MegumiVfxIds.ELEPHANT_SUMMON, MegumiVfxIds.ELEPHANT_JET,
+						MegumiVfxIds.SERPENT_SUMMON, MegumiVfxIds.SERPENT_SUMMON_BODY,
+						MegumiVfxIds.SERPENT_EMERGE, MegumiVfxIds.SERPENT_BIND,
+						MegumiVfxIds.SERPENT_RELEASE,
+						MegumiVfxIds.DEER_SUMMON, MegumiVfxIds.DEER_SUMMON_BODY,
+						MegumiVfxIds.DEER_PULSE, MegumiVfxIds.DEER_CLEANSE,
+						MegumiVfxIds.OX_SUMMON, MegumiVfxIds.OX_SUMMON_BODY,
+						MegumiVfxIds.OX_WINDUP, MegumiVfxIds.OX_CHARGE, MegumiVfxIds.OX_IMPACT,
+						MegumiVfxIds.OX_WALL_HIT,
+						MegumiVfxIds.TIGER_SUMMON, MegumiVfxIds.TIGER_SUMMON_BODY,
+						MegumiVfxIds.TIGER_STRIKE, MegumiVfxIds.TIGER_MISS,
+						MegumiVfxIds.TIGER_RECOVER)));
 
 		Map<ResourceLocation, Set<Double>> deliveries = VfxCompletenessTest.productionDeliveryRadii();
 		Set<ResourceLocation> covered = new HashSet<>();

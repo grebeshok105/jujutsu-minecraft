@@ -121,7 +121,8 @@ class MegumiShikigamiAvailabilityTest {
 		// One order for the cycle and for the strip: with nothing cooling, this is the plain cycle.
 		MegumiShikigamiSelection.set(ALICE, MegumiShikigami.DOGS);
 		MegumiShikigami[] expected = { MegumiShikigami.NUE, MegumiShikigami.TOAD, MegumiShikigami.RABBITS,
-				MegumiShikigami.ELEPHANT, MegumiShikigami.DOGS };
+				MegumiShikigami.ELEPHANT, MegumiShikigami.SERPENT, MegumiShikigami.DEER, MegumiShikigami.OX,
+				MegumiShikigami.TIGER, MegumiShikigami.DOGS };
 		for (MegumiShikigami step : expected) {
 			assertEquals(step, MegumiShikigamiSelection.cycleAvailable(ALICE, type -> true),
 					"the availability-aware cycle must share the roster's own order");

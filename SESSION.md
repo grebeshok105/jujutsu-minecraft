@@ -1,3 +1,37 @@
+# Session Handoff — Ten Shadows 5→9 expansion — 2026-09-24
+
+## State — DONE, `feat/ten-shadows-5to9` ready for PR
+
+Megumi's roster expanded 5→9 per the frozen design spec: Great Serpent
+(ambush submerge → mouth bind on shared HoldSupport → release toss), Round Deer
+(heal cadence OWNER>OWN_SHIKIGAMI>ALLY>SELF, foreign bodies ineligible via
+`isForeignBody`, cleanse allowlist, weak antler shove), Piercing Ox (committed
+linear charge, no homing; impact scales with travelled distance), Tiger Funeral
+(**authorial duelist**: fixed 3-beat combo 5/7/12 dmg, deliberately no retarget
+mid-combo — misses whiff by design). All four are first-class: summon/recall,
+pack-wide sic, retaliation, coordinator, selector, full teardown matrix.
+
+Full rule-of-four: 4 scouts → plan → 3 plan reviews → 4 workers + hand-authored
+Blockbench MCP assets → merge → review wave R1–R4 → fix wave → final gate.
+
+Verified live on the MCP lane: serpent bind→release ×4 via telemetry (victim
+pinned, survives, tossed 9–19 blocks), ox charge→impact+knockback+VFX burst,
+tiger strike+finisher launch, deer heal (hp 8→8.83 first scan). Screenshots of
+model + action states captured for all four.
+
+Gates: all compile tasks clean, 42 megumi JUnit classes 0 failures,
+**runGameTest 295/295 green**, `qualityGate` BUILD SUCCESSFUL (docs audit +
+jar isolation + 29 verification programs). Docs updated: MOC metrics
+(234/282/174), `Megumi-shikigami.md` covers all eight types + provenance.
+
+Traps worth remembering: owner-death GameTest rows must kill via
+`hurtServer(genericKill, MAX)` — bare `die()` never flags `isDeadOrDying` on
+mock players; sic is pack-wide (recall other types for per-type live
+isolation); `VfxCue.direction()` is a normalized facing, the payload slot is
+`cue.intensity()`; MCP world endpoint 429s under fast polling — keep ≥0.45s.
+
+---
+
 # Session Handoff — cursed-spirit melee "hit air" fix — 2026-09-20
 
 ## State — DONE, committed `e386cd7` on `integration/megumi-incidents-107-110`
