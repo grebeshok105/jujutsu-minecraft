@@ -118,11 +118,11 @@ public final class MegumiVfxIds {
 			SERPENT_SUMMON, SERPENT_SUMMON_BODY,
 			SERPENT_EMERGE, SERPENT_BIND, SERPENT_RELEASE,
 			DEER_SUMMON, DEER_SUMMON_BODY,
+			DEER_PULSE, DEER_CLEANSE,
 			OX_SUMMON, OX_SUMMON_BODY,
 			TIGER_SUMMON, TIGER_SUMMON_BODY);
 	/** Brain-emitted mechanic cues graduate to LIVE at each type's acceptance merge. */
 	public static final Set<ResourceLocation> PLANNED = Set.of(
-			DEER_PULSE, DEER_CLEANSE,
 			OX_WINDUP, OX_CHARGE, OX_IMPACT, OX_WALL_HIT,
 			TIGER_STRIKE, TIGER_MISS, TIGER_RECOVER);
 

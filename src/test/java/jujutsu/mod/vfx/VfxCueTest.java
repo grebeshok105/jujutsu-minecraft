@@ -97,6 +97,7 @@ final class VfxCueTest {
 				"megumi/serpent_summon", "megumi/serpent_summon_body",
 				"megumi/serpent_emerge", "megumi/serpent_bind", "megumi/serpent_release",
 				"megumi/deer_summon", "megumi/deer_summon_body",
+				"megumi/deer_pulse", "megumi/deer_cleanse",
 				"megumi/ox_summon", "megumi/ox_summon_body",
 				"megumi/tiger_summon", "megumi/tiger_summon_body"),
 				paths(MegumiVfxIds.LIVE));
@@ -107,7 +108,6 @@ final class VfxCueTest {
 		assertTrue(NobaraVfxIds.PLANNED.isEmpty());
 		assertTrue(TodoVfxIds.PLANNED.isEmpty());
 		assertEquals(Set.of(
-				"megumi/deer_pulse", "megumi/deer_cleanse",
 				"megumi/ox_windup", "megumi/ox_charge", "megumi/ox_impact", "megumi/ox_wall_hit",
 				"megumi/tiger_strike", "megumi/tiger_miss", "megumi/tiger_recover"),
 				paths(MegumiVfxIds.PLANNED));

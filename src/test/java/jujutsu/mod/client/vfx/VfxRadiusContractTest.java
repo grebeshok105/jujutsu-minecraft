@@ -67,6 +67,7 @@ final class VfxRadiusContractTest {
 						MegumiVfxIds.SERPENT_EMERGE, MegumiVfxIds.SERPENT_BIND,
 						MegumiVfxIds.SERPENT_RELEASE,
 						MegumiVfxIds.DEER_SUMMON, MegumiVfxIds.DEER_SUMMON_BODY,
+						MegumiVfxIds.DEER_PULSE, MegumiVfxIds.DEER_CLEANSE,
 						MegumiVfxIds.OX_SUMMON, MegumiVfxIds.OX_SUMMON_BODY,
 						MegumiVfxIds.TIGER_SUMMON, MegumiVfxIds.TIGER_SUMMON_BODY)));
 
