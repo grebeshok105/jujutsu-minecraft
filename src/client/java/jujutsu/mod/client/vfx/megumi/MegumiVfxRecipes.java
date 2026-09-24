@@ -98,6 +98,10 @@ public final class MegumiVfxRecipes {
 		VfxDirector.register(MegumiVfxIds.RABBITS_POP, MegumiVfxRecipes::rabbitsPop);
 		VfxDirector.register(MegumiVfxIds.ELEPHANT_SUMMON, MegumiVfxRecipes::elephantSummon);
 		VfxDirector.register(MegumiVfxIds.ELEPHANT_JET, MegumiVfxRecipes::elephantJet);
+		MegumiSerpentVfxRecipes.register();
+		MegumiDeerVfxRecipes.register();
+		MegumiOxVfxRecipes.register();
+		MegumiTigerVfxRecipes.register();
 	}
 
 	/** Rabbit Escape's summon pool: one shared shadow over a scatter of small pops. */

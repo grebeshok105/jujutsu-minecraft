@@ -105,14 +105,18 @@ class ShikigamiSelectorStateTest {
 	@Test
 	void everyShikigamiNameIsPinnedInBothLocales() {
 		// The slot draws its name from the roster id, so a renamed id silently turns into a raw
-		// translation key on screen. The five literal keys are the contract; the derived set makes a
-		// sixth shikigami without its two lang rows fail here instead of in game.
+		// translation key on screen. The nine literal keys are the contract; the derived set makes a
+		// tenth shikigami without its two lang rows fail here instead of in game.
 		Set<String> contracted = Set.of(
 				"jujutsumod.megumi.shikigami.dogs",
 				"jujutsumod.megumi.shikigami.nue",
 				"jujutsumod.megumi.shikigami.toad",
 				"jujutsumod.megumi.shikigami.rabbits",
-				"jujutsumod.megumi.shikigami.elephant");
+				"jujutsumod.megumi.shikigami.elephant",
+				"jujutsumod.megumi.shikigami.serpent",
+				"jujutsumod.megumi.shikigami.deer",
+				"jujutsumod.megumi.shikigami.ox",
+				"jujutsumod.megumi.shikigami.tiger");
 		for (Path lang : LANG_FILES) {
 			String json = read(lang);
 			for (String key : contracted) {

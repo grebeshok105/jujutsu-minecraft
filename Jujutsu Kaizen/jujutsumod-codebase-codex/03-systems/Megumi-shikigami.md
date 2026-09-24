@@ -1,4 +1,4 @@
-# Megumi shikigami (Nue / Toad / Rabbit Escape / Max Elephant)
+# Megumi shikigami (Nue / Toad / Rabbit Escape / Max Elephant / Great Serpent / Round Deer / Piercing Ox / Tiger Funeral)
 
 Status: CURRENT
 
@@ -17,12 +17,16 @@ press/release edges): Nue's wings and Toad's tongue, one partial at a time, refu
 type's full body is materialized.
 
 Server code lives under `jujutsu.mod.character.megumi` (`MegumiShikigami*`, `MegumiNue*`,
-`MegumiToad*`, `MegumiRabbit*`/`MegumiRabbits*`, `MegumiElephant*`); client render stacks live
+`MegumiToad*`, `MegumiRabbit*`/`MegumiRabbits*`, `MegumiElephant*`, `MegumiSerpent*`,
+`MegumiDeer*`, `MegumiOx*`, `MegumiTiger*`); client render stacks live
 under `jujutsu.mod.client.render.megumi`. Each shikigami is one `MegumiShikigamiEntity` subclass
 plus one server brain plus one client animatable/model/renderer triple, mirroring the shipped dog
-pattern. Implementation status on this branch: all four bodies ship — Nue in `d781c3b`, Toad,
-Rabbit Escape and Max Elephant in `2c51107` — each accepted in game over the MCP dev lane, with
-the review-wave fixes landing on top.
+pattern. Implementation status on this branch: all eight bodies ship — Nue in `d781c3b`, Toad,
+Rabbit Escape and Max Elephant in `2c51107`, each accepted in game over the MCP dev lane; the
+Ten Shadows expansion adds Great Serpent, Round Deer, Piercing Ox and Tiger Funeral on the same
+architecture (per-type Entity/Brain/Policy, shared runtime dispatch, per-type cooldown rows).
+Tiger Funeral is **authorial** — canon does not disclose its mechanics, so its combo is a
+project-designed heavy melee kit, not a canon claim. Mahoraga stays out of scope.
 
 ## Slot map
 
@@ -46,7 +50,7 @@ cells mirror the five technique slots (`PRIMARY`, `PRIMARY_SNEAK`, `SECONDARY`, 
 ## Selection semantics and swap rules
 
 `MegumiShikigamiSelection` is an in-memory, owner-keyed map: `selected` (default `DOGS`), `cycle`
-(`selected().next()`, order dogs → nue → toad → rabbits → elephant → dogs), `set`, `clear`,
+(`selected().next()`, order dogs → nue → toad → rabbits → elephant → serpent → deer → ox → tiger → dogs), `set`, `clear`,
 `clearAll`. It resets on relog by design (accepted limit, see `docs/KNOWN_ISSUES.md`); only
 `DISCONNECT` and `SERVER_STOPPING` clear it in production. The dev/MCP fixture-reset tool step deliberately restores the DOGS default (verified in game: clean-slate semantics for tests, not keeps-selection).
 
@@ -117,7 +121,7 @@ The roster card lists the partial row; HUD answers 0 for both partial slots (no 
 ## Quick selector (G)
 
 The strip is the second selection path beside `S+V` cycling: a hold of `key.jujutsumod.quick_selector`
-(default G) opens a bottom-center strip of five slots — one per shikigami — without pausing the
+(default G) opens a bottom-center strip of nine slots — one per shikigami — without pausing the
 world; releasing the key closes it. A tap under `TAP_MAX_TICKS` cycles instead, so the key covers
 both gestures. While open, left-click on an available slot selects it immediately and the strip
 stays open; a cooling slot rejects with a shake; hover never selects. A hold released without a
@@ -144,7 +148,7 @@ gesture is scriptable end to end.
 ## Per-type mechanics and tuning pointers
 
 Every number lives in `MegumiShikigamiProfile`; brains contain no magic constants. Cooldown table
-(all five rows shipped in the profile; the DOGS row mirrors the dog runtime for reference only):
+(all nine rows shipped in the profile; the DOGS row mirrors the dog runtime for reference only):
 
 | Type | Recall | Death |
 |---|---|---|
@@ -153,6 +157,10 @@ Every number lives in `MegumiShikigamiProfile`; brains contain no magic constant
 | Toad | 240 | 400 |
 | Rabbit Escape | 120 (manual recall) / 120 (lifetime expiry) | 200 (anchor loss) |
 | Max Elephant | 260 | 600 |
+| Great Serpent | 240 | 400 |
+| Round Deer | 240 | 400 |
+| Piercing Ox | 240 | 400 |
+| Tiger Funeral | 240 | 400 |
 
 **Nue** (fragile flyer, hitbox 0.9×0.9): 24 health, 4 attack, 0.38 speed; materialize 16 /
 recall 12 ticks; hovers 3.0 above the owner's head off-command (`FlyingMoveControl`, vanilla —
@@ -229,6 +237,59 @@ controller holds it one-shot while `actionTicks > 0`, dog precedent). Sounds: qu
 `RAVAGER_ROAR` summon, `RAVAGER_ATTACK` windup + `GENERIC_SPLASH` per pulse, `RAVAGER_AMBIENT`
 idle. The off-origin `body` pivot is upstream data; only renderer scale/offset may compensate.
 
+**Great Serpent** (ambusher, hitbox 1.6×0.9): 60 health, 0.30 speed; materialize 16 / recall 12;
+recall 240 / death 400. The signature is the ambush-hold state machine
+`FOLLOW → PREPARE_AMBUSH → SUBMERGED → EMERGE → BIND → RELEASE → RECOVERY` driven by
+`MegumiSerpentBrain`. On a sic mark inside `SERPENT_AMBUSH_RANGE = 14` the body prepares
+(10 ticks), submerges into the ground (14 ticks, VFX `megumi/serpent_ambush`), waits hidden,
+then emerges (8 ticks) under the victim and binds it for `SERPENT_BIND_TICKS = 80` through the
+shared `HoldSupport`/`HeldVictimRegistry` + `GRIPPED` marker — same hold substrate as the toad,
+so a bound victim cannot be double-held and the client input-blank applies. The bind snaps early
+past `SERPENT_BIND_LEASH = 20` from the owner, and every teardown path (recall, death, owner
+death, dimension change, disconnect, fixture reset) releases the victim before the body goes.
+After the hold the serpent releases (VFX `megumi/serpent_release`) and sits out a 30-tick
+recovery before it can ambush again; scan cadence 10 ticks. Clips
+`idle`/`slither`/`ambush`/`bind`/`release`. Pure policy: `MegumiSerpentPolicy` (bind
+eligibility, anchor offset 1.2, safe-emerge placement).
+
+**Round Deer** (support, hitbox 1.2×1.6): 40 health, 0.32 speed; materialize 16 / recall 12;
+recall 240 / death 400. The deer is the roster's only healer: every `DEER_SCAN_TICKS = 20` it
+scans `DEER_SUPPORT_RADIUS = 12` for wounded allies — the owner plus own shikigami/dogs,
+never enemies — and fires a `DEER_PULSE_TICKS = 24` pulse that heals `DEER_HEAL_AMOUNT = 6.0`
+and cleanses through an **allowlist** (`MegumiDeerPolicy.cleanseable`): only listed negative
+effects are stripped, so internal markers (`GRIPPED`, `MEGUMI_SOAKED`, sic marks) survive a
+friendly cleanse. Pulse cooldown 60 ticks. Priority is spec-fixed: a heavily-wounded owner
+first, then a heavily-wounded shikigami, then lesser wounds — deterministic tie-break on
+missing-health fraction, distance, UUID (`DEER_HEAVY_WOUND_FRACTION = 0.5`). Offense is a weak
+self-defense melee only — the deer never initiates. Clips `idle`/`walk`/`pulse`. VFX
+`megumi/deer_pulse` on the pulse, `megumi/deer_cleanse` on a successful strip.
+
+**Piercing Ox** (charger, hitbox 1.4×1.6): 70 health, 0.28 speed; materialize 16 / recall 12;
+recall 240 / death 400. The signature is a **committed linear charge**: inside
+`OX_ACQUIRE_RANGE = 20` the ox aligns to the mark (max 12° correction), winds up 12 ticks
+(VFX `megumi/ox_windup`), then locks `chargeDirection` and runs a straight line at
+`OX_CHARGE_SPEED = 0.9` for up to `OX_CHARGE_MAX_DISTANCE = 32` / 60 ticks — no homing, no
+steering after commit; a stale sic target aborts the windup instead of re-aiming mid-flight.
+Distance is accumulated by real movement, and each entity in the swept corridor
+(`OX_SWEEP_MARGIN = 0.4`) is hit at most once per charge: impact damage scales
+`4.0 + 0.35·distance`, clamped 4–18, plus 10-tick stagger and 1.2 knockback. A wall aborts the
+charge (VFX `megumi/ox_abort`); friendly and allied summons are never damaged. While the charge
+is in flight `suppressesLeash()` is true so the shared leash teleport cannot yank the body
+mid-line. Recovery 30 ticks, charge cooldown 80. Clips
+`idle`/`walk`/`windup`/`charge`/`impact`/`recover`.
+
+**Tiger Funeral** (authorial heavy melee, hitbox 1.3×1.4): 55 health, 0.34 speed; materialize 16 /
+recall 12; recall 240 / death 400. Canon does not disclose this shikigami's mechanics — the kit
+below is project-designed, flagged authorial in `MegumiShikigamiProfile`. The signature is a
+committed three-hit combo `STALK → WINDUP → STRIKE_1 → STRIKE_2 → FINISHER → RECOVERY`: inside
+`TIGER_APPROACH_RANGE = 16` the tiger stalks the locked target, winds up 10 ticks, then lands
+strike 1 (window tick 6: 5.0 damage, 6-tick stagger), strike 2 (tick 14: 8.0, 10-tick stagger)
+and the finisher (tick 24: 14.0 damage, 1.6 knockback). Each strike requires the target inside
+`TIGER_STRIKE_RANGE = 3.0`, within a `TIGER_STRIKE_MIN_DOT = 0.5` facing arc and ±2.0 vertical —
+a target that leaves the arc makes that strike miss, but the combo never retargets mid-sequence.
+Recovery 40 ticks, combo cooldown 100. No rage, bleed or adaptation subsystems — Mahoraga stays
+out of scope. Clips `idle`/`walk`/`windup`/`strike_1`/`strike_2`/`finisher`/`recover`.
+
 ## Lifecycle and cleanup
 
 `MegumiShikigamiRuntime` keeps one owner-keyed `MegumiShikigamiPack` **per type** (type,
@@ -260,6 +321,15 @@ record is gone, whose owner is gone, or whose type/token/dimension mismatches ha
 their own tick (`shouldHardDiscard`); a `RECALLING` body in its own dimension may finish sinking
 without a pack. Stale sic targets revalidate every tick against eligibility.
 
+Two expansion hooks live beside this table: `MegumiShikigamiEntity.suppressesLeash()` lets a
+body opt out of the shared leash teleport while a committed movement is in flight (only the Ox
+overrides it, during `chargeInFlight`), and the Serpent's held victim is released on every
+teardown path — recall, death, owner death, dimension change, disconnect, fixture reset and
+hard-discard all run the release before the body goes, so a `GRIPPED` victim is never orphaned.
+The coordinator's autonomous-mark gate (`jujutsu.autonomous_mark.*` entity tags) exists for
+GameTest isolation only: untagged entities behave exactly as before, and manual sic plus
+retaliation bypass the gate.
+
 Shared helpers: `MegumiShikigamiSpawnPlacement` (ground / air / ring preflights over
 `SafeBodyPlacement`, with predicate seams for pure tests), `MegumiShikigamiFriendlyFire`
 (owner, same-team players, own shikigami/dogs are protected from every AoE), `PackView`
@@ -268,8 +338,11 @@ and GameTest observation surface, mirrored into the MCP `state_get` `megumi.shik
 
 ## Asset provenance
 
-All four models are Sorcery Age extracts, used with the author's personal permission (owner
-statement — same class as the Mythic Mounts entry). Full record: `docs/PROVENANCE.md` and
+The first four models are Sorcery Age extracts, used with the author's personal permission (owner
+statement — same class as the Mythic Mounts entry). The four expansion models (Great Serpent,
+Round Deer, Piercing Ox, Tiger Funeral) are **project-authored** — geometry, animation sets and
+textures were built in Blockbench for this mod, so no third-party license applies to them.
+Full record: `docs/PROVENANCE.md` and
 `docs/THIRD_PARTY_NOTICES.md` (upstream `wood-m-corp/sorcery-age`, commit
 `40a60272b95a6d408a91963ee26ea297ed8fd200`, per-file git blob SHA-1 manifest). Imported per
 type: one geo (`geometry.megumi_<x>` under `assets/jujutsumod/geckolib/models/`), one animation
@@ -285,7 +358,16 @@ placeholders. VFX ids (`MegumiVfxIds`, all in `LIVE` with recipes in `MegumiVfxR
 `megumi/nue_summon`, `megumi/nue_dive`, `megumi/nue_shock`, `megumi/toad_summon`,
 `megumi/toad_tongue`, `megumi/rabbits_summon`, `megumi/rabbits_pop`, `megumi/elephant_summon`,
 `megumi/elephant_jet`, plus the shared `megumi/shikigami_sic` marker and
-`megumi/shikigami_recall` sweep.
+`megumi/shikigami_recall` sweep. The expansion adds `megumi/serpent_summon`,
+`megumi/serpent_ambush`, `megumi/serpent_bind`, `megumi/serpent_release`, `megumi/deer_summon`,
+`megumi/deer_pulse`, `megumi/deer_cleanse`, `megumi/ox_summon`, `megumi/ox_windup`,
+`megumi/ox_charge`, `megumi/ox_impact`, `megumi/ox_abort`, `megumi/tiger_summon`,
+`megumi/tiger_strike`, `megumi/tiger_finisher` — every id emitted from a production code path.
+The authored clip sets: Serpent `idle`/`slither`/`ambush`/`bind`/`release`; Deer
+`idle`/`walk`/`pulse`; Ox `idle`/`walk`/`windup`/`charge`/`impact`/`recover`; Tiger
+`idle`/`walk`/`windup`/`strike_1`/`strike_2`/`finisher`/`recover`. Four player hand-sign clips
+(`summon_serpent`, `summon_deer`, `summon_ox`, `summon_tiger`) were added to
+`megumi_fushiguro.animation.json` and play only on an accepted summon.
 
 ## Evidence boundary
 
@@ -301,13 +383,18 @@ texture paths, `geckolib_format_version`), router-arm and roster/HUD pins, and t
 GameTests (`MegumiShikigamiGameTests`, `MegumiToadGameTests`, `MegumiRabbitsGameTests`,
 `MegumiElephantGameTests`, `MegumiShikigamiCrossTests`, `MegumiCoexistenceGameTests`,
 `MegumiAutonomyGameTests`, `MegumiPartialGameTests`, `MegumiWingsGameTests`,
-`MegumiTongueGameTests`) cover summon → pack shape, recall and
+`MegumiTongueGameTests`, plus the expansion classes `MegumiSerpentGameTests`,
+`MegumiDeerGameTests`, `MegumiOxGameTests`, `MegumiTigerGameTests` and
+`MegumiShikigamiCrossExpansionGameTests`) cover summon → pack shape, recall and
 death cooldowns per type, additive coexistence (two types out at once, per-type recall,
 per-type summon deadlines), the global sic (both families marked, empty aim clears orders),
 autonomous marking and the failure-memory retry gate, sic-driven abilities end to end (dive damage +
 slow, toad hold without damage + throw, bump knockback + slow, jet damage + soak), the swarm upkeep/expiry/anchor
 rules, friendly fire inside the jet corridor, the partial state machine (wings toggle + zero fall
-damage + landing end, tongue anchor/pull/release/refusals), and the cross-type guarantees
+damage + landing end, tongue anchor/pull/release/refusals), the expansion signatures (serpent
+ambush→bind→release lifecycle incl. release-on-teardown, deer heal priority + allowlist cleanse,
+ox committed straight-line charge + one-hit-per-entity + wall abort + leash suppression, tiger
+locked three-hit combo + arc miss + recovery), and the cross-type guarantees
 (fixture-reset teardown with the selection back to DOGS, deselect teardown with the selection kept).
 
 Oracle trap, measured in game 2026-09-11: a `NoAI:1b` mob is FULLY FROZEN — external velocity is stored but the position never integrates, not even gravity. Displacement-based oracles ("distance decreased", knockback travel) must use an AI mob with zeroed speed (Slowness amplifier 100) or assert velocity/effect state instead (`getDeltaMovement`, effects). The hold/throw scenarios pin the grip through the anchor position and the throw through the velocity vector for exactly this reason.

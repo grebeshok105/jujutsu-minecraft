@@ -12,6 +12,10 @@ import jujutsu.mod.character.megumi.MegumiElephantEntity;
 import jujutsu.mod.character.megumi.MegumiNueEntity;
 import jujutsu.mod.character.megumi.MegumiRabbitEntity;
 import jujutsu.mod.character.megumi.MegumiToadEntity;
+import jujutsu.mod.character.megumi.MegumiDeerEntity;
+import jujutsu.mod.character.megumi.MegumiOxEntity;
+import jujutsu.mod.character.megumi.MegumiSerpentEntity;
+import jujutsu.mod.character.megumi.MegumiTigerEntity;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailEntity;
 import jujutsu.mod.character.todo.TodoProfile;
 import jujutsu.mod.character.todo.TodoStoneEntity;
@@ -26,6 +30,10 @@ public final class JujutsuEntities {
 	public static final EntityType<MegumiToadEntity> MEGUMI_TOAD = createMegumiToad("megumi_toad");
 	public static final EntityType<MegumiElephantEntity> MEGUMI_MAX_ELEPHANT = createMegumiMaxElephant("megumi_max_elephant");
 	public static final EntityType<MegumiRabbitEntity> MEGUMI_RABBIT = createMegumiRabbit("megumi_rabbit");
+	public static final EntityType<MegumiSerpentEntity> MEGUMI_SERPENT = createMegumiSerpent("megumi_serpent");
+	public static final EntityType<MegumiDeerEntity> MEGUMI_DEER = createMegumiDeer("megumi_deer");
+	public static final EntityType<MegumiOxEntity> MEGUMI_OX = createMegumiOx("megumi_ox");
+	public static final EntityType<MegumiTigerEntity> MEGUMI_TIGER = createMegumiTiger("megumi_tiger");
 	public static final EntityType<TodoStoneEntity> TODO_STONE = createTodoStone("todo_stone");
 	public static final EntityType<CursedSpiritAcidSpitEntity> CURSED_ACID_SPIT =
 			createCursedAcidSpit("cursed_acid_spit");
@@ -45,6 +53,10 @@ public final class JujutsuEntities {
 		register("megumi_toad", MEGUMI_TOAD);
 		register("megumi_max_elephant", MEGUMI_MAX_ELEPHANT);
 		register("megumi_rabbit", MEGUMI_RABBIT);
+		register("megumi_serpent", MEGUMI_SERPENT);
+		register("megumi_deer", MEGUMI_DEER);
+		register("megumi_ox", MEGUMI_OX);
+		register("megumi_tiger", MEGUMI_TIGER);
 		register("todo_stone", TODO_STONE);
 		register("lesser_cursed_spirit", LESSER_CURSED_SPIRIT);
 		register("cursed_spirit", CURSED_SPIRIT);
@@ -126,6 +138,50 @@ public final class JujutsuEntities {
 		return EntityType.Builder
 				.<MegumiRabbitEntity>of(MegumiRabbitEntity::new, MobCategory.MISC)
 				.sized(0.4f, 0.4f)
+				.clientTrackingRange(96)
+				.updateInterval(2)
+				.noSave()
+				.build(key);
+	}
+
+	private static EntityType<MegumiSerpentEntity> createMegumiSerpent(String path) {
+		ResourceKey<EntityType<?>> key = ResourceKey.create(Registries.ENTITY_TYPE, JujutsuMod.id(path));
+		return EntityType.Builder
+				.<MegumiSerpentEntity>of(MegumiSerpentEntity::new, MobCategory.MISC)
+				.sized(2.2f, 1.0f)
+				.clientTrackingRange(96)
+				.updateInterval(2)
+				.noSave()
+				.build(key);
+	}
+
+	private static EntityType<MegumiDeerEntity> createMegumiDeer(String path) {
+		ResourceKey<EntityType<?>> key = ResourceKey.create(Registries.ENTITY_TYPE, JujutsuMod.id(path));
+		return EntityType.Builder
+				.<MegumiDeerEntity>of(MegumiDeerEntity::new, MobCategory.MISC)
+				.sized(1.0f, 2.0f)
+				.clientTrackingRange(96)
+				.updateInterval(2)
+				.noSave()
+				.build(key);
+	}
+
+	private static EntityType<MegumiOxEntity> createMegumiOx(String path) {
+		ResourceKey<EntityType<?>> key = ResourceKey.create(Registries.ENTITY_TYPE, JujutsuMod.id(path));
+		return EntityType.Builder
+				.<MegumiOxEntity>of(MegumiOxEntity::new, MobCategory.MISC)
+				.sized(1.3f, 1.5f)
+				.clientTrackingRange(96)
+				.updateInterval(2)
+				.noSave()
+				.build(key);
+	}
+
+	private static EntityType<MegumiTigerEntity> createMegumiTiger(String path) {
+		ResourceKey<EntityType<?>> key = ResourceKey.create(Registries.ENTITY_TYPE, JujutsuMod.id(path));
+		return EntityType.Builder
+				.<MegumiTigerEntity>of(MegumiTigerEntity::new, MobCategory.MISC)
+				.sized(1.1f, 1.0f)
 				.clientTrackingRange(96)
 				.updateInterval(2)
 				.noSave()

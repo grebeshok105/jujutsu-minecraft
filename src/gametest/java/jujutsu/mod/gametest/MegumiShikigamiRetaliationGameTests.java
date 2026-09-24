@@ -128,6 +128,7 @@ public final class MegumiShikigamiRetaliationGameTests {
 					summoned.get()));
 			Zombie attacker = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, new BlockPos(3, 1, 6));
 			attacker.setPersistenceRequired();
+			attacker.addTag("jujutsu.autonomous_mark.none");
 			CursedSpiritTestFixtures.freezeGround(attacker);
 			attackerRef.set(attacker);
 			owner.hurtServer(level, level.damageSources().mobAttack(attacker), 1.0f);
@@ -219,6 +220,7 @@ public final class MegumiShikigamiRetaliationGameTests {
 					summoned.get()));
 			Zombie attacker = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, new BlockPos(3, 1, 6));
 			attacker.setPersistenceRequired();
+			attacker.addTag("jujutsu.autonomous_mark.none");
 			attacker.setNoAi(true);
 			CursedSpiritTestFixtures.freezeGround(attacker);
 			attackerRef.set(attacker);
@@ -321,6 +323,7 @@ public final class MegumiShikigamiRetaliationGameTests {
 					summoned.get()));
 			Zombie attacker = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, new BlockPos(3, 1, 6));
 			attacker.setPersistenceRequired();
+			attacker.addTag("jujutsu.autonomous_mark.none");
 			attacker.setNoAi(true);
 			CursedSpiritTestFixtures.freezeGround(attacker);
 			attackerRef.set(attacker);
@@ -402,6 +405,7 @@ public final class MegumiShikigamiRetaliationGameTests {
 			owner.yHeadRot = 0.0f;
 			Zombie mark = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, new BlockPos(3, 1, 6));
 			mark.setPersistenceRequired();
+			mark.addTag("jujutsu.autonomous_mark.none");
 			CursedSpiritTestFixtures.freezeGround(mark);
 			markRef.set(mark);
 			boolean ok = MegumiShikigamiRuntime.trySic(owner, false);
@@ -412,6 +416,7 @@ public final class MegumiShikigamiRetaliationGameTests {
 		helper.runAtTickTime(ATTACK_TICK + 5, () -> {
 			Zombie victim = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, new BlockPos(5, 1, 3));
 			victim.setPersistenceRequired();
+			victim.addTag("jujutsu.autonomous_mark.none");
 			CursedSpiritTestFixtures.freezeGround(victim);
 			victimsRef.set(victim);
 			owner.attack(victim);
@@ -500,6 +505,7 @@ public final class MegumiShikigamiRetaliationGameTests {
 		helper.runAtTickTime(ATTACK_TICK, () -> {
 			Zombie hunter = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, new BlockPos(3, 1, 6));
 			hunter.setPersistenceRequired();
+			hunter.addTag("jujutsu.autonomous_mark.none");
 			hunter.setNoAi(false);
 			CursedSpiritTestFixtures.freezeGround(hunter);
 			hunter.setTarget(owner);
@@ -566,6 +572,7 @@ public final class MegumiShikigamiRetaliationGameTests {
 			owner.yHeadRot = 0.0f;
 			Zombie mark = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, new BlockPos(3, 1, 6));
 			mark.setPersistenceRequired();
+			mark.addTag("jujutsu.autonomous_mark.none");
 			CursedSpiritTestFixtures.freezeGround(mark);
 			markRef.set(mark);
 			boolean ok = MegumiShikigamiRuntime.trySic(owner, false);
@@ -577,6 +584,7 @@ public final class MegumiShikigamiRetaliationGameTests {
 		helper.runAtTickTime(ATTACK_TICK + 5, () -> {
 			Zombie attacker = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, new BlockPos(5, 1, 3));
 			attacker.setPersistenceRequired();
+			attacker.addTag("jujutsu.autonomous_mark.none");
 			CursedSpiritTestFixtures.freezeGround(attacker);
 			attackerRef.set(attacker);
 			owner.hurtServer(level, level.damageSources().mobAttack(attacker), 1.0f);
@@ -660,6 +668,7 @@ public final class MegumiShikigamiRetaliationGameTests {
 					summoned.get()));
 			Zombie attacker = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, new BlockPos(3, 1, 6));
 			attacker.setPersistenceRequired();
+			attacker.addTag("jujutsu.autonomous_mark.none");
 			CursedSpiritTestFixtures.freezeGround(attacker);
 			// Deep health pool: the pack may land blows while the mark stands; the attacker must
 			// still be alive when it is moved, or the clear would be the kill, not the radius.
@@ -683,18 +692,14 @@ public final class MegumiShikigamiRetaliationGameTests {
 				if (!marked.get() && bodies.stream().anyMatch(body -> body.getTarget() == attacker)) {
 					marked.set(true);
 					// The aggressor walks out of reach while still fresh in the window. Forty blocks
-					// clears the 16-block retaliation radius but stays inside the 50-block autonomy
-					// scan, so the coordinator would lawfully re-mark it as an autonomous pick and
-					// the pack would hunt it down — the "only distance ends the answer" premise dies
-					// with the body. Teaming the aggressor with the owner after the mark lands keeps
-					// it ineligible for autonomy (isEligibleTarget rejects allies) while the
-					// retaliation mark still has to expire on its own rule.
+					// clears both the 16-block retaliation radius and the 15-block autonomy
+					// candidate scan (AUTONOMY_RADIUS), so the coordinator cannot re-mark it as an
+					// autonomous pick — the "only distance ends the answer" premise holds without
+					// teaming. (Teaming is unusable anyway: every mock player shares the scoreboard
+					// name "test-mock-player", so a concurrent fixture's addPlayerToTeam re-seats
+					// the shared name mid-test and silently breaks the alliance.)
 					attacker.teleportTo(level, attacker.getX() + 40.0, attacker.getY(), attacker.getZ(),
 							Set.of(), 0.0f, 0.0f, false);
-					net.minecraft.world.scores.PlayerTeam team = level.getScoreboard()
-							.addPlayerTeam(fixture + "_team");
-					level.getScoreboard().addPlayerToTeam(owner.getScoreboardName(), team);
-					level.getScoreboard().addPlayerToTeam(attacker.getScoreboardName(), team);
 					relocated.set(true);
 					return;
 				}
@@ -757,6 +762,7 @@ public final class MegumiShikigamiRetaliationGameTests {
 					summoned.get()));
 			Zombie attacker = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, new BlockPos(3, 1, 6));
 			attacker.setPersistenceRequired();
+			attacker.addTag("jujutsu.autonomous_mark.none");
 			attacker.setNoAi(true);
 			CursedSpiritTestFixtures.freezeGround(attacker);
 			attacker.getAttribute(Attributes.MAX_HEALTH).setBaseValue(500.0);
@@ -847,6 +853,7 @@ public final class MegumiShikigamiRetaliationGameTests {
 			owner.yHeadRot = 0.0f;
 			Zombie mark = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, new BlockPos(3, 1, 6));
 			mark.setPersistenceRequired();
+			mark.addTag("jujutsu.autonomous_mark.none");
 			mark.setNoAi(true);
 			CursedSpiritTestFixtures.freezeGround(mark);
 			mark.getAttribute(Attributes.MAX_HEALTH).setBaseValue(500.0);

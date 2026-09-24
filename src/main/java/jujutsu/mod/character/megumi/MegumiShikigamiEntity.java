@@ -28,7 +28,7 @@ import jujutsu.mod.registry.JujutsuSounds;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * One transient shikigami body (the four non-dog shikigami share this base). Same contract as the
+ * One transient shikigami body (the eight non-dog shikigami share this base). Same contract as the
  * Divine Dog body: identity is owner UUID + summon token, only the presentation phase/age and the
  * action timer are synchronized, and every combat/collision interaction is gated on the ACTIVE
  * phase. The Divine Dog entity keeps its own implementation untouched.
@@ -53,7 +53,7 @@ public abstract class MegumiShikigamiEntity extends TamableAnimal {
 		super(type, level);
 	}
 
-	/** Which of the four this body is; drives the runtime dispatch and the cue selection. */
+	/** Which of the eight this body is; drives the runtime dispatch and the cue selection. */
 	public abstract MegumiShikigami shikigamiType();
 
 	@Override
@@ -110,6 +110,14 @@ public abstract class MegumiShikigamiEntity extends TamableAnimal {
 
 	public boolean combatEnabled() {
 		return MegumiShikigamiPresentationPolicy.combatEnabled(phase());
+	}
+
+	/**
+	 * Whether this body currently suppresses the shared leash teleport. A committed
+	 * movement (Ox charge) outranges the leash and must not be teleported mid-flight.
+	 */
+	public boolean suppressesLeash() {
+		return false;
 	}
 
 	void beginRecall() {

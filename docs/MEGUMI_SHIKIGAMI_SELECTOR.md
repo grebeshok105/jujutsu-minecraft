@@ -37,7 +37,7 @@ One selector key has two behaviours.
 The selector is a **horizontal strip near the bottom-centre of the screen, above the hotbar**.
 
 - Each shikigami gets a stable slot.
-- Expected practical count is roughly **7–8 shikigami**, while the layout must remain valid up to about **10**.
+- Current roster is **9 shikigami** (dogs + 8 body types); the layout must remain valid up to about **10**.
 - Every slot always shows both:
   - the shikigami's **3D model**;
   - its **name**.
@@ -184,7 +184,7 @@ The design is satisfied when all of the following are true in play:
 1. A quick press advances exactly once to the next available shikigami and never opens the strip.
 2. Holding for roughly 200 ms opens the strip without first advancing the current selection.
 3. Opening the selector never pauses or slows the game.
-4. The selector appears as a bottom-centred horizontal strip above the hotbar and remains readable with approximately 7–8 normal entries and up to about 10.
+4. The selector appears as a bottom-centred horizontal strip above the hotbar and remains readable with the current 9 entries and up to about 10.
 5. Every shikigami keeps a stable slot position and always presents both its 3D model and name.
 6. The cursor starts in the centre; camera-look is suspended while selecting; LMB cannot leak through into an attack.
 7. Hovering provides feedback but never changes selection by itself.

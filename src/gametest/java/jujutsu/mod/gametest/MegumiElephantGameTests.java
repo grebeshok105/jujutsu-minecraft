@@ -29,7 +29,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import jujutsu.mod.character.megumi.MegumiSummonCooldowns;
 import jujutsu.mod.character.megumi.MegumiElephantEntity;
 import jujutsu.mod.character.megumi.MegumiElephantPolicy;
+import jujutsu.mod.character.megumi.MegumiHostilityPolicy;
 import jujutsu.mod.character.megumi.MegumiShikigami;
+import jujutsu.mod.character.megumi.MegumiShikigamiEntity;
 import jujutsu.mod.character.megumi.MegumiShikigamiFriendlyFire;
 import jujutsu.mod.character.megumi.MegumiShikigamiProfile;
 import jujutsu.mod.character.megumi.MegumiShikigamiRuntime;
@@ -325,6 +327,11 @@ public final class MegumiElephantGameTests {
 				UUID ownerId = caster.getUUID();
 				Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
 				zombie.setPersistenceRequired();
+				// Cross-test isolation: a foreign pack marking/killing the jet target mid-window
+				// leaves the poll loop returning early forever — the test then times out instead
+				// of failing honestly. The tag bars foreign autonomous marks; the elephant's own
+				// jet gate refuses invulnerable targets, so damageability must stay.
+				zombie.addTag("jujutsu.autonomous_mark.none");
 				AttributeInstance health = zombie.getAttribute(Attributes.MAX_HEALTH);
 				helper.assertTrue(health != null, MegumiShikigamiTestFixtures.diagnostic(fixture,
 						"sic", helper.getTick(), ownerId, "zombie health attribute", "present", "absent"));
@@ -415,19 +422,28 @@ public final class MegumiElephantGameTests {
 	public void elephantPresencePushesNeutralWithoutDamaging(GameTestHelper helper) {
 		String fixture = "elephantPresencePushesNeutralWithoutDamaging";
 		BlockPos casterFeet = new BlockPos(2, 1, 2);
-		paveFloor(helper, 0, 6, 0, 7);
+		paveFloor(helper, 0, 14, 0, 14);
+		// The push slides the cow a couple of blocks: keep it on paved ground and clear the
+		// airspace so a shifted world offset can't drop it off a ledge or occlude the arena
+		// (terrain-shift flake — the cow's 1.0 damage was a fall, not the jet pulse).
+		for (int dx = 0; dx <= 14; dx++) {
+			for (int dz = 0; dz <= 14; dz++) {
+				for (int dy = 1; dy <= 3; dy++) {
+					helper.setBlock(new BlockPos(dx, dy, dz), Blocks.AIR);
+				}
+			}
+		}
 		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
 		ServerLevel level = helper.getLevel();
 		Cow cow = GameTestFixtures.spawnMob(helper, fixture, EntityType.COW, new BlockPos(5, 1, 6));
 		cow.setPersistenceRequired();
-		// The cow is teamed with the caster: a bare neutral is still autonomy-eligible
-		// (isEligibleTarget accepts any non-allied living), and the elephant would mark it between
-		// the park and the push — the jet pulse then reads as exactly 1.0 damage. Allied keeps the
-		// push (isOwnSideOnly excludes only the owner's own bodies) but drops the mark.
-		net.minecraft.world.scores.PlayerTeam team = level.getScoreboard()
-				.addPlayerTeam(fixture + "_team");
-		level.getScoreboard().addPlayerToTeam(caster.getScoreboardName(), team);
-		level.getScoreboard().addPlayerToTeam(cow.getScoreboardName(), team);
+		// A bare neutral is autonomy-eligible (isEligibleTarget accepts any non-allied living), so
+		// the elephant may mark and jet it — and teaming cannot fix that here: every mock player
+		// shares the scoreboard name "test-mock-player", and a concurrently running fixture that
+		// teams its own caster re-seats the shared name mid-test (observed: casterTeam=serp… while
+		// cowTeam=ele…). The cow stays damageable so the no-damage oracle below is real; the
+		// `none` tag bars foreign autonomous marks, which is what would route foreign damage at it.
+		cow.addTag("jujutsu.autonomous_mark.none");
 		AtomicReference<Double> healthBefore = new AtomicReference<>();
 		AtomicBoolean pushed = new AtomicBoolean();
 
@@ -449,8 +465,14 @@ public final class MegumiElephantGameTests {
 						"park", helper.getTick(), ownerId, "body ACTIVE", "true", bodies.get(0).combatEnabled()));
 				helper.assertTrue(cow.isAlive(), MegumiShikigamiTestFixtures.diagnostic(fixture,
 						"park", helper.getTick(), ownerId, "cow alive", "true", cow.isAlive()));
-				Vec3 epos = bodies.get(0).position();
-				cow.teleportTo(epos.x + 2.0, epos.y, epos.z);
+				// Park both on the paved floor at fixed relative spots: teleporting the cow to
+				// the elephant's own Y drops it onto whatever ledge the spawn scan picked, and a
+				// wandering cow can step off the pad — either reads as exactly 1.0 fall damage.
+				cow.setNoAi(true);
+				BlockPos elephantPad = helper.absolutePos(new BlockPos(4, 1, 4));
+				bodies.get(0).teleportTo(elephantPad.getX() + 0.5, elephantPad.getY(), elephantPad.getZ() + 0.5);
+				BlockPos cowPad = helper.absolutePos(new BlockPos(6, 1, 4));
+				cow.teleportTo(cowPad.getX() + 0.5, cowPad.getY(), cowPad.getZ() + 0.5);
 				healthBefore.set((double) cow.getHealth());
 			} catch (RuntimeException | AssertionError failure) {
 				cow.discard();
@@ -469,8 +491,19 @@ public final class MegumiElephantGameTests {
 				double before = healthBefore.get();
 				if (!cow.isAlive() || cow.getHealth() < before) {
 					try {
+						net.minecraft.world.damagesource.DamageSource lastSource = cow.getLastDamageSource();
+						String sourceName = lastSource == null ? "none" : lastSource.getMsgId()
+								+ "/" + (lastSource.getEntity() == null ? "no-entity" : lastSource.getEntity().getType().toString());
+						List<MegumiElephantEntity> probe = elephantsOwnedBy(level, caster.getUUID());
+						String state = probe.isEmpty() ? "no-body"
+								: "allied=" + caster.isAlliedTo(cow)
+								+ " cowTeam=" + (cow.getTeam() == null ? "null" : cow.getTeam().getName())
+								+ " casterTeam=" + (caster.getTeam() == null ? "null" : caster.getTeam().getName())
+								+ " hostile=" + MegumiHostilityPolicy.isHostile(caster, cow)
+								+ " tgt=" + probe.get(0).getTarget();
 						helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
-								"push", helper.getTick(), caster.getUUID(), "neutral takes no damage", before, cow.getHealth()));
+								"push", helper.getTick(), caster.getUUID(), "neutral takes no damage (src=" + sourceName
+										+ " " + state + " pos=" + cow.position() + ")", before, cow.getHealth()));
 					} finally {
 						cow.discard();
 						MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
@@ -526,6 +559,7 @@ public final class MegumiElephantGameTests {
 		ServerLevel level = helper.getLevel();
 		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, new BlockPos(5, 1, 6));
 		zombie.setPersistenceRequired();
+		zombie.addTag("jujutsu.autonomous_mark.none");
 		AtomicReference<Double> healthBefore = new AtomicReference<>();
 		AtomicBoolean first = new AtomicBoolean();
 		AtomicBoolean second = new AtomicBoolean();
@@ -721,6 +755,8 @@ public final class MegumiElephantGameTests {
 		ServerLevel level = helper.getLevel();
 		Cow cow = GameTestFixtures.spawnMob(helper, fixture, EntityType.COW, new BlockPos(5, 1, 6));
 		cow.setPersistenceRequired();
+		cow.addTag("jujutsu.autonomous_mark.none");
+		cow.setInvulnerable(true);
 
 		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
 			UUID ownerId = caster.getUUID();
@@ -1066,9 +1102,23 @@ public final class MegumiElephantGameTests {
 				bodies.get(0).teleportTo(elephantCell.getX() + 0.5, elephantCell.getY(),
 						elephantCell.getZ() + 0.5);
 				// Teleport does not clear the path/momentum chosen at the summon point. Remove
-				// both so this oracle observes only the fresh FollowOwnerGoal decision.
 				bodies.get(0).getNavigation().stop();
 				bodies.get(0).setDeltaMovement(Vec3.ZERO);
+				// Neighbouring fixtures' monsters target the mock owner on sight (shared test
+				// world, structures ~30 blocks apart): a wandering cursed spirit aggroes the
+				// caster, the retaliation pass marks it, and the elephant chases the mark instead
+				// of leashing. Clear every non-owned hostile in leash range so the only legal
+				for (net.minecraft.world.entity.monster.Monster stray : level.getEntities(
+						EntityTypeTest.forClass(net.minecraft.world.entity.monster.Monster.class),
+						// The mark radius is AUTONOMY_RADIUS (15): a stray parked at 13-15 blocks
+						// survives a tighter purge and still becomes a legal autonomous mark.
+						caster.getBoundingBox().inflate(MegumiShikigamiProfile.AUTONOMY_RADIUS + 1.0),
+						// Tagged entities belong to another fixture's isolation setup — discarding
+						// them is exactly the cross-test kill this purge was meant to prevent.
+						entity -> entity.getTags().stream()
+								.noneMatch(tag -> tag.startsWith("jujutsu.autonomous_mark.")))) {
+					stray.discard();
+				}
 				ownerPark.set(caster.position());
 				double parked = bodies.get(0).position().distanceTo(caster.position());
 				helper.assertTrue(parked > MegumiShikigamiProfile.ELEPHANT_FOLLOW_START_DISTANCE,
@@ -1161,7 +1211,16 @@ public final class MegumiElephantGameTests {
 	private void runJetScenario(GameTestHelper helper, String fixture, boolean ownerInCorridor) {
 		BlockPos casterFeet = new BlockPos(2, 1, 2);
 		BlockPos zombieFeet = new BlockPos(5, 1, 6);
-		paveFloor(helper, 0, 6, 0, 7);
+		paveFloor(helper, 0, 14, 0, 14);
+		// Same terrain-shift guard as the presence test: a shifted world offset can leave the
+		// spawn scan without a collision-free pad (rejectNoRoom) or drop the zombie off a ledge.
+		for (int dx = 0; dx <= 14; dx++) {
+			for (int dz = 0; dz <= 14; dz++) {
+				for (int dy = 1; dy <= 3; dy++) {
+					helper.setBlock(new BlockPos(dx, dy, dz), Blocks.AIR);
+				}
+			}
+		}
 		// One opaque block above the zombie's head: kills sky-burn flakiness. The near-horizontal
 		// jet (trunk ~+1.9 descending to the zombie's chest ~+1.0) passes well below it, as do all
 		// sight lines.
@@ -1170,6 +1229,8 @@ public final class MegumiElephantGameTests {
 		ServerLevel level = helper.getLevel();
 		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
 		zombie.setPersistenceRequired();
+		// Cross-test isolation: no foreign coordinator may autonomously mark the jet target.
+		zombie.addTag("jujutsu.autonomous_mark.none");
 		AtomicReference<Double> healthBefore = new AtomicReference<>();
 		AtomicReference<BlockPos> laidFloor = new AtomicReference<>();
 		AtomicBoolean jetted = new AtomicBoolean();
@@ -1180,6 +1241,10 @@ public final class MegumiElephantGameTests {
 			boolean summoned = MegumiShikigamiRuntime.tryPrimary(caster, false);
 			helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
 					"summon", helper.getTick(), ownerId, "tryPrimary result", "true", summoned));
+			// The elephant body and its caster must never become foreign packs' marks.
+			caster.addTag("jujutsu.autonomous_mark.none");
+			elephantsOwnedBy(level, ownerId)
+					.forEach(body -> body.addTag("jujutsu.autonomous_mark.none"));
 		}));
 
 		helper.runAtTickTime(SIC_TICK, () -> {

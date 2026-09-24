@@ -15,7 +15,11 @@ class MegumiShikigamiTest {
 		assertEquals(MegumiShikigami.TOAD, MegumiShikigami.NUE.next());
 		assertEquals(MegumiShikigami.RABBITS, MegumiShikigami.TOAD.next());
 		assertEquals(MegumiShikigami.ELEPHANT, MegumiShikigami.RABBITS.next());
-		assertEquals(MegumiShikigami.DOGS, MegumiShikigami.ELEPHANT.next());
+		assertEquals(MegumiShikigami.SERPENT, MegumiShikigami.ELEPHANT.next());
+		assertEquals(MegumiShikigami.DEER, MegumiShikigami.SERPENT.next());
+		assertEquals(MegumiShikigami.OX, MegumiShikigami.DEER.next());
+		assertEquals(MegumiShikigami.TIGER, MegumiShikigami.OX.next());
+		assertEquals(MegumiShikigami.DOGS, MegumiShikigami.TIGER.next());
 	}
 
 	@Test
@@ -25,7 +29,9 @@ class MegumiShikigamiTest {
 			assertTrue(ids.add(type.id()), "duplicate roster id: " + type.id());
 			assertEquals(type, MegumiShikigami.byId(type.id()));
 		}
-		assertEquals(Set.of("dogs", "nue", "toad", "rabbits", "elephant"), ids);
+		assertEquals(
+				Set.of("dogs", "nue", "toad", "rabbits", "elephant", "serpent", "deer", "ox", "tiger"),
+				ids);
 	}
 
 	@Test

@@ -1,0 +1,557 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.megumi_ox.idle": {
+      "loop": true,
+      "animation_length": 2,
+      "bones": {
+        "head": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                -3,
+                0,
+                0
+              ]
+            },
+            "1.0": {
+              "vector": [
+                2,
+                0,
+                0
+              ]
+            },
+            "2.0": {
+              "vector": [
+                -3,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "tail": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                -10
+              ]
+            },
+            "1.0": {
+              "vector": [
+                0,
+                0,
+                10
+              ]
+            },
+            "2.0": {
+              "vector": [
+                0,
+                0,
+                -10
+              ]
+            }
+          }
+        }
+      }
+    },
+    "animation.megumi_ox.walk": {
+      "loop": true,
+      "animation_length": 1,
+      "bones": {
+        "leg_fl": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                25,
+                0,
+                0
+              ]
+            },
+            "0.5": {
+              "vector": [
+                -25,
+                0,
+                0
+              ]
+            },
+            "1.0": {
+              "vector": [
+                25,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "leg_br": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                25,
+                0,
+                0
+              ]
+            },
+            "0.5": {
+              "vector": [
+                -25,
+                0,
+                0
+              ]
+            },
+            "1.0": {
+              "vector": [
+                25,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "leg_fr": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                -25,
+                0,
+                0
+              ]
+            },
+            "0.5": {
+              "vector": [
+                25,
+                0,
+                0
+              ]
+            },
+            "1.0": {
+              "vector": [
+                -25,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "leg_bl": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                -25,
+                0,
+                0
+              ]
+            },
+            "0.5": {
+              "vector": [
+                25,
+                0,
+                0
+              ]
+            },
+            "1.0": {
+              "vector": [
+                -25,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "body": {
+          "position": {
+            "0.0": {
+              "vector": [
+                0,
+                0.2,
+                0
+              ]
+            },
+            "0.5": {
+              "vector": [
+                0,
+                -0.2,
+                0
+              ]
+            },
+            "1.0": {
+              "vector": [
+                0,
+                0.2,
+                0
+              ]
+            }
+          }
+        }
+      }
+    },
+    "animation.megumi_ox.windup": {
+      "animation_length": 0.8,
+      "bones": {
+        "head": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.4167": {
+              "vector": [
+                -35,
+                0,
+                0
+              ]
+            },
+            "0.7917": {
+              "vector": [
+                -40,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "body": {
+          "position": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.4167": {
+              "vector": [
+                0,
+                -1,
+                1
+              ]
+            },
+            "0.7917": {
+              "vector": [
+                0,
+                -1.5,
+                1.5
+              ]
+            }
+          }
+        },
+        "leg_fl": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.7917": {
+              "vector": [
+                15,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "leg_fr": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.7917": {
+              "vector": [
+                15,
+                0,
+                0
+              ]
+            }
+          }
+        }
+      }
+    },
+    "animation.megumi_ox.charge": {
+      "loop": true,
+      "animation_length": 0.5,
+      "bones": {
+        "leg_fl": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                45,
+                0,
+                0
+              ]
+            },
+            "0.25": {
+              "vector": [
+                -45,
+                0,
+                0
+              ]
+            },
+            "0.5": {
+              "vector": [
+                45,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "leg_br": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                45,
+                0,
+                0
+              ]
+            },
+            "0.25": {
+              "vector": [
+                -45,
+                0,
+                0
+              ]
+            },
+            "0.5": {
+              "vector": [
+                45,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "leg_fr": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                -45,
+                0,
+                0
+              ]
+            },
+            "0.25": {
+              "vector": [
+                45,
+                0,
+                0
+              ]
+            },
+            "0.5": {
+              "vector": [
+                -45,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "leg_bl": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                -45,
+                0,
+                0
+              ]
+            },
+            "0.25": {
+              "vector": [
+                45,
+                0,
+                0
+              ]
+            },
+            "0.5": {
+              "vector": [
+                -45,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "head": {
+          "rotation": {
+            "vector": [
+              -45,
+              0,
+              0
+            ]
+          }
+        },
+        "body": {
+          "rotation": {
+            "vector": [
+              5,
+              0,
+              0
+            ]
+          },
+          "position": {
+            "vector": [
+              0,
+              -1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    "animation.megumi_ox.impact": {
+      "animation_length": 0.6,
+      "bones": {
+        "head": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                -45,
+                0,
+                0
+              ]
+            },
+            "0.2083": {
+              "vector": [
+                20,
+                0,
+                0
+              ]
+            },
+            "0.5833": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "body": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                5,
+                0,
+                0
+              ]
+            },
+            "0.2083": {
+              "vector": [
+                -8,
+                0,
+                0
+              ]
+            },
+            "0.5833": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          },
+          "position": {
+            "0.0": {
+              "vector": [
+                0,
+                -1,
+                0
+              ]
+            },
+            "0.2083": {
+              "vector": [
+                0,
+                0.5,
+                -1
+              ]
+            },
+            "0.5833": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        }
+      }
+    },
+    "animation.megumi_ox.recover": {
+      "animation_length": 1,
+      "bones": {
+        "head": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                -20,
+                0,
+                0
+              ]
+            },
+            "0.5": {
+              "vector": [
+                -10,
+                0,
+                0
+              ]
+            },
+            "1.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "body": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                -3,
+                0,
+                0
+              ]
+            },
+            "1.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          },
+          "position": {
+            "0.0": {
+              "vector": [
+                0,
+                -0.5,
+                0
+              ]
+            },
+            "1.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "geckolib_format_version": 2
+}

@@ -82,6 +82,10 @@ class MegumiAbilitySlotsTest {
 		expected.put(MegumiShikigami.TOAD, MegumiPartialProfile.PartialKind.TONGUE);
 		expected.put(MegumiShikigami.RABBITS, null);
 		expected.put(MegumiShikigami.ELEPHANT, null);
+		expected.put(MegumiShikigami.SERPENT, null);
+		expected.put(MegumiShikigami.DEER, null);
+		expected.put(MegumiShikigami.OX, null);
+		expected.put(MegumiShikigami.TIGER, null);
 		assertEquals(MegumiShikigami.values().length, expected.size(),
 				"a shikigami was added without deciding whether it manifests partially (R37)");
 		for (Map.Entry<MegumiShikigami, MegumiPartialProfile.PartialKind> row : expected.entrySet()) {

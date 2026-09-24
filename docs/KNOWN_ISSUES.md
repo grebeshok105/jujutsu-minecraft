@@ -73,8 +73,9 @@ Owned by [PROVENANCE.md](PROVENANCE.md) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY
 ### Shikigami selection is in-memory, and the slice ships with accepted limits
 
 Decided with the `feat/megumi-shikigami` branch. Accepted limits of the Ten Shadows slice
-(Nue / Toad / Rabbit Escape / Max Elephant); reopen any of them only with an explicit owner call,
-not as drive-by "fixes".
+(Nue / Toad / Rabbit Escape / Max Elephant, extended by `feat/ten-shadows-expansion` with
+Great Serpent / Round Deer / Piercing Ox / Tiger Funeral); reopen any of them only with an
+explicit owner call, not as drive-by "fixes".
 
 1. **The shikigami selection resets on relog.** `MegumiShikigamiSelection` is a static
    owner-keyed map by design (see its javadoc): only `DISCONNECT` and `SERVER_STOPPING` clear it,
@@ -103,7 +104,7 @@ not as drive-by "fixes".
    not even gravity. Assert displacement only on AI mobs with zeroed speed (Slowness amplifier
    100), otherwise assert velocity/effect state. Recorded so a future scenario author cannot
    re-learn it the red way.
-7. **The sic can out-range what the body can actually do.** `SIC_RANGE` (the aim) is 20 blocks for
+7. **The sic can out-range what the body can actually do.** `SIC_RANGE` (the aim) is 15 blocks for
    every type, while the toad's tongue reaches 12 and the elephant's jet corridor about 13.2 from
    the body. A sic past those marks still routes, plays the snap and the cue, and arms the 30-tick
    `PRIMARY_SNEAK` cooldown; the elephant now refuses to *fire* beyond its reach (review fix), and
@@ -125,7 +126,24 @@ not as drive-by "fixes".
    symmetric). Shipped byte-identical to the Sorcery Age source; the swarm reads through motion
    and count, and editing a third-party clip is a new asset revision, not a bug fix.
 
-10. **The MCP dev-lane save can kill the lane player before it loads.** Verified
+10. **Tiger Funeral is authorial, not canon.** The source material does not disclose Tiger
+    Funeral's mechanics, so its committed three-hit combo (stalk → windup → strike 1 →
+    strike 2 → finisher → recovery) is a project design, flagged authorial in
+    `MegumiShikigamiProfile`. If canon later defines the kit differently, the profile and
+    brain are the single place to retune — the state machine is deliberately generic.
+11. **The four expansion models are project-authored placeholders.** Serpent, Deer, Ox and
+    Tiger geometry/animations/textures were built in Blockbench for this mod (see
+    `docs/PROVENANCE.md`). They are functional, not final art — a sculpted pass is new art,
+    not a bug fix.
+12. **GameTest cross-arena contamination needs the autonomous-mark tags.** All ~40 expansion
+    GameTests share one world; foreign pack coordinators used to mark each other's victims
+    and foreign packs damaged/bound them (~30 flakes). Every test victim/body/caster that
+    must not be a foreign mark now carries `jujutsu.autonomous_mark.none` (or
+    `jujutsu.autonomous_mark.<ownerUuid>` when only its own coordinator may mark); the gate
+    lives in `MegumiPackCoordinator.rebuild`, and manual sic + retaliation bypass it. New
+    tests must follow the same tagging or they will flake the same way.
+
+13. **The MCP dev-lane save can kill the lane player before it loads.** Verified
    2026-09-13: persisted cursed spirits (they are the only summon-like entities that
    save — shikigami are `noSave()`) gathered near the spawn over several live passes,
    and a freshly booted lane player died inside the same crowd before the world finished

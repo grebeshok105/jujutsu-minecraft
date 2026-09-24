@@ -213,6 +213,7 @@ public final class MegumiToadGameTests {
 		ServerLevel level = helper.getLevel();
 		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
 		zombie.setPersistenceRequired();
+		zombie.addTag("jujutsu.autonomous_mark.none");
 		zombie.setNoAi(false);
 		// AI body with zeroed speed: full AI keeps physics while Slowness 100 removes self-motion,
 		// so every displacement observed below belongs to the grab or the throw.
@@ -444,6 +445,7 @@ public final class MegumiToadGameTests {
 		ServerLevel level = helper.getLevel();
 		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
 		zombie.setPersistenceRequired();
+		zombie.addTag("jujutsu.autonomous_mark.none");
 		zombie.setNoAi(false);
 		zombie.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 2400, 100, false, false, false), caster);
 
@@ -909,6 +911,7 @@ public final class MegumiToadGameTests {
 		ServerLevel level = helper.getLevel();
 		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
 		zombie.setPersistenceRequired();
+		zombie.addTag("jujutsu.autonomous_mark.none");
 		zombie.setNoAi(false);
 
 		AtomicBoolean done = new AtomicBoolean();
@@ -1147,6 +1150,7 @@ public final class MegumiToadGameTests {
 		ServerLevel level = helper.getLevel();
 		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
 		zombie.setPersistenceRequired();
+		zombie.addTag("jujutsu.autonomous_mark.none");
 		zombie.setNoAi(false);
 		// Same zeroed-speed AI body as S2: full AI keeps physics while Slowness 100 removes
 		// self-motion — and guarantees the victim can never land the hit that would arm the
@@ -1263,6 +1267,7 @@ public final class MegumiToadGameTests {
 		ServerLevel level = helper.getLevel();
 		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
 		zombie.setPersistenceRequired();
+		zombie.addTag("jujutsu.autonomous_mark.none");
 		zombie.setNoAi(false);
 		// Same zeroed-speed AI body as R2: full AI keeps physics while Slowness 100 removes
 		// self-motion — and guarantees the victim can never land the hit that would arm the
@@ -1282,6 +1287,14 @@ public final class MegumiToadGameTests {
 
 		helper.runAtTickTime(SUMMON_TICK + 4, () -> {
 			try {
+				// NoAI before the exile: FollowOwnerGoal would teleport/chase the body after the
+				// exiled owner — straight behind the wall — and the self-pick then fails on the
+				// toad's own LoS, not the owner's. The brain is runtime-driven, so NoAI only
+				// cuts the vanilla goals (same pattern as alreadyHeldVictimRefusesSecondHolder).
+				List<MegumiToadEntity> bodies = toadOwnedBy(level, caster.getUUID());
+				if (bodies.size() == 1) {
+					bodies.get(0).setNoAi(true);
+				}
 				BlockPos exilePad = helper.absolutePos(exileFeet);
 				caster.teleportTo(level, exilePad.getX() + 0.5, exilePad.getY(), exilePad.getZ() + 0.5,
 						Set.of(), 0.0f, 0.0f, false);
@@ -1368,6 +1381,7 @@ public final class MegumiToadGameTests {
 		ServerLevel level = helper.getLevel();
 		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
 		zombie.setPersistenceRequired();
+		zombie.addTag("jujutsu.autonomous_mark.none");
 		zombie.setNoAi(false);
 		zombie.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 2400, 100, false, false, false), caster);
 
@@ -1471,6 +1485,17 @@ public final class MegumiToadGameTests {
 		BlockPos victimFeet = new BlockPos(12, 1, 13);
 		BlockPos runnerVictimFeet = new BlockPos(13, 1, 13);
 		layStoneFloor(helper);
+		// The victim/spirit pads sit far past the caster's 3x3 pad: pave and clear their ground
+		// too, or a shifted world offset lands them on a slope/ledge that breaks eye-level LoS
+		// and the teleport (terrain-shift flake, same class as the ox airspace fix).
+		for (int dx = 4; dx <= 14; dx++) {
+			for (int dz = 4; dz <= 14; dz++) {
+				helper.setBlock(new BlockPos(dx, 0, dz), Blocks.STONE);
+				for (int dy = 1; dy <= 3; dy++) {
+					helper.setBlock(new BlockPos(dx, dy, dz), Blocks.AIR);
+				}
+			}
+		}
 		helper.setBlock(victimFeet.below(), Blocks.STONE);
 		helper.setBlock(runnerVictimFeet.below(), Blocks.STONE);
 		// Spirit pads sit past TOAD_GRAB_RANGE from the caster's corner: inside it a wandering
@@ -1488,17 +1513,30 @@ public final class MegumiToadGameTests {
 		// gate under test.
 		CharacterSelectionManager.select(victim, JujutsuCharacter.MEGUMI);
 		CharacterSelectionManager.select(runnerVictim, JujutsuCharacter.MEGUMI);
+		// Cross-test isolation: a foreign pack siccing on either scripted victim would kill the
+		// hold premise (dead victim drops GRIPPED, and the toad's grab then lands legally).
+		victim.addTag("jujutsu.autonomous_mark.none");
+		runnerVictim.addTag("jujutsu.autonomous_mark.none");
 		ServerLevel level = helper.getLevel();
 
 		CursedSpiritEntity spiritA = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
 				JujutsuEntities.CURSED_SPIRIT, spiritFeetA);
+		// NoAI immediately: spawnSpirit leaves AI on, and a live brain can self-start an
+		// attack-clip ability (acid/fear) in the ticks before the scripted start — the clip
+		// then reads occupied and RunnerEffect.start refuses for the wrong reason.
+		spiritA.setNoAi(true);
+		// Cross-test isolation: spiritA owns the scripted hold — a foreign pack killing it would
+		// release the victim and let the toad's grab land legally, faking a broken refuse gate.
+		spiritA.setInvulnerable(true);
+		spiritA.addTag("jujutsu.autonomous_mark.none");
 		CursedSpiritEntity spiritB = CursedSpiritTestFixtures.spawnSpirit(helper, fixture,
 				JujutsuEntities.CURSED_SPIRIT, spiritFeetB);
 		// NoAI: the spirits exist only as {@code RunnerEffect.start} handles — a live combat AI
 		// could fire its own runner on a bystander and burn the one-start-per-tick budget or the
 		// cooldown the manual start asserts on.
-		spiritA.setNoAi(true);
 		spiritB.setNoAi(true);
+		spiritB.setInvulnerable(true);
+		spiritB.addTag("jujutsu.autonomous_mark.none");
 
 		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
 			MegumiShikigamiSelection.set(caster.getUUID(), MegumiShikigami.TOAD);
@@ -1603,7 +1641,10 @@ public final class MegumiToadGameTests {
 				// Runner + toad: the commit ran (cooldown armed) and refused the held victim.
 				helper.assertTrue(!body.isHolding(),
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "refuse", helper.getTick(),
-								caster.getUUID(), "grab on an already-held victim", "refused (false)",
+								caster.getUUID(), "grab on an already-held victim (held="
+										+ body.grabbedUuid() + " victim=" + victim.getUUID()
+										+ " spiritA=" + spiritA.getUUID() + " spiritB=" + spiritB.getUUID()
+										+ " victimHeld=" + HoldSupport.isHeld(victim) + ")", "refused (false)",
 								body.isHolding()));
 				helper.assertTrue(!body.attackReady(level.getGameTime()),
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "refuse", helper.getTick(),
@@ -1658,6 +1699,7 @@ public final class MegumiToadGameTests {
 		ServerLevel level = helper.getLevel();
 		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
 		zombie.setPersistenceRequired();
+		zombie.addTag("jujutsu.autonomous_mark.none");
 		zombie.setNoAi(false);
 		zombie.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 2400, 100, false, false, false), caster);
 
@@ -1831,6 +1873,7 @@ public final class MegumiToadGameTests {
 		ServerLevel level = helper.getLevel();
 		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
 		zombie.setPersistenceRequired();
+		zombie.addTag("jujutsu.autonomous_mark.none");
 		zombie.setNoAi(false);
 		zombie.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 2400, 100, false, false, false), caster);
 

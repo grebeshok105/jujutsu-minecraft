@@ -87,6 +87,46 @@ public final class MegumiShikigamiTestFixtures {
 	}
 
 	/**
+	 * A Megumi caster with a UNIQUE scoreboard name. {@code makeMockServerPlayerInLevel} gives every
+	 * mock the shared name "test-mock-player", so any scoreboard team holding that name allies the
+	 * caster to every other test's mock — which makes a victim on that team ineligible to our own
+	 * sic. A uniquely-named caster stays off that team: victims allied to all foreign mocks remain
+	 * legal marks for this caster only. Use for tests whose victim must be unreachable by foreign
+	 * packs (cross-test autonomous-mark isolation).
+	 */
+	public static ServerPlayer setupNamedMegumiCaster(GameTestHelper helper,
+			String fixture, BlockPos relativeFeet, float yaw, float pitch, String name) {
+		ServerLevel level = helper.getLevel();
+		MinecraftServer server = level.getServer();
+		com.mojang.authlib.GameProfile profile = new com.mojang.authlib.GameProfile(
+				UUID.randomUUID(), name);
+		ServerPlayer caster = new ServerPlayer(server, level, profile,
+				net.minecraft.server.level.ClientInformation.createDefault());
+		try {
+			net.minecraft.network.Connection connection =
+					new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND);
+			new io.netty.channel.embedded.EmbeddedChannel(connection);
+			server.getPlayerList().placeNewPlayer(connection, caster,
+					net.minecraft.server.network.CommonListenerCookie.createInitial(profile, false));
+			BlockPos absolute = helper.absolutePos(relativeFeet);
+			caster.teleportTo(level, absolute.getX() + 0.5, absolute.getY(), absolute.getZ() + 0.5,
+					Set.of(), yaw, pitch, false);
+			caster.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
+			caster.setHealth(caster.getMaxHealth());
+			caster.setClientLoaded(true);
+			caster.setInvulnerable(false);
+			CharacterSelectionManager.select(caster, JujutsuCharacter.MEGUMI);
+			CharacterAbilityCooldowns.clear(caster, CharacterAbility.PRIMARY);
+			CharacterAbilityCooldowns.clear(caster, CharacterAbility.PRIMARY_SNEAK);
+			MegumiShikigamiSelection.clear(caster.getUUID());
+			return caster;
+		} catch (RuntimeException | AssertionError failure) {
+			cleanupCaster(helper, caster);
+			throw failure;
+		}
+	}
+
+	/**
 	 * Every live Nue body owned by {@code ownerId} in {@code level}. Owner-filtered, never
 	 * bounds-filtered: the world offset is random per run and bodies drift (hover), so a structure
 	 * bounds scan could miss a live body or catch a sibling test's. Fresh mock UUIDs per test make

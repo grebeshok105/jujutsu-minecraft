@@ -1,6 +1,6 @@
 package jujutsu.mod.character.megumi;
 
-/** Centralized tuning for the four new Ten Shadows shikigami (Nue / Toad / Rabbit Escape / Max Elephant). */
+/** Centralized tuning for the Ten Shadows shikigami beyond the Divine Dogs (Nue / Toad / Rabbit Escape / Max Elephant / Great Serpent / Round Deer / Piercing Ox / Tiger Funeral). */
 public final class MegumiShikigamiProfile {
 	private MegumiShikigamiProfile() {}
 
@@ -17,6 +17,10 @@ public final class MegumiShikigamiProfile {
 			case TOAD -> TOAD_RECALL_COOLDOWN_TICKS;
 			case RABBITS -> RABBITS_RECALL_COOLDOWN_TICKS;
 			case ELEPHANT -> ELEPHANT_RECALL_COOLDOWN_TICKS;
+			case SERPENT -> SERPENT_RECALL_COOLDOWN_TICKS;
+			case DEER -> DEER_RECALL_COOLDOWN_TICKS;
+			case OX -> OX_RECALL_COOLDOWN_TICKS;
+			case TIGER -> TIGER_RECALL_COOLDOWN_TICKS;
 		};
 	}
 
@@ -27,6 +31,10 @@ public final class MegumiShikigamiProfile {
 			case TOAD -> TOAD_DEATH_COOLDOWN_TICKS;
 			case RABBITS -> RABBITS_DEATH_COOLDOWN_TICKS;
 			case ELEPHANT -> ELEPHANT_DEATH_COOLDOWN_TICKS;
+			case SERPENT -> SERPENT_DEATH_COOLDOWN_TICKS;
+			case DEER -> DEER_DEATH_COOLDOWN_TICKS;
+			case OX -> OX_DEATH_COOLDOWN_TICKS;
+			case TIGER -> TIGER_DEATH_COOLDOWN_TICKS;
 		};
 	}
 
@@ -38,7 +46,7 @@ public final class MegumiShikigamiProfile {
 	public static int expiryCooldownTicks(MegumiShikigami type) {
 		return switch (type) {
 			case RABBITS -> RABBITS_EXPIRY_COOLDOWN_TICKS;
-			case DOGS, NUE, TOAD, ELEPHANT -> 0;
+			case DOGS, NUE, TOAD, ELEPHANT, SERPENT, DEER, OX, TIGER -> 0;
 		};
 	}
 
@@ -224,4 +232,92 @@ public final class MegumiShikigamiProfile {
 	public static final double FAILURE_PENALTY = 0.6;
 	/** Below this weight the pounce launch skips the attempt entirely this tick (R16). Production
 	 * reads {@link MegumiProfile#POUNCE_RETRY_MIN_WEIGHT} — same gate, one constant. */
+
+	// --- Great Serpent (provisional tuning, not survival balance) ---
+	public static final double SERPENT_HEALTH = 60.0;
+	public static final double SERPENT_MOVEMENT_SPEED = 0.30;
+	public static final double SERPENT_FOLLOW_START_DISTANCE = 8.0;
+	public static final double SERPENT_FOLLOW_STOP_DISTANCE = 3.0;
+	public static final int SERPENT_MATERIALIZE_TICKS = 16;
+	public static final int SERPENT_RECALL_TICKS = 12;
+	public static final int SERPENT_RECALL_COOLDOWN_TICKS = 240;
+	public static final int SERPENT_DEATH_COOLDOWN_TICKS = 400;
+	public static final double SERPENT_AMBUSH_RANGE = 14.0;
+	public static final int SERPENT_PREPARE_TICKS = 10;
+	public static final int SERPENT_SUBMERGE_TICKS = 14;
+	public static final int SERPENT_EMERGE_TICKS = 8;
+	public static final double SERPENT_BIND_RANGE = 3.0;
+	public static final int SERPENT_BIND_TICKS = 80;
+	public static final double SERPENT_BIND_LEASH = 20.0;
+	public static final int SERPENT_RECOVERY_TICKS = 30;
+	public static final int SERPENT_SCAN_TICKS = 10;
+	public static final double SERPENT_ANCHOR_OFFSET = 1.2;
+	public static final int SERPENT_MARKER_TICKS = 10;
+
+	// --- Round Deer (provisional tuning, not survival balance) ---
+	public static final double DEER_HEALTH = 40.0;
+	public static final double DEER_MOVEMENT_SPEED = 0.32;
+	public static final double DEER_FOLLOW_START_DISTANCE = 7.0;
+	public static final double DEER_FOLLOW_STOP_DISTANCE = 2.5;
+	public static final int DEER_MATERIALIZE_TICKS = 16;
+	public static final int DEER_RECALL_TICKS = 12;
+	public static final int DEER_RECALL_COOLDOWN_TICKS = 240;
+	public static final int DEER_DEATH_COOLDOWN_TICKS = 400;
+	public static final int DEER_SCAN_TICKS = 20;
+	public static final int DEER_PULSE_TICKS = 24;
+	public static final int DEER_PULSE_COOLDOWN_TICKS = 60;
+	public static final float DEER_HEAL_AMOUNT = 6.0f;
+	public static final float DEER_HEAVY_WOUND_FRACTION = 0.5f;
+	public static final double DEER_SUPPORT_RADIUS = 12.0;
+
+	// --- Piercing Ox (provisional tuning, not survival balance) ---
+	public static final double OX_HEALTH = 70.0;
+	public static final double OX_MOVEMENT_SPEED = 0.28;
+	public static final double OX_FOLLOW_START_DISTANCE = 8.0;
+	public static final double OX_FOLLOW_STOP_DISTANCE = 3.0;
+	public static final int OX_MATERIALIZE_TICKS = 16;
+	public static final int OX_RECALL_TICKS = 12;
+	public static final int OX_RECALL_COOLDOWN_TICKS = 240;
+	public static final int OX_DEATH_COOLDOWN_TICKS = 400;
+	public static final double OX_ACQUIRE_RANGE = 20.0;
+	public static final double OX_ALIGN_MAX_ANGLE = 12.0;
+	public static final int OX_WINDUP_TICKS = 12;
+	public static final double OX_CHARGE_SPEED = 0.9;
+	public static final double OX_CHARGE_MAX_DISTANCE = 32.0;
+	public static final int OX_CHARGE_MAX_TICKS = 60;
+	public static final double OX_SWEEP_MARGIN = 0.4;
+	public static final double OX_IMPACT_BASE = 4.0;
+	public static final double OX_IMPACT_SLOPE = 0.35;
+	public static final double OX_IMPACT_MIN = 4.0;
+	public static final double OX_IMPACT_MAX = 18.0;
+	public static final int OX_HIT_STAGGER_TICKS = 10;
+	public static final double OX_HIT_KNOCKBACK = 1.2;
+	public static final int OX_RECOVERY_TICKS = 30;
+	public static final int OX_CHARGE_COOLDOWN_TICKS = 80;
+
+	// --- Tiger Funeral (authorial; provisional tuning, not survival balance) ---
+	public static final double TIGER_HEALTH = 55.0;
+	public static final double TIGER_MOVEMENT_SPEED = 0.34;
+	public static final double TIGER_FOLLOW_START_DISTANCE = 8.0;
+	public static final double TIGER_FOLLOW_STOP_DISTANCE = 3.0;
+	public static final int TIGER_MATERIALIZE_TICKS = 16;
+	public static final int TIGER_RECALL_TICKS = 12;
+	public static final int TIGER_RECALL_COOLDOWN_TICKS = 240;
+	public static final int TIGER_DEATH_COOLDOWN_TICKS = 400;
+	public static final double TIGER_APPROACH_RANGE = 16.0;
+	public static final int TIGER_WINDUP_TICKS = 10;
+	public static final int TIGER_STRIKE1_WINDOW_TICK = 6;
+	public static final int TIGER_STRIKE2_WINDOW_TICK = 14;
+	public static final int TIGER_FINISHER_WINDOW_TICK = 24;
+	public static final double TIGER_STRIKE_RANGE = 3.0;
+	public static final double TIGER_STRIKE_MIN_DOT = 0.5;
+	public static final double TIGER_STRIKE_VERTICAL = 2.0;
+	public static final float TIGER_STRIKE1_DAMAGE = 5.0f;
+	public static final int TIGER_STRIKE1_STAGGER = 6;
+	public static final float TIGER_STRIKE2_DAMAGE = 8.0f;
+	public static final int TIGER_STRIKE2_STAGGER = 10;
+	public static final float TIGER_FINISHER_DAMAGE = 14.0f;
+	public static final double TIGER_FINISHER_KNOCKBACK = 1.6;
+	public static final int TIGER_RECOVERY_TICKS = 40;
+	public static final int TIGER_COMBO_COOLDOWN_TICKS = 100;
 }

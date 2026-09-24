@@ -62,6 +62,38 @@ public final class MegumiVfxIds {
 	 */
 	public static final ResourceLocation NUE_PARTIAL_WINGS = JujutsuMod.id("megumi/nue_partial_wings");
 
+	// --- shikigami slice (Great Serpent / Round Deer / Piercing Ox / Tiger Funeral) ---
+	/** Great Serpent's summon pool. */
+	public static final ResourceLocation SERPENT_SUMMON = JujutsuMod.id("megumi/serpent_summon");
+	/** The shadow rise as the serpent emerges beside its mark. */
+	public static final ResourceLocation SERPENT_AMBUSH = JujutsuMod.id("megumi/serpent_ambush");
+	/** Bind accent while a victim is held. */
+	public static final ResourceLocation SERPENT_BIND = JujutsuMod.id("megumi/serpent_bind");
+	/** Release beat when the hold lets go. */
+	public static final ResourceLocation SERPENT_RELEASE = JujutsuMod.id("megumi/serpent_release");
+	/** Round Deer's summon pool. */
+	public static final ResourceLocation DEER_SUMMON = JujutsuMod.id("megumi/deer_summon");
+	/** Positive-energy pulse: the heal beat. */
+	public static final ResourceLocation DEER_PULSE = JujutsuMod.id("megumi/deer_pulse");
+	/** Cleanse burst when a debuff is lifted. */
+	public static final ResourceLocation DEER_CLEANSE = JujutsuMod.id("megumi/deer_cleanse");
+	/** Piercing Ox's summon pool. */
+	public static final ResourceLocation OX_SUMMON = JujutsuMod.id("megumi/ox_summon");
+	/** Horn-lowering windup before the committed charge. */
+	public static final ResourceLocation OX_WINDUP = JujutsuMod.id("megumi/ox_windup");
+	/** Ground trail + growing intensity while the charge runs. */
+	public static final ResourceLocation OX_CHARGE = JujutsuMod.id("megumi/ox_charge");
+	/** Entity impact burst, scaled by accumulated distance. */
+	public static final ResourceLocation OX_IMPACT = JujutsuMod.id("megumi/ox_impact");
+	/** Wall/abort impact when the charge dies on world collision. */
+	public static final ResourceLocation OX_ABORT = JujutsuMod.id("megumi/ox_abort");
+	/** Tiger Funeral's summon pool. */
+	public static final ResourceLocation TIGER_SUMMON = JujutsuMod.id("megumi/tiger_summon");
+	/** Per-strike accent on combo hits. */
+	public static final ResourceLocation TIGER_STRIKE = JujutsuMod.id("megumi/tiger_strike");
+	/** Finisher burst: the heaviest beat of the combo. */
+	public static final ResourceLocation TIGER_FINISHER = JujutsuMod.id("megumi/tiger_finisher");
+
 	public static final Set<ResourceLocation> LIVE = Set.of(
 			DOGS_SUMMON_BODY, DOGS_SUMMON, DOGS_RECALL, DOGS_SIC, DOGS_POUNCE,
 			SHADOW_TRAP_OPEN, SHADOW_TRAP_ZONE, SHADOW_TRAP_GRIP, SHADOW_TRAP_CLOSE,
@@ -70,7 +102,11 @@ public final class MegumiVfxIds {
 			NUE_SUMMON, NUE_DIVE, NUE_SHOCK, NUE_PARTIAL_WINGS, SHIKIGAMI_SIC, SHIKIGAMI_RECALL,
 			TOAD_SUMMON, TOAD_TONGUE,
 			ELEPHANT_SUMMON, ELEPHANT_JET,
-			RABBITS_SUMMON, RABBITS_POP);
+			RABBITS_SUMMON, RABBITS_POP,
+			SERPENT_SUMMON, SERPENT_AMBUSH, SERPENT_BIND, SERPENT_RELEASE,
+			DEER_SUMMON, DEER_PULSE, DEER_CLEANSE,
+			OX_SUMMON, OX_WINDUP, OX_CHARGE, OX_IMPACT, OX_ABORT,
+			TIGER_SUMMON, TIGER_STRIKE, TIGER_FINISHER);
 	public static final Set<ResourceLocation> PLANNED = Set.of();
 
 	private MegumiVfxIds() {}

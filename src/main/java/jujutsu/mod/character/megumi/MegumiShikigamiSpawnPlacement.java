@@ -10,7 +10,7 @@ import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Spawn placement for the four new shikigami. Ground types reuse the dog slice's floor/hazard scan
+ * Spawn placement for the non-dog shikigami. Ground types reuse the dog slice's floor/hazard scan
  * ({@link MegumiGroundSafety}); the flyer needs a clearance check instead. The candidate builders
  * and the {@code Predicate} overloads are the testable seams — the level-backed methods only wire
  * them to the real world.

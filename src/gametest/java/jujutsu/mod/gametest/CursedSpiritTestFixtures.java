@@ -78,10 +78,15 @@ public final class CursedSpiritTestFixtures {
 	 * not invulnerable, hostile difficulty).
 	 */
 	public static ServerPlayer setupVictim(GameTestHelper helper, String fixture, BlockPos relativeFeet) {
+		return setupVictim(helper, fixture, relativeFeet, "cursed-spirit-victim");
+	}
+
+	public static ServerPlayer setupVictim(GameTestHelper helper, String fixture, BlockPos relativeFeet,
+			String name) {
 		net.minecraft.server.level.ServerLevel level = helper.getLevel();
 		MinecraftServer server = level.getServer();
 		com.mojang.authlib.GameProfile profile = new com.mojang.authlib.GameProfile(
-				java.util.UUID.randomUUID(), "cursed-spirit-victim");
+				java.util.UUID.randomUUID(), name);
 		ServerPlayer victim = new ServerPlayer(server, level, profile,
 				net.minecraft.server.level.ClientInformation.createDefault());
 		try {

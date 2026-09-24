@@ -92,7 +92,8 @@ public final class MegumiPartialGameTests {
 						ownerId, "tryPartial on the default DOGS selection", "false", dogs));
 				assertNoPartial(helper, fixture, "dogs", caster);
 
-				for (MegumiShikigami bare : new MegumiShikigami[] {MegumiShikigami.RABBITS, MegumiShikigami.ELEPHANT}) {
+				for (MegumiShikigami bare : new MegumiShikigami[] {MegumiShikigami.RABBITS, MegumiShikigami.ELEPHANT,
+						MegumiShikigami.SERPENT, MegumiShikigami.DEER, MegumiShikigami.OX, MegumiShikigami.TIGER}) {
 					MegumiShikigamiSelection.set(ownerId, bare);
 					boolean pressed = MegumiPartialRuntime.tryPartial(caster, false);
 					helper.assertTrue(!pressed, MegumiShikigamiTestFixtures.diagnostic(fixture, "refuse",

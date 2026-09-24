@@ -13,6 +13,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.character.CharacterSelectionManager;
@@ -323,6 +324,17 @@ public final class CursedSpiritAbilityGameTests {
 	public void runnerMustApproachBeforeGrab(GameTestHelper helper) {
 		String fixture = "runnerMustApproachBeforeGrab";
 		CursedSpiritTestFixtures.layStoneFloor(helper);
+		// The approach corridor runs z=2→14, past layStoneFloor's 1..6 pad: a shifted world
+		// offset can drop the spirit one block below the victim's ledge, where MoveControl
+		// stalls without a collision to jump against (observed: spirit parked at y−1, dist 3.04).
+		for (int dx = 0; dx <= 8; dx++) {
+			for (int dz = 0; dz <= 15; dz++) {
+				helper.setBlock(new BlockPos(dx, 0, dz), Blocks.STONE);
+				for (int dy = 1; dy <= 3; dy++) {
+					helper.setBlock(new BlockPos(dx, dy, dz), Blocks.AIR);
+				}
+			}
+		}
 		CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
 		ServerLevel level = helper.getLevel();
 		ServerPlayer victim = CursedSpiritTestFixtures.setupVictim(helper, fixture,

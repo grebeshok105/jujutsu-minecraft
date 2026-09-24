@@ -89,12 +89,43 @@ public final class MegumiPackCoordinator {
 		return bodies;
 	}
 
+	/**
+	 * Entity-tag gate for the autonomous pass. A candidate tagged
+	 * {@code "jujutsu.autonomous_mark.none"} is never auto-marked; a candidate tagged
+	 * {@code "jujutsu.autonomous_mark.<ownerUuid>"} is auto-marked only by that owner's
+	 * coordinator. Manual sic and retaliation bypass this gate entirely — it exists so GameTests
+	 * can isolate a fixture's victim/bodies from neighbouring tests' coordinators, which share
+	 * the arena and would otherwise steal marks. Untagged entities behave exactly as before.
+	 */
+	private static boolean autonomousMarkAllowed(UUID ownerId, LivingEntity candidate) {
+		// Scan every prefixed tag: `none` must deny regardless of tag-set iteration order, and
+		// an owner-scoped tag only admits its own coordinator.
+		boolean sawOwnerTag = false;
+		for (String tag : candidate.getTags()) {
+			if (!tag.startsWith(AUTONOMOUS_MARK_TAG_PREFIX)) {
+				continue;
+			}
+			String value = tag.substring(AUTONOMOUS_MARK_TAG_PREFIX.length());
+			if ("none".equals(value)) {
+				return false;
+			}
+			sawOwnerTag = true;
+			if (ownerId.toString().equals(value)) {
+				return true;
+			}
+		}
+		return !sawOwnerTag;
+	}
+
+	private static final String AUTONOMOUS_MARK_TAG_PREFIX = "jujutsu.autonomous_mark.";
+
 	private static MegumiCombatContext rebuild(ServerPlayer owner, ServerLevel level, long gameTime) {
 		UUID ownerId = owner.getUUID();
 		List<LivingEntity> candidates = level.getEntitiesOfClass(LivingEntity.class,
 				owner.getBoundingBox().inflate(MegumiShikigamiProfile.AUTONOMY_RADIUS),
 				candidate -> candidate.isAlive()
 						&& !candidate.isRemoved()
+						&& autonomousMarkAllowed(ownerId, candidate)
 						&& MegumiSummonRuntime.isEligibleTarget(owner, candidate));
 		List<LivingEntity> bodies = markHolders(level.getServer(), ownerId);
 		Map<UUID, UUID> marks = new HashMap<>();
@@ -117,6 +148,12 @@ public final class MegumiPackCoordinator {
 			} else if (body instanceof MegumiElephantEntity elephant && elephant.jetActive()
 					&& elephant.sicTargetUuid() != null) {
 				intents.add(elephant.sicTargetUuid());
+			} else if (body instanceof MegumiSerpentEntity serpent && serpent.bindTargetUuid() != null) {
+				intents.add(serpent.bindTargetUuid());
+			} else if (body instanceof MegumiOxEntity ox && ox.chargeTargetUuid() != null) {
+				intents.add(ox.chargeTargetUuid());
+			} else if (body instanceof MegumiTigerEntity tiger && tiger.comboTargetUuid() != null) {
+				intents.add(tiger.comboTargetUuid());
 			}
 			LivingEntity aggressor = body.getLastHurtByMob();
 			if (MegumiRetaliationPolicy.isUsable(aggressor)

@@ -213,6 +213,7 @@ public final class MegumiCoexistenceGameTests {
 		ServerLevel level = helper.getLevel();
 		Zombie mark = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, markFeet);
 		mark.setPersistenceRequired();
+		mark.addTag("jujutsu.autonomous_mark.none");
 
 		helper.runAtTickTime(FIRST_SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
 			UUID ownerId = caster.getUUID();
@@ -287,6 +288,7 @@ public final class MegumiCoexistenceGameTests {
 		ServerLevel level = helper.getLevel();
 		Zombie mark = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, markFeet);
 		mark.setPersistenceRequired();
+		mark.addTag("jujutsu.autonomous_mark.none");
 
 		helper.runAtTickTime(FIRST_SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
 			UUID ownerId = caster.getUUID();
@@ -372,9 +374,11 @@ public final class MegumiCoexistenceGameTests {
 		// mark standing exactly where the aim left it.
 		Zombie mark = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, markFeet);
 		mark.setPersistenceRequired();
+		mark.addTag("jujutsu.autonomous_mark.none");
 		mark.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 10000, 4, false, false, false));
 		Zombie attacker = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, attackerFeet);
 		attacker.setPersistenceRequired();
+		attacker.addTag("jujutsu.autonomous_mark.none");
 		AtomicBoolean summoned = new AtomicBoolean();
 
 		helper.runAtTickTime(FIRST_SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, owner, () -> {
@@ -472,8 +476,10 @@ public final class MegumiCoexistenceGameTests {
 		ServerLevel level = helper.getLevel();
 		Zombie firstMark = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, firstMarkFeet);
 		firstMark.setPersistenceRequired();
+		firstMark.addTag("jujutsu.autonomous_mark.none");
 		Zombie secondMark = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, secondMarkFeet);
 		secondMark.setPersistenceRequired();
+		secondMark.addTag("jujutsu.autonomous_mark.none");
 
 		helper.runAtTickTime(FIRST_SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, first, () -> {
 			MegumiShikigamiSelection.set(first.getUUID(), MegumiShikigami.DOGS);

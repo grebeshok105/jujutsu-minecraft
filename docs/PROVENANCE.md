@@ -55,6 +55,31 @@ Status: CURRENT PROVENANCE NOTE
   bundled — the summon logic, brains, and behavior are project code. Do not expand the set
   casually.
 
+## Project-authored shikigami assets (Great Serpent / Round Deer / Piercing Ox / Tiger Funeral)
+
+- Created 2026-09-24 for the Ten Shadows expansion (`feat/ten-shadows-expansion`): geometry,
+  animation sets and textures were authored in Blockbench for this mod by the project — no
+  third-party source, no license obligations beyond the project's own.
+- Runtime paths, per type (geo identifier `geometry.megumi_<x>`, clips
+  `animation.megumi_<x>.*`):
+  `assets/jujutsumod/geckolib/models/megumi_serpent.geo.json`,
+  `assets/jujutsumod/geckolib/animations/megumi_serpent.animation.json`,
+  `assets/jujutsumod/textures/entity/megumi_serpent.png`,
+  `assets/jujutsumod/geckolib/models/megumi_deer.geo.json`,
+  `assets/jujutsumod/geckolib/animations/megumi_deer.animation.json`,
+  `assets/jujutsumod/textures/entity/megumi_deer.png`,
+  `assets/jujutsumod/geckolib/models/megumi_ox.geo.json`,
+  `assets/jujutsumod/geckolib/animations/megumi_ox.animation.json`,
+  `assets/jujutsumod/textures/entity/megumi_ox.png`,
+  `assets/jujutsumod/geckolib/models/megumi_tiger.geo.json`,
+  `assets/jujutsumod/geckolib/animations/megumi_tiger.animation.json`,
+  `assets/jujutsumod/textures/entity/megumi_tiger.png`.
+- Four player hand-sign clips (`summon_serpent`, `summon_deer`, `summon_ox`, `summon_tiger`)
+  were authored into `assets/jujutsumod/geckolib/animations/megumi/megumi_fushiguro.animation.json`
+  alongside the existing `summon_divine_dogs` clip — same project-authored status.
+- No new sound files: every new shikigami reuses vanilla sound placeholders, same as the
+  Sorcery Age set.
+
 ## Sons of Sins cursed-spirit assets (lesser / common / greater tiers)
 
 - Imported 2026-09-12 for the cursed-spirits feature (`lesser_cursed_spirit`,

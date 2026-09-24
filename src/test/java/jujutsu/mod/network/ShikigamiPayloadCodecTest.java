@@ -67,9 +67,11 @@ class ShikigamiPayloadCodecTest {
 		int slots = MegumiShikigami.values().length;
 		byte[] codes = new byte[slots];
 		long[] readyAt = new long[slots];
+		MegumiShikigamiSlotState[] states = MegumiShikigamiSlotState.values();
 		for (int i = 0; i < slots; i++) {
 			// Distinct per slot: a transposed read lands on a different value and fails the compare.
-			codes[i] = (byte) MegumiShikigamiSlotState.values()[i].ordinal();
+			// The roster outgrew the state space, so codes cycle — the deadlines stay unique.
+			codes[i] = (byte) states[i % states.length].ordinal();
 			readyAt[i] = 1_000L + i * 37L;
 		}
 		ShikigamiStatePayload sent = new ShikigamiStatePayload("elephant", codes, readyAt, 4_242L);

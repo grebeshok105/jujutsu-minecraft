@@ -85,7 +85,7 @@ class ShikigamiSelectorLayoutTest {
 	void slotGeometryFollowsTheIndexAndNeverTheShikigamiInIt() {
 		List<ShikigamiSelectorLayout.Slot> canonical =
 				ShikigamiSelectorLayout.layout(WIDE_W, WIDE_H, List.of(MegumiShikigami.values()));
-		List<MegumiShikigami> swapped = new ArrayList<>(entries(5));
+		List<MegumiShikigami> swapped = new ArrayList<>(entries(canonical.size()));
 		java.util.Collections.reverse(swapped);
 		List<ShikigamiSelectorLayout.Slot> other = ShikigamiSelectorLayout.layout(WIDE_W, WIDE_H, swapped);
 		assertEquals(canonical.size(), other.size());
