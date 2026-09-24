@@ -16,7 +16,11 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import jujutsu.mod.character.megumi.MegumiDivineDogEntity;
 import jujutsu.mod.character.megumi.MegumiDogPresentationPolicy;
+import jujutsu.mod.character.megumi.MegumiDeerEntity;
 import jujutsu.mod.character.megumi.MegumiElephantEntity;
+import jujutsu.mod.character.megumi.MegumiOxEntity;
+import jujutsu.mod.character.megumi.MegumiSerpentEntity;
+import jujutsu.mod.character.megumi.MegumiTigerEntity;
 import jujutsu.mod.character.megumi.MegumiNueEntity;
 import jujutsu.mod.character.megumi.MegumiRabbitEntity;
 import jujutsu.mod.character.megumi.MegumiShikigami;
@@ -64,7 +68,11 @@ public final class ShikigamiSlotView {
 			MegumiShikigami.NUE, 1.0f,
 			MegumiShikigami.TOAD, 1.0f,
 			MegumiShikigami.RABBITS, 0.9f,
-			MegumiShikigami.ELEPHANT, 0.95f));
+			MegumiShikigami.ELEPHANT, 0.95f,
+			MegumiShikigami.SERPENT, 0.85f,
+			MegumiShikigami.DEER, 0.9f,
+			MegumiShikigami.OX, 0.85f,
+			MegumiShikigami.TIGER, 0.9f));
 	private static final Map<MegumiShikigami, LivingEntity> MODELS = new EnumMap<>(MegumiShikigami.class);
 
 	/** Marker grids, drawn as pixels so the strip needs no texture of its own. '#' is painted. */
@@ -217,6 +225,10 @@ public final class ShikigamiSlotView {
 			case TOAD -> new MegumiToadEntity(JujutsuEntities.MEGUMI_TOAD, level);
 			case RABBITS -> new MegumiRabbitEntity(JujutsuEntities.MEGUMI_RABBIT, level);
 			case ELEPHANT -> new MegumiElephantEntity(JujutsuEntities.MEGUMI_MAX_ELEPHANT, level);
+			case SERPENT -> new MegumiSerpentEntity(JujutsuEntities.MEGUMI_SERPENT, level);
+			case DEER -> new MegumiDeerEntity(JujutsuEntities.MEGUMI_DEER, level);
+			case OX -> new MegumiOxEntity(JujutsuEntities.MEGUMI_OX, level);
+			case TIGER -> new MegumiTigerEntity(JujutsuEntities.MEGUMI_TIGER, level);
 		};
 		MODELS.put(type, fresh);
 		return fresh;

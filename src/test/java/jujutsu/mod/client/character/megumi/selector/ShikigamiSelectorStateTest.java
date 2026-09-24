@@ -112,7 +112,11 @@ class ShikigamiSelectorStateTest {
 				"jujutsumod.megumi.shikigami.nue",
 				"jujutsumod.megumi.shikigami.toad",
 				"jujutsumod.megumi.shikigami.rabbits",
-				"jujutsumod.megumi.shikigami.elephant");
+				"jujutsumod.megumi.shikigami.elephant",
+				"jujutsumod.megumi.shikigami.serpent",
+				"jujutsumod.megumi.shikigami.deer",
+				"jujutsumod.megumi.shikigami.ox",
+				"jujutsumod.megumi.shikigami.tiger");
 		for (Path lang : LANG_FILES) {
 			String json = read(lang);
 			for (String key : contracted) {

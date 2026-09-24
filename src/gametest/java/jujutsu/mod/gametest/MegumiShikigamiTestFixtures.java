@@ -104,6 +104,22 @@ public final class MegumiShikigamiTestFixtures {
 	}
 
 	/**
+	 * Generic form of {@link #nueOwnedBy} for the new roster types: every live body of
+	 * {@code bodyClass} owned by {@code ownerId}, owner-filtered — never bounds-filtered (the
+	 * world offset is random per run).
+	 */
+	public static <T extends jujutsu.mod.character.megumi.MegumiShikigamiEntity> List<T> ownedBy(
+			ServerLevel level, UUID ownerId, Class<T> bodyClass) {
+		List<T> owned = new ArrayList<>();
+		for (T body : level.getEntities(EntityTypeTest.forClass(bodyClass), candidate -> true)) {
+			if (ownerId.equals(body.ownerUuid())) {
+				owned.add(body);
+			}
+		}
+		return owned;
+	}
+
+	/**
 	 * Cleanup (success AND failure paths): tear down both pack runtimes with the cooldown-free
 	 * FIXTURE_RESET reason, clear both cooldown slots while still selected as MEGUMI (the key
 	 * resolves the vessel), clear the static shikigami selection, then PlayerList.remove — never

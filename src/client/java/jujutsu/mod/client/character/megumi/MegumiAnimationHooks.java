@@ -20,6 +20,50 @@ public final class MegumiAnimationHooks {
 		}
 	}
 
+	public static void triggerSerpentSummon(VfxCue cue) {
+		Minecraft client = Minecraft.getInstance();
+		if (client.level == null || cue.anchorEntityId() == VfxCue.NO_ANCHOR) {
+			return;
+		}
+		Entity caster = client.level.getEntity(cue.anchorEntityId());
+		if (caster != null) {
+			MegumiPlayerGeoAnimatable.INSTANCE.triggerSerpentSummon(caster);
+		}
+	}
+
+	public static void triggerDeerSummon(VfxCue cue) {
+		Minecraft client = Minecraft.getInstance();
+		if (client.level == null || cue.anchorEntityId() == VfxCue.NO_ANCHOR) {
+			return;
+		}
+		Entity caster = client.level.getEntity(cue.anchorEntityId());
+		if (caster != null) {
+			MegumiPlayerGeoAnimatable.INSTANCE.triggerDeerSummon(caster);
+		}
+	}
+
+	public static void triggerOxSummon(VfxCue cue) {
+		Minecraft client = Minecraft.getInstance();
+		if (client.level == null || cue.anchorEntityId() == VfxCue.NO_ANCHOR) {
+			return;
+		}
+		Entity caster = client.level.getEntity(cue.anchorEntityId());
+		if (caster != null) {
+			MegumiPlayerGeoAnimatable.INSTANCE.triggerOxSummon(caster);
+		}
+	}
+
+	public static void triggerTigerSummon(VfxCue cue) {
+		Minecraft client = Minecraft.getInstance();
+		if (client.level == null || cue.anchorEntityId() == VfxCue.NO_ANCHOR) {
+			return;
+		}
+		Entity caster = client.level.getEntity(cue.anchorEntityId());
+		if (caster != null) {
+			MegumiPlayerGeoAnimatable.INSTANCE.triggerTigerSummon(caster);
+		}
+	}
+
 	public static void triggerShadowDive(VfxCue cue) {
 		Minecraft client = Minecraft.getInstance();
 		if (client.level == null || cue.anchorEntityId() == VfxCue.NO_ANCHOR) {
