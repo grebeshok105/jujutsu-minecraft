@@ -342,8 +342,8 @@ public final class MegumiSerpentGameTests {
 				helper.assertTrue(body.isAlive(), MegumiShikigamiTestFixtures.diagnostic(fixture,
 						"owner-death", helper.getTick(), ownerId, "serpent alive before owner death",
 						"true", body.isAlive()));
-				// kill() no-ops on mock players — die() fires AFTER_DEATH synchronously.
-				owner.die(level.damageSources().genericKill());
+				// The real damage pipeline: AFTER_DEATH -> reconcile, not a synthetic die() call.
+				owner.hurtServer(level, level.damageSources().genericKill(), Float.MAX_VALUE);
 				helper.assertTrue(owner.isDeadOrDying(), MegumiShikigamiTestFixtures.diagnostic(fixture,
 						"owner-death", helper.getTick(), ownerId, "owner died", "true", owner.isDeadOrDying()));
 				helper.assertTrue(MegumiShikigamiTestFixtures.ownedBy(level, ownerId,

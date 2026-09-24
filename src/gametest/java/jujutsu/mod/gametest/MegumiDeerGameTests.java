@@ -432,7 +432,8 @@ public final class MegumiDeerGameTests {
 		helper.runAtTickTime(ACT_TICK, () -> {
 			try {
 				UUID ownerId = owner.getUUID();
-				owner.die(level.damageSources().genericKill());
+				// The real damage pipeline: AFTER_DEATH -> reconcile, not a synthetic die() call.
+				owner.hurtServer(level, level.damageSources().genericKill(), Float.MAX_VALUE);
 				helper.assertTrue(owner.isDeadOrDying(), MegumiShikigamiTestFixtures.diagnostic(fixture,
 						"owner-death", helper.getTick(), ownerId, "owner died", "true",
 						owner.isDeadOrDying()));
