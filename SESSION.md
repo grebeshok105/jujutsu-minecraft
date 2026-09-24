@@ -1,3 +1,27 @@
+# Session Handoff — ten-shadows expansion 5→9 — 2026-09-24
+
+## State — DONE, PR #128 open (`feat/ten-shadows-expansion` → `main`)
+
+Four new first-class shikigami added to the existing Ten Shadows system:
+Great Serpent (ambush/bind via HoldSupport), Round Deer (heal pulses + allowlist
+cleanse), Piercing Ox (committed linear charge, distance-scaled, no homing),
+Tiger Funeral (authorial 3-hit combo, target-locked). Mahoraga out of scope.
+Old five frozen — generic enum/dispatch extensions only.
+
+Verified: 325 GameTests + 813 unit green; per-type GameTests + cross-family
+tests + red-proofs; live MCP pass per type (screenshots in `.agent-runs/ingame/`);
+all-9 coexistence confirmed on walled arena (dogs pack + 8 packs-map entries).
+
+Coexistence caveat: bodies wandering off an open platform edge unload →
+reconcile drops pack → orphan discard. Environmental, not a defect — no
+shikigami-on-shikigami damage in combat log. Live coexistence runs need an
+enclosed arena.
+
+Deferred (progress.md): E8 coordinator intent test (P2 optional); deer
+owner-first heal + GRIPPED residual cleanup — REFUTED at adjudication.
+
+---
+
 # Session Handoff — cursed-spirit melee "hit air" fix — 2026-09-20
 
 ## State — DONE, committed `e386cd7` on `integration/megumi-incidents-107-110`
