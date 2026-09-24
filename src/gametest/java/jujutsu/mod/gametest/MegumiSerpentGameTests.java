@@ -35,6 +35,7 @@ import jujutsu.mod.character.megumi.MegumiShikigamiSelection;
 import jujutsu.mod.character.megumi.MegumiSummonCooldowns;
 import jujutsu.mod.character.megumi.MegumiSummonRuntime;
 import jujutsu.mod.combat.HoldSupport;
+import jujutsu.mod.combat.SafeBodyPlacement;
 import jujutsu.mod.cursedspirit.hold.HeldVictimRegistry;
 import jujutsu.mod.registry.JujutsuEffects;
 
@@ -74,7 +75,6 @@ public final class MegumiSerpentGameTests {
 	private static final double HELD_MAX_STEP = 0.6;
 	/** Once converged, a bound victim sits at the mouth anchor: ~1.0 offset + one pull step slack. */
 	private static final double BOUND_ANCHOR_SLACK = 2.0;
-	private static final double NOCLIP_POSITION_TOLERANCE = 1.0;
 	private static final double BREAK_TELEPORT_BLOCKS = 20.0;
 
 	private static final int EXPECTED_RECALL_COOLDOWN_TICKS = 200;
@@ -627,8 +627,10 @@ public final class MegumiSerpentGameTests {
 	/**
 	 * The emerge point is re-validated while the coil waits: walling every rear-arc candidate
 	 * once the body is SUBMERGED must abort the ambush into RECOVERY — no teleport into solid
-	 * geometry, no bind. The serpent surfacing (recovery) exactly where it dove, outside every
-	 * wall block, is the no-noclip anchor.
+	 * geometry, no bind. The anchors: the body is NEVER inside a block at any polled tick (a
+	 * noclipped teleport would show up inside the wall it was denied), the victim stays unbound,
+	 * and the abort lands in RECOVERY before the deadline. No position assertion: a recovered
+	 * body walks back to its owner between retries, so where it stands is not the check.
 	 */
 	@GameTest(maxTicks = 320)
 	public void serpentNeverNoclips(GameTestHelper helper) {
@@ -648,7 +650,7 @@ public final class MegumiSerpentGameTests {
 
 		AtomicBoolean done = new AtomicBoolean();
 		AtomicBoolean walled = new AtomicBoolean();
-		AtomicReference<Vec3> submergePosition = new AtomicReference<>();
+		AtomicBoolean sawRecovery = new AtomicBoolean();
 
 		summonSerpent(helper, fixture, caster, SUMMON_TICK);
 		sicOn(helper, fixture, caster, zombie, SIC_TICK);
@@ -671,26 +673,26 @@ public final class MegumiSerpentGameTests {
 							}
 							return;
 						}
-						submergePosition.set(body.position());
-						// Every requested emerge spot gets a solid 3×3×2 shell: whichever candidate
-						// the placement scan picked is now inside a wall.
+						// Every requested emerge spot gets a solid 3×3×3 shell: whichever candidate
+						// the placement scan picked is now inside a wall. setBlock is
+						// structure-relative — the candidates are world coords, so each is
+						// pulled back through the structure origin (the random-offset trap).
+						BlockPos origin = helper.absolutePos(BlockPos.ZERO);
 						for (Vec3 candidate : MegumiSerpentPolicy.emergeCandidates(
 								zombie.position(), zombie.yBodyRot,
 								MegumiShikigamiProfile.SERPENT_EMERGE_REAR_OFFSET)) {
-							wallOff(helper, BlockPos.containing(candidate));
+							wallOff(helper, new BlockPos(
+									BlockPos.containing(candidate).subtract(origin)));
 						}
 						walled.set(true);
 						return;
 					}
-					if (body.state() != SerpentState.RECOVERY && body.state() != SerpentState.FOLLOW) {
-						if (pollTick == deadline) {
-							helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
-									"noclip", pollTick, caster.getUUID(),
-									"ambush aborted to RECOVERY after the wall went up",
-									"RECOVERY", body.state()));
-						}
-						return;
-					}
+					// The noclip oracle is polled, not terminal: a teleport into the denied wall
+					// is caught the tick it happens, wherever the state machine is.
+					helper.assertTrue(level.noBlockCollision(body, body.getBoundingBox()),
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "noclip", pollTick,
+									caster.getUUID(), "serpent never inside a wall block", "clear",
+									"inside solid in state " + body.state()));
 					helper.assertTrue(body.bindVictimUuid() == null,
 							MegumiShikigamiTestFixtures.diagnostic(fixture, "noclip", pollTick,
 									caster.getUUID(), "nobody was bound through a wall", "null",
@@ -699,20 +701,19 @@ public final class MegumiSerpentGameTests {
 							MegumiShikigamiTestFixtures.diagnostic(fixture, "noclip", pollTick,
 									caster.getUUID(), "victim unbound", "not held",
 									HoldSupport.isHeld(zombie)));
-					helper.assertTrue(body.position().distanceTo(submergePosition.get())
-									<= NOCLIP_POSITION_TOLERANCE,
-							MegumiShikigamiTestFixtures.diagnostic(fixture, "noclip", pollTick,
-									caster.getUUID(), "serpent surfaced where it dove (no teleport)",
-									"<= " + NOCLIP_POSITION_TOLERANCE,
-									body.position().distanceTo(submergePosition.get())));
-					helper.assertTrue(level.noBlockCollision(body, body.getBoundingBox()),
-							MegumiShikigamiTestFixtures.diagnostic(fixture, "noclip", pollTick,
-									caster.getUUID(), "serpent outside every wall block", "clear",
-									"inside solid"));
-					done.set(true);
-					zombie.discard();
-					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
-					helper.succeed();
+					if (body.state() == SerpentState.RECOVERY) {
+						sawRecovery.set(true);
+					}
+					if (pollTick == deadline) {
+						helper.assertTrue(sawRecovery.get(),
+								MegumiShikigamiTestFixtures.diagnostic(fixture, "noclip", pollTick,
+										caster.getUUID(), "ambush aborted to RECOVERY after the wall went up",
+										"RECOVERY", "never recovered; state=" + body.state()));
+						done.set(true);
+						zombie.discard();
+						MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+						helper.succeed();
+					}
 				} catch (RuntimeException | AssertionError failure) {
 					done.set(true);
 					zombie.discard();
@@ -1275,10 +1276,6 @@ public final class MegumiSerpentGameTests {
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "cooldown", helper.getTick(),
 								ownerId, "no pack (no summon_body cue is reachable)", "absent",
 								"present"));
-				helper.assertTrue(MegumiShikigamiTestFixtures.ownedBy(
-						level, ownerId, MegumiSerpentEntity.class).isEmpty(),
-						MegumiShikigamiTestFixtures.diagnostic(fixture, "cooldown", helper.getTick(),
-								ownerId, "no serpent body spawned", "0", "some"));
 				long remaining = MegumiSummonCooldowns.remainingTicks(
 						ownerId, MegumiShikigami.SERPENT, level.getGameTime());
 				helper.assertTrue(remaining > 0,
@@ -1288,7 +1285,17 @@ public final class MegumiSerpentGameTests {
 				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 			}
 		});
-		helper.runAtTickTime(30, () -> helper.succeed());
+		// The recall despawn takes SERPENT_RECALL_TICKS: only after it has finished does an empty
+		// arena prove the refused press spawned nothing — reading it earlier races the sinking body.
+		helper.runAtTickTime(30, () -> {
+			List<MegumiSerpentEntity> bodies = MegumiShikigamiTestFixtures.ownedBy(
+					level, caster.getUUID(), MegumiSerpentEntity.class);
+			helper.assertTrue(bodies.isEmpty(),
+					MegumiShikigamiTestFixtures.diagnostic(fixture, "cooldown", helper.getTick(),
+							caster.getUUID(), "no serpent body spawned by the refused press", "0",
+							bodies.size()));
+			helper.succeed();
+		});
 	}
 
 	// ---------------------------------------------------------------------------------------------
@@ -1372,11 +1379,15 @@ public final class MegumiSerpentGameTests {
 		return owned;
 	}
 
-	/** A solid 3×3×2 shell around the requested point: the body box cannot be placed through it. */
+	/**
+	 * A solid 3×3×3 shell around the requested point. Three tall is required, not cosmetic:
+	 * {@link SafeBodyPlacement.Policy}'s search walks a ±1 horizontal ring at +0/+1/+2 over the
+	 * request — a shorter shell leaves the top ring open and the emerge escapes through it.
+	 */
 	private static void wallOff(GameTestHelper helper, BlockPos center) {
 		for (int dx = -1; dx <= 1; dx++) {
 			for (int dz = -1; dz <= 1; dz++) {
-				for (int dy = 0; dy <= 1; dy++) {
+				for (int dy = 0; dy <= 2; dy++) {
 					helper.setBlock(center.offset(dx, dy, dz), Blocks.STONE);
 				}
 			}

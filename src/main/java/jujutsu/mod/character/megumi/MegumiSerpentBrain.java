@@ -270,6 +270,12 @@ final class MegumiSerpentBrain {
 		serpent.beginBind(target, gameTime + bindTicks);
 		serpent.setState(SerpentState.BIND);
 		serpent.setPresentationAction(MegumiSerpentEntity.ACTION_BIND);
+		// The coil closes atomically with the state: isBinding() must imply a live registry
+		// pair — a one-tick gap where BIND is set but the victim is not yet held reads as a
+		// broken pin to anything polling the hold (and lets the victim get one free move).
+		HoldSupport.applyHold(serpent, target,
+				MegumiSerpentPolicy.mouthAnchor(serpent.position(), serpent.getLookAngle()),
+				HoldSupport.CollisionPolicy.SERPENT, GRIP_MARKER_TICKS);
 		level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FISHING_BOBBER_SPLASH,
 				SoundSource.NEUTRAL, 0.9f, 1.0f);
 		MegumiShikigamiRuntime.broadcastCue(level, owner, MegumiVfxIds.SERPENT_BIND,
@@ -389,16 +395,22 @@ final class MegumiSerpentBrain {
 				HoldSupport.isHeld(target),
 				CombatTags.isUngrabbable(target),
 				target.isPassenger(),
-				isAirborne(target),
+				isAirborne(level, target),
 				serpent.distanceTo(target));
 	}
 
 	/**
 	 * Deviation 4.7's airborne refusal: a target off the ground (dive-carried, mid-knockback,
 	 * flying) has no ankles to bite. Swimming counts as grounded — the coil works in water.
+	 *
+	 * <p>{@code onGround()} alone cannot decide this: the flag is only recomputed inside travel(),
+	 * which a NoAI body never runs — a body standing planted on the floor reports
+	 * {@code onGround()==false} from spawn to despawn. The probe therefore asks the world whether
+	 * anything actually supports the hitbox: no collision within half a block below means air.
 	 */
-	private static boolean isAirborne(LivingEntity target) {
-		return !target.onGround() && !target.isInWater() && !target.isInLava();
+	private static boolean isAirborne(ServerLevel level, LivingEntity target) {
+		return !target.onGround() && !target.isInWater() && !target.isInLava()
+				&& level.noCollision(target, target.getBoundingBox().move(0.0, -0.51, 0.0));
 	}
 
 	private static double hitboxVolume(LivingEntity entity) {
