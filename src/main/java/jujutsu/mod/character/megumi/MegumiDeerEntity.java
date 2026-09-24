@@ -1,7 +1,9 @@
 package jujutsu.mod.character.megumi;
 
+import java.util.UUID;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.TamableAnimal;
@@ -13,13 +15,25 @@ import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * One transient Round Deer body: the roster's support — heals and cleanses its own, shoves with
  * its antlers only when cornered. The heal/cleanse cadence is owned by {@link MegumiDeerBrain};
- * this entity only carries the summoned-body contract.
+ * this entity only carries the summoned-body contract plus the scan clocks and the pulse's
+ * presentation target.
  */
 public final class MegumiDeerEntity extends MegumiShikigamiEntity {
+
+	/** How many ticks of the antler cooldown still show the shove clip (first ticks after the hit). */
+	private static final int SHOVE_FLASH_TICKS = 8;
+
+	private long nextHealScanGameTime;
+	private long nextCleanseScanGameTime;
+	private long antlerCooldownUntil;
+	private UUID healTargetUuid;
+	/** The last interpose anchor the brain steered to — kept so the nav re-issue is throttled. */
+	private Vec3 interposeAnchor;
 
 	public MegumiDeerEntity(EntityType<? extends TamableAnimal> type, Level level) {
 		super(type, level);
@@ -27,6 +41,15 @@ public final class MegumiDeerEntity extends MegumiShikigamiEntity {
 
 	/** Which action clip the client should hold: 0=none, 1=heal pulse, 2=antler shove. */
 	public int presentationAction() {
+		if (healTargetUuid != null && actionTicks() > 0) {
+			return 1;
+		}
+		long gameTime = level().getGameTime();
+		if (gameTime < antlerCooldownUntil
+				&& antlerCooldownUntil - gameTime
+						> MegumiShikigamiProfile.DEER_ANTLER_COOLDOWN_TICKS - SHOVE_FLASH_TICKS) {
+			return 2;
+		}
 		return 0;
 	}
 
@@ -71,21 +94,63 @@ public final class MegumiDeerEntity extends MegumiShikigamiEntity {
 
 	@Override
 	protected void onActivated() {
-		playSpatial(SoundEvents.GOAT_AMBIENT, 0.45f, 1.1f);
+		playSpatial(SoundEvents.BEACON_ACTIVATE, 0.6f, 1.2f);
 	}
 
 	@Override
 	protected SoundEvent getAmbientSound() {
-		return SoundEvents.GOAT_AMBIENT;
+		return SoundEvents.LLAMA_AMBIENT;
 	}
 
 	@Override
-	protected SoundEvent getHurtSound(net.minecraft.world.damagesource.DamageSource source) {
-		return SoundEvents.GOAT_HURT;
+	protected SoundEvent getHurtSound(DamageSource source) {
+		return SoundEvents.LLAMA_HURT;
 	}
 
 	@Override
 	protected SoundEvent getDeathSound() {
-		return SoundEvents.GOAT_DEATH;
+		return SoundEvents.LLAMA_DEATH;
+	}
+
+	long nextHealScanGameTime() {
+		return nextHealScanGameTime;
+	}
+
+	/** Arm (or re-arm) the heal scan clock — called when a scan runs, target found or not. */
+	void markHealScan(long untilGameTime) {
+		nextHealScanGameTime = untilGameTime;
+	}
+
+	long nextCleanseScanGameTime() {
+		return nextCleanseScanGameTime;
+	}
+
+	void markCleanseScan(long untilGameTime) {
+		nextCleanseScanGameTime = untilGameTime;
+	}
+
+	/** The pulse's presentation target while the action window runs (brain-owned). */
+	UUID healTargetUuid() {
+		return healTargetUuid;
+	}
+
+	void setHealTarget(UUID uuid) {
+		healTargetUuid = uuid;
+	}
+
+	long antlerCooldownUntil() {
+		return antlerCooldownUntil;
+	}
+
+	void markAntlerShove(long untilGameTime) {
+		antlerCooldownUntil = untilGameTime;
+	}
+
+	Vec3 interposeAnchor() {
+		return interposeAnchor;
+	}
+
+	void steerInterpose(Vec3 anchor) {
+		interposeAnchor = anchor;
 	}
 }
