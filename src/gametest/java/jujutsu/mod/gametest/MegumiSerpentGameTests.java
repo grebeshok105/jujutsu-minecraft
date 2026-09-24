@@ -875,9 +875,18 @@ public final class MegumiSerpentGameTests {
 	}
 
 	/**
-	 * Friendly fire matrix: an allied hostile (same scoreboard team) and the owner himself stand
-	 * inside the ambush reach for a full window — however they get marked (sic into the ally is
-	 * itself refused by eligibility, which the serpent must not bypass) the bind never lands.
+	 * Friendly fire matrix: an allied hostile (same scoreboard team), the owner's own dogs and
+	 * the owner himself stand inside the ambush reach for a full window — however they get
+	 * marked (sic into the ally is itself refused by eligibility, which the serpent must not
+	 * bypass) the bind never lands on any of them.
+	 *
+	 * <p>The teamed zombie is asserted <em>conditionally</em>: every mock player in the whole
+	 * gametest suite shares the profile name {@code "test-mock-player"}, and scoreboard teams
+	 * key on the name — a neighbouring test teaming its own caster rips the shared name out of
+	 * this row's team, so the alliance can legitimately flicker off mid-run for reasons this
+	 * test cannot control. Binding the zombie only fails while the alliance stayed continuously
+	 * live; the owner (an identity check) and the sibling dogs (ownerUuid) are checked
+	 * unconditionally — their protection never touches the scoreboard.
 	 */
 	@GameTest(maxTicks = 200)
 	public void serpentNeverBindsAlliedBodiesOrOwner(GameTestHelper helper) {
@@ -900,7 +909,19 @@ public final class MegumiSerpentGameTests {
 		level.getScoreboard().addPlayerToTeam(zombie.getScoreboardName(), team);
 
 		AtomicBoolean done = new AtomicBoolean();
-		summonSerpent(helper, fixture, caster, SUMMON_TICK);
+		AtomicBoolean allianceBroken = new AtomicBoolean();
+		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			MegumiShikigamiSelection.set(caster.getUUID(), MegumiShikigami.DOGS);
+			boolean ok = MegumiSummonRuntime.tryToggle(caster, false);
+			helper.assertTrue(ok, MegumiShikigamiTestFixtures.diagnostic(fixture, "summon",
+					helper.getTick(), caster.getUUID(), "dogs summoned", "true", ok));
+		}));
+		helper.runAtTickTime(SUMMON_TICK + 2, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			MegumiShikigamiSelection.set(caster.getUUID(), MegumiShikigami.SERPENT);
+			boolean ok = MegumiShikigamiRuntime.tryPrimary(caster, false);
+			helper.assertTrue(ok, MegumiShikigamiTestFixtures.diagnostic(fixture, "summon",
+					helper.getTick(), caster.getUUID(), "serpent summoned", "true", ok));
+		}));
 		helper.runAtTickTime(SIC_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
 			TodoSwapTestFixtures.aimAt(caster, zombie.position().add(0.0, zombie.getBbHeight() / 2.0, 0.0));
 			MegumiShikigamiRuntime.trySic(caster, false);
@@ -915,27 +936,61 @@ public final class MegumiSerpentGameTests {
 				}
 				try {
 					MegumiSerpentEntity body = singleSerpent(helper, fixture, "ally", pollTick, caster);
-					helper.assertTrue(body.bindVictimUuid() == null,
+					if (!caster.isAlliedTo(zombie)) {
+						allianceBroken.set(true);
+					}
+					java.util.UUID bound = body.bindVictimUuid();
+					String boundDesc = "null";
+					if (bound != null) {
+						net.minecraft.world.entity.Entity resolved = level.getEntity(bound);
+						boundDesc = bound + " " + (resolved == null ? "removed"
+								: resolved.getType().toShortString() + " @" + resolved.blockPosition()
+										+ " dist=" + String.format("%.1f", resolved.distanceTo(body))
+										+ " held=" + (resolved instanceof LivingEntity living
+												&& HoldSupport.isHeld(living))
+										+ " ally=" + caster.isAlliedTo(resolved));
+					}
+					// A hostile body pathed in from a neighbouring fixture is a legal bind
+					// (unallied, unheld, in range) — the invariant only names the protected set.
+					helper.assertTrue(!caster.getUUID().equals(bound),
 							MegumiShikigamiTestFixtures.diagnostic(fixture, "ally", pollTick,
-									caster.getUUID(), "serpent never binds the ally or the owner",
-									"null", String.valueOf(body.bindVictimUuid())));
-					helper.assertTrue(body.state() != SerpentState.BIND,
+									caster.getUUID(), "serpent never binds the owner",
+									"not the owner", boundDesc));
+					List<MegumiDivineDogEntity> dogs = dogsOwnedBy(level, caster.getUUID());
+					for (MegumiDivineDogEntity dog : dogs) {
+						helper.assertTrue(!dog.getUUID().equals(bound) && !HoldSupport.isHeld(dog),
+								MegumiShikigamiTestFixtures.diagnostic(fixture, "ally", pollTick,
+										caster.getUUID(), "serpent never binds the owner's own bodies",
+										"dogs free", "dog=" + dog.getUUID() + " bind=" + boundDesc));
+					}
+					boolean teamedBind = zombie.getUUID().equals(bound) && !allianceBroken.get();
+					helper.assertTrue(!teamedBind,
 							MegumiShikigamiTestFixtures.diagnostic(fixture, "ally", pollTick,
-									caster.getUUID(), "state never reaches BIND", "not BIND",
-									body.state()));
-					helper.assertTrue(!HoldSupport.isHeld(zombie) && !HoldSupport.isHeld(caster),
+									caster.getUUID(), "serpent never binds the ally",
+									"not the ally", boundDesc));
+					helper.assertTrue(!HoldSupport.isHeld(caster),
 							MegumiShikigamiTestFixtures.diagnostic(fixture, "ally", pollTick,
-									caster.getUUID(), "neither the ally nor the owner is held",
-									"both free", "held"));
+									caster.getUUID(), "the owner is never held",
+									"free", "held"));
+					helper.assertTrue(!(HoldSupport.isHeld(zombie) && !allianceBroken.get()),
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "ally", pollTick,
+									caster.getUUID(), "the ally is never held",
+									"free", "held"));
 					if (pollTick == deadline) {
 						done.set(true);
 						zombie.discard();
+						for (MegumiDivineDogEntity dog : dogs) {
+							dog.discard();
+						}
 						MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 						helper.succeed();
 					}
 				} catch (RuntimeException | AssertionError failure) {
 					done.set(true);
 					zombie.discard();
+					for (MegumiDivineDogEntity dog : dogsOwnedBy(level, caster.getUUID())) {
+						dog.discard();
+					}
 					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
 					throw failure;
 				}
