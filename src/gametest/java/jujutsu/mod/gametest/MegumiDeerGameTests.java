@@ -382,18 +382,26 @@ public final class MegumiDeerGameTests {
 			helper.assertTrue(ordered, MegumiShikigamiTestFixtures.diagnostic(fixture, "sic",
 					helper.getTick(), ownerId, "sic accepted", "true", ordered));
 			MegumiDeerEntity deer = theDeer(helper, fixture, level, ownerId, "sic");
-			helper.assertTrue(deer.getTarget() == zombie, MegumiShikigamiTestFixtures.diagnostic(fixture,
-					"sic", helper.getTick(), ownerId, "deer marked on the aimed target",
-					zombie.getUUID(), String.valueOf(deer.getTarget())));
+			// The mark lands as awareness only — the deer's attack target stays empty (spec §7).
+			helper.assertTrue(deer.getTarget() == null, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"sic", helper.getTick(), ownerId, "the sic mark is not an attack order",
+					"null", String.valueOf(deer.getTarget())));
 		}));
 
 		helper.runAtTickTime(ACT_TICK + 60, () -> {
 			try {
 				Zombie zombie = zombieRef.get();
 				MegumiDeerEntity deer = theDeer(helper, fixture, level, caster.getUUID(), "sic");
-				helper.assertTrue(deer.getTarget() == zombie, MegumiShikigamiTestFixtures.diagnostic(
-						fixture, "sic", helper.getTick(), caster.getUUID(), "mark held (awareness)",
-						zombie.getUUID(), String.valueOf(deer.getTarget())));
+				Vec3 point = interposePoint(caster.position(), zombie.position());
+				helper.assertTrue(
+						horizontalDistance(deer.position(), point) <= INTERPOSE_ARRIVE_TOLERANCE,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "sic", helper.getTick(),
+								caster.getUUID(), "the mark reads as awareness (deer interposed)",
+								"distance <= " + INTERPOSE_ARRIVE_TOLERANCE,
+								horizontalDistance(deer.position(), point)));
+				helper.assertTrue(deer.getTarget() == null, MegumiShikigamiTestFixtures.diagnostic(
+						fixture, "sic", helper.getTick(), caster.getUUID(), "never an attack target",
+						"null", String.valueOf(deer.getTarget())));
 				helper.assertTrue(zombie.getHealth() == zombie.getMaxHealth(),
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "sic", helper.getTick(),
 								caster.getUUID(), "marked but never attacked",
@@ -588,6 +596,10 @@ public final class MegumiDeerGameTests {
 					"wound", helper.getTick(), caster.getUUID(), "toad ACTIVE", "true", toad.phase()));
 			toadRef.set(toad);
 			toad.setHealth(6.0f);
+			// The toad's FollowOwnerGoal wanders it — pin it inside the pulse ring so the
+			// recipient stays in DEER_HEAL_RANGE between the scan pick and the commit. NoAI
+			// (not Slowness): the deer's cleanse scan would strip a freeze effect off it.
+			toad.setNoAi(true);
 			theDeer(helper, fixture, level, caster.getUUID(), "wound");
 		}));
 
@@ -999,7 +1011,6 @@ public final class MegumiDeerGameTests {
 		AtomicBoolean summoned = new AtomicBoolean();
 		AtomicReference<MegumiDeerEntity> deerRef = new AtomicReference<>();
 		AtomicReference<Zombie> zombieRef = new AtomicReference<>();
-		AtomicBoolean marked = new AtomicBoolean();
 		AtomicBoolean interposed = new AtomicBoolean();
 
 		helper.runAtTickTime(SUMMON_TICK, () -> summonDeer(helper, fixture, owner, summoned));
@@ -1029,15 +1040,22 @@ public final class MegumiDeerGameTests {
 						MegumiShikigamiTestFixtures.diagnostic(fixture, "retaliation", pollTick,
 								owner.getUUID(), "the aggressor is never attacked",
 								zombie.getMaxHealth(), zombie.getHealth()));
-				if (!marked.get() && deer.getTarget() == zombie) {
-					marked.set(true);
-				}
 				Vec3 point = interposePoint(owner.position(), zombie.position());
-				if (marked.get() && horizontalDistance(deer.position(), point) <= INTERPOSE_ARRIVE_TOLERANCE) {
+				if (horizontalDistance(deer.position(), point) <= INTERPOSE_ARRIVE_TOLERANCE) {
 					interposed.set(true);
-					zombie.discard();
-					MegumiShikigamiTestFixtures.cleanupCaster(helper, owner);
-					CursedSpiritTestFixtures.cleanupVictim(helper, owner);
+					try {
+						// The retaliation mark reads as awareness — the deer interposes while
+						// never holding the aggressor as an attack target (spec §7).
+						helper.assertTrue(deer.getTarget() == null,
+								MegumiShikigamiTestFixtures.diagnostic(fixture, "retaliation",
+										pollTick, owner.getUUID(),
+										"the retaliation mark is not an attack order",
+										"null", String.valueOf(deer.getTarget())));
+					} finally {
+						zombie.discard();
+						MegumiShikigamiTestFixtures.cleanupCaster(helper, owner);
+						CursedSpiritTestFixtures.cleanupVictim(helper, owner);
+					}
 					helper.succeed();
 					return;
 				}
@@ -1047,11 +1065,10 @@ public final class MegumiDeerGameTests {
 					CursedSpiritTestFixtures.cleanupVictim(helper, owner);
 					helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
 							"retaliation", pollTick, owner.getUUID(),
-							marked.get() ? "the marked deer reaches the interpose point"
-									: "the owner's aggressor marks the deer",
-							marked.get() ? "distance <= " + INTERPOSE_ARRIVE_TOLERANCE : "target",
-							marked.get() ? horizontalDistance(deer.position(), point)
-									: String.valueOf(deer.getTarget())));
+							"the deer interposes on the owner's aggressor",
+							"distance <= " + INTERPOSE_ARRIVE_TOLERANCE,
+							horizontalDistance(deer.position(), point) + " deer=" + deer.position()
+									+ " point=" + point));
 				}
 			});
 		}
@@ -1167,6 +1184,10 @@ public final class MegumiDeerGameTests {
 			toadRef.set(toads.get(0));
 			dogs.get(0).setHealth(6.0f);
 			toads.get(0).setHealth(6.0f);
+			// Same wander guard as the single-body row (NoAI, not a cleansable freeze):
+			// pack AI follows the owner and can carry a body out of the pulse ring mid-channel.
+			dogs.get(0).setNoAi(true);
+			toads.get(0).setNoAi(true);
 			theDeer(helper, fixture, level, caster.getUUID(), "wound");
 		}));
 

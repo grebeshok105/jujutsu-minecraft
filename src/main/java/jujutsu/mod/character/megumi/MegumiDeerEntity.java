@@ -5,6 +5,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -90,6 +91,17 @@ public final class MegumiDeerEntity extends MegumiShikigamiEntity {
 		goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0f));
 		goalSelector.addGoal(8, new RandomLookAroundGoal(this));
 		// No MeleeAttackGoal: the antler shove is a scripted defensive reflex, not combat.
+	}
+
+	/**
+	 * Every mark path (sic, retaliation, coordinator) ends in {@code setTarget} — the Mob-level
+	 * attack order. For the deer that order is always void: the mark itself is kept in
+	 * {@code sicTargetUuid} as threat awareness for the brain's interpose, but this body can
+	 * never acquire an attack target (spec §7 — it never attacks).
+	 */
+	@Override
+	public void setTarget(LivingEntity target) {
+		super.setTarget(null);
 	}
 
 	@Override
