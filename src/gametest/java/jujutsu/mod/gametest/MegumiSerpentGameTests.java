@@ -28,8 +28,10 @@ import jujutsu.mod.character.megumi.MegumiSerpentEntity;
 import jujutsu.mod.character.megumi.MegumiSerpentEntity.SerpentState;
 import jujutsu.mod.character.megumi.MegumiSerpentPolicy;
 import jujutsu.mod.character.megumi.MegumiShikigami;
+import jujutsu.mod.character.megumi.MegumiShikigamiPresentationPolicy.Phase;
 import jujutsu.mod.character.megumi.MegumiShikigamiRuntime;
 import jujutsu.mod.character.megumi.MegumiShikigamiRuntime.PackView;
+import jujutsu.mod.character.megumi.MegumiShikigamiRuntime.TeardownReason;
 import jujutsu.mod.character.megumi.MegumiShikigamiProfile;
 import jujutsu.mod.character.megumi.MegumiShikigamiSelection;
 import jujutsu.mod.character.megumi.MegumiSummonCooldowns;
@@ -78,6 +80,7 @@ public final class MegumiSerpentGameTests {
 	private static final double BREAK_TELEPORT_BLOCKS = 20.0;
 
 	private static final int EXPECTED_RECALL_COOLDOWN_TICKS = 200;
+	private static final int EXPECTED_DEATH_COOLDOWN_TICKS = 340;
 
 	// ---------------------------------------------------------------------------------------------
 	// S1 — summon skeleton
@@ -167,6 +170,278 @@ public final class MegumiSerpentGameTests {
 			}
 		});
 		helper.runAtTickTime(30, () -> helper.succeed());
+	}
+
+	/** S2b — the body emerges MATERIALIZING (combat off) and only then lands ACTIVE. */
+	@GameTest(maxTicks = 80)
+	public void serpentSummonMaterializesThenActivates(GameTestHelper helper) {
+		String fixture = "serpentSummonMaterializesThenActivates";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		layStoneFloor(helper);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+
+		summonSerpent(helper, fixture, caster, SUMMON_TICK);
+
+		// Mid-materialization: the body is present but the combat gate is still shut.
+		helper.runAtTickTime(10, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			MegumiSerpentEntity body = singleSerpent(helper, fixture, "emerge", helper.getTick(), caster);
+			helper.assertTrue(!body.combatEnabled(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"emerge", helper.getTick(), caster.getUUID(), "combatEnabled mid-materialize",
+					"false", body.combatEnabled()));
+			helper.assertTrue(body.phase() == Phase.MATERIALIZING, MegumiShikigamiTestFixtures.diagnostic(
+					fixture, "emerge", helper.getTick(), caster.getUUID(), "presentation phase",
+					"MATERIALIZING", String.valueOf(body.phase())));
+		}));
+
+		for (long tick = 20; tick <= 45; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				List<MegumiSerpentEntity> bodies = MegumiShikigamiTestFixtures.ownedBy(
+						level, caster.getUUID(), MegumiSerpentEntity.class);
+				if (bodies.isEmpty()) {
+					return;
+				}
+				MegumiSerpentEntity body = bodies.get(0);
+				if (body.phase() != Phase.ACTIVE) {
+					return;
+				}
+				try {
+					helper.assertTrue(body.combatEnabled(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+							"activate", helper.getTick(), caster.getUUID(), "combatEnabled at ACTIVE",
+							"true", body.combatEnabled()));
+				} finally {
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+				}
+				helper.succeed();
+			});
+		}
+		helper.runAtTickTime(46, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () ->
+				helper.fail(MegumiShikigamiTestFixtures.diagnostic(fixture, "activate",
+						helper.getTick(), caster.getUUID(), "serpent reached ACTIVE", "before tick 46",
+						"never"))));
+	}
+
+	/** S6 — the dying body reconciles through DEATH: the pack drops and the death cooldown is literal 340. */
+	@GameTest(maxTicks = 90)
+	public void serpentDeathChargesDeathCooldownAndClearsPack(GameTestHelper helper) {
+		String fixture = "serpentDeathChargesDeathCooldownAndClearsPack";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		layStoneFloor(helper);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+
+		summonSerpent(helper, fixture, caster, SUMMON_TICK);
+
+		helper.runAtTickTime(SIC_TICK, () -> {
+			try {
+				UUID ownerId = caster.getUUID();
+				MegumiSerpentEntity body = singleSerpent(helper, fixture, "kill", helper.getTick(), caster);
+				helper.assertTrue(body.combatEnabled(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"kill", helper.getTick(), ownerId, "body ACTIVE before kill", "true",
+						body.combatEnabled()));
+
+				// The real damage pipeline (AFTER_DEATH -> reconcile -> death cooldown), not die().
+				boolean damaged = body.hurtServer(level, level.damageSources().genericKill(), Float.MAX_VALUE);
+				helper.assertTrue(damaged, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"kill", helper.getTick(), ownerId, "lethal damage applied", "true", damaged));
+
+				// AFTER_DEATH reconciles synchronously inside hurtServer, so the same-tick read is exact.
+				long remaining = MegumiSummonCooldowns.remainingTicks(ownerId, MegumiShikigami.SERPENT,
+						level.getGameTime());
+				helper.assertTrue(remaining == EXPECTED_DEATH_COOLDOWN_TICKS,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "kill", helper.getTick(), ownerId,
+								"summon death cooldown", EXPECTED_DEATH_COOLDOWN_TICKS, remaining));
+
+				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "kill", caster);
+			} finally {
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+			}
+		});
+		helper.runAtTickTime(SIC_TICK + 20, () -> helper.succeed());
+	}
+
+	/**
+	 * S7 — the sic key marks the aimed victim: the order lands on the serpent and its ambush
+	 * resolves to THAT husk — the target, the committed ambush or the live bind all name it.
+	 * A husk, not a zombie: the window outlasts a daylight burn.
+	 */
+	@GameTest(maxTicks = 120)
+	public void serpentSicCommandMarksTheTarget(GameTestHelper helper) {
+		String fixture = "serpentSicCommandMarksTheTarget";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		BlockPos huskFeet = new BlockPos(6, 1, 5);
+		layStoneFloor(helper);
+		helper.setBlock(huskFeet.below(), Blocks.STONE);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+		Zombie husk = GameTestFixtures.spawnMob(helper, fixture, EntityType.HUSK, huskFeet);
+		husk.setPersistenceRequired();
+		husk.setNoAi(true);
+		CursedSpiritTestFixtures.freezeGround(husk);
+
+		AtomicBoolean done = new AtomicBoolean();
+		summonSerpent(helper, fixture, caster, SUMMON_TICK);
+		sicOn(helper, fixture, caster, husk, SIC_TICK);
+
+		long deadline = SIC_TICK + 40;
+		for (long tick = SIC_TICK + 1; tick <= deadline; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				if (done.get()) {
+					return;
+				}
+				try {
+					MegumiSerpentEntity body = singleSerpent(helper, fixture, "sic", pollTick, caster);
+					boolean marked = body.getTarget() == husk
+							|| husk.getUUID().equals(body.ambushTargetUuid())
+							|| husk.getUUID().equals(body.bindVictimUuid());
+					if (!marked) {
+						if (pollTick == deadline) {
+							helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
+									"sic", pollTick, caster.getUUID(),
+									"the mark resolved to the sic'd husk", "within " + (deadline - SIC_TICK) + " ticks",
+									"state=" + body.state() + " target=" + body.getTarget()
+											+ " ambush=" + body.ambushTargetUuid()
+											+ " bind=" + body.bindVictimUuid()));
+						}
+						return;
+					}
+					done.set(true);
+					husk.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+					helper.succeed();
+				} catch (RuntimeException | AssertionError failure) {
+					done.set(true);
+					husk.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+					throw failure;
+				}
+			});
+		}
+	}
+
+	/** S8 — the owner dying sweeps the serpent and drops the pack record (die() fires AFTER_DEATH). */
+	@GameTest(maxTicks = 80)
+	public void serpentOwnerDeathTeardownClearsPack(GameTestHelper helper) {
+		String fixture = "serpentOwnerDeathTeardownClearsPack";
+		layStoneFloor(helper);
+		ServerPlayer owner = setupDamageableOwner(helper, fixture, new BlockPos(2, 1, 2));
+		ServerLevel level = helper.getLevel();
+
+		summonSerpent(helper, fixture, owner, SUMMON_TICK);
+
+		helper.runAtTickTime(SIC_TICK, () -> {
+			try {
+				UUID ownerId = owner.getUUID();
+				MegumiSerpentEntity body = singleSerpent(helper, fixture, "owner-death",
+						helper.getTick(), owner);
+				helper.assertTrue(body.isAlive(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"owner-death", helper.getTick(), ownerId, "serpent alive before owner death",
+						"true", body.isAlive()));
+				// kill() no-ops on mock players — die() fires AFTER_DEATH synchronously.
+				owner.die(level.damageSources().genericKill());
+				helper.assertTrue(owner.isDeadOrDying(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"owner-death", helper.getTick(), ownerId, "owner died", "true", owner.isDeadOrDying()));
+				helper.assertTrue(MegumiShikigamiTestFixtures.ownedBy(level, ownerId,
+								MegumiSerpentEntity.class).isEmpty(),
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "owner-death", helper.getTick(), ownerId,
+								"serpent bodies after owner death", "0",
+								MegumiShikigamiTestFixtures.ownedBy(level, ownerId, MegumiSerpentEntity.class).size()));
+				long remaining = MegumiSummonCooldowns.remainingTicks(
+						ownerId, MegumiShikigami.SERPENT, level.getGameTime());
+				helper.assertTrue(remaining == EXPECTED_DEATH_COOLDOWN_TICKS,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "owner-death", helper.getTick(), ownerId,
+								"serpent death cooldown on owner death", EXPECTED_DEATH_COOLDOWN_TICKS, remaining));
+				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "owner-death", owner);
+			} finally {
+				cleanupOwner(helper, owner);
+			}
+		});
+		helper.runAtTickTime(SIC_TICK + 20, () -> helper.succeed());
+	}
+
+	/** S9 — the dimension-change teardown sweeps the serpent and arms the recall cooldown. */
+	@GameTest(maxTicks = 80)
+	public void serpentDimensionChangeTeardownChargesRecallCooldown(GameTestHelper helper) {
+		String fixture = "serpentDimensionChangeTeardownChargesRecallCooldown";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		layStoneFloor(helper);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+
+		summonSerpent(helper, fixture, caster, SUMMON_TICK);
+
+		helper.runAtTickTime(SIC_TICK, () -> {
+			try {
+				UUID ownerId = caster.getUUID();
+				MegumiSerpentEntity body = singleSerpent(helper, fixture, "dimension",
+						helper.getTick(), caster);
+				helper.assertTrue(body.isAlive(), MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"dimension", helper.getTick(), ownerId, "serpent alive before teardown", "true",
+						body.isAlive()));
+				// A real dimension hop can't be staged on the fixture box — the teardown seam is
+				// the representative exit the AFTER_PLAYER_CHANGE_WORLD hook feeds.
+				MegumiShikigamiRuntime.teardown(level.getServer(), ownerId, TeardownReason.DIMENSION_CHANGE);
+				long remaining = MegumiSummonCooldowns.remainingTicks(
+						ownerId, MegumiShikigami.SERPENT, level.getGameTime());
+				helper.assertTrue(remaining == EXPECTED_RECALL_COOLDOWN_TICKS,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "dimension", helper.getTick(), ownerId,
+								"serpent recall cooldown after dimension teardown",
+								EXPECTED_RECALL_COOLDOWN_TICKS, remaining));
+				MegumiShikigamiTestFixtures.assertNoPack(helper, fixture, "dimension", caster);
+				// DIMENSION_CHANGE recalls visually — the body sinks out over SERPENT_RECALL_TICKS.
+				helper.assertTrue(body.isRemoved() || body.phase() == Phase.RECALLING,
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "dimension", helper.getTick(), ownerId,
+								"serpent body after teardown", "recalling or gone",
+								body.isRemoved() ? "removed" : String.valueOf(body.phase())));
+			} finally {
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+			}
+		});
+		helper.runAtTickTime(SIC_TICK + 20, () -> helper.succeed());
+	}
+
+	/** S10 — issue #107 coexistence: the serpent and the dogs ride side by side, both packs live. */
+	@GameTest(maxTicks = 80)
+	public void serpentCoexistsWithAnotherPack(GameTestHelper helper) {
+		String fixture = "serpentCoexistsWithAnotherPack";
+		layStoneFloor(helper);
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(
+				helper, fixture, new BlockPos(4, 1, 4), 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+
+		helper.runAtTickTime(SUMMON_TICK, () -> MegumiShikigamiTestFixtures.runGuarded(helper, caster, () -> {
+			MegumiShikigamiSelection.set(caster.getUUID(), MegumiShikigami.DOGS);
+			boolean summoned = MegumiSummonRuntime.tryToggle(caster, false);
+			helper.assertTrue(summoned, MegumiShikigamiTestFixtures.diagnostic(fixture,
+					"dogs", helper.getTick(), caster.getUUID(), "tryToggle result", "true", summoned));
+		}));
+		summonSerpent(helper, fixture, caster, SUMMON_TICK + 2);
+
+		helper.runAtTickTime(SIC_TICK, () -> {
+			try {
+				UUID ownerId = caster.getUUID();
+				helper.assertTrue(MegumiShikigamiTestFixtures.hasPack(
+								level.getServer(), ownerId, MegumiShikigami.SERPENT),
+						MegumiShikigamiTestFixtures.diagnostic(fixture, "coexist", helper.getTick(), ownerId,
+								"serpent pack record", "present", "absent"));
+				List<MegumiDivineDogEntity> dogs = dogsOwnedBy(level, ownerId);
+				helper.assertTrue(dogs.size() >= 1, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"coexist", helper.getTick(), ownerId, "owned dogs alive", ">=1", dogs.size()));
+				List<MegumiSerpentEntity> bodies = MegumiShikigamiTestFixtures.ownedBy(
+						level, ownerId, MegumiSerpentEntity.class);
+				helper.assertTrue(bodies.size() == 1, MegumiShikigamiTestFixtures.diagnostic(fixture,
+						"coexist", helper.getTick(), ownerId, "owned serpent bodies", "1", bodies.size()));
+			} finally {
+				MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+			}
+		});
+		helper.runAtTickTime(SIC_TICK + 20, () -> helper.succeed());
 	}
 
 	// ---------------------------------------------------------------------------------------------
@@ -610,6 +885,330 @@ public final class MegumiSerpentGameTests {
 							MegumiShikigamiTestFixtures.diagnostic(fixture, "break", pollTick,
 									caster.getUUID(), "serpent left the bind state", "not BIND",
 									body.state()));
+					done.set(true);
+					zombie.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+					helper.succeed();
+				} catch (RuntimeException | AssertionError failure) {
+					done.set(true);
+					zombie.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+					throw failure;
+				}
+			});
+		}
+	}
+
+	/**
+	 * Teardown matrix, owner death: the pin cannot outlive the serpent's body. A bound zombie is
+	 * staged exactly like the ambush row, then the owner dies — the DEATH teardown sweeps the
+	 * coil and the victim-side state unrolls with it: registry pair gone, GRIPPED stripped.
+	 */
+	@GameTest(maxTicks = 260)
+	public void serpentOwnerDeathReleasesTheBoundVictim(GameTestHelper helper) {
+		String fixture = "serpentOwnerDeathReleasesTheBoundVictim";
+		BlockPos zombieFeet = new BlockPos(6, 1, 5);
+		layStoneFloor(helper);
+		laySkyCover(helper);
+		helper.setBlock(zombieFeet.below(), Blocks.STONE);
+
+		ServerPlayer owner = setupDamageableOwner(helper, fixture, new BlockPos(2, 1, 2));
+		ServerLevel level = helper.getLevel();
+		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
+		zombie.setPersistenceRequired();
+		zombie.setNoAi(false);
+		zombie.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 2400, 100, false, false, false), owner);
+
+		AtomicBoolean done = new AtomicBoolean();
+		AtomicBoolean fired = new AtomicBoolean();
+
+		summonSerpent(helper, fixture, owner, SUMMON_TICK);
+		sicOn(helper, fixture, owner, zombie, SIC_TICK);
+
+		long deadline = BIND_DEADLINE_TICK + 40;
+		for (long tick = SIC_TICK + 1; tick <= deadline; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				if (done.get()) {
+					return;
+				}
+				try {
+					if (!fired.get()) {
+						MegumiSerpentEntity body = singleSerpent(helper, fixture, "teardown", pollTick, owner);
+						if (!body.isBinding() || !zombie.getUUID().equals(body.bindVictimUuid())) {
+							if (pollTick == BIND_DEADLINE_TICK) {
+								helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
+										"teardown", pollTick, owner.getUUID(),
+										"zombie bound before the owner death", "bound by " + BIND_DEADLINE_TICK,
+										"state=" + body.state()));
+							}
+							return;
+						}
+						fired.set(true);
+						// die() fires AFTER_DEATH synchronously — kill() is a no-op on a player body.
+						owner.die(level.damageSources().genericKill());
+						return;
+					}
+					if (HoldSupport.isHeld(zombie)) {
+						if (pollTick == deadline) {
+							helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
+									"teardown", pollTick, owner.getUUID(),
+									"victim released after the owner death", "released",
+									"still held"));
+						}
+						return;
+					}
+					helper.assertTrue(!zombie.hasEffect(JujutsuEffects.GRIPPED),
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "teardown", pollTick,
+									owner.getUUID(), "GRIPPED cleared by the owner-death sweep",
+									"absent", "present"));
+					helper.assertTrue(HeldVictimRegistry.holderUuid(zombie.getUUID()) == null,
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "teardown", pollTick,
+									owner.getUUID(), "registry pair dropped", "no holder",
+									String.valueOf(HeldVictimRegistry.holderUuid(zombie.getUUID()))));
+					done.set(true);
+					zombie.discard();
+					cleanupOwner(helper, owner);
+					helper.succeed();
+				} catch (RuntimeException | AssertionError failure) {
+					done.set(true);
+					zombie.discard();
+					cleanupOwner(helper, owner);
+					throw failure;
+				}
+			});
+		}
+	}
+
+	/**
+	 * Teardown matrix, dimension change: same staged bind, but the exit is the recall-family
+	 * teardown — the victim is freed the moment the body starts its sink, not at despawn.
+	 */
+	@GameTest(maxTicks = 260)
+	public void serpentDimensionChangeReleasesTheBoundVictim(GameTestHelper helper) {
+		String fixture = "serpentDimensionChangeReleasesTheBoundVictim";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		BlockPos zombieFeet = new BlockPos(6, 1, 5);
+		layStoneFloor(helper);
+		laySkyCover(helper);
+		helper.setBlock(zombieFeet.below(), Blocks.STONE);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
+		zombie.setPersistenceRequired();
+		zombie.setNoAi(false);
+		zombie.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 2400, 100, false, false, false), caster);
+
+		AtomicBoolean done = new AtomicBoolean();
+		AtomicBoolean fired = new AtomicBoolean();
+
+		summonSerpent(helper, fixture, caster, SUMMON_TICK);
+		sicOn(helper, fixture, caster, zombie, SIC_TICK);
+
+		long deadline = BIND_DEADLINE_TICK + 40;
+		for (long tick = SIC_TICK + 1; tick <= deadline; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				if (done.get()) {
+					return;
+				}
+				try {
+					if (!fired.get()) {
+						MegumiSerpentEntity body = singleSerpent(helper, fixture, "teardown", pollTick, caster);
+						if (!body.isBinding() || !zombie.getUUID().equals(body.bindVictimUuid())) {
+							if (pollTick == BIND_DEADLINE_TICK) {
+								helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
+										"teardown", pollTick, caster.getUUID(),
+										"zombie bound before the teardown", "bound by " + BIND_DEADLINE_TICK,
+										"state=" + body.state()));
+							}
+							return;
+						}
+						fired.set(true);
+						MegumiShikigamiRuntime.teardown(level.getServer(), caster.getUUID(),
+								TeardownReason.DIMENSION_CHANGE);
+						return;
+					}
+					if (HoldSupport.isHeld(zombie)) {
+						if (pollTick == deadline) {
+							helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
+									"teardown", pollTick, caster.getUUID(),
+									"victim released once the recall sink began", "released",
+									"still held"));
+						}
+						return;
+					}
+					helper.assertTrue(!zombie.hasEffect(JujutsuEffects.GRIPPED),
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "teardown", pollTick,
+									caster.getUUID(), "GRIPPED cleared on the dimension teardown",
+									"absent", "present"));
+					helper.assertTrue(HeldVictimRegistry.holderUuid(zombie.getUUID()) == null,
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "teardown", pollTick,
+									caster.getUUID(), "registry pair dropped", "no holder",
+									String.valueOf(HeldVictimRegistry.holderUuid(zombie.getUUID()))));
+					done.set(true);
+					zombie.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+					helper.succeed();
+				} catch (RuntimeException | AssertionError failure) {
+					done.set(true);
+					zombie.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+					throw failure;
+				}
+			});
+		}
+	}
+
+	/**
+	 * Teardown matrix, disconnect: the non-visual exit — the body is discarded on the spot and
+	 * the bind it carried dies with it.
+	 */
+	@GameTest(maxTicks = 260)
+	public void serpentDisconnectReleasesTheBoundVictim(GameTestHelper helper) {
+		String fixture = "serpentDisconnectReleasesTheBoundVictim";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		BlockPos zombieFeet = new BlockPos(6, 1, 5);
+		layStoneFloor(helper);
+		laySkyCover(helper);
+		helper.setBlock(zombieFeet.below(), Blocks.STONE);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
+		zombie.setPersistenceRequired();
+		zombie.setNoAi(false);
+		zombie.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 2400, 100, false, false, false), caster);
+
+		AtomicBoolean done = new AtomicBoolean();
+		AtomicBoolean fired = new AtomicBoolean();
+
+		summonSerpent(helper, fixture, caster, SUMMON_TICK);
+		sicOn(helper, fixture, caster, zombie, SIC_TICK);
+
+		long deadline = BIND_DEADLINE_TICK + 40;
+		for (long tick = SIC_TICK + 1; tick <= deadline; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				if (done.get()) {
+					return;
+				}
+				try {
+					if (!fired.get()) {
+						MegumiSerpentEntity body = singleSerpent(helper, fixture, "teardown", pollTick, caster);
+						if (!body.isBinding() || !zombie.getUUID().equals(body.bindVictimUuid())) {
+							if (pollTick == BIND_DEADLINE_TICK) {
+								helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
+										"teardown", pollTick, caster.getUUID(),
+										"zombie bound before the teardown", "bound by " + BIND_DEADLINE_TICK,
+										"state=" + body.state()));
+							}
+							return;
+						}
+						fired.set(true);
+						MegumiShikigamiRuntime.teardown(level.getServer(), caster.getUUID(),
+								TeardownReason.DISCONNECT);
+						return;
+					}
+					if (HoldSupport.isHeld(zombie)) {
+						if (pollTick == deadline) {
+							helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
+									"teardown", pollTick, caster.getUUID(),
+									"victim released on the disconnect sweep", "released",
+									"still held"));
+						}
+						return;
+					}
+					helper.assertTrue(!zombie.hasEffect(JujutsuEffects.GRIPPED),
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "teardown", pollTick,
+									caster.getUUID(), "GRIPPED cleared on the disconnect",
+									"absent", "present"));
+					helper.assertTrue(HeldVictimRegistry.holderUuid(zombie.getUUID()) == null,
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "teardown", pollTick,
+									caster.getUUID(), "registry pair dropped", "no holder",
+									String.valueOf(HeldVictimRegistry.holderUuid(zombie.getUUID()))));
+					done.set(true);
+					zombie.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+					helper.succeed();
+				} catch (RuntimeException | AssertionError failure) {
+					done.set(true);
+					zombie.discard();
+					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
+					throw failure;
+				}
+			});
+		}
+	}
+
+	/**
+	 * Teardown matrix, server stop: the on-stop sweep discards every body — a held victim whose
+	 * pair outlived the body would re-enter the next boot still marked.
+	 */
+	@GameTest(maxTicks = 260)
+	public void serpentServerStopReleasesTheBoundVictim(GameTestHelper helper) {
+		String fixture = "serpentServerStopReleasesTheBoundVictim";
+		BlockPos casterFeet = new BlockPos(2, 1, 2);
+		BlockPos zombieFeet = new BlockPos(6, 1, 5);
+		layStoneFloor(helper);
+		laySkyCover(helper);
+		helper.setBlock(zombieFeet.below(), Blocks.STONE);
+
+		ServerPlayer caster = MegumiShikigamiTestFixtures.setupMegumiCaster(helper, fixture, casterFeet, 0.0f, 0.0f);
+		ServerLevel level = helper.getLevel();
+		Zombie zombie = GameTestFixtures.spawnMob(helper, fixture, EntityType.ZOMBIE, zombieFeet);
+		zombie.setPersistenceRequired();
+		zombie.setNoAi(false);
+		zombie.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 2400, 100, false, false, false), caster);
+
+		AtomicBoolean done = new AtomicBoolean();
+		AtomicBoolean fired = new AtomicBoolean();
+
+		summonSerpent(helper, fixture, caster, SUMMON_TICK);
+		sicOn(helper, fixture, caster, zombie, SIC_TICK);
+
+		long deadline = BIND_DEADLINE_TICK + 40;
+		for (long tick = SIC_TICK + 1; tick <= deadline; tick++) {
+			final long pollTick = tick;
+			helper.runAtTickTime(pollTick, () -> {
+				if (done.get()) {
+					return;
+				}
+				try {
+					if (!fired.get()) {
+						MegumiSerpentEntity body = singleSerpent(helper, fixture, "teardown", pollTick, caster);
+						if (!body.isBinding() || !zombie.getUUID().equals(body.bindVictimUuid())) {
+							if (pollTick == BIND_DEADLINE_TICK) {
+								helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
+										"teardown", pollTick, caster.getUUID(),
+										"zombie bound before the teardown", "bound by " + BIND_DEADLINE_TICK,
+										"state=" + body.state()));
+							}
+							return;
+						}
+						fired.set(true);
+						MegumiShikigamiRuntime.teardown(level.getServer(), caster.getUUID(),
+								TeardownReason.SERVER_STOPPING);
+						return;
+					}
+					if (HoldSupport.isHeld(zombie)) {
+						if (pollTick == deadline) {
+							helper.assertTrue(false, MegumiShikigamiTestFixtures.diagnostic(fixture,
+									"teardown", pollTick, caster.getUUID(),
+									"victim released on the server-stop sweep", "released",
+									"still held"));
+						}
+						return;
+					}
+					helper.assertTrue(!zombie.hasEffect(JujutsuEffects.GRIPPED),
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "teardown", pollTick,
+									caster.getUUID(), "GRIPPED cleared on the server stop",
+									"absent", "present"));
+					helper.assertTrue(HeldVictimRegistry.holderUuid(zombie.getUUID()) == null,
+							MegumiShikigamiTestFixtures.diagnostic(fixture, "teardown", pollTick,
+									caster.getUUID(), "registry pair dropped", "no holder",
+									String.valueOf(HeldVictimRegistry.holderUuid(zombie.getUUID()))));
 					done.set(true);
 					zombie.discard();
 					MegumiShikigamiTestFixtures.cleanupCaster(helper, caster);
