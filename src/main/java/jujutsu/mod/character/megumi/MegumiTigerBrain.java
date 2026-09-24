@@ -38,7 +38,7 @@ final class MegumiTigerBrain {
 			MegumiTigerEntity tiger, long gameTime) {
 		tiger.advanceStateTicks();
 		switch (tiger.state()) {
-			case STALK -> tickStalk(level, tiger, gameTime);
+			case STALK -> tickStalk(level, owner, tiger, gameTime);
 			case COMBO_WINDUP -> tickWindup(level, tiger, gameTime);
 			case STRIKE_1 -> tickBeat(level, owner, tiger, gameTime, MegumiTigerPolicy.Strike.STRIKE_1);
 			case STRIKE_2 -> tickBeat(level, owner, tiger, gameTime, MegumiTigerPolicy.Strike.STRIKE_2);
@@ -53,9 +53,12 @@ final class MegumiTigerBrain {
 	 * windup commits. Out of range or cooling down, the body simply holds its ground and the
 	 * follow goals own the feet.
 	 */
-	private static void tickStalk(ServerLevel level, MegumiTigerEntity tiger, long gameTime) {
+	private static void tickStalk(ServerLevel level, ServerPlayer owner, MegumiTigerEntity tiger,
+			long gameTime) {
 		LivingEntity target = resolve(level, tiger.sicTargetUuid());
-		if (target == null) {
+		// The same protected-bodies filter every mark writer applies (MegumiRabbitsBrain precedent):
+		// an allied body — the owner's other summons included — is never something to engage.
+		if (target == null || owner == null || !MegumiSummonRuntime.isEligibleTarget(owner, target)) {
 			return;
 		}
 		double distance = target.position().subtract(tiger.position()).horizontalDistance();
@@ -147,13 +150,24 @@ final class MegumiTigerBrain {
 				? level.damageSources().playerAttack(owner)
 				: level.damageSources().mobAttack(tiger);
 		target.hurtServer(level, source, (float) MegumiTigerPolicy.damageFor(strike));
-		CombatStagger.GLOBAL.apply(target, gameTime, MegumiTigerPolicy.staggerTicksFor(strike));
 		Vec3 facing = facingVector(tiger.comboYawDeg());
-		target.knockback(MegumiTigerPolicy.knockbackFor(strike), -facing.x, -facing.z);
+		double knockback = MegumiTigerPolicy.knockbackFor(strike);
 		double lift = MegumiTigerPolicy.liftFor(strike);
-		if (lift > 0.0) {
-			target.setDeltaMovement(target.getDeltaMovement().add(0.0, lift, 0.0));
-			target.hurtMarked = true;
+		if (strike == MegumiTigerPolicy.Strike.FINISHER) {
+			// The finisher is the launch: the stagger flag first, then the committed shove and lift
+			// land at full strength — nothing after it needs the victim held.
+			CombatStagger.GLOBAL.apply(target, gameTime, MegumiTigerPolicy.staggerTicksFor(strike));
+			target.knockback(knockback, -facing.x, -facing.z);
+			if (lift > 0.0) {
+				target.setDeltaMovement(target.getDeltaMovement().add(0.0, lift, 0.0));
+				target.hurtMarked = true;
+			}
+		} else {
+			// Chain beats: the shove lands, then the stagger's velocity damp eats it — the stagger
+			// exists to hold the victim inside the next beat's reach, and a full-strength shove
+			// carried past the arc would turn every committed combo into three separate whiffs.
+			target.knockback(knockback, -facing.x, -facing.z);
+			CombatStagger.GLOBAL.apply(target, gameTime, MegumiTigerPolicy.staggerTicksFor(strike));
 		}
 		MegumiShikigamiRuntime.broadcastCue(level, owner,
 				MegumiShikigamiRuntime.directedCue(MegumiVfxIds.TIGER_STRIKE, target.position(),
