@@ -130,7 +130,8 @@ final class MegumiOxBrain {
 			playSound(level, ox, SoundEvents.GOAT_HORN_BREAK, 0.7f, 1.1f);
 			playSound(level, ox, SoundEvents.RAVAGER_STEP, 0.8f, 0.8f);
 			MegumiShikigamiRuntime.broadcastCue(level, owner,
-					windupCue(ox.position(), ox.getId(), gameTime));
+					VfxCues.anchoredWithOffset(MegumiVfxIds.OX_WINDUP, ox.position(), ox.getId(),
+							Vec3.ZERO, 1, gameTime, seedFor(ox.getId(), gameTime)));
 		}
 	}
 
@@ -146,8 +147,10 @@ final class MegumiOxBrain {
 			ox.beginCharge(gameTime);
 			ox.setPresentationAction(MegumiOxEntity.ACTION_CHARGE);
 			MegumiShikigamiRuntime.broadcastCue(level, owner,
-					chargeCue(ox.position(), ox.getId(), ox.accumulatedDistance(), gameTime,
-							ox.chargeDirection()));
+					MegumiShikigamiRuntime.directedCue(MegumiVfxIds.OX_CHARGE, ox.position(),
+							ox.getId(), ox.position(), chargeIntensity(ox), gameTime,
+							seedFor(ox.getId(), gameTime),
+							ox.chargeDirection() != null ? ox.chargeDirection() : Vec3.ZERO));
 		}
 	}
 
@@ -183,8 +186,10 @@ final class MegumiOxBrain {
 		}
 		// The trail's intensity is the real distance already covered — it grows as the ox runs.
 		MegumiShikigamiRuntime.broadcastCue(level, owner,
-				chargeCue(ox.position(), ox.getId(), ox.accumulatedDistance(), gameTime,
-						ox.chargeDirection()));
+				MegumiShikigamiRuntime.directedCue(MegumiVfxIds.OX_CHARGE, ox.position(),
+						ox.getId(), ox.position(), chargeIntensity(ox), gameTime,
+						seedFor(ox.getId(), gameTime),
+						ox.chargeDirection() != null ? ox.chargeDirection() : Vec3.ZERO));
 
 		MegumiOxPolicy.ChargeAction action = MegumiOxPolicy.chargeAction(new MegumiOxPolicy.ChargeFacts(
 				ox.horizontalCollision, ox.verticalCollision, ox.onGround(),
@@ -230,8 +235,10 @@ final class MegumiOxBrain {
 		ox.beginImpactFlash();
 		ox.setPresentationAction(MegumiOxEntity.ACTION_IMPACT);
 		MegumiShikigamiRuntime.broadcastCue(level, owner,
-				impactCue(target.position(), target.getId(), ox.accumulatedDistance(), gameTime,
-						ox.chargeDirection()));
+				MegumiShikigamiRuntime.directedCue(MegumiVfxIds.OX_IMPACT, target.position(),
+						target.getId(), target.position(), impactIntensity(ox), gameTime,
+						seedFor(target.getId(), gameTime),
+						ox.chargeDirection() != null ? ox.chargeDirection() : Vec3.ZERO));
 		playSound(level, ox, SoundEvents.GENERIC_EXPLODE.value(), 0.6f, 1.2f);
 		playSound(level, ox, SoundEvents.POLAR_BEAR_WARNING, 0.7f, 0.9f);
 	}
@@ -244,8 +251,10 @@ final class MegumiOxBrain {
 		ox.beginImpactFlash();
 		ox.setPresentationAction(MegumiOxEntity.ACTION_IMPACT);
 		MegumiShikigamiRuntime.broadcastCue(level, owner,
-				wallCue(ox.position(), ox.getId(), ox.accumulatedDistance(), gameTime,
-						ox.chargeDirection()));
+				MegumiShikigamiRuntime.directedCue(MegumiVfxIds.OX_WALL_HIT, ox.position(),
+						ox.getId(), ox.position(), impactIntensity(ox), gameTime,
+						seedFor(ox.getId(), gameTime),
+						ox.chargeDirection() != null ? ox.chargeDirection() : Vec3.ZERO));
 		playSound(level, ox, SoundEvents.GENERIC_EXPLODE.value(), 0.6f, 1.0f);
 		playSound(level, ox, SoundEvents.POLAR_BEAR_WARNING, 0.7f, 0.8f);
 		enterRecovery(ox, gameTime);
@@ -378,6 +387,14 @@ final class MegumiOxBrain {
 
 	private static long seedFor(int entityId, long gameTime) {
 		return gameTime * 31L + entityId;
+	}
+
+	private static int chargeIntensity(MegumiOxEntity ox) {
+		return Math.max(1, (int) Math.round(ox.accumulatedDistance()));
+	}
+
+	private static int impactIntensity(MegumiOxEntity ox) {
+		return Math.max(1, (int) Math.round(MegumiOxPolicy.impactPower(ox.accumulatedDistance())));
 	}
 
 	private static void playSound(ServerLevel level, MegumiOxEntity ox,

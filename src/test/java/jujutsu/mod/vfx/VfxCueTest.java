@@ -99,7 +99,9 @@ final class VfxCueTest {
 				"megumi/deer_summon", "megumi/deer_summon_body",
 				"megumi/deer_pulse", "megumi/deer_cleanse",
 				"megumi/ox_summon", "megumi/ox_summon_body",
-				"megumi/tiger_summon", "megumi/tiger_summon_body"),
+				"megumi/ox_windup", "megumi/ox_charge", "megumi/ox_impact", "megumi/ox_wall_hit",
+				"megumi/tiger_summon", "megumi/tiger_summon_body",
+				"megumi/tiger_strike", "megumi/tiger_miss", "megumi/tiger_recover"),
 				paths(MegumiVfxIds.LIVE));
 	}
 
@@ -107,10 +109,7 @@ final class VfxCueTest {
 	void plannedSetsHoldOnlyTheInFlightMechanicIds() {
 		assertTrue(NobaraVfxIds.PLANNED.isEmpty());
 		assertTrue(TodoVfxIds.PLANNED.isEmpty());
-		assertEquals(Set.of(
-				"megumi/ox_windup", "megumi/ox_charge", "megumi/ox_impact", "megumi/ox_wall_hit",
-				"megumi/tiger_strike", "megumi/tiger_miss", "megumi/tiger_recover"),
-				paths(MegumiVfxIds.PLANNED));
+		assertTrue(MegumiVfxIds.PLANNED.isEmpty());
 	}
 
 	private static VfxCue roundTrip(VfxCue expected) {

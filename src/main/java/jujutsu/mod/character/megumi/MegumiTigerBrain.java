@@ -156,8 +156,9 @@ final class MegumiTigerBrain {
 			target.hurtMarked = true;
 		}
 		MegumiShikigamiRuntime.broadcastCue(level, owner,
-				strikeCue(target.position(), tiger.getId(), tiger.position(), strike.beat(),
-						gameTime, level.getRandom().nextLong(), facing));
+				MegumiShikigamiRuntime.directedCue(MegumiVfxIds.TIGER_STRIKE, target.position(),
+						tiger.getId(), tiger.position(), strike.beat(), gameTime,
+						level.getRandom().nextLong(), facing));
 		level.playSound(null, tiger.getX(), tiger.getY(), tiger.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP,
 				SoundSource.NEUTRAL, 0.8f, 1.0f);
 		level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.PHANTOM_BITE,
