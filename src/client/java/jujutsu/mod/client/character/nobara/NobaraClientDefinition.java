@@ -3,6 +3,7 @@ package jujutsu.mod.client.character.nobara;
 import java.util.List;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.CharacterAbility;
 import jujutsu.mod.character.JujutsuCharacter;
@@ -85,6 +86,11 @@ public final class NobaraClientDefinition implements CharacterClientDefinition {
 	@Override
 	public CharacterSkinAnimation skinAnimation() {
 		return SKIN_ANIMATION;
+	}
+
+	@Override
+	public void triggerActionAnimation(Entity entity, String animation) {
+		NobaraPlayerGeoAnimatable.INSTANCE.triggerAction(entity, animation);
 	}
 
 	@Override

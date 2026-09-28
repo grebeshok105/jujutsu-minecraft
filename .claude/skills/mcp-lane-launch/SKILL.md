@@ -20,7 +20,7 @@ Known dev-lane traps (verified 2026-09-09):
 - Camera aiming: `jujutsu_player_set_rotation` sets the server-side rotation only and never moves the client camera. `entity_teleport` with a `facing` point moves both the client camera and the server-side rotation, so it also satisfies server-side look resolvers (verified: `PRIMARY_SNEAK` sic returned `routed:true` immediately after a teleport-facing, with no `player_set_rotation`). The only real failure mode is aiming at the wrong thing — check what the camera points at before invoking an aimed ability.
 - Screenshot sessions drift into night: call `command_execute` `time set noon` before a capture series, or every frame comes back as a dark blob.
 - Summoned pets (Divine Dogs) wander around their owner: read the subject's position, teleport the camera to face it and capture in ONE call — any modelling wait lets it leave the frame.
-- Helmet-less zombies burn to death at noon and vanish mid-test; summon `Invulnerable:1b` / `PersistenceRequired:1b` targets (y=-59 in the dev world) when a test needs a lasting victim.
+- Helmet-less zombies burn to death at noon and vanish mid-test; summon `Invulnerable:1b` / `PersistenceRequired:1b` targets (y=-59 in the dev world) when a test needs a lasting victim. `jujutsu_entity_summon_near` spawns at eye height — in the void world the mob falls and dies in ~3s; use `nbt` SNBT (`{NoAI:1b,NoGravity:1b,PersistenceRequired:1b}`) or direct `entity_summon` at a fixed y on a platform.
 - Judge frames numerically (mean luminance, silhouette bbox, region diffs); 854x480 vision reads are unreliable for mob detail. Crop tight and aim before asking a vision model anything.
 
 Known traps from the shikigami lane (verified 2026-09-12):

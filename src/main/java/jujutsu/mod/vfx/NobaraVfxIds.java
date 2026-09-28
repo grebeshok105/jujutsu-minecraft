@@ -19,7 +19,6 @@ public final class NobaraVfxIds {
 	public static final ResourceLocation HAMMER_HORIZONTAL = id("hammer_horizontal");
 	public static final ResourceLocation HAMMER_OVERHEAD = id("hammer_overhead");
 	public static final ResourceLocation HAMMER_NAIL_LAUNCH = id("hammer_nail_launch");
-	public static final ResourceLocation BLACK_FLASH = id("black_flash");
 	public static final ResourceLocation SELF_RESONANCE = id("self_resonance");
 	public static final ResourceLocation NAIL_DEEPEN = id("nail_deepen");
 	public static final ResourceLocation NAIL_TRAP_PLACED = id("nail_trap_placed");
@@ -37,8 +36,8 @@ public final class NobaraVfxIds {
 	public static final Set<ResourceLocation> LIVE = Set.of(
 			HAMMER, IMPACT, IMPACT_SOUND, DETONATE, ENLARGE, EXPLOSION, FIRST_PERSON_SNAP, REMNANT_DROP,
 			RITUAL_BIND, DOLL_STRIKE, RESONANCE_RELEASE, HAMMER_HORIZONTAL, HAMMER_OVERHEAD, HAMMER_NAIL_LAUNCH,
-			BLACK_FLASH, SELF_RESONANCE, NAIL_DEEPEN, NAIL_TRAP_PLACED, NAIL_TRAP_ARMED, NAIL_TRAP_COLLAPSE,
-		NAIL_TRAP_IMPACT, CASTER_ACTION, MEGA_NAIL_STRIKE, MEGA_NAIL_CHARGE);
+			SELF_RESONANCE, NAIL_DEEPEN, NAIL_TRAP_PLACED, NAIL_TRAP_ARMED, NAIL_TRAP_COLLAPSE, NAIL_TRAP_IMPACT,
+			CASTER_ACTION, MEGA_NAIL_STRIKE, MEGA_NAIL_CHARGE);
 	public static final Set<ResourceLocation> PLANNED = Set.of();
 	private static final int HAIRPIN_FINALE_FLAG = 8;
 

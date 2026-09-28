@@ -3,7 +3,6 @@ package jujutsu.mod.character.todo;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -23,6 +22,10 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import software.bernie.geckolib.animatable.GeoAnimatable;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animatable.manager.AnimatableManager;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
 /**
  * The thrown stone of Todo's reworked kit: one small body that exists only in flight.
@@ -38,7 +41,7 @@ import net.minecraft.world.phys.Vec3;
  * velocity between tracking updates, while {@code setRequiresPrecisePosition} makes the server send
  * authoritative absolute positions, so a swap snap and any drift are corrected instead of accumulated.
  */
-public final class TodoStoneEntity extends Entity {
+public final class TodoStoneEntity extends Entity implements GeoAnimatable {
 	private static final EntityDataAccessor<Optional<EntityReference<LivingEntity>>> DATA_OWNER_UUID =
 			SynchedEntityData.defineId(TodoStoneEntity.class, EntityDataSerializers.OPTIONAL_LIVING_ENTITY_REFERENCE);
 	private static final EntityDataAccessor<Integer> DATA_REMAINING_TICKS =
@@ -49,11 +52,26 @@ public final class TodoStoneEntity extends Entity {
 
 	private UUID ownerUuid;
 	private int remainingTicks;
+	private final AnimatableInstanceCache animatableInstanceCache = GeckoLibUtil.createInstanceCache(this);
 
 	public TodoStoneEntity(EntityType<? extends TodoStoneEntity> entityType, Level level) {
 		super(entityType, level);
 		setNoGravity(true);
 		setRequiresPrecisePosition(true);
+	}
+	@Override
+	public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+		// The pebble has no authored animation clips; tumble/wobble is renderer-owned.
+	}
+
+	@Override
+	public AnimatableInstanceCache getAnimatableInstanceCache() {
+		return animatableInstanceCache;
+	}
+
+	@Override
+	public double getTick(Object relatedObject) {
+		return tickCount;
 	}
 
 	/** Server-side launch: the stone leaves Todo's hand and flies forever along this velocity. */
@@ -198,14 +216,6 @@ public final class TodoStoneEntity extends Entity {
 			return;
 		}
 		setPos(position().add(movement));
-		// A few gray motes shed behind the stone; the renderer carries the body, the trail keeps it
-		// readable against a wall. Near-zero velocity so the flakes hang where they were shed.
-		if (tickCount % 3 == 0) {
-			level().addParticle(ParticleTypes.ASH, getX(), getY(), getZ(),
-					(level().random.nextDouble() - 0.5) * 0.02,
-					(level().random.nextDouble() - 0.5) * 0.02,
-					(level().random.nextDouble() - 0.5) * 0.02);
-		}
 	}
 
 	private void face(Vec3 vector) {

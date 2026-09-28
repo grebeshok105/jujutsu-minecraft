@@ -12,6 +12,7 @@
 			"jujutsu.mod.gametest.TodoAimedSwapRollbackGameTests",
 			"jujutsu.mod.gametest.NobaraAbilityResultGameTests",
 			"jujutsu.mod.gametest.TodoStoneGameTests",
+			"jujutsu.mod.gametest.TodoRhythmGameTests",
 			"jujutsu.mod.gametest.MegumiShikigamiGameTests",
 			"jujutsu.mod.gametest.MegumiToadGameTests",
 			"jujutsu.mod.gametest.MegumiRabbitsGameTests",

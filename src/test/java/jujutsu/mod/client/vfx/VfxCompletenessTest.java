@@ -24,8 +24,10 @@ import jujutsu.mod.vfx.CursedSpiritVfxIds;
 import jujutsu.mod.client.vfx.cursedspirit.CursedSpiritVfxRecipes;
 import jujutsu.mod.client.vfx.megumi.MegumiVfxRecipes;
 import jujutsu.mod.client.vfx.nobara.NobaraVfxRecipes;
+import jujutsu.mod.client.vfx.shared.SharedVfxRecipes;
 import jujutsu.mod.client.vfx.todo.TodoVfxRecipes;
 import jujutsu.mod.vfx.MegumiVfxIds;
+import jujutsu.mod.vfx.SharedVfxIds;
 import jujutsu.mod.vfx.TodoVfxIds;
 import jujutsu.mod.vfx.NobaraVfxIds;
 import net.minecraft.resources.ResourceLocation;
@@ -43,6 +45,7 @@ final class VfxCompletenessTest {
 	private static final List<Owner> OWNERS = List.of(
 			new Owner("Nobara", NobaraVfxIds.LIVE, NobaraVfxIds.PLANNED),
 			new Owner("Todo", TodoVfxIds.LIVE, TodoVfxIds.PLANNED),
+			new Owner("Shared", SharedVfxIds.LIVE, SharedVfxIds.PLANNED),
 			new Owner("Megumi", MegumiVfxIds.LIVE, MegumiVfxIds.PLANNED),
 			new Owner("Curse", CursedSpiritVfxIds.LIVE, CursedSpiritVfxIds.PLANNED));
 
@@ -69,8 +72,8 @@ final class VfxCompletenessTest {
 			}
 		}
 
-		for (Class<?> ownerClass : List.of(NobaraVfxIds.class, TodoVfxIds.class, MegumiVfxIds.class,
-				CursedSpiritVfxIds.class)) {
+		for (Class<?> ownerClass : List.of(NobaraVfxIds.class, TodoVfxIds.class, SharedVfxIds.class,
+				MegumiVfxIds.class, CursedSpiritVfxIds.class)) {
 			for (Field field : ownerClass.getDeclaredFields()) {
 				if (field.getType() != ResourceLocation.class || !Modifier.isStatic(field.getModifiers())
 						|| !Modifier.isPublic(field.getModifiers())) {
@@ -80,19 +83,20 @@ final class VfxCompletenessTest {
 				assertEquals(1, countStates(id), ownerClass.getSimpleName() + "." + field.getName());
 			}
 		}
-		assertEquals(70, allIds.size());
+		assertEquals(74, allIds.size());
 	}
 
 	@Test
 	void realRecipePacksRegisterEveryLiveIdExactlyOnce() {
 		NobaraVfxRecipes.register();
 		TodoVfxRecipes.register();
+		SharedVfxRecipes.register();
 		MegumiVfxRecipes.register();
 		CursedSpiritVfxRecipes.register();
 
 		Set<ResourceLocation> live = liveIds();
 		assertEquals(live, VfxDirector.registeredRecipeIdsForTest());
-		assertEquals(70, VfxDirector.registeredRecipeIdsForTest().size());
+		assertEquals(74, VfxDirector.registeredRecipeIdsForTest().size());
 		for (ResourceLocation id : VfxDirector.registeredRecipeIdsForTest()) {
 			assertEquals(1, ownerCount(id), "recipe owner count for " + id);
 			assertFalse(plannedIds().contains(id));
@@ -134,15 +138,19 @@ final class VfxCompletenessTest {
 			if (ids.isEmpty()) {
 				continue;
 			}
-			Map<ResourceLocation, Set<Double>> methodRadii = directDeliveryRadii(method, ids);
-			if (methodRadii.isEmpty()) {
-				DeliveryPath path = networkDeliveryPath(method, methods);
-				if (path.reachesTransport()) {
-					for (IdReference id : ids) {
+			Map<ResourceLocation, Set<Double>> methodRadii = directDeliveryRadii(method, ids, methods);
+			// Ids inside a cue builder (collapseCue) have no transport in this method at all — the
+			// delivery lives in a caller, which the reverse call-graph walk finds.
+			DeliveryPath path = null;
+			for (IdReference id : ids) {
+				if (!methodRadii.containsKey(id.id())) {
+					if (path == null) {
+						path = networkDeliveryPath(method, methods);
+					}
+					if (path.reachesTransport()) {
 						radii.computeIfAbsent(id.id(), ignored -> new HashSet<>()).addAll(path.radii());
 					}
 				}
-				continue;
 			}
 			for (Map.Entry<ResourceLocation, Set<Double>> entry : methodRadii.entrySet()) {
 				radii.computeIfAbsent(entry.getKey(), ignored -> new HashSet<>()).addAll(entry.getValue());
@@ -206,24 +214,59 @@ final class VfxCompletenessTest {
 	}
 
 	private static Map<ResourceLocation, Set<Double>> directDeliveryRadii(
-			JavaMethod method, List<IdReference> ids) {
+			JavaMethod method, List<IdReference> ids, Map<String, JavaMethod> methods) {
 		List<JavaCall<?>> networkCalls = method.getCallsFromSelf().stream()
 				.filter(call -> call.getTargetOwner().getName().equals("jujutsu.mod.network.JujutsuNetworking"))
 				.filter(call -> call.getName().equals("broadcastVfxCue") || call.getName().equals("sendVfxCue"))
 				.toList();
-		if (networkCalls.isEmpty()) {
+		List<JavaMethodCall> productionCalls = method.getMethodCallsFromSelf().stream()
+				.filter(call -> !call.getTargetOwner().getName().equals("jujutsu.mod.network.JujutsuNetworking"))
+				.filter(call -> resolveTarget(call, methods) != null)
+				.toList();
+		if (networkCalls.isEmpty() && productionCalls.isEmpty()) {
 			return Map.of();
 		}
 		Set<Double> fields = deliveryRadiusFields(method);
 		Map<ResourceLocation, Set<Double>> radii = new HashMap<>();
 		for (IdReference id : ids) {
-			JavaCall<?> nearest = networkCalls.stream()
-					.min(java.util.Comparator.comparingInt(call -> Math.abs(call.getLineNumber() - id.lineNumber())))
-					.orElseThrow();
-			radii.put(id.id(), nearest.getName().equals("broadcastVfxCue") ? fields : Set.of());
+			Set<Double> attributed = attributeDelivery(id, networkCalls, productionCalls, methods, fields);
+			if (attributed != null) {
+				radii.put(id.id(), attributed);
+			}
 		}
 		return radii;
 	}
+
+	private static Set<Double> attributeDelivery(IdReference id, List<JavaCall<?>> networkCalls,
+			List<JavaMethodCall> productionCalls, Map<String, JavaMethod> methods, Set<Double> fields) {
+		int line = id.lineNumber();
+		// A call containing the id in its arguments starts on the id's line or earlier — a later call
+		// is a sibling, never the container. The invoke itself can land a couple of lines before the
+		// field access inside a multi-line argument list, so allow a small look-back window.
+		List<JavaMethodCall> nearbyProduction = productionCalls.stream()
+				.filter(call -> call.getLineNumber() <= line && call.getLineNumber() >= line - 3)
+				.toList();
+		// The innermost production callee that itself reaches a transport owns the id (the clap cue
+		// id handed to emitClapPerformance). Cue builders like VfxCues.anchored never reach one, so
+		// they fall through to the transport call that consumes their result.
+		JavaMethodCall transporting = nearbyProduction.stream()
+				.filter(call -> walkNetwork(resolveTarget(call, methods), methods, Map.of(), false)
+						.reachesTransport())
+				.max(java.util.Comparator.comparingInt(JavaCall::getLineNumber))
+				.orElse(null);
+		if (transporting != null) {
+			return walkNetwork(resolveTarget(transporting, methods), methods, Map.of(), false).radii();
+		}
+		JavaCall<?> nearestNetwork = networkCalls.stream()
+				.filter(call -> call.getLineNumber() <= line && call.getLineNumber() >= line - 3)
+				.max(java.util.Comparator.comparingInt(JavaCall::getLineNumber))
+				.orElse(null);
+		if (nearestNetwork != null) {
+			return nearestNetwork.getName().equals("broadcastVfxCue") ? fields : Set.of();
+		}
+		return null;
+	}
+
 
 	private static DeliveryPath networkDeliveryPath(JavaMethod start, Map<String, JavaMethod> methods) {
 		Map<String, Set<JavaMethod>> callers = new HashMap<>();
@@ -366,8 +409,8 @@ final class VfxCompletenessTest {
 
 	private static Map<String, ResourceLocation> idFields() {
 		Map<String, ResourceLocation> fields = new HashMap<>();
-		for (Class<?> owner : List.of(NobaraVfxIds.class, TodoVfxIds.class, MegumiVfxIds.class,
-				CursedSpiritVfxIds.class)) {
+		for (Class<?> owner : List.of(NobaraVfxIds.class, TodoVfxIds.class, SharedVfxIds.class,
+				MegumiVfxIds.class, CursedSpiritVfxIds.class)) {
 			for (Field field : owner.getDeclaredFields()) {
 				if (field.getType() == ResourceLocation.class && Modifier.isStatic(field.getModifiers())
 						&& Modifier.isPublic(field.getModifiers())) {

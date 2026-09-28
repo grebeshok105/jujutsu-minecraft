@@ -51,6 +51,7 @@ public final class TodoStateLifecycle {
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			TodoPairSwapRuntime.serverTick(server);
 			TodoStoneRuntime.serverTick(server);
+			TodoRhythmRuntime.serverTick(server);
 		});
 	}
 

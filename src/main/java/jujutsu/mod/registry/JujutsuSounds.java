@@ -27,6 +27,12 @@ public final class JujutsuSounds {
 	public static final SoundEvent PROJECTJJK_CLAP = create("projectjjk.clap");
 	public static final SoundEvent PROJECTJJK_LONG_WHOOSH = create("projectjjk.long_whoosh");
 	public static final SoundEvent PROJECTJJK_WHOOSH_VORTEX = create("projectjjk.whoosh_vortex");
+	/** Todo Revised Boogie Woogie: seamless vibraslap/rattle bed (tools/synth_todo_sounds.py). */
+	public static final SoundEvent TODO_VIBRASLAP_RATTLE = create("todo.vibraslap_rattle");
+	/** Todo high-rhythm clap layer (tools/synth_todo_sounds.py). */
+	public static final SoundEvent TODO_CLAP_DENSE = create("todo.clap_dense");
+	/** Todo Peak activation chime (tools/synth_todo_sounds.py). */
+	public static final SoundEvent TODO_PEAK_CHIME = create("todo.peak_chime");
 	/** Low body-impact report. Two variants, so a rapid exchange does not sound like one looped sample. */
 	public static final SoundEvent PROJECTJJK_AEC_BOOM = create("projectjjk.aec_boom");
 	/** Mega Nail: 1.3 s synthesized power build-up, played once at charge start (see tools/synth_mega_sounds.py). */
@@ -109,6 +115,9 @@ public final class JujutsuSounds {
 		register("projectjjk.long_whoosh", PROJECTJJK_LONG_WHOOSH);
 		register("projectjjk.whoosh_vortex", PROJECTJJK_WHOOSH_VORTEX);
 		register("projectjjk.aec_boom", PROJECTJJK_AEC_BOOM);
+		register("todo.vibraslap_rattle", TODO_VIBRASLAP_RATTLE);
+		register("todo.clap_dense", TODO_CLAP_DENSE);
+		register("todo.peak_chime", TODO_PEAK_CHIME);
 		register("nobara.mega_charge_riser", NOBARA_MEGA_CHARGE_RISER);
 		register("nobara.mega_launch_blast", NOBARA_MEGA_LAUNCH_BLAST);
 		register("megumi.dog_ambient", MEGUMI_DOG_AMBIENT);

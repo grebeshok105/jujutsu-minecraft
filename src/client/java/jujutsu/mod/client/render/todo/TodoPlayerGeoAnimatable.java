@@ -22,6 +22,11 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 public final class TodoPlayerGeoAnimatable implements GeoReplacedEntity {
 	public static final TodoPlayerGeoAnimatable INSTANCE = new TodoPlayerGeoAnimatable();
 	public static final String BOOGIE_WOOGIE_ANIM = "boogie_woogie";
+	public static final String FAKE_CLAP_ANIM = "fake_clap";
+	public static final String STONE_THROW_ANIM = "stone_throw";
+	public static final String MOMENTUM_STRIKE_ANIM = "momentum_strike";
+	public static final String PEAK_ANIM = "peak";
+	public static final String REVISED_ANIM = "revised";
 	public static final DataTicket<Integer> LOCOMOTION_VARIANT = DataTicket.create("todo_locomotion_variant", Integer.class);
 	private static final String BASE_CONTROLLER = "todo_player_base";
 	private static final String ACTION_CONTROLLER = "todo_actions";
@@ -35,6 +40,11 @@ public final class TodoPlayerGeoAnimatable implements GeoReplacedEntity {
 	private static final RawAnimation RUN = loop("animation.todo_aoi.run");
 	private static final RawAnimation ATTACK = play("animation.todo_aoi.attack");
 	private static final RawAnimation BOOGIE_WOOGIE = play("ability.boogie_woogie");
+	private static final RawAnimation FAKE_CLAP = play("ability.fake_clap");
+	private static final RawAnimation STONE_THROW = play("ability.stone_throw");
+	private static final RawAnimation MOMENTUM_STRIKE = play("ability.momentum_strike");
+	private static final RawAnimation PEAK = play("ability.peak");
+	private static final RawAnimation REVISED = loop("ability.revised");
 	private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
 	private TodoPlayerGeoAnimatable() {
@@ -67,7 +77,12 @@ public final class TodoPlayerGeoAnimatable implements GeoReplacedEntity {
 		controllers.add(new AnimationController<TodoPlayerGeoAnimatable>(BASE_CONTROLLER, 4, this::baseAnimation));
 		controllers.add(new AnimationController<TodoPlayerGeoAnimatable>(ACTION_CONTROLLER, 1, state -> PlayState.STOP)
 				.triggerableAnim("attack", ATTACK)
-				.triggerableAnim(BOOGIE_WOOGIE_ANIM, BOOGIE_WOOGIE));
+				.triggerableAnim(BOOGIE_WOOGIE_ANIM, BOOGIE_WOOGIE)
+				.triggerableAnim(FAKE_CLAP_ANIM, FAKE_CLAP)
+				.triggerableAnim(STONE_THROW_ANIM, STONE_THROW)
+				.triggerableAnim(MOMENTUM_STRIKE_ANIM, MOMENTUM_STRIKE)
+				.triggerableAnim(PEAK_ANIM, PEAK)
+				.triggerableAnim(REVISED_ANIM, REVISED));
 	}
 
 	@Override
@@ -138,7 +153,9 @@ public final class TodoPlayerGeoAnimatable implements GeoReplacedEntity {
 	}
 
 	private static boolean isActionClip(RawAnimation animation) {
-		return animation == ATTACK || animation == BOOGIE_WOOGIE;
+		return animation == ATTACK || animation == BOOGIE_WOOGIE || animation == FAKE_CLAP
+				|| animation == STONE_THROW || animation == MOMENTUM_STRIKE || animation == PEAK
+				|| animation == REVISED;
 	}
 
 	private record Movement(boolean moving, boolean running) {}

@@ -13,8 +13,8 @@ import jujutsu.mod.vfx.TodoVfxIds;
 import jujutsu.mod.vfx.VfxCues;
 
 /**
- * The single owner of Todo's transient server state: the pair-swap selection and the thrown
- * stone. One map, one cleanup path.
+ * The single owner of Todo's transient server state: pair-swap selection, the thrown stone, and
+ * Boogie Rhythm. One map, one cleanup path.
  *
  * <p>Runtimes read and write through this class and never keep their own static maps. Every
  * cleanup route — death, respawn, dimension change, vessel change, disconnect, server stop, a
@@ -23,21 +23,42 @@ import jujutsu.mod.vfx.VfxCues;
  * lifecycle already guards.
  */
 public final class TodoTransientState {
-	private record State(TodoPendingSelection pairSelection, TodoStoneRef stone) {
+	private record State(TodoPendingSelection pairSelection, TodoStoneRef stone, TodoRhythmState rhythm) {
 		private State withPair(TodoPendingSelection selection) {
-			return new State(selection, stone);
+			return new State(selection, stone, rhythm);
 		}
 
 		private State withStone(TodoStoneRef ref) {
-			return new State(pairSelection, ref);
+			return new State(pairSelection, ref, rhythm);
+		}
+
+		private State withRhythm(TodoRhythmState next) {
+			return new State(pairSelection, stone, next);
 		}
 
 		private boolean isEmpty() {
-			return pairSelection == null && stone == null;
+			return pairSelection == null && stone == null && rhythm == null;
 		}
 	}
 
 	private static final Map<UUID, State> STATES = new ConcurrentHashMap<>();
+
+	public static Optional<TodoRhythmState> rhythm(UUID owner) {
+		State state = STATES.get(owner);
+		return state == null ? Optional.empty() : Optional.ofNullable(state.rhythm());
+	}
+
+	public static void setRhythm(UUID owner, TodoRhythmState rhythm) {
+		if (rhythm == null) {
+			STATES.computeIfPresent(owner, (id, state) -> {
+				State next = state.withRhythm(null);
+				return next.isEmpty() ? null : next;
+			});
+			return;
+		}
+		STATES.compute(owner, (id, state) ->
+				state == null ? new State(null, null, rhythm) : state.withRhythm(rhythm));
+	}
 
 	public static Optional<TodoPendingSelection> pairSelection(UUID owner) {
 		State state = STATES.get(owner);
@@ -45,7 +66,8 @@ public final class TodoTransientState {
 	}
 
 	public static void setPairSelection(UUID owner, TodoPendingSelection selection) {
-		STATES.compute(owner, (id, state) -> (state == null ? new State(selection, null) : state.withPair(selection)));
+		STATES.compute(owner, (id, state) ->
+				state == null ? new State(selection, null, null) : state.withPair(selection));
 	}
 
 	public static void clearPairSelection(UUID owner) {
@@ -61,7 +83,8 @@ public final class TodoTransientState {
 	}
 
 	public static void setStone(UUID owner, TodoStoneRef ref) {
-		STATES.compute(owner, (id, state) -> (state == null ? new State(null, ref) : state.withStone(ref)));
+		STATES.compute(owner, (id, state) ->
+				state == null ? new State(null, ref, null) : state.withStone(ref));
 	}
 
 	/**
@@ -98,8 +121,9 @@ public final class TodoTransientState {
 		}
 	}
 
-	/** The one cleanup everything funnels into: pair selection and stone, nothing else. */
+	/** The one cleanup everything funnels into: pair selection, stone, and rhythm. */
 	public static void dropAll(MinecraftServer server, UUID owner) {
+		setRhythm(owner, null);
 		clearPairSelection(owner);
 		clearStone(server, owner);
 	}
@@ -118,3 +142,4 @@ public final class TodoTransientState {
 
 	private TodoTransientState() {}
 }
+

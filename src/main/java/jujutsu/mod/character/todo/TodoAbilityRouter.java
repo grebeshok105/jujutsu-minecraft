@@ -5,10 +5,11 @@ import jujutsu.mod.character.AbilityResult;
 import jujutsu.mod.character.CharacterAbility;
 
 /**
- * Todo's slot map: what each input position means for him.
+ * Todo's exhaustive slot seam: every successful swap now enters the Todo-local unified
+ * node → validation → selection → plan → commit pipeline owned by the selected runtime.
  *
  * <p>The switch is exhaustive on purpose. A new {@link CharacterAbility} constant fails compilation
- * here instead of silently falling into the swap, which is what happened while the executor routed
+ * here instead of silently falling into an aimed swap, which is what happened while the executor routed
  * every slot straight to {@link TodoBoogieWoogieRuntime}. The slots Todo does not use answer
  * {@link AbilityResult#UNHANDLED_FAILURE} explicitly, so "he has nothing on that input" is a written
  * decision, not an omission. His runtimes keep their boolean contract — this router maps
