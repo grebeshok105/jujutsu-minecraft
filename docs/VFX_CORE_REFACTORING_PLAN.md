@@ -231,7 +231,7 @@ Remove:
 - both `triggerSlowMotion` calls;
 - tests that exist only for the dead channel.
 
-Do not replace it with a time-scaling mixin. Resonance already has accepted server-global hit-stop. Client-only slow motion is a separate product decision.
+Do not replace it with a time-scaling mixin. Resonance now uses presentation-only hit-stop — camera impulse, sound duck, post-process blur, and the authored ritual timeline — with no server tick-rate mutation. Client-only slow motion is a separate product decision.
 
 The cleanup PR must add an accepted-decision entry to `docs/KNOWN_ISSUES.md` stating that the attempted client slow-motion path was never implemented, was deliberately removed, and must not be reintroduced casually through a mixin.
 
@@ -577,7 +577,7 @@ Preserved properties:
 - persistent visuals remain on entity or state renderers;
 - late-cue behavior;
 - style-owned `worldFixed` policy;
-- accepted server-global Resonance hit-stop.
+- presentation-only Resonance hit-stop cues (camera impulse, sound duck, post-process blur, and the authored ritual timeline), with no server tick-rate mutation;
 
 ---
 

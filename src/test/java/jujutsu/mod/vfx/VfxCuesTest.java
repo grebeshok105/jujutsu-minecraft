@@ -45,7 +45,7 @@ final class VfxCuesTest {
 	@Test
 	void worldFixedDisplacementKeepsFullTravelOutsideNormalizedDirection() {
 		Vec3 displacement = new Vec3(8.0, 3.0, -4.0);
-		VfxCue cue = VfxCues.worldFixedDisplacement(NobaraVfxIds.EXPLOSION, ORIGIN, INTENSITY, GAME_TIME, SEED, displacement);
+		VfxCue cue = VfxCues.worldFixedDisplacement(NobaraVfxIds.DETONATE, ORIGIN, INTENSITY, GAME_TIME, SEED, displacement);
 
 		assertEquals(displacement, cue.anchorOffset());
 		assertEquals(new Vec3(20.5, 67.25, -12.0), ORIGIN.add(cue.anchorOffset()));
@@ -55,7 +55,7 @@ final class VfxCuesTest {
 
 	@Test
 	void zeroWorldFixedDisplacementHasNoDirection() {
-		VfxCue cue = VfxCues.worldFixedDisplacement(NobaraVfxIds.EXPLOSION, ORIGIN, INTENSITY, GAME_TIME, SEED, Vec3.ZERO);
+		VfxCue cue = VfxCues.worldFixedDisplacement(NobaraVfxIds.DETONATE, ORIGIN, INTENSITY, GAME_TIME, SEED, Vec3.ZERO);
 
 		assertEquals(Vec3.ZERO, cue.anchorOffset());
 		assertEquals(Vec3.ZERO, cue.direction());
@@ -64,7 +64,7 @@ final class VfxCuesTest {
 	@Test
 	void anchoredComputesOffsetFromAnchorPosition() {
 		Vec3 anchorPosition = new Vec3(10.0, 63.0, -12.0);
-		VfxCue cue = VfxCues.anchored(NobaraVfxIds.ENLARGE, ORIGIN, 42, anchorPosition, INTENSITY, GAME_TIME, SEED);
+		VfxCue cue = VfxCues.anchored(NobaraVfxIds.DETONATE, ORIGIN, 42, anchorPosition, INTENSITY, GAME_TIME, SEED);
 
 		assertEquals(42, cue.anchorEntityId());
 		assertEquals(ORIGIN.subtract(anchorPosition), cue.anchorOffset());
@@ -77,7 +77,7 @@ final class VfxCuesTest {
 	@Test
 	void anchoredWithOffsetPreservesAnExplicitTransportOffset() {
 		Vec3 offset = new Vec3(0.0, 1.4, 0.0);
-		VfxCue cue = VfxCues.anchoredWithOffset(NobaraVfxIds.ENLARGE, ORIGIN, 42, offset,
+		VfxCue cue = VfxCues.anchoredWithOffset(NobaraVfxIds.DETONATE, ORIGIN, 42, offset,
 				INTENSITY, GAME_TIME, SEED);
 
 		assertEquals(42, cue.anchorEntityId());
@@ -89,7 +89,7 @@ final class VfxCuesTest {
 	void anchoredDirectedPreservesAnchorOffsetAndNormalizesOrientation() {
 		Vec3 anchorPosition = new Vec3(10.0, 63.0, -12.0);
 		VfxCue cue = VfxCues.anchoredDirected(
-				NobaraVfxIds.ENLARGE, ORIGIN, 42, anchorPosition, INTENSITY, GAME_TIME, SEED, new Vec3(0.0, 4.0, 0.0));
+				NobaraVfxIds.DETONATE, ORIGIN, 42, anchorPosition, INTENSITY, GAME_TIME, SEED, new Vec3(0.0, 4.0, 0.0));
 
 		assertEquals(42, cue.anchorEntityId());
 		assertEquals(ORIGIN.subtract(anchorPosition), cue.anchorOffset());
@@ -99,11 +99,11 @@ final class VfxCuesTest {
 	@Test
 	void anchoredFactoriesRejectTheWorldFixedSentinel() {
 		assertThrows(IllegalArgumentException.class, () -> VfxCues.anchored(
-				NobaraVfxIds.ENLARGE, ORIGIN, VfxCue.NO_ANCHOR, Vec3.ZERO, INTENSITY, GAME_TIME, SEED));
+				NobaraVfxIds.DETONATE, ORIGIN, VfxCue.NO_ANCHOR, Vec3.ZERO, INTENSITY, GAME_TIME, SEED));
 		assertThrows(IllegalArgumentException.class, () -> VfxCues.anchoredDirected(
-				NobaraVfxIds.ENLARGE, ORIGIN, VfxCue.NO_ANCHOR, Vec3.ZERO, INTENSITY, GAME_TIME, SEED, Vec3.ZERO));
+				NobaraVfxIds.DETONATE, ORIGIN, VfxCue.NO_ANCHOR, Vec3.ZERO, INTENSITY, GAME_TIME, SEED, Vec3.ZERO));
 		assertThrows(IllegalArgumentException.class, () -> VfxCues.anchoredWithOffset(
-				NobaraVfxIds.ENLARGE, ORIGIN, VfxCue.NO_ANCHOR, Vec3.ZERO, INTENSITY, GAME_TIME, SEED));
+				NobaraVfxIds.DETONATE, ORIGIN, VfxCue.NO_ANCHOR, Vec3.ZERO, INTENSITY, GAME_TIME, SEED));
 	}
 
 	@Test
@@ -118,7 +118,7 @@ final class VfxCuesTest {
 	void displacementCueRoundTripsThroughTheRealPayloadCodec() {
 		// The legacy JavaExec test covers raw VfxCue construction; this pins the factory's displacement shape.
 		VfxCue expected = VfxCues.worldFixedDisplacement(
-				NobaraVfxIds.EXPLOSION, ORIGIN, 8, 321L, 9876L, new Vec3(8.0, 3.0, -4.0));
+				NobaraVfxIds.DETONATE, ORIGIN, 8, 321L, 9876L, new Vec3(8.0, 3.0, -4.0));
 		RegistryFriendlyByteBuf buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(), RegistryAccess.EMPTY);
 		try {
 			VfxCuePayload.STREAM_CODEC.encode(buffer, new VfxCuePayload(expected));

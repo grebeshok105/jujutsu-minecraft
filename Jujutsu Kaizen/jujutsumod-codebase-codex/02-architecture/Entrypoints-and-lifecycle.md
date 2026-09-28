@@ -4,7 +4,7 @@ Status: CURRENT
 
 ## Common entrypoint
 
-JujutsuMod.onInitialize registers entities, persistent attachments, data components, items, particles, sounds, effects, networking, CharacterAbilityCooldowns, CharacterCombatModifiers, commands, and debug Black Flash support. It names no vessel: per-vessel runtimes install through each vessel's `CharacterDefinition.registerServerHooks()`, called in a loop over `JujutsuCharacters.all()` — Nobara's definition registers her nine runtimes (ProjectJjkRitualRuntime, ProjectJjkMegaNailRuntime, ProjectJjkStrawDollRuntime, EmbeddedNailRegistry, NailAnchorLifecycle, NobaraHammerCombatRuntime, NobaraActionGuard, SelfResonanceRuntime, NailTrapRuntime — VERIFIED NobaraDefinition.registerServerHooks), Todo's registers four (TodoBlackFlashRuntime, TodoSwapMomentumRuntime, TodoBoogieWoogieRuntime, TodoStateLifecycle — VERIFIED TodoDefinition.registerServerHooks; `TodoPairSwapRuntime` has no `register()` and is invoked through the router plus ticked via `TodoStateLifecycle`, and `TodoSwapMarks` is deleted), and Megumi's registers the Divine Dog attributes plus four runtimes (MegumiSummonRuntime, MegumiShadowTrapRuntime, MegumiShadowMoveRuntime, MegumiShadowDropRuntime — VERIFIED MegumiDefinition.registerServerHooks). See [Vessel definitions](Vessel-definitions.md).
+JujutsuMod.onInitialize registers entities, persistent attachments, data components, items, particles, sounds, effects, networking, CharacterAbilityCooldowns, CharacterCombatModifiers, commands, and debug Black Flash support. It names no vessel: per-vessel runtimes install through each vessel's `CharacterDefinition.registerServerHooks()`, called in a loop over `JujutsuCharacters.all()` — Nobara's definition registers her ten server hooks (HairpinRuntime, ProjectJjkMegaNailRuntime, ProjectJjkStrawDollRuntime, NailAnchorRegistry, NailAnchorLifecycle, NobaraTeardown, NobaraHammerCombatRuntime, NobaraActionGuard, SelfResonanceRuntime, NailTrapRuntime — VERIFIED NobaraDefinition.registerServerHooks), Todo's registers four (TodoBlackFlashRuntime, TodoSwapMomentumRuntime, TodoBoogieWoogieRuntime, TodoStateLifecycle — VERIFIED TodoDefinition.registerServerHooks; `TodoPairSwapRuntime` has no `register()` and is invoked through the router plus ticked via `TodoStateLifecycle`, and `TodoSwapMarks` is deleted), and Megumi's registers the Divine Dog attributes plus four runtimes (MegumiSummonRuntime, MegumiShadowTrapRuntime, MegumiShadowMoveRuntime, MegumiShadowDropRuntime — VERIFIED MegumiDefinition.registerServerHooks). See [Vessel definitions](Vessel-definitions.md).
 
 `TodoBoogieWoogieRuntime.register()` exists only to attach an END_WORLD_TICK listener that drains the delayed clap-sound queue; the swap itself is invoked through `CharacterAbilityExecutor.tryCast` → `TodoDefinition.tryCast` → `TodoAbilityRouter`, not from a registered event (VERIFIED — TodoBoogieWoogieRuntime.register, .tickPendingSounds).
 
@@ -12,7 +12,7 @@ Important lifecycle owners:
 
 - Character state is stored on ServerPlayer through JujutsuAttachments.CHARACTER_STATE.
 - CharacterSelectionManager.syncOnJoin exchanges current online selections; disconnect broadcasts None without deleting persistence.
-- EmbeddedNailRegistry tracks loaded ordinary embedded nails and clears server-level maps on SERVER_STOPPING.
+- NailAnchorRegistry tracks loaded embedded anchors and clears server-level maps on SERVER_STOPPING.
 - Runtime systems register their own tick/disconnect/stop cleanup where required.
 
 ## Dev-only companion (mcpdev)

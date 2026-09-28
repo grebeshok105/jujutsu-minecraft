@@ -32,8 +32,11 @@
 			"jujutsu.mod.gametest.MegumiCoexistenceGameTests",
 			"jujutsu.mod.gametest.MegumiPartialGameTests",
 			"jujutsu.mod.gametest.MegumiWingsGameTests",
-			"jujutsu.mod.gametest.MegumiTongueGameTests",
-			"jujutsu.mod.gametest.MegumiAutonomyGameTests"
+			"jujutsu.mod.gametest.MegumiAutonomyGameTests",
+			"jujutsu.mod.gametest.NobaraAnchorGameTests",
+			"jujutsu.mod.gametest.NobaraHairpinGameTests",
+			"jujutsu.mod.gametest.NobaraMegaNailGameTests",
+			"jujutsu.mod.gametest.NobaraResonanceGameTests"
 		],
 		"fabric-client-gametest": [
 			"jujutsu.mod.gametest.client.ClientLoadCanaryTest",

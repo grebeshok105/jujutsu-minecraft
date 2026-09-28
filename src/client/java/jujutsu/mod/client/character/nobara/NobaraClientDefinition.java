@@ -107,6 +107,7 @@ public final class NobaraClientDefinition implements CharacterClientDefinition {
 		ProjectJjkStrawDollItem.setRendererFactory(ProjectJjkStrawDollRenderer::provider);
 		EntityRendererRegistry.register(JujutsuEntities.PROJECTJJK_NAIL, ProjectJjkNailRenderer::new);
 		NobaraVfxRecipes.register();
+		NobaraHairpinPreview.register();
 	}
 
 	@Override

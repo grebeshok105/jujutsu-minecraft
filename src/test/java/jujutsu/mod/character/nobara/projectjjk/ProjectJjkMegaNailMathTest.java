@@ -6,11 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 /**
- * Pure-formula tests for Mega Nail damage and knockback.
+ * Pure-formula tests for Mega Nail damage and knockback plus the pinned gather/charge timing.
  *
  * <p>All values are derived from {@link ProjectJjkNobaraProfile} constants and the contract
  * documented in {@link ProjectJjkMegaNailRuntime}. Tests assert the formula shape, boundary
- * behaviour, and monotonicity without requiring a Minecraft server.
+ * behaviour, depth-3 critical weight, and monotonicity without requiring a Minecraft server.
  */
 final class ProjectJjkMegaNailMathTest {
 	private static final float DELTA = 1.0e-6f;
@@ -93,12 +93,32 @@ final class ProjectJjkMegaNailMathTest {
 	}
 
 	@Test
-	void chargeTicksIsTwentyFour() {
-		assertEquals(24, ProjectJjkNobaraProfile.MEGA_NAIL_CHARGE_TICKS);
+	void depthThreeWeightIsTheCriticalVariantInput() {
+		float depth1 = ProjectJjkNobaraProfile.nailDepthMultiplier(1);
+		float depth2 = ProjectJjkNobaraProfile.nailDepthMultiplier(2);
+		float depth3 = ProjectJjkNobaraProfile.nailDepthMultiplier(3);
+		assertTrue(depth3 > depth2 && depth2 > depth1);
+		assertTrue(ProjectJjkMegaNailRuntime.megaNailDamage(depth3)
+				> ProjectJjkMegaNailRuntime.megaNailDamage(depth1));
+	}
+
+	@Test
+	void gatherTicksAreFourteen() {
+		assertEquals(14, ProjectJjkNobaraProfile.MEGA_GATHER_TICKS);
+	}
+
+	@Test
+	void chargeTicksAreSixteen() {
+		assertEquals(16, ProjectJjkNobaraProfile.MEGA_CHARGE_TICKS);
 	}
 
 	@Test
 	void flightTimeoutIsSixtyTicks() {
 		assertEquals(60, ProjectJjkNobaraProfile.MEGA_NAIL_FLIGHT_TIMEOUT_TICKS);
+	}
+
+	@Test
+	void launchSpeedMultiplierIsPinned() {
+		assertEquals(1.3, ProjectJjkNobaraProfile.MEGA_NAIL_SPEED_MULTIPLIER, DELTA);
 	}
 }

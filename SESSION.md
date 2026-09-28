@@ -1,3 +1,39 @@
+# Session Handoff — Nobara full rework — 2026-09-23
+
+## State — Phase 3 closed, gate green; Phase 4 judge + in-game pending
+
+Branch `feat/nobara-rework` (base `bee79b08`, HEAD `235fb6ac`, 10 commits ahead of
+origin/main, unpushed). Full rework per DESIGN SPEC
+(`.superpowers/rule-of-four/nobara-rework/design-spec.md`): NailAnchorRegistry replaces
+the embedded-nail index; deterministic Hairpin network + world preview; Nail Trap in the
+network; Mega Nail consumes target setup at t0; remnant = Deeply Anchored + overhead
+extraction (old 2-hit progression deleted); cinematic 40-tick Resonance, no global tick
+dilation; bounded Resonant Momentum; 26-clip Blockbench animation set.
+
+- `qualityGate` GREEN twice: 212 GameTest + JUnit + 31 verification JavaExec + doc audit
+  + jar isolation, 0 failures (evidence `build/test-results/gametest/junit.xml`).
+- Phase 3: 4 reviewers + QA all REJECT → ~20 findings fixed in `1caf22c8` (trap tick hook,
+  owner-scoped fixture_reset, per-dimension chain clock, extract-before-deepen, anchored
+  mega cues, nail_prepare cue, glow on impacts, prepared-nail discard, preview filters,
+  state_get anyMarks). Reports: `.superpowers/rule-of-four/nobara-rework/review-*.md`.
+- Docs sweep `db686335` synced Codex + guides to rework contracts.
+
+## Remaining (in order)
+
+1. Phase 4 fable-judge verdict (running at handoff).
+2. In-game MCP verification per block-5-report §In-game checklist (mcp-lane-launch skill).
+3. Phase 5: push branch + PR — RU title, «Для игрока» body per AGENTS §12.
+
+## Traps this session
+
+- `edit` PUT N.=N with a single-line body DUPLICATES the next line — use multi-line
+  ranges and re-read imports after every edit (hit ~12 times).
+- `VfxCues.worldFixed*` cues carry NO_ANCHOR → `triggerAnchoredAction` silently returns;
+  caster-animation cues MUST use `VfxCues.anchored*`.
+- `.superpowers/` is gitignored — pipeline reports stay local by convention.
+
+---
+
 # Session Handoff — cursed-spirit melee "hit air" fix — 2026-09-20
 
 ## State — DONE, committed `e386cd7` on `integration/megumi-incidents-107-110`

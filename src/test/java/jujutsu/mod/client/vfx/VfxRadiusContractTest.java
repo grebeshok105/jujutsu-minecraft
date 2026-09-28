@@ -29,8 +29,6 @@ final class VfxRadiusContractTest {
 				direct("Nobara direct", Set.of(NobaraVfxIds.IMPACT_SOUND, NobaraVfxIds.FIRST_PERSON_SNAP)),
 				// DETONATE is intentionally caster-only: launchHairpin uses sendVfxCue, not broadcastVfxCue.
 				directRadius("Nobara detonate", NobaraVfxIds.DETONATE, NobaraVfxRecipes.HAMMER_ACTION_PRESENTATION_RADIUS),
-				radius("Nobara wide", Set.of(NobaraVfxIds.ENLARGE, NobaraVfxIds.EXPLOSION, NobaraVfxIds.REMNANT_DROP),
-						NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
 				radius("Nobara mega nail", Set.of(NobaraVfxIds.MEGA_NAIL_STRIKE), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
 				radius("Nobara mega nail charge", Set.of(NobaraVfxIds.MEGA_NAIL_CHARGE), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
 				radius("Nobara ritual", Set.of(NobaraVfxIds.RITUAL_BIND), NobaraVfxRecipes.HAMMER_PRESENTATION_RADIUS),
@@ -42,6 +40,13 @@ final class VfxRadiusContractTest {
 						NobaraVfxRecipes.IMPACT_PRESENTATION_RADIUS),
 				radius("Nobara trap impact", Set.of(NobaraVfxIds.NAIL_TRAP_IMPACT), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
 				finiteNone("Nobara caster actions", Set.of(NobaraVfxIds.CASTER_ACTION)),
+				radius("Nobara deeply anchored", Set.of(NobaraVfxIds.DEEPLY_ANCHORED), NobaraVfxRecipes.HAMMER_PRESENTATION_RADIUS),
+				radius("Nobara remnant extract", Set.of(NobaraVfxIds.REMNANT_EXTRACT), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
+				radius("Nobara ritual windup", Set.of(NobaraVfxIds.RITUAL_WINDUP), NobaraVfxRecipes.HAMMER_PRESENTATION_RADIUS),
+				// RESONANCE_LINK is caster-only: the compression hit-stop is private, sent directly.
+				direct("Nobara resonance link", Set.of(NobaraVfxIds.RESONANCE_LINK)),
+				radius("Nobara mega gather", Set.of(NobaraVfxIds.MEGA_GATHER), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
+				radius("Nobara hairpin link", Set.of(NobaraVfxIds.HAIRPIN_LINK), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
 				radius("Nobara black flash", Set.of(NobaraVfxIds.BLACK_FLASH), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
 				radius("Todo clap", Set.of(TodoVfxIds.BOOGIE_WOOGIE), TodoVfxRecipes.BOOGIE_WOOGIE_PRESENTATION_RADIUS),
 				direct("Todo mark", Set.of(TodoVfxIds.PAIR_MARK)),

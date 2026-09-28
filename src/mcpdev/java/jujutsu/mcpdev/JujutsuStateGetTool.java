@@ -1,7 +1,11 @@
 package jujutsu.mcpdev;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -29,7 +33,7 @@ import jujutsu.mod.character.megumi.MegumiShikigamiRuntime;
 import jujutsu.mod.character.megumi.MegumiShikigamiSelection;
 import jujutsu.mod.character.megumi.MegumiSummonCooldowns;
 import jujutsu.mod.character.megumi.MegumiSummonRuntime;
-import jujutsu.mod.character.nobara.projectjjk.EmbeddedNailRegistry;
+import jujutsu.mod.character.nobara.projectjjk.NailAnchorRegistry;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNailMarks;
 import jujutsu.mod.character.todo.TodoPendingSelection;
 import jujutsu.mod.character.todo.TodoTransientState;
@@ -162,8 +166,25 @@ public final class JujutsuStateGetTool extends BaseTool {
 					motion.put("z", knownMovement.z);
 
 					ObjectNode nobara = node.putObject("nobara");
-					nobara.put("embedded_nails_loaded", EmbeddedNailRegistry.loadedOwnedNails(player.level(), playerId).size());
-					nobara.put("marks_on_player", ProjectJjkNailMarks.marks(playerId, gameTime) > 0);
+					List<NailAnchorRegistry.Entry> anchors = NailAnchorRegistry.ownedAnchors(player.level(), playerId);
+					nobara.put("embedded_nails_loaded", anchors.size());
+					nobara.put("marks_on_player", ProjectJjkNailMarks.anyMarks(player.getUUID(), gameTime));
+					ArrayNode anchorNodes = nobara.putArray("anchors");
+					Set<UUID> deeplyAnchored = new HashSet<>();
+					for (NailAnchorRegistry.Entry anchor : anchors) {
+						ObjectNode entry = anchorNodes.addObject();
+						entry.put("nailId", anchor.nailId().toString());
+						putNullableUuid(entry, "targetId", Optional.ofNullable(anchor.targetId()));
+						entry.put("depth", anchor.depth());
+						entry.put("origin", anchor.origin().name());
+						if (anchor.depth() >= 3 && anchor.targetId() != null) {
+							deeplyAnchored.add(anchor.targetId());
+						}
+					}
+					ArrayNode deeplyNodes = nobara.putArray("deeplyAnchoredTargets");
+					for (UUID targetId : deeplyAnchored) {
+						deeplyNodes.add(targetId.toString());
+					}
 
 					return ToolResult.ofToon(node);
 				});

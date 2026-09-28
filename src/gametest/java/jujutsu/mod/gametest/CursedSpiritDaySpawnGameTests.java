@@ -2,6 +2,7 @@ package jujutsu.mod.gametest;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -97,42 +98,58 @@ public final class CursedSpiritDaySpawnGameTests {
 		helper.setBlock(LIT_FEET.below(), Blocks.STONE);
 		helper.setBlock(LIT_LAMP, Blocks.GLOWSTONE);
 		placeHoistLamp(helper);
-		helper.runAtTickTime(ORACLE_TICK, () -> {
-			ServerLevel level = helper.getLevel();
-			owned.clear();
-			try {
-				CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
-				level.setDayTime(NOON);
-				CursedSpiritSpawnSchedule.pinDayChance(1.0);
-				try {
-					CursedSpiritEntity allowed = spawnProbe(helper, owned, LIT_FEET);
-					hoistAboveCrowd(helper, allowed);
-					helper.assertTrue(allowed.checkSpawnRules(level, EntitySpawnReason.NATURAL),
-							GameTestFixtures.diagnostic(fixture, helper.getTick(),
-									"day lit check with chance pinned to 1.0", "true",
-									"see report " + capDiag(level, allowed.blockPosition())));
-				} finally {
-					CursedSpiritSpawnSchedule.resetDayChance();
-				}
-				CursedSpiritSpawnSchedule.pinDayChance(0.0);
-				try {
-					CursedSpiritEntity refused = spawnProbe(helper, owned, LIT_FEET);
-					hoistAboveCrowd(helper, refused);
-					helper.assertFalse(refused.checkSpawnRules(level, EntitySpawnReason.NATURAL),
-							GameTestFixtures.diagnostic(fixture, helper.getTick(),
-									"day lit check with chance pinned to 0.0", "false", "see report"));
-				} finally {
-					CursedSpiritSpawnSchedule.resetDayChance();
-				}
-			} finally {
-				CursedSpiritSpawnSchedule.resetDayChance();
-				removePlacedLamps(level);
-				for (CursedSpiritEntity spirit : owned) {
-					spirit.discard();
-				}
-			}
-		});
+		// The pin-0.0 half only reaches the day roll when the vanilla light half refuses, so the
+		// hoisted cell must be observably lit first. Block-light propagation rides the async light
+		// engine and has no tick guarantee — wait for it instead of trusting ORACLE_TICK (observed
+		// flake: a stale-dark cell let the vanilla half pass and read exactly like a roll pass).
+		// runLightUpdates is NOT an option: it must run on the light engine's owner thread.
+		AtomicBoolean oracleRan = new AtomicBoolean(false);
+		BlockPos hoistFeet = helper.absolutePos(LIT_FEET).above(81);
+		helper.startSequence()
+				.thenWaitUntil(() -> helper.assertTrue(
+						helper.getLevel().getBrightness(net.minecraft.world.level.LightLayer.BLOCK, hoistFeet) >= 13,
+						GameTestFixtures.diagnostic(fixture, helper.getTick(), "hoist lamp propagated",
+								">= 13 block light",
+								helper.getLevel().getBrightness(net.minecraft.world.level.LightLayer.BLOCK, hoistFeet))))
+				.thenExecute(() -> {
+					ServerLevel level = helper.getLevel();
+					owned.clear();
+					try {
+						CursedSpiritTestFixtures.ensureHostileDifficulty(helper);
+						level.setDayTime(NOON);
+						CursedSpiritSpawnSchedule.pinDayChance(1.0);
+						try {
+							CursedSpiritEntity allowed = spawnProbe(helper, owned, LIT_FEET);
+							hoistAboveCrowd(helper, allowed);
+							helper.assertTrue(allowed.checkSpawnRules(level, EntitySpawnReason.NATURAL),
+									GameTestFixtures.diagnostic(fixture, helper.getTick(),
+											"day lit check with chance pinned to 1.0", "true",
+											"see report " + capDiag(level, allowed.blockPosition())));
+						} finally {
+							CursedSpiritSpawnSchedule.resetDayChance();
+						}
+						CursedSpiritSpawnSchedule.pinDayChance(0.0);
+						try {
+							CursedSpiritEntity refused = spawnProbe(helper, owned, LIT_FEET);
+							hoistAboveCrowd(helper, refused);
+							helper.assertFalse(refused.checkSpawnRules(level, EntitySpawnReason.NATURAL),
+									GameTestFixtures.diagnostic(fixture, helper.getTick(),
+											"day lit check with chance pinned to 0.0", "false", "see report"));
+						} finally {
+							CursedSpiritSpawnSchedule.resetDayChance();
+						}
+						oracleRan.set(true);
+					} finally {
+						CursedSpiritSpawnSchedule.resetDayChance();
+						removePlacedLamps(level);
+						for (CursedSpiritEntity spirit : owned) {
+							spirit.discard();
+						}
+					}
+				});
 		helper.runAtTickTime(SWEEP_TICK, () -> {
+			helper.assertTrue(oracleRan.get(), GameTestFixtures.diagnostic(fixture, helper.getTick(),
+					"sweep: oracle ran after the lamp propagated", "true", oracleRan.get()));
 			helper.assertTrue(countLiveOwned() == 0, GameTestFixtures.diagnostic(fixture, helper.getTick(),
 					"sweep: owned probes discarded", "0", countLiveOwned()));
 			helper.assertTrue(CursedSpiritSpawnSchedule.dayChance() == CursedSpiritSpawnSchedule.DAY_SPAWN_CHANCE,
@@ -176,7 +193,6 @@ public final class CursedSpiritDaySpawnGameTests {
 		buildDarkRoom(helper);
 		helper.setBlock(LIT_FEET.below(), Blocks.STONE);
 		helper.setBlock(LIT_LAMP, Blocks.GLOWSTONE);
-		placeHoistLamp(helper);
 		helper.runAtTickTime(ORACLE_TICK, () -> {
 			ServerLevel level = helper.getLevel();
 			owned.clear();

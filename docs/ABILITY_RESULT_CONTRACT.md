@@ -44,7 +44,7 @@ PR #63's `JujutsuAbilityInvokeTool` calls `CharacterAbilityExecutor.tryCast(...)
 
 - New: `AbilityResult.java`, `NobaraAbilityResultGameTests.java`
 - Signature: `CharacterDefinition`, `CharacterAbilityExecutor`, all 4 definitions, all 3 routers
-- Runtimes: `NailTrapRuntime`, `SelfResonanceRuntime`, `ProjectJjkRitualRuntime` (startDirectedHairpin), `ProjectJjkMegaNailRuntime` (start), `NobaraHammerCombatRuntime` (handleInput)
+- Runtimes: `NailTrapRuntime`, `SelfResonanceRuntime`, `HairpinRuntime` (startDirectedHairpin), `ProjectJjkMegaNailRuntime` (start), `NobaraHammerCombatRuntime` (handleInput)
 - Consumers: `JujutsuCommands`, `TodoSwapTestFixtures`
 - Tests: `NobaraAbilitySlotsTest`, `TodoPairSwapTest`, `ProjectSanityTest`, `NailTrapTest` (source-pin updates)
 - Docs: KNOWN_ISSUES E10/E11 close, Codex notes, AGENTS.md if needed
