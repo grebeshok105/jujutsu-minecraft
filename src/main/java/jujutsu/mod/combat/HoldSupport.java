@@ -26,7 +26,9 @@ public final class HoldSupport {
 	/** Caller-specific wall-clamp behavior. */
 	public enum CollisionPolicy {
 		RUNNER(3),
-		TOAD(1);
+		TOAD(1),
+		/** The serpent coil: two correction tries — tighter than the runner, looser than the tongue. */
+		SERPENT(2);
 
 		private final int correctionTries;
 

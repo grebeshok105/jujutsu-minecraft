@@ -73,6 +73,119 @@ class MegumiShikigamiProfileTest {
 	}
 
 	@Test
+	void theSerpentBlockIsTheTuningSurfaceForTheAmbushBind() {
+		assertEquals(50.0, MegumiShikigamiProfile.SERPENT_HEALTH);
+		assertEquals(4.0, MegumiShikigamiProfile.SERPENT_ATTACK_DAMAGE);
+		assertEquals(0.30, MegumiShikigamiProfile.SERPENT_SPEED);
+		assertEquals(16, MegumiShikigamiProfile.SERPENT_MATERIALIZE_TICKS);
+		assertEquals(12, MegumiShikigamiProfile.SERPENT_RECALL_TICKS);
+		assertEquals(200, MegumiShikigamiProfile.SERPENT_RECALL_COOLDOWN_TICKS);
+		assertEquals(340, MegumiShikigamiProfile.SERPENT_DEATH_COOLDOWN_TICKS);
+		assertEquals(40, MegumiShikigamiProfile.SERPENT_AMBUSH_SCAN_TICKS);
+		assertEquals(14.0, MegumiShikigamiProfile.SERPENT_AMBUSH_RANGE);
+		assertEquals(10, MegumiShikigamiProfile.SERPENT_PREPARE_TICKS);
+		assertEquals(100, MegumiShikigamiProfile.SERPENT_SUBMERGED_MAX_TICKS);
+		assertEquals(8, MegumiShikigamiProfile.SERPENT_EMERGE_TICKS);
+		assertEquals(120, MegumiShikigamiProfile.SERPENT_BIND_BASE_TICKS);
+		assertEquals(80, MegumiShikigamiProfile.SERPENT_BIND_MIN_TICKS);
+		assertEquals(160, MegumiShikigamiProfile.SERPENT_BIND_MAX_TICKS);
+		assertEquals(1.0, MegumiShikigamiProfile.SERPENT_BIND_HP_PENALTY);
+		assertEquals(8.0, MegumiShikigamiProfile.SERPENT_BIND_SIZE_PENALTY);
+		assertEquals(16.0, MegumiShikigamiProfile.SERPENT_BIND_BREAK_RANGE);
+		assertEquals(240, MegumiShikigamiProfile.SERPENT_BIND_COOLDOWN_TICKS);
+		assertEquals(0.9, MegumiShikigamiProfile.SERPENT_TOSS_SPEED);
+		assertEquals(0.3, MegumiShikigamiProfile.SERPENT_TOSS_LIFT);
+	}
+
+	@Test
+	void theDeerBlockIsTheTuningSurfaceForTheHealCadence() {
+		assertEquals(45.0, MegumiShikigamiProfile.DEER_HEALTH);
+		assertEquals(1.0, MegumiShikigamiProfile.DEER_ATTACK_DAMAGE);
+		assertEquals(0.28, MegumiShikigamiProfile.DEER_SPEED);
+		assertEquals(5.0, MegumiShikigamiProfile.DEER_FOLLOW_START);
+		assertEquals(2.0, MegumiShikigamiProfile.DEER_FOLLOW_STOP);
+		assertEquals(14, MegumiShikigamiProfile.DEER_MATERIALIZE_TICKS);
+		assertEquals(12, MegumiShikigamiProfile.DEER_RECALL_TICKS);
+		assertEquals(180, MegumiShikigamiProfile.DEER_RECALL_COOLDOWN_TICKS);
+		assertEquals(320, MegumiShikigamiProfile.DEER_DEATH_COOLDOWN_TICKS);
+		assertEquals(40, MegumiShikigamiProfile.DEER_HEAL_SCAN_TICKS);
+		assertEquals(12.0, MegumiShikigamiProfile.DEER_HEAL_RANGE);
+		assertEquals(2.0, MegumiShikigamiProfile.DEER_HEAL_MIN);
+		assertEquals(6.0, MegumiShikigamiProfile.DEER_HEAL_MAX);
+		assertEquals(10, MegumiShikigamiProfile.DEER_HEAL_ACTION_TICKS);
+		assertEquals(0.5, MegumiShikigamiProfile.DEER_SELF_HEAL_FACTOR);
+		assertEquals(60, MegumiShikigamiProfile.DEER_CLEANSE_SCAN_TICKS);
+		assertEquals(2.0, MegumiShikigamiProfile.DEER_ANTLER_RANGE);
+		assertEquals(0.5, MegumiShikigamiProfile.DEER_ANTLER_KNOCKBACK);
+		assertEquals(40, MegumiShikigamiProfile.DEER_ANTLER_COOLDOWN_TICKS);
+		assertEquals(3.0, MegumiShikigamiProfile.DEER_INTERPOSE_RADIUS);
+	}
+
+	@Test
+	void theOxBlockIsTheTuningSurfaceForTheCommittedCharge() {
+		assertEquals(80.0, MegumiShikigamiProfile.OX_HEALTH);
+		assertEquals(2.0, MegumiShikigamiProfile.OX_ATTACK_DAMAGE);
+		assertEquals(0.26, MegumiShikigamiProfile.OX_SPEED);
+		assertEquals(7.0, MegumiShikigamiProfile.OX_FOLLOW_START);
+		assertEquals(3.0, MegumiShikigamiProfile.OX_FOLLOW_STOP);
+		assertEquals(20, MegumiShikigamiProfile.OX_MATERIALIZE_TICKS);
+		assertEquals(14, MegumiShikigamiProfile.OX_RECALL_TICKS);
+		assertEquals(240, MegumiShikigamiProfile.OX_RECALL_COOLDOWN_TICKS);
+		assertEquals(520, MegumiShikigamiProfile.OX_DEATH_COOLDOWN_TICKS);
+		assertEquals(15.0, MegumiShikigamiProfile.OX_ACQUIRE_RANGE);
+		assertEquals(8.0, MegumiShikigamiProfile.OX_ALIGN_YAW_TOLERANCE_DEG);
+		assertEquals(14, MegumiShikigamiProfile.OX_WINDUP_TICKS);
+		assertEquals(0.75, MegumiShikigamiProfile.OX_CHARGE_SPEED);
+		assertEquals(60, MegumiShikigamiProfile.OX_CHARGE_MAX_TICKS);
+		assertEquals(20.0, MegumiShikigamiProfile.OX_CHARGE_MAX_DISTANCE);
+		assertEquals(2.0, MegumiShikigamiProfile.OX_IMPACT_BASE);
+		assertEquals(0.35, MegumiShikigamiProfile.OX_IMPACT_SLOPE);
+		assertEquals(2.0, MegumiShikigamiProfile.OX_IMPACT_MIN);
+		assertEquals(12.0, MegumiShikigamiProfile.OX_IMPACT_MAX);
+		assertEquals(0.8, MegumiShikigamiProfile.OX_KNOCKBACK_BASE);
+		assertEquals(0.1, MegumiShikigamiProfile.OX_KNOCKBACK_PER_POWER);
+		assertEquals(20, MegumiShikigamiProfile.OX_WALL_STAGGER_TICKS);
+		assertEquals(24, MegumiShikigamiProfile.OX_RECOVERY_TICKS);
+		assertEquals(240, MegumiShikigamiProfile.OX_CHARGE_COOLDOWN_TICKS);
+		assertEquals(0.75, MegumiShikigamiProfile.OX_CORRIDOR_SAMPLE_STEP);
+	}
+
+	@Test
+	void theTigerBlockIsTheTuningSurfaceForTheCommittedCombo() {
+		assertEquals(100.0, MegumiShikigamiProfile.TIGER_HEALTH);
+		assertEquals(8.0, MegumiShikigamiProfile.TIGER_ATTACK_DAMAGE);
+		assertEquals(0.24, MegumiShikigamiProfile.TIGER_SPEED);
+		assertEquals(6.0, MegumiShikigamiProfile.TIGER_FOLLOW_START);
+		assertEquals(2.5, MegumiShikigamiProfile.TIGER_FOLLOW_STOP);
+		assertEquals(24, MegumiShikigamiProfile.TIGER_MATERIALIZE_TICKS);
+		assertEquals(14, MegumiShikigamiProfile.TIGER_RECALL_TICKS);
+		assertEquals(250, MegumiShikigamiProfile.TIGER_RECALL_COOLDOWN_TICKS);
+		assertEquals(560, MegumiShikigamiProfile.TIGER_DEATH_COOLDOWN_TICKS);
+		assertEquals(15.0, MegumiShikigamiProfile.TIGER_APPROACH_RANGE);
+		assertEquals(2.2, MegumiShikigamiProfile.TIGER_APPROACH_STOP);
+		assertEquals(12, MegumiShikigamiProfile.TIGER_COMBO_WINDUP_TICKS);
+		assertEquals(6, MegumiShikigamiProfile.TIGER_STRIKE1_RESOLVE_TICKS);
+		assertEquals(2.6, MegumiShikigamiProfile.TIGER_STRIKE1_RANGE);
+		assertEquals(70.0, MegumiShikigamiProfile.TIGER_STRIKE1_ARC_DEG);
+		assertEquals(5.0, MegumiShikigamiProfile.TIGER_STRIKE1_DAMAGE);
+		assertEquals(6, MegumiShikigamiProfile.TIGER_STRIKE1_STAGGER_TICKS);
+		assertEquals(8, MegumiShikigamiProfile.TIGER_STRIKE2_RESOLVE_TICKS);
+		assertEquals(2.8, MegumiShikigamiProfile.TIGER_STRIKE2_RANGE);
+		assertEquals(70.0, MegumiShikigamiProfile.TIGER_STRIKE2_ARC_DEG);
+		assertEquals(7.0, MegumiShikigamiProfile.TIGER_STRIKE2_DAMAGE);
+		assertEquals(8, MegumiShikigamiProfile.TIGER_STRIKE2_STAGGER_TICKS);
+		assertEquals(12, MegumiShikigamiProfile.TIGER_FINISHER_RESOLVE_TICKS);
+		assertEquals(3.0, MegumiShikigamiProfile.TIGER_FINISHER_RANGE);
+		assertEquals(80.0, MegumiShikigamiProfile.TIGER_FINISHER_ARC_DEG);
+		assertEquals(12.0, MegumiShikigamiProfile.TIGER_FINISHER_DAMAGE);
+		assertEquals(20, MegumiShikigamiProfile.TIGER_FINISHER_STAGGER_TICKS);
+		assertEquals(1.2, MegumiShikigamiProfile.TIGER_FINISHER_KNOCKBACK);
+		assertEquals(0.25, MegumiShikigamiProfile.TIGER_FINISHER_LIFT);
+		assertEquals(30, MegumiShikigamiProfile.TIGER_RECOVERY_TICKS);
+		assertEquals(160, MegumiShikigamiProfile.TIGER_COMBO_COOLDOWN_TICKS);
+	}
+
+	@Test
 	void losingAShikigamiAlwaysCostsMoreThanRecallingIt() {
 		for (MegumiShikigami type : MegumiShikigami.values()) {
 			assertTrue(MegumiShikigamiProfile.deathCooldownTicks(type)

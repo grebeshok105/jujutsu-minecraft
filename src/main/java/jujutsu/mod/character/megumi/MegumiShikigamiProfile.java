@@ -1,6 +1,6 @@
 package jujutsu.mod.character.megumi;
 
-/** Centralized tuning for the four new Ten Shadows shikigami (Nue / Toad / Rabbit Escape / Max Elephant). */
+/** Centralized tuning for the eight added Ten Shadows shikigami. */
 public final class MegumiShikigamiProfile {
 	private MegumiShikigamiProfile() {}
 
@@ -17,6 +17,10 @@ public final class MegumiShikigamiProfile {
 			case TOAD -> TOAD_RECALL_COOLDOWN_TICKS;
 			case RABBITS -> RABBITS_RECALL_COOLDOWN_TICKS;
 			case ELEPHANT -> ELEPHANT_RECALL_COOLDOWN_TICKS;
+			case SERPENT -> SERPENT_RECALL_COOLDOWN_TICKS;
+			case DEER -> DEER_RECALL_COOLDOWN_TICKS;
+			case OX -> OX_RECALL_COOLDOWN_TICKS;
+			case TIGER -> TIGER_RECALL_COOLDOWN_TICKS;
 		};
 	}
 
@@ -27,6 +31,10 @@ public final class MegumiShikigamiProfile {
 			case TOAD -> TOAD_DEATH_COOLDOWN_TICKS;
 			case RABBITS -> RABBITS_DEATH_COOLDOWN_TICKS;
 			case ELEPHANT -> ELEPHANT_DEATH_COOLDOWN_TICKS;
+			case SERPENT -> SERPENT_DEATH_COOLDOWN_TICKS;
+			case DEER -> DEER_DEATH_COOLDOWN_TICKS;
+			case OX -> OX_DEATH_COOLDOWN_TICKS;
+			case TIGER -> TIGER_DEATH_COOLDOWN_TICKS;
 		};
 	}
 
@@ -38,7 +46,7 @@ public final class MegumiShikigamiProfile {
 	public static int expiryCooldownTicks(MegumiShikigami type) {
 		return switch (type) {
 			case RABBITS -> RABBITS_EXPIRY_COOLDOWN_TICKS;
-			case DOGS, NUE, TOAD, ELEPHANT -> 0;
+			case DOGS, NUE, TOAD, ELEPHANT, SERPENT, DEER, OX, TIGER -> 0;
 		};
 	}
 
@@ -193,6 +201,130 @@ public final class MegumiShikigamiProfile {
 	public static final double RETURN_RADIUS = 20.0;
 	/** Past this distance a body teleports back to the owner instead of walking home. */
 	public static final double SHIKIGAMI_LEASH_TELEPORT = 25.0;
+
+	// --- Great Serpent (hold/bind kit: ambush from below, coil a victim, open it for the pack) ---
+	public static final int SERPENT_RECALL_COOLDOWN_TICKS = 200;
+	public static final int SERPENT_DEATH_COOLDOWN_TICKS = 340;
+	public static final double SERPENT_HEALTH = 50.0;
+	public static final double SERPENT_ATTACK_DAMAGE = 4.0;
+	public static final double SERPENT_SPEED = 0.30;
+	public static final double SERPENT_FOLLOW_START = 6.0;
+	public static final double SERPENT_FOLLOW_STOP = 2.5;
+	public static final int SERPENT_MATERIALIZE_TICKS = 16;
+	public static final int SERPENT_RECALL_TICKS = 12;
+	/** Idle serpents reconsider an ambush on this period, not every tick. */
+	public static final int SERPENT_AMBUSH_SCAN_TICKS = 40;
+	public static final double SERPENT_AMBUSH_RANGE = 14.0;
+	/** Telegraph ticks between deciding to strike and actually sinking. */
+	public static final int SERPENT_PREPARE_TICKS = 10;
+	/** Longest window a submerged serpent waits under its target before surfacing empty-handed. */
+	public static final int SERPENT_SUBMERGED_MAX_TICKS = 100;
+	public static final int SERPENT_EMERGE_TICKS = 8;
+	public static final int SERPENT_BIND_BASE_TICKS = 120;
+	public static final int SERPENT_BIND_MIN_TICKS = 80;
+	public static final int SERPENT_BIND_MAX_TICKS = 160;
+	/** Ticks of bind removed per point of the victim's max health. */
+	public static final double SERPENT_BIND_HP_PENALTY = 1.0;
+	/** Ticks of bind removed per block of the victim's hitbox volume (players exempt). */
+	public static final double SERPENT_BIND_SIZE_PENALTY = 8.0;
+	/** The bind breaks when the serpent ends up further than this from its owner. */
+	public static final double SERPENT_BIND_BREAK_RANGE = 16.0;
+	public static final int SERPENT_BIND_COOLDOWN_TICKS = 240;
+	/** The released victim is tossed this hard on release, before the lift — the unwrap reads as a hit. */
+	public static final double SERPENT_TOSS_SPEED = 0.9;
+	public static final double SERPENT_TOSS_LIFT = 0.3;
+	/** Where the serpent surfaces relative to the victim's facing (shadow-move rear arc). */
+	public static final double SERPENT_EMERGE_REAR_OFFSET = 1.4;
+
+	// --- Round Deer (support kit: heals and cleanses its own, weak antler shove as defense) ---
+	public static final int DEER_RECALL_COOLDOWN_TICKS = 180;
+	public static final int DEER_DEATH_COOLDOWN_TICKS = 320;
+	public static final double DEER_HEALTH = 45.0;
+	public static final double DEER_ATTACK_DAMAGE = 1.0;
+	public static final double DEER_SPEED = 0.28;
+	public static final double DEER_FOLLOW_START = 5.0;
+	public static final double DEER_FOLLOW_STOP = 2.0;
+	public static final int DEER_MATERIALIZE_TICKS = 14;
+	public static final int DEER_RECALL_TICKS = 12;
+	/** One wounded-scan cycle per this many ticks — a cadence, not a stream. */
+	public static final int DEER_HEAL_SCAN_TICKS = 40;
+	public static final double DEER_HEAL_RANGE = 12.0;
+	public static final double DEER_HEAL_MIN = 2.0;
+	public static final double DEER_HEAL_MAX = 6.0;
+	/** How long the client holds the pulse clip after a heal lands. */
+	public static final int DEER_HEAL_ACTION_TICKS = 10;
+	/** The deer's own wounds answer at half strength — it prefers its pack. */
+	public static final double DEER_SELF_HEAL_FACTOR = 0.5;
+	public static final int DEER_CLEANSE_SCAN_TICKS = 60;
+	public static final double DEER_ANTLER_RANGE = 2.0;
+	public static final double DEER_ANTLER_KNOCKBACK = 0.5;
+	public static final int DEER_ANTLER_COOLDOWN_TICKS = 40;
+	/** The deer drifts this far in front of its owner when a threat mark is live. */
+	public static final double DEER_INTERPOSE_RADIUS = 3.0;
+
+	// --- Piercing Ox (committed line charge: distance-scaled impact, no steering) ---
+	public static final int OX_RECALL_COOLDOWN_TICKS = 240;
+	public static final int OX_DEATH_COOLDOWN_TICKS = 520;
+	public static final double OX_HEALTH = 80.0;
+	/** Attribute surface only — charge damage comes from OX_IMPACT_*, never the attribute. */
+	public static final double OX_ATTACK_DAMAGE = 2.0;
+	public static final double OX_SPEED = 0.26;
+	public static final double OX_FOLLOW_START = 7.0;
+	public static final double OX_FOLLOW_STOP = 3.0;
+	public static final int OX_MATERIALIZE_TICKS = 20;
+	public static final int OX_RECALL_TICKS = 14;
+	public static final double OX_ACQUIRE_RANGE = 15.0;
+	public static final double OX_ALIGN_YAW_TOLERANCE_DEG = 8.0;
+	public static final int OX_WINDUP_TICKS = 14;
+	public static final double OX_CHARGE_SPEED = 0.75;
+	public static final int OX_CHARGE_MAX_TICKS = 60;
+	/** A charge dies at this many blocks traveled even if nothing was hit — short of the leash. */
+	public static final double OX_CHARGE_MAX_DISTANCE = 20.0;
+	public static final double OX_IMPACT_BASE = 2.0;
+	public static final double OX_IMPACT_SLOPE = 0.35;
+	public static final double OX_IMPACT_MIN = 2.0;
+	public static final double OX_IMPACT_MAX = 12.0;
+	public static final double OX_KNOCKBACK_BASE = 0.8;
+	public static final double OX_KNOCKBACK_PER_POWER = 0.1;
+	public static final int OX_WALL_STAGGER_TICKS = 20;
+	public static final int OX_RECOVERY_TICKS = 24;
+	public static final int OX_CHARGE_COOLDOWN_TICKS = 240;
+	/** Sample spacing along the committed line for the pre-flight corridor check. */
+	public static final double OX_CORRIDOR_SAMPLE_STEP = 0.75;
+
+	// --- Tiger Funeral (authorial kit: committed three-beat melee combo, no retarget) ---
+	public static final int TIGER_RECALL_COOLDOWN_TICKS = 250;
+	public static final int TIGER_DEATH_COOLDOWN_TICKS = 560;
+	public static final double TIGER_HEALTH = 100.0;
+	/** Attribute surface only — per-strike damage is STRIKE_1=5.0, STRIKE_2=7.0, FINISHER=12.0. */
+	public static final double TIGER_ATTACK_DAMAGE = 8.0;
+	public static final double TIGER_SPEED = 0.24;
+	public static final double TIGER_FOLLOW_START = 6.0;
+	public static final double TIGER_FOLLOW_STOP = 2.5;
+	public static final int TIGER_MATERIALIZE_TICKS = 24;
+	public static final int TIGER_RECALL_TICKS = 14;
+	public static final double TIGER_APPROACH_RANGE = 15.0;
+	public static final double TIGER_APPROACH_STOP = 2.2;
+	public static final int TIGER_COMBO_WINDUP_TICKS = 12;
+	public static final int TIGER_STRIKE1_RESOLVE_TICKS = 6;
+	public static final double TIGER_STRIKE1_RANGE = 2.6;
+	public static final double TIGER_STRIKE1_ARC_DEG = 70.0;
+	public static final double TIGER_STRIKE1_DAMAGE = 5.0;
+	public static final int TIGER_STRIKE1_STAGGER_TICKS = 6;
+	public static final int TIGER_STRIKE2_RESOLVE_TICKS = 8;
+	public static final double TIGER_STRIKE2_RANGE = 2.8;
+	public static final double TIGER_STRIKE2_ARC_DEG = 70.0;
+	public static final double TIGER_STRIKE2_DAMAGE = 7.0;
+	public static final int TIGER_STRIKE2_STAGGER_TICKS = 8;
+	public static final int TIGER_FINISHER_RESOLVE_TICKS = 12;
+	public static final double TIGER_FINISHER_RANGE = 3.0;
+	public static final double TIGER_FINISHER_ARC_DEG = 80.0;
+	public static final double TIGER_FINISHER_DAMAGE = 12.0;
+	public static final int TIGER_FINISHER_STAGGER_TICKS = 20;
+	public static final double TIGER_FINISHER_KNOCKBACK = 1.2;
+	public static final double TIGER_FINISHER_LIFT = 0.25;
+	public static final int TIGER_RECOVERY_TICKS = 30;
+	public static final int TIGER_COMBO_COOLDOWN_TICKS = 160;
 	/** The leash check runs on this period, not every tick. */
 	public static final int SHIKIGAMI_LEASH_RETRY_TICKS = 10;
 	/** Per-block distance cost: nearer candidates are preferred, all else equal. */

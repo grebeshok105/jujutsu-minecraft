@@ -523,6 +523,10 @@ public final class MegumiShikigamiRuntime {
 			case TOAD -> MegumiToadBrain.tick((ServerLevel) body.level(), owner, pack, (MegumiToadEntity) body, gameTime);
 			case RABBITS -> MegumiRabbitsBrain.tick((ServerLevel) body.level(), owner, pack, (MegumiRabbitEntity) body, gameTime);
 			case ELEPHANT -> MegumiElephantBrain.tick((ServerLevel) body.level(), owner, pack, (MegumiElephantEntity) body, gameTime);
+			case SERPENT -> MegumiSerpentBrain.tick((ServerLevel) body.level(), owner, pack, (MegumiSerpentEntity) body, gameTime);
+			case DEER -> MegumiDeerBrain.tick((ServerLevel) body.level(), owner, pack, (MegumiDeerEntity) body, gameTime);
+			case OX -> MegumiOxBrain.tick((ServerLevel) body.level(), owner, pack, (MegumiOxEntity) body, gameTime);
+			case TIGER -> MegumiTigerBrain.tick((ServerLevel) body.level(), owner, pack, (MegumiTigerEntity) body, gameTime);
 			case DOGS -> throw new IllegalStateException("dogs never enter the shikigami runtime");
 		}
 	}
@@ -665,8 +669,30 @@ public final class MegumiShikigamiRuntime {
 						body.position(), body.getId(), Vec3.ZERO);
 				case ELEPHANT -> broadcastCue(level, player, MegumiVfxIds.ELEPHANT_SUMMON,
 						body.position(), body.getId(), Vec3.ZERO);
+				case SERPENT -> broadcastCue(level, player, MegumiVfxIds.SERPENT_SUMMON,
+						body.position(), body.getId(), Vec3.ZERO);
+				case DEER -> broadcastCue(level, player, MegumiVfxIds.DEER_SUMMON,
+						body.position(), body.getId(), Vec3.ZERO);
+				case OX -> broadcastCue(level, player, MegumiVfxIds.OX_SUMMON,
+						body.position(), body.getId(), Vec3.ZERO);
+				case TIGER -> broadcastCue(level, player, MegumiVfxIds.TIGER_SUMMON,
+						body.position(), body.getId(), Vec3.ZERO);
 				case DOGS -> throw new IllegalStateException("dogs do not use the shikigami runtime");
 			}
+		}
+		// One player-anchored body cue per accepted summon: the per-type hand-sign clip fires only
+		// here — after the pack is committed — so a refused summon, a recall and a cooldown gate
+		// never play a sign (spec §10). Tracking clients resolve the anchor to the player model.
+		switch (type) {
+			case SERPENT -> broadcastCue(level, player, MegumiVfxIds.SERPENT_SUMMON_BODY,
+					player.position(), player.getId(), Vec3.ZERO);
+			case DEER -> broadcastCue(level, player, MegumiVfxIds.DEER_SUMMON_BODY,
+					player.position(), player.getId(), Vec3.ZERO);
+			case OX -> broadcastCue(level, player, MegumiVfxIds.OX_SUMMON_BODY,
+					player.position(), player.getId(), Vec3.ZERO);
+			case TIGER -> broadcastCue(level, player, MegumiVfxIds.TIGER_SUMMON_BODY,
+					player.position(), player.getId(), Vec3.ZERO);
+			case DOGS, NUE, TOAD, RABBITS, ELEPHANT -> { }
 		}
 		// The pack is live: the owner's snapshot marks this type as out without implying any despawn.
 		MegumiShikigamiSync.push(player);
@@ -680,6 +706,10 @@ public final class MegumiShikigamiRuntime {
 			case TOAD -> spawnToad(level, owner, token);
 			case RABBITS -> spawnRabbits(level, owner, token);
 			case ELEPHANT -> spawnElephant(level, owner, token);
+			case SERPENT -> spawnSerpent(level, owner, token);
+			case DEER -> spawnDeer(level, owner, token);
+			case OX -> spawnOx(level, owner, token);
+			case TIGER -> spawnTiger(level, owner, token);
 			case DOGS -> throw new IllegalStateException("dogs do not use the shikigami runtime");
 		};
 	}
@@ -746,11 +776,53 @@ public final class MegumiShikigamiRuntime {
 		return List.of(nue);
 	}
 
+	private static MegumiShikigamiEntity spawnGroundBody(
+			ServerLevel level, ServerPlayer owner, long token,
+			EntityType<? extends MegumiShikigamiEntity> entityType,
+			java.util.function.BiFunction<EntityType<? extends MegumiShikigamiEntity>, Level, ? extends MegumiShikigamiEntity> factory) {
+		Vec3 spot = MegumiShikigamiSpawnPlacement.ground(level, owner.position(),
+				owner.getYRot(), entityType.getDimensions());
+		if (spot == null) {
+			return null;
+		}
+		MegumiShikigamiEntity body = factory.apply(entityType, level);
+		body.setPos(spot);
+		body.setYRot(owner.getYRot());
+		body.setTame(true, false);
+		body.setOwner(owner);
+		body.configureSummon(owner.getUUID(), token);
+		return body;
+	}
+
+	private static List<MegumiShikigamiEntity> spawnSerpent(ServerLevel level, ServerPlayer owner, long token) {
+		MegumiShikigamiEntity body = spawnGroundBody(level, owner, token,
+				JujutsuEntities.MEGUMI_SERPENT, MegumiSerpentEntity::new);
+		return body == null ? List.of() : List.of(body);
+	}
+
+	private static List<MegumiShikigamiEntity> spawnDeer(ServerLevel level, ServerPlayer owner, long token) {
+		MegumiShikigamiEntity body = spawnGroundBody(level, owner, token,
+				JujutsuEntities.MEGUMI_DEER, MegumiDeerEntity::new);
+		return body == null ? List.of() : List.of(body);
+	}
+
+	private static List<MegumiShikigamiEntity> spawnOx(ServerLevel level, ServerPlayer owner, long token) {
+		MegumiShikigamiEntity body = spawnGroundBody(level, owner, token,
+				JujutsuEntities.MEGUMI_OX, MegumiOxEntity::new);
+		return body == null ? List.of() : List.of(body);
+	}
+
+	private static List<MegumiShikigamiEntity> spawnTiger(ServerLevel level, ServerPlayer owner, long token) {
+		MegumiShikigamiEntity body = spawnGroundBody(level, owner, token,
+				JujutsuEntities.MEGUMI_TIGER, MegumiTigerEntity::new);
+		return body == null ? List.of() : List.of(body);
+	}
+
 	private static int anchorIndex(MegumiShikigami type, int size, RandomSource random) {
 		return switch (type) {
 			case RABBITS -> random.nextInt(size);
 			case DOGS -> throw new IllegalStateException("dogs do not use the shikigami runtime");
-			case NUE, TOAD, ELEPHANT -> 0;
+			case NUE, TOAD, ELEPHANT, SERPENT, DEER, OX, TIGER -> 0;
 		};
 	}
 

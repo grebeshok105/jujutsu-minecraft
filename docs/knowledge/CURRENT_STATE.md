@@ -1,7 +1,18 @@
 # Current State — память проекта
 
 Status: CURRENT
-Обновлено: 2026-09-19
+Обновлено: 2026-09-24
+
+## 2026-09-24 — Ten Shadows 5→9: Serpent/Deer/Ox/Tiger (ветка `feat/ten-shadows-5to9`)
+
+- Ростер Мегуми расширен с 5 до 9 типов (design spec «TEN SHADOWS EXPANSION»). Новые: **Great Serpent** (амбуш-подвод + mouth-bind на общем HoldSupport, release-тосс ~0.9+0.3 прочь от хозяина, bind 80–160т по HP/размеру жертвы), **Round Deer** (heal-скан 40т, приоритет OWNER>OWN_SHIKIGAMI>ALLY>SELF, cleanse-аллоулист, weak antler shove; чужие тела и форейн-сикигами не eligible — `isForeignBody` в prefilter), **Piercing Ox** (коммитед линейный charge без хоуминга: windup 14т → 0.75 бл/т ≤60т/20бл → impact по дистанции 2–12 dmg + wall stagger), **Tiger Funeral** (AUTHORIAL дуэлянт: фиксированное 3-beat комбо 5/7/12 dmg, НЕТ retarget mid-combo — промах whiff'ает, recover 30т, cd 160т). Все — first-class: summon/recall/sic(pack-wide)/retaliation/coordinator/selector/teardown-matrix.
+- Процесс: полный rule-of-four — 4 скаута → план → 3 ревью плана → 4 воркера (ветки per-type) + Blockbench MCP ассеты (геометрия/клипы/текстуры руками, не Sorcery Age) → merge → review wave R1-R4 → fix wave (код + тесты отдельными ветками) → финальный гейт.
+- VFX: все 12 mechanic-идов новых типов в `LIVE` (PLANNED пуст), 90 рецептов суммарно; `<type>_summon_body` куэ несёт hand-sign клип на риге игрока. `cue.intensity()` = payload-слот (ox charge distance, tiger beat, impact power) — direction() у VfxCue это facing, не пейлоад.
+- Сик — PACK-WIDE: `trySic` раздаёт метку ВСЕМ commandable телам всех типов (не только выбранному). Для изоляции в лайве остальные типы надо отзывать.
+- **Грабли тестов (проверены)**: (1) owner-death строки должны убивать владельца через `hurtServer(genericKill, MAX)` (реальный damage-пайплайн AFTER_DEATH) — синтетический `die()` не ставит `isDeadOrDying` на mock-игроке (тайгер-строка :1240 — канон); (2) тест-мок игроки делят имя → scoreboard-команды вышибают друг друга (guard `allianceBroken`); (3) зомби днём горят — для жертв брать husk.
+- Проверено ВЖИВУЮ на MCP-лейне (8765/8766): змея bind→release×4 по телеметрии (velocity 0, onGround false, жертва выживает и уходит за 9–19 блоков), бык charge→impact+knockback+VFX burst, тигр strike+finisher launch, олень heal (hp 8→8.83 на первом скане). Скриншоты model+action для всех 4 типов.
+- Гейты: `compileJava/compileClientJava/compileTestJava/compileGametestJava` clean, JUnit (42 класса megumi) 0 failures, **runGameTest 295/295 green**, `qualityGate` BUILD SUCCESSFUL (docs audit + jar isolation + 29 verification programs).
+- Статус: готово к PR — ветка `feat/ten-shadows-5to9`, доки обновлены (MOC метрики 234/282/174, Megumi-shikigami.md).
 
 ## 2026-09-19 — integration branch `integration/megumi-incidents-107-110` (PRs #115+#116+#117 → один PR)
 

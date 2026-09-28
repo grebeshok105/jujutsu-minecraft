@@ -1,6 +1,7 @@
 package jujutsu.mod.client.vfx.megumi;
 
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -12,6 +13,7 @@ import jujutsu.mod.character.megumi.MegumiProfile;
 import jujutsu.mod.client.character.megumi.MegumiAnimationHooks;
 import jujutsu.mod.client.render.HiddenBodyRenderGate;
 import jujutsu.mod.client.render.ShadowBodySink;
+import jujutsu.mod.client.vfx.VfxRecipe;
 import jujutsu.mod.client.vfx.VfxWorldChannel;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.vfx.VfxInstance;
@@ -98,6 +100,37 @@ public final class MegumiVfxRecipes {
 		VfxDirector.register(MegumiVfxIds.RABBITS_POP, MegumiVfxRecipes::rabbitsPop);
 		VfxDirector.register(MegumiVfxIds.ELEPHANT_SUMMON, MegumiVfxRecipes::elephantSummon);
 		VfxDirector.register(MegumiVfxIds.ELEPHANT_JET, MegumiVfxRecipes::elephantJet);
+		VfxDirector.register(MegumiVfxIds.SERPENT_SUMMON_BODY, MegumiVfxRecipes::serpentSummonBody);
+		VfxDirector.register(MegumiVfxIds.SERPENT_SUMMON, MegumiVfxRecipes::serpentSummon);
+		VfxDirector.register(MegumiVfxIds.DEER_SUMMON_BODY, MegumiVfxRecipes::deerSummonBody);
+		VfxDirector.register(MegumiVfxIds.DEER_SUMMON, MegumiVfxRecipes::deerSummon);
+		VfxDirector.register(MegumiVfxIds.OX_SUMMON_BODY, MegumiVfxRecipes::oxSummonBody);
+		VfxDirector.register(MegumiVfxIds.OX_SUMMON, MegumiVfxRecipes::oxSummon);
+		VfxDirector.register(MegumiVfxIds.TIGER_SUMMON_BODY, MegumiVfxRecipes::tigerSummonBody);
+		VfxDirector.register(MegumiVfxIds.TIGER_SUMMON, MegumiVfxRecipes::tigerSummon);
+		registerMechanicRecipes();
+	}
+
+	/** Mechanic recipes follow their cue id's PLANNED→LIVE graduation automatically. */
+	private static void registerMechanicRecipes() {
+		registerIfLive(MegumiVfxIds.SERPENT_EMERGE, MegumiVfxRecipes::serpentEmerge);
+		registerIfLive(MegumiVfxIds.SERPENT_BIND, MegumiVfxRecipes::serpentBind);
+		registerIfLive(MegumiVfxIds.SERPENT_RELEASE, MegumiVfxRecipes::serpentRelease);
+		registerIfLive(MegumiVfxIds.DEER_PULSE, MegumiVfxRecipes::deerPulse);
+		registerIfLive(MegumiVfxIds.DEER_CLEANSE, MegumiVfxRecipes::deerCleanse);
+		registerIfLive(MegumiVfxIds.OX_WINDUP, MegumiVfxRecipes::oxWindup);
+		registerIfLive(MegumiVfxIds.OX_CHARGE, MegumiVfxRecipes::oxCharge);
+		registerIfLive(MegumiVfxIds.OX_IMPACT, MegumiVfxRecipes::oxImpact);
+		registerIfLive(MegumiVfxIds.OX_WALL_HIT, MegumiVfxRecipes::oxWallHit);
+		registerIfLive(MegumiVfxIds.TIGER_STRIKE, MegumiVfxRecipes::tigerStrike);
+		registerIfLive(MegumiVfxIds.TIGER_MISS, MegumiVfxRecipes::tigerMiss);
+		registerIfLive(MegumiVfxIds.TIGER_RECOVER, MegumiVfxRecipes::tigerRecover);
+	}
+
+	private static void registerIfLive(ResourceLocation id, VfxRecipe recipe) {
+		if (MegumiVfxIds.LIVE.contains(id)) {
+			VfxDirector.register(id, recipe);
+		}
 	}
 
 	/** Rabbit Escape's summon pool: one shared shadow over a scatter of small pops. */
@@ -288,17 +321,263 @@ public final class MegumiVfxRecipes {
 	}
 
 	private static VfxInstance summonBody(VfxCue cue) {
+		MegumiAnimationHooks.triggerDivineDogs(cue);
+		return summonBodyFor(cue, null);
+	}
+
+	/** One player-anchored body cue per summoned shikigami type: sign clip + first-person beat. */
+	private static VfxInstance summonBodyFor(VfxCue cue,
+			java.util.function.Consumer<VfxCue> hook) {
 		return VfxInstance.of(SUMMON_BODY_DURATION_TICKS, (context, initialAgeTicks) -> {
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				return;
 			}
 			Entity anchor = context.client().level == null ? null : context.client().level.getEntity(cue.anchorEntityId());
 			if (anchor instanceof AbstractClientPlayer) {
-				MegumiAnimationHooks.triggerDivineDogs(cue);
+				if (hook != null) {
+					hook.accept(cue);
+				}
 				if (anchor == context.client().player) {
 					context.firstPerson().triggerSign(0.0f);
 				}
 			}
+		});
+	}
+
+	private static VfxInstance serpentSummonBody(VfxCue cue) {
+		return summonBodyFor(cue, MegumiAnimationHooks::triggerSerpentSummon);
+	}
+
+	private static VfxInstance deerSummonBody(VfxCue cue) {
+		return summonBodyFor(cue, MegumiAnimationHooks::triggerDeerSummon);
+	}
+
+	private static VfxInstance oxSummonBody(VfxCue cue) {
+		return summonBodyFor(cue, MegumiAnimationHooks::triggerOxSummon);
+	}
+
+	private static VfxInstance tigerSummonBody(VfxCue cue) {
+		return summonBodyFor(cue, MegumiAnimationHooks::triggerTigerSummon);
+	}
+
+	// --- roster expansion (Great Serpent / Round Deer / Piercing Ox / Tiger Funeral) ---
+
+	/** Great Serpent's summon pool: the shadow opening with a slithering dark accent. */
+	private static VfxInstance serpentSummon(VfxCue cue) {
+		return VfxInstance.of(SUMMON_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 origin = cue.origin();
+			RandomSource random = random(cue, 0x5E525001L);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN, SUMMON_DURATION_TICKS);
+			context.burst(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.10, 0.0), 16, 0.50, 0.14, random);
+			context.burst(SHADOW_DARK, origin.add(0.0, 0.15, 0.0), 8, 0.35, 0.10, random);
+		});
+	}
+
+	/** The serpent breaks the surface under its target: exit pool and an upward dark burst. */
+	private static VfxInstance serpentEmerge(VfxCue cue) {
+		return VfxInstance.of(NUE_DIVE_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 origin = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0x5E525002L);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN, NUE_DIVE_DURATION_TICKS);
+			context.burst(SHADOW_DARK, origin.add(0.0, 0.25, 0.0), 10, 0.40, 0.22, random);
+			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin, 10, 0.8, 0.0, 0.12, random);
+		});
+	}
+
+	/** The coil closes: a tightening dark ring pulled toward the victim's chest. */
+	private static VfxInstance serpentBind(VfxCue cue) {
+		return VfxInstance.of(SIC_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 target = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0x5E525003L);
+			context.ring(SHADOW_DARK, target.add(0.0, 0.9, 0.0), 16, 0.9, 0.0, -0.06, random);
+			context.burst(JujutsuParticles.MEGUMI_SHADOW_MOTE, target.add(0.0, 0.6, 0.0), 8, 0.30, -0.05, random);
+		});
+	}
+
+	/** The bind lets go: motes dissipate where the victim stood. */
+	private static VfxInstance serpentRelease(VfxCue cue) {
+		return VfxInstance.of(POUNCE_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 target = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0x5E525004L);
+			context.burst(JujutsuParticles.MEGUMI_SHADOW_MOTE, target.add(0.0, 0.5, 0.0), 10, 0.35, 0.16, random);
+		});
+	}
+
+	/** Round Deer's summon pool: the shadow opening with a warm rising accent. */
+	private static VfxInstance deerSummon(VfxCue cue) {
+		return VfxInstance.of(SUMMON_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 origin = cue.origin();
+			RandomSource random = random(cue, 0xDE320001L);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN, SUMMON_DURATION_TICKS);
+			context.burst(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.10, 0.0), 14, 0.42, 0.13, random);
+			context.burst(ParticleTypes.END_ROD, origin.add(0.0, 0.4, 0.0), 5, 0.25, 0.12, random);
+		});
+	}
+
+	/** A heal pulse lands: soft bright sparks over the healed body. */
+	private static VfxInstance deerPulse(VfxCue cue) {
+		return VfxInstance.of(SIC_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 target = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0xDE320002L);
+			context.burst(ParticleTypes.END_ROD, target.add(0.0, 0.8, 0.0), 8, 0.30, 0.14, random);
+			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, target.add(0.0, 0.2, 0.0), 8, 0.5, 0.0, 0.06, random);
+		});
+	}
+
+	/** A cleanse strips an effect: sparks rise off the cleared body. */
+	private static VfxInstance deerCleanse(VfxCue cue) {
+		return VfxInstance.of(SIC_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 target = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0xDE320003L);
+			context.burst(ParticleTypes.END_ROD, target.add(0.0, 1.0, 0.0), 10, 0.25, 0.20, random);
+		});
+	}
+
+	/** Piercing Ox's summon pool: the shadow opening with a ground-shaking dust edge. */
+	private static VfxInstance oxSummon(VfxCue cue) {
+		return VfxInstance.of(SUMMON_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 origin = cue.origin();
+			RandomSource random = random(cue, 0x0F000001L);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN, SUMMON_DURATION_TICKS);
+			context.burst(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.12, 0.0), 18, 0.55, 0.15, random);
+			context.burst(ParticleTypes.POOF, origin.add(0.0, 0.2, 0.0), 8, 0.50, 0.10, random);
+		});
+	}
+
+	/** The windup telegraph: the ox paws the ground before committing. */
+	private static VfxInstance oxWindup(VfxCue cue) {
+		return VfxInstance.of(POUNCE_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 origin = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0x0F000002L);
+			context.burst(ParticleTypes.POOF, origin.add(0.0, 0.10, 0.0), 10, 0.45, 0.08, random);
+			context.ring(SHADOW_DARK, origin, 8, 0.7, 0.0, -0.04, random);
+		});
+	}
+
+	/** The charge launches: a dust trail along the committed line, scaled by real distance. */
+	private static VfxInstance oxCharge(VfxCue cue) {
+		return VfxInstance.of(SIC_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 origin = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0x0F000003L);
+			int charge = Math.max(1, cue.intensity());
+			context.burst(ParticleTypes.POOF, origin, 4 + charge, 0.40, 0.10, random);
+			if (cue.direction().lengthSqr() > 1.0E-8) {
+				for (int index = 1; index <= 2 + charge; index++) {
+					Vec3 alongPath = origin.add(cue.direction().scale(index * 0.5));
+					context.burst(ParticleTypes.POOF, alongPath, 2, 0.10, 0.04, random);
+				}
+			}
+		});
+	}
+
+	/** The line runs through a target: the impact burst on the hit body, scaled by impact power. */
+	private static VfxInstance oxImpact(VfxCue cue) {
+		return VfxInstance.of(POUNCE_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 target = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0x0F000004L);
+			int impact = Math.max(1, cue.intensity());
+			context.burst(SHADOW_DARK, target.add(0.0, 0.6, 0.0), 8 + impact, 0.35, 0.18, random);
+			context.burst(ParticleTypes.POOF, target.add(0.0, 0.4, 0.0), 5 + impact / 2, 0.30, 0.12, random);
+		});
+	}
+
+	/** The charge dies against a wall: the dust explosion that sells the stop. */
+	private static VfxInstance oxWallHit(VfxCue cue) {
+		return VfxInstance.of(POUNCE_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 target = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0x0F000005L);
+			int impact = Math.max(1, cue.intensity());
+			context.burst(ParticleTypes.POOF, target.add(0.0, 0.5, 0.0), 10 + impact, 0.55, 0.18, random);
+			context.burst(SHADOW_DARK, target, 4 + impact / 2, 0.30, 0.12, random);
+		});
+	}
+
+	/** Tiger Funeral's summon pool: the shadow opening with a predatory amber edge. */
+	private static VfxInstance tigerSummon(VfxCue cue) {
+		return VfxInstance.of(SUMMON_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 origin = cue.origin();
+			RandomSource random = random(cue, 0x71670001L);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.MEGUMI_SHADOW_OPEN, SUMMON_DURATION_TICKS);
+			context.burst(JujutsuParticles.MEGUMI_SHADOW_MOTE, origin.add(0.0, 0.12, 0.0), 16, 0.50, 0.15, random);
+			context.burst(SHADOW_DARK, origin.add(0.0, 0.3, 0.0), 6, 0.40, 0.12, random);
+		});
+	}
+
+	/** One combo beat landed: a slash streak; the cue's intensity carries the beat index. */
+	private static VfxInstance tigerStrike(VfxCue cue) {
+		return VfxInstance.of(POUNCE_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 target = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0x71670002L);
+			int beat = Math.max(1, cue.intensity());
+			context.burst(SHADOW_DARK, target.add(0.0, 0.7, 0.0), 8 + beat * 4, 0.35, 0.16, random);
+			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, target.add(0.0, 0.5, 0.0), 6 + beat * 2, 0.6, 0.02, 0.0, random);
+		});
+	}
+
+	/** A combo beat missed its arc: a thin wisp where the claw passed. */
+	private static VfxInstance tigerMiss(VfxCue cue) {
+		return VfxInstance.of(POUNCE_DURATION_TICKS, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 target = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0x71670003L);
+			context.burst(SHADOW_DARK, target.add(0.0, 0.5, 0.0), 4, 0.20, 0.10, random);
+		});
+	}
+
+	/** The committed sequence ends: a slow dust spread plus a shadow accent at the paws. */
+	private static VfxInstance tigerRecover(VfxCue cue) {
+		return VfxInstance.of(POUNCE_DURATION_TICKS + 4, (context, initialAgeTicks) -> {
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			Vec3 target = context.resolveOrigin(cue);
+			RandomSource random = random(cue, 0x71670004L);
+			context.burst(SHADOW_DARK, target.add(0.0, 0.3, 0.0), 10, 0.45, 0.06, random);
+			context.ring(JujutsuParticles.MEGUMI_SHADOW_MOTE, target.add(0.0, 0.15, 0.0), 8, 0.8, 0.0, -0.04, random);
 		});
 	}
 
