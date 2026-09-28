@@ -97,3 +97,14 @@ Project-level `.omp/mcp.json` exists too but discovery is cwd-based — the glob
 ## Shutdown
 
 Stop the client process (hub `stop` or Ctrl+C). Ports 8765/8766 release on shutdown; MCP server mod has no linger. Never leave a client running unattended across sessions — it holds 3+ GB RAM and the token rotates on restart.
+
+## Devin VM / Linux lane (verified 2026-09-23)
+
+The lane works identically on a Linux box — verified end-to-end on a Devin cloud VM (Ubuntu, Temurin 21, client launched and driven through both MCP endpoints).
+
+- Launch (bash): `JAVA_TOOL_OPTIONS=-Xmx3G ./gradlew runClient -PmcpSpike -PmcpUpstreamJar=<upstream-jar> --no-daemon --max-workers=1 --no-watch-fs --console=plain` with `JAVA_HOME` on JDK 21 — a VM's default java can be 17, and loom then refuses to configure (same trap class as the hub JAVA_HOME one).
+- The client renders on the session's real desktop (`:0`) when one exists — no xvfb needed; on a headless box wrap in `xvfb-run` yourself or let loom do it. `view_capture` works either way — the client-sense endpoint never needs a real display to be watched.
+- **A fresh clone has no `run/saves/` at all** — `prepareMcpSpikeRun` warns "neither run/saves/mcp-spike nor run/saves/New World exists" and quickPlay lands on "Failed to Quick Play". One-time fix per VM: in the client window create a world named exactly `mcp-spike` with *Allow Commands: ON* (save folder becomes `run/saves/mcp-spike/`) — every later launch quick-plays straight in. The task's built-in copy path only fires when `run/saves/New World` already exists. To skip even that GUI pass, a seeded save ships in-repo at `.claude/skills/mcp-lane-launch/mcp-spike-world.tar.gz` (~5.5 MB, vanilla 1.21.8 world, Allow Commands ON): `mkdir -p run/saves && tar -xzf .claude/skills/mcp-lane-launch/mcp-spike-world.tar.gz -C run/saves`.
+- With no `run/config/minecraft_fabric_mcp/config.json` yet both servers start `auth=false` — no bearer needed locally. The pack's `run-config-mcp/config.json` (auth_required=false, rate_limit_rpm 2000) can be dropped into `run/config/minecraft_fabric_mcp/` for a fixed config.
+- Readiness is unchanged: `MCP server listening at http://127.0.0.1:8765` binds on world load (125 tools = 105 upstream + 20 `jujutsu_*`), `8766` binds at boot (6 client-sense tools). Probe with python `urllib`: `initialize` → `notifications/initialized` → `tools/list`, carrying the returned `mcp-session-id` header on every later call.
+- One MCP session per process still applies — drive the lane from a single cached session, not one-shot `initialize` per call.
