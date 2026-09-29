@@ -1,9 +1,0 @@
-{
-  "model": {
-    "type": "minecraft:special",
-    "base": "jujutsumod:item/straw_doll",
-    "model": {
-      "type": "geckolib:geckolib"
-    }
-  }
-}

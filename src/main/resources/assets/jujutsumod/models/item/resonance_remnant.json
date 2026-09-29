@@ -1,6 +1,0 @@
-{
-  "parent": "minecraft:item/generated",
-  "textures": {
-    "layer0": "jujutsumod:item/resonance_remnant_token"
-  }
-}

@@ -1,9 +1,0 @@
-{
-  "model": {
-    "type": "minecraft:special",
-    "base": "jujutsumod:item/cursed_object",
-    "model": {
-      "type": "geckolib:geckolib"
-    }
-  }
-}
