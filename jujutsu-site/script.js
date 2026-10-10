@@ -1,36 +1,29 @@
-document.addEventListener("DOMContentLoaded", () => {
-  if (window.lucide) window.lucide.createIcons();
+document.documentElement.classList.add('js');
 
-  const menuButton = document.querySelector(".menu-toggle");
-  const menu = document.querySelector(".nav-links");
-  menuButton?.addEventListener("click", () => {
-    const open = menu.classList.toggle("open");
-    menuButton.setAttribute("aria-expanded", String(open));
-    menuButton.setAttribute("aria-label", open ? "Закрыть меню" : "Открыть меню");
-    menuButton.innerHTML = open ? '<i data-lucide="x"></i>' : '<i data-lucide="menu"></i>';
-    if (window.lucide) window.lucide.createIcons();
+const nav = document.getElementById('nav');
+const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 24);
+onScroll();
+window.addEventListener('scroll', onScroll, { passive: true });
+
+const track = document.querySelector('.ticker-track');
+if (track) track.innerHTML += track.innerHTML;
+
+const tabs = [...document.querySelectorAll('.vtabs [role=tab]')];
+const select = (tab, focus) => {
+  tabs.forEach(t => {
+    const on = t === tab;
+    t.setAttribute('aria-selected', on);
+    t.tabIndex = on ? 0 : -1;
+    const panel = document.getElementById(t.getAttribute('aria-controls'));
+    panel.hidden = !on;
+    if (on) { panel.classList.remove('enter'); void panel.offsetWidth; panel.classList.add('enter'); }
   });
-
-  menu?.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => {
-    menu.classList.remove("open");
-    menuButton?.setAttribute("aria-expanded", "false");
-    if (menuButton) menuButton.innerHTML = '<i data-lucide="menu"></i>';
-    if (window.lucide) window.lucide.createIcons();
-  }));
-
-  const items = document.querySelectorAll(".reveal");
-  if (!("IntersectionObserver" in window)) {
-    items.forEach((item) => item.classList.add("visible"));
-    return;
-  }
-
-  const observer = new IntersectionObserver((entries, currentObserver) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
-      entry.target.classList.add("visible");
-      currentObserver.unobserve(entry.target);
-    });
-  }, { threshold: 0.12, rootMargin: "0px 0px -24px 0px" });
-
-  items.forEach((item) => observer.observe(item));
+  if (focus) tab.focus();
+};
+tabs.forEach((tab, i) => {
+  tab.addEventListener('click', () => select(tab));
+  tab.addEventListener('keydown', e => {
+    const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    if (d) { e.preventDefault(); select(tabs[(i + d + tabs.length) % tabs.length], true); }
+  });
 });
