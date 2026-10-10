@@ -143,3 +143,11 @@ Status: CURRENT PROVENANCE NOTE
   `a1e6db184158593d5bfe97b64d1fa377576b7f1641dab2ca1cee35d52746238c  assets/jujutsumod/sounds/cursed/cursed_wistiver_death.ogg`,
   `34f262a7523f38dbdbe5963f585d216e61a3380aabed6faba1c9fd5714e3d225  assets/jujutsumod/sounds/cursed/cursed_wistiver_hurt.ogg`,
   `8352535a99f03e1319b15aa6f782de69fef6007e2983eb5658b0dc92af1329fb  assets/jujutsumod/sounds/cursed/cursed_wistiver_scream.ogg`.
+
+## Project site artwork (`jujutsu-site/img/`)
+
+- `hero.svg`, `nobara.svg`, `todo.svg`, `megumi.svg`, `shikigami.svg`, and `curses.svg` are AI-generated fan illustrations created 2026-10-10 for the project landing page (PR #130) with Notion AI image generation from text prompts written for this repository. No third-party image was used as an input or reference.
+- Each file is a WebP raster embedded in an SVG wrapper so the site can be committed as text; the SVG wrapper adds no other content.
+- The illustrations depict characters inspired by Jujutsu Kaisen. The character designs belong to their rights holders; the images are not covered by the repository's CC0-1.0 grant and are used only as non-commercial fan artwork on the project site.
+- `mark.svg` (favicon) is original project work: a single 呪 glyph on a dark tile.
+- Replace or re-verify these images before any commercial or official distribution of the site.
