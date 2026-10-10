@@ -51,6 +51,7 @@ public final class TodoDefinition implements CharacterDefinition {
 		// the momentum listener sees the nested pass and declines to spend on it.
 		TodoSwapMomentumRuntime.register();
 		TodoBoogieWoogieRuntime.register();
+		TodoRhythmRuntime.register();
 		TodoStateLifecycle.register();
 	}
 

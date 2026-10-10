@@ -73,4 +73,16 @@ public final class TodoSwapMomentum {
 
 	/** Any positive value: the table tests the sign, and a kill's magnitude is neither known nor asked for. */
 	private static final float DAMAGE_LANDED = 1.0f;
+
+	/** Beat-scaled stagger, capped to keep the presentation payoff non-lethal. */
+	public static int staggerTicks(int beat) {
+		int clampedBeat = Math.max(0, Math.min(4, beat));
+		return Math.min(16,
+				TodoProfile.SWAP_MOMENTUM_STAGGER_TICKS + clampedBeat * TodoProfile.MOMENTUM_STAGGER_PER_BEAT);
+	}
+
+	/** Beat-scaled cue intensity, kept separate from damage and stagger policy. */
+	public static int cueIntensity(int beat) {
+		return 1 + Math.max(0, Math.min(4, beat));
+	}
 }

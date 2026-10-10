@@ -6,11 +6,13 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.client.character.todo.TodoPairSelectionClientState;
+import jujutsu.mod.client.character.todo.TodoRhythmClientState;
 import jujutsu.mod.client.vfx.VfxContext;
 import jujutsu.mod.client.vfx.VfxDirector;
 import jujutsu.mod.client.vfx.VfxInstance;
 import jujutsu.mod.client.vfx.VfxPalette;
 import jujutsu.mod.client.vfx.VfxWorldChannel;
+import jujutsu.mod.registry.JujutsuSounds;
 import jujutsu.mod.vfx.TodoVfxIds;
 import jujutsu.mod.vfx.VfxCue;
 import jujutsu.mod.vfx.VfxTimeline;
@@ -30,14 +32,21 @@ public final class TodoVfxRecipes {
 	private TodoVfxRecipes() {}
 
 	public static final double BOOGIE_WOOGIE_PRESENTATION_RADIUS = 56.0;
+	public static final double RHYTHM_PRESENTATION_RADIUS = 56.0;
+	public static final double REVISED_PRESENTATION_RADIUS = 56.0;
 	public static final int BOOGIE_WOOGIE_DURATION_TICKS = 15;
 	public static final int SWAP_ENDPOINT_DURATION_TICKS = 8;
-	/** Four ticks: long enough to register, short enough that the residue does not sit inside the arriving body. */
+	/** Four ticks at Beat 0; Beat 2+ carries a six-tick residue for a more legible spatial snap. */
 	private static final int AFTERIMAGE_TICKS = 4;
-	private static final int ARRIVAL_TICKS = 6;
+	private static final int AFTERIMAGE_BEAT_TICKS = 6;
+	private static final int ARRIVAL_TICKS = 4;
+	private static final int ARRIVAL_BEAT_TICKS = 6;
 	public static final int MOMENTUM_STRIKE_DURATION_TICKS = 8;
 	public static final int FEINT_TELL_DURATION_TICKS = 6;
 	public static final int PAIR_MARK_DURATION_TICKS = 8;
+	public static final int RHYTHM_STATE_DURATION_TICKS = 1;
+	public static final int RHYTHM_PEAK_DURATION_TICKS = 20;
+	public static final int REVISED_START_DURATION_TICKS = 120;
 	/** Long enough for the flick to read, short enough that it never competes with the swap clap. */
 	public static final int STONE_THROW_DURATION_TICKS = 6;
 	/** One compact poof; the stone leaves no lingering residue by design. */
@@ -48,9 +57,12 @@ public final class TodoVfxRecipes {
 	private static final int DUCK_TICKS = 6;
 	/** A body is standing on its own arrival point at the instant the cue is authored. 1.5 blocks. */
 	private static final double LOCAL_ARRIVAL_RADIUS_SQR = 2.25;
-
 	public static void register() {
 		VfxDirector.register(TodoVfxIds.BOOGIE_WOOGIE, TodoVfxRecipes::boogieWoogie);
+		VfxDirector.register(TodoVfxIds.FEINT_CLAP, TodoVfxRecipes::feintClap);
+		VfxDirector.register(TodoVfxIds.RHYTHM_STATE, TodoVfxRecipes::rhythmState);
+		VfxDirector.register(TodoVfxIds.RHYTHM_PEAK, TodoVfxRecipes::rhythmPeak);
+		VfxDirector.register(TodoVfxIds.REVISED_START, TodoVfxRecipes::revisedStart);
 		VfxDirector.register(TodoVfxIds.SWAP_ENDPOINT, TodoVfxRecipes::swapEndpoint);
 		VfxDirector.register(TodoVfxIds.SWAP_AFTERIMAGE, TodoVfxRecipes::swapAfterimage);
 		VfxDirector.register(TodoVfxIds.SWAP_ARRIVAL, TodoVfxRecipes::swapArrival);
@@ -63,24 +75,86 @@ public final class TodoVfxRecipes {
 	}
 
 	/**
-	 * The clap itself, and nothing about the swap. <b>The feint sends this same cue</b>, so anything added
-	 * here is something a feint does too — which is exactly right for the clap and exactly wrong for
-	 * everything that only a completed swap earns.
+	 * The clap itself, and nothing about the swap. Fake Clap uses this exact body and only changes the
+	 * animation hook, keeping the observer-visible presentation indistinguishable.
 	 */
 	private static VfxInstance boogieWoogie(VfxCue cue) {
-		// ~15 ticks covers Nobara-style first-person snap phases + third-person GeckoLib clap.
+		return clap(cue, false);
+	}
+
+	private static VfxInstance feintClap(VfxCue cue) {
+		return clap(cue, true);
+	}
+
+	private static VfxInstance clap(VfxCue cue, boolean feint) {
+		// ~15 ticks covers first-person snap phases plus the third-person GeckoLib clap.
 		return VfxInstance.of(BOOGIE_WOOGIE_DURATION_TICKS, (context, initialAgeTicks) -> {
-			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
-				float proximity = context.proximity(cue, BOOGIE_WOOGIE_PRESENTATION_RADIUS);
-				// A snap, not a launch: the old triggerLaunch dipped the FOV by eight degrees, which reads
-				// as being thrown forward rather than as a body being displaced beside you.
-				context.camera().triggerSwapSnap(1, proximity, initialAgeTicks);
-				context.hud().triggerFlash(80, Math.round(62.0f * proximity), initialAgeTicks);
-				// Third-person GeckoLib clap (both arms) via replaced-entity animatable.
+			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				return;
+			}
+			float proximity = context.proximity(cue, BOOGIE_WOOGIE_PRESENTATION_RADIUS);
+			int beat = Math.max(0, Math.min(4, intensity(cue) - 1));
+			// A snap, not a launch: strength grows with Rhythm while preserving spatial readability.
+			context.camera().triggerSwapSnap(Math.min(5, 1 + beat), proximity, initialAgeTicks);
+			context.hud().triggerFlash(80, Math.round((62.0f + beat * 8.0f) * proximity), initialAgeTicks);
+			if (beat >= 3 && proximity > 0.01f) {
+				context.playNoFalloff(JujutsuSounds.TODO_CLAP_DENSE, Math.min(1.0f, 0.72f + beat * 0.08f) * proximity,
+						1.12f - beat * 0.03f, context.resolveOrigin(cue), random(cue, 0xC1A0L + beat));
+			}
+			// The only observer-visible difference is the caster's body animation hook.
+			if (feint) {
+				TodoAnimationHooks.triggerFakeClap(cue);
+			} else {
 				TodoAnimationHooks.triggerBoogieWoogie(cue);
-				if (isLocalAnchor(context, cue)) {
-					// FP clap always starts at progress 0 (ignore late-cue age) so every cast matches.
-					context.firstPerson().triggerClap(0.0f);
+			}
+			if (isLocalAnchor(context, cue)) {
+				// FP clap always starts at progress 0 (ignore late-cue age) so every cast matches.
+				context.firstPerson().triggerClap(0.0f);
+			}
+		});
+	}
+
+	private static VfxInstance rhythmState(VfxCue cue) {
+		return VfxInstance.of(RHYTHM_STATE_DURATION_TICKS, (context, initialAgeTicks) -> TodoRhythmClientState.onCue(cue));
+	}
+
+	private static VfxInstance rhythmPeak(VfxCue cue) {
+		return VfxInstance.of(RHYTHM_PEAK_DURATION_TICKS, (context, initialAgeTicks) -> {
+			Vec3 origin = context.resolveOrigin(cue).add(0.0, 0.12, 0.0);
+			float proximity = context.proximity(cue, RHYTHM_PRESENTATION_RADIUS);
+			RandomSource random = random(cue, 0x5EAFL);
+			int points = Math.max(2, intensity(cue));
+			float progress = Math.max(0.0f, Math.min(1.0f, initialAgeTicks / RHYTHM_PEAK_DURATION_TICKS));
+			context.ring(TODO_VIOLET, origin, 14 + points, 0.55 + progress * 1.5, 0.0, -0.02, random);
+			context.ring(TODO_EDGE, origin, 11 + points, 0.35 + progress * 1.1, 0.05, 0.035, random);
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				context.playNoFalloff(JujutsuSounds.TODO_PEAK_CHIME, 0.9f * proximity, 1.0f, origin, random);
+				context.playNoFalloff(JujutsuSounds.PROJECTJJK_CLAP, 0.7f * proximity, 1.25f, origin, random);
+				TodoAnimationHooks.triggerPeak(cue);
+				if (proximity > 0.01f) {
+					context.camera().triggerSwapSnap(2, proximity, initialAgeTicks);
+					context.hud().triggerFlash(180, Math.round(110.0f * proximity), initialAgeTicks);
+				}
+			}
+		});
+	}
+
+	private static VfxInstance revisedStart(VfxCue cue) {
+		return VfxInstance.of(REVISED_START_DURATION_TICKS, (context, initialAgeTicks) -> {
+			Vec3 origin = context.resolveOrigin(cue).add(0.0, 0.12, 0.0);
+			float proximity = context.proximity(cue, REVISED_PRESENTATION_RADIUS);
+			RandomSource random = random(cue, 0x7E715EDL);
+			// Keep the caster silhouette readable throughout the window while the runtime repositions bodies.
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.SWAP_AFTERIMAGE,
+					REVISED_START_DURATION_TICKS);
+			context.ring(TODO_EDGE, origin, 16, 0.75, 0.0, -0.04, random);
+			context.ring(TODO_VIOLET, origin, 14, 0.46, 0.04, 0.03, random);
+			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
+				context.playNoFalloff(JujutsuSounds.TODO_VIBRASLAP_RATTLE, 0.95f * proximity, 0.92f, origin, random);
+				TodoAnimationHooks.triggerRevised(cue);
+				if (proximity > 0.01f) {
+					context.camera().triggerSwapSnap(2, proximity, initialAgeTicks);
+					context.hud().triggerFlash(140, Math.round(72.0f * proximity), initialAgeTicks);
 				}
 			}
 		});
@@ -102,10 +176,11 @@ public final class TodoVfxRecipes {
 
 	/** One body's residue where it used to be. Emitted only by a completed swap, never by the feint. */
 	private static VfxInstance swapAfterimage(VfxCue cue) {
-		return VfxInstance.of(AFTERIMAGE_TICKS, (context, initialAgeTicks) -> {
+		int life = silhouetteDuration(cue, AFTERIMAGE_TICKS, AFTERIMAGE_BEAT_TICKS);
+		return VfxInstance.of(life, (context, initialAgeTicks) -> {
 			// Outside the opening beat: the world channel seeks by game time, so a late cue still shows
 			// the tail it should be showing rather than nothing at all.
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.SWAP_AFTERIMAGE, AFTERIMAGE_TICKS);
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.SWAP_AFTERIMAGE, life);
 		});
 	}
 
@@ -115,20 +190,21 @@ public final class TodoVfxRecipes {
 	 * that silenced the world or kicked a camera would announce itself.
 	 */
 	private static VfxInstance swapArrival(VfxCue cue) {
-		return VfxInstance.of(ARRIVAL_TICKS, (context, initialAgeTicks) -> {
-			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.SWAP_ARRIVAL, ARRIVAL_TICKS);
+		int life = silhouetteDuration(cue, ARRIVAL_TICKS, ARRIVAL_BEAT_TICKS);
+		return VfxInstance.of(life, (context, initialAgeTicks) -> {
+			context.world().triggerImpact(cue, VfxWorldChannel.ImpactStyle.SWAP_ARRIVAL, life);
 			if (!VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				return;
 			}
 			Vec3 arrival = context.resolveOrigin(cue);
 			RandomSource random = random(cue, 0xA221AEL);
 			// Inward, against the departure's outward throw, so the two ends of a swap never read alike.
-			context.ring(TODO_EDGE, arrival.add(0.0, 0.12, 0.0), 9, 0.55, 0.0, -0.035, random);
-			context.burst(TODO_VIOLET, arrival.add(0.0, 0.6, 0.0), 6, 0.22, 0.04, random);
+			context.ring(TODO_EDGE, arrival.add(0.0, 0.12, 0.0), 9 + beat(cue), 0.55, 0.0, -0.035, random);
+			context.burst(TODO_VIOLET, arrival.add(0.0, 0.6, 0.0), 6 + beat(cue) * 2, 0.22, 0.04, random);
 			context.sound().duck(context.client(), DUCK_TICKS, initialAgeTicks);
 			if (isLocalArrival(context, cue)) {
 				// A displacement jolt belongs to the body that was displaced, not to everyone watching it.
-				context.camera().triggerSwapSnap(2, 1.0f, initialAgeTicks);
+				context.camera().triggerSwapSnap(2 + beat(cue), 1.0f, initialAgeTicks);
 			}
 		});
 	}
@@ -142,11 +218,13 @@ public final class TodoVfxRecipes {
 			if (VfxTimeline.isOpeningBeat(initialAgeTicks)) {
 				Vec3 impact = context.resolveOrigin(cue);
 				RandomSource random = random(cue, 0x30DE12L);
-				context.ring(TODO_VIOLET, impact, 10, 0.42, 0.0, 0.09, random);
-				context.burst(TODO_EDGE, impact, 7, 0.24, 0.22, random);
+				context.ring(TODO_VIOLET, impact, 10 + beat(cue), 0.42, 0.0, 0.09, random);
+				context.burst(TODO_EDGE, impact, 7 + beat(cue) * 2, 0.24, 0.22, random);
+				TodoAnimationHooks.triggerMomentumStrike(cue);
 			}
 		});
 	}
+
 
 	/**
 	 * Caster-only feint confirmation: a thin wisp of dust at chest height and nothing else. No HUD
@@ -204,6 +282,7 @@ public final class TodoVfxRecipes {
 			}
 			Vec3 origin = cue.origin();
 			RandomSource random = random(cue, 0x57011EEL);
+			TodoAnimationHooks.triggerStoneThrow(cue);
 			context.playNoFalloff(SoundEvents.SNOWBALL_THROW, 0.5f, 1.12f, origin, random);
 			Vec3 direction = cue.direction();
 			ClientLevel level = context.client().level;
@@ -302,6 +381,18 @@ public final class TodoVfxRecipes {
 		return context.client().player != null
 				&& cue.anchorEntityId() != VfxCue.NO_ANCHOR
 				&& cue.anchorEntityId() == context.client().player.getId();
+	}
+
+	private static int intensity(VfxCue cue) {
+		return Math.max(1, Math.min(5, cue.intensity()));
+	}
+
+	private static int beat(VfxCue cue) {
+		return Math.max(0, intensity(cue) - 1);
+	}
+
+	private static int silhouetteDuration(VfxCue cue, int baseTicks, int beatTicks) {
+		return beat(cue) >= 2 ? beatTicks : baseTicks;
 	}
 
 	private static RandomSource random(VfxCue cue, long salt) {

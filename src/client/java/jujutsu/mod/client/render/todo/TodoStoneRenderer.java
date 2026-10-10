@@ -1,46 +1,50 @@
 package jujutsu.mod.client.render.todo;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
+import software.bernie.geckolib.constant.DataTickets;
+import software.bernie.geckolib.constant.dataticket.DataTicket;
+import software.bernie.geckolib.renderer.GeoEntityRenderer;
+import software.bernie.geckolib.renderer.base.GeoRenderState;
 import jujutsu.mod.JujutsuMod;
 import jujutsu.mod.character.todo.TodoStoneEntity;
 
-/**
- * The flying stone: a small tumbling pebble drawn from code geometry against its own texture.
- *
- * <p>Everything the renderer needs is extracted into {@link State} on the client thread and read
- * back in {@link #render} (1.21.8 state-extract API), so the render pass never touches the entity.
- * The tumble is driven purely by age plus an entity-derived seed, and the last ticks of life fade
- * the stone out ahead of the vanish cue so the end reads as a poof, not a pop.
- */
-public final class TodoStoneRenderer extends EntityRenderer<TodoStoneEntity, TodoStoneRenderer.State> {
+/** GeckoLib pebble renderer with deterministic tumble, fade and a short motion ribbon. */
+public final class TodoStoneRenderer extends GeoEntityRenderer<TodoStoneEntity, TodoStoneRenderer.State> {
 	private static final ResourceLocation TEXTURE = JujutsuMod.id("textures/entity/todo_stone.png");
-	/**
-	 * Half extent of the cube, deliberately below {@code STONE_HITBOX_SIZE}: a collision that reads
-	 * as generous is fairer than an invisible one.
-	 */
-	private static final float HALF_EXTENT = 0.09f;
-	/** The stone fades out over its last ten ticks of flight, matching the vanish poof. */
+	private static final RenderType TRAIL_RENDER_TYPE = RenderType.entityTranslucent(TEXTURE);
+	private static final int TRAIL_POINT_COUNT = 10;
 	private static final int FADE_TICKS = 10;
 	private static final float TUMBLE_SPIN_PER_TICK = 0.16f;
+	private static final float TRAIL_WIDTH = 0.055f;
+
+	private final Map<UUID, TrailBuffer> trailBuffers = new HashMap<>();
 
 	public TodoStoneRenderer(EntityRendererProvider.Context context) {
-		super(context);
+		super(context, new TodoStoneModel());
 		shadowRadius = 0.0f;
 	}
 
 	@Override
-	public State createRenderState() {
+	protected State createBaseRenderState(TodoStoneEntity entity) {
 		return new State();
 	}
 
@@ -49,56 +53,155 @@ public final class TodoStoneRenderer extends EntityRenderer<TodoStoneEntity, Tod
 		super.extractRenderState(entity, state, partialTick);
 		state.age = entity.tickCount + partialTick;
 		state.seed = entity.getId();
-		state.fadeAlpha = Math.min(1.0f, entity.remainingTicks() / (float) FADE_TICKS);
+		state.fadeAlpha = fadeAlpha(entity);
+		state.center = entity.position();
+		state.trail = trailSnapshot(entity);
+	}
+	@Override
+	public void addRenderData(TodoStoneEntity animatable, Void relatedObject, State renderState) {
+		Integer packedLight = renderState.getGeckolibData(DataTickets.PACKED_LIGHT);
+		int light = packedLight == null ? LightTexture.FULL_BRIGHT : packedLight;
+		renderState.addGeckolibData(DataTickets.PACKED_LIGHT,
+				LightTexture.lightCoordsWithEmission(light, 2));
 	}
 
 	@Override
-	public void render(State state, PoseStack matrices, MultiBufferSource consumers, int packedLight) {
+	public void render(State state, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
 		if (state.fadeAlpha <= 0.01f) {
 			return;
 		}
-		// A slow spin around Y with a gentle wobble reads as tumbling without ever flipping end
-		// over end; the seed keeps two stones in the same world from tumbling in lockstep.
+		// The trail is world-space geometry relative to the entity anchor; tumble only the pebble.
+		renderRibbon(state, poseStack, bufferSource, packedLight);
 		float phase = (state.seed & 7) * 0.63f;
-		float wobble = 0.55f + 0.45f * Mth.sin(state.age * 0.11f + phase);
-		matrices.mulPose(new Quaternionf().rotateY(state.age * TUMBLE_SPIN_PER_TICK + phase)
+		float wobble = 0.55f + 0.45f * (float) Math.sin(state.age * 0.11f + phase);
+		poseStack.mulPose(new Quaternionf().rotateY(state.age * TUMBLE_SPIN_PER_TICK + phase)
 				.rotateX(wobble * 0.30f));
-		VertexConsumer consumer = consumers.getBuffer(RenderType.entityTranslucent(TEXTURE));
-		// A small emission keeps the stone readable at the edge of the swap range at night.
+		super.render(state, poseStack, bufferSource, packedLight);
+	}
+
+	@Override
+	public RenderType getRenderType(State renderState, ResourceLocation texture) {
+		return RenderType.entityTranslucent(texture);
+	}
+
+	@Override
+	public int getRenderColor(TodoStoneEntity entity, Void relatedObject, float partialTick) {
+		int alpha = Math.round(255.0f * fadeAlpha(entity));
+		return (alpha << 24) | 0x00FFFFFF;
+	}
+
+	private static float fadeAlpha(TodoStoneEntity entity) {
+		return Math.min(1.0f, Math.max(0.0f, entity.remainingTicks() / (float) FADE_TICKS));
+	}
+
+	private List<Vec3> trailSnapshot(TodoStoneEntity entity) {
+		UUID uuid = entity.getUUID();
+		if (entity.isRemoved() || entity.remainingTicks() <= 0) {
+			trailBuffers.remove(uuid);
+			return List.of();
+		}
+		TrailBuffer buffer = trailBuffers.computeIfAbsent(uuid, ignored -> new TrailBuffer());
+		Vec3 current = entity.position();
+		if (buffer.lastTick != entity.tickCount) {
+			if (buffer.lastPosition != null && buffer.lastPosition.distanceToSqr(current) > 16.0) {
+				// A stone snap is a deliberate teleport; never draw a ribbon across the whole arena.
+				buffer.positions.clear();
+			}
+			buffer.positions.addLast(current);
+			while (buffer.positions.size() > TRAIL_POINT_COUNT) {
+				buffer.positions.removeFirst();
+			}
+			buffer.lastPosition = current;
+			buffer.lastTick = entity.tickCount;
+		}
+		return List.copyOf(buffer.positions);
+	}
+
+	private static void renderRibbon(State state, PoseStack poseStack, MultiBufferSource bufferSource,
+			int packedLight) {
+		if (state.trail.size() < 2) {
+			return;
+		}
+		VertexConsumer consumer = bufferSource.getBuffer(TRAIL_RENDER_TYPE);
+		PoseStack.Pose pose = poseStack.last();
+		Vec3 camera = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
 		int light = LightTexture.lightCoordsWithEmission(packedLight, 2);
-		int alpha = Math.round(255.0f * state.fadeAlpha);
-		renderCube(consumer, matrices, HALF_EXTENT, light, alpha);
-		super.render(state, matrices, consumers, packedLight);
+		int last = state.trail.size() - 1;
+		for (int index = 0; index < last; index++) {
+			Vec3 firstWorld = state.trail.get(index);
+			Vec3 secondWorld = state.trail.get(index + 1);
+			Vec3 segment = secondWorld.subtract(firstWorld);
+			if (segment.lengthSqr() <= 1.0E-7) {
+				continue;
+			}
+			float progress = (index + 1.0f) / last;
+			Vec3 side = ribbonSide(segment, camera.subtract(firstWorld))
+					.scale(TRAIL_WIDTH * (0.65 + 0.35 * progress));
+			Vec3 first = firstWorld.subtract(state.center);
+			Vec3 second = secondWorld.subtract(state.center);
+			int alpha = Math.round(255.0f * state.fadeAlpha * (0.15f + 0.70f * progress));
+			addRibbonVertex(consumer, pose, first.subtract(side), 0.0f, alpha, light);
+			addRibbonVertex(consumer, pose, first.add(side), 1.0f, alpha, light);
+			addRibbonVertex(consumer, pose, second.add(side), 1.0f, alpha, light);
+			addRibbonVertex(consumer, pose, second.subtract(side), 0.0f, alpha, light);
+		}
 	}
 
-	/** Six textured quads in counter-clockwise winding (front faces cull correctly). */
-	private static void renderCube(VertexConsumer consumer, PoseStack matrices, float h, int light, int alpha) {
-		PoseStack.Pose pose = matrices.last();
-		quad(consumer, pose, h, -h, h, h, -h, -h, h, h, -h, h, h, h, 1.0f, 0.0f, 0.0f, light, alpha);
-		quad(consumer, pose, -h, -h, -h, -h, -h, h, -h, h, h, -h, h, -h, -1.0f, 0.0f, 0.0f, light, alpha);
-		quad(consumer, pose, -h, h, -h, -h, h, h, h, h, h, h, h, -h, 0.0f, 1.0f, 0.0f, light, alpha);
-		quad(consumer, pose, -h, -h, h, -h, -h, -h, h, -h, -h, h, -h, h, 0.0f, -1.0f, 0.0f, light, alpha);
-		quad(consumer, pose, -h, -h, h, h, -h, h, h, h, h, -h, h, h, 0.0f, 0.0f, 1.0f, light, alpha);
-		quad(consumer, pose, h, -h, -h, -h, -h, -h, -h, h, -h, h, h, -h, 0.0f, 0.0f, -1.0f, light, alpha);
+	private static Vec3 ribbonSide(Vec3 segment, Vec3 toCamera) {
+		Vec3 side = segment.cross(toCamera);
+		if (side.lengthSqr() <= 1.0E-7) {
+			side = segment.cross(new Vec3(0.0, 1.0, 0.0));
+		}
+		if (side.lengthSqr() <= 1.0E-7) {
+			side = new Vec3(1.0, 0.0, 0.0);
+		}
+		return side.normalize();
 	}
 
-	private static void quad(VertexConsumer consumer, PoseStack.Pose pose,
-			float x0, float y0, float z0, float x1, float y1, float z1,
-			float x2, float y2, float z2, float x3, float y3, float z3,
-			float nx, float ny, float nz, int light, int alpha) {
-		consumer.addVertex(pose, x0, y0, z0).setUv(0.0f, 0.0f).setColor(255, 255, 255, alpha)
-				.setLight(light).setOverlay(OverlayTexture.NO_OVERLAY).setNormal(pose, nx, ny, nz);
-		consumer.addVertex(pose, x1, y1, z1).setUv(1.0f, 0.0f).setColor(255, 255, 255, alpha)
-				.setLight(light).setOverlay(OverlayTexture.NO_OVERLAY).setNormal(pose, nx, ny, nz);
-		consumer.addVertex(pose, x2, y2, z2).setUv(1.0f, 1.0f).setColor(255, 255, 255, alpha)
-				.setLight(light).setOverlay(OverlayTexture.NO_OVERLAY).setNormal(pose, nx, ny, nz);
-		consumer.addVertex(pose, x3, y3, z3).setUv(0.0f, 1.0f).setColor(255, 255, 255, alpha)
-				.setLight(light).setOverlay(OverlayTexture.NO_OVERLAY).setNormal(pose, nx, ny, nz);
+	private static void addRibbonVertex(VertexConsumer consumer, PoseStack.Pose pose, Vec3 point,
+			float u, int alpha, int light) {
+		consumer.addVertex(pose, (float) point.x, (float) point.y, (float) point.z)
+				.setUv(u, 0.0f)
+				.setColor(154, 142, 172, alpha)
+				.setLight(light)
+				.setOverlay(OverlayTexture.NO_OVERLAY)
+				.setNormal(pose, 0.0f, 1.0f, 0.0f);
 	}
 
-	public static final class State extends EntityRenderState {
+	private static final class TrailBuffer {
+		private final Deque<Vec3> positions = new ArrayDeque<>();
+		private Vec3 lastPosition;
+		private int lastTick = Integer.MIN_VALUE;
+	}
+
+	/** GeckoLib's state bag plus the vanilla render data needed by the custom ribbon pass. */
+	public static final class State extends EntityRenderState implements GeoRenderState {
+		private final Map<DataTicket<?>, Object> geckolibData = new Reference2ObjectOpenHashMap<>();
 		private float age;
 		private int seed;
 		private float fadeAlpha = 1.0f;
+		private Vec3 center = Vec3.ZERO;
+		private List<Vec3> trail = List.of();
+
+		@Override
+		public <D> void addGeckolibData(DataTicket<D> dataTicket, @Nullable D data) {
+			geckolibData.put(dataTicket, data);
+		}
+
+		@Override
+		public boolean hasGeckolibData(DataTicket<?> dataTicket) {
+			return geckolibData.containsKey(dataTicket);
+		}
+
+		@Override
+		public <D> D getGeckolibData(DataTicket<D> dataTicket) {
+			Object data = geckolibData.get(dataTicket);
+			return data == null ? null : (D) data;
+		}
+
+		@Override
+		public Map<DataTicket<?>, Object> getDataMap() {
+			return geckolibData;
+		}
 	}
 }

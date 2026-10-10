@@ -126,6 +126,24 @@
     ],
     "subtitle": "subtitles.jujutsumod.projectjjk.aec_boom"
   },
+  "todo.vibraslap_rattle": {
+    "sounds": [
+      "jujutsumod:todo/vibraslap_rattle"
+    ],
+    "subtitle": "subtitles.jujutsumod.todo.vibraslap_rattle"
+  },
+  "todo.clap_dense": {
+    "sounds": [
+      "jujutsumod:todo/clap_dense"
+    ],
+    "subtitle": "subtitles.jujutsumod.todo.clap_dense"
+  },
+  "todo.peak_chime": {
+    "sounds": [
+      "jujutsumod:todo/peak_chime"
+    ],
+    "subtitle": "subtitles.jujutsumod.todo.peak_chime"
+  },
   "nobara.mega_charge_riser": {
     "sounds": [
       "jujutsumod:nobara/mega_charge_riser"

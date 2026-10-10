@@ -76,14 +76,16 @@ final class VfxCueTest {
 				"nobara/hammer", "nobara/impact", "nobara/impact_sound", "nobara/detonate", "nobara/enlarge",
 				"nobara/explosion", "nobara/first_person_snap", "nobara/remnant_drop", "nobara/ritual_bind",
 				"nobara/doll_strike", "nobara/resonance_release", "nobara/hammer_horizontal", "nobara/hammer_overhead",
-				"nobara/hammer_nail_launch", "nobara/black_flash", "nobara/self_resonance", "nobara/nail_deepen",
+				"nobara/hammer_nail_launch", "nobara/self_resonance", "nobara/nail_deepen",
 				"nobara/nail_trap_placed", "nobara/nail_trap_armed", "nobara/nail_trap_collapse", "nobara/nail_trap_impact",
 				"nobara/caster_action", "nobara/mega_nail_strike", "nobara/mega_nail_charge"),
 				paths(NobaraVfxIds.LIVE));
+		assertEquals(Set.of("black_flash"), paths(SharedVfxIds.LIVE));
 		assertEquals(Set.of(
-				"todo/boogie_woogie", "todo/swap_endpoint", "todo/feint_tell", "todo/pair_mark",
+				"todo/boogie_woogie", "todo/swap_endpoint", "todo/feint_tell", "todo/feint_clap", "todo/pair_mark",
 				"todo/swap_afterimage", "todo/swap_arrival", "todo/momentum_strike",
-				"todo/stone_throw", "todo/stone_vanish", "todo/triple_swap"), paths(TodoVfxIds.LIVE));
+				"todo/stone_throw", "todo/stone_vanish", "todo/triple_swap",
+				"todo/rhythm_state", "todo/rhythm_peak", "todo/revised_start"), paths(TodoVfxIds.LIVE));
 		assertEquals(Set.of(
 				"megumi/dogs_summon_body", "megumi/dogs_summon", "megumi/dogs_recall", "megumi/dogs_sic",
 				"megumi/dogs_pounce", "megumi/shadow_trap_open", "megumi/shadow_trap_zone", "megumi/shadow_trap_grip",
@@ -100,6 +102,7 @@ final class VfxCueTest {
 	@Test
 	void plannedSetsAreEmptyForTheCurrentSlice() {
 		assertTrue(NobaraVfxIds.PLANNED.isEmpty());
+		assertTrue(SharedVfxIds.PLANNED.isEmpty());
 		assertTrue(TodoVfxIds.PLANNED.isEmpty());
 		assertTrue(MegumiVfxIds.PLANNED.isEmpty());
 	}

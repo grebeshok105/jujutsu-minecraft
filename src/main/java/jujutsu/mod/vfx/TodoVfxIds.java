@@ -60,9 +60,13 @@ public final class TodoVfxIds {
 	 * normalizes {@code direction}, so magnitude cannot survive there). World-fixed at the edge's start.
 	 */
 	public static final ResourceLocation TRIPLE_SWAP = JujutsuMod.id("todo/triple_swap");
+	public static final ResourceLocation RHYTHM_STATE = JujutsuMod.id("todo/rhythm_state");
+	public static final ResourceLocation RHYTHM_PEAK = JujutsuMod.id("todo/rhythm_peak");
+	public static final ResourceLocation REVISED_START = JujutsuMod.id("todo/revised_start");
+	public static final ResourceLocation FEINT_CLAP = JujutsuMod.id("todo/feint_clap");
 	public static final Set<ResourceLocation> LIVE = Set.of(
-			BOOGIE_WOOGIE, SWAP_ENDPOINT, FEINT_TELL, PAIR_MARK, SWAP_AFTERIMAGE, SWAP_ARRIVAL, MOMENTUM_STRIKE,
-			STONE_THROW, STONE_VANISH, TRIPLE_SWAP);
+			BOOGIE_WOOGIE, SWAP_ENDPOINT, FEINT_TELL, FEINT_CLAP, PAIR_MARK, SWAP_AFTERIMAGE, SWAP_ARRIVAL,
+			MOMENTUM_STRIKE, STONE_THROW, STONE_VANISH, TRIPLE_SWAP, RHYTHM_STATE, RHYTHM_PEAK, REVISED_START);
 	public static final Set<ResourceLocation> PLANNED = Set.of();
 
 	private TodoVfxIds() {}

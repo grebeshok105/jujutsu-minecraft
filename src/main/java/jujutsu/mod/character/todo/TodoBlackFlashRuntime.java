@@ -10,7 +10,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import jujutsu.mod.character.CharacterSelectionManager;
 import jujutsu.mod.character.JujutsuCharacter;
-import jujutsu.mod.vfx.NobaraVfxIds;
+import jujutsu.mod.vfx.SharedVfxIds;
 import jujutsu.mod.combat.BlackFlashStrike;
 import jujutsu.mod.combat.JujutsuDamageSources;
 import jujutsu.mod.network.JujutsuNetworking;
@@ -52,7 +52,7 @@ public final class TodoBlackFlashRuntime {
 				2.0);
 		Vec3 origin = BlackFlashStrike.impactOrigin(target);
 		JujutsuNetworking.broadcastVfxCue(todo.level(), origin, TodoProfile.BLACK_FLASH_VFX_DELIVERY_RADIUS,
-				VfxCues.worldFixedDirected(NobaraVfxIds.BLACK_FLASH, origin, 2,
+				VfxCues.worldFixedDirected(SharedVfxIds.BLACK_FLASH, origin, 2,
 						todo.level().getGameTime(), todo.getRandom().nextLong(), todo.getLookAngle()));
 	}
 }

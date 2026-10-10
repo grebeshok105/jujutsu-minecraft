@@ -8,6 +8,24 @@ public final class TodoProfile {
 	public static final double ATTACK_SPEED_MULTIPLIER = 0.85;
 	/** Incoming stagger durations are multiplied by 0.50. */
 	public static final double STAGGER_DURATION_MULTIPLIER = 0.50;
+	/** Points needed for Beat 1, Beat 2, Beat 3, and Peak. */
+	public static final int RHYTHM_BEAT1_POINTS = 3;
+	public static final int RHYTHM_BEAT2_POINTS = 5;
+	public static final int RHYTHM_BEAT3_POINTS = 7;
+	public static final int RHYTHM_PEAK_POINTS = 9;
+	/** Rhythm decay waits for a decision window, then removes one point per interval. */
+	public static final int RHYTHM_DECAY_DELAY_TICKS = 100;
+	public static final int RHYTHM_DECAY_INTERVAL_TICKS = 40;
+	public static final int RHYTHM_RECENT_KINDS = 3;
+	/** Revised Boogie Woogie window and cooldown softening. */
+	public static final int REVISED_DURATION_TICKS = 120;
+	public static final double REVISED_COOLDOWN_SCALE = 0.25;
+	public static final int REVISED_MIN_COOLDOWN_TICKS = 6;
+	public static final int REVISED_AUTO_SWAPS_MAX = 2;
+	public static final int REVISED_AUTO_SWAP_DELAY_TICKS = 10;
+	public static final int REVISED_AUTO_SWAP_GROUND_SCAN = 4;
+	/** Beat-scaled stagger for the existing Swap Momentum effect. */
+	public static final int MOMENTUM_STAGGER_PER_BEAT = 2;
 	/** Boogie Woogie server-side directed target reach. */
 	public static final double BOOGIE_WOOGIE_RANGE = 20.0;
 	/** Three seconds at the vanilla 20 TPS baseline. */
