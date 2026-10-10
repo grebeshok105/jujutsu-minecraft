@@ -18,8 +18,24 @@ jobs:
         run: chmod +x ./gradlew
       - name: assemble artifacts
         run: ./gradlew assemble --no-daemon
-      - name: capture build artifacts
+      - name: collect ready mods folder
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p build/modpack
+          MOD_JAR="$(find build/libs -maxdepth 1 -type f -name 'jujutsumod-*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' | head -n 1)"
+          FABRIC_API="$(find ~/.gradle/caches/modules-2/files-2.1/net.fabricmc.fabric-api/fabric-api/0.136.1+1.21.8 -type f -name 'fabric-api-0.136.1+1.21.8.jar' | head -n 1)"
+          GECKOLIB="$(find ~/.gradle/caches/modules-2/files-2.1/software.bernie.geckolib/geckolib-fabric-1.21.8/5.2.2 -type f -name 'geckolib-fabric-1.21.8-5.2.2.jar' | head -n 1)"
+          test -f "$MOD_JAR"
+          test -f "$FABRIC_API"
+          test -f "$GECKOLIB"
+          cp "$MOD_JAR" build/modpack/
+          cp "$FABRIC_API" build/modpack/
+          cp "$GECKOLIB" build/modpack/
+          printf 'Minecraft 1.21.8\nFabric Loader >= 0.19.3\nJava 21\n\nDrop all .jar files from this folder into mods/.\n' > build/modpack/README.txt
+          ls -lh build/modpack
+      - name: upload ready mods archive
         uses: actions/upload-artifact@v7
         with:
-          name: Artifacts
-          path: build/libs/
+          name: Jujutsu-ready-mods
+          path: build/modpack/
