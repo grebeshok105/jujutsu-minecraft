@@ -1,149 +1,263 @@
 <!doctype html>
 <html lang="ru">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#080910" />
-    <meta name="description" content="Дзюдзюцу Minecraft - раскройте проклятую энергию и выведите игровой опыт на новый уровень." />
-    <title>Дзюдзюцу Minecraft — новое поколение модов</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <div class="page-glow glow-one"></div>
-    <div class="page-glow glow-two"></div>
-    <div class="page-glow glow-three"></div>
-    <div class="grid-wash"></div>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jujutsu Minecraft — мод магической битвы для Fabric 1.21.8</title>
+  <meta name="description" content="Fabric-мод по мотивам «Магической битвы»: Нобара, Тодо и Мегуми с полноценными наборами техник, десять теней шикигами и проклятые духи с рангами силы. Minecraft 1.21.8." />
+  <meta name="theme-color" content="#07060d" />
+  <meta property="og:title" content="Jujutsu Minecraft — Cursed Saga" />
+  <meta property="og:description" content="Три сосуда, десять теней и проклятия, которых не видят немаги. Fabric 1.21.8." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="img/mark.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14" /></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m0 0-6-6m6 6-6 6" /></symbol>
+    <symbol id="i-git" viewBox="0 0 24 24"><path d="M9 19c-4 1.5-4-2-6-2.5m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1-.3-3.4 1.3a11.7 11.7 0 0 0-6 0C6.8 2.3 5.8 2.6 5.8 2.6a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4.4 9c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V22" /></symbol>
+  </svg>
 
-    <header class="nav-wrap">
-      <nav class="nav glass" aria-label="Основная навигация">
-        <a class="brand" href="#top" aria-label="Дзюдзюцу - на главную">
-          <span class="brand-mark"><i data-lucide="sparkles"></i></span>
-          <span>дзюдзюцу<span class="brand-dot">.</span></span>
-        </a>
-        <button class="menu-toggle" aria-label="Открыть меню" aria-expanded="false"><i data-lucide="menu"></i></button>
-        <div class="nav-links">
-          <a href="#features">Возможности</a>
-          <a href="#characters">Персонажи</a>
-          <a href="#techniques">Техники</a>
-          <a href="#faq">Вопросы</a>
-        </div>
-        <a class="nav-cta" href="https://github.com/grebeshok105/jujutsu-minecraft" target="_blank" rel="noreferrer">Открыть проект <i data-lucide="arrow-up-right"></i></a>
+  <a class="skip" href="#main">К содержимому</a>
+
+  <header class="nav" id="nav">
+    <div class="wrap nav-row">
+      <a class="logo" href="#top" aria-label="Jujutsu Minecraft — наверх">
+        <span class="logo-mark" aria-hidden="true">呪</span>
+        <span class="logo-word">Jujutsu<em>Minecraft</em></span>
+      </a>
+      <nav class="nav-links" aria-label="Разделы">
+        <a href="#vessels">Сосуды</a>
+        <a href="#shadows">Шикигами</a>
+        <a href="#curses">Проклятия</a>
+        <a href="#updates">Обновления</a>
+        <a href="#install">Установка</a>
       </nav>
-    </header>
+      <a class="btn btn-flash btn-sm" href="https://github.com/grebeshok105/jujutsu-minecraft/releases/tag/v1.7.6">
+        <svg class="ic"><use href="#i-down" /></svg><span>Скачать 1.7.6</span>
+      </a>
+    </div>
+  </header>
 
-    <main id="top">
-      <section class="hero section-shell">
-        <div class="hero-copy reveal">
-          <div class="eyebrow"><i data-lucide="sparkles"></i> НОВОЕ ПОКОЛЕНИЕ MINECRAFT-МОДОВ <span class="eyebrow-dot"></span></div>
-          <h1>Погрузитесь<br />в мир <span class="gradient-text">дзюдзюцу</span></h1>
-          <p class="hero-subtitle">Раскройте свой потенциал, почувствуйте энергию мира без ограничений и выведите игровой опыт на новый уровень.</p>
-          <div class="hero-actions">
-            <a class="button button-primary" href="https://github.com/grebeshok105/jujutsu-minecraft/releases" target="_blank" rel="noreferrer">Начать приключение <i data-lucide="arrow-right"></i></a>
-            <a class="button button-secondary" href="#features">Узнать больше <i data-lucide="arrow-right"></i></a>
-          </div>
-          <div class="hero-proof"><span class="proof-avatars"><b>Ю</b><b>Н</b><b>М</b><b>Т</b></span><span>Создано для настоящих фанатов <strong>★ ★ ★ ★ ★</strong></span></div>
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="hero-art" aria-hidden="true"><img src="img/hero.svg" alt="" width="1600" height="893" /></div>
+      <div class="wrap hero-inner">
+        <a class="hero-tag" href="#updates"><span class="dot"></span>Вышла Cursed Saga · 1.7.6 beta</a>
+        <h1 class="hero-title">
+          <span class="ln">Проклятая энергия</span>
+          <span class="ln ln-flash">теперь в Minecraft</span>
+        </h1>
+        <p class="hero-sub">Fabric-мод по мотивам «Магической битвы». Три сосуда с продуманными до кадра техниками, десять теней Мегуми и проклятые духи, которых видят только маги.</p>
+        <div class="hero-ctas">
+          <a class="btn btn-flash" href="https://github.com/grebeshok105/jujutsu-minecraft/releases/tag/v1.7.6"><svg class="ic"><use href="#i-down" /></svg>Скачать мод</a>
+          <a class="btn btn-ghost" href="#vessels">Выбрать сосуд<svg class="ic"><use href="#i-arrow" /></svg></a>
+        </div>
+        <dl class="hero-spec">
+          <div><dt>Minecraft</dt><dd>1.21.8</dd></div>
+          <div><dt>Загрузчик</dt><dd>Fabric 0.19.3+</dd></div>
+          <div><dt>Java</dt><dd>21</dd></div>
+          <div><dt>Нужно</dt><dd>Fabric API, GeckoLib 5.2.2+</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <div class="ticker" aria-hidden="true">
+      <div class="ticker-track">
+        <span>Шпилька</span><i>呪</i><span>Резонанс</span><i>呪</i><span>Мега-гвоздь</span><i>呪</i><span>Буги-Вуги</span><i>呪</i><span>Чёрная молния</span><i>呪</i><span>Божественные псы</span><i>呪</i><span>Нуэ</span><i>呪</i><span>Жаба</span><i>呪</i><span>Кроличий побег</span><i>呪</i><span>Макс Элефант</span><i>呪</i>
+      </div>
+    </div>
+
+    <section class="block" id="vessels">
+      <div class="wrap">
+        <div class="head">
+          <h2 class="h2">Выбери сосуд</h2>
+          <p class="lead">Нажми <kbd>N</kbd> в игре — откроется меню персонажей. Выбор хранится на сервере и переживает перезаход и рестарт. У каждого сосуда шесть базовых комбинаций: <kbd>R</kbd>, <kbd>B</kbd>, <kbd>V</kbd> и они же с <kbd>Shift</kbd>.</p>
         </div>
 
-        <div class="hero-stage reveal" aria-label="Декоративная панель игрового интерфейса">
-          <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>
-          <div class="float-tag float-tag-top"><i data-lucide="zap"></i><span><small>УРОВЕНЬ ЭНЕРГИИ</small><b>99.9%</b></span></div>
-          <div class="float-tag float-tag-left"><i data-lucide="shield"></i><span><small>СТАТУС</small><b>ПРОБУЖДЁН</b></span></div>
-          <div class="float-tag float-tag-right"><i data-lucide="swords"></i><span><small>ТЕХНИКА</small><b>АКТИВНА</b></span></div>
-          <div class="game-panel glass">
-            <div class="panel-top"><span class="panel-dots"><i></i><i></i><i></i></span><span>ПАНЕЛЬ ПРОБУЖДЕНИЯ</span><i data-lucide="more-horizontal"></i></div>
-            <div class="panel-center">
-              <div class="energy-ring"><div class="ring-inner"><i data-lucide="zap"></i><span>99</span></div></div>
-              <span class="panel-kicker">ПРОКЛЯТАЯ ЭНЕРГИЯ</span>
-              <strong>ПРОБУЖДЕНИЕ</strong>
-              <div class="energy-line"><span></span></div>
-              <small>СИНХРОНИЗАЦИЯ МИРА: 100%</small>
+        <div class="vessels">
+          <div class="vtabs" role="tablist" aria-label="Сосуды">
+            <button role="tab" id="tab-nobara" aria-controls="p-nobara" aria-selected="true" data-v="nobara"><b>Нобара</b><span>Гвозди и кукла</span></button>
+            <button role="tab" id="tab-todo" aria-controls="p-todo" aria-selected="false" tabindex="-1" data-v="todo"><b>Тодо</b><span>Буги-Вуги</span></button>
+            <button role="tab" id="tab-megumi" aria-controls="p-megumi" aria-selected="false" tabindex="-1" data-v="megumi"><b>Мегуми</b><span>Десять теней</span></button>
+          </div>
+
+          <article class="vpanel" role="tabpanel" id="p-nobara" aria-labelledby="tab-nobara">
+            <figure class="vart"><img src="img/nobara.svg" alt="Нобара замахивается молотом, вокруг летят гвозди" width="640" height="857" loading="lazy" /></figure>
+            <div class="vbody">
+              <h3 class="h3">Нобара Кугисаки</h3>
+              <p class="vquote">Молот, гвозди и соломенная кукла. Каждый гвоздь в цели — это обещание следующего удара.</p>
+              <ul class="keys">
+                <li><span class="combo"><kbd>R</kbd></span><div><b>Шпилька</b><span>Направленный взрыв гвоздей, торчащих в цели.</span></div></li>
+                <li><span class="combo"><kbd>B</kbd></span><div><b>Мега-гвоздь</b><span>Все гвозди в цели сливаются в один пробивающий удар.</span></div></li>
+                <li><span class="combo"><kbd>Shift R</kbd></span><div><b>Резонанс</b><span>Удар по кукле бьёт по душе. Мир на миг замирает — честный хит-стоп.</span></div></li>
+                <li><span class="combo"><kbd>Shift B</kbd></span><div><b>Ловушка из гвоздей</b><span>Расставь гвозди заранее и заведи врага на них.</span></div></li>
+                <li><span class="combo"><kbd>ЛКМ</kbd></span><div><b>Молот</b><span>Контекстный ближний бой и шанс на Чёрную молнию.</span></div></li>
+              </ul>
+              <p class="vnote">Цели с твоими гвоздями подсвечиваются меткой, которую видишь только ты. Гвоздь в цели живёт минуту, максимум 30 на владельца. При выборе Нобары недостающий стартовый набор возвращается без дублей.</p>
             </div>
-            <div class="panel-bottom"><span><i data-lucide="circle-dot"></i> МИР ПОДКЛЮЧЁН</span><span class="live"><i></i> АКТИВНО</span></div>
+          </article>
+
+          <article class="vpanel" role="tabpanel" id="p-todo" aria-labelledby="tab-todo" hidden>
+            <figure class="vart"><img src="img/todo.svg" alt="Тодо хлопает в ладоши, рядом летит камень" width="640" height="857" loading="lazy" /></figure>
+            <div class="vbody">
+              <h3 class="h3">Аой Тодо</h3>
+              <p class="vquote">Хлопок — и вы поменялись местами. Или нет. Противник никогда не знает заранее.</p>
+              <ul class="keys">
+                <li><span class="combo"><kbd>R</kbd></span><div><b>Буги-Вуги</b><span>Меняешься местами с целью под прицелом. Пусто под прицелом — честный отказ.</span></div></li>
+                <li><span class="combo"><kbd>Shift R</kbd></span><div><b>Обманный хлопок</b><span>Выглядит и звучит так же, но никто не двигается.</span></div></li>
+                <li><span class="combo"><kbd>B</kbd> <kbd>B</kbd></span><div><b>Обмен двух чужих</b><span>Меняет местами двух посторонних друг с другом.</span></div></li>
+                <li><span class="combo"><kbd>Shift B</kbd></span><div><b>Тройной цикл</b><span>После метки B: ты встаёшь на место отмеченного, он — на место цели, цель — на твоё.</span></div></li>
+                <li><span class="combo"><kbd>V</kbd></span><div><b>Камень</b><span>Медленный заметный бросок. Летит около пяти секунд, с ним можно поменяться.</span></div></li>
+                <li><span class="combo"><kbd>Shift V</kbd></span><div><b>Подкинуть врага</b><span>Цель меняется местами с камнем, а камень летит дальше уже с её точки.</span></div></li>
+              </ul>
+              <p class="vnote">Удачный свап открывает окно на 24 тика: следующий попавший удар бьёт сильнее и шатает цель, а промах окно не тратит. Тело Тодо больше на 15%, но ни урон, ни дальность от этого не растут.</p>
+            </div>
+          </article>
+
+          <article class="vpanel" role="tabpanel" id="p-megumi" aria-labelledby="tab-megumi" hidden>
+            <figure class="vart"><img src="img/megumi.svg" alt="Мегуми складывает знак, из тени поднимаются чёрный и белый псы" width="640" height="857" loading="lazy" /></figure>
+            <div class="vbody">
+              <h3 class="h3">Мегуми Фусигуро</h3>
+              <p class="vquote">Тень под ногами — это дверь. Из неё выходят звери, и у каждого своя работа.</p>
+              <ul class="keys">
+                <li><span class="combo"><kbd>R</kbd></span><div><b>Призыв и отзыв</b><span>Поднимает выбранную тень или возвращает выжившую стаю.</span></div></li>
+                <li><span class="combo"><kbd>Shift R</kbd></span><div><b>Приказ «сик»</b><span>Все живые шикигами атакуют цель под прицелом.</span></div></li>
+                <li><span class="combo"><kbd>Shift V</kbd></span><div><b>Смена тени</b><span>Псы, Нуэ, Жаба, Кроличий побег, Слон. Смена бесплатна.</span></div></li>
+              </ul>
+              <p class="vnote">Призыв без отката. Ручной отзыв — 12 секунд, гибель последнего тела — 30. Оставшееся время видно на боевом HUD. Если хозяина бьют, стая сама бросается на обидчика, но твой приказ всегда главнее.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="block block-shadow" id="shadows">
+      <div class="wrap">
+        <div class="split">
+          <div class="split-text">
+            <h2 class="h2">Десять теней.<br />Пять форм.</h2>
+            <p class="lead">Каждый шикигами — отдельное тело со своим здоровьем и смертью. Тени работают в связке: вода Слона делает цель мокрой, а по мокрой цели Нуэ бьёт в полтора раза больнее.</p>
           </div>
-          <div class="float-stat glass"><i data-lucide="users"></i><span><b>50K+</b><small>ИГРОКОВ</small></span></div>
-          <div class="float-card glass"><span class="mini-icon"><i data-lucide="sparkles"></i></span><span><b>Новый уровень</b><small>возможностей уже здесь</small></span><i data-lucide="arrow-up-right"></i></div>
+          <figure class="split-art"><img src="img/shikigami.svg" alt="Слон, Жаба, Нуэ и стая кроликов выходят из лужи тени" width="1200" height="670" loading="lazy" /></figure>
         </div>
-      </section>
+        <ul class="beasts">
+          <li><h3>Божественные псы</h3><p>Чёрный и белый, каждый смертен сам по себе. По приказу делают прыжок с средней дистанции и доводят цель до конца.</p></li>
+          <li><h3>Нуэ</h3><p>Кружит над головой, пикирует, оглушает и замедляет. Удар обливает водой — дальше больнее.</p></li>
+          <li><h3>Жаба</h3><p>Язык на 12 блоков. Хватает, держит на месте и швыряет в сторону. Игроков держит так же крепко, как мобов.</p></li>
+          <li><h3>Кроличий побег</h3><p>Десять тел роем вокруг хозяина. Расталкивают и замедляют всех, кто подошёл близко. Погиб главный — стая развеялась.</p></li>
+          <li><h3>Макс Элефант</h3><p>120 здоровья. Давит врагов присутствием и бьёт струёй воды по коридору: сбивает, тушит огонь, делает мокрым.</p></li>
+        </ul>
+      </div>
+    </section>
 
-      <section class="stats section-shell reveal" aria-label="Показатели проекта">
-        <div class="stat"><b>12<span>+</span></b><small>УНИКАЛЬНЫХ ТЕХНИК</small></div>
-        <div class="stat"><b>50<span>K+</span></b><small>ДОВОЛЬНЫХ ИГРОКОВ</small></div>
-        <div class="stat"><b>99.9<span>%</span></b><small>ПРОКЛЯТОЙ ЭНЕРГИИ</small></div>
-        <div class="stat"><b>24<span>/7</span></b><small>ЭПИЧЕСКИХ ВОЗМОЖНОСТЕЙ</small></div>
-      </section>
-
-      <section class="section-shell section-block" id="features">
-        <div class="section-heading reveal"><span class="section-label"><i data-lucide="sparkles"></i> ВСЁ В ОДНОМ МЕСТЕ</span><h2>Возможности <span class="gradient-text">без границ</span></h2><p>Мощь без компромиссов. Всё необходимое, чтобы почувствовать настоящую силу мира дзюдзюцу.</p></div>
-        <div class="feature-grid">
-          <article class="feature-card glass reveal"><span class="card-badge badge-new">НОВОЕ</span><div class="feature-icon icon-purple"><i data-lucide="zap"></i></div><h3>Проклятая энергия</h3><p>Раскройте силу проклятой энергии и выйдите на новый уровень.</p><a href="#techniques" aria-label="Подробнее о проклятой энергии"><i data-lucide="arrow-up-right"></i></a></article>
-          <article class="feature-card glass reveal"><span class="card-badge badge-popular">ПОПУЛЯРНО</span><div class="feature-icon icon-blue"><i data-lucide="sparkles"></i></div><h3>Уникальные техники</h3><p>Измените свой игровой опыт с невероятными способностями.</p><a href="#techniques" aria-label="Подробнее о техниках"><i data-lucide="arrow-up-right"></i></a></article>
-          <article class="feature-card glass reveal"><div class="feature-icon icon-cyan"><i data-lucide="paw-print"></i></div><h3>Сильные шикигами</h3><p>Призывайте верных союзников и сражайтесь вместе с ними.</p><a href="#characters" aria-label="Подробнее о шикигами"><i data-lucide="arrow-up-right"></i></a></article>
-          <article class="feature-card glass reveal"><span class="card-badge badge-best">ЛУЧШИЙ ВЫБОР</span><div class="feature-icon icon-pink"><i data-lucide="shield"></i></div><h3>Доменные расширения</h3><p>Откройте новые возможности и погрузитесь в мир без ограничений.</p><a href="#characters" aria-label="Подробнее о возможностях"><i data-lucide="arrow-up-right"></i></a></article>
-          <article class="feature-card glass reveal"><div class="feature-icon icon-orange"><i data-lucide="swords"></i></div><h3>Эпические сражения</h3><p>Почувствуйте мощь без компромиссов в каждом столкновении.</p><a href="#techniques" aria-label="Подробнее о сражениях"><i data-lucide="arrow-up-right"></i></a></article>
-          <article class="feature-card glass reveal"><div class="feature-icon icon-green"><i data-lucide="gamepad-2"></i></div><h3>Полное погружение</h3><p>Будущее дзюдзюцу уже здесь. Просто начните играть.</p><a href="#faq" aria-label="Подробнее о проекте"><i data-lucide="arrow-up-right"></i></a></article>
+    <section class="block" id="curses">
+      <div class="wrap">
+        <figure class="wide-art"><img src="img/curses.svg" alt="Проклятые духи выползают из пещеры ночью" width="1200" height="670" loading="lazy" /></figure>
+        <div class="curse-grid">
+          <div class="curse-copy">
+            <h2 class="h2">Их видят<br />только маги</h2>
+            <p class="lead">Житель деревни пройдёт сквозь орду духов и не заметит ни тела, ни звука, ни толчка. Для Нобары, Тодо и Мегуми весь этот кошмар реален. Духи приходят ночью, днём прячутся в тени, а в мирном режиме не появляются вовсе.</p>
+            <div class="grades">
+              <div><b>Мелкие</b><span>Стаей по 2–4. Самые частые гости.</span></div>
+              <div><b>Обычные</b><span>Одиночки, крепче и злее.</span></div>
+              <div><b>Высшие</b><span>Событие раз в несколько ночей. Бьют по площади, Буги-Вуги на них не работает.</span></div>
+            </div>
+            <p class="small">Девять обликов: Пожиратель, Призрак, Кельвин, Мясник, Глот, Кровавый, Ходячая кровать и другие. Каждый дух рождается с рангом силы от пятого до третьего и тремя случайными способностями из восьми.</p>
+          </div>
+          <ol class="abilities" aria-label="Восемь способностей духов">
+            <li><b>Рывок</b><span>Бросок с уроном при столкновении</span></li>
+            <li><b>Удар по площади</b><span>Прыжок и волна от точки падения</span></li>
+            <li><b>Кислотный плевок</b><span>Снаряд оставляет горящую лужу</span></li>
+            <li><b>Хватай и тащи</b><span>Тащит по земле и выбивает оружие</span></li>
+            <li><b>Ужас</b><span>Управление переворачивается</span></li>
+            <li><b>Регенерация</b><span>Отступает и лечится</span></li>
+            <li><b>Броня</b><span>Слабые удары гаснут полностью</span></li>
+            <li><b>Ярость</b><span>Чем меньше здоровья, тем страшнее</span></li>
+          </ol>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <section class="section-shell section-block why-block">
-        <div class="why-panel glass reveal">
-          <div class="why-copy"><span class="section-label"><i data-lucide="badge-check"></i> ПОЧЕМУ ИМЕННО МЫ</span><h2>Больше энергии.<br /><span class="gradient-text">Больше эмоций.</span></h2><p>Создано для настоящих фанатов, чтобы каждый момент стал по-настоящему незабываемым.</p><a class="button button-primary" href="#characters">Раскрыть потенциал <i data-lucide="arrow-right"></i></a></div>
-          <div class="check-list"><div><i data-lucide="check-circle-2"></i><span><b>Понятное управление</b><small>Всё необходимое в одном месте</small></span><i data-lucide="check"></i></div><div><i data-lucide="check-circle-2"></i><span><b>Яркие персонажи</b><small>Погружение без ограничений</small></span><i data-lucide="check"></i></div><div><i data-lucide="check-circle-2"></i><span><b>Мощные способности</b><small>Новый уровень игрового опыта</small></span><i data-lucide="check"></i></div><div><i data-lucide="check-circle-2"></i><span><b>Эпические битвы</b><small>Энергия будущего уже здесь</small></span><i data-lucide="check"></i></div></div>
-          <div class="why-orb"></div>
+    <section class="block block-flash">
+      <div class="wrap flash-row">
+        <h2 class="h2 flash-word">Чёрная молния</h2>
+        <p class="lead">Общий мост Нобары и Тодо: попади в нужный момент — и удар разрывает пространство чёрно-красной вспышкой. Пробивает любые цели, включая проклятых духов.</p>
+      </div>
+    </section>
+
+    <section class="block" id="updates">
+      <div class="wrap">
+        <div class="head">
+          <h2 class="h2">Что нового</h2>
+          <p class="lead">Все сборки выходят в статусе beta. Полные описания — на странице релизов.</p>
         </div>
-      </section>
+        <ol class="timeline">
+          <li><time>15.09.2026</time><div><h3>1.7.6 · Хотфикс Cursed Saga</h3><p>Ужас по-настоящему переворачивает мышь, немаги больше не слышат шагов духов, рывок честно отбрасывает, Жаба отпускает, Слон снова давит, месть шикигами истекает.</p></div><a href="https://github.com/grebeshok105/jujutsu-minecraft/releases/tag/v1.7.6">Релиз</a></li>
+          <li><time>13.09.2026</time><div><h3>1.7.5 · Cursed Saga</h3><p>Невидимость для немагов, ранги силы, восемь способностей духов, хват Жабы и водная струя Слона.</p></div><a href="https://github.com/grebeshok105/jujutsu-minecraft/releases/tag/v1.7.5">Релиз</a></li>
+          <li><time>12.09.2026</time><div><h3>1.7.0 · Стая мстит</h3><p>Шикигами бросаются на обидчика хозяина, кролики кружат роем, крупные духи больше не машут в пустоту, анимации не дёргаются.</p></div><a href="https://github.com/grebeshok105/jujutsu-minecraft/releases/tag/v1.7.0">Релиз</a></li>
+          <li><time>12.09.2026</time><div><h3>1.6.5 · Проклятые духи</h3><p>Три враждебных тира, девять тварей со своими голосами, спавн в темноте с ограничением по месту.</p></div><a href="https://github.com/grebeshok105/jujutsu-minecraft/releases/tag/v1.6.5">Релиз</a></li>
+          <li><time>12.09.2026</time><div><h3>1.6.0 · Вся десятка теней</h3><p>К псам добавились Нуэ, Жаба, Кроличий побег и Слон. Бесплатная смена теней и связка «мокрый — шок».</p></div><a href="https://github.com/grebeshok105/jujutsu-minecraft/releases/tag/v1.6.0">Релиз</a></li>
+        </ol>
+      </div>
+    </section>
 
-      <section class="section-shell section-block" id="characters">
-        <div class="section-heading reveal"><span class="section-label"><i data-lucide="users"></i> ТВОЯ КОМАНДА</span><h2>Выбери своего <span class="gradient-text">героя</span></h2><p>Каждый персонаж открывает новые горизонты возможностей и силы.</p></div>
-        <div class="character-grid">
-          <article class="character-card glass reveal"><span class="character-badge">ПРОБУЖДЁН</span><div class="character-portrait portrait-nobara"><span>Н</span><i data-lucide="sparkles"></i></div><div class="character-info"><span class="character-role">МАГ 3-ГО РАНГА · СОЛОМЕННАЯ КУКЛА</span><h3>Нобара Кугисаки</h3><p>Раскройте силу Шпильки, Резонанса и невероятных гвоздей.</p><div class="character-tags"><span>ШПИЛЬКА</span><span>РЕЗОНАНС</span><span>МОЛОТ</span></div></div><a class="character-link" href="#techniques" aria-label="Подробнее о Нобаре"><i data-lucide="arrow-right"></i></a></article>
-          <article class="character-card glass reveal"><span class="character-badge badge-violet">ПОПУЛЯРНЫЙ</span><div class="character-portrait portrait-todo"><span>Т</span><i data-lucide="zap"></i></div><div class="character-info"><span class="character-role">ТЯЖЁЛЫЙ БОЕЦ · БУГИ-ВУГИ</span><h3>Аой Тодо</h3><p>Меняйте позиции, удивляйте врагов и меняйте ход битвы.</p><div class="character-tags"><span>БУГИ-ВУГИ</span><span>ОБМЕН</span><span>ЧЁРНАЯ ВСПЫШКА</span></div></div><a class="character-link" href="#techniques" aria-label="Подробнее о Тодо"><i data-lucide="arrow-right"></i></a></article>
-          <article class="character-card glass reveal"><span class="character-badge badge-cyan">НОВЫЙ УРОВЕНЬ</span><div class="character-portrait portrait-megumi"><span>М</span><i data-lucide="moon-star"></i></div><div class="character-info"><span class="character-role">ПРИЗЫВАТЕЛЬ · ДЕСЯТЬ ТЕНЕЙ</span><h3>Мегуми Фусигуро</h3><p>Призывайте шикигами и управляйте силой десяти теней.</p><div class="character-tags"><span>БОЖЕСТВЕННЫЕ ПСЫ</span><span>НУЭ</span><span>ЖАБА</span></div></div><a class="character-link" href="#techniques" aria-label="Подробнее о Мегуми"><i data-lucide="arrow-right"></i></a></article>
+    <section class="block" id="install">
+      <div class="wrap">
+        <div class="head">
+          <h2 class="h2">Три шага до первого хлопка</h2>
         </div>
-      </section>
+        <ol class="steps">
+          <li><h3>Поставь Fabric</h3><p>Minecraft 1.21.8, Fabric Loader 0.19.3 или новее и Java 21.</p></li>
+          <li><h3>Закинь библиотеки</h3><p>В папку <code>mods</code> положи Fabric API и GeckoLib 5.2.2+.</p></li>
+          <li><h3>Добавь мод</h3><p>Скачай <code>jujutsumod-1.7.6.jar</code>, положи туда же, перезапусти игру полностью и нажми <kbd>N</kbd>.</p></li>
+        </ol>
+      </div>
+    </section>
 
-      <section class="section-shell section-block technique-block" id="techniques">
-        <div class="section-heading reveal"><span class="section-label"><i data-lucide="wand-sparkles"></i> СИЛА В ТВОИХ РУКАХ</span><h2>Техники нового <span class="gradient-text">поколения</span></h2><p>Используйте уникальные техники и почувствуйте настоящую силу дзюдзюцу.</p></div>
-        <div class="technique-grid">
-          <article class="technique-card glass reveal"><div class="technique-top"><div class="technique-icon"><i data-lucide="move-3d"></i></div><span class="technique-rank">РАНГ 01</span></div><h3>Буги-вуги</h3><p>Смена мест, финты и невероятные комбинации за одно мгновение.</p><div class="technique-meter"><span></span></div><small>ЭНЕРГИЯ ТЕХНИКИ <b>94%</b></small></article>
-          <article class="technique-card glass reveal"><div class="technique-top"><div class="technique-icon pink"><i data-lucide="crosshair"></i></div><span class="technique-rank">РАНГ 02</span></div><h3>Шпилька</h3><p>Подготовьте гвозди и превратите каждый удар в мощный взрыв.</p><div class="technique-meter pink-meter"><span></span></div><small>ЭНЕРГИЯ ТЕХНИКИ <b>87%</b></small></article>
-          <article class="technique-card glass reveal"><div class="technique-top"><div class="technique-icon cyan"><i data-lucide="paw-print"></i></div><span class="technique-rank">РАНГ 03</span></div><h3>Божественные псы</h3><p>Призовите союзников и атакуйте цели вместе с командой.</p><div class="technique-meter cyan-meter"><span></span></div><small>ЭНЕРГИЯ ТЕХНИКИ <b>91%</b></small></article>
-          <article class="technique-card glass reveal"><div class="technique-top"><div class="technique-icon orange"><i data-lucide="zap"></i></div><span class="technique-rank">РАНГ 04</span></div><h3>Чёрная вспышка</h3><p>Новый уровень мощи, энергии и незабываемых сражений.</p><div class="technique-meter orange-meter"><span></span></div><small>ЭНЕРГИЯ ТЕХНИКИ <b>99%</b></small></article>
+    <section class="block block-dev">
+      <div class="wrap dev">
+        <div>
+          <h2 class="h2">Под капотом</h2>
+          <p class="lead">Вся игровая логика решается на сервере, клиенту остаются рендер, меню, частицы и камера. Эффекты идут через единый VFX-конвейер, а каждый новый сосуд — это одно определение для сервера, одно для клиента и ассеты.</p>
+          <p class="small">Проект рассчитан на приватную игру на одного-двух человек. Код под CC0-1.0, статус ассетов описан в <code>docs/PROVENANCE.md</code>.</p>
         </div>
-      </section>
+        <table class="facts">
+          <caption>Состояние кода на 1.7.6</caption>
+          <tbody>
+            <tr><th scope="row">Java-файлов сервера</th><td>234</td></tr>
+            <tr><th scope="row">Java-файлов клиента</th><td>273</td></tr>
+            <tr><th scope="row">Тестовых файлов</th><td>165</td></tr>
+            <tr><th scope="row">GameTest-сценариев</th><td>155</td></tr>
+            <tr><th scope="row">Сетевых пакетов</th><td>17</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-      <section class="section-shell section-block testimonials-block">
-        <div class="section-heading reveal"><span class="section-label"><i data-lucide="message-circle-heart"></i> НАС УЖЕ ВЫБРАЛИ</span><h2>Что говорят <span class="gradient-text">игроки</span></h2><p>Присоединяйтесь к тысячам игроков и откройте новые возможности.</p></div>
-        <div class="testimonial-grid">
-          <article class="quote-card glass reveal"><div class="stars">★★★★★</div><p>«Это просто невероятно! Игровой опыт вышел на совершенно новый уровень.»</p><div class="quote-user"><span class="user-bubble">И</span><span><b>Игрок И.</b><small>ФАНАТ ВОЗМОЖНОСТЕЙ</small></span><i data-lucide="badge-check"></i></div></article>
-          <article class="quote-card glass reveal"><div class="stars">★★★★★</div><p>«Погружение без ограничений. Всё необходимое в одном месте!»</p><div class="quote-user"><span class="user-bubble bubble-blue">М</span><span><b>Маг М.</b><small>ПОКЛОННИК ЭНЕРГИИ</small></span><i data-lucide="badge-check"></i></div></article>
-          <article class="quote-card glass reveal"><div class="stars">★★★★★</div><p>«Будущее дзюдзюцу уже здесь. Создано для настоящих фанатов.»</p><div class="quote-user"><span class="user-bubble bubble-pink">П</span><span><b>Пользователь 09</b><small>ИГРАЕТ КРУГЛОСУТОЧНО</small></span><i data-lucide="badge-check"></i></div></article>
+    <section class="final">
+      <div class="wrap final-inner">
+        <h2 class="final-title">Ночь уже наступила</h2>
+        <p class="lead">Выбери сосуд и проверь, кто сильнее: ты или то, что прячется в пещере.</p>
+        <div class="hero-ctas">
+          <a class="btn btn-flash" href="https://github.com/grebeshok105/jujutsu-minecraft/releases/tag/v1.7.6"><svg class="ic"><use href="#i-down" /></svg>Скачать 1.7.6 beta</a>
+          <a class="btn btn-ghost" href="https://github.com/grebeshok105/jujutsu-minecraft"><svg class="ic"><use href="#i-git" /></svg>Исходники на GitHub</a>
         </div>
-      </section>
+      </div>
+    </section>
+  </main>
 
-      <section class="section-shell section-block faq-block" id="faq">
-        <div class="section-heading reveal"><span class="section-label"><i data-lucide="circle-help"></i> ЕСТЬ ВОПРОСЫ?</span><h2>Часто задаваемые <span class="gradient-text">вопросы</span></h2><p>Всё, что нужно знать для начала погружения в мир дзюдзюцу.</p></div>
-        <div class="faq-list reveal">
-          <details class="faq-item glass"><summary>Что такое мод «Дзюдзюцу Minecraft»?<i data-lucide="plus"></i></summary><p>Это новый уровень игрового опыта, который добавляет в Minecraft персонажей, техники и невероятные возможности.</p></details>
-          <details class="faq-item glass"><summary>Какие персонажи доступны?<i data-lucide="plus"></i></summary><p>Вы можете выбрать Нобару Кугисаки, Аоя Тодо или Мегуми Фусигуро и раскрыть потенциал их техник.</p></details>
-          <details class="faq-item glass"><summary>Как начать играть?<i data-lucide="plus"></i></summary><p>Откройте страницу проекта на Гитхабе, ознакомьтесь с инструкцией и установите мод.</p></details>
-          <details class="faq-item glass"><summary>Это действительно новый уровень?<i data-lucide="plus"></i></summary><p>99.9% проклятой энергии подтверждают: возможности по-настоящему безграничны.</p></details>
-        </div>
-      </section>
+  <footer class="foot">
+    <div class="wrap foot-row">
+      <span>© 2026 Jujutsu Minecraft · фанатский мод, не связан с правообладателями «Магической битвы»</span>
+      <nav aria-label="Ссылки"><a href="https://github.com/grebeshok105/jujutsu-minecraft/releases">Все релизы</a><a href="https://github.com/grebeshok105/jujutsu-minecraft/issues">Сообщить о баге</a></nav>
+    </div>
+  </footer>
 
-      <section class="section-shell cta-wrap reveal">
-        <div class="cta-card glass"><div class="cta-orb cta-orb-a"></div><div class="cta-orb cta-orb-b"></div><span class="section-label"><i data-lucide="sparkles"></i> ТВОЁ ВРЕМЯ НАСТАЛО</span><h2>Раскрой свою <span class="gradient-text">силу</span></h2><p>Присоединяйся к тысячам игроков. Будущее дзюдзюцу уже здесь.</p><a class="button button-primary" href="https://github.com/grebeshok105/jujutsu-minecraft/releases" target="_blank" rel="noreferrer">Начать сейчас <i data-lucide="arrow-right"></i></a><div class="cta-foot"><i data-lucide="check-circle-2"></i> БЕСПЛАТНО · БЕЗ ОГРАНИЧЕНИЙ · 100% ЭНЕРГИИ</div></div>
-      </section>
-    </main>
-
-    <footer class="footer section-shell">
-      <div class="footer-main"><a class="brand" href="#top"><span class="brand-mark"><i data-lucide="sparkles"></i></span><span>дзюдзюцу<span class="brand-dot">.</span></span></a><p>Новое поколение возможностей. Создано для настоящих фанатов.</p><div class="socials"><a href="https://github.com/grebeshok105/jujutsu-minecraft" aria-label="Гитхаб проекта" target="_blank" rel="noreferrer"><i data-lucide="github"></i></a><a href="#top" aria-label="Наверх"><i data-lucide="arrow-up"></i></a><a href="#faq" aria-label="Частые вопросы"><i data-lucide="circle-help"></i></a></div></div>
-      <div class="footer-column"><b>ВОЗМОЖНОСТИ</b><a href="#features">Проклятая энергия</a><a href="#techniques">Уникальные техники</a><a href="#characters">Сильные шикигами</a><a href="#features">Полное погружение</a></div>
-      <div class="footer-column"><b>ПРОЕКТ</b><a href="#characters">Персонажи</a><a href="#techniques">Сражения</a><a href="#faq">Вопросы и ответы</a><a href="https://github.com/grebeshok105/jujutsu-minecraft" target="_blank" rel="noreferrer">Репозиторий</a></div>
-      <div class="footer-bottom"><span>© 2026 ДЗЮДЗЮЦУ MINECRAFT · ЭНЕРГИЯ БЕЗ ГРАНИЦ</span><span><i data-lucide="heart"></i> СОЗДАНО ДЛЯ ФАНАТОВ</span></div>
-    </footer>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="script.js"></script>
-  </body>
+  <script src="script.js" defer></script>
+</body>
 </html>
-
-<!-- Публикация GitHub Pages -->
