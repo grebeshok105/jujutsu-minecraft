@@ -52,24 +52,20 @@ final class VfxDurationContractTest {
 
 	@Test
 	void blackFlashKeepsIntentionalLongRecipeAndShortRetainedImpact() {
-		DurationSnapshot blackFlash = readDurations(
-				"/jujutsu/mod/client/vfx/shared/SharedVfxRecipes.class", "blackFlash");
+		DurationSnapshot blackFlash = readDurations("blackFlash");
 		assertTrue(blackFlash.recipeDuration() > blackFlash.worldImpactDurations().get(0),
 				"Black Flash recipe lifetime must outlive its retained world impact");
 	}
 
 	private static DurationSnapshot readDurations(String methodName) {
-		return readDurations("/jujutsu/mod/client/vfx/nobara/NobaraVfxRecipes.class", methodName);
-	}
-
-	private static DurationSnapshot readDurations(String resource, String methodName) {
+		String resource = "/jujutsu/mod/client/vfx/nobara/NobaraVfxRecipes.class";
 		try (InputStream stream = VfxDurationContractTest.class.getResourceAsStream(resource)) {
-			assertNotNull(stream, "compiled recipe class must be available: " + resource);
+			assertNotNull(stream, "compiled Nobara recipe class must be available");
 			DurationVisitor visitor = new DurationVisitor(methodName);
 			new ClassReader(stream).accept(visitor, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
 			return visitor.snapshot();
 		} catch (IOException exception) {
-			throw new AssertionError("cannot read compiled recipes: " + resource, exception);
+			throw new AssertionError("cannot read compiled Nobara recipes", exception);
 		}
 	}
 

@@ -6,11 +6,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -20,56 +17,231 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import jujutsu.mod.character.AbilityResult;
+import jujutsu.mod.combat.CombatStagger;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.registry.JujutsuDataComponents;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.vfx.NobaraVfxIds;
 import jujutsu.mod.vfx.VfxCue;
 import jujutsu.mod.vfx.VfxCues;
-import jujutsu.mod.combat.CombatStagger;
 
+/**
+ * Straw Doll's strong connection: Deeply Anchored setup, then a fixed 40-tick ritual.
+ *
+ * <p>Unlike the retired implementation this runtime never mutates the server tick rate. The
+ * pending ritual is an authored sequence in game ticks, and resources are consumed only at the
+ * release beat after the target is resolved again.
+ */
 public final class ProjectJjkStrawDollRuntime {
-	private static final int REMNANT_HIT_THRESHOLD = 2;
 	private static final int RITUAL_VFX_INTENSITY = 2;
 	private static final Double VFX_DELIVERY_RADIUS = 64.0;
-	private static final ProjectJjkRemnantProgress REMNANT_PROGRESS = new ProjectJjkRemnantProgress(REMNANT_HIT_THRESHOLD);
 	private static final Map<UUID, PendingRitual> PENDING_RITUALS = new HashMap<>();
-	private static final ServerTimeDilation RESONANCE_TIME = new ServerTimeDilation();
 
 	private ProjectJjkStrawDollRuntime() {}
 
 	public static void register() {
 		ServerTickEvents.END_SERVER_TICK.register(ProjectJjkStrawDollRuntime::onServerTick);
-		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
-			RESONANCE_TIME.clear(tickRateAccess(server));
-			clearAll();
-		});
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> clearCaster(handler.player.getUUID()));
-		ServerEntityEvents.ENTITY_UNLOAD.register((entity, level) -> {
-			if (entity instanceof LivingEntity) {
-				REMNANT_PROGRESS.clearTarget(entity.getUUID());
-			}
-		});
-		ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
-			REMNANT_PROGRESS.clearTarget(entity.getUUID());
-			if (entity instanceof ServerPlayer player) {
-				clearCaster(player.getUUID());
-			}
-		});
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> clearAll());
 	}
 
-	public static void onOrdinaryNailHit(ServerLevel level, ServerPlayer caster, LivingEntity target, Vec3 wound) {
-		if (caster == null || !caster.isAlive() || !target.isAlive() || caster.getUUID().equals(target.getUUID())) {
+	/**
+	 * Extracts a remnant from the overhead hammer role. Setup is deliberately not consumed: only
+	 * the later release beat spends one nail and one remnant. A live bound remnant makes extraction
+	 * idempotent for a caster-target pair.
+	 */
+	public static boolean tryExtractRemnant(ServerPlayer caster, LivingEntity target) {
+		if (caster == null || target == null || !caster.isAlive() || !target.isAlive()
+				|| caster.getUUID().equals(target.getUUID())
+				|| !(caster.level() instanceof ServerLevel level)
+				|| target.level() != level) {
+			return false;
+		}
+		if (!NailAnchorRegistry.isDeeplyAnchored(level, caster.getUUID(), target.getUUID())
+				|| hasLiveBoundRemnant(caster, target.getUUID())) {
+			return false;
+		}
+		return mintRemnant(caster, level, target, target.position().add(0.0, target.getBbHeight() * 0.55, 0.0));
+	}
+
+	/**
+	 * Starts the S+hammer-RMB ritual. The item/hand gate is intentionally inside this method so
+	 * every caller receives the same handled failure semantics.
+	 */
+	public static AbilityResult tryStartResonance(ServerPlayer caster) {
+		if (caster == null || !isHammer(caster.getMainHandItem())) {
+			if (caster != null) {
+				showFailure(caster, ResonancePolicy.Validation.NO_DOLL);
+			}
+			return AbilityResult.HANDLED_FAILURE;
+		}
+
+		Selection selection = selectRemnant(caster, PENDING_RITUALS.containsKey(caster.getUUID()));
+		if (selection.validation() != ResonancePolicy.Validation.OK || selection.remnant() == null) {
+			showFailure(caster, selection.validation());
+			return AbilityResult.HANDLED_FAILURE;
+		}
+
+		PendingRitual pending = new PendingRitual(
+				caster.getUUID(),
+				selection.remnant(),
+				caster.level().getGameTime()
+		);
+		PENDING_RITUALS.put(caster.getUUID(), pending);
+		triggerDollRitual(caster);
+		Vec3 origin = caster.getEyePosition().add(caster.getLookAngle().scale(0.45));
+		long gameTime = caster.level().getGameTime();
+		JujutsuNetworking.broadcastVfxCue(caster.level(), caster.position(), VFX_DELIVERY_RADIUS,
+				cue(caster.level(), NobaraVfxIds.RITUAL_BIND, 1, origin, gameTime, caster));
+		emitCasterAction(caster, NobaraVfxIds.CASTER_RESONANCE_RITUAL);
+		caster.displayClientMessage(Component.translatable(
+				"message.jujutsumod.nobara.resonance.casting",
+				selection.remnant().targetName()
+		), true);
+		return AbilityResult.SUCCESS;
+	}
+
+	private static void onServerTick(MinecraftServer server) {
+		for (PendingRitual pending : List.copyOf(PENDING_RITUALS.values())) {
+			if (PENDING_RITUALS.get(pending.casterId()) != pending) {
+				continue;
+			}
+			ServerPlayer caster = server.getPlayerList().getPlayer(pending.casterId());
+			if (caster == null || !caster.isAlive()) {
+				PENDING_RITUALS.remove(pending.casterId(), pending);
+				continue;
+			}
+
+			long elapsed = caster.level().getGameTime() - pending.startedAt();
+			if (elapsed >= NobaraActionTimeline.RESONANCE_WINDUP_TICK && !pending.windupEmitted()) {
+				pending.markWindupEmitted();
+				emitWorldCue(caster, NobaraVfxIds.RITUAL_WINDUP, caster.getEyePosition(), RITUAL_VFX_INTENSITY);
+			}
+			if (elapsed >= NobaraActionTimeline.DOLL_STRIKE.impactTick() && !pending.strikeEmitted()) {
+				pending.markStrikeEmitted();
+				triggerDollImpact(caster);
+				Vec3 targetOrigin = resolveTargetOrigin(caster, pending.remnant());
+				emitWorldCue(caster, NobaraVfxIds.DOLL_STRIKE, targetOrigin, RITUAL_VFX_INTENSITY);
+				emitResonanceLink(caster);
+			}
+			if (elapsed >= NobaraActionTimeline.RESONANCE_RELEASE_TICK) {
+				resolveRelease(caster, pending);
+				PENDING_RITUALS.remove(pending.casterId(), pending);
+			}
+		}
+	}
+
+	private static Selection selectRemnant(ServerPlayer caster, boolean alreadyCasting) {
+		boolean hasDoll = isDoll(caster.getOffhandItem());
+		boolean hasNail = hasNail(caster);
+		ResonancePolicy.Validation fallback = ResonancePolicy.validate(
+				hasDoll,
+				false,
+				hasNail,
+				true,
+				false,
+				alreadyCasting
+		);
+
+		for (int slot = 0; slot < caster.getInventory().getContainerSize(); slot++) {
+			ItemStack stack = caster.getInventory().getItem(slot);
+			ProjectJjkResonanceRemnant remnant = stack.get(JujutsuDataComponents.RESONANCE_TARGET);
+			if (!stack.is(JujutsuItems.RESONANCE_REMNANT) || remnant == null) {
+				continue;
+			}
+			ResolvedCandidate candidate = resolveCandidate(caster, remnant, hasDoll, hasNail, alreadyCasting);
+			if (candidate.validation() == ResonancePolicy.Validation.OK) {
+				return new Selection(candidate.validation(), remnant);
+			}
+			fallback = candidate.validation();
+		}
+		return new Selection(fallback, null);
+	}
+
+	private static void resolveRelease(ServerPlayer caster, PendingRitual pending) {
+		ResolvedCandidate candidate = resolveCandidate(
+				caster,
+				pending.remnant(),
+				isDoll(caster.getOffhandItem()),
+				hasNail(caster),
+				false
+		);
+		if (candidate.target() == null
+				|| candidate.validation() == ResonancePolicy.Validation.WRONG_DIMENSION
+				|| candidate.validation() == ResonancePolicy.Validation.TARGET_INVALID) {
+			emitFizzle(caster);
+			caster.displayClientMessage(Component.translatable(
+					"message.jujutsumod.nobara.resonance.target_lost"
+			), true);
 			return;
 		}
-		if (!REMNANT_PROGRESS.recordHit(caster.getUUID(), target.getUUID())) {
+		if (candidate.validation() != ResonancePolicy.Validation.OK) {
+			emitFizzle(caster);
+			showFailure(caster, candidate.validation());
+			return;
+		}
+		resolveImpact(caster, candidate.target(), pending.remnant());
+	}
+
+	private static ResolvedCandidate resolveCandidate(
+			ServerPlayer caster,
+			ProjectJjkResonanceRemnant remnant,
+			boolean hasDoll,
+			boolean hasNail,
+			boolean alreadyCasting
+	) {
+		boolean sameDimension = remnant.dimension().equals(caster.level().dimension().location());
+		LivingEntity target = sameDimension ? resolveTarget(caster.level(), remnant.targetId()) : null;
+		ResonancePolicy.Validation validation = ResonancePolicy.validate(
+				hasDoll,
+				true,
+				hasNail,
+				sameDimension,
+				target != null,
+				alreadyCasting
+		);
+		return new ResolvedCandidate(validation, target, sameDimension);
+	}
+
+	private static LivingEntity resolveTarget(ServerLevel level, UUID targetId) {
+		Entity entity = level.getEntity(targetId);
+		return entity instanceof LivingEntity living && living.isAlive() ? living : null;
+	}
+
+	private static void resolveImpact(ServerPlayer caster, LivingEntity target, ProjectJjkResonanceRemnant remnant) {
+		// This is the only resource-spend site. Every preceding timeline beat is presentation-only.
+		if (!consumeResources(caster, remnant)) {
+			emitFizzle(caster);
+			showFailure(caster, ResonancePolicy.Validation.NO_REMNANT);
 			return;
 		}
 
+		ServerLevel level = (ServerLevel) caster.level();
+		long gameTime = level.getGameTime();
+		boolean damaged = target.hurtServer(
+				level,
+				level.damageSources().indirectMagic(caster, caster),
+				ProjectJjkNobaraProfile.RESONANCE_DAMAGE
+		);
+		if (damaged) {
+			CombatStagger.GLOBAL.apply(target, gameTime, ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
+			ResonantMomentum.grantExecutionMoment(caster, ProjectJjkNobaraProfile.MOMENTUM_WINDOW_TICKS);
+		}
+
+		Vec3 struckOrigin = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
+		emitWorldCue(caster, NobaraVfxIds.RESONANCE_RELEASE, struckOrigin, RITUAL_VFX_INTENSITY);
+		caster.displayClientMessage(Component.translatable(
+				"message.jujutsumod.nobara.resonance.complete",
+				remnant.targetName()
+		), true);
+	}
+
+	private static boolean mintRemnant(ServerPlayer caster, ServerLevel level, LivingEntity target, Vec3 vfxAt) {
 		ProjectJjkResonanceRemnant binding = new ProjectJjkResonanceRemnant(
 				target.getUUID(),
 				level.dimension().location(),
@@ -83,10 +255,6 @@ public final class ProjectJjkStrawDollRuntime {
 				"item.jujutsumod.resonance_remnant.bound",
 				binding.targetName()
 		));
-		// Prefer inventory; only drop at the caster if inventory is full.
-		Vec3 vfxAt = wound == null
-				? target.position().add(0.0, target.getBbHeight() * 0.55, 0.0)
-				: wound;
 		if (!caster.getInventory().add(stack)) {
 			ItemEntity dropped = new ItemEntity(level, caster.getX(), caster.getY() + 0.5, caster.getZ(), stack);
 			dropped.setNoPickUpDelay();
@@ -94,8 +262,41 @@ public final class ProjectJjkStrawDollRuntime {
 			level.addFreshEntity(dropped);
 			vfxAt = caster.position().add(0.0, 1.0, 0.0);
 		}
+		long gameTime = level.getGameTime();
 		JujutsuNetworking.broadcastVfxCue(level, vfxAt, VFX_DELIVERY_RADIUS,
-				cue(level, NobaraVfxIds.REMNANT_DROP, 1, vfxAt, level.getGameTime(), target));
+				VfxCues.worldFixed(NobaraVfxIds.REMNANT_EXTRACT, vfxAt, 1, gameTime, level.random.nextLong()));
+		emitCasterAction(caster, NobaraVfxIds.CASTER_REMNANT_EXTRACT);
+		caster.displayClientMessage(Component.translatable(
+				"message.jujutsumod.nobara.remnant.extracted",
+				target.getDisplayName()
+		), true);
+		return true;
+	}
+
+	private static boolean hasLiveBoundRemnant(ServerPlayer caster, UUID targetId) {
+		for (int slot = 0; slot < caster.getInventory().getContainerSize(); slot++) {
+			ItemStack stack = caster.getInventory().getItem(slot);
+			if (isBoundRemnant(stack, targetId)) {
+				return true;
+			}
+		}
+		if (caster.level() instanceof ServerLevel level) {
+			AABB search = caster.getBoundingBox().inflate(ProjectJjkNobaraProfile.TARGET_RANGE);
+			for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, search, entity -> !entity.getItem().isEmpty())) {
+				if (isBoundRemnant(item.getItem(), targetId)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private static boolean isBoundRemnant(ItemStack stack, UUID targetId) {
+		if (!stack.is(JujutsuItems.RESONANCE_REMNANT)) {
+			return false;
+		}
+		ProjectJjkResonanceRemnant binding = stack.get(JujutsuDataComponents.RESONANCE_TARGET);
+		return binding != null && targetId.equals(binding.targetId());
 	}
 
 	private static RemnantVisualType remnantVisualType(LivingEntity target) {
@@ -103,176 +304,6 @@ public final class ProjectJjkStrawDollRuntime {
 				target.getType().is(ProjectJjkTags.RESONANCE_REMNANT_CURSE),
 				target instanceof Animal
 		);
-	}
-
-	public static boolean tryStart(ServerPlayer caster, ItemStack hammer, InteractionHand hand) {
-		if (!isHammer(hammer) || hand != InteractionHand.MAIN_HAND) {
-			showFailure(caster, ProjectJjkRitualPolicy.Validation.NO_DOLL);
-			return false;
-		}
-
-		Selection selection = selectRemnant(caster, PENDING_RITUALS.containsKey(caster.getUUID()));
-		if (selection.validation() != ProjectJjkRitualPolicy.Validation.OK || selection.remnant() == null) {
-			showFailure(caster, selection.validation());
-			return false;
-		}
-
-		long dueGameTime = caster.level().getGameTime() + NobaraActionTimeline.DOLL_STRIKE.impactTick();
-		PendingRitual pending = new PendingRitual(caster.getUUID(), selection.remnant(), dueGameTime);
-		PENDING_RITUALS.put(caster.getUUID(), pending);
-		triggerDollRitual(caster);
-		Vec3 origin = caster.getEyePosition().add(caster.getLookAngle().scale(0.45));
-		JujutsuNetworking.broadcastVfxCue(caster.level(), caster.position(), VFX_DELIVERY_RADIUS,
-				cue(caster.level(), NobaraVfxIds.RITUAL_BIND, 1, origin, caster.level().getGameTime(), caster));
-		caster.displayClientMessage(Component.translatable(
-				"message.jujutsumod.projectjjk.resonance.casting",
-				selection.remnant().targetName()
-		), true);
-		return true;
-	}
-
-	private static void onServerTick(MinecraftServer server) {
-		RESONANCE_TIME.tick(tickRateAccess(server));
-		for (PendingRitual pending : List.copyOf(PENDING_RITUALS.values())) {
-			if (PENDING_RITUALS.get(pending.casterId()) != pending) {
-				continue;
-			}
-			ServerPlayer caster = server.getPlayerList().getPlayer(pending.casterId());
-			if (caster == null || !caster.isAlive()) {
-				PENDING_RITUALS.remove(pending.casterId(), pending);
-				continue;
-			}
-
-			ResolvedPending resolved = resolvePending(caster, pending);
-			if (resolved.validation() != ProjectJjkRitualPolicy.Validation.OK || resolved.target() == null) {
-				showFailure(caster, resolved.validation());
-				PENDING_RITUALS.remove(pending.casterId(), pending);
-				continue;
-			}
-			if (caster.level().getGameTime() < pending.dueGameTime()) {
-				continue;
-			}
-
-			resolveImpact(caster, resolved.target(), pending.remnant());
-			PENDING_RITUALS.remove(pending.casterId(), pending);
-		}
-	}
-
-	private static Selection selectRemnant(ServerPlayer caster, boolean alreadyCasting) {
-		boolean hasDoll = isDoll(caster.getOffhandItem());
-		boolean hasNail = hasNail(caster);
-		ProjectJjkRitualPolicy.Validation fallback = ProjectJjkRitualPolicy.validate(
-				hasDoll,
-				false,
-				hasNail,
-				false,
-				true,
-				0.0,
-				alreadyCasting
-		);
-
-		for (int slot = 0; slot < caster.getInventory().getContainerSize(); slot++) {
-			ItemStack stack = caster.getInventory().getItem(slot);
-			ProjectJjkResonanceRemnant remnant = stack.get(JujutsuDataComponents.RESONANCE_TARGET);
-			if (!stack.is(JujutsuItems.RESONANCE_REMNANT) || remnant == null) {
-				continue;
-			}
-			ResolvedCandidate candidate = resolveCandidate(caster, remnant, hasDoll, hasNail, alreadyCasting);
-			if (candidate.validation() == ProjectJjkRitualPolicy.Validation.OK) {
-				return new Selection(candidate.validation(), remnant);
-			}
-			fallback = candidate.validation();
-		}
-		return new Selection(fallback, null);
-	}
-
-	private static ResolvedPending resolvePending(ServerPlayer caster, PendingRitual pending) {
-		boolean hasDoll = isHammer(caster.getMainHandItem()) && isDoll(caster.getOffhandItem());
-		boolean hasRemnant = hasRemnant(caster, pending.remnant());
-		boolean hasNail = hasNail(caster);
-		ResolvedCandidate candidate = resolveCandidate(caster, pending.remnant(), hasDoll, hasNail, false);
-		ProjectJjkRitualPolicy.Validation validation = ProjectJjkRitualPolicy.validate(
-				hasDoll,
-				hasRemnant,
-				hasNail,
-				candidate.target() != null,
-				candidate.sameDimension(),
-				candidate.distance(),
-				false
-		);
-		return new ResolvedPending(validation, candidate.target());
-	}
-
-	private static ResolvedCandidate resolveCandidate(
-			ServerPlayer caster,
-			ProjectJjkResonanceRemnant remnant,
-			boolean hasDoll,
-			boolean hasNail,
-			boolean alreadyCasting
-	) {
-		boolean sameDimension = remnant.dimension().equals(caster.level().dimension().location());
-		LivingEntity target = sameDimension ? resolveTarget(caster.level(), remnant.targetId()) : null;
-		double distance = target == null ? 0.0 : caster.distanceTo(target);
-		ProjectJjkRitualPolicy.Validation validation = ProjectJjkRitualPolicy.validate(
-				hasDoll,
-				true,
-				hasNail,
-				target != null,
-				sameDimension,
-				distance,
-				alreadyCasting
-		);
-		return new ResolvedCandidate(validation, target, sameDimension, distance);
-	}
-
-	private static LivingEntity resolveTarget(ServerLevel level, UUID targetId) {
-		Entity entity = level.getEntity(targetId);
-		return entity instanceof LivingEntity living && living.isAlive() ? living : null;
-	}
-
-	private static void resolveImpact(ServerPlayer caster, LivingEntity target, ProjectJjkResonanceRemnant remnant) {
-		if (!consumeResources(caster, remnant)) {
-			showFailure(caster, ProjectJjkRitualPolicy.Validation.NO_REMNANT);
-			return;
-		}
-
-		ServerLevel level = caster.level();
-		triggerDollImpact(caster);
-		long gameTime = level.getGameTime();
-		if (!target.hurtServer(level, level.damageSources().indirectMagic(caster, caster), ProjectJjkNobaraProfile.RESONANCE_DAMAGE)) {
-			return;
-		}
-		ResonantMomentum.grant(caster);
-		CombatStagger.GLOBAL.apply(target, gameTime, ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
-
-		// Server hit-stop ONLY after a successful Resonance impact (~2 real seconds at half TPS).
-		RESONANCE_TIME.trigger(
-				tickRateAccess(level.getServer()),
-				ProjectJjkNobaraProfile.RESONANCE_SERVER_TICK_RATE,
-				ProjectJjkNobaraProfile.RESONANCE_SERVER_SLOW_TICKS
-		);
-
-		// World-fixed origins (NO_ANCHOR): effects stay planted in the world, not glued to caster/target.
-		Vec3 struckOrigin = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
-		JujutsuNetworking.broadcastVfxCue(level, struckOrigin, VFX_DELIVERY_RADIUS,
-				worldFixedCue(level, NobaraVfxIds.DOLL_STRIKE, RITUAL_VFX_INTENSITY, struckOrigin, gameTime));
-		JujutsuNetworking.broadcastVfxCue(level, struckOrigin, VFX_DELIVERY_RADIUS,
-				worldFixedCue(level, NobaraVfxIds.RESONANCE_RELEASE, RITUAL_VFX_INTENSITY, struckOrigin, gameTime));
-		caster.displayClientMessage(Component.translatable(
-				"message.jujutsumod.projectjjk.resonance.complete",
-				remnant.targetName()
-		), true);
-	}
-
-	private static boolean hasRemnant(ServerPlayer player, ProjectJjkResonanceRemnant expected) {
-		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
-			ItemStack stack = player.getInventory().getItem(slot);
-			if (stack.is(JujutsuItems.RESONANCE_REMNANT)
-					&& expected.equals(stack.get(JujutsuDataComponents.RESONANCE_TARGET))) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	private static boolean consumeResources(ServerPlayer player, ProjectJjkResonanceRemnant expected) {
@@ -329,46 +360,59 @@ public final class ProjectJjkStrawDollRuntime {
 		}
 	}
 
-	private static void showFailure(ServerPlayer caster, ProjectJjkRitualPolicy.Validation validation) {
+	private static Vec3 resolveTargetOrigin(ServerPlayer caster, ProjectJjkResonanceRemnant remnant) {
+		if (caster.level() instanceof ServerLevel level) {
+			LivingEntity target = resolveTarget(level, remnant.targetId());
+			if (target != null) {
+				return target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
+			}
+		}
+		return caster.getEyePosition();
+	}
+
+	private static void emitWorldCue(ServerPlayer caster, ResourceLocation id, Vec3 origin, int intensity) {
+		ServerLevel level = (ServerLevel) caster.level();
+		JujutsuNetworking.broadcastVfxCue(level, origin, VFX_DELIVERY_RADIUS,
+				VfxCues.worldFixed(id, origin, intensity, level.getGameTime(), level.random.nextLong()));
+	}
+
+	private static void emitCasterAction(ServerPlayer caster, int action) {
+		ServerLevel level = (ServerLevel) caster.level();
+		JujutsuNetworking.broadcastVfxCue(level, caster.position(), VFX_DELIVERY_RADIUS,
+				VfxCues.anchored(NobaraVfxIds.CASTER_ACTION, caster.position(), caster.getId(), caster.position(),
+						action, level.getGameTime(), caster.getRandom().nextLong()));
+	}
+
+	private static void emitResonanceLink(ServerPlayer caster) {
+		ServerLevel level = (ServerLevel) caster.level();
+		JujutsuNetworking.sendVfxCue(caster,
+				VfxCues.anchored(NobaraVfxIds.RESONANCE_LINK, caster.getEyePosition(), caster.getId(),
+						caster.position(), RITUAL_VFX_INTENSITY, level.getGameTime(), caster.getRandom().nextLong()));
+	}
+
+	private static void emitFizzle(ServerPlayer caster) {
+		ServerLevel level = (ServerLevel) caster.level();
+		JujutsuNetworking.sendVfxCue(caster,
+				VfxCues.anchored(NobaraVfxIds.RESONANCE_LINK, caster.getEyePosition(), caster.getId(),
+						caster.position(), 1, level.getGameTime(), caster.getRandom().nextLong()));
+	}
+
+	private static void showFailure(ServerPlayer caster, ResonancePolicy.Validation validation) {
 		String suffix = validation.name().toLowerCase(Locale.ROOT);
 		caster.displayClientMessage(Component.translatable(
-				"message.jujutsumod.projectjjk.resonance." + suffix
+				"message.jujutsumod.nobara.resonance." + suffix
 		), true);
 	}
 
-	/**
-	 * Clears the caster's ritual state and unconditionally releases the resonance hit-stop,
-	 * restoring normal server speed ({@code clear} is a no-op when no dilation is active).
-	 * Fixture semantics by design: a dev reset returns the server to full speed even if
-	 * another caster's resonance was mid-flight. Exists for the dev control surface + gametests.
-	 */
-	public static void resetCaster(MinecraftServer server, UUID casterId) {
-		clearCaster(casterId);
-		RESONANCE_TIME.clear(tickRateAccess(server));
-	}
-
-	private static void clearCaster(UUID casterId) {
-		PENDING_RITUALS.remove(casterId);
-		REMNANT_PROGRESS.clearCaster(casterId);
+	/** Drops the caster's pending ritual. World anchors and curse-links remain untouched. */
+	public static void resetCaster(UUID casterId) {
+		if (casterId != null) {
+			PENDING_RITUALS.remove(casterId);
+		}
 	}
 
 	private static void clearAll() {
 		PENDING_RITUALS.clear();
-		REMNANT_PROGRESS.clear();
-	}
-
-	private static ServerTimeDilation.TickRateAccess tickRateAccess(MinecraftServer server) {
-		return new ServerTimeDilation.TickRateAccess() {
-			@Override
-			public float tickRate() {
-				return server.tickRateManager().tickrate();
-			}
-
-			@Override
-			public void setTickRate(float tickRate) {
-				server.tickRateManager().setTickRate(tickRate);
-			}
-		};
 	}
 
 	private static VfxCue cue(
@@ -383,24 +427,33 @@ public final class ProjectJjkStrawDollRuntime {
 				level.random.nextLong());
 	}
 
-	/** Unanchored cue: world geometry stays at the immutable origin for the whole lifetime. */
-	private static VfxCue worldFixedCue(
-			ServerLevel level,
-			ResourceLocation effectId,
-			int intensity,
-			Vec3 origin,
-			long gameTime
-	) {
-		return VfxCues.worldFixed(effectId, origin, intensity, gameTime, level.random.nextLong());
-	}
+	private record Selection(ResonancePolicy.Validation validation, ProjectJjkResonanceRemnant remnant) {}
 
-	private record PendingRitual(UUID casterId, ProjectJjkResonanceRemnant remnant, long dueGameTime) {}
-	private record Selection(ProjectJjkRitualPolicy.Validation validation, ProjectJjkResonanceRemnant remnant) {}
 	private record ResolvedCandidate(
-			ProjectJjkRitualPolicy.Validation validation,
+			ResonancePolicy.Validation validation,
 			LivingEntity target,
-			boolean sameDimension,
-			double distance
+			boolean sameDimension
 	) {}
-	private record ResolvedPending(ProjectJjkRitualPolicy.Validation validation, LivingEntity target) {}
+
+	private static final class PendingRitual {
+		private final UUID casterId;
+		private final ProjectJjkResonanceRemnant remnant;
+		private final long startedAt;
+		private boolean windupEmitted;
+		private boolean strikeEmitted;
+
+		private PendingRitual(UUID casterId, ProjectJjkResonanceRemnant remnant, long startedAt) {
+			this.casterId = casterId;
+			this.remnant = remnant;
+			this.startedAt = startedAt;
+		}
+
+		private UUID casterId() { return casterId; }
+		private ProjectJjkResonanceRemnant remnant() { return remnant; }
+		private long startedAt() { return startedAt; }
+		private boolean windupEmitted() { return windupEmitted; }
+		private boolean strikeEmitted() { return strikeEmitted; }
+		private void markWindupEmitted() { windupEmitted = true; }
+		private void markStrikeEmitted() { strikeEmitted = true; }
+	}
 }

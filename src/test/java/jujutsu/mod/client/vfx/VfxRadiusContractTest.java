@@ -12,10 +12,8 @@ import java.util.Set;
 import jujutsu.mod.vfx.MegumiVfxIds;
 import jujutsu.mod.character.megumi.MegumiProfile;
 import jujutsu.mod.client.vfx.nobara.NobaraVfxRecipes;
-import jujutsu.mod.client.vfx.shared.SharedVfxRecipes;
 import jujutsu.mod.client.vfx.todo.TodoVfxRecipes;
 import jujutsu.mod.vfx.NobaraVfxIds;
-import jujutsu.mod.vfx.SharedVfxIds;
 import jujutsu.mod.vfx.TodoVfxIds;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
@@ -31,8 +29,6 @@ final class VfxRadiusContractTest {
 				direct("Nobara direct", Set.of(NobaraVfxIds.IMPACT_SOUND, NobaraVfxIds.FIRST_PERSON_SNAP)),
 				// DETONATE is intentionally caster-only: launchHairpin uses sendVfxCue, not broadcastVfxCue.
 				directRadius("Nobara detonate", NobaraVfxIds.DETONATE, NobaraVfxRecipes.HAMMER_ACTION_PRESENTATION_RADIUS),
-				radius("Nobara wide", Set.of(NobaraVfxIds.ENLARGE, NobaraVfxIds.EXPLOSION, NobaraVfxIds.REMNANT_DROP),
-						NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
 				radius("Nobara mega nail", Set.of(NobaraVfxIds.MEGA_NAIL_STRIKE), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
 				radius("Nobara mega nail charge", Set.of(NobaraVfxIds.MEGA_NAIL_CHARGE), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
 				radius("Nobara ritual", Set.of(NobaraVfxIds.RITUAL_BIND), NobaraVfxRecipes.HAMMER_PRESENTATION_RADIUS),
@@ -44,12 +40,15 @@ final class VfxRadiusContractTest {
 						NobaraVfxRecipes.IMPACT_PRESENTATION_RADIUS),
 				radius("Nobara trap impact", Set.of(NobaraVfxIds.NAIL_TRAP_IMPACT), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
 				finiteNone("Nobara caster actions", Set.of(NobaraVfxIds.CASTER_ACTION)),
-				radius("Shared black flash", Set.of(SharedVfxIds.BLACK_FLASH), SharedVfxRecipes.WIDE_PRESENTATION_RADIUS),
-				radius("Todo clap", Set.of(TodoVfxIds.BOOGIE_WOOGIE, TodoVfxIds.FEINT_CLAP),
-						TodoVfxRecipes.BOOGIE_WOOGIE_PRESENTATION_RADIUS),
-				direct("Todo rhythm state", Set.of(TodoVfxIds.RHYTHM_STATE)),
-				radius("Todo rhythm peak", Set.of(TodoVfxIds.RHYTHM_PEAK), TodoVfxRecipes.RHYTHM_PRESENTATION_RADIUS),
-				radius("Todo revised start", Set.of(TodoVfxIds.REVISED_START), TodoVfxRecipes.REVISED_PRESENTATION_RADIUS),
+				radius("Nobara deeply anchored", Set.of(NobaraVfxIds.DEEPLY_ANCHORED), NobaraVfxRecipes.HAMMER_PRESENTATION_RADIUS),
+				radius("Nobara remnant extract", Set.of(NobaraVfxIds.REMNANT_EXTRACT), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
+				radius("Nobara ritual windup", Set.of(NobaraVfxIds.RITUAL_WINDUP), NobaraVfxRecipes.HAMMER_PRESENTATION_RADIUS),
+				// RESONANCE_LINK is caster-only: the compression hit-stop is private, sent directly.
+				direct("Nobara resonance link", Set.of(NobaraVfxIds.RESONANCE_LINK)),
+				radius("Nobara mega gather", Set.of(NobaraVfxIds.MEGA_GATHER), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
+				radius("Nobara hairpin link", Set.of(NobaraVfxIds.HAIRPIN_LINK), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
+				radius("Nobara black flash", Set.of(NobaraVfxIds.BLACK_FLASH), NobaraVfxRecipes.WIDE_PRESENTATION_RADIUS),
+				radius("Todo clap", Set.of(TodoVfxIds.BOOGIE_WOOGIE), TodoVfxRecipes.BOOGIE_WOOGIE_PRESENTATION_RADIUS),
 				direct("Todo mark", Set.of(TodoVfxIds.PAIR_MARK)),
 				direct("Todo feint", Set.of(TodoVfxIds.FEINT_TELL)),
 				finiteNone("Todo swap geometry", Set.of(TodoVfxIds.SWAP_ENDPOINT, TodoVfxIds.SWAP_AFTERIMAGE, TodoVfxIds.SWAP_ARRIVAL)),
@@ -96,7 +95,6 @@ final class VfxRadiusContractTest {
 		Set<ResourceLocation> live = new HashSet<>();
 		live.addAll(NobaraVfxIds.LIVE);
 		live.addAll(TodoVfxIds.LIVE);
-		live.addAll(SharedVfxIds.LIVE);
 		live.addAll(MegumiVfxIds.LIVE);
 		assertEquals(live, covered);
 		assertEquals(Set.of(MegumiProfile.VFX_CUE_RADIUS), deliveries.get(MegumiVfxIds.DOGS_SUMMON));

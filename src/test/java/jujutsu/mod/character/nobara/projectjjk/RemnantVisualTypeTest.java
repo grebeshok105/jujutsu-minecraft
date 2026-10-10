@@ -22,6 +22,9 @@ public final class RemnantVisualTypeTest {
 				: "animals and organic non-humanoids should use flesh";
 		assert RemnantVisualType.classify(false, false) == RemnantVisualType.TOKEN
 				: "players, villagers, golems, and unknown entities should use token";
+		assert "curse".equals(RemnantVisualType.CURSE.getSerializedName());
+		assert "flesh".equals(RemnantVisualType.FLESH.getSerializedName());
+		assert "token".equals(RemnantVisualType.TOKEN.getSerializedName());
 
 		ProjectJjkResonanceRemnant current = new ProjectJjkResonanceRemnant(
 				UUID.fromString("fd520a12-493d-47fe-b284-802ff63e6970"),

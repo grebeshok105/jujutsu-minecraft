@@ -17,7 +17,7 @@ public final class VfxTimelineTest {
 	}
 
 	private static void assertLateCueUsesItsTrueAge() {
-		VfxCue cue = new VfxCue(NobaraVfxIds.ENLARGE, new Vec3(0.0, 64.0, 0.0), VfxCue.NO_ANCHOR, Vec3.ZERO, 1, 100L, 1L, Vec3.ZERO);
+		VfxCue cue = new VfxCue(NobaraVfxIds.DETONATE, new Vec3(0.0, 64.0, 0.0), VfxCue.NO_ANCHOR, Vec3.ZERO, 1, 100L, 1L, Vec3.ZERO);
 		assert VfxTimeline.ageTicks(cue, 106L, 0.5f) == 6.5f : VfxTimeline.ageTicks(cue, 106L, 0.5f);
 	}
 
@@ -27,7 +27,7 @@ public final class VfxTimelineTest {
 	}
 
 	private static void assertExpiredCueIsSkipped() {
-		VfxCue cue = new VfxCue(NobaraVfxIds.EXPLOSION, Vec3.ZERO, VfxCue.NO_ANCHOR, Vec3.ZERO, 1, 100L, 3L, Vec3.ZERO);
+		VfxCue cue = new VfxCue(NobaraVfxIds.DETONATE, Vec3.ZERO, VfxCue.NO_ANCHOR, Vec3.ZERO, 1, 100L, 3L, Vec3.ZERO);
 		assert !VfxTimeline.isExpired(cue, 117L, 18) : "cue must render through its final active tick";
 		assert VfxTimeline.isExpired(cue, 118L, 18) : "cue must stop at its configured duration";
 	}
@@ -56,7 +56,7 @@ public final class VfxTimelineTest {
 	}
 
 	private static void assertStrawDollCueIdsStayStable() {
-		assert NobaraVfxIds.REMNANT_DROP.getPath().equals("nobara/remnant_drop");
+		assert NobaraVfxIds.REMNANT_EXTRACT.getPath().equals("nobara/remnant_extract");
 		assert NobaraVfxIds.RITUAL_BIND.getPath().equals("nobara/ritual_bind");
 		assert NobaraVfxIds.DOLL_STRIKE.getPath().equals("nobara/doll_strike");
 		assert NobaraVfxIds.RESONANCE_RELEASE.getPath().equals("nobara/resonance_release");

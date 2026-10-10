@@ -35,7 +35,7 @@ public final class VfxAnchorResolverTest {
 
 	private static void assertMissingAnchorFallsBackToOrigin() {
 		Vec3 origin = new Vec3(-3.0, 70.0, 8.0);
-		VfxCue cue = new VfxCue(NobaraVfxIds.EXPLOSION, origin, 23, new Vec3(0.0, 1.2, 0.0), 1, 0L, 4L, Vec3.ZERO);
+		VfxCue cue = new VfxCue(NobaraVfxIds.DETONATE, origin, 23, new Vec3(0.0, 1.2, 0.0), 1, 0L, 4L, Vec3.ZERO);
 		assert VfxAnchorResolver.resolve(cue, ignored -> null).equals(origin);
 	}
 }

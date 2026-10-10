@@ -8,7 +8,7 @@ import jujutsu.mod.character.nobara.projectjjk.NailTrapRuntime;
 import jujutsu.mod.character.nobara.projectjjk.NobaraHammerCombatRuntime;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkNobaraRuntime;
 import jujutsu.mod.character.nobara.projectjjk.ProjectJjkMegaNailRuntime;
-import jujutsu.mod.character.nobara.projectjjk.ProjectJjkRitualRuntime;
+import jujutsu.mod.character.nobara.projectjjk.HairpinRuntime;
 import jujutsu.mod.character.nobara.projectjjk.SelfResonanceRuntime;
 import jujutsu.mod.combat.CombatStagger;
 
@@ -45,11 +45,8 @@ public final class NobaraAbilityRouter {
 			return AbilityResult.UNHANDLED_FAILURE;
 		}
 		AbilityResult result = switch (ability) {
-			// Short-circuit: when the explosive lock refuses, nothing has been said and the fallback
-			// speaks; otherwise the runtime's own result is returned verbatim.
-			case PRIMARY -> ProjectJjkNobaraRuntime.canCastMarkedHairpin(nobara)
-					? ProjectJjkRitualRuntime.startDirectedHairpin(nobara)
-					: AbilityResult.UNHANDLED_FAILURE;
+			// Directed Hairpin owns seed resolution and reports the specific no-anchor failure.
+			case PRIMARY -> HairpinRuntime.startDirectedHairpin(nobara);
 			case PRIMARY_SNEAK -> SelfResonanceRuntime.tryCast(nobara);
 			// B — Mega Nail: converges every embedded nail on the aimed target into one piercing strike.
 			case SECONDARY -> ProjectJjkNobaraRuntime.canCastMarkedHairpin(nobara)

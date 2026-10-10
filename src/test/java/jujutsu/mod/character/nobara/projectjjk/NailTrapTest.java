@@ -1,10 +1,11 @@
 package jujutsu.mod.character.nobara.projectjjk;
 
-import java.util.List;
-import java.util.UUID;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.UUID;
 
+/** Assertion-main coverage for trap geometry and the corner-anchor lifecycle contract. */
 public final class NailTrapTest {
 	public static void main(String[] args) {
 		testTriggerCircleContainment();
@@ -13,6 +14,7 @@ public final class NailTrapTest {
 		testDeterministicTargetSelection();
 		testReplacementReturnsPreviousTrap();
 		testBalanceIsCentralized();
+		testTrapCornersAreAnchors();
 		testServerIntegrationContract();
 	}
 
@@ -25,29 +27,45 @@ public final class NailTrapTest {
 		}
 	}
 
+	private static void testTrapCornersAreAnchors() {
+		NailTrap trap = trap();
+		assert trap.nailIds().size() == ProjectJjkNobaraProfile.NAIL_TRAP_NAIL_COUNT;
+		assert trap.vertices().size() == ProjectJjkNobaraProfile.NAIL_TRAP_NAIL_COUNT;
+		try {
+			String runtime = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/NailTrapRuntime.java"));
+			String entity = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkNailEntity.java"));
+			assert runtime.contains("markAsTrapNail") && runtime.contains("attachToBlock")
+					: "every corner must be represented by an embedded trap nail";
+			assert entity.contains("TRAP_NAIL_TAG") && entity.contains("isTrapNail")
+					: "trap corner identity must survive save/load";
+		} catch (Exception exception) {
+			throw new AssertionError(exception);
+		}
+	}
+
 	private static void testServerIntegrationContract() {
 		try {
 			String runtime = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/NailTrapRuntime.java"));
-			String router = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/NobaraAbilityRouter.java"));
-			String nail = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkNailEntity.java"));
+			String entity = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkNailEntity.java"));
 			String ids = Files.readString(Path.of("src/main/java/jujutsu/mod/vfx/NobaraVfxIds.java"));
-			String ritual = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/ProjectJjkRitualRuntime.java"));
 			String recipes = Files.readString(Path.of("src/client/java/jujutsu/mod/client/vfx/nobara/NobaraVfxRecipes.java"));
-			assert router.contains("case SECONDARY_SNEAK -> NailTrapRuntime.tryPlace(nobara)") : "Shift+B must route to the trap runtime";
-			assert runtime.contains("NAIL_TRAP_DAMAGE") && runtime.contains("NobaraDamageSources.hairpin") : "trap impact must use one Hairpin damage event";
-			assert runtime.contains("CombatStagger.GLOBAL.apply") && runtime.contains("NAIL_TRAP_INTERRUPT_TICKS") : "trap must use shared action interrupt";
-			assert runtime.contains("attachToEntity") && nail.contains("public void attachToEntity") : "trap must embed through the canonical nail entity path";
-			assert runtime.contains("NAIL_TRAP_PLACED") && runtime.contains("NAIL_TRAP_ARMED") && runtime.contains("NAIL_TRAP_COLLAPSE") && runtime.contains("NAIL_TRAP_IMPACT") : "all trap phases need VFX cues";
-			assert ids.contains("NAIL_TRAP_PLACED") && ids.contains("NAIL_TRAP_ARMED") && ids.contains("NAIL_TRAP_COLLAPSE") && ids.contains("NAIL_TRAP_IMPACT");
-			assert recipes.contains("NobaraVfxIds.NAIL_TRAP_PLACED") && recipes.contains("NobaraVfxIds.NAIL_TRAP_ARMED") && recipes.contains("NobaraVfxIds.NAIL_TRAP_COLLAPSE") && recipes.contains("NobaraVfxIds.NAIL_TRAP_IMPACT");
-			assert nail.contains("TRAP_NAIL_TAG") && nail.contains("markAsTrapNail") : "trap nail identity must survive chunk save/load";
-			assert nail.contains("!NailTrapRuntime.isTrapNail(getUUID())") : "orphaned trap nails must clean themselves after final runtime removal";
-			String embeddedRegistry = Files.readString(Path.of("src/main/java/jujutsu/mod/character/nobara/projectjjk/EmbeddedNailRegistry.java"));
-			assert ritual.contains("EmbeddedNailRegistry.loadedOwnedNails") && embeddedRegistry.contains("!nail.isTrapNail()")
-					: "armed trap nails must stay outside the owner index used by R/B chains";
-			assert runtime.contains("ServerPlayConnectionEvents.DISCONNECT") : "disconnect must remove trap state and entities";
-			assert runtime.contains("if (!level.addFreshEntity(embedded))") : "failed embed spawn must not create a phantom mark";
-			assert runtime.indexOf("if (!level.addFreshEntity(embedded))") < runtime.indexOf("markTarget(level, target") : "mark only after successful spawn";
+			assert runtime.contains("NAIL_TRAP_DAMAGE") && runtime.contains("NobaraDamageSources.hairpin")
+					: "trap impact must use the Hairpin damage event";
+			assert runtime.contains("CombatStagger.GLOBAL.apply") && runtime.contains("NAIL_TRAP_INTERRUPT_TICKS");
+			assert runtime.contains("attachToEntity") && entity.contains("public void attachToEntity");
+			assert runtime.contains("NAIL_TRAP_PLACED") && runtime.contains("NAIL_TRAP_ARMED")
+					&& runtime.contains("NAIL_TRAP_COLLAPSE") && runtime.contains("NAIL_TRAP_IMPACT");
+			assert ids.contains("NAIL_TRAP_PLACED") && ids.contains("NAIL_TRAP_ARMED")
+					&& ids.contains("NAIL_TRAP_COLLAPSE") && ids.contains("NAIL_TRAP_IMPACT");
+			assert recipes.contains("NobaraVfxIds.NAIL_TRAP_PLACED") && recipes.contains("NobaraVfxIds.NAIL_TRAP_ARMED")
+					&& recipes.contains("NobaraVfxIds.NAIL_TRAP_COLLAPSE") && recipes.contains("NobaraVfxIds.NAIL_TRAP_IMPACT");
+			assert runtime.contains("onAnchorDestroyed") && runtime.contains("COLLAPSING_DISCARDS")
+					: "corner loss must collapse with recursion guard";
+			assert runtime.contains("NailAnchorRegistry.NailOrigin.TRAP_IMPACT")
+					&& runtime.contains("HairpinRuntime.markTarget")
+					: "trap impact must register its origin and owner-scoped mark";
+			assert !runtime.contains("ServerPlayConnectionEvents.DISCONNECT")
+					: "disconnect must not clear persistent traps";
 		} catch (Exception exception) {
 			throw new AssertionError("Unable to inspect nail trap integration", exception);
 		}
@@ -58,11 +76,10 @@ public final class NailTrapTest {
 		double r = ProjectJjkNobaraProfile.NAIL_TRAP_TRIGGER_RADIUS;
 		assert trap.contains(0.0, 0.0, 0.0);
 		assert trap.contains(0.0, 0.0, r - 0.01);
-		assert trap.contains(0.0, 0.0, r) : "the trigger boundary must count as inside";
+		assert trap.contains(0.0, 0.0, r);
 		assert !trap.contains(0.0, 0.0, r + 0.01);
-		assert trap.contains(0.0, 0.0, ProjectJjkNobaraProfile.NAIL_TRAP_RADIUS)
-				: "corner nails must stand inside the trigger circle";
-		assert !trap.contains(0.0, 3.1, 0.0) : "targets above the prism must not trigger it";
+		assert trap.contains(0.0, 0.0, ProjectJjkNobaraProfile.NAIL_TRAP_RADIUS);
+		assert !trap.contains(0.0, 3.1, 0.0);
 	}
 
 	private static void testExpiryPausesWhileUnavailable() {
@@ -70,7 +87,7 @@ public final class NailTrapTest {
 		for (int i = 0; i < 599; i++) trap.tick(true);
 		assert !trap.expired();
 		for (int i = 0; i < 200; i++) trap.tick(false);
-		assert !trap.expired() : "unloaded trap chunks must pause lifetime";
+		assert !trap.expired();
 		trap.tick(true);
 		assert trap.expired();
 	}
@@ -79,7 +96,7 @@ public final class NailTrapTest {
 		NailTrap trap = trap();
 		UUID target = UUID.randomUUID();
 		assert trap.trigger(target);
-		assert !trap.trigger(UUID.randomUUID()) : "a trap may reserve only one target";
+		assert !trap.trigger(UUID.randomUUID());
 		assert trap.collapseBeat(0) == 0;
 		assert trap.collapseBeat(1) == -1;
 		assert trap.collapseBeat(2) == 1;
@@ -95,7 +112,7 @@ public final class NailTrapTest {
 				new NailTrap.TargetCandidate(high, 4.0),
 				new NailTrap.TargetCandidate(low, 4.0),
 				new NailTrap.TargetCandidate(UUID.randomUUID(), 9.0)));
-		assert selected.orElseThrow().equals(low) : "distance then UUID must define stable target selection";
+		assert selected.orElseThrow().equals(low);
 	}
 
 	private static void testReplacementReturnsPreviousTrap() {

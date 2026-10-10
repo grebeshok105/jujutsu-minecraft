@@ -25,7 +25,6 @@ import jujutsu.mod.combat.TargetResolver;
 import jujutsu.mod.registry.JujutsuItems;
 import jujutsu.mod.network.JujutsuNetworking;
 import jujutsu.mod.vfx.NobaraVfxIds;
-import jujutsu.mod.vfx.SharedVfxIds;
 import jujutsu.mod.vfx.VfxCues;
 
 /**
@@ -143,6 +142,10 @@ public final class NobaraHammerCombatRuntime {
 		if (pending.kind() == AttackKind.OVERHEAD) {
 			float damage = ProjectJjkNobaraProfile.HAMMER_OVERHEAD_DAMAGE * ResonantMomentum.damageMultiplier(player);
 			if (target.hurtServer(level, level.damageSources().playerAttack(player), damage)) {
+				// Extraction must see the anchor state BEFORE this hit deepens it: the spec
+				// requires a target that is already Deeply Anchored, then a further overhead
+				// interaction. Checking first keeps the D2->D3 hit from minting the remnant.
+				ProjectJjkStrawDollRuntime.tryExtractRemnant(player, target);
 				deepenOneNail(player, target);
 				CombatStagger.GLOBAL.apply(target, now, ProjectJjkNobaraProfile.HEAVY_STAGGER_TICKS);
 				tryProcLivingBlackFlash(player, target, BlackFlashImpact.HAMMER, damage);
@@ -167,7 +170,7 @@ public final class NobaraHammerCombatRuntime {
 		Vec3 direction = nail.getDeltaMovement().lengthSqr() > 1e-6
 				? nail.getDeltaMovement().normalize()
 				: player.getLookAngle();
-		emitDirected(player, SharedVfxIds.BLACK_FLASH, nail.position(), chain ? 3 : 2, direction);
+		emitDirected(player, NobaraVfxIds.BLACK_FLASH, nail.position(), chain ? 3 : 2, direction);
 	}
 
 	private static void tryProcLivingBlackFlash(
@@ -198,7 +201,7 @@ public final class NobaraHammerCombatRuntime {
 		}
 		emitDirected(
 				player,
-				SharedVfxIds.BLACK_FLASH,
+				NobaraVfxIds.BLACK_FLASH,
 				BlackFlashStrike.impactOrigin(target),
 				chain ? 3 : 2,
 				player.getLookAngle());
@@ -218,9 +221,9 @@ public final class NobaraHammerCombatRuntime {
 		BF_STREAK.put(player.getUUID(), 0);
 	}
 
-	/** Chain bonus ("Double Flash"): Resonant Momentum + small heal. */
+	/** Chain bonus ("Double Flash"): bounded execution Momentum + small heal. */
 	private static void applyChainBonus(ServerPlayer player) {
-		ResonantMomentum.grant(player);
+		ResonantMomentum.grantExecutionMoment(player, ProjectJjkNobaraProfile.MOMENTUM_WINDOW_TICKS);
 		player.heal(ProjectJjkNobaraProfile.BLACK_FLASH_CHAIN_HEAL);
 	}
 
@@ -233,6 +236,9 @@ public final class NobaraHammerCombatRuntime {
 				.orElse(null);
 		if (nail != null && nail.deepen()) {
 			emitAt(player, NobaraVfxIds.NAIL_DEEPEN, nail.position(), nail.embedDepthLevel());
+			if (nail.embedDepthLevel() == 3) {
+				emitAt(player, NobaraVfxIds.DEEPLY_ANCHORED, nail.position(), 3);
+			}
 			emitCasterAction(player, NobaraVfxIds.CASTER_HAMMER_EMBEDDED);
 		}
 	}

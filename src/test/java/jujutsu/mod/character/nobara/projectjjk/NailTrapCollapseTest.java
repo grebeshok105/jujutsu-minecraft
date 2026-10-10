@@ -69,4 +69,7 @@ final class NailTrapCollapseTest {
 			buffer.release();
 		}
 	}
+	// The collapse-on-corner-loss and tick-registration contracts are now exercised live by
+	// NobaraAnchorGameTests.cornerLossCollapsesTheTrap (real trap placement, real discard,
+	// real END_SERVER_TICK) — source-string pins would pass on dead code, so they were removed.
 }

@@ -3,61 +3,89 @@ package jujutsu.mod.character.nobara.projectjjk;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Tracks embedded "cursed nail" marks per target. Marks are the connective tissue of the whole kit:
- * nails apply them, the Hairpin detonates them, and the Straw Doll resonates through them. Pure logic
- * keyed by target UUID + game time so it can be unit-tested and shared across levels.
+ * Tracks embedded cursed-nail marks per owner and target. Marks are the connective tissue of the kit:
+ * nails apply them, Hairpin detonates them, and Straw Doll resonates through them.
  */
 public final class ProjectJjkNailMarks {
-	private static final Map<UUID, MarkStack> STACKS = new ConcurrentHashMap<>();
+	private static final Map<MarkKey, MarkStack> STACKS = new ConcurrentHashMap<>();
 
 	private ProjectJjkNailMarks() {}
 
-	public static int marks(UUID targetId, long gameTime) {
-		MarkStack stack = STACKS.get(targetId);
-		if (stack == null) {
-			return 0;
-		}
-		return stack.active(gameTime);
-	}
-
-	/** Embeds one more nail mark on the target (capped), refreshing the expiry window. */
-	public static int apply(UUID targetId, long gameTime) {
-		MarkStack stack = STACKS.computeIfAbsent(targetId, id -> new MarkStack());
+	/** Embeds one more mark for an owner-target pair (capped), refreshing the expiry window. */
+	public static int apply(UUID ownerId, UUID targetId, long gameTime) {
+		MarkKey key = new MarkKey(ownerId, targetId);
+		MarkStack stack = STACKS.computeIfAbsent(key, ignored -> new MarkStack());
 		return stack.add(gameTime);
 	}
 
-	/** Consumes all active marks on the target and returns how many were detonated. */
-	public static int consume(UUID targetId, long gameTime) {
-		MarkStack stack = STACKS.remove(targetId);
-		if (stack == null) {
-			return 0;
+	/** Returns active marks for an owner-target pair at the supplied game time. */
+	public static int marks(UUID ownerId, UUID targetId, long gameTime) {
+		MarkStack stack = STACKS.get(new MarkKey(ownerId, targetId));
+		return stack == null ? 0 : stack.active(gameTime);
+	}
+
+	/** Consumes and returns every mark currently held for an owner-target pair. */
+	public static int consume(UUID ownerId, UUID targetId) {
+		MarkStack stack = STACKS.remove(new MarkKey(ownerId, targetId));
+		return stack == null ? 0 : stack.count();
+	}
+
+	/** Returns whether any owner still has an active mark on the target. */
+	public static boolean anyMarks(UUID targetId, long gameTime) {
+		if (targetId == null) {
+			return false;
 		}
-		return stack.active(gameTime);
+		for (Map.Entry<MarkKey, MarkStack> entry : STACKS.entrySet()) {
+			if (targetId.equals(entry.getKey().targetId()) && entry.getValue().active(gameTime) > 0) {
+				return true;
+			}
+		}
+		return false;
 	}
 
-	public static void clear(UUID targetId) {
-		STACKS.remove(targetId);
+	/** Clears every mark owned by one caster, leaving other owners' marks untouched. */
+	public static void clearOwner(UUID ownerId) {
+		if (ownerId != null) {
+			STACKS.keySet().removeIf(key -> ownerId.equals(key.ownerId()));
+		}
 	}
 
-	/** Drops every mark stack. Exists for the dev control surface + gametests. */
+	/** Drops every mark stack. Exists for the dev control surface and GameTests. */
 	public static void clearAll() {
 		STACKS.clear();
 	}
 
-	/** Drops fully-expired stacks so the map does not grow without bound. */
+	/**
+	 * Target-scoped cleanup retained for entity-removal fixtures. It does not affect marks on other targets.
+	 */
+	public static void clear(UUID targetId) {
+		if (targetId != null) {
+			STACKS.keySet().removeIf(key -> targetId.equals(key.targetId()));
+		}
+	}
+
+	/** Drops fully expired stacks so the map cannot grow without bound. */
 	public static void pruneExpired(long gameTime) {
-		List<UUID> dead = new ArrayList<>();
-		for (Map.Entry<UUID, MarkStack> entry : STACKS.entrySet()) {
+		List<MarkKey> dead = new ArrayList<>();
+		for (Map.Entry<MarkKey, MarkStack> entry : STACKS.entrySet()) {
 			if (entry.getValue().active(gameTime) <= 0) {
 				dead.add(entry.getKey());
 			}
 		}
-		for (UUID id : dead) {
-			STACKS.remove(id);
+		for (MarkKey key : dead) {
+			STACKS.remove(key);
+		}
+	}
+
+	private record MarkKey(UUID ownerId, UUID targetId) {
+		private MarkKey {
+			Objects.requireNonNull(ownerId, "ownerId");
+			Objects.requireNonNull(targetId, "targetId");
 		}
 	}
 
@@ -80,6 +108,10 @@ public final class ProjectJjkNailMarks {
 				count = 0;
 				return 0;
 			}
+			return count;
+		}
+
+		private synchronized int count() {
 			return count;
 		}
 	}

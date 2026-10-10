@@ -66,6 +66,7 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		state.hasEmbeddedAnchor = false;
 		state.ownedByLocal = false;
 		state.trapNail = entity.isTrapNail();
+		state.depth = entity.embedDepthLevel();
 		state.isMega = entity.isMegaNail();
 		state.megaRenderScale = entity.megaRenderScale();
 		if (state.embedded) {
@@ -121,11 +122,11 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 			renderCompressedEnergyAura(consumers.getBuffer(RenderType.lightning()), matrices, Vec3.ZERO, direction,
 					state.age + state.seed * 0.37f, alpha, length, width, bands, state.launched);
 		} else if (state.ownedByLocal) {
-			renderEmbeddedMarkPulse(consumers.getBuffer(RenderType.lightning()), matrices, Vec3.ZERO, direction,
-					state.age + state.seed * 0.37f, NOBARA_ACCENT);
+			renderEmbeddedDepthMark(consumers.getBuffer(RenderType.lightning()), matrices, Vec3.ZERO, direction,
+					state.age + state.seed * 0.37f, state.depth, NOBARA_ACCENT);
 		} else {
-			renderEmbeddedMarkPulse(consumers.getBuffer(RenderType.lightning()), matrices, Vec3.ZERO, direction,
-					state.age + state.seed * 0.37f);
+			renderEmbeddedDepthMark(consumers.getBuffer(RenderType.lightning()), matrices, Vec3.ZERO, direction,
+					state.age + state.seed * 0.37f, state.depth, -1);
 		}
 		// Trap nail persistent visual — vertical pillar + ground ring
 		if (state.trapNail) {
@@ -155,27 +156,46 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		super.render(state, matrices, consumers, packedLight);
 	}
 
-	private static void renderEmbeddedMarkPulse(VertexConsumer consumer, PoseStack matrices, Vec3 center, Vec3 direction, float age) {
-		Vec3 line = safeDirection(direction);
-		Vec3 side = axisSide(line, 1.0f).normalize();
-		Vec3 cross = line.cross(side).normalize();
-		float pulse = 0.5f + 0.5f * (float) Math.sin(age * 0.18f);
-		float radius = 0.095f + pulse * 0.018f;
-		int alpha = Math.round(34.0f + pulse * 24.0f);
-		renderPressureBand(consumer, matrices, center.subtract(line.scale(0.08)), side, cross, radius, alpha);
-	}
 
-	private static void renderEmbeddedMarkPulse(VertexConsumer consumer, PoseStack matrices, Vec3 center, Vec3 direction, float age, int accentRgb) {
+	/**
+	 * Depth-readable embedded mark: D1 is the faint cursed pulse, D2 a heavier wound ring,
+	 * D3 a critical anchor — brighter, sharper pulse plus a white-hot core and a second
+	 * counter-rotating band so the "deeply anchored" state reads at a glance in the world.
+	 */
+	private static void renderEmbeddedDepthMark(VertexConsumer consumer, PoseStack matrices, Vec3 center, Vec3 direction,
+			float age, int depth, int accentRgb) {
 		Vec3 line = safeDirection(direction);
 		Vec3 side = axisSide(line, 1.0f).normalize();
 		Vec3 cross = line.cross(side).normalize();
-		float pulse = 0.5f + 0.5f * (float) Math.sin(age * 0.18f);
-		float radius = 0.095f + pulse * 0.018f;
-		int alpha = Math.round(34.0f + pulse * 24.0f);
-		int r = (accentRgb >> 16) & 0xFF;
-		int g = (accentRgb >> 8) & 0xFF;
-		int b = accentRgb & 0xFF;
-		renderPressureBand(consumer, matrices, center.subtract(line.scale(0.08)), side, cross, radius, alpha, r, g, b);
+		int d = Mth.clamp(depth, 1, 3);
+		float speed = d == 3 ? 0.34f : d == 2 ? 0.24f : 0.18f;
+		float pulse = 0.5f + 0.5f * (float) Math.sin(age * speed);
+		float radius = (0.095f + pulse * 0.018f) * (d == 3 ? 1.55f : d == 2 ? 1.28f : 1.0f);
+		int alpha = Math.round((34.0f + pulse * 24.0f) * (d == 3 ? 2.4f : d == 2 ? 1.7f : 1.0f));
+		Vec3 markCenter = center.subtract(line.scale(0.08));
+		if (accentRgb >= 0) {
+			int r = (accentRgb >> 16) & 0xFF;
+			int g = (accentRgb >> 8) & 0xFF;
+			int b = accentRgb & 0xFF;
+			renderPressureBand(consumer, matrices, markCenter, side, cross, radius, alpha, r, g, b);
+		} else {
+			renderPressureBand(consumer, matrices, markCenter, side, cross, radius, alpha);
+		}
+		if (d >= 2) {
+			// Heavier wound: a second slower band slightly offset along the nail axis.
+			Vec3 woundCenter = center.subtract(line.scale(0.16));
+			float woundPulse = 0.5f + 0.5f * (float) Math.sin(age * speed * 0.6f + 1.3f);
+			renderPressureBand(consumer, matrices, woundCenter, cross, side.scale(-1.0f),
+					radius * (0.72f + woundPulse * 0.1f), Math.round(alpha * 0.55f));
+		}
+		if (d == 3) {
+			// Critical anchor: white-hot core sliver along the nail + tight inner ring.
+			Vec3 coreStart = center.subtract(line.scale(0.22f));
+			Vec3 coreEnd = center.add(line.scale(0.05f));
+			addRibbon(consumer, matrices, coreStart, coreEnd, side.scale(0.02f),
+					CURSED_BLUE_WHITE_R, CURSED_BLUE_WHITE_G, CURSED_BLUE_WHITE_B, Math.round(190.0f * pulse + 40.0f));
+			renderPressureBand(consumer, matrices, markCenter, side, cross, radius * 0.42f, Math.round(alpha * 0.9f));
+		}
 	}
 
 	private static void renderCompressedEnergyAura(VertexConsumer consumer, PoseStack matrices, Vec3 center, Vec3 direction,
@@ -340,5 +360,6 @@ public final class ProjectJjkNailRenderer extends EntityRenderer<ProjectJjkNailE
 		private boolean trapNail;
 		private boolean isMega;
 		private float megaRenderScale;
+		private int depth = 1;
 	}
 }
