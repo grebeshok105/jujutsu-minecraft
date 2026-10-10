@@ -28,7 +28,7 @@ import jujutsu.mod.registry.JujutsuSounds;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * One transient shikigami body (the four non-dog shikigami share this base). Same contract as the
+ * One transient shikigami body (the eight non-dog shikigami share this base). Same contract as the
  * Divine Dog body: identity is owner UUID + summon token, only the presentation phase/age and the
  * action timer are synchronized, and every combat/collision interaction is gated on the ACTIVE
  * phase. The Divine Dog entity keeps its own implementation untouched.

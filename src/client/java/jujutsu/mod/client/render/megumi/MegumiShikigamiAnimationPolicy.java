@@ -122,4 +122,83 @@ public final class MegumiShikigamiAnimationPolicy {
 		}
 		return moving ? Clip.FLY : Clip.IDLE;
 	}
+
+	/**
+	 * Great Serpent priority: phase > action (submerge/emerge/bind/release — the action layer owns
+	 * the body) > travel (the slither cycle). Action index selects which clip inside the layer.
+	 */
+	public static Clip serpent(MegumiShikigamiPresentationPolicy.Phase phase, boolean moving,
+			int actionIndex) {
+		if (phase == MegumiShikigamiPresentationPolicy.Phase.MATERIALIZING) {
+			return Clip.RISE;
+		}
+		if (phase == MegumiShikigamiPresentationPolicy.Phase.RECALLING) {
+			return Clip.SINK;
+		}
+		if (actionIndex != 0) {
+			return Clip.ACTION;
+		}
+		return moving ? Clip.FLY : Clip.IDLE;
+	}
+
+	/**
+	 * Round Deer priority: phase > action (heal pulse or antler shove) > walk. The deer never
+	 * runs — a support body does not sprint across the field.
+	 */
+	public static Clip deer(MegumiShikigamiPresentationPolicy.Phase phase, boolean moving,
+			int actionIndex) {
+		if (phase == MegumiShikigamiPresentationPolicy.Phase.MATERIALIZING) {
+			return Clip.RISE;
+		}
+		if (phase == MegumiShikigamiPresentationPolicy.Phase.RECALLING) {
+			return Clip.SINK;
+		}
+		if (actionIndex != 0) {
+			return Clip.ACTION;
+		}
+		return moving ? Clip.FLY : Clip.IDLE;
+	}
+
+	/**
+	 * Piercing Ox priority: phase > action (windup/impact/recover) > travel. The committed charge
+	 * is itself an actionIndex=2 state but the body keeps the run cycle under it.
+	 */
+	public static Clip ox(MegumiShikigamiPresentationPolicy.Phase phase, boolean moving, boolean running,
+			int actionIndex) {
+		if (phase == MegumiShikigamiPresentationPolicy.Phase.MATERIALIZING) {
+			return Clip.RISE;
+		}
+		if (phase == MegumiShikigamiPresentationPolicy.Phase.RECALLING) {
+			return Clip.SINK;
+		}
+		if (actionIndex == 2) {
+			return Clip.RUN;
+		}
+		if (actionIndex != 0) {
+			return Clip.ACTION;
+		}
+		if (!moving) {
+			return Clip.IDLE;
+		}
+		return running ? Clip.RUN : Clip.FLY;
+	}
+
+	/**
+	 * Tiger Funeral priority: phase > action (windup/strikes/finisher/recovery — the action layer
+	 * owns the body through the whole combo) > stalk (a slowed walk is still the walk cycle) >
+	 * idle.
+	 */
+	public static Clip tiger(MegumiShikigamiPresentationPolicy.Phase phase, boolean moving,
+			int actionIndex) {
+		if (phase == MegumiShikigamiPresentationPolicy.Phase.MATERIALIZING) {
+			return Clip.RISE;
+		}
+		if (phase == MegumiShikigamiPresentationPolicy.Phase.RECALLING) {
+			return Clip.SINK;
+		}
+		if (actionIndex != 0) {
+			return Clip.ACTION;
+		}
+		return moving ? Clip.FLY : Clip.IDLE;
+	}
 }

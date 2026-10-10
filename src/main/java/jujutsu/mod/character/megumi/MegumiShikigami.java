@@ -10,7 +10,11 @@ public enum MegumiShikigami {
 	NUE("nue"),
 	TOAD("toad"),
 	RABBITS("rabbits"),
-	ELEPHANT("elephant");
+	ELEPHANT("elephant"),
+	SERPENT("serpent"),
+	DEER("deer"),
+	OX("ox"),
+	TIGER("tiger");
 
 	private final String id;
 
@@ -22,7 +26,7 @@ public enum MegumiShikigami {
 		return id;
 	}
 
-	/** Cycle order wraps around: dogs → nue → toad → rabbits → elephant → dogs. */
+	/** Cycle order wraps around: dogs → nue → toad → rabbits → elephant → serpent → deer → ox → tiger → dogs. */
 	public MegumiShikigami next() {
 		MegumiShikigami[] values = values();
 		return values[(ordinal() + 1) % values.length];

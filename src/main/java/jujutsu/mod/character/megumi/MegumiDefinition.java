@@ -42,6 +42,14 @@ public final class MegumiDefinition implements CharacterDefinition {
 				MegumiElephantEntity.createAttributes());
 		FabricDefaultAttributeRegistry.register(JujutsuEntities.MEGUMI_RABBIT,
 				MegumiRabbitEntity.createAttributes());
+		FabricDefaultAttributeRegistry.register(JujutsuEntities.MEGUMI_SERPENT,
+				MegumiSerpentEntity.createAttributes());
+		FabricDefaultAttributeRegistry.register(JujutsuEntities.MEGUMI_DEER,
+				MegumiDeerEntity.createAttributes());
+		FabricDefaultAttributeRegistry.register(JujutsuEntities.MEGUMI_OX,
+				MegumiOxEntity.createAttributes());
+		FabricDefaultAttributeRegistry.register(JujutsuEntities.MEGUMI_TIGER,
+				MegumiTigerEntity.createAttributes());
 		MegumiSummonRuntime.register();
 		MegumiShikigamiRuntime.register();
 		// The coordinator runs after both pack runtimes: it reads the marks their reconcile and

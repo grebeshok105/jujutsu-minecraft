@@ -62,6 +62,50 @@ public final class MegumiVfxIds {
 	 */
 	public static final ResourceLocation NUE_PARTIAL_WINGS = JujutsuMod.id("megumi/nue_partial_wings");
 
+	// --- roster expansion (Great Serpent / Round Deer / Piercing Ox / Tiger Funeral) ---
+	// One player-anchored <X>_SUMMON_BODY cue per type carries the hand-sign clip; per-body
+	// <X>_SUMMON rides the pool, and each signature moment keeps its own id.
+	/** Great Serpent's summon pool. */
+	public static final ResourceLocation SERPENT_SUMMON = JujutsuMod.id("megumi/serpent_summon");
+	/** Megumi's hand sign for the serpent, anchored on the caster. */
+	public static final ResourceLocation SERPENT_SUMMON_BODY = JujutsuMod.id("megumi/serpent_summon_body");
+	/** The serpent surfaces under its target: exit pool + rise burst. */
+	public static final ResourceLocation SERPENT_EMERGE = JujutsuMod.id("megumi/serpent_emerge");
+	/** The coil closes around the victim. */
+	public static final ResourceLocation SERPENT_BIND = JujutsuMod.id("megumi/serpent_bind");
+	/** The bind lets go: dissipating motes where the victim stood. */
+	public static final ResourceLocation SERPENT_RELEASE = JujutsuMod.id("megumi/serpent_release");
+	/** Round Deer's summon pool. */
+	public static final ResourceLocation DEER_SUMMON = JujutsuMod.id("megumi/deer_summon");
+	/** Megumi's hand sign for the deer, anchored on the caster. */
+	public static final ResourceLocation DEER_SUMMON_BODY = JujutsuMod.id("megumi/deer_summon_body");
+	/** A heal pulse lands on the target. */
+	public static final ResourceLocation DEER_PULSE = JujutsuMod.id("megumi/deer_pulse");
+	/** A cleanse strips an allowed effect. */
+	public static final ResourceLocation DEER_CLEANSE = JujutsuMod.id("megumi/deer_cleanse");
+	/** Piercing Ox's summon pool. */
+	public static final ResourceLocation OX_SUMMON = JujutsuMod.id("megumi/ox_summon");
+	/** Megumi's hand sign for the ox, anchored on the caster. */
+	public static final ResourceLocation OX_SUMMON_BODY = JujutsuMod.id("megumi/ox_summon_body");
+	/** The windup telegraph: pawing dust before the charge commits. */
+	public static final ResourceLocation OX_WINDUP = JujutsuMod.id("megumi/ox_windup");
+	/** The charge launches: trailing dust along the line. */
+	public static final ResourceLocation OX_CHARGE = JujutsuMod.id("megumi/ox_charge");
+	/** The line runs through a target: the impact burst. */
+	public static final ResourceLocation OX_IMPACT = JujutsuMod.id("megumi/ox_impact");
+	/** The charge dies against a wall: dust explosion. */
+	public static final ResourceLocation OX_WALL_HIT = JujutsuMod.id("megumi/ox_wall_hit");
+	/** Tiger Funeral's summon pool. */
+	public static final ResourceLocation TIGER_SUMMON = JujutsuMod.id("megumi/tiger_summon");
+	/** Megumi's hand sign for the tiger, anchored on the caster. */
+	public static final ResourceLocation TIGER_SUMMON_BODY = JujutsuMod.id("megumi/tiger_summon_body");
+	/** One combo beat landed; the cue's intensity carries the beat index. */
+	public static final ResourceLocation TIGER_STRIKE = JujutsuMod.id("megumi/tiger_strike");
+	/** A combo beat missed its arc: a wisp where the claw passed. */
+	public static final ResourceLocation TIGER_MISS = JujutsuMod.id("megumi/tiger_miss");
+	/** The committed sequence ends: recovery dust and a shadow accent around the spent tiger. */
+	public static final ResourceLocation TIGER_RECOVER = JujutsuMod.id("megumi/tiger_recover");
+
 	public static final Set<ResourceLocation> LIVE = Set.of(
 			DOGS_SUMMON_BODY, DOGS_SUMMON, DOGS_RECALL, DOGS_SIC, DOGS_POUNCE,
 			SHADOW_TRAP_OPEN, SHADOW_TRAP_ZONE, SHADOW_TRAP_GRIP, SHADOW_TRAP_CLOSE,
@@ -70,7 +114,16 @@ public final class MegumiVfxIds {
 			NUE_SUMMON, NUE_DIVE, NUE_SHOCK, NUE_PARTIAL_WINGS, SHIKIGAMI_SIC, SHIKIGAMI_RECALL,
 			TOAD_SUMMON, TOAD_TONGUE,
 			ELEPHANT_SUMMON, ELEPHANT_JET,
-			RABBITS_SUMMON, RABBITS_POP);
+			RABBITS_SUMMON, RABBITS_POP,
+			SERPENT_SUMMON, SERPENT_SUMMON_BODY,
+			SERPENT_EMERGE, SERPENT_BIND, SERPENT_RELEASE,
+			DEER_SUMMON, DEER_SUMMON_BODY,
+			DEER_PULSE, DEER_CLEANSE,
+			OX_SUMMON, OX_SUMMON_BODY,
+			OX_WINDUP, OX_CHARGE, OX_IMPACT, OX_WALL_HIT,
+			TIGER_SUMMON, TIGER_SUMMON_BODY,
+			TIGER_STRIKE, TIGER_MISS, TIGER_RECOVER);
+	/** Brain-emitted mechanic cues graduate to LIVE at each type's acceptance merge. */
 	public static final Set<ResourceLocation> PLANNED = Set.of();
 
 	private MegumiVfxIds() {}

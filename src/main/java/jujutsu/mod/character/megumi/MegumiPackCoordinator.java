@@ -76,12 +76,15 @@ public final class MegumiPackCoordinator {
 		MegumiFailureMemory.retainOnly(liveBodies);
 	}
 
-	/** Every body that can carry a mark: the non-rabbit shikigami plus the Divine Dogs. */
+	/** Every body that can carry a mark: the combat-capable shikigami plus the Divine Dogs. */
 	private static List<LivingEntity> markHolders(MinecraftServer server, UUID ownerId) {
 		List<LivingEntity> bodies = new ArrayList<>();
 		for (MegumiShikigamiEntity body : MegumiShikigamiRuntime.livingBodiesAll(server, ownerId)) {
-			// Rabbit Escape carries no marks (D13): the swarm's chaos is its contribution.
-			if (body.shikigamiType() != MegumiShikigami.RABBITS) {
+			// Rabbit Escape carries no marks (D13): the swarm's chaos is its contribution. The Round
+			// Deer joins the same exclusion: a mark is threat awareness for it, never an order, so
+			// auto-assigning one would only pollute the occupancy accounting.
+			if (body.shikigamiType() != MegumiShikigami.RABBITS
+					&& body.shikigamiType() != MegumiShikigami.DEER) {
 				bodies.add(body);
 			}
 		}
@@ -117,6 +120,17 @@ public final class MegumiPackCoordinator {
 			} else if (body instanceof MegumiElephantEntity elephant && elephant.jetActive()
 					&& elephant.sicTargetUuid() != null) {
 				intents.add(elephant.sicTargetUuid());
+			} else if (body instanceof MegumiSerpentEntity serpent) {
+				if (serpent.bindVictimUuid() != null) {
+					intents.add(serpent.bindVictimUuid());
+				} else if (serpent.ambushTargetUuid() != null) {
+					intents.add(serpent.ambushTargetUuid());
+				}
+			} else if (body instanceof MegumiOxEntity ox && ox.charging()
+					&& ox.chargeTargetUuid() != null) {
+				intents.add(ox.chargeTargetUuid());
+			} else if (body instanceof MegumiTigerEntity tiger && tiger.comboTargetUuid() != null) {
+				intents.add(tiger.comboTargetUuid());
 			}
 			LivingEntity aggressor = body.getLastHurtByMob();
 			if (MegumiRetaliationPolicy.isUsable(aggressor)
