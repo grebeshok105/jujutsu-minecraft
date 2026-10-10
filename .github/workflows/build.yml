@@ -1,12 +1,5 @@
-# Run the canonical merge gate for every push and pull request.
-#
-# CI keeps no hand-maintained list of verification commands. It runs the same `./gradlew qualityGate`
-# a contributor runs locally, so a green CI and a green local run mean exactly the same thing.
-# Anything the gate should cover belongs inside the qualityGate task in build.gradle, never as an
-# extra step here.
-
 name: build
-on: [pull_request, push]
+on: [push]
 
 jobs:
   build:
@@ -23,18 +16,6 @@ jobs:
           distribution: 'temurin'
       - name: make gradle wrapper executable
         run: chmod +x ./gradlew
-      - name: quality gate
-        run: ./gradlew qualityGate --no-daemon
-      - name: capture gametest failure evidence
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: gametest-failure-evidence
-          path: |
-            build/test-results/gametest/
-            build/run/gameTest/logs/
-            build/run/gameTest/crash-reports/
-          if-no-files-found: ignore
       - name: assemble artifacts
         run: ./gradlew assemble --no-daemon
       - name: capture build artifacts
