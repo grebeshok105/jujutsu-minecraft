@@ -5,6 +5,16 @@ const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 24);
 onScroll();
 window.addEventListener('scroll', onScroll, { passive: true });
 
+const menuBtn = document.querySelector('.menu-btn');
+const setMenu = open => {
+  nav.classList.toggle('open', open);
+  menuBtn.setAttribute('aria-expanded', open);
+  menuBtn.setAttribute('aria-label', open ? 'Закрыть меню разделов' : 'Открыть меню разделов');
+};
+menuBtn.addEventListener('click', () => setMenu(!nav.classList.contains('open')));
+document.querySelectorAll('.nav-links a').forEach(a => a.addEventListener('click', () => setMenu(false)));
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && nav.classList.contains('open')) { setMenu(false); menuBtn.focus(); } });
+
 const track = document.querySelector('.ticker-track');
 if (track) track.innerHTML += track.innerHTML;
 

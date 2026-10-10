@@ -30,14 +30,15 @@
         <span class="logo-mark" aria-hidden="true">呪</span>
         <span class="logo-word">Jujutsu<em>Minecraft</em></span>
       </a>
-      <nav class="nav-links" aria-label="Разделы">
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="nav-links" aria-label="Открыть меню разделов"><span></span><span></span></button>
+      <nav class="nav-links" id="nav-links" aria-label="Разделы">
         <a href="#vessels">Сосуды</a>
         <a href="#shadows">Шикигами</a>
         <a href="#curses">Проклятия</a>
         <a href="#updates">Обновления</a>
         <a href="#install">Установка</a>
       </nav>
-      <a class="btn btn-flash btn-sm" href="https://github.com/grebeshok105/jujutsu-minecraft/releases/tag/v1.7.6">
+      <a class="btn btn-flash btn-sm" href="#" aria-label="Скачать 1.7.6">
         <svg class="ic"><use href="#i-down" /></svg><span>Скачать 1.7.6</span>
       </a>
     </div>
@@ -54,7 +55,7 @@
         </h1>
         <p class="hero-sub">Fabric-мод по мотивам «Магической битвы». Три сосуда с продуманными до кадра техниками, десять теней Мегуми и проклятые духи, которых видят только маги.</p>
         <div class="hero-ctas">
-          <a class="btn btn-flash" href="https://github.com/grebeshok105/jujutsu-minecraft/releases/tag/v1.7.6"><svg class="ic"><use href="#i-down" /></svg>Скачать мод</a>
+          <a class="btn btn-flash" href="#"><svg class="ic"><use href="#i-down" /></svg>Скачать мод</a>
           <a class="btn btn-ghost" href="#vessels">Выбрать сосуд<svg class="ic"><use href="#i-arrow" /></svg></a>
         </div>
         <dl class="hero-spec">
@@ -127,9 +128,14 @@
               <ul class="keys">
                 <li><span class="combo"><kbd>R</kbd></span><div><b>Призыв и отзыв</b><span>Поднимает выбранную тень или возвращает выжившую стаю.</span></div></li>
                 <li><span class="combo"><kbd>Shift R</kbd></span><div><b>Приказ «сик»</b><span>Все живые шикигами атакуют цель под прицелом.</span></div></li>
-                <li><span class="combo"><kbd>Shift V</kbd></span><div><b>Смена тени</b><span>Псы, Нуэ, Жаба, Кроличий побег, Слон. Смена бесплатна.</span></div></li>
+                <li><span class="combo"><kbd>Shift V</kbd></span><div><b>Выбор шикигами</b><span>Псы, Нуэ, Жаба, Кроличий побег, Слон. Смена бесплатна.</span></div></li>
+                <li><span class="combo"><kbd>B</kbd></span><div><b>Теневая ловушка</b><span>Лужа тени под целью: скорость падает до четверти, прыжок пропадает.</span></div></li>
+                <li><span class="combo"><kbd>Shift B</kbd></span><div><b>Теневой шаг</b><span>Нырок в тень и выход за спиной цели или в точке, куда смотришь.</span></div></li>
+                <li><span class="combo"><kbd>Shift B</kbd><small class="hold">держать</small></span><div><b>Глубокое погружение</b><span>Зажми — и уходишь в тень, двигаясь невидимым по поверхности.</span></div></li>
+                <li><span class="combo"><kbd>V</kbd></span><div><b>Теневой обвал</b><span>Над целью раскрывается тень и сбрасывает на неё блоки: песок, гравий, глину или наковальню.</span></div></li>
+                <li><span class="combo"><kbd>X</kbd></span><div><b>Частичное проявление</b><span>С Нуэ — крылья для полёта, с Жабой — язык-крюк на 10 блоков. Без отката.</span></div></li>
               </ul>
-              <p class="vnote">Призыв без отката. Ручной отзыв — 12 секунд, гибель последнего тела — 30. Оставшееся время видно на боевом HUD. Если хозяина бьют, стая сама бросается на обидчика, но твой приказ всегда главнее.</p>
+              <p class="vnote">Призыв без отката, а откаты на отзыв и гибель у каждой тени свои: псы 12 / 30 с, Нуэ и Жаба 12 / 20 с, кролики 6 / 10 с, Слон 13 / 30 с. Оставшееся время видно на боевом HUD. Если хозяина бьют, стая сама бросается на обидчика, но твой приказ всегда главнее.</p>
             </div>
           </article>
         </div>
@@ -147,7 +153,7 @@
         </div>
         <ul class="beasts">
           <li><h3>Божественные псы</h3><p>Чёрный и белый, каждый смертен сам по себе. По приказу делают прыжок с средней дистанции и доводят цель до конца.</p></li>
-          <li><h3>Нуэ</h3><p>Кружит над головой, пикирует, оглушает и замедляет. Удар обливает водой — дальше больнее.</p></li>
+          <li><h3>Нуэ</h3><p>Кружит над головой, пикирует, оглушает и замедляет. По цели, которую намочил Слон, бьёт в полтора раза больнее и оглушает дольше.</p></li>
           <li><h3>Жаба</h3><p>Язык на 12 блоков. Хватает, держит на месте и швыряет в сторону. Игроков держит так же крепко, как мобов.</p></li>
           <li><h3>Кроличий побег</h3><p>Десять тел роем вокруг хозяина. Расталкивают и замедляют всех, кто подошёл близко. Погиб главный — стая развеялась.</p></li>
           <li><h3>Макс Элефант</h3><p>120 здоровья. Давит врагов присутствием и бьёт струёй воды по коридору: сбивает, тушит огонь, делает мокрым.</p></li>
@@ -161,7 +167,7 @@
         <div class="curse-grid">
           <div class="curse-copy">
             <h2 class="h2">Их видят<br />только маги</h2>
-            <p class="lead">Житель деревни пройдёт сквозь орду духов и не заметит ни тела, ни звука, ни толчка. Для Нобары, Тодо и Мегуми весь этот кошмар реален. Духи приходят ночью, днём прячутся в тени, а в мирном режиме не появляются вовсе.</p>
+            <p class="lead">Игрок без сосуда пройдёт сквозь орду духов и не заметит ни тела, ни звука, ни толчка. Для Нобары, Тодо и Мегуми весь этот кошмар реален. Ночью духи появляются всегда, днём — реже, и ищут тень: крышу, пещеру, крону дерева. В мирном режиме их нет вовсе.</p>
             <div class="grades">
               <div><b>Мелкие</b><span>Стаей по 2–4. Самые частые гости.</span></div>
               <div><b>Обычные</b><span>Одиночки, крепче и злее.</span></div>
@@ -172,7 +178,7 @@
           <ol class="abilities" aria-label="Восемь способностей духов">
             <li><b>Рывок</b><span>Бросок с уроном при столкновении</span></li>
             <li><b>Удар по площади</b><span>Прыжок и волна от точки падения</span></li>
-            <li><b>Кислотный плевок</b><span>Снаряд оставляет горящую лужу</span></li>
+            <li><b>Кислотный плевок</b><span>Снаряд оставляет едкую кислотную лужу</span></li>
             <li><b>Хватай и тащи</b><span>Тащит по земле и выбивает оружие</span></li>
             <li><b>Ужас</b><span>Управление переворачивается</span></li>
             <li><b>Регенерация</b><span>Отступает и лечится</span></li>
@@ -197,11 +203,11 @@
           <p class="lead">Все сборки выходят в статусе beta. Полные описания — на странице релизов.</p>
         </div>
         <ol class="timeline">
-          <li><time>15.09.2026</time><div><h3>1.7.6 · Хотфикс Cursed Saga</h3><p>Ужас по-настоящему переворачивает мышь, немаги больше не слышат шагов духов, рывок честно отбрасывает, Жаба отпускает, Слон снова давит, месть шикигами истекает.</p></div><a href="https://github.com/grebeshok105/jujutsu-minecraft/releases/tag/v1.7.6">Релиз</a></li>
-          <li><time>13.09.2026</time><div><h3>1.7.5 · Cursed Saga</h3><p>Невидимость для немагов, ранги силы, восемь способностей духов, хват Жабы и водная струя Слона.</p></div><a href="https://github.com/grebeshok105/jujutsu-minecraft/releases/tag/v1.7.5">Релиз</a></li>
-          <li><time>12.09.2026</time><div><h3>1.7.0 · Стая мстит</h3><p>Шикигами бросаются на обидчика хозяина, кролики кружат роем, крупные духи больше не машут в пустоту, анимации не дёргаются.</p></div><a href="https://github.com/grebeshok105/jujutsu-minecraft/releases/tag/v1.7.0">Релиз</a></li>
-          <li><time>12.09.2026</time><div><h3>1.6.5 · Проклятые духи</h3><p>Три враждебных тира, девять тварей со своими голосами, спавн в темноте с ограничением по месту.</p></div><a href="https://github.com/grebeshok105/jujutsu-minecraft/releases/tag/v1.6.5">Релиз</a></li>
-          <li><time>12.09.2026</time><div><h3>1.6.0 · Вся десятка теней</h3><p>К псам добавились Нуэ, Жаба, Кроличий побег и Слон. Бесплатная смена теней и связка «мокрый — шок».</p></div><a href="https://github.com/grebeshok105/jujutsu-minecraft/releases/tag/v1.6.0">Релиз</a></li>
+          <li><time datetime="2026-10-10">10.10.2026</time><div><h3>1.7.6 · Хотфикс Cursed Saga</h3><p>Ужас по-настоящему переворачивает мышь, немаги больше не слышат шагов духов, рывок честно отбрасывает, Жаба отпускает, Слон снова давит, месть шикигами истекает.</p></div><a href="#">Релиз</a></li>
+          <li><time datetime="2026-10-09">09.10.2026</time><div><h3>1.7.5 · Cursed Saga</h3><p>Невидимость для немагов, ранги силы, восемь способностей духов, хват Жабы и водная струя Слона.</p></div><a href="#">Релиз</a></li>
+          <li><time>12.09.2026</time><div><h3>1.7.0 · Стая мстит</h3><p>Шикигами бросаются на обидчика хозяина, кролики кружат роем, крупные духи больше не машут в пустоту, анимации не дёргаются.</p></div><a href="#">Релиз</a></li>
+          <li><time>12.09.2026</time><div><h3>1.6.5 · Проклятые духи</h3><p>Три враждебных тира, девять тварей со своими голосами, спавн в темноте с ограничением по месту.</p></div><a href="#">Релиз</a></li>
+          <li><time>12.09.2026</time><div><h3>1.6.0 · Вся десятка теней</h3><p>К псам добавились Нуэ, Жаба, Кроличий побег и Слон. Бесплатная смена теней и связка «мокрый — шок».</p></div><a href="#">Релиз</a></li>
         </ol>
       </div>
     </section>
@@ -224,16 +230,15 @@
         <div>
           <h2 class="h2">Под капотом</h2>
           <p class="lead">Вся игровая логика решается на сервере, клиенту остаются рендер, меню, частицы и камера. Эффекты идут через единый VFX-конвейер, а каждый новый сосуд — это одно определение для сервера, одно для клиента и ассеты.</p>
-          <p class="small">Проект рассчитан на приватную игру на одного-двух человек. Код под CC0-1.0, статус ассетов описан в <code>docs/PROVENANCE.md</code>.</p>
+          <p class="small">Проект рассчитан на приватную игру на одного-двух человек. Код под CC0-1.0, происхождение ассетов и артов сайта описано в <code>docs/PROVENANCE.md</code>.</p>
         </div>
         <table class="facts">
-          <caption>Состояние кода на 1.7.6</caption>
+          <caption>Состояние кода в main</caption>
           <tbody>
             <tr><th scope="row">Java-файлов сервера</th><td>234</td></tr>
             <tr><th scope="row">Java-файлов клиента</th><td>273</td></tr>
             <tr><th scope="row">Тестовых файлов</th><td>165</td></tr>
-            <tr><th scope="row">GameTest-сценариев</th><td>155</td></tr>
-            <tr><th scope="row">Сетевых пакетов</th><td>17</td></tr>
+            <tr><th scope="row">GameTest-сценариев</th><td>249</td></tr>
           </tbody>
         </table>
       </div>
@@ -244,8 +249,8 @@
         <h2 class="final-title">Ночь уже наступила</h2>
         <p class="lead">Выбери сосуд и проверь, кто сильнее: ты или то, что прячется в пещере.</p>
         <div class="hero-ctas">
-          <a class="btn btn-flash" href="https://github.com/grebeshok105/jujutsu-minecraft/releases/tag/v1.7.6"><svg class="ic"><use href="#i-down" /></svg>Скачать 1.7.6 beta</a>
-          <a class="btn btn-ghost" href="https://github.com/grebeshok105/jujutsu-minecraft"><svg class="ic"><use href="#i-git" /></svg>Исходники на GitHub</a>
+          <a class="btn btn-flash" href="#"><svg class="ic"><use href="#i-down" /></svg>Скачать 1.7.6 beta</a>
+          <a class="btn btn-ghost" href="#"><svg class="ic"><use href="#i-git" /></svg>Исходники на GitHub</a>
         </div>
       </div>
     </section>
@@ -254,7 +259,7 @@
   <footer class="foot">
     <div class="wrap foot-row">
       <span>© 2026 Jujutsu Minecraft · фанатский мод, не связан с правообладателями «Магической битвы»</span>
-      <nav aria-label="Ссылки"><a href="https://github.com/grebeshok105/jujutsu-minecraft/releases">Все релизы</a><a href="https://github.com/grebeshok105/jujutsu-minecraft/issues">Сообщить о баге</a></nav>
+      <nav aria-label="Ссылки"><a href="#">Все релизы</a><a href="#">Сообщить о баге</a></nav>
     </div>
   </footer>
 
