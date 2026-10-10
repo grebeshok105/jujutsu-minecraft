@@ -33,6 +33,13 @@ public final class JujutsuSounds {
 	public static final SoundEvent TODO_CLAP_DENSE = create("todo.clap_dense");
 	/** Todo Peak activation chime (tools/synth_todo_sounds.py). */
 	public static final SoundEvent TODO_PEAK_CHIME = create("todo.peak_chime");
+	// Black hole visual experiment (debug-only): PRELUDE and IMPULSE are synthesized by
+	// tools/synth_blackhole_sounds.py; DRONE is the licensed freesound loop
+	// 568574__ericnorcross81__void-of-a-black-hole-fictional (mono, loop-wrapped, bass-boosted).
+	// All layers are strictly positional at the hole's centre.
+	public static final SoundEvent BLACK_HOLE_PRELUDE = create("blackhole.prelude");
+	public static final SoundEvent BLACK_HOLE_DRONE = create("blackhole.drone");
+	public static final SoundEvent BLACK_HOLE_IMPULSE = create("blackhole.impulse");
 	/** Low body-impact report. Two variants, so a rapid exchange does not sound like one looped sample. */
 	public static final SoundEvent PROJECTJJK_AEC_BOOM = create("projectjjk.aec_boom");
 	/** Mega Nail: 1.3 s synthesized power build-up, played once at charge start (see tools/synth_mega_sounds.py). */
@@ -118,6 +125,9 @@ public final class JujutsuSounds {
 		register("todo.vibraslap_rattle", TODO_VIBRASLAP_RATTLE);
 		register("todo.clap_dense", TODO_CLAP_DENSE);
 		register("todo.peak_chime", TODO_PEAK_CHIME);
+		register("blackhole.prelude", BLACK_HOLE_PRELUDE);
+		register("blackhole.drone", BLACK_HOLE_DRONE);
+		register("blackhole.impulse", BLACK_HOLE_IMPULSE);
 		register("nobara.mega_charge_riser", NOBARA_MEGA_CHARGE_RISER);
 		register("nobara.mega_launch_blast", NOBARA_MEGA_LAUNCH_BLAST);
 		register("megumi.dog_ambient", MEGUMI_DOG_AMBIENT);

@@ -16,6 +16,7 @@ import net.minecraft.resources.ResourceLocation;
  */
 public final class DebugVfxIds {
 	public static final ResourceLocation DOMAIN_SPHERE = JujutsuMod.id("domain_sphere");
+	public static final ResourceLocation BLACK_HOLE = JujutsuMod.id("black_hole");
 
 	private DebugVfxIds() {}
 }

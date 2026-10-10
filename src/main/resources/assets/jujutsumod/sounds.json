@@ -398,5 +398,26 @@
       "jujutsumod:megumi/selector_reject"
     ],
     "subtitle": "subtitles.jujutsumod.megumi.selector_reject"
+  },
+  "blackhole.prelude": {
+    "sounds": [
+      "jujutsumod:blackhole/prelude"
+    ],
+    "subtitle": "subtitles.jujutsumod.blackhole.prelude"
+  },
+  "blackhole.drone": {
+    "sounds": [
+      {
+        "name": "jujutsumod:blackhole/drone",
+        "attenuation_distance": 96
+      }
+    ],
+    "subtitle": "subtitles.jujutsumod.blackhole.drone"
+  },
+  "blackhole.impulse": {
+    "sounds": [
+      "jujutsumod:blackhole/impulse"
+    ],
+    "subtitle": "subtitles.jujutsumod.blackhole.impulse"
   }
 }

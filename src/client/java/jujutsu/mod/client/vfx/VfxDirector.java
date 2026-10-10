@@ -31,6 +31,8 @@ public final class VfxDirector {
 	private static final VfxSoundChannel SOUND = new VfxSoundChannel();
 	private static final VfxPostProcessChannel POST_PROCESS = new VfxPostProcessChannel();
 	private static final VfxDomainSphereChannel DOMAIN_SPHERE = new VfxDomainSphereChannel();
+	private static final VfxBlackHoleChannel BLACK_HOLE = new VfxBlackHoleChannel();
+	private static WorldRenderContext lastWorldContext;
 	private static ClientLevel activeLevel;
 	private static boolean initialized;
 
@@ -49,6 +51,7 @@ public final class VfxDirector {
 		// The director owns lifecycle wiring, the channel owns state and GL objects: the channel's own
 		// constructor registers nothing, which is what keeps it constructible from JUnit.
 		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> DOMAIN_SPHERE.close());
+		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> BLACK_HOLE.close());
 	}
 
 	public static void register(ResourceLocation effectId, VfxRecipe recipe) {
@@ -160,6 +163,8 @@ public final class VfxDirector {
 	 */
 	private static void renderLast(WorldRenderContext context) {
 		DOMAIN_SPHERE.render(context);
+		BLACK_HOLE.captureWorldDepth(Minecraft.getInstance());
+		lastWorldContext = context;
 	}
 
 	private static void renderHud(GuiGraphics graphics, DeltaTracker tickCounter) {
@@ -175,10 +180,21 @@ public final class VfxDirector {
 		// After bindLevel, so a level change has already restored the duck through clear() before this
 		// looks at a deadline that no longer belongs to anything.
 		SOUND.tick(client);
+		BLACK_HOLE.tickSounds(client);
+	}
+
+	/** The black hole channel, for the render-level and GUI mixins that have no VfxContext. */
+	public static VfxBlackHoleChannel blackHole() {
+		return BLACK_HOLE;
+	}
+
+	/** Last frame's world render context: valid for the rest of the frame (post-hand pass, HUD composite). */
+	public static WorldRenderContext lastWorldContext() {
+		return lastWorldContext;
 	}
 
 	private static VfxContext context(Minecraft client) {
-		return new VfxContext(client, VfxQuality.from(client.options.particles().get()), WORLD, HUD, CAMERA, FIRST_PERSON, PARTICLES, SOUND, POST_PROCESS, DOMAIN_SPHERE);
+		return new VfxContext(client, VfxQuality.from(client.options.particles().get()), WORLD, HUD, CAMERA, FIRST_PERSON, PARTICLES, SOUND, POST_PROCESS, DOMAIN_SPHERE, BLACK_HOLE);
 	}
 
 	private static void bindLevel(Minecraft client) {
@@ -191,6 +207,7 @@ public final class VfxDirector {
 	private static void reset() {
 		clear();
 		POST_PROCESS.resetSession();
+		BLACK_HOLE.resetSession();
 		DOMAIN_SPHERE.resetSession();
 		activeLevel = null;
 	}
@@ -204,5 +221,6 @@ public final class VfxDirector {
 		SOUND.clear();
 		POST_PROCESS.clear();
 		DOMAIN_SPHERE.clear();
+		BLACK_HOLE.clear();
 	}
 }
